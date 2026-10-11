@@ -347,3 +347,19 @@ finance, responsive/spec and final integration approval. The old 207-row complet
 P0/P1/P2 backlog items, and the 42-step V3 scenario remain roadmap traceability and do not block this
 verdict. A real unavailable external prerequisite may justify a narrowly scoped `BLOCKED`, but never
 placeholders, unmapped Essential scope, or untruthful product state.
+
+
+### Digital workers candidate — 11 October 2026
+
+User-authorized API-free automation is implemented in isolated branch
+`codex/digital-workers-20261011`, based on `27e57872`. Scope covers factual linked
+draft capture (CORE-04/06/07), operational follow-up and explicit human review
+(CORE-08), reviewed exact-source invoice-draft handoff (CORE-10), role-safe evidence
+and immutable audit (CORE-05/15), in-app due notices (CORE-16), and additive
+migration/backup coverage (CORE-17). Responsive evidence relates to CORE-14.
+
+The [candidate evidence ledger](docs/evidence/digital-workers-20261011/README.md)
+records final checks and limitations; the [operating guide](docs/manuals/Digital_Workers.md)
+explains the role workflows. This scoped candidate does not change previous
+Client Essential verdicts. It is **not deployed**. Integration with the separate
+UX refresh branch and coordinated release validation remain required.

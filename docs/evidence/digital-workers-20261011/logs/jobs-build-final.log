@@ -1,0 +1,22 @@
+$ vite build --config deployment/vite.jobs.config.ts && vite build --config deployment/vite.owner-policy.config.ts
+vite v8.2.1 building ssr environment for production...
+[2K
+transforming...✓ 197 modules transformed.
+rendering chunks...
+computing gzip size...
+deployment/jobs-build/alerts.mjs                 1.28 kB
+deployment/jobs-build/storage-safety.mjs         3.51 kB
+deployment/jobs-build/backup-verify.mjs          7.41 kB
+deployment/jobs-build/backup.mjs                10.71 kB
+deployment/jobs-build/continuity-backup.mjs     71.94 kB
+deployment/jobs-build/jobs-run.mjs           2,057.08 kB │ gzip: 447.38 kB
+
+✓ built in 296ms
+vite v8.2.1 building ssr environment for production...
+[2K
+transforming...✓ 28 modules transformed.
+rendering chunks...
+computing gzip size...
+deployment/jobs-build/reconcile-owner-finance-policy.mjs  18.30 kB │ gzip: 5.70 kB
+
+✓ built in 41ms

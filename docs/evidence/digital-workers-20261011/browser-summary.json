@@ -1,0 +1,258 @@
+{
+  "generatedAt": "2026-10-11T00:38:23.796647+00:00",
+  "result": "PASS",
+  "uniquePassedJourneys": 22,
+  "latestFailures": 0,
+  "viewports": {
+    "phone-360": "360x800",
+    "phone-390": "390x844",
+    "tablet-768": "768x1024",
+    "desktop": "1440x900"
+  },
+  "combination": "Six desktop journeys, corrected desktop multilingual journey, and fifteen responsive journeys on the final application candidate. No production access or deployment.",
+  "runs": [
+    {
+      "report": "swarm-desktop-six-results.json",
+      "log": "swarm-browser-desktop-six.log",
+      "screenshotsDirectory": "swarm-desktop-six-browser",
+      "startedAt": "2026-10-11T00:31:15.308Z",
+      "durationMs": 96221.077,
+      "passed": 6,
+      "failed": 1,
+      "skipped": 0
+    },
+    {
+      "report": "swarm-desktop-language-results.json",
+      "log": "swarm-browser-desktop-language.log",
+      "screenshotsDirectory": "swarm-desktop-language-browser",
+      "startedAt": "2026-10-11T00:33:37.332Z",
+      "durationMs": 49494.293000000005,
+      "passed": 1,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "report": "swarm-responsive-final-results.json",
+      "log": "swarm-browser-responsive-final.log",
+      "screenshotsDirectory": "swarm-responsive-final-browser",
+      "startedAt": "2026-10-11T00:35:21.682Z",
+      "durationMs": 150398.423,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "outcomes": [
+    {
+      "project": "desktop",
+      "title": "digital workers workspace is role-scoped, keyboard reachable, and passes axe in main content",
+      "file": "digital-workers-accessibility.spec.ts",
+      "status": "passed",
+      "durationMs": 13384,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "worker can reach capture by keyboard; a project manager cannot open worker capture",
+      "file": "digital-workers-accessibility.spec.ts",
+      "status": "passed",
+      "durationMs": 3722,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "Finance opens and reviews a current case before preparing one invoice draft",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 9211,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "Finance records a manual policy proposal without changing billing or worker pay",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5385,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "PM sees operational decisions while financial cases remain restricted",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5948,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "Spanish Worker validation, Owner workspace and Portuguese Auditor case preserve role boundaries",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5929,
+      "report": "swarm-desktop-language-results.json"
+    },
+    {
+      "project": "desktop",
+      "title": "worker reviews one capture, recovers local facts, and creates linked drafts exactly once",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6974,
+      "report": "swarm-desktop-six-results.json"
+    },
+    {
+      "project": "phone-360",
+      "title": "Finance opens and reviews a current case before preparing one invoice draft",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 8440,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-360",
+      "title": "Finance records a manual policy proposal without changing billing or worker pay",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5329,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-360",
+      "title": "PM sees operational decisions while financial cases remain restricted",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5695,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-360",
+      "title": "Spanish Worker validation, Owner workspace and Portuguese Auditor case preserve role boundaries",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5850,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-360",
+      "title": "worker reviews one capture, recovers local facts, and creates linked drafts exactly once",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 8743,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-390",
+      "title": "Finance opens and reviews a current case before preparing one invoice draft",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 7294,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-390",
+      "title": "Finance records a manual policy proposal without changing billing or worker pay",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 7528,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-390",
+      "title": "PM sees operational decisions while financial cases remain restricted",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6556,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-390",
+      "title": "Spanish Worker validation, Owner workspace and Portuguese Auditor case preserve role boundaries",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6293,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "phone-390",
+      "title": "worker reviews one capture, recovers local facts, and creates linked drafts exactly once",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6873,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "tablet-768",
+      "title": "Finance opens and reviews a current case before preparing one invoice draft",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 7744,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "tablet-768",
+      "title": "Finance records a manual policy proposal without changing billing or worker pay",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 5160,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "tablet-768",
+      "title": "PM sees operational decisions while financial cases remain restricted",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6344,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "tablet-768",
+      "title": "Spanish Worker validation, Owner workspace and Portuguese Auditor case preserve role boundaries",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 6460,
+      "report": "swarm-responsive-final-results.json"
+    },
+    {
+      "project": "tablet-768",
+      "title": "worker reviews one capture, recovers local facts, and creates linked drafts exactly once",
+      "file": "digital-workers.spec.ts",
+      "status": "passed",
+      "durationMs": 9113,
+      "report": "swarm-responsive-final-results.json"
+    }
+  ],
+  "supersededAttempts": [
+    {
+      "project": "desktop",
+      "title": "Spanish Worker validation, Owner workspace and Portuguese Auditor case preserve role boundaries",
+      "file": "digital-workers.spec.ts",
+      "status": "failed",
+      "durationMs": 2465,
+      "report": "swarm-desktop-six-results.json"
+    }
+  ],
+  "earlierFailureReceipts": [
+    {
+      "log": "swarm-browser-first.log",
+      "finding": "Harness matched raw named-action query, while Svelte encoded it. Predicate now parses query parameters; server validation behavior preserved."
+    },
+    {
+      "log": "swarm-browser-responsive15.log",
+      "finding": "Accessibility harness omitted accessible-name matcher argument. Replaced by nonblank regex; empty read-only auditor state is asserted explicitly."
+    },
+    {
+      "log": "swarm-browser-contrast-failure.log",
+      "finding": "Actual workspace introductory text contrast 4.32:1. Route-local text colors corrected; five role inboxes, capture, and fresh/reviewed finance case subsequently passed axe."
+    },
+    {
+      "log": "swarm-browser-desktop-six.log",
+      "finding": "Enhanced capture action carries failure400 in JSON over HTTP200. Browser test now asserts action type/status, localized alert, preserved fields, and zero writes."
+    }
+  ],
+  "axeScope": "Desktop main content: five role inboxes, worker capture, fresh finance case, reviewed finance case (eight scans); no violations after correction.",
+  "notes": [
+    "Only public test titles/statuses and artifact paths included; raw browser configuration, fixture credentials, and tokens omitted.",
+    "Earlier responsive screenshots are retained for failure history; swarm-responsive-final-browser is the final responsive evidence."
+  ],
+  "localArtifactRoot": "artifacts/digital-workers-validation (repository-relative; raw reports and traces remain local)",
+  "committedLogsRoot": "logs/"
+}

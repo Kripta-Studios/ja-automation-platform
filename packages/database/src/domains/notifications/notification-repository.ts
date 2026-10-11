@@ -1,5 +1,6 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { newId } from '@ja/domain';
+import { dueDigitalWorkItems } from './digital-work-followup.ts';
 
 type NotificationRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
@@ -684,6 +685,22 @@ export class NotificationRepository {
     return created;
   }
 
+  private digitalWorkNotifications(now: string): number {
+    let created = 0;
+    for (const row of dueDigitalWorkItems(this.deps.sqlite, now)) {
+      if (
+        this.enqueue(
+          row.owner_id,
+          'digital_work_followup',
+          `digital-work:${row.id}:${row.due_on}`,
+          now,
+        )
+      )
+        created += 1;
+    }
+    return created;
+  }
+
   /** Scan source state and materialize all supported business notices. */
   dispatchBusinessNotifications(now = this.deps.now()): number {
     return this.deps.transaction(
@@ -694,7 +711,8 @@ export class NotificationRepository {
         this.invoiceNotifications(now) +
         this.receiptNotifications(now) +
         this.budgetNotifications(now) +
-        this.settlementNotifications(now),
+        this.settlementNotifications(now) +
+        this.digitalWorkNotifications(now),
     );
   }
 

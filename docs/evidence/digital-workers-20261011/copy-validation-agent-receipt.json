@@ -1,0 +1,25 @@
+{
+  "kind": "agent-reported command receipt (raw output not saved)",
+  "agent": "dw_workspace",
+  "date": "2026-10-11",
+  "checks": [
+    {
+      "command": "./node_modules/.bin/vitest run tests/unit/digital-workers-workflow-copy.test.ts",
+      "exitCode": 0,
+      "filesPassed": 1,
+      "testsPassed": 3
+    },
+    {
+      "command": "./node_modules/.bin/eslint apps/portal/src/lib/portal/workflow/copy.ts apps/portal/src/lib/portal/workflow/server.ts apps/portal/src/routes/app/workflow/capture/+page.server.ts tests/unit/digital-workers-workflow-copy.test.ts",
+      "exitCode": 0
+    },
+    {
+      "command": "./node_modules/.bin/prettier --check apps/portal/src/lib/portal/workflow/copy.ts apps/portal/src/lib/portal/workflow/server.ts apps/portal/src/routes/app/workflow/capture/+page.server.ts tests/unit/digital-workers-workflow-copy.test.ts",
+      "exitCode": 0
+    },
+    {
+      "command": "./node_modules/.bin/tsc --noEmit -p apps/portal/tsconfig.json",
+      "exitCode": 0
+    }
+  ]
+}

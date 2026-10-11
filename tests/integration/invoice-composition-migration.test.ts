@@ -54,7 +54,15 @@ describe('invoice composition migration 76', () => {
       .all();
     const projects = f.sqlite.prepare('SELECT * FROM project ORDER BY id').all();
     f.sqlite.close();
-    process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+    const through76 = mkdtempSync(join(tmpdir(), 'ja-invoice-selection-schema76-'));
+    directories.push(through76);
+    for (const entry of readdirSync(resolve('migrations')))
+      if (
+        entry === 'contracts' ||
+        (/^\d{4}_.+\.sql$/.test(entry) && Number(entry.slice(0, 4)) <= 76)
+      )
+        cpSync(join(resolve('migrations'), entry), join(through76, entry), { recursive: true });
+    process.env.JA_MIGRATIONS_PATH = through76;
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
       version: 76,
@@ -82,7 +90,7 @@ describe('invoice composition migration 76', () => {
     expect(
       f.sqlite.prepare('SELECT COUNT(*) count FROM schema_migration WHERE version=76').get(),
     ).toEqual({ count: 1 });
-  });
+  }, 120_000);
 
   it('installs on a fresh database and protects retry identity and migration metadata', () => {
     const f = createB5LifecycleSecurityFixture();

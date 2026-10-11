@@ -313,6 +313,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   74: 'client_labor_billing_units',
   75: 'project_site_client_crm',
   76: 'invoice_composition_selection',
+  77: 'digital_work_coordination',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -321,7 +322,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '65f805c0a75cc250b66be5446b0d8d5f67f1f08a142b0cae372a97cf3e4ac431';
+  'b9a72034a2ebe07a3634fefc24124b8f8b2d7f10ae411f2ca48400ac3814b80e';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1228,3 +1229,6 @@ export {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
 } from './domains/billing/issuer-document-settings.ts';
+
+export * from './domains/field-capture/index.ts';
+export * from './domains/digital-workers/index.ts';

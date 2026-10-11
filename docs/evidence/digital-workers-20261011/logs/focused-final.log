@@ -1,0 +1,93 @@
+
+ RUN  v4.1.11 /home/kripta/ja-digital-workers-20261011
+
+ ❯ tests/integration/astra-notifications.test.ts (7 tests | 4 failed) 43225ms
+     × suppresses missing time for absent schedules, inactive projects, expired assignments, leave, and submitted time 6369ms
+     × exposes safe app-relative targets and a scoped title in the notification DTO 7106ms
+     × notifies active operational reviewers for submitted records and only the owner after return 5525ms
+     × covers period, signature, overdue, receipt, budget, cap, and worker payment triggers 5679ms
+ ❯ tests/integration/digital-work-cases.test.ts (8 tests | 1 failed) 57923ms
+     × binds review to all-source truth, creates only a selected draft, and retries without duplicate writes 5764ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 5 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/integration/astra-notifications.test.ts > ASTRA effective missing-time notifications > suppresses missing time for absent schedules, inactive projects, expired assignments, leave, and submitted time
+Error: Project assignment access required
+ ❯ PortalRepository.assertProjectObjectAccess packages/database/src/repository.ts:2286:13
+    2284|       (principal.role === 'worker' && ownerId !== undefined && ownerId…
+    2285|     )
+    2286|       throw new AccessDeniedError('Project assignment access required'…
+       |             ^
+    2287|   }
+    2288|
+ ❯ PortalRepository.createTimeEntry packages/database/src/repository.ts:1769:12
+ ❯ tests/integration/astra-notifications.test.ts:217:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/5]⎯
+
+ FAIL  tests/integration/astra-notifications.test.ts > ASTRA effective missing-time notifications > exposes safe app-relative targets and a scoped title in the notification DTO
+Error: Live authenticated session required
+ ❯ assertLiveSession packages/database/src/core/authorization.ts:24:25
+     22| ): void {
+     23|   const sessionId = principal.sessionId?.trim() ?? '';
+     24|   if (!sessionId) throw new AccessError('Live authenticated session re…
+       |                         ^
+     25|   const session = sqlite
+     26|     .prepare('SELECT expires_at FROM session WHERE user_id=? AND (id=?…
+ ❯ workerOperationalProjectScope packages/database/src/core/project-access.ts:46:3
+ ❯ PortalRepository.listNotifications packages/database/src/repository.ts:10339:11
+ ❯ tests/integration/astra-notifications.test.ts:273:35
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/5]⎯
+
+ FAIL  tests/integration/astra-notifications.test.ts > ASTRA scoped business notifications > notifies active operational reviewers for submitted records and only the owner after return
+Error: Project assignment access required
+ ❯ PortalRepository.assertProjectObjectAccess packages/database/src/repository.ts:2286:13
+    2284|       (principal.role === 'worker' && ownerId !== undefined && ownerId…
+    2285|     )
+    2286|       throw new AccessDeniedError('Project assignment access required'…
+       |             ^
+    2287|   }
+    2288|
+ ❯ PortalRepository.createTimeEntry packages/database/src/repository.ts:1769:12
+ ❯ tests/integration/astra-notifications.test.ts:347:35
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/5]⎯
+
+ FAIL  tests/integration/astra-notifications.test.ts > ASTRA scoped business notifications > covers period, signature, overdue, receipt, budget, cap, and worker payment triggers
+Error: Project assignment access required
+ ❯ PortalRepository.assertProjectObjectAccess packages/database/src/repository.ts:2286:13
+    2284|       (principal.role === 'worker' && ownerId !== undefined && ownerId…
+    2285|     )
+    2286|       throw new AccessDeniedError('Project assignment access required'…
+       |             ^
+    2287|   }
+    2288|
+ ❯ packages/database/src/repository.ts:4363:16
+ ❯ runImmediateTransaction packages/database/src/core/transaction.ts:34:22
+ ❯ PortalRepository.transaction packages/database/src/repository.ts:766:12
+ ❯ PortalRepository.createExpense packages/database/src/repository.ts:4350:17
+ ❯ tests/integration/astra-notifications.test.ts:488:47
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/5]⎯
+
+ FAIL  tests/integration/digital-work-cases.test.ts > digital work coordination > binds review to all-source truth, creates only a selected draft, and retries without duplicate writes
+DigitalWorkConflictError: Case handed over to its invoice; continue in the invoice workflow
+ ❯ packages/database/src/domains/digital-workers/index.ts:898:15
+    896|         throw new DigitalWorkConflictError('Case version changed');
+    897|       if (row.draft_invoice_id !== null)
+    898|         throw new DigitalWorkConflictError(
+       |               ^
+    899|           'Case handed over to its invoice; continue in the invoice wo…
+    900|         );
+ ❯ runImmediateTransaction packages/database/src/core/transaction.ts:34:22
+ ❯ DigitalWorkersRepository.prepareInvoiceDraft packages/database/src/domains/digital-workers/index.ts:886:12
+ ❯ tests/integration/digital-work-cases.test.ts:140:17
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/5]⎯
+
+
+ Test Files  2 failed | 10 passed (12)
+      Tests  5 failed | 57 passed (62)
+   Start at  01:57:06
+   Duration  385.31s (transform 2.12s, setup 0ms, import 5.49s, tests 377.62s, environment 1ms)

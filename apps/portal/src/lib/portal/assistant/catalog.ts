@@ -3,6 +3,120 @@ import type { AssistantContext, AssistantRole, AssistantTask } from './types';
 /** Source-grounded navigation only. Server authorization remains authoritative. */
 export const assistantTasks: readonly AssistantTask[] = [
   {
+    id: 'workflow-today',
+    title: { en: 'Finish today', es: 'Completar mi jornada', pt: 'Concluir o meu dia' },
+    category: 'time',
+    roles: ['worker'],
+    profiles: ['standard'],
+    href: '/app/workflow/capture',
+    actionNames: [],
+    phrases: {
+      en: ['finish today', 'daily capture', 'prepare time report and expense', 'digital worker'],
+      es: [
+        'terminar jornada',
+        'captura diaria',
+        'preparar horas informe y gasto',
+        'trabajador digital',
+      ],
+      pt: [
+        'concluir dia',
+        'registro diário',
+        'preparar horas relatório e despesa',
+        'trabalhador digital',
+      ],
+    },
+    description: {
+      en: 'Record the facts once and prepare your time, daily report and expense drafts.',
+      es: 'Registra los hechos una vez y prepara borradores de horas, informe diario y gasto.',
+      pt: 'Registe os factos uma vez e prepare rascunhos de horas, relatório diário e despesa.',
+    },
+  },
+  {
+    id: 'workflow-review',
+    title: {
+      en: 'Work needing your decision',
+      es: 'Trabajo pendiente de tu decisión',
+      pt: 'Trabalho que precisa da sua decisão',
+    },
+    category: 'approvals',
+    roles: ['project_manager', 'owner_admin', 'finance_admin'],
+    profiles: ['standard'],
+    href: '/app/workflow?view=review',
+    actionNames: [],
+    phrases: {
+      en: ['workflow', 'digital workers', 'review work', 'evidence follow up'],
+      es: [
+        'flujo de trabajo',
+        'trabajadores digitales',
+        'revisar trabajo',
+        'seguimiento de evidencias',
+      ],
+      pt: [
+        'fluxo de trabalho',
+        'trabalhadores digitais',
+        'rever trabalho',
+        'acompanhamento de evidências',
+      ],
+    },
+    description: {
+      en: 'Review pending work and track the next action with its responsible person.',
+      es: 'Revisa el trabajo pendiente y sigue la próxima acción con su responsable.',
+      pt: 'Reveja o trabalho pendente e acompanhe a próxima ação e o seu responsável.',
+    },
+  },
+  {
+    id: 'workflow-billing',
+    title: { en: 'Ready to invoice', es: 'Listo para facturar', pt: 'Pronto para faturar' },
+    category: 'billing',
+    roles: ['owner_admin', 'finance_admin'],
+    profiles: ['standard'],
+    href: '/app/workflow?view=billing',
+    actionNames: [],
+    phrases: {
+      en: ['ready to invoice', 'billing blockers', 'invoice case', 'work to invoice'],
+      es: [
+        'listo para facturar',
+        'bloqueos de facturación',
+        'expediente de factura',
+        'trabajo a factura',
+      ],
+      pt: [
+        'pronto para faturar',
+        'bloqueios de faturação',
+        'processo de fatura',
+        'trabalho a fatura',
+      ],
+    },
+    description: {
+      en: 'Account for period sources, review current evidence and prepare an eligible invoice draft.',
+      es: 'Controla los registros del periodo, revisa la evidencia vigente y prepara un borrador válido.',
+      pt: 'Confira os registros do período, reveja a evidência atual e prepare um rascunho elegível.',
+    },
+  },
+  {
+    id: 'workflow-followup',
+    title: {
+      en: 'Evidence and handover follow-up',
+      es: 'Seguimiento de evidencias y entrega',
+      pt: 'Acompanhamento de evidências e entrega',
+    },
+    category: 'reports',
+    roles: ['worker', 'project_manager', 'owner_admin', 'finance_admin'],
+    profiles: ['standard'],
+    href: '/app/workflow',
+    actionNames: [],
+    phrases: {
+      en: ['handover checklist', 'scope change', 'missing evidence', 'my follow ups'],
+      es: ['lista de entrega', 'cambio de alcance', 'evidencia pendiente', 'mis seguimientos'],
+      pt: ['lista de entrega', 'alteração de âmbito', 'evidência pendente', 'meus acompanhamentos'],
+    },
+    description: {
+      en: 'Track evidence, scope questions and handover obligations within your authorized projects.',
+      es: 'Sigue evidencias, dudas de alcance y obligaciones de entrega en tus proyectos autorizados.',
+      pt: 'Acompanhe evidências, dúvidas de âmbito e obrigações de entrega nos projetos autorizados.',
+    },
+  },
+  {
     id: 'project-create',
     title: {
       en: 'Create a new project',

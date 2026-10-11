@@ -121,7 +121,12 @@ function applySecurityHeaders(
       ? 'no-referrer'
       : 'strict-origin-when-cross-origin',
   );
-  response.headers.set('permissions-policy', 'camera=(self), microphone=(), geolocation=()');
+  response.headers.set(
+    'permissions-policy',
+    path === `${portalBase}/workflow/capture`
+      ? 'camera=(self), microphone=(self), on-device-speech-recognition=(self), geolocation=()'
+      : 'camera=(self), microphone=(), geolocation=()',
+  );
   const reportPreview = new RegExp(
     `^${portalBase.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')}/reports/(?:period/)?[^/]+/preview$`,
     'u',

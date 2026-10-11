@@ -74,6 +74,7 @@ import {
   type AssignmentRemovalInput,
 } from './domains/workforce/workforce-repository.ts';
 import { NotificationRepository } from './domains/notifications/index.ts';
+import { digitalWorkNotification } from './domains/notifications/digital-work-followup.ts';
 import { discardOwnerInvoice } from './domains/owner/owner-invoice-management.ts';
 import {
   updateInvoiceDraftDetails,
@@ -10355,6 +10356,8 @@ export class PortalRepository {
         read_at: string | null;
         created_at: string;
       };
+      if (row.kind === 'digital_work_followup')
+        return digitalWorkNotification(this.sqlite, principal, row, now());
       const view = notificationRepository.notificationView(row.kind, row.subject_id);
       const audit = this.sqlite
         .prepare(

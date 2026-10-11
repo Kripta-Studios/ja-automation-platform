@@ -1,0 +1,533 @@
+[WebServer] (node:125738) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite build
+[WebServer] (node:125865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2:27:14 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:25 This reference only captures the initial value of `statusless`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:14 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:39 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:14 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:80 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                                                                 ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:14 AM [vite-plugin-svelte] src/lib/portal/ui/ReportDocumentPreview.svelte:96:6 `iframe` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+[WebServer] https://svelte.dev/e/non_reactive_update
+[WebServer] 94:   );
+[WebServer] 95:   let container: HTMLDivElement;
+[WebServer] 96:   let iframe: HTMLIFrameElement;
+[WebServer]                                    ^
+[WebServer] 97:   let dialog: HTMLDialogElement;
+[WebServer] 98:   let width = $state(794);
+[WebServer] 2:27:14 AM [vite-plugin-svelte] src/lib/portal/ui/PlanningCalendar.svelte:38:32 This reference only captures the initial value of `agendaId`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 36:   let month = $state(untrack(() => selected));
+[WebServer] 37:   useViewPreferences({
+[WebServer] 38:     scope: `planning-calendar:${agendaId ?? 'default'}`,
+[WebServer]                                             ^
+[WebServer] 39:     user: () =>
+[WebServer] 40:       `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] 2:27:16 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:208:60 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 206:   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+[WebServer] 207:   let projectFilter = $state(
+[WebServer] 208:     $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
+[WebServer]                                                                      ^
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 2:27:16 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:211:59 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 211:     $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
+[WebServer]                                                                     ^
+[WebServer] 212:   );
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 2:27:16 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:215:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer]                                             ^
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 2:27:16 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:216:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer]                                           ^
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 218:     Boolean(registerFrom && registerTo && registerFrom > registerTo),
+[WebServer] 2:27:16 AM [vite-plugin-svelte] src/lib/portal/sections/FinanceOverviewSection.svelte:4049:2 Unused CSS selector ".finance-overview__projection-reference"
+[WebServer] https://svelte.dev/e/css_unused_selector
+[WebServer] 4047:   }
+[WebServer] 4048:
+[WebServer] 4049:   .finance-overview__projection-reference {
+[WebServer]                                                ^
+[WebServer] 4050:     display: block;
+[WebServer] 4051:     color: var(--portal-muted, #67675f);
+[WebServer] (node:125865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2:27:29 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:25 This reference only captures the initial value of `statusless`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:29 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:39 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:29 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:80 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                                                                 ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/ui/PlanningCalendar.svelte:38:32 This reference only captures the initial value of `agendaId`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 36:   let month = $state(untrack(() => selected));
+[WebServer] 37:   useViewPreferences({
+[WebServer] 38:     scope: `planning-calendar:${agendaId ?? 'default'}`,
+[WebServer]                                             ^
+[WebServer] 39:     user: () =>
+[WebServer] 40:       `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/ui/ReportDocumentPreview.svelte:96:6 `iframe` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+[WebServer] https://svelte.dev/e/non_reactive_update
+[WebServer] 94:   );
+[WebServer] 95:   let container: HTMLDivElement;
+[WebServer] 96:   let iframe: HTMLIFrameElement;
+[WebServer]                                    ^
+[WebServer] 97:   let dialog: HTMLDialogElement;
+[WebServer] 98:   let width = $state(794);
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:208:60 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 206:   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+[WebServer] 207:   let projectFilter = $state(
+[WebServer] 208:     $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
+[WebServer]                                                                      ^
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:211:59 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 211:     $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
+[WebServer]                                                                     ^
+[WebServer] 212:   );
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:215:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer]                                             ^
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 2:27:30 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:216:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer]                                           ^
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 218:     Boolean(registerFrom && registerTo && registerFrom > registerTo),
+[WebServer] 2:27:31 AM [vite-plugin-svelte] src/lib/portal/sections/FinanceOverviewSection.svelte:4049:2 Unused CSS selector ".finance-overview__projection-reference"
+[WebServer] https://svelte.dev/e/css_unused_selector
+[WebServer] 4047:   }
+[WebServer] 4048:
+[WebServer] 4049:   .finance-overview__projection-reference {
+[WebServer]                                                ^
+[WebServer] 4050:     display: block;
+[WebServer] 4051:     color: var(--portal-muted, #67675f);
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] [PLUGIN_TIMINGS] Your build spent 93% of 8.5s inside plugin hooks (8.0s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (79%, 6.8s, 99 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (42%, 3.6s, 72 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 93% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (2262 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (99 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:125865) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer]
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer]
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src2.js", but could not be resolved – treating it as an external dependency.
+[WebServer] Generated an empty chunk: "chunks/env.js".
+[WebServer] Generated an empty chunk: "chunks/events.js".
+[WebServer] Generated an empty chunk: "chunks/safe-session-storage.js".
+[WebServer] Generated an empty chunk: "chunks/private-document-download.js".
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 25.2s inside plugin hooks (35.9s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (65%, 16.4s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (44%, 11.2s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (27%, 6.8s, 99 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (5387 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (72 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:127004) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:127051) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+(node:127117) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a1285b-d6df-734a-9f91-48d269e65000",
+    "01a1285b-d6e0-742c-8a7b-7879f760e220",
+    "01a1285b-d6e1-7693-b562-da05e7b9949f",
+    "01a1285b-d6e2-74db-9f1f-fa26831869c5"
+  ],
+  "invoiceDrafts": [
+    "01a1285b-d80c-70ab-b0d7-987ce350803c",
+    "01a1285b-d813-727c-bb47-bfee22d394f0",
+    "01a1285b-d818-7721-869a-71425965e4a9"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a1285b-d820-722d-86b3-d2b8f050afb4",
+    "01a1285b-d824-718a-a9a4-0ddda3416205",
+    "01a1285b-d833-761f-a52a-887949cf2454"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a1285b-d820-722d-86b3-d2b8f050afb4",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a1285b-d7ff-7449-8908-f6ee1f232787",
+    "01a1285b-d801-7669-8587-2a2e360c288f"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a1285b-d6df-734a-9f91-48d269e65000",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a1285b-d844-7749-91c3-f26ea9253db6"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a1285b-d6df-734a-9f91-48d269e65000",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a1285b-d847-731f-a710-662f2438d792"
+    }
+  ],
+  "periodReportIds": [
+    "01a1285b-d848-7539-a9b1-1868dc6bca0c",
+    "01a1285b-d848-7539-a9b1-1e7e49bcc21d"
+  ],
+  "accountingPackId": "01a1285b-d885-7115-a253-61e5feac8f59",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-2012716a8f1ace3f3762e30f13afbf0d0844c88b",
+  "closeoutId": "01a1285b-d8fb-77af-a0e3-5cd6378a673f"
+}
+
+Running 7 tests using 1 worker
+
+(node:127200) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [desktop] › tests/e2e/digital-workers-accessibility.spec.ts:60:1 › digital workers workspace is role-scoped, keyboard reachable, and passes axe in main content (2.7s)
+Testing stopped early after 1 maximum allowed failures.
+
+
+  1) [desktop] › tests/e2e/digital-workers-accessibility.spec.ts:60:1 › digital workers workspace is role-scoped, keyboard reachable, and passes axe in main content
+
+    Error: worker /workflow: [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "tags": [
+          "cat.color",
+          "wcag2aa",
+          "wcag143",
+          "TTv5",
+          "TT13.c",
+          "EN-301-549",
+          "EN-9.1.4.3",
+          "ACT",
+          "RGAAv4",
+          "RGAA-3.2.1"
+        ],
+        "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+        "nodes": [
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "fgColor": "#64748b",
+                  "bgColor": "#f4f4f2",
+                  "contrastRatio": 4.32,
+                  "fontSize": "9.6pt (12.8px)",
+                  "fontWeight": "normal",
+                  "messageKey": null,
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"portal-layout standalone-workspace\">",
+                    "target": [
+                      ".portal-layout"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 9.6pt (12.8px), font weight: normal). Expected contrast ratio of 4.5:1"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"eyebrow svelte-1wwn0ea\">Digital workers</p>",
+            "target": [
+              ".eyebrow"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 9.6pt (12.8px), font weight: normal). Expected contrast ratio of 4.5:1"
+          },
+          {
+            "any": [
+              {
+                "id": "color-contrast",
+                "data": {
+                  "fgColor": "#64748b",
+                  "bgColor": "#f4f4f2",
+                  "contrastRatio": 4.32,
+                  "fontSize": "10.5pt (14px)",
+                  "fontWeight": "normal",
+                  "messageKey": null,
+                  "expectedContrastRatio": "4.5:1"
+                },
+                "relatedNodes": [
+                  {
+                    "html": "<div class=\"portal-layout standalone-workspace\">",
+                    "target": [
+                      ".portal-layout"
+                    ]
+                  }
+                ],
+                "impact": "serious",
+                "message": "Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+              }
+            ],
+            "all": [],
+            "none": [],
+            "impact": "serious",
+            "html": "<p class=\"intro svelte-1wwn0ea\">This workspace organizes current records and explicit rules. It does not use external AI or APIs, and every decision remains yours.</p>",
+            "target": [
+              ".intro"
+            ],
+            "failureSummary": "Fix any of the following:\n  Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1"
+          }
+        ]
+      }
+    ]
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 93
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "description": "Ensure the contrast between foreground and background colors meets WCAG 2 AA minimum contrast ratio thresholds",
+    +     "help": "Elements must meet minimum color contrast ratio thresholds",
+    +     "helpUrl": "https://dequeuniversity.com/rules/axe/4.13/color-contrast?application=playwright",
+    +     "id": "color-contrast",
+    +     "impact": "serious",
+    +     "nodes": Array [
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f4f4f2",
+    +               "contrastRatio": 4.32,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#64748b",
+    +               "fontSize": "9.6pt (12.8px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 9.6pt (12.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"portal-layout standalone-workspace\">",
+    +                 "target": Array [
+    +                   ".portal-layout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 9.6pt (12.8px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"eyebrow svelte-1wwn0ea\">Digital workers</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".eyebrow",
+    +         ],
+    +       },
+    +       Object {
+    +         "all": Array [],
+    +         "any": Array [
+    +           Object {
+    +             "data": Object {
+    +               "bgColor": "#f4f4f2",
+    +               "contrastRatio": 4.32,
+    +               "expectedContrastRatio": "4.5:1",
+    +               "fgColor": "#64748b",
+    +               "fontSize": "10.5pt (14px)",
+    +               "fontWeight": "normal",
+    +               "messageKey": null,
+    +             },
+    +             "id": "color-contrast",
+    +             "impact": "serious",
+    +             "message": "Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +             "relatedNodes": Array [
+    +               Object {
+    +                 "html": "<div class=\"portal-layout standalone-workspace\">",
+    +                 "target": Array [
+    +                   ".portal-layout",
+    +                 ],
+    +               },
+    +             ],
+    +           },
+    +         ],
+    +         "failureSummary": "Fix any of the following:
+    +   Element has insufficient color contrast of 4.32 (foreground color: #64748b, background color: #f4f4f2, font size: 10.5pt (14px), font weight: normal). Expected contrast ratio of 4.5:1",
+    +         "html": "<p class=\"intro svelte-1wwn0ea\">This workspace organizes current records and explicit rules. It does not use external AI or APIs, and every decision remains yours.</p>",
+    +         "impact": "serious",
+    +         "none": Array [],
+    +         "target": Array [
+    +           ".intro",
+    +         ],
+    +       },
+    +     ],
+    +     "tags": Array [
+    +       "cat.color",
+    +       "wcag2aa",
+    +       "wcag143",
+    +       "TTv5",
+    +       "TT13.c",
+    +       "EN-301-549",
+    +       "EN-9.1.4.3",
+    +       "ACT",
+    +       "RGAAv4",
+    +       "RGAA-3.2.1",
+    +     ],
+    +   },
+    + ]
+
+      24 |     .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      25 |     .analyze();
+    > 26 |   expect(result.violations, `${label}: ${JSON.stringify(result.violations, null, 2)}`).toEqual([]);
+         |                                                                                        ^
+      27 | }
+      28 |
+      29 | async function expectKeyboardFocus(page: Page, label: string, allowEmpty = false) {
+        at expectWorkflowAxe (/home/kripta/ja-digital-workers-20261011/tests/e2e/digital-workers-accessibility.spec.ts:26:88)
+        at /home/kripta/ja-digital-workers-20261011/tests/e2e/digital-workers-accessibility.spec.ts:111:5
+
+    Error Context: artifacts/digital-workers-browser/digital-workers-accessibil-74dc4--passes-axe-in-main-content-desktop/error-context.md
+
+    attachment #2: trace (application/zip) ─────────────────────────────────────────────────────────
+    artifacts/digital-workers-browser/digital-workers-accessibil-74dc4--passes-axe-in-main-content-desktop/trace.zip
+    Usage:
+
+        pnpm exec playwright show-trace artifacts/digital-workers-browser/digital-workers-accessibil-74dc4--passes-axe-in-main-content-desktop/trace.zip
+
+    ────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1 failed
+    [desktop] › tests/e2e/digital-workers-accessibility.spec.ts:60:1 › digital workers workspace is role-scoped, keyboard reachable, and passes axe in main content
+  6 did not run
+  1 error was not a part of any test, see above for details

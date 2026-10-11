@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -14,7 +15,17 @@ afterEach(() => {
 function fixture(): B5LifecycleSecurityFixture {
   const value = createB5LifecycleSecurityFixture();
   fixtures.push(value);
-  return value;
+  const principals = {
+    owner: stepUpB5Principal(value.sqlite, value.owner, 'notifications'),
+    finance: stepUpB5Principal(value.sqlite, value.finance, 'notifications'),
+    manager: stepUpB5Principal(value.sqlite, value.manager, 'notifications'),
+    worker: stepUpB5Principal(value.sqlite, value.worker, 'notifications'),
+    outsider: stepUpB5Principal(value.sqlite, value.outsider, 'notifications'),
+  };
+  // These tests need live sessions, not a privileged step-up state.
+  for (const principal of Object.values(principals))
+    value.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(principal.sessionId!);
+  return { ...value, ...principals };
 }
 
 function runAlert(
@@ -332,7 +343,10 @@ describe('ASTRA scoped business notifications', () => {
       canReview: true,
     });
     expect(() => value.repository.listNotifications(value.finance)).toThrow(/role/i);
-    const manager = value.repository.principalFor(value.finance.userId);
+    const manager = {
+      ...value.repository.principalFor(value.finance.userId),
+      sessionId: value.finance.sessionId,
+    };
     const rows = value.repository.listNotifications(manager);
     expect(rows.find((row) => row.id === 'finance-cap-history')).toMatchObject({
       target: null,

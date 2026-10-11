@@ -373,3 +373,19 @@ Also run applicable migration-upgrade, backup/restore, artifact openability/fail
 ## 2026-10-05 scoped BBS Owner manual delivery
 
 User-authorized swarm packets and dependencies are recorded in [the evidence ledger](docs/evidence/bbs-owner-completion-20261005/README.md). Finance and supplementary Owner browser packets are integrated into the 203-page course. The candidate is frozen after native October Accounting generation/download/review/finalization, immutable issued-master checks, synthetic acceptance/invalidation/replacement, supplier/offboarding/planning/private-document checks, current workspace/static/build gates and independent review. Canonical production ZIP publication/deployment and read-only financial-history comparison are recorded in the evidence ledger. This packet does not change the global Client Essential verdict or supply real external approvals.
+
+
+### Digital workers candidate — 11 October 2026
+
+User-authorized API-free automation is implemented in isolated branch
+`codex/digital-workers-20261011`, based on `27e57872`. Scope covers factual linked
+draft capture (CORE-04/06/07), operational follow-up and explicit human review
+(CORE-08), reviewed exact-source invoice-draft handoff (CORE-10), role-safe evidence
+and immutable audit (CORE-05/15), in-app due notices (CORE-16), and additive
+migration/backup coverage (CORE-17). Responsive evidence relates to CORE-14.
+
+The [candidate evidence ledger](docs/evidence/digital-workers-20261011/README.md)
+records final checks and limitations; the [operating guide](docs/manuals/Digital_Workers.md)
+explains the role workflows. This scoped candidate does not change previous
+Client Essential verdicts. It is **not deployed**. Integration with the separate
+UX refresh branch and coordinated release validation remain required.

@@ -1,0 +1,20 @@
+{
+  "summary": "COMPLETED 1564 FILES 84 ERRORS 10 WARNINGS 17 FILES_WITH_PROBLEMS",
+  "affectedFilesWithErrors": [],
+  "otherFilesWithErrors": [
+    "src/lib/PortalShell.svelte",
+    "src/lib/portal/sections/BillingSection.svelte",
+    "src/lib/portal/sections/CollectionsLedgerSection.svelte",
+    "src/lib/portal/sections/FinanceConfigurationSection.svelte",
+    "src/lib/portal/sections/FinanceOverviewSection.svelte",
+    "src/lib/portal/sections/ProjectBillingSetup.svelte",
+    "src/lib/portal/sections/ProjectCreationAssignments.svelte",
+    "src/lib/portal/ui/RecordBrowser.svelte",
+    "src/lib/portal/ui/localized-pdf/AccountingPackArtifactStatus.svelte",
+    "src/routes/app/crew/+page.svelte",
+    "src/routes/app/mfa-enrollment/+page.svelte",
+    "src/routes/app/projects/[id]/+page.svelte",
+    "src/routes/app/projects/[id]/calculation/+page.svelte",
+    "src/routes/app/projects/[id]/closeout/+page.svelte"
+  ]
+}

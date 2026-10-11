@@ -1,0 +1,8 @@
+
+ RUN  v4.1.11 /home/kripta/ja-digital-workers-20261011
+
+
+ Test Files  2 passed (2)
+      Tests  15 passed (15)
+   Start at  02:03:54
+   Duration  98.29s (transform 1.58s, setup 0ms, import 2.35s, tests 95.55s, environment 0ms)

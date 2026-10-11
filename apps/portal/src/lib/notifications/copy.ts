@@ -11,6 +11,20 @@ type CopyPair = Readonly<{
 }>;
 
 const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair>>>> = {
+  digital_work_followup: {
+    en: {
+      subject: 'Work item follow-up due',
+      body: 'Review the assigned work item, evidence and next step in Digital workers.',
+    },
+    es: {
+      subject: 'Seguimiento de tarea pendiente',
+      body: 'Revisa la tarea asignada, las evidencias y el siguiente paso en Trabajadores digitales.',
+    },
+    pt: {
+      subject: 'Acompanhamento de tarefa pendente',
+      body: 'Reveja a tarefa atribuída, as evidências e o próximo passo em Trabalhadores digitais.',
+    },
+  },
   missing_time: {
     en: {
       subject: 'Missing time entry reminder',

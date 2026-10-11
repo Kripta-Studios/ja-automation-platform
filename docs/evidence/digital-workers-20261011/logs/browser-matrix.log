@@ -1,0 +1,340 @@
+[WebServer] (node:88215) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ vite build
+[WebServer] (node:88260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2:10:37 AM [vite-plugin-svelte] src/lib/portal/ui/PlanningCalendar.svelte:38:32 This reference only captures the initial value of `agendaId`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 36:   let month = $state(untrack(() => selected));
+[WebServer] 37:   useViewPreferences({
+[WebServer] 38:     scope: `planning-calendar:${agendaId ?? 'default'}`,
+[WebServer]                                             ^
+[WebServer] 39:     user: () =>
+[WebServer] 40:       `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
+[WebServer] 2:10:38 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:25 This reference only captures the initial value of `statusless`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:38 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:39 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:38 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:80 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                                                                 ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:38 AM [vite-plugin-svelte] src/lib/portal/ui/ReportDocumentPreview.svelte:96:6 `iframe` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+[WebServer] https://svelte.dev/e/non_reactive_update
+[WebServer] 94:   );
+[WebServer] 95:   let container: HTMLDivElement;
+[WebServer] 96:   let iframe: HTMLIFrameElement;
+[WebServer]                                    ^
+[WebServer] 97:   let dialog: HTMLDialogElement;
+[WebServer] 98:   let width = $state(794);
+[WebServer] 2:10:39 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:208:60 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 206:   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+[WebServer] 207:   let projectFilter = $state(
+[WebServer] 208:     $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
+[WebServer]                                                                      ^
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 2:10:39 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:211:59 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 211:     $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
+[WebServer]                                                                     ^
+[WebServer] 212:   );
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 2:10:39 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:215:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer]                                             ^
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 2:10:39 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:216:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer]                                           ^
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 218:     Boolean(registerFrom && registerTo && registerFrom > registerTo),
+[WebServer] 2:10:41 AM [vite-plugin-svelte] src/lib/portal/sections/FinanceOverviewSection.svelte:4049:2 Unused CSS selector ".finance-overview__projection-reference"
+[WebServer] https://svelte.dev/e/css_unused_selector
+[WebServer] 4047:   }
+[WebServer] 4048:
+[WebServer] 4049:   .finance-overview__projection-reference {
+[WebServer]                                                ^
+[WebServer] 4050:     display: block;
+[WebServer] 4051:     color: var(--portal-muted, #67675f);
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] (node:88260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] 2:10:53 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:25 This reference only captures the initial value of `statusless`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:53 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:39 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                        ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:53 AM [vite-plugin-svelte] src/lib/portal/ui/RecordBrowser.svelte:54:80 This reference only captures the initial value of `initialOrder`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 52:     initialOrder?: 'priority' | 'newest' | 'name';
+[WebServer] 53:   } = $props();
+[WebServer] 54:   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+[WebServer]                                                                                                 ^
+[WebServer] 55:   let search = $state('');
+[WebServer] 56:   let order = $state(preferredOrder);
+[WebServer] 2:10:53 AM [vite-plugin-svelte] src/lib/portal/ui/ReportDocumentPreview.svelte:96:6 `iframe` is updated, but is not declared with `$state(...)`. Changing its value will not correctly trigger updates
+[WebServer] https://svelte.dev/e/non_reactive_update
+[WebServer] 94:   );
+[WebServer] 95:   let container: HTMLDivElement;
+[WebServer] 96:   let iframe: HTMLIFrameElement;
+[WebServer]                                    ^
+[WebServer] 97:   let dialog: HTMLDialogElement;
+[WebServer] 98:   let width = $state(794);
+[WebServer] 2:10:53 AM [vite-plugin-svelte] src/lib/portal/ui/PlanningCalendar.svelte:38:32 This reference only captures the initial value of `agendaId`. Did you mean to reference it inside a closure instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 36:   let month = $state(untrack(() => selected));
+[WebServer] 37:   useViewPreferences({
+[WebServer] 38:     scope: `planning-calendar:${agendaId ?? 'default'}`,
+[WebServer]                                             ^
+[WebServer] 39:     user: () =>
+[WebServer] 40:       `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
+[WebServer] 2:10:54 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:208:60 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 206:   let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
+[WebServer] 207:   let projectFilter = $state(
+[WebServer] 208:     $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
+[WebServer]                                                                      ^
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 2:10:54 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:211:59 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 209:   );
+[WebServer] 210:   let workerFilter = $state(
+[WebServer] 211:     $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
+[WebServer]                                                                     ^
+[WebServer] 212:   );
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 2:10:54 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:215:35 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 213:   let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer]                                             ^
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 2:10:54 AM [vite-plugin-svelte] src/lib/portal/sections/TimeSection.svelte:216:33 This reference only captures the initial value of `data`. Did you mean to reference it inside a derived instead?
+[WebServer] https://svelte.dev/e/state_referenced_locally
+[WebServer] 214:   let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
+[WebServer] 215:   let registerFrom = $state(String(data.timeFilter?.from ?? ''));
+[WebServer] 216:   let registerTo = $state(String(data.timeFilter?.to ?? ''));
+[WebServer]                                           ^
+[WebServer] 217:   const registerDateRangeInvalid = $derived(
+[WebServer] 218:     Boolean(registerFrom && registerTo && registerFrom > registerTo),
+[WebServer] 2:10:55 AM [vite-plugin-svelte] src/lib/portal/sections/FinanceOverviewSection.svelte:4049:2 Unused CSS selector ".finance-overview__projection-reference"
+[WebServer] https://svelte.dev/e/css_unused_selector
+[WebServer] 4047:   }
+[WebServer] 4048:
+[WebServer] 4049:   .finance-overview__projection-reference {
+[WebServer]                                                ^
+[WebServer] 4050:     display: block;
+[WebServer] 4051:     color: var(--portal-muted, #67675f);
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-latin.woff2 referenced in /j-aautomation/app/fonts/geist-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer]
+[WebServer] /j-aautomation/app/fonts/geist-mono-latin.woff2 referenced in /j-aautomation/app/fonts/geist-mono-latin.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime
+[WebServer] [plugin builtin:vite-reporter]
+[WebServer] (!) Some chunks are larger than 500 kB after minification. Consider:
+[WebServer] - Using dynamic import() to code-split the application
+[WebServer] - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+[WebServer] - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+[WebServer] [PLUGIN_TIMINGS] Your build spent 93% of 8.2s inside plugin hooks (7.6s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-svelte:compile transform (80%, 6.5s, 99 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (44%, 3.6s, 72 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 93% is below.
+[WebServer] Not measurable — 3 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (2261 calls)
+[WebServer]   - vite-plugin-svelte:preprocess transform (99 calls)
+[WebServer]   - vite:css transform (72 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:88260) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] .svelte-kit/output/server/chunks/auth.js (3652:0): A comment
+[WebServer]
+[WebServer] "/**
+[WebServer] * Wraps a cipher: validates args, ensures encrypt() can only be called once.
+[WebServer] * Used internally by the exported cipher constructors.
+[WebServer] * Output-buffer support is inferred from the wrapped `encrypt` / `decrypt`
+[WebServer] * arity (`fn.length === 2`), so wrapped output-capable methods must use a normal
+[WebServer] * second parameter, not a default/rest parameter. AAD support is explicit in
+[WebServer] * `params.withAAD`; optional AAD starts after the nonce slot when one is present.
+[WebServer] * @__NO_SIDE_EFFECTS__
+[WebServer] * @param params - Static cipher metadata. See {@link CipherParams}.
+[WebServer] * @param constructor - Cipher constructor.
+[WebServer] * @returns Wrapped constructor with validation.
+[WebServer] */"
+[WebServer]
+[WebServer] in ".svelte-kit/output/server/chunks/auth.js" contains an annotation that Rollup cannot interpret due to the position of the comment. The comment will be removed to avoid issues.
+[WebServer] "node:sqlite" is imported by ".svelte-kit/output/server/chunks/src2.js", but could not be resolved – treating it as an external dependency.
+[WebServer] Generated an empty chunk: "chunks/env.js".
+[WebServer] Generated an empty chunk: "chunks/events.js".
+[WebServer] Generated an empty chunk: "chunks/safe-session-storage.js".
+[WebServer] Generated an empty chunk: "chunks/private-document-download.js".
+[WebServer] [PLUGIN_TIMINGS] Your build spent 100% of 25.0s inside plugin hooks (36.8s).
+[WebServer] Measured inside the callback, so queue time is excluded and time the callback itself awaited is not:
+[WebServer]   - vite-plugin-sveltekit-compile writeBundle (65%, 16.2s, 1 call)
+[WebServer]   - vite-plugin-sveltekit-compile closeBundle (49%, 12.3s, 1 call)
+[WebServer]   - vite-plugin-svelte:compile transform (27%, 6.9s, 99 calls)
+[WebServer] Those rows are 100% of the build; the rest of the 100% is below.
+[WebServer] Not measurable — 2 hooks whose calls overlap, so elapsed time covers work other calls were doing. Profile with `node --cpu-prof`:
+[WebServer]   - vite-plugin-sveltekit-guard resolveId (5386 calls)
+[WebServer]   - @tailwindcss/vite:generate:build transform (72 calls)
+[WebServer] See https://rolldown.rs/reference/InputOptions.checks#plugintimings for more details.
+[WebServer]
+[WebServer] (node:89689) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+[WebServer] $ node build
+[WebServer] (node:89703) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[WebServer] (Use `node --trace-warnings ...` to show where the warning was created)
+(node:89900) ExperimentalWarning: Transform Types is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+{
+  "counts": {
+    "clients": 23,
+    "contacts": 8,
+    "projects": 25,
+    "users": 6,
+    "workers": 3,
+    "timeEntries": 43,
+    "reports": 7,
+    "technicalReports": 3,
+    "technicalChanges": 2,
+    "expenses": 41,
+    "documents": 13,
+    "milestones": 4,
+    "invoiceDrafts": 7,
+    "invoices": 8,
+    "issuedInvoices": 1,
+    "billingRules": 14,
+    "skills": 18,
+    "workerSkills": 17,
+    "availabilities": 6,
+    "settlements": 2,
+    "periodReports": 4,
+    "accountingPacks": 1
+  },
+  "projects": [
+    "01a1284c-aab6-72b9-9a25-3091a5e62e9f",
+    "01a1284c-aab8-72bb-82af-0124075f50bb",
+    "01a1284c-aab9-71c1-b947-f526e4f79df2",
+    "01a1284c-aaba-76af-9971-75ab90ce572d"
+  ],
+  "invoiceDrafts": [
+    "01a1284c-abf4-7113-8524-82ebe9e4c671",
+    "01a1284c-ac02-729d-bff7-0c43aa689ed5",
+    "01a1284c-ac09-7018-9aa7-db32e831a2b7"
+  ],
+  "additionalInvoiceDrafts": [
+    "01a1284c-ac15-7343-a00b-3e3b42ff9e86",
+    "01a1284c-ac1a-775f-a3e0-6f351924b45d",
+    "01a1284c-ac29-70b8-94e8-fb31deec5e5b"
+  ],
+  "issuedPalletizerInvoice": {
+    "id": "01a1284c-ac15-7343-a00b-3e3b42ff9e86",
+    "invoiceNumber": "DEMO-2026-00001"
+  },
+  "settlementIds": [
+    "01a1284c-abe3-770d-ba26-ffeb7c5686a7",
+    "01a1284c-abe6-74ea-88ff-50be6889bcdb"
+  ],
+  "closedPeriods": [
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a1284c-aab6-72b9-9a25-3091a5e62e9f",
+      "streamType": "labor",
+      "closed": true,
+      "billingPeriodId": "01a1284c-ac3b-742a-bacd-481b727c7b23"
+    },
+    {
+      "state": "ready",
+      "reasons": [],
+      "projectId": "01a1284c-aab6-72b9-9a25-3091a5e62e9f",
+      "streamType": "expense",
+      "closed": true,
+      "billingPeriodId": "01a1284c-ac3e-71be-b238-62a5f13b4e93"
+    }
+  ],
+  "periodReportIds": [
+    "01a1284c-ac3e-71be-b238-691286dde749",
+    "01a1284c-ac3f-72dd-add4-dd3e537f6318"
+  ],
+  "accountingPackId": "01a1284c-ac8d-747c-a681-6832c2d81bd4",
+  "canonicalAccountingPackRevisionId": "fp-accounting-pack-revision-32ed55bae5e351b9deb7835ab80181fdd0909268",
+  "closeoutId": "01a1284c-ad38-7584-8711-423bebd06980"
+}
+
+Running 20 tests using 1 worker
+
+(node:89973) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   1 [phone-360] › tests/e2e/digital-workers.spec.ts:208:1 › worker reviews one capture, recovers local facts, and creates linked drafts exactly once (7.2s)
+  ✓   2 [phone-360] › tests/e2e/digital-workers.spec.ts:357:1 › Finance opens and reviews a current case before preparing one invoice draft (6.2s)
+  ✓   3 [phone-360] › tests/e2e/digital-workers.spec.ts:479:1 › PM sees operational decisions while financial cases remain restricted (5.2s)
+  ✓   4 [phone-360] › tests/e2e/digital-workers.spec.ts:558:1 › Finance records a manual policy proposal without changing billing or worker pay (4.2s)
+  ✓   5 [phone-360] › tests/e2e/digital-workers.spec.ts:629:1 › Owner Spanish workspace and Auditor Portuguese case preserve role boundaries (3.5s)
+(node:91010) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓   6 [phone-390] › tests/e2e/digital-workers.spec.ts:208:1 › worker reviews one capture, recovers local facts, and creates linked drafts exactly once (5.9s)
+  ✓   7 [phone-390] › tests/e2e/digital-workers.spec.ts:357:1 › Finance opens and reviews a current case before preparing one invoice draft (6.1s)
+  ✓   8 [phone-390] › tests/e2e/digital-workers.spec.ts:479:1 › PM sees operational decisions while financial cases remain restricted (5.5s)
+  ✓   9 [phone-390] › tests/e2e/digital-workers.spec.ts:558:1 › Finance records a manual policy proposal without changing billing or worker pay (4.1s)
+  ✓  10 [phone-390] › tests/e2e/digital-workers.spec.ts:629:1 › Owner Spanish workspace and Auditor Portuguese case preserve role boundaries (4.1s)
+(node:92022) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  11 [tablet-768] › tests/e2e/digital-workers.spec.ts:208:1 › worker reviews one capture, recovers local facts, and creates linked drafts exactly once (6.5s)
+  ✓  12 [tablet-768] › tests/e2e/digital-workers.spec.ts:357:1 › Finance opens and reviews a current case before preparing one invoice draft (6.8s)
+  ✓  13 [tablet-768] › tests/e2e/digital-workers.spec.ts:479:1 › PM sees operational decisions while financial cases remain restricted (5.9s)
+  ✓  14 [tablet-768] › tests/e2e/digital-workers.spec.ts:558:1 › Finance records a manual policy proposal without changing billing or worker pay (4.2s)
+  ✓  15 [tablet-768] › tests/e2e/digital-workers.spec.ts:629:1 › Owner Spanish workspace and Auditor Portuguese case preserve role boundaries (4.2s)
+(node:93019) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  16 [desktop] › tests/e2e/digital-workers.spec.ts:208:1 › worker reviews one capture, recovers local facts, and creates linked drafts exactly once (6.5s)
+  ✓  17 [desktop] › tests/e2e/digital-workers.spec.ts:357:1 › Finance opens and reviews a current case before preparing one invoice draft (7.0s)
+  ✓  18 [desktop] › tests/e2e/digital-workers.spec.ts:479:1 › PM sees operational decisions while financial cases remain restricted (6.5s)
+  ✓  19 [desktop] › tests/e2e/digital-workers.spec.ts:558:1 › Finance records a manual policy proposal without changing billing or worker pay (4.6s)
+  ✓  20 [desktop] › tests/e2e/digital-workers.spec.ts:629:1 › Owner Spanish workspace and Auditor Portuguese case preserve role boundaries (4.7s)
+
+  20 passed (2.6m)

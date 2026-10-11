@@ -44,7 +44,7 @@ FROM build AS tools
 FROM node:24.19.0-bookworm-slim
 ENV NODE_ENV=production PORT=5100 HOST=127.0.0.1
 RUN apt-get update \
- && apt-get install -y --no-install-recommends ca-certificates chromium \
+ && apt-get install -y --no-install-recommends ca-certificates chromium poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-spa tesseract-ocr-por util-linux \
  && rm -rf /var/lib/apt/lists/* \
  && groupadd --gid 10001 jaautomation \
  && useradd --system --uid 10001 --gid 10001 --create-home jaautomation

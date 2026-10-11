@@ -271,6 +271,9 @@ export function portalNavigationForRole(
   if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator')
     return {
       primary: [
+        ...(workforceProfile === 'external_technician'
+          ? [item('workflow', 'Digital workers', '▤')]
+          : []),
         ...(workforceProfile === 'supplier_coordinator'
           ? [item('supplier', 'Supplier team', '◌')]
           : []),
@@ -511,6 +514,7 @@ export const securityNavigation: NavItem[] = [
 
 export const portalTitles: Record<string, string> = {
   today: 'Today',
+  workflow: 'Digital workers',
   time: 'Time entries',
   reports: 'Daily and technical reports',
   expenses: 'Expenses and receipts',

@@ -1,7 +1,14 @@
 /** Restricted workforce accounts use a positive operational route allowlist.
  * Object authorization remains mandatory in each allowed handler. */
-export function supplierRouteAllowed(path: string): boolean {
+export type RestrictedWorkforceProfile = 'external_technician' | 'supplier_coordinator';
+
+export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceProfile): boolean {
   const route = path.replace(/\/__data\.json$/u, '').replace(/\/$/u, '') || '/';
+  if (
+    profile === 'external_technician' &&
+    ['/workflow', '/workflow/capture', '/api/workflow/extract'].includes(route)
+  )
+    return true;
   if (
     [
       '/',

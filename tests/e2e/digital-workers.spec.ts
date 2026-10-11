@@ -5,12 +5,14 @@ import {
   createDatabase,
   DigitalWorkersRepository,
   PortalRepository,
+  SupplierWorkforceRepository,
   V3Repository,
 } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import sharp from 'sharp';
 import { e2eCredentials } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
+import { e2eCostCenter } from './project-cost-center.js';
 
 // This suite has its own server. Port 4174 belongs to the separate UX worktree.
 const portal = (path = '') => `http://127.0.0.1:5174/j-aautomation/app${path}`;
@@ -825,4 +827,248 @@ test('Spanish Worker validation, Owner workspace and Portuguese Auditor case pre
     ),
   ).toHaveCount(0);
   await responsiveEvidence(page, testInfo, 'auditor-portuguese-case');
+});
+
+test('external technician can discover and use own-facts capture while coordinator stays on supplier routes', async ({
+  page,
+}, testInfo) => {
+  test.setTimeout(90_000);
+  const databasePath = readE2EFixturePointer().databasePath;
+  const suffix = testInfo.project.name.replace(/[^a-z0-9-]/giu, '-').toLowerCase();
+  const technicianEmail = `restricted-technician-${suffix}@demo.jaautomation.test`;
+  const coordinatorEmail = `restricted-coordinator-${suffix}@demo.jaautomation.test`;
+  const password = e2eCredentials.worker.password;
+  const fixtureUserIds: string[] = [];
+  let projectId = '';
+  let unassignedProjectId = '';
+  try {
+    const seeded = createDatabase(databasePath);
+    try {
+      const ownerId = (
+        seeded.sqlite
+          .prepare('SELECT id FROM user WHERE email=?')
+          .get(e2eCredentials.owner.email) as { id: string }
+      ).id;
+      const owner = new PortalRepository(seeded.sqlite).principalFor(ownerId);
+      const client = seeded.sqlite
+        .prepare('SELECT id,currency FROM client ORDER BY created_at LIMIT 1')
+        .get() as { id: string; currency: string };
+      projectId = new PortalRepository(seeded.sqlite).createProject(owner, {
+        costCenterCode: e2eCostCenter('QA-RESTRICTED-WORKFORCE', 77, testInfo.project.name),
+        clientId: client.id,
+        name: `Synthetic restricted workforce ${suffix}`,
+        timezone: 'UTC',
+        currency: client.currency,
+        billingModel: 'tm',
+        startDate: '2026-01-01',
+        expectedMinutesPerDay: 480,
+      }).id;
+
+      const credential = seeded.sqlite
+        .prepare(
+          "SELECT password FROM account WHERE user_id=(SELECT id FROM user WHERE email=?) AND provider_id='credential'",
+        )
+        .get(e2eCredentials.worker.email) as { password: string };
+      const now = new Date().toISOString();
+      const createWorker = (email: string, name: string) => {
+        const userId = randomUUID();
+        seeded.sqlite
+          .prepare(
+            `INSERT INTO user(id,name,email,email_verified,role,status,mfa_enrolled,created_at,updated_at)
+             VALUES(?,?,?,1,'worker','active',0,?,?)`,
+          )
+          .run(userId, name, email, now, now);
+        seeded.sqlite
+          .prepare(
+            `INSERT INTO account(id,issuer,account_id,provider_id,user_id,password,created_at,updated_at)
+             VALUES(?,'local:credential',?,'credential',?,?,?,?)`,
+          )
+          .run(randomUUID(), userId, userId, credential.password, now, now);
+        fixtureUserIds.push(userId);
+        return userId;
+      };
+      const coordinatorId = createWorker(coordinatorEmail, `Synthetic coordinator ${suffix}`);
+      const technicianId = createWorker(technicianEmail, `Synthetic technician ${suffix}`);
+      const suppliers = new SupplierWorkforceRepository(seeded.sqlite);
+      const supplierId = suppliers.createSupplier(owner, {
+        name: `Synthetic restricted supplier ${suffix}`,
+      }).id;
+      const insertProfile = seeded.sqlite.prepare(
+        'INSERT INTO supplier_user_profile(user_id,supplier_id,profile,created_at,updated_at) VALUES(?,?,?,?,?)',
+      );
+      const insertPeriod = seeded.sqlite.prepare(
+        'INSERT INTO supplier_user_profile_period(id,user_id,supplier_id,profile,starts_at,ends_at,created_at) VALUES(?,?,?,?,?,NULL,?)',
+      );
+      for (const [userId, profile] of [
+        [coordinatorId, 'supplier_coordinator'],
+        [technicianId, 'external_technician'],
+      ] as const) {
+        insertProfile.run(userId, supplierId, profile, now, now);
+        insertPeriod.run(randomUUID(), userId, supplierId, profile, now, now);
+      }
+      suppliers.grantProject(owner, {
+        supplierId,
+        projectId,
+        coordinatorId,
+        startsOn: '2026-01-01',
+      });
+      suppliers.assignTechnician(owner, {
+        workerId: technicianId,
+        projectId,
+        startsOn: '2026-01-01',
+      });
+
+      const profiles = seeded.sqlite
+        .prepare('SELECT user_id,profile FROM supplier_user_profile WHERE user_id IN (?,?)')
+        .all(coordinatorId, technicianId) as Array<{ user_id: string; profile: string }>;
+      expect(
+        Object.fromEntries(profiles.map(({ user_id, profile }) => [user_id, profile])),
+      ).toEqual({
+        [coordinatorId]: 'supplier_coordinator',
+        [technicianId]: 'external_technician',
+      });
+      unassignedProjectId = (
+        seeded.sqlite
+          .prepare(
+            `SELECT p.id FROM project p
+              WHERE p.id<>? AND p.status IN ('active','planned','paused')
+                AND EXISTS (
+                  SELECT 1 FROM project_member other
+                   WHERE other.project_id=p.id AND other.user_id<>? AND other.status='active'
+                )
+                AND NOT EXISTS (
+                  SELECT 1 FROM project_member assigned
+                   WHERE assigned.project_id=p.id AND assigned.user_id=? AND assigned.status='active'
+                )
+              ORDER BY p.id LIMIT 1`,
+          )
+          .get(projectId, technicianId, technicianId) as { id: string }
+      ).id;
+    } finally {
+      seeded.sqlite.close();
+    }
+
+    await page.goto(portal('/login?lang=en'));
+    await page.getByLabel('Work email').fill(technicianEmail);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Continue to workspace' }).click();
+    await page.waitForURL(
+      (url) => url.pathname.startsWith('/j-aautomation/app') && !url.pathname.endsWith('/login'),
+    );
+    const digitalWorkersLink = page.getByRole('link', { name: 'Digital workers', exact: true });
+    const navigationToggle = page.getByRole('button', { name: 'Toggle navigation' });
+    if (testInfo.project.name === 'phone-360' && (await navigationToggle.isVisible())) {
+      if ((await navigationToggle.getAttribute('aria-expanded')) !== 'true')
+        await navigationToggle.click();
+      await expect(digitalWorkersLink.first()).toBeVisible();
+      const navigationScreenshot = testInfo.outputPath('external-technician-navigation-360.png');
+      await page.screenshot({ path: navigationScreenshot });
+      await testInfo.attach('external-technician-navigation-360', {
+        path: navigationScreenshot,
+        contentType: 'image/png',
+      });
+    }
+    if (!(await digitalWorkersLink.first().isVisible())) await navigationToggle.click();
+    await expect(digitalWorkersLink.first()).toBeVisible();
+    await digitalWorkersLink.first().click();
+    await expect(page.getByRole('heading', { name: 'Digital workers', exact: true })).toBeVisible();
+    await expect(page).toHaveURL(/\/workflow(?:\?|$)/u);
+    await expect(
+      page.getByRole('heading', { name: 'Finish your work', exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Open work capture', exact: true })).toBeVisible();
+    expect((await page.request.get(portal('/workflow/__data.json'))).status()).toBe(200);
+
+    const captureResponse = await page.goto(portal('/workflow/capture?lang=en'));
+    expect(captureResponse?.status()).toBe(200);
+    const projectPicker = page.locator('select[name="projectId"]');
+    await expect(projectPicker.locator(`option[value="${projectId}"]`)).toHaveCount(1);
+    await expect(projectPicker.locator(`option[value="${unassignedProjectId}"]`)).toHaveCount(0);
+    await responsiveEvidence(page, testInfo, 'external-technician-work-capture');
+
+    if (testInfo.project.name === 'desktop') {
+      await page.getByLabel('Create expense draft', { exact: true }).check();
+      const reader = page.locator('details.local-reader');
+      await reader.locator('summary').click();
+      await reader.locator('input[type="file"]').setInputFiles({
+        name: 'synthetic-receipt.txt',
+        mimeType: 'text/plain',
+        buffer: Buffer.from('Synthetic receipt text for the local reader.'),
+      });
+      await reader.getByRole('button', { name: 'Extract text locally', exact: true }).click();
+      await expect(reader.getByLabel('Review and correct extracted text')).toHaveValue(
+        'Synthetic receipt text for the local reader.',
+      );
+    }
+
+    for (const route of [
+      '/workflow/cases/unknown',
+      '/api/workflow/cases/unknown',
+      '/finance',
+      '/pay',
+    ]) {
+      expect((await page.request.get(portal(route))).status()).toBe(403);
+    }
+
+    await page.context().clearCookies();
+    await page.goto(portal('/login?lang=en'));
+    await page.getByLabel('Work email').fill(coordinatorEmail);
+    await page.getByLabel('Password').fill(password);
+    await page.getByRole('button', { name: 'Continue to workspace' }).click();
+    await page.waitForURL(
+      (url) => url.pathname.startsWith('/j-aautomation/app') && !url.pathname.endsWith('/login'),
+    );
+    await expect(
+      page.getByRole('heading', { name: 'My supplier team', exact: true }),
+    ).toBeVisible();
+    const supplierTeamLink = page.getByRole('link', { name: 'Supplier team', exact: true });
+    const supplierNavigationToggle = page.getByRole('button', { name: 'Toggle navigation' });
+    const openedSupplierNavigation = !(await supplierTeamLink.isVisible());
+    if (openedSupplierNavigation) {
+      await expect(supplierNavigationToggle).toBeVisible();
+      await supplierNavigationToggle.click();
+    }
+    await expect(supplierTeamLink).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Digital workers', exact: true })).toHaveCount(0);
+    if (openedSupplierNavigation) await page.keyboard.press('Escape');
+    expect((await page.request.get(portal('/workflow/__data.json'))).status()).toBe(403);
+    for (const route of ['/workflow', '/workflow/capture']) {
+      expect((await page.request.get(portal(route))).status()).toBe(403);
+    }
+    const blockedExtract = await page.evaluate(async () => {
+      const form = new FormData();
+      form.set('file', new File(['coordinator test'], 'coordinator.txt', { type: 'text/plain' }));
+      return (
+        await fetch('/j-aautomation/app/api/workflow/extract', { method: 'POST', body: form })
+      ).status;
+    });
+    expect(blockedExtract).toBe(403);
+    expect((await page.goto(portal(`/supplier?projectId=${projectId}&lang=en`)))?.status()).toBe(
+      200,
+    );
+  } finally {
+    const cleanup = createDatabase(databasePath);
+    try {
+      if (fixtureUserIds.length) {
+        const placeholders = fixtureUserIds.map(() => '?').join(',');
+        cleanup.sqlite
+          .prepare(
+            `UPDATE supplier_user_profile_period SET ends_at=?
+              WHERE user_id IN (${placeholders}) AND ends_at IS NULL`,
+          )
+          .run(new Date().toISOString(), ...fixtureUserIds);
+        cleanup.sqlite
+          .prepare(`DELETE FROM supplier_user_profile WHERE user_id IN (${placeholders})`)
+          .run(...fixtureUserIds);
+        cleanup.sqlite
+          .prepare(`DELETE FROM session WHERE user_id IN (${placeholders})`)
+          .run(...fixtureUserIds);
+        cleanup.sqlite
+          .prepare(`UPDATE user SET status='offboarded',updated_at=? WHERE id IN (${placeholders})`)
+          .run(new Date().toISOString(), ...fixtureUserIds);
+      }
+    } finally {
+      cleanup.sqlite.close();
+    }
+  }
 });

@@ -1,0 +1,18 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-11T09:40:33.406300+00:00",
+  "schemaVersion": 76,
+  "integrity": "ok",
+  "foreignKeyViolations": 0,
+  "issuedInvoiceCount": 1,
+  "issuedInvoiceLines": 2,
+  "originalPrivateFileCount": 36,
+  "issuedInvoicesExactlyUnchanged": true,
+  "issuedLinesExactlyUnchanged": true,
+  "privateFilesExactlyUnchanged": true,
+  "previousReleaseRestored": true,
+  "portalRunning": true,
+  "jobsRunning": true,
+  "caddyExactlyRestored": true,
+  "zipAutoDeployPausedByReleaseOwner": true
+}

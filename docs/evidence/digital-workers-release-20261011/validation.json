@@ -50,6 +50,18 @@
         "flaky": 0
       },
       "rawEvidence": "local private evidence directory; raw reports are not committed"
+    },
+    {
+      "suite": "external-technician-and-coordinator-restricted-profiles",
+      "stats": {
+        "startTime": "2026-10-11T10:15:06.569Z",
+        "duration": 94925.388,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "rawEvidence": "local private evidence directory; raw reports are not committed"
     }
   ],
   "focusedTests": {
@@ -68,5 +80,7 @@
     "targetedESLint": "passed",
     "targetedPrettier": "passed",
     "independentReview": "approved"
-  }
+  },
+  "restrictedProfileAndMembershipTestsPassed": 9,
+  "restrictedProfileFix": "External technician own-facts workflow/capture/extraction allowlist and navigation; supplier coordinator remains restricted; finance and case decisions remain denied."
 }

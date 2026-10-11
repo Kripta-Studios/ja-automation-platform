@@ -11,3 +11,7 @@ Final review found and corrected project-manager membership filtering at project
 Production cutover requires a fresh stopped-writer backup and a temporary maintenance gate. Version76 code rejects a77 database, so the previous image alone is insufficient for rollback. Before the delivery worker starts, rollback restores database and private files together; after it starts, recovery must preserve any new business effects. Deployment and live verification will be recorded here after execution. Existing broader Svelte-check diagnostics and the prior global Client Essential verdict are unchanged.
 
 The original [implementation guide](../../manuals/Digital_Workers.md) and [feature evidence](../digital-workers-20261011/README.md) describe behavior and limitations. No external model/API key is required.
+
+The first gated production attempt was rolled back before the new delivery worker started because the active external-technician profile was denied by the existing supplier route allowlist. The [independent rollback verification](first-cutover-rollback.json) confirms schema76, the prior runtime, unchanged issued invoice/lines, and all 36 private files. The next candidate includes explicit restricted-profile coverage before retrying.
+
+The restricted-profile fix passes all four browser widths with no skipped, flaky or unexpected results, including desktop local text extraction, own-assignment access, coordinator exclusion and denied financial routes. The [combined route and membership regressions](restricted-profile-and-membership-tests.log) pass 9/9.

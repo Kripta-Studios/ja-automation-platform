@@ -388,7 +388,7 @@ export const handle: Handle = async ({ event, resolve }) => {
         if (profile) {
           event.locals.user!.workforceProfile = profile.profile;
           const route = path.slice(portalBase.length);
-          if (!supplierRouteAllowed(route))
+          if (!supplierRouteAllowed(route, profile.profile))
             return applySecurityHeaders(
               operationalAccessDeniedResponse(
                 profile.profile,

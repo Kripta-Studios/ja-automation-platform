@@ -12,6 +12,10 @@ import {
   type WorkItemStatus,
 } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import {
+  accessibleWorkflowProjects,
+  workflowOwnersForProjects,
+} from '$lib/server/workflow-project-memberships';
 import type { Actions, PageServerLoad } from './$types';
 import {
   evidenceFromForm,
@@ -25,7 +29,6 @@ import {
 } from '$lib/portal/workflow/server';
 
 type SafeProject = { id: string; number: string; name: string };
-type SafeOwner = { id: string; name: string; role: string; projectIds: string[] };
 type QueueRow = {
   id: string;
   projectId: string;
@@ -40,8 +43,8 @@ type QueueRow = {
   href: string;
 };
 
-function currentDate(): string {
-  return new Date().toISOString().slice(0, 10);
+function currentDate(instant: Date): string {
+  return instant.toISOString().slice(0, 10);
 }
 
 function safeProject(row: Record<string, unknown>): SafeProject {
@@ -50,60 +53,6 @@ function safeProject(row: Record<string, unknown>): SafeProject {
     number: String(row.project_number ?? ''),
     name: String(row.name ?? ''),
   };
-}
-
-function accessProjects(
-  context: ReturnType<typeof openPortalRepository>,
-  today: string,
-): SafeProject[] {
-  const projectIds = [...context.principal.projectIds];
-  if (context.principal.role !== 'project_manager' || projectIds.length === 0) return [];
-  const placeholders = projectIds.map(() => '?').join(',');
-  return (
-    context.sqlite
-      .prepare(
-        `SELECT DISTINCT p.id,p.project_number,p.name
-           FROM project p JOIN project_member pm ON pm.project_id=p.id
-          WHERE p.id IN (${placeholders}) AND p.status IN ('active','planned','paused','closing')
-            AND pm.user_id=? AND pm.status='active' AND pm.can_review=1
-            AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
-          ORDER BY p.project_number,p.id`,
-      )
-      .all(...projectIds, context.principal.userId, today, today) as Array<Record<string, unknown>>
-  ).map(safeProject);
-}
-
-function ownersForProjects(
-  context: ReturnType<typeof openPortalRepository>,
-  projects: readonly SafeProject[],
-  today: string,
-): SafeOwner[] {
-  if (!projects.length) return [];
-  const ids = projects.map((project) => project.id);
-  const rows = context.sqlite
-    .prepare(
-      `SELECT DISTINCT p.id project_id,u.id,u.name,u.role
-         FROM project_member pm JOIN user u ON u.id=pm.user_id JOIN project p ON p.id=pm.project_id
-        WHERE p.id IN (${ids.map(() => '?').join(',')}) AND u.status='active'
-          AND pm.status='active' AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
-        ORDER BY u.name,u.id,p.id`,
-    )
-    .all(...ids, today, today) as Array<{
-    project_id: string;
-    id: string;
-    name: string | null;
-    role: string;
-  }>;
-  const owners = new Map<string, SafeOwner>();
-  for (const row of rows) {
-    let owner = owners.get(row.id);
-    if (!owner) {
-      owner = { id: row.id, name: row.name ?? row.id, role: row.role, projectIds: [] };
-      owners.set(row.id, owner);
-    }
-    owner.projectIds.push(row.project_id);
-  }
-  return [...owners.values()];
 }
 
 function reviewQueue(context: ReturnType<typeof openPortalRepository>): QueueRow[] {
@@ -299,7 +248,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user || !locals.session) redirect(303, `${base}/app/login`);
   const context = openPortalRepository(locals);
   try {
-    const today = currentDate();
+    const instant = new Date();
+    const today = currentDate(instant);
     const profile = context.sqlite
       .prepare('SELECT profile FROM supplier_user_profile WHERE user_id=?')
       .get(context.principal.userId) as { profile: string } | undefined;
@@ -348,7 +298,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
 
     const digital = new DigitalWorkersRepository(context.sqlite);
     if (role === 'project_manager') {
-      const projects = accessProjects(context, today);
+      const projects = accessibleWorkflowProjects(
+        context.sqlite,
+        context.principal.userId,
+        instant,
+      );
       const requestedProject = url.searchParams.get('project') ?? '';
       const selectedProjectId = projects.some((project) => project.id === requestedProject)
         ? requestedProject
@@ -369,7 +323,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
         projectNumber: projectNames[item.projectId]?.number ?? '',
         requestKey: randomUUID(),
       }));
-      const owners = ownersForProjects(context, projects, today);
+      const owners = workflowOwnersForProjects(context.sqlite, projects, instant);
       return {
         mode: 'manager' as const,
         role,
@@ -461,7 +415,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
             periodEnd,
           })
         : null;
-    const owners = ownersForProjects(context, projects, today);
+    const owners = workflowOwnersForProjects(context.sqlite, projects, instant);
     const ownerIds = new Set(owners.map((owner) => owner.id));
     const financeUsers = context.sqlite
       .prepare(

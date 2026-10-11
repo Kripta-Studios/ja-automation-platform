@@ -26,6 +26,30 @@
         "flaky": 0
       },
       "rawEvidence": "local private evidence directory; raw reports are not committed"
+    },
+    {
+      "suite": "digital-workers-after-timezone-fix",
+      "stats": {
+        "startTime": "2026-10-11T09:22:48.840Z",
+        "duration": 205119.80800000002,
+        "expected": 22,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "rawEvidence": "local private evidence directory; raw reports are not committed"
+    },
+    {
+      "suite": "digital-workers-PM-after-closing-project-fix",
+      "stats": {
+        "startTime": "2026-10-11T09:27:36.166Z",
+        "duration": 74353.825,
+        "expected": 4,
+        "skipped": 0,
+        "unexpected": 0,
+        "flaky": 0
+      },
+      "rawEvidence": "local private evidence directory; raw reports are not committed"
     }
   ],
   "focusedTests": {
@@ -36,5 +60,13 @@
   "scope": "Predeployment combined candidate validation; not a whole-product Client Essential certification.",
   "assistantTestsPassed": 44,
   "portalTypecheck": "passed",
-  "databaseTypecheck": "passed"
+  "databaseTypecheck": "passed",
+  "membershipRegressionTestsPassed": 2,
+  "membershipFix": "Project-local inclusive membership dates and closing-project follow-up access; existing operational approval scope unchanged.",
+  "membershipFixGates": {
+    "portalTypecheck": "passed",
+    "targetedESLint": "passed",
+    "targetedPrettier": "passed",
+    "independentReview": "approved"
+  }
 }

@@ -6,6 +6,8 @@ The [combined validation](validation.json) records 22 digital-worker browser cas
 
 The [production-copy rehearsal](production-clone-migration.json) verifies a real database/private-file snapshot, migration 76→77, preserved issued invoice/history/audit metadata, and exact restoration of the original76 snapshot. Scratch data was removed; no production records were changed by the rehearsal. Independent finance/security integration review passed.
 
+Final review found and corrected project-manager membership filtering at project-local midnight. The selector also now includes closing projects when the manager has a current review assignment; existing operational approval authority is unchanged. Two SQL-backed boundary regressions pass, and the 22-case browser suite passes again after the timezone fix. The subsequent closing-project selector refinement passes all four PM browser scenarios at 360/390/768/1440, typecheck, targeted lint and formatting, and independent review.
+
 Production cutover requires a fresh stopped-writer backup and a temporary maintenance gate. Version76 code rejects a77 database, so the previous image alone is insufficient for rollback. Before the delivery worker starts, rollback restores database and private files together; after it starts, recovery must preserve any new business effects. Deployment and live verification will be recorded here after execution. Existing broader Svelte-check diagnostics and the prior global Client Essential verdict are unchanged.
 
 The original [implementation guide](../../manuals/Digital_Workers.md) and [feature evidence](../digital-workers-20261011/README.md) describe behavior and limitations. No external model/API key is required.

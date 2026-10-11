@@ -14,8 +14,10 @@
   let playerError = $state(false);
   let failureKind = $state<'load' | 'playback'>('load');
   let videoElement = $state<HTMLVideoElement | undefined>();
+  let playbackRate = $state(1);
   let pendingSeek = $state<number | null>(null);
   let playerGeneration = $state(0);
+  const playbackRates = [0.75, 1, 1.25, 1.5, 1.75, 2] as const;
 
   const copy: Record<Locale, Record<string, string>> = {
     en: {
@@ -30,6 +32,8 @@
       chapterList: 'Chapters',
       playChapter: 'Play chapter',
       fullscreenNote: 'Use fullscreen for the clearest text.',
+      playbackSpeed: 'Playback speed',
+      normalSpeed: 'Normal',
       loadFailure: 'The tutorial could not be loaded. Check your connection and try again.',
       retry: 'Try again',
       playbackFailure: 'Playback could not start. Use the video controls to try again.',
@@ -46,6 +50,8 @@
       chapterList: 'Capítulos',
       playChapter: 'Reproducir capítulo',
       fullscreenNote: 'Usa la pantalla completa para ver el texto con más claridad.',
+      playbackSpeed: 'Velocidad de reproducción',
+      normalSpeed: 'Normal',
       loadFailure: 'No se pudo cargar el tutorial. Comprueba la conexión e inténtalo de nuevo.',
       retry: 'Reintentar',
       playbackFailure: 'No se pudo iniciar la reproducción. Vuelve a intentarlo con los controles.',
@@ -62,6 +68,8 @@
       chapterList: 'Capítulos',
       playChapter: 'Reproduzir capítulo',
       fullscreenNote: 'Use a tela cheia para ver o texto com mais nitidez.',
+      playbackSpeed: 'Velocidade de reprodução',
+      normalSpeed: 'Normal',
       loadFailure: 'Não foi possível carregar o tutorial. Verifique a conexão e tente novamente.',
       retry: 'Tentar novamente',
       playbackFailure: 'A reprodução não iniciou. Tente novamente pelos controles do vídeo.',
@@ -81,8 +89,10 @@
     pendingSeek = startSeconds;
     playerRequested = true;
     await tick();
-    videoElement?.load();
     if (videoElement) {
+      videoElement.defaultPlaybackRate = playbackRate;
+      videoElement.playbackRate = playbackRate;
+      videoElement.load();
       void videoElement.play().catch(() => {
         playbackRejected();
       });
@@ -93,6 +103,22 @@
     if (videoElement && pendingSeek !== null) {
       videoElement.currentTime = pendingSeek;
       pendingSeek = null;
+    }
+  }
+
+  function updatePlaybackRate(event: Event): void {
+    const selectedRate = Number((event.currentTarget as HTMLSelectElement).value);
+    if (!Number.isFinite(selectedRate) || selectedRate <= 0) return;
+    playbackRate = selectedRate;
+    if (videoElement) {
+      videoElement.defaultPlaybackRate = selectedRate;
+      videoElement.playbackRate = selectedRate;
+    }
+  }
+
+  function synchronizePlaybackRate(): void {
+    if (videoElement && Number.isFinite(videoElement.playbackRate)) {
+      playbackRate = videoElement.playbackRate;
     }
   }
 
@@ -173,6 +199,7 @@
           poster={assetUrl('poster.webp')}
           src={assetUrl('video.mp4')}
           onloadedmetadata={loadedMetadata}
+          onratechange={synchronizePlaybackRate}
           onerror={() => {
             failureKind = 'load';
             playerError = true;
@@ -188,6 +215,24 @@
           />
         </video>
       {/key}
+      <div class="playback-speed">
+        <label for="owner-tutorial-playback-speed">{text('playbackSpeed')}</label>
+        <select
+          id="owner-tutorial-playback-speed"
+          value={playbackRate}
+          onchange={updatePlaybackRate}
+          aria-label={text('playbackSpeed')}
+        >
+          {#if !playbackRates.includes(playbackRate as (typeof playbackRates)[number])}
+            <option value={playbackRate}>{playbackRate}×</option>
+          {/if}
+          {#each playbackRates as rate}
+            <option value={rate}>
+              {rate}×{rate === 1 ? ` (${text('normalSpeed')})` : ''}
+            </option>
+          {/each}
+        </select>
+      </div>
       <p class="fullscreen-note">{text('fullscreenNote')}</p>
       {#if playerError}
         <div class="player-error" role="alert">
@@ -302,7 +347,8 @@
     cursor: pointer;
   }
   .tutorial-card button:focus-visible,
-  .chapter-list summary:focus-visible {
+  .chapter-list summary:focus-visible,
+  .playback-speed select:focus-visible {
     outline: 3px solid #f59e0b;
     outline-offset: 2px;
   }
@@ -313,6 +359,27 @@
     aspect-ratio: 16 / 9;
     border-radius: 0.55rem;
     background: #111;
+  }
+  .playback-speed {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem 0.65rem;
+    margin-top: 0.65rem;
+  }
+  .playback-speed label {
+    color: #45443f;
+    font-weight: 600;
+  }
+  .playback-speed select {
+    min-width: 5.5rem;
+    min-height: 44px;
+    border: 1px solid #8a8982;
+    border-radius: 0.4rem;
+    padding: 0.45rem 0.6rem;
+    color: #353430;
+    background: #fff;
+    font: inherit;
   }
   .fullscreen-note {
     margin: 0.45rem 0 0;

@@ -6,6 +6,16 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Requested Owner tutorial playback speed — 2026-10-11
+
+Owner Help adds a labeled playback-speed selector with 0.75×, normal, 1.25×, 1.5×,
+1.75× and 2× options. The selected speed survives chapter changes and retry and tracks
+changes made through native video controls. EN/ES/PT labels and accessible touch targets
+are included. This is a browser-only tutorial control; role boundaries, media bytes and
+business behavior are unchanged. Scoped build, browser and review evidence is recorded in
+[verification](docs/evidence/owner-help-speed-20261011/verification.json); deployment receipts
+are retained in the host directory listed there. No whole-app acceptance verdict changes.
+
 ## Requested Owner Help tutorial — 2026-10-11
 
 Scoped addition: an Owner-only, click-to-load tutorial with 24 chapters, English captions and

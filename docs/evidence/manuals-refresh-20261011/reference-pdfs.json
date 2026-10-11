@@ -1,0 +1,30 @@
+[
+  {
+    "filename": "BBS_Project_to_Client_Invoices_Guide_EN.pdf",
+    "pages": 216,
+    "sha256": "de70cfec102b1a07a35ce85d0da1015c731589d5cbffcef4e40e731be0804727",
+    "strictPdf": "PASS",
+    "nonblankPages": "PASS"
+  },
+  {
+    "filename": "Project_to_Invoice_Quick_Guide_EN.pdf",
+    "pages": 5,
+    "sha256": "1950483fd3024b88570ebd450ee1c643fed3857acc3013e2930d376cbcc6ec1e",
+    "strictPdf": "PASS",
+    "nonblankPages": "PASS"
+  },
+  {
+    "filename": "Digital_Workers.pdf",
+    "pages": 3,
+    "sha256": "4d118d671a058b63083a569daaae9c076854da9340f06b04d0aa776c578b4b58",
+    "strictPdf": "PASS",
+    "nonblankPages": "PASS"
+  },
+  {
+    "filename": "Role_Workflows.pdf",
+    "pages": 3,
+    "sha256": "7cba980f9524feda317b9ab3125f38019f9506394b9f7e8c407c03231745494e",
+    "strictPdf": "PASS",
+    "nonblankPages": "PASS"
+  }
+]

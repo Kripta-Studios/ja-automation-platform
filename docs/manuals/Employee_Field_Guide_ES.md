@@ -1,3 +1,5 @@
+> Edición histórica. Para la navegación y los flujos digitales del 11 de octubre de 2026, consulta los [manuales actuales por perfil](README.md). Los PDF actuales están en inglés; esta edición y sus capturas se conservan como referencia histórica.
+
 # Guía de campo para empleados — revisión 2026-09-22
 
 > Usa solo la dirección del portal y el contacto de soporte admin@j-aautomation.com. Esta guía usa ejemplos sintéticos. No compartas contraseña, código MFA, código de recuperación, recibo ni sesión.

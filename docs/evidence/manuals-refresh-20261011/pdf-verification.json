@@ -1,0 +1,77 @@
+{
+  "status": "PASS",
+  "manuals": [
+    {
+      "role": "auditor",
+      "pages": 47,
+      "landscape": 19,
+      "figures": 20,
+      "sha256": "35d150da94f35eb5f1178d0dd4bbbbc01e661aee14d9c589ece6f82e8e6e6f14",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "chief",
+      "pages": 71,
+      "landscape": 24,
+      "figures": 35,
+      "sha256": "4a1fdf370382653f59ddf73b43a8c9508a25353b0f8b79a0262fec38191ecec2",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "external-technician",
+      "pages": 60,
+      "landscape": 22,
+      "figures": 29,
+      "sha256": "2109f97606efff39a05ea1efa5f24d070c1132709b917b84a91247eb91ac88fc",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "finance",
+      "pages": 77,
+      "landscape": 27,
+      "figures": 31,
+      "sha256": "c8575c50bf298148bf1b7c3ae49d8688e851b7af062a7b1729cc8b9aef3df1b5",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "manager",
+      "pages": 85,
+      "landscape": 32,
+      "figures": 44,
+      "sha256": "56e662fde138750344e747823fea23f462b1081e8724d011c18b9f453b763eff",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "owner",
+      "pages": 276,
+      "landscape": 90,
+      "figures": 126,
+      "sha256": "175a0438fd29b13ae140f2c13121174ab8f4efdd0a6513d50617f7ec90c87c44",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "supplier-coordinator",
+      "pages": 64,
+      "landscape": 22,
+      "figures": 32,
+      "sha256": "d58cc367637a15c226211ded2d701ff532f32b61f807efe94a64ffea72785e92",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    },
+    {
+      "role": "worker",
+      "pages": 87,
+      "landscape": 29,
+      "figures": 44,
+      "sha256": "ed8371d9d95666b7b58b492dc1c928f12094573b679247794bdc60afed7f9437",
+      "strictPdf": "PASS",
+      "imageHashes": "PASS"
+    }
+  ]
+}

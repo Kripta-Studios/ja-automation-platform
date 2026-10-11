@@ -1,3 +1,5 @@
+> Edição histórica. Para a navegação e os fluxos digitais de 11 de outubro de 2026, consulte os [manuais atuais por perfil](README.md). Os PDFs atuais estão em inglês; esta edição e suas capturas são referências históricas.
+
 # Guia do coordenador de fornecedor
 
 ## Somente instalações autorizadas

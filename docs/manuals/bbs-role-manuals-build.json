@@ -1,11 +1,11 @@
 {
-  "revision": "2026-10-06",
+  "revision": "2026-10-11",
   "project": "C-0050-P-20261005",
   "reports": [
     {
       "role": "auditor",
       "filename": "BBS_Auditor_Manual_EN.pdf",
-      "pages": 44,
+      "pages": 47,
       "landscape": 19,
       "sections": [
         {
@@ -29,83 +29,93 @@
           "page": 8
         },
         {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 9
+        },
+        {
+          "key": "release-audit-current",
+          "title": "Review digital cases and current financial navigation",
+          "page": 11
+        },
+        {
           "key": "auditor-start",
           "title": "Start with an individual Auditor account",
-          "page": 9
+          "page": 12
         },
         {
           "key": "auditor-planning-actual",
           "title": "Reconcile a work plan with actual source hours",
-          "page": 11
+          "page": 14
         },
         {
           "key": "auditor-financial-scope",
           "title": "Review invoice and collection totals",
-          "page": 13
+          "page": 16
         },
         {
           "key": "auditor-invoices",
           "title": "Inspect a numbered native invoice and its sources",
-          "page": 14
+          "page": 17
         },
         {
           "key": "auditor-cash",
           "title": "Reconcile collections and their reversals",
-          "page": 21
+          "page": 24
         },
         {
           "key": "auditor-worker-obligations",
           "title": "Inspect compensation and reimbursement privately",
-          "page": 22
+          "page": 25
         },
         {
           "key": "auditor-accounting",
           "title": "Review a preserved Accounting cut and its artifacts",
-          "page": 24
+          "page": 27
         },
         {
           "key": "auditor-audit",
           "title": "Trace who changed what and when",
-          "page": 27
+          "page": 30
         },
         {
           "key": "auditor-outputs",
           "title": "Read the appropriate report and private output",
-          "page": 32
+          "page": 35
         },
         {
           "key": "auditor-boundary",
           "title": "Verify read-only boundaries and hand off a finding",
-          "page": 38
+          "page": 41
         },
         {
           "key": "auditor-finish",
           "title": "Complete the review and protect its evidence",
-          "page": 40
+          "page": 43
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 inspect, request and verify",
-          "page": 41
+          "page": 44
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 42
+          "page": 45
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 44
+          "page": 47
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 147,
+      "instructionBlocks": 165,
       "instructionText": "PASS",
-      "bytes": 840016,
-      "sha256": "bf38d7853aa611119e3d78e08add50d1aeecebe47bcda0bf0cee476d01c10e7a",
+      "bytes": 859121,
+      "sha256": "35d150da94f35eb5f1178d0dd4bbbbc01e661aee14d9c589ece6f82e8e6e6f14",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -189,12 +199,12 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 19
+      "outlineEntries": 21
     },
     {
       "role": "chief",
       "filename": "BBS_Crew_Chief_Manual_EN.pdf",
-      "pages": 65,
+      "pages": 71,
       "landscape": 24,
       "sections": [
         {
@@ -218,113 +228,133 @@
           "page": 8
         },
         {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 9
+        },
+        {
+          "key": "release-capture",
+          "title": "Digital workers: capture facts and create linked drafts",
+          "page": 11
+        },
+        {
+          "key": "release-local-aids",
+          "title": "Read document text and use optional on-device dictation",
+          "page": 13
+        },
+        {
+          "key": "release-followup-worker",
+          "title": "Update an assigned follow-up and request review",
+          "page": 14
+        },
+        {
           "key": "chief-start",
           "title": "Understand Chief authority before recording crew work",
-          "page": 9
+          "page": 15
         },
         {
           "key": "chief-shared",
           "title": "Save the same actual hours for multiple crew members",
-          "page": 11
+          "page": 17
         },
         {
           "key": "chief-individual",
           "title": "Use different actual hours and submit deliberately",
-          "page": 13
+          "page": 19
         },
         {
           "key": "chief-expense",
           "title": "Record one crew expense with its actual payer",
-          "page": 16
+          "page": 22
         },
         {
           "key": "chief-allocation",
           "title": "Split one receipt across worked sources",
-          "page": 19
+          "page": 25
         },
         {
           "key": "chief-review",
           "title": "Hand operational work to the permitted reviewer",
-          "page": 24
+          "page": 30
         },
         {
           "key": "chief-own-time",
           "title": "Record and submit your own Chief hours separately",
-          "page": 25
+          "page": 31
         },
         {
           "key": "chief-correction",
           "title": "Correct a delegated returned entry",
-          "page": 29
+          "page": 35
         },
         {
           "key": "chief-daily",
           "title": "Write a Chief daily handover report",
-          "page": 33
+          "page": 39
         },
         {
           "key": "chief-technical",
           "title": "Document your technical findings and validation",
-          "page": 37
+          "page": 43
         },
         {
           "key": "chief-pay",
           "title": "Read only your own pay and reimbursements",
-          "page": 41
+          "page": 47
         },
         {
           "key": "chief-planning-targets",
           "title": "Read your own plan and distinguish crew authority",
-          "page": 43
+          "page": 49
         },
         {
           "key": "chief-connected-work",
           "title": "Complete one shared plan with different individual actual hours",
-          "page": 46
+          "page": 52
         },
         {
           "key": "chief-expected-comparison",
           "title": "Reconcile your own weekly target without changing actual work",
-          "page": 52
+          "page": 58
         },
         {
           "key": "chief-mobile",
           "title": "Operate crew controls on a phone or tablet",
-          "page": 56
+          "page": 62
         },
         {
           "key": "chief-profile-help",
           "title": "Manage your own profile and ask for support",
-          "page": 59
+          "page": 65
         },
         {
           "key": "chief-checklist",
           "title": "Verify the crew handover",
-          "page": 60
+          "page": 66
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 62
+          "page": 68
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 63
+          "page": 69
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 65
+          "page": 71
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 209,
+      "instructionBlocks": 245,
       "instructionText": "PASS",
-      "bytes": 2108887,
-      "sha256": "3085208af63ea1db294a71668e489955c86f670b7527d3ba57fde5f931e29c42",
+      "bytes": 2143390,
+      "sha256": "4a1fdf370382653f59ddf73b43a8c9508a25353b0f8b79a0262fec38191ecec2",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -468,12 +498,12 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 25
+      "outlineEntries": 29
     },
     {
       "role": "external-technician",
       "filename": "BBS_External_Technician_Manual_EN.pdf",
-      "pages": 55,
+      "pages": 60,
       "landscape": 22,
       "sections": [
         {
@@ -497,103 +527,118 @@
           "page": 8
         },
         {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 9
+        },
+        {
+          "key": "release-capture",
+          "title": "Digital workers: capture facts and create linked drafts",
+          "page": 11
+        },
+        {
+          "key": "release-local-aids",
+          "title": "Read document text and use optional on-device dictation",
+          "page": 13
+        },
+        {
           "key": "external-start",
           "title": "Start with authorized supplier access",
-          "page": 9
+          "page": 14
         },
         {
           "key": "external-time",
           "title": "First shift: save actual time, then submit",
-          "page": 11
+          "page": 16
         },
         {
           "key": "external-correction",
           "title": "Correct returned time and verify Owner approval",
-          "page": 14
+          "page": 19
         },
         {
           "key": "external-week",
           "title": "Review a week and submit eligible drafts",
-          "page": 17
+          "page": 22
         },
         {
           "key": "external-expense",
           "title": "Record an own purchase with its private receipt",
-          "page": 19
+          "page": 24
         },
         {
           "key": "external-daily",
           "title": "Write and submit your own daily field report",
-          "page": 22
+          "page": 27
         },
         {
           "key": "external-technical",
           "title": "Save technical facts and private evidence before submission",
-          "page": 25
+          "page": 30
         },
         {
           "key": "external-report-output",
           "title": "Generate, check and download the saved report version",
-          "page": 30
+          "page": 35
         },
         {
           "key": "external-operational",
           "title": "Reconcile an exact period with its native CSV",
-          "page": 33
+          "page": 38
         },
         {
           "key": "external-mobile",
           "title": "Use narrow screens and check saved results",
-          "page": 35
+          "page": 40
         },
         {
           "key": "external-profile",
           "title": "Maintain your workforce profile and individual security",
-          "page": 38
+          "page": 43
         },
         {
           "key": "external-help",
           "title": "Use Help and hand problems to the correct role",
-          "page": 40
+          "page": 45
         },
         {
           "key": "external-assignment-planning-targets",
           "title": "Planning appendix \u00b7 assignment dates and expected targets",
-          "page": 42
+          "page": 47
         },
         {
           "key": "external-operational-goals-handoff",
           "title": "Describe completed work, open goals and the next shift",
-          "page": 47
+          "page": 52
         },
         {
           "key": "external-checklist",
           "title": "Complete the technician handoff",
-          "page": 51
+          "page": 56
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 52
+          "page": 57
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 53
+          "page": 58
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 55
+          "page": 60
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 177,
+      "instructionBlocks": 206,
       "instructionText": "PASS",
-      "bytes": 3211223,
-      "sha256": "2cb353953c13d26ba9d64c54403c5680a3e30d90d946adda1b341a4f14abb0f2",
+      "bytes": 3240064,
+      "sha256": "2109f97606efff39a05ea1efa5f24d070c1132709b917b84a91247eb91ac88fc",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -713,162 +758,192 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 23
+      "outlineEntries": 26
     },
     {
       "role": "finance",
       "filename": "BBS_Finance_Manual_EN.pdf",
-      "pages": 66,
+      "pages": 77,
       "landscape": 27,
       "sections": [
         {
           "key": "practice",
           "title": "Before practising \u00b7 live and training access",
-          "page": 3
+          "page": 4
         },
         {
           "key": "access",
           "title": "Access \u00b7 activate the invitation and sign in",
-          "page": 4
+          "page": 5
         },
         {
           "key": "trainer-setup",
           "title": "Practice setup \u00b7 your account and starting records",
-          "page": 7
+          "page": 8
         },
         {
           "key": "review-authority",
           "title": "Review authority \u00b7 who receives each source",
-          "page": 8
+          "page": 9
+        },
+        {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 10
+        },
+        {
+          "key": "release-project-work",
+          "title": "Use the project workspace and current task shortcuts",
+          "page": 12
+        },
+        {
+          "key": "release-invoice-current",
+          "title": "Prepare invoices from selected records or a whole period",
+          "page": 13
+        },
+        {
+          "key": "release-finance-case",
+          "title": "Digital workers: reviewed finance case to invoice draft",
+          "page": 15
+        },
+        {
+          "key": "release-policy",
+          "title": "Record a manual policy proposal and understand automation",
+          "page": 16
+        },
+        {
+          "key": "release-followup-review",
+          "title": "Review operational follow-ups and coordinate the handoff",
+          "page": 17
         },
         {
           "key": "finance-start",
           "title": "Start with your Finance account",
-          "page": 9
+          "page": 19
         },
         {
           "key": "finance-planning-actual",
           "title": "Reconcile a work plan with actual source hours",
-          "page": 12
+          "page": 22
         },
         {
           "key": "finance-boundaries",
           "title": "Know your authority and the Owner handoffs",
-          "page": 14
+          "page": 24
         },
         {
           "key": "finance-review",
           "title": "Review actual work after operational approval",
-          "page": 15
+          "page": 25
         },
         {
           "key": "finance-expenses",
           "title": "Classify an expense before Finance review",
-          "page": 17
+          "page": 28
         },
         {
           "key": "finance-commercial",
           "title": "Maintain approved dated project and person terms",
-          "page": 20
+          "page": 31
         },
         {
           "key": "finance-streams",
           "title": "Create and review a billing stream",
-          "page": 22
+          "page": 33
         },
         {
           "key": "finance-draft",
           "title": "Create and review the customer invoice draft",
-          "page": 24
+          "page": 35
         },
         {
           "key": "finance-issue",
           "title": "Approve, issue and download a final invoice",
-          "page": 28
+          "page": 39
         },
         {
           "key": "finance-dispatch",
           "title": "Deliver an invoice and inspect the real result",
-          "page": 30
+          "page": 41
         },
         {
           "key": "finance-collections",
           "title": "Record a collection and correct it with a reversal",
-          "page": 31
+          "page": 42
         },
         {
           "key": "finance-adjustment",
           "title": "Correct an issued amount without rewriting its master",
-          "page": 35
+          "page": 46
         },
         {
           "key": "finance-settlements",
           "title": "Finalize a worker\u2019s compensation period",
-          "page": 37
+          "page": 48
         },
         {
           "key": "finance-worker-payments",
           "title": "Record and reverse an actual worker-side payment",
-          "page": 38
+          "page": 49
         },
         {
           "key": "finance-reimbursement",
           "title": "Record a verified expense reimbursement",
-          "page": 43
+          "page": 54
         },
         {
           "key": "finance-economics",
           "title": "Review invoice and collection totals",
-          "page": 48
+          "page": 59
         },
         {
           "key": "finance-accounting",
           "title": "Generate, review and finalize an Accounting Pack",
-          "page": 49
+          "page": 60
         },
         {
           "key": "finance-close",
           "title": "Close a billing period and handle late work",
-          "page": 52
+          "page": 63
         },
         {
           "key": "finance-customer-report",
           "title": "Generate a customer-safe report and receive the PM handoff",
-          "page": 54
+          "page": 65
         },
         {
           "key": "finance-obligation-correction",
           "title": "Handle a finalized obligation correction without unlocking history",
-          "page": 61
+          "page": 72
         },
         {
           "key": "finance-recovery",
           "title": "Finish the cycle and hand off an exception",
-          "page": 62
+          "page": 73
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 63
+          "page": 74
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 64
+          "page": 75
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 66
+          "page": 77
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 236,
+      "instructionBlocks": 292,
       "instructionText": "PASS",
-      "bytes": 1663589,
-      "sha256": "88063f8412a2398eca1cc953de95f1105d0f29341c5a0bb04990b96989789a1a",
+      "bytes": 1715538,
+      "sha256": "c8575c50bf298148bf1b7c3ae49d8688e851b7af062a7b1729cc8b9aef3df1b5",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -996,162 +1071,177 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 29
+      "outlineEntries": 35
     },
     {
       "role": "manager",
       "filename": "BBS_Project_Manager_Manual_EN.pdf",
-      "pages": 79,
+      "pages": 85,
       "landscape": 32,
       "sections": [
         {
           "key": "practice",
           "title": "Before practising \u00b7 live and training access",
-          "page": 3
+          "page": 4
         },
         {
           "key": "access",
           "title": "Access \u00b7 activate the invitation and sign in",
-          "page": 4
+          "page": 5
         },
         {
           "key": "trainer-setup",
           "title": "Practice setup \u00b7 your account and starting records",
-          "page": 7
+          "page": 8
         },
         {
           "key": "review-authority",
           "title": "Review authority \u00b7 who receives each source",
-          "page": 8
+          "page": 9
+        },
+        {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 10
+        },
+        {
+          "key": "release-project-work",
+          "title": "Use the project workspace and current task shortcuts",
+          "page": 12
+        },
+        {
+          "key": "release-followup-review",
+          "title": "Coordinate scope, evidence and handover follow-ups",
+          "page": 13
         },
         {
           "key": "start",
           "title": "Start with your account and assigned scope",
-          "page": 9
+          "page": 15
         },
         {
           "key": "navigation",
           "title": "Find the right workspace on desktop and phone",
-          "page": 12
+          "page": 18
         },
         {
           "key": "dashboard",
           "title": "Use Dashboard to decide where to act",
-          "page": 15
+          "page": 21
         },
         {
           "key": "projects",
           "title": "Inspect the project before changing its team",
-          "page": 17
+          "page": 23
         },
         {
           "key": "team",
           "title": "Assign workers and verify saved membership dates",
-          "page": 19
+          "page": 25
         },
         {
           "key": "review",
           "title": "Review a submitted source using the correct decision",
-          "page": 23
+          "page": 29
         },
         {
           "key": "corrections",
           "title": "Verify author recovery and approve the linked replacement",
-          "page": 26
+          "page": 32
         },
         {
           "key": "reports",
           "title": "Review authored Daily and Technical facts with attribution",
-          "page": 28
+          "page": 34
         },
         {
           "key": "customer-followup",
           "title": "Review the ready customer version and acceptance queue",
-          "page": 30
+          "page": 36
         },
         {
           "key": "planning",
           "title": "Publish a future plan without creating actual time",
-          "page": 34
+          "page": 40
         },
         {
           "key": "plan-update",
           "title": "Change a published assignment and verify persistence",
-          "page": 37
+          "page": 43
         },
         {
           "key": "plan-connected-crew",
           "title": "Follow a shared plan through crew work and review",
-          "page": 39
+          "page": 45
         },
         {
           "key": "plan-targets-recovery",
           "title": "Distinguish planned hours, expected hours and work goals",
-          "page": 45
+          "page": 51
         },
         {
           "key": "availability",
           "title": "Maintain expertise and availability in the correct scope",
-          "page": 56
+          "page": 62
         },
         {
           "key": "own-time",
           "title": "Record your own operational time and hand it off",
-          "page": 58
+          "page": 64
         },
         {
           "key": "expenses",
           "title": "Inspect receipts and distinguish operational review from repayment",
-          "page": 61
+          "page": 67
         },
         {
           "key": "pay",
           "title": "Read only your own compensation and payment status",
-          "page": 63
+          "page": 69
         },
         {
           "key": "documents",
           "title": "Register and retrieve a private project document",
-          "page": 65
+          "page": 71
         },
         {
           "key": "notifications",
           "title": "Follow a notification to the current permitted source",
-          "page": 68
+          "page": 74
         },
         {
           "key": "security-help",
           "title": "Complete own reports and use the shared access/security procedures",
-          "page": 71
+          "page": 77
         },
         {
           "key": "day-checklist",
           "title": "Complete the PM operational cycle and hand off",
-          "page": 74
+          "page": 80
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 76
+          "page": 82
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 77
+          "page": 83
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 79
+          "page": 85
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 269,
+      "instructionBlocks": 297,
       "instructionText": "PASS",
-      "bytes": 4343008,
-      "sha256": "04b29607d252d3a7683c84b9f51ee355b42de9796bd913875fea808a01b484be",
+      "bytes": 4371883,
+      "sha256": "56e662fde138750344e747823fea23f462b1081e8724d011c18b9f453b763eff",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -1331,12 +1421,12 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 29
+      "outlineEntries": 32
     },
     {
       "role": "owner",
       "filename": "BBS_Owner_Manual_EN.pdf",
-      "pages": 266,
+      "pages": 276,
       "landscape": 90,
       "sections": [
         {
@@ -1360,598 +1450,633 @@
           "page": 12
         },
         {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 13
+        },
+        {
+          "key": "release-project-setup",
+          "title": "Create projects with the current five-section form",
+          "page": 15
+        },
+        {
+          "key": "release-project-work",
+          "title": "Use the project workspace and current task shortcuts",
+          "page": 16
+        },
+        {
+          "key": "release-followup-review",
+          "title": "Review operational follow-ups and coordinate the handoff",
+          "page": 17
+        },
+        {
+          "key": "release-invoice-current",
+          "title": "Prepare invoices from selected records or a whole period",
+          "page": 19
+        },
+        {
+          "key": "release-finance-case",
+          "title": "Digital workers: reviewed finance case to invoice draft",
+          "page": 21
+        },
+        {
+          "key": "release-policy",
+          "title": "Record a manual policy proposal and understand automation",
+          "page": 22
+        },
+        {
           "key": "owner-course",
           "title": "Use this Owner manual",
-          "page": 13
+          "page": 23
         },
         {
           "key": "owner-access",
           "title": "Owner account, assignments and delegation",
-          "page": 14
+          "page": 24
         },
         {
           "key": "owner-review-grants",
           "title": "Grant or revoke the exact project review permission",
-          "page": 16
+          "page": 26
         },
         {
           "key": "owner-handoffs",
           "title": "Give each person the right guide",
-          "page": 17
+          "page": 27
         },
         {
           "key": "owner-clean-setup",
           "title": "Prepare a clean project and its legal billing prerequisites",
-          "page": 19
+          "page": 29
         },
         {
           "key": "owner-plan-membership",
           "title": "Assign access, publish a crew plan and verify each worker",
-          "page": 21
+          "page": 31
         },
         {
           "key": "owner-expected-hours",
           "title": "Set expected hours and interpret the weekly difference",
-          "page": 26
+          "page": 36
         },
         {
           "key": "owner-planning-time-goals",
           "title": "Keep planned hours, local time and work goals distinct",
-          "page": 32
+          "page": 42
         },
         {
           "key": "owner-planning-recovery",
           "title": "Troubleshoot missing plans, expired coverage and unknown targets",
-          "page": 37
+          "page": 47
         },
         {
           "key": "owner-money",
           "title": "Supervise the financial cycle",
-          "page": 41
+          "page": 51
         },
         {
           "key": "owner-commercial-references",
           "title": "Check optional commercial models, milestones and forecasts",
-          "page": 43
+          "page": 53
         },
         {
           "key": "owner-accounting",
           "title": "Accounting coverage and period close",
-          "page": 45
+          "page": 55
         },
         {
           "key": "owner-readiness-closeout",
           "title": "Verify populated closeout and the current Accounting recovery",
-          "page": 47
+          "page": 57
         },
         {
           "key": "owner-current-technical-output",
           "title": "Inspect current customer technical details before delivery",
-          "page": 51
+          "page": 61
         },
         {
           "key": "owner-private-dated-terms",
           "title": "Owner reference \u00b7 dated terms and calculation inputs",
-          "page": 53
+          "page": 63
         },
         {
           "key": "owner-private-project-economics",
           "title": "Owner reference \u00b7 project economics and workbook interpretation",
-          "page": 57
+          "page": 67
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 sources, obligations and immutable history",
-          "page": 63
+          "page": 73
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 64
+          "page": 74
         },
         {
           "key": "verification",
           "title": "Verification \u00b7 current coverage and historical evidence",
-          "page": 66
+          "page": 76
         },
         {
           "key": "course-owner-first-access",
           "title": "Start here \u00b7 Owner access and this guide",
-          "page": 67
+          "page": 77
         },
         {
           "key": "course-before-practising",
           "title": "Before practising \u00b7 obtain a separate training environment",
-          "page": 68
+          "page": 78
         },
         {
           "key": "course-owner-navigation",
           "title": "Owner navigation \u00b7 choose the workspace",
-          "page": 69
+          "page": 79
         },
         {
           "key": "course-owner-access-model",
           "title": "Person, role, assignment and review permission",
-          "page": 70
+          "page": 80
         },
         {
           "key": "course-owner-team-onboarding",
           "title": "Create workforce access \u00b7 exact controls",
-          "page": 71
+          "page": 81
         },
         {
           "key": "course-bbs-inspect-or-create",
           "title": "Two learning paths \u00b7 inspect or build",
-          "page": 74
+          "page": 84
         },
         {
           "key": "course-chapter-1",
           "title": "Understand the operating cycle",
-          "page": 75
+          "page": 85
         },
         {
           "key": "course-project-prerequisites",
           "title": "Before creating the project",
-          "page": 76
+          "page": 86
         },
         {
           "key": "course-chapter-2",
           "title": "Create a client and project",
-          "page": 77
+          "page": 87
         },
         {
           "key": "course-client-fields",
           "title": "Client fields \u00b7 what to enter",
-          "page": 78
+          "page": 88
         },
         {
           "key": "course-project-fields",
           "title": "Project fields \u00b7 basics and dates",
-          "page": 80
+          "page": 90
         },
         {
           "key": "course-commercial-project",
           "title": "Commercial defaults \u00b7 models and hours",
-          "page": 81
+          "page": 91
         },
         {
           "key": "course-budget-fields",
           "title": "Budgets and reporting \u00b7 optional controls",
-          "page": 83
+          "page": 93
         },
         {
           "key": "course-creation-people",
           "title": "Optional worker table during creation",
-          "page": 85
+          "page": 95
         },
         {
           "key": "course-bbs-initial-sheet",
           "title": "Initial data sheet \u00b7 before the first work record",
-          "page": 90
+          "page": 100
         },
         {
           "key": "course-chapter-3",
           "title": "Project defaults and person overrides",
-          "page": 91
+          "page": 101
         },
         {
           "key": "course-dated-terms",
           "title": "Effective dates, overrides and bulk controls",
-          "page": 93
+          "page": 103
         },
         {
           "key": "course-contract-decisions",
           "title": "Translate the contract into independent settings",
-          "page": 94
+          "page": 104
         },
         {
           "key": "course-chapter-4",
           "title": "J&A issuer and invoice details",
-          "page": 95
+          "page": 105
         },
         {
           "key": "course-issuer-directories",
           "title": "Issuer settings and tax profiles",
-          "page": 97
+          "page": 107
         },
         {
           "key": "course-chapter-5",
           "title": "Crew chief: hourly billing and hourly pay",
-          "page": 98
+          "page": 108
         },
         {
           "key": "course-chapter-6",
           "title": "Technician 1: full daily customer charge",
-          "page": 101
+          "page": 111
         },
         {
           "key": "course-chapter-7",
           "title": "Technician 2: weekly charge, fixed-period pay",
-          "page": 104
+          "page": 114
         },
         {
           "key": "course-chapter-8",
           "title": "More compensation and expense options",
-          "page": 107
+          "page": 117
         },
         {
           "key": "course-billing-unit-meaning",
           "title": "Customer unit and worker compensation \u00b7 two decisions",
-          "page": 108
+          "page": 118
         },
         {
           "key": "course-overtime-reference",
           "title": "Configure overtime \u00b7 separate customer, worker and cost rules",
-          "page": 109
+          "page": 119
         },
         {
           "key": "course-worker-trigger-limits",
           "title": "Percentage compensation \u00b7 precise basis and trigger",
-          "page": 110
+          "page": 120
         },
         {
           "key": "course-alternative-contracts",
           "title": "Daily minimum, caps and forecast \u00b7 reference exercises",
-          "page": 111
+          "page": 121
         },
         {
           "key": "course-chapter-9",
           "title": "Assign the crew and chief",
-          "page": 112
+          "page": 122
         },
         {
           "key": "course-suppliers-owner",
           "title": "Supplier setup and personnel \u00b7 exact tested controls",
-          "page": 114
+          "page": 124
         },
         {
           "key": "course-supplier-access-lifecycle",
           "title": "Team role, external profile and access removal",
-          "page": 116
+          "page": 126
         },
         {
           "key": "course-chapter-15",
           "title": "Separate labor and expense billing streams",
-          "page": 117
+          "page": 127
         },
         {
           "key": "course-stream-prerequisites",
           "title": "Prerequisites \u00b7 creating a billing stream",
-          "page": 118
+          "page": 128
         },
         {
           "key": "course-stream-core-fields",
           "title": "New billing stream \u00b7 project, sources and timing",
-          "page": 119
+          "page": 129
         },
         {
           "key": "course-stream-delivery-fields",
           "title": "New billing stream \u00b7 delivery and defaults",
-          "page": 121
+          "page": 131
         },
         {
           "key": "course-cadence-options",
           "title": "Cadence options \u00b7 which period do they mean?",
-          "page": 123
+          "page": 133
         },
         {
           "key": "course-chapter-19",
           "title": "Issuer coverage and legal revisions",
-          "page": 124
+          "page": 134
         },
         {
           "key": "course-planning-skills-availability",
           "title": "Planning, skills and availability \u00b7 tested lab cycle",
-          "page": 125
+          "page": 135
         },
         {
           "key": "course-planning-owner-time",
           "title": "Owner weekly entry \u00b7 actual hours and layout copy",
-          "page": 126
+          "page": 136
         },
         {
           "key": "course-chapter-10",
           "title": "Record and submit time",
-          "page": 129
+          "page": 139
         },
         {
           "key": "course-chapter-12",
           "title": "Record expenses and a shared receipt",
-          "page": 132
+          "page": 142
         },
         {
           "key": "course-expense-entry-fields",
           "title": "Expense-entry fields \u00b7 amount and evidence",
-          "page": 133
+          "page": 143
         },
         {
           "key": "course-foreign-currency-remedy",
           "title": "Foreign-currency expense \u00b7 supported escalation",
-          "page": 137
+          "page": 147
         },
         {
           "key": "course-operational-review",
           "title": "Review an active queue \u00b7 Owner and Finance handoff",
-          "page": 138
+          "page": 148
         },
         {
           "key": "course-correction-states",
           "title": "Correct time by its current state",
-          "page": 141
+          "page": 151
         },
         {
           "key": "course-correction-worked",
           "title": "Worked correction \u00b7 eight hours should be six",
-          "page": 142
+          "page": 152
         },
         {
           "key": "course-chapter-11",
           "title": "Stage 1: 35 approved actual hours",
-          "page": 150
+          "page": 160
         },
         {
           "key": "course-chapter-13",
           "title": "Four approved, Finance-reviewed expenses",
-          "page": 152
+          "page": 162
         },
         {
           "key": "course-report-model",
           "title": "Reports and customer acceptance \u00b7 distinct evidence",
-          "page": 155
+          "page": 165
         },
         {
           "key": "course-daily-report-procedure",
           "title": "Create and review a Daily report",
-          "page": 156
+          "page": 166
         },
         {
           "key": "course-technical-report-procedure",
           "title": "Technical / PLC report \u00b7 tested review procedure",
-          "page": 159
+          "page": 169
         },
         {
           "key": "course-period-report-procedure",
           "title": "Generate the customer-safe period file",
-          "page": 161
+          "page": 171
         },
         {
           "key": "course-signoff-evidence",
           "title": "Record genuine sign-off against the exact version",
-          "page": 164
+          "page": 174
         },
         {
           "key": "course-signoff-simulated-completion",
           "title": "Training acceptance, invalidation and a replacement version",
-          "page": 166
+          "page": 176
         },
         {
           "key": "course-chapter-16",
           "title": "Create the 35-hour client invoice",
-          "page": 169
+          "page": 179
         },
         {
           "key": "course-invoice-prerequisites",
           "title": "Prerequisites \u00b7 creating an invoice draft",
-          "page": 170
+          "page": 180
         },
         {
           "key": "course-invoice-wizard",
           "title": "Create invoice \u00b7 every review step",
-          "page": 171
+          "page": 181
         },
         {
           "key": "course-chapter-17",
           "title": "Create the client expense invoice",
-          "page": 175
+          "page": 185
         },
         {
           "key": "course-chapter-18",
           "title": "One invoice with hourly, daily and weekly units",
-          "page": 177
+          "page": 187
         },
         {
           "key": "course-chapter-20",
           "title": "Edit a draft and download its PDF",
-          "page": 179
+          "page": 189
         },
         {
           "key": "course-invoice-edit-fields",
           "title": "Invoice detail edits \u00b7 where each value is saved",
-          "page": 180
+          "page": 190
         },
         {
           "key": "course-chapter-22",
           "title": "Pre-issue checkpoint and troubleshooting",
-          "page": 183
+          "page": 193
         },
         {
           "key": "course-final-numbering",
           "title": "Numbering policy \u00b7 approved inputs and neutral example",
-          "page": 184
+          "page": 194
         },
         {
           "key": "course-final-issue-procedure",
           "title": "Final invoice issuance \u00b7 exact tested progression",
-          "page": 186
+          "page": 196
         },
         {
           "key": "course-invoice-dispatch",
           "title": "Dispatch \u00b7 explicit email consent and failure recovery",
-          "page": 188
+          "page": 198
         },
         {
           "key": "course-issued-correction",
           "title": "Issued correction \u00b7 linked credit and void safeguards",
-          "page": 190
+          "page": 200
         },
         {
           "key": "course-credit-receiving",
           "title": "Credit balance \u00b7 allocation and refund boundary",
-          "page": 191
+          "page": 201
         },
         {
           "key": "course-collections-procedure",
           "title": "Record collections \u00b7 partial, later and correction",
-          "page": 193
+          "page": 203
         },
         {
           "key": "course-worker-schedules",
           "title": "Different worker payment periods and dates",
-          "page": 195
+          "page": 205
         },
         {
           "key": "course-worker-payment-prerequisites",
           "title": "Worker payment prerequisites and period selection",
-          "page": 196
+          "page": 206
         },
         {
           "key": "course-worker-settlement-steps",
           "title": "Finalize one worker\u2019s compensation \u00b7 exact steps",
-          "page": 197
+          "page": 207
         },
         {
           "key": "course-worker-period-examples",
           "title": "Three saved BBS compensation periods",
-          "page": 199
+          "page": 209
         },
         {
           "key": "course-worker-planning-steps",
           "title": "Set different expected payment dates \u00b7 exact steps",
-          "page": 200
+          "page": 210
         },
         {
           "key": "course-worker-actual-payment",
           "title": "Record actual payment only after a real transfer",
-          "page": 202
+          "page": 212
         },
         {
           "key": "course-expense-reimbursement",
           "title": "Reimburse a worker expense \u00b7 exact tested register",
-          "page": 209
+          "page": 219
         },
         {
           "key": "course-chapter-14",
           "title": "Worker and chief views",
-          "page": 211
+          "page": 221
         },
         {
           "key": "course-economic-meaning",
           "title": "Finance figures \u00b7 economic position versus cash",
-          "page": 214
+          "page": 224
         },
         {
           "key": "course-spreadsheet-exports",
           "title": "Spreadsheet exports: hours, costs and revenue",
-          "page": 215
+          "page": 225
         },
         {
           "key": "course-spreadsheet-sheets",
           "title": "Pre-issue finance workbook \u00b7 what each tab means",
-          "page": 217
+          "page": 227
         },
         {
           "key": "course-spreadsheet-reconciliation",
           "title": "Pre-issue snapshot \u00b7 economic meanings",
-          "page": 218
+          "page": 228
         },
         {
           "key": "course-cost-reconciliation",
           "title": "Reconcile internal costing with compensation owed",
-          "page": 219
+          "page": 229
         },
         {
           "key": "course-expense-workbook-steps",
           "title": "Download the separate expense register workbook",
-          "page": 232
+          "page": 242
         },
         {
           "key": "course-spreadsheet-verified-scope",
           "title": "Spreadsheet verification and original workbook attachments",
-          "page": 237
+          "page": 247
         },
         {
           "key": "course-after-lifecycle-workbook",
           "title": "After lifecycle XLSX \u00b7 compare a second snapshot",
-          "page": 238
+          "page": 248
         },
         {
           "key": "course-weekly-close-procedure",
           "title": "Weekly close \u00b7 reviewed sources and a later arrival",
-          "page": 242
+          "page": 252
         },
         {
           "key": "course-owner-close-and-history",
           "title": "Project closure and archive \u00b7 exact tested empty-project cycle",
-          "page": 244
+          "page": 254
         },
         {
           "key": "course-populated-closeout",
           "title": "Populated closeout \u00b7 final packages and supported reopening",
-          "page": 245
+          "page": 255
         },
         {
           "key": "course-accounting-pack",
           "title": "Accounting Pack \u00b7 generate, review and finalize",
-          "page": 246
+          "page": 256
         },
         {
           "key": "course-accounting-success",
           "title": "Accounting demo \u00b7 reviewed October pack finalized",
-          "page": 247
+          "page": 257
         },
         {
           "key": "course-accounting-period-reconciliation",
           "title": "Accounting period \u00b7 invoices, cash and older work dates",
-          "page": 248
+          "page": 258
         },
         {
           "key": "course-accounting-gap-remedy",
           "title": "Accounting error \u00b7 understand the retained dates",
-          "page": 251
+          "page": 261
         },
         {
           "key": "course-private-documents",
           "title": "Documents \u00b7 register, classify and recover a private file",
-          "page": 253
+          "page": 263
         },
         {
           "key": "course-owner-profile-and-help",
           "title": "Audit, notifications, security and Help \u00b7 exact scope",
-          "page": 255
+          "page": 265
         },
         {
           "key": "course-ux-improvements",
           "title": "UX corrections and remaining operating limits",
-          "page": 256
+          "page": 266
         },
         {
           "key": "course-owner-task-checklist",
           "title": "Owner completion checklist \u00b7 verify the business result",
-          "page": 257
+          "page": 267
         },
         {
           "key": "course-verification-scope",
           "title": "Validation matrix \u00b7 completed, reference and blocked",
-          "page": 258
+          "page": 268
         },
         {
           "key": "course-testing-history",
           "title": "Evidence history \u00b7 keep snapshots and outcomes separate",
-          "page": 259
+          "page": 269
         },
         {
           "key": "course-appendices",
           "title": "Final issued invoice PDFs \u00b7 original downloads",
-          "page": 260
+          "page": 270
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 593,
+      "instructionBlocks": 656,
       "instructionText": "PASS",
-      "bytes": 9460848,
-      "sha256": "d902f0468f7914841408c6239674c31dc48fa171de1872d7eb7d939ececed2ae",
+      "bytes": 9515870,
+      "sha256": "175a0438fd29b13ae140f2c13121174ab8f4efdd0a6513d50617f7ec90c87c44",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2462,14 +2587,14 @@
       "nativeInvoiceAnnexPages": 6,
       "nativeInvoiceStreamsUnchanged": true,
       "courseIntegrated": true,
-      "bodyPages": 260,
+      "bodyPages": 270,
       "assembled": true,
-      "outlineEntries": 125
+      "outlineEntries": 132
     },
     {
       "role": "supplier-coordinator",
       "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
-      "pages": 61,
+      "pages": 64,
       "landscape": 22,
       "sections": [
         {
@@ -2493,108 +2618,118 @@
           "page": 8
         },
         {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 9
+        },
+        {
+          "key": "release-supplier-current",
+          "title": "Current supplier workflow and digital-workspace handoff",
+          "page": 11
+        },
+        {
           "key": "start",
           "title": "Start with a supplier access profile, not an Owner account",
-          "page": 9
+          "page": 12
         },
         {
           "key": "navigation",
           "title": "Use the coordinator\u2019s restricted navigation",
-          "page": 11
+          "page": 14
         },
         {
           "key": "personnel",
           "title": "Verify the saved supplier roster and dates",
-          "page": 14
+          "page": 17
         },
         {
           "key": "add-technician",
           "title": "Add a directory technician with the exact fields",
-          "page": 16
+          "page": 19
         },
         {
           "key": "batch",
           "title": "Record actual duration for selected technicians",
-          "page": 18
+          "page": 21
         },
         {
           "key": "drafts",
           "title": "Inspect each saved team draft and submit to J&A",
-          "page": 21
+          "page": 24
         },
         {
           "key": "correction",
           "title": "Create a linked correction for returned team work",
-          "page": 24
+          "page": 27
         },
         {
           "key": "export",
           "title": "Keep the before checkpoint and export the final filtered totals",
-          "page": 27
+          "page": 30
         },
         {
           "key": "own-time",
           "title": "Keep your own work separate and submit eligible weekly drafts",
-          "page": 30
+          "page": 33
         },
         {
           "key": "own-expenses",
           "title": "Save your own expense receipt and submit the facts",
-          "page": 32
+          "page": 35
         },
         {
           "key": "daily",
           "title": "Create, submit and download your own Daily report",
-          "page": 35
+          "page": 38
         },
         {
           "key": "technical",
           "title": "Create, submit and download your own Technical / PLC report",
-          "page": 38
+          "page": 41
         },
         {
           "key": "profile-help",
           "title": "Maintain your own availability and secure access",
-          "page": 42
+          "page": 45
         },
         {
           "key": "handoff",
           "title": "Finish the supplier operational cycle",
-          "page": 46
+          "page": 49
         },
         {
           "key": "supplier-planning-team-handoff",
           "title": "Planning appendix \u00b7 turn work instructions into actual team facts",
-          "page": 48
+          "page": 51
         },
         {
           "key": "supplier-coverage-goals-troubleshooting",
           "title": "Coverage appendix \u00b7 missing people, dates and work goals",
-          "page": 53
+          "page": 56
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 58
+          "page": 61
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 59
+          "page": 62
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 61
+          "page": 64
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 195,
+      "instructionBlocks": 213,
       "instructionText": "PASS",
-      "bytes": 3633817,
-      "sha256": "01c41effc9c41bc7b6ca4f5a58e988a3bb4acb8a070bf27548823c59ee0ea77f",
+      "bytes": 3653105,
+      "sha256": "d58cc367637a15c226211ded2d701ff532f32b61f807efe94a64ffea72785e92",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2726,157 +2861,177 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 24
+      "outlineEntries": 26
     },
     {
       "role": "worker",
       "filename": "BBS_Worker_Manual_EN.pdf",
-      "pages": 80,
+      "pages": 87,
       "landscape": 29,
       "sections": [
         {
           "key": "practice",
           "title": "Before practising \u00b7 live and training access",
-          "page": 3
+          "page": 4
         },
         {
           "key": "access",
           "title": "Access \u00b7 activate the invitation and sign in",
-          "page": 4
+          "page": 5
         },
         {
           "key": "trainer-setup",
           "title": "Practice setup \u00b7 your account and starting records",
-          "page": 7
+          "page": 8
         },
         {
           "key": "review-authority",
           "title": "Review authority \u00b7 who receives each source",
-          "page": 8
+          "page": 9
+        },
+        {
+          "key": "release-navigation",
+          "title": "Current navigation, task finder and form recovery",
+          "page": 10
+        },
+        {
+          "key": "release-capture",
+          "title": "Digital workers: capture facts and create linked drafts",
+          "page": 12
+        },
+        {
+          "key": "release-local-aids",
+          "title": "Read document text and use optional on-device dictation",
+          "page": 14
+        },
+        {
+          "key": "release-followup-worker",
+          "title": "Update an assigned follow-up and request review",
+          "page": 15
         },
         {
           "key": "worker-start",
           "title": "Start with your own account",
-          "page": 9
+          "page": 16
         },
         {
           "key": "worker-time",
           "title": "Save and inspect actual time",
-          "page": 12
+          "page": 19
         },
         {
           "key": "worker-expense",
           "title": "Record one expense with private receipt evidence",
-          "page": 15
+          "page": 22
         },
         {
           "key": "worker-daily",
           "title": "Save and submit a daily field report",
-          "page": 19
+          "page": 26
         },
         {
           "key": "worker-technical",
           "title": "Describe a technical change without treating it as permission",
-          "page": 23
+          "page": 30
         },
         {
           "key": "worker-week",
           "title": "Submit your own displayed week and verify every source",
-          "page": 27
+          "page": 34
         },
         {
           "key": "worker-expense-exceptions",
           "title": "Use expense batch tools and corrections carefully",
-          "page": 30
+          "page": 37
         },
         {
           "key": "worker-correction",
           "title": "Correct returned time and retain history",
-          "page": 37
+          "page": 44
         },
         {
           "key": "worker-report-evidence",
           "title": "Understand report PDFs, attachments and customer acceptance",
-          "page": 40
+          "page": 47
         },
         {
           "key": "worker-pay",
           "title": "Read your own compensation and reimbursement",
-          "page": 45
+          "page": 52
         },
         {
           "key": "worker-statement",
           "title": "Generate your own statement and check readiness",
-          "page": 46
+          "page": 53
         },
         {
           "key": "worker-settlement-guard",
           "title": "Hand a locked time correction to the Owner",
-          "page": 48
+          "page": 55
         },
         {
           "key": "worker-planning",
           "title": "Read a plan without creating actual hours",
-          "page": 50
+          "page": 57
         },
         {
           "key": "worker-connected-plan",
           "title": "Follow a published assignment through actual work and review",
-          "page": 52
+          "page": 59
         },
         {
           "key": "worker-expected-hours",
           "title": "Read Expected, Difference and Needs note correctly",
-          "page": 56
+          "page": 63
         },
         {
           "key": "worker-plan-goals-troubleshooting",
           "title": "Handle a missing plan and understand what a work goal means",
-          "page": 65
+          "page": 72
         },
         {
           "key": "worker-mobile",
           "title": "Use phone and tablet views",
-          "page": 69
+          "page": 76
         },
         {
           "key": "worker-profile",
           "title": "Maintain expertise, availability and account security",
-          "page": 72
+          "page": 79
         },
         {
           "key": "worker-help",
           "title": "Use notifications and escalate the right record",
-          "page": 74
+          "page": 81
         },
         {
           "key": "worker-checklist",
           "title": "Finish a workday and verify the handoff",
-          "page": 75
+          "page": 82
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 77
+          "page": 84
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 78
+          "page": 85
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 80
+          "page": 87
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 241,
+      "instructionBlocks": 276,
       "instructionText": "PASS",
-      "bytes": 3324269,
-      "sha256": "7e771b08502f70d7228ed49d60d08e17409859ac46a59df0867ad7ea4aa9da0d",
+      "bytes": 3359628,
+      "sha256": "ed8371d9d95666b7b58b492dc1c928f12094573b679247794bdc60afed7f9437",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -3056,7 +3211,7 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 28
+      "outlineEntries": 32
     }
   ]
 }

@@ -1,0 +1,16 @@
+✔ warnings must not introduce hidden business concepts to operational roles (2.08189ms)
+✔ Owner-only economics are also rejected in Finance and Auditor guides (0.198009ms)
+✔ personal pay and expense instructions remain available (0.483718ms)
+✔ cross-domain warnings cannot reintroduce private business distinctions (0.298349ms)
+✔ a previously reviewed leaking screenshot cannot be reintroduced (0.181169ms)
+✔ Owner retains business economics and their original evidence (0.13773ms)
+✔ operational preparation and recovery do not introduce commercial processing (0.417409ms)
+✔ Finance retains its authorized input label without receiving costing guidance (0.176329ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 93.17001

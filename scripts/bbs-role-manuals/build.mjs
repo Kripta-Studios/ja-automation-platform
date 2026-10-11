@@ -111,7 +111,10 @@ try {
       );
       const course = await page.evaluate(() =>
         [...document.querySelectorAll('.page')]
-          .filter((s) => s.id !== 'cover' && !s.id.startsWith('contents-'))
+          .filter(
+            (s) =>
+              s.id !== 'cover' && !s.id.startsWith('contents-') && !s.id.startsWith('release-'),
+          )
           .map((s) => ({
             key: `course-${s.id}`,
             title: s.querySelector('h1').textContent,
@@ -172,7 +175,7 @@ try {
           const header = document.createElement('header');
           const eyebrow = document.createElement('div');
           eyebrow.className = 'eyebrow';
-          eyebrow.textContent = 'J&A Automation · BBS role manual · 7 October 2026';
+          eyebrow.textContent = 'J&A Automation · BBS role manual · 11 October 2026';
           const h1 = document.createElement('h1');
           h1.textContent = heading;
           header.append(eyebrow, h1);
@@ -399,7 +402,7 @@ try {
   }
   await writeFile(
     resolve(output, 'bbs-role-manuals-build.json'),
-    JSON.stringify({ revision: '2026-10-06', project: 'C-0050-P-20261005', reports }, null, 2) +
+    JSON.stringify({ revision: '2026-10-11', project: 'C-0050-P-20261005', reports }, null, 2) +
       '\n',
   );
 } finally {

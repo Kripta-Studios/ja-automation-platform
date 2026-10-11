@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # Employee field guide — revision 2026-09-22
 
 > Use only the portal address and verified support route stated in your invitation. This guide uses synthetic examples. Never share a password, MFA code, recovery code, receipt or session.

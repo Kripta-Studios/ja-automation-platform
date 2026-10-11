@@ -85,7 +85,7 @@ const guide = (
   sourceName: string,
 ): ManualDefinition => ({
   id,
-  title: { en: name[0], es: name[1], pt: name[2] },
+  title: { en: `Historical: ${name[0]}`, es: `Histórico: ${name[1]}`, pt: `Histórico: ${name[2]}` },
   description: { en: description[0], es: description[1], pt: description[2] },
   audience,
   locales: ['en', 'pt'],
@@ -115,7 +115,7 @@ const bbsRoleGuide = (
   },
   audience,
   locales: ['en'],
-  revision: '2026-10-07',
+  revision: '2026-10-11',
   allowedPersonas: [persona],
   assets: { en: { sourceName: `BBS_${stem}_Manual_EN.pdf` } },
 });
@@ -124,9 +124,9 @@ export const manualCatalog: readonly ManualDefinition[] = [
   {
     id: 'employee-field-guide',
     title: {
-      en: 'Employee field guide',
-      es: 'Guía de campo para empleados',
-      pt: 'Guia de campo para colaboradores',
+      en: 'Historical: Employee field guide',
+      es: 'Histórico: Guía de campo para empleados',
+      pt: 'Histórico: Guia de campo para colaboradores',
     },
     description: {
       en: 'A short guide to your own field work and My Pay.',
@@ -201,7 +201,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     },
     audience: 'administration-finance',
     locales: ['en'],
-    revision: '2026-10-07',
+    revision: '2026-10-11',
     allowedPersonas: ['owner'],
     assets: { en: { sourceName: 'BBS_Project_to_Client_Invoices_Guide_EN.pdf' } },
   },
@@ -210,7 +210,7 @@ export const manualCatalog: readonly ManualDefinition[] = [
     'Worker: BBS field operations',
     'Worker',
     'work-projects',
-    'Illustrated English course: own hours, expenses, reports, corrections and My Pay in the BBS training project.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: own hours, expenses, reports, corrections and My Pay in the BBS training project.',
   ),
   {
     ...bbsRoleGuide(
@@ -227,14 +227,14 @@ export const manualCatalog: readonly ManualDefinition[] = [
     'Project manager: BBS operations',
     'Project_Manager',
     'work-projects',
-    'Illustrated English course: assigned project oversight, operational review, reporting and role handoffs.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: assigned project oversight, operational review, reporting and role handoffs.',
   ),
   bbsRoleGuide(
     'finance',
     'Finance: BBS financial operations',
     'Finance',
     'administration-finance',
-    'Illustrated English course: commercial review, invoices, collections, compensation and reconciliation.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: commercial review, invoices, collections, compensation and reconciliation.',
   ),
   bbsRoleGuide(
     'owner',
@@ -248,21 +248,21 @@ export const manualCatalog: readonly ManualDefinition[] = [
     'Auditor: BBS read-only review',
     'Auditor',
     'administration-finance',
-    'Illustrated English course: read-only financial and audit review, evidence and access boundaries.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: read-only financial and audit review, evidence and access boundaries.',
   ),
   bbsRoleGuide(
     'supplier-coordinator',
     'Supplier coordinator: BBS operations',
     'Supplier_Coordinator',
     'supplier-operations',
-    'Illustrated English course: authorized supplier project scope, personnel, team work and operational reporting.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: authorized supplier project scope, personnel, team work and operational reporting.',
   ),
   bbsRoleGuide(
     'external-technician',
     'External technician: BBS field work',
     'External_Technician',
     'supplier-operations',
-    'Illustrated English course: assigned supplier work, own actual time, expenses, reports and corrections.',
+    'Updated 11 October: navigation and digital workflows; illustrated English course: assigned supplier work, own actual time, expenses, reports and corrections.',
   ),
 ];
 

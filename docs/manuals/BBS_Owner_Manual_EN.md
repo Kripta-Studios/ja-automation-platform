@@ -1,6 +1,6 @@
 # Owner · BBS operating manual
 
-Role responsibilities, team handoffs and the complete illustrated BBS course.
+Role responsibilities, team handoffs and the complete illustrated BBS course. · Updated navigation and digital workflows, 11 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -70,8 +70,8 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner approval includes financial acceptance, defaulting pending time to billable while preserving explicit nonbillable treatment. PM approval still needs Finance review; missing rates or expense classification remain separate blockers. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Owner approval includes financial acceptance. Verify remaining classification and configuration before invoice preparation. |
 | Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance completes the required classification and reimbursement review. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
 | PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
@@ -79,6 +79,194 @@ Review is determined by the actual source, base role and current dated grants. C
 ### If you get stuck
 
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="release-navigation"></a>
+## Current navigation, task finder and form recovery
+
+Go here: Header → Go to section / Find a task; workspace → Search workspace
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+
+### Do the task
+
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+
+### Verify the result
+
+- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+
+### If you get stuck
+
+- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
+- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+
+<a id="release-project-setup"></a>
+## Create projects with the current five-section form
+
+Go here: Projects → New project
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The current form starts with essential identity/date fields. Optional details are grouped into Project context, People, Commercial defaults and Planning / reporting controls. Section links open their disclosure before focusing its fields.
+
+The old illustrated three-stage creation screenshots are historical. Use the current field labels and the required/optional legend described here.
+
+### Do the task
+
+1. Select Client, enter Name and Cost center code, and check Currency, Site timezone, Start date and optional planned end. Review the selected client defaults; the cost center suffix contributes to the generated project number.
+2. Open Project context for description, alias, manager, site address and on-site contact details. Owner/Finance can open the linked client or client contacts from the saved project; PM sees only the permitted operational identity.
+3. Open People for authorized assignments and dated project/person terms; Commercial defaults for the agreed model and expected/minimum-hour settings; Planning for applicable budgets and reporting requirements. Enter only agreed values.
+4. Use Create project once. Correct errors through the validation summary; hidden sections with errors open and values remain available. Reopen Overview, Team and Billing to verify saved identity and settings.
+
+### Verify the result
+
+- Creation did not fabricate actual time. Published planning, expected-hour schedules and actual work must still be handled separately.
+
+### If you get stuck
+
+- If a client is missing, create or correct the real client through its own form before retrying. Preserve entered context when following a remedy link, and check the selected client again on return.
+
+<a id="release-project-work"></a>
+## Use the project workspace and current task shortcuts
+
+Go here: Projects → project → Work / Team / Reports
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.
+
+The Overview shows the project timezone, dates, site and contact details where configured. Review those facts before recording work. Planning, expected schedules and actual recorded hours remain independent.
+
+### Do the task
+
+1. Find the project by name or number and check its status. Open Work to review the time/expense sources and use Log time, Record expense or Create work report for the intended project.
+2. Use Team to inspect dated assignments; permitted managers can assign or update eligible memberships. Granting review permission is a separate Owner action.
+3. Follow the project links between Time, Expenses and Reports. Verify the project and selected dates after changing filters or returning from a detail.
+4. On a narrow screen use the labelled task actions on the project card and swipe the tab strip. Check the current-section label rather than assuming the first visible tab is selected.
+
+### Verify the result
+
+- The project heading, filter summary and saved record refer to the same project. Empty filtered results are not proof that no underlying records exist.
+
+### If you get stuck
+
+- If site or contact details are wrong, ask the Owner to update the project. If a person is missing from Team controls, check account and dated membership/authorization coverage.
+
+<a id="release-followup-review"></a>
+## Review operational follow-ups and coordinate the handoff
+
+Go here: Digital workers → existing work-item cards; Approvals → original sources
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Owner/Finance sees finance cases, policy creation and authorized existing work-item cards. The Create a follow-up form for Scope change, Handover and Evidence is in the assigned Project Manager workspace; coordinate new operational items with that manager. Use Approvals or the original source record for actual operational decisions.
+
+Work items coordinate a Scope change, Handover or Evidence request. They do not replace source review, a project plan or a customer acceptance record.
+
+### Do the task
+
+1. Open an existing authorized work-item card. Inspect project, type, factual title, description, assigned owner and deadline. Ask the project manager to create a new operational follow-up when needed; your Create a policy review form is a different task.
+2. For Scope change, explicitly classify the facts as existing scope, rework, goodwill, needs clarification or potential change. This is a coordination classification; send the factual context to the responsible Owner.
+3. Inspect the assigned person’s In progress / Ready for review update. Open supporting records and check whether references are current, claimed, missing or stale.
+4. Accept only after checking the actual evidence; Handover acceptance requires current supporting document/report evidence. A Waived decision requires a reason. Record the offered Review reason and save.
+5. Preserve an Accepted, Waived or Cancelled item as history. Create a new follow-up if the facts or requested work later change.
+
+### Verify the result
+
+- Current means the reference resolves to an authorized current record. It does not establish physical completion or customer acceptance.
+- The saved follow-up state and the original source’s review state are separate. A due item produces one in-app reminder per current owner/deadline.
+
+### If you get stuck
+
+- If evidence is stale, open the current version and replace the reference before review. If access or membership changed, reload and ask the Owner to check the dated grant.
+
+<a id="release-invoice-current"></a>
+## Prepare invoices from selected records or a whole period
+
+Go here: Project → Work / Billing → Create invoice; Billing → Invoices
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.
+
+Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice.
+
+### Do the task
+
+1. Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.
+2. Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.
+3. If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.
+4. For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.
+5. Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.
+6. Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle.
+
+### Verify the result
+
+- No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance.
+
+### If you get stuck
+
+- If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source.
+
+<a id="release-finance-case"></a>
+## Digital workers: reviewed finance case to invoice draft
+
+Go here: Digital workers → Ready to invoice
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+A finance case records a snapshot and a human review before handing labor/expense sources to an invoice draft. It does not approve actual work, decide policy, issue an invoice or send it. Milestone/fixed and other streams continue in their existing invoice workflow.
+
+### Do the task
+
+1. Select Project, Billing stream and inclusive Period start / Period end, then Apply filters. Inspect Current source register, eligibility, blockers, reservations and source links.
+2. Choose Whole period or Selected sources and Open case. Whole period preserves all source dispositions, including excluded records; selected scope preserves the chosen sources and unselected remainder. Reopening the same scope returns its existing case.
+3. Open case details and inspect blockers, dispositions, supporting report/customer-conformity identity and changes since review. If source population, version, selected rule or report identity changed, Refresh snapshot and examine the differences.
+4. Record the case review with a factual reason only after resolving the current blockers through their own workspaces. A case review is separate from source or invoice approval.
+5. Use Create invoice draft only when the current reviewed snapshot is eligible. The application rechecks sources transactionally. Follow the resulting invoice link and continue review/approval/issue there.
+
+### Verify the result
+
+- The handoff creates a draft only. Stale review, changed source population or existing reservations must not be bypassed. A saved historical case does not prove current eligibility.
+
+### If you get stuck
+
+- On a stale-state message, reload, reconcile the changed evidence, refresh and review again. If a retry returns an existing case/draft, inspect it instead of opening a parallel scope.
+
+<a id="release-policy"></a>
+## Record a manual policy proposal and understand automation
+
+Go here: Digital workers → Policy review; Notifications
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Digital workers uses saved records and explicit deterministic rules. No model key is required. It does not interpret a contract or email, automatically write reports, decide a charge or apply a proposed agreement.
+
+Existing background jobs generate queued artifacts and deliver due in-app follow-ups. Queued/running is not Ready. Each format has its own ready/failed state. Users do not manually process the job queue.
+
+### Do the task
+
+1. Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.
+2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.
+3. Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.
+4. Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email.
+
+### Verify the result
+
+- No policy or financial source changed merely because the proposal was saved/accepted. Keep agreement evidence, manual configuration and resulting record verification distinct.
+
+### If you get stuck
+
+- If generated output fails, use its offered retry/recovery controls and confirm the requested format becomes Ready. Do not send a stale or preview artifact as the final document.
 
 <a id="owner-course"></a>
 ## Use this Owner manual
@@ -184,6 +372,8 @@ For current permission and recovery procedures use the shared chapters Access ·
 Go here: Clients → Projects → Finance → Commercial Configuration → Billing → Configure billing
 
 Context: Ordered source-checked receiving procedure. No new legal issuer, tax profile, numbering policy or live invoice was created by this Owner introduction update.
+
+Use the current five-section form described in Create projects with the current five-section form (release-project-setup); optional fields are behind disclosures. For eligible operational sources, Owner operational approval can also record Finance acceptance. Check the resulting source state and remaining classification/readiness blockers instead of repeating completed review.
 
 Use a clean authorized project for a new cycle, and preserve the existing BBS course as historical evidence. Obtain genuine contract, issuer and accountant-approved tax/numbering inputs before live issuance. Training legal details and approval timestamps are simulations.
 
@@ -299,7 +489,7 @@ The Project Manager’s separate October 21 practice plan was edited from two ho
 
 Planning and worker agendas display UTC explicitly. On October 20, 08:00–16:00 UTC is 10:00–18:00 in Europe/Madrid and 04:00–12:00 in America/New_York. These conversions apply to that date; daylight-saving transitions can change the offset. Enter the intended UTC interval rather than assuming the form uses the browser or project timezone.
 
-There is no generic worker-goal module with Accept, Reject or Mark completed actions. Use published assignments for coordination, the expected schedule for reference hours, actual time for work performed and Daily / Technical reports for progress and deliverables. Project milestones are separate project checkpoints with their own permitted workflow; they are not personal hours targets.
+Planning cards do not have an acceptance/completion lifecycle. Digital workers now has separate assigned follow-ups with In progress and Ready for review, followed by an authorized review decision. Continue to record actual work and report facts through their normal workflows; accepting a follow-up does not approve those sources.
 
 ### Do the task
 
@@ -583,9 +773,9 @@ Go here: Profile → Account security; Profile → Add availability
 <a id="verification"></a>
 ## Verification · current coverage and historical evidence
 
-English readiness edition: 6 October 2026, based on repository abc12c0961b2 with the recorded readiness fixes. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.
+English operating edition: 11 October 2026, checked against main 22475a2b and production digital-workers-2d7b76a250f6. Current workflow chapters precede the dated illustrated exercises. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.
 
-The current evidence lives in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.
+Current release parity and manual validation are recorded in docs/evidence/manuals-refresh-20261011. Historical readiness evidence remains in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.
 
 Recipient activation, actual authenticator verification and own passkey registration/revocation were exercised on a separate isolated recipient. The same account controls are shared, but enrollment was not repeated for every role or physical device. Offline/expired-link and lost-device paths remain precise references where not separately executed.
 
@@ -658,7 +848,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-02-team-create-user.png"><figcaption>Isolated training browser: Set email and password and Create user access. This creates an account without sending an email; project assignment is a separate action.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-02-team-create-user.png"><figcaption>Isolated training browser: Set email and password and Create user access. This creates an account without sending an email; project assignment is a separate action.</figcaption></figure>
 
 
 <a id="course-lab-team-active-image"></a>
@@ -667,7 +857,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-05-team-local-account-after.png"><figcaption>The BBS LAB account was created in isolation and initially had zero project assignments. Active access alone is not project participation.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-05-team-local-account-after.png"><figcaption>The BBS LAB account was created in isolation and initially had zero project assignments. Active access alone is not project participation.</figcaption></figure>
 
 
 <a id="course-bbs-inspect-or-create"></a>
@@ -731,7 +921,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/29-create-project-basics.png"><figcaption>Projects → New Project → 1 · Basics. Choose the saved client, fill Name and Cost center code, then review Currency and the optional fields.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/29-create-project-basics.png"><figcaption>Projects → New Project → 1 · Basics. Choose the saved client, fill Name and Cost center code, then review Currency and the optional fields.</figcaption></figure>
 
 
 <a id="course-project-fields"></a>
@@ -761,7 +951,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/31-create-commercial.png"><figcaption>Select Billing model deliberately. Review Expected hours / day and the separate Client daily minimum hours field.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/31-create-commercial.png"><figcaption>Select Billing model deliberately. Review Expected hours / day and the separate Client daily minimum hours field.</figcaption></figure>
 
 
 <a id="course-budget-fields"></a>
@@ -780,7 +970,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/95-project-budgets-and-report-switches.png"><figcaption>3 · Commercial defaults: optional budgets and weekly/daily/technical reporting flags.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/95-project-budgets-and-report-switches.png"><figcaption>3 · Commercial defaults: optional budgets and weekly/daily/technical reporting flags.</figcaption></figure>
 
 
 <a id="course-creation-people"></a>
@@ -800,7 +990,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/63-create-assignment-header.png"><figcaption>Choose Worker and assignment dates first. Choose Override for this person to reveal the individual fields. The toolbar is excluded from this new capture.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/63-create-assignment-header.png"><figcaption>Choose Worker and assignment dates first. Choose Override for this person to reveal the individual fields. The toolbar is excluded from this new capture.</figcaption></figure>
 
 
 <a id="course-creation-terms-image"></a>
@@ -809,7 +999,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/59-create-assignment-terms.png"><figcaption>Individual charge, worker compensation and expense treatment in the creation form. Fill each value and review the selected payer; creating the project saves the configured rows.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/59-create-assignment-terms.png"><figcaption>Individual charge, worker compensation and expense treatment in the creation form. Fill each value and review the selected payer; creating the project saves the configured rows.</figcaption></figure>
 
 
 <a id="course-lab-assignment-image"></a>
@@ -818,7 +1008,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-06-project-assignment-before.png"><figcaption>Projects → More actions → Assign Worker: select project/person, start date and authorized finance/defaults; click Assign. The isolated onboarding lab is C-0050-P-20261006.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-06-project-assignment-before.png"><figcaption>Projects → More actions → Assign Worker: select project/person, start date and authorized finance/defaults; click Assign. The isolated onboarding lab is C-0050-P-20261006.</figcaption></figure>
 
 
 <a id="course-lab-assignment-result-image"></a>
@@ -827,7 +1017,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-07-project-assignment-after.png"><figcaption>After Assign, the newly created BBS LAB worker has one active assignment. Account and assignment steps were both saved and reopened.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-07-project-assignment-after.png"><figcaption>After Assign, the newly created BBS LAB worker has one active assignment. Account and assignment steps were both saved and reopened.</figcaption></figure>
 
 
 <a id="course-bbs-initial-sheet"></a>
@@ -857,7 +1047,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/51-review-person-location.png"><figcaption>Project → Billing → Configure this project’s invoices → 3. Review each person. Use Person and Go to person; each worker has a separate Save person terms button.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/51-review-person-location.png"><figcaption>Project → Billing → Configure this project’s invoices → 3. Review each person. Use Person and Go to person; each worker has a separate Save person terms button.</figcaption></figure>
 
 
 <a id="course-dated-terms"></a>
@@ -897,7 +1087,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/18-ja-default-issuer.png"><figcaption>2. Billing details. Review issuer/currency, tax, cadence, layout, grouping, recipient and terms before saving.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/18-ja-default-issuer.png"><figcaption>2. Billing details. Review issuer/currency, tax, cadence, layout, grouping, recipient and terms before saving.</figcaption></figure>
 
 
 <a id="course-issuer-directories"></a>
@@ -927,7 +1117,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/52-chief-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/52-chief-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
 
 
 <a id="course-person-5-expenses"></a>
@@ -936,7 +1126,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/53-chief-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/53-chief-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
 
 
 <a id="course-chapter-6"></a>
@@ -956,7 +1146,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/35-worker-daily-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/35-worker-daily-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
 
 
 <a id="course-person-6-expenses"></a>
@@ -965,7 +1155,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/36-worker-daily-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/36-worker-daily-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
 
 
 <a id="course-chapter-7"></a>
@@ -985,7 +1175,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/54-weekly-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/54-weekly-rates.png"><figcaption>Later agreement form: fill Terms effective from, customer billing unit/rate and independent worker method/rate. Before initial 2 October work, use the earlier agreements listed in Initial data sheet; this later screenshot is not initial-date coverage.</figcaption></figure>
 
 
 <a id="course-person-7-expenses"></a>
@@ -994,7 +1184,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/55-weekly-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/55-weekly-expenses.png"><figcaption>Choose Expense payer, reimbursement source, reimbursement and customer recovery. Save the selected payer’s policy; policies for other payers remain separate.</figcaption></figure>
 
 
 <a id="course-chapter-8"></a>
@@ -1071,7 +1261,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/46-assign-chief.png"><figcaption>Illustrative form: Crew → Show project → Assign a crew chief. The captured draft date is later than the first workday. Saved example delegations actually cover 1–31 October; use dates covering the work, including 2 October.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/46-assign-chief.png"><figcaption>Illustrative form: Crew → Show project → Assign a crew chief. The captured draft date is later than the first workday. Saved example delegations actually cover 1–31 October; use dates covering the work, including 2 October.</figcaption></figure>
 
 
 <a id="course-suppliers-owner"></a>
@@ -1091,7 +1281,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure class="pair"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-supplier-create.png"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-supplier-profile.png"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-supplier-authorize.png"><figcaption>Separate supplier lab: Add supplier; supplier-linked External technician profile; Authorize installation with coordinator and dates. These are three separate saved permissions, not a single employee setup.</figcaption></figure>
+<figure class="pair"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-supplier-create.png"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-supplier-profile.png"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-supplier-authorize.png"><figcaption>Separate supplier lab: Add supplier; supplier-linked External technician profile; Authorize installation with coordinator and dates. These are three separate saved permissions, not a single employee setup.</figcaption></figure>
 
 
 <a id="course-supplier-access-lifecycle"></a>
@@ -1142,7 +1332,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/40-new-stream-cadence.png"><figcaption>Billing → Configure billing → New billing stream. Choose Project, stream, cadence, effective/anchor dates, issuer, tax and template.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/40-new-stream-cadence.png"><figcaption>Billing → Configure billing → New billing stream. Choose Project, stream, cadence, effective/anchor dates, issuer, tax and template.</figcaption></figure>
 
 
 <a id="course-stream-delivery-fields"></a>
@@ -1161,7 +1351,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/41-new-stream-delivery.png"><figcaption>Review Recipient email, Billing contact, Payment terms, PO reference and automatic draft preparation before saving.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/41-new-stream-delivery.png"><figcaption>Review Recipient email, Billing contact, Payment terms, PO reference and automatic draft preparation before saving.</figcaption></figure>
 
 
 <a id="course-cadence-options"></a>
@@ -1213,7 +1403,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-08-week-time-before.png"><figcaption>Isolated onboarding lab: week of 28 September, Friday 8 hours and Saturday 1.5 hours. Save daily drafts skips blank days; the saved result totals 9.5 hours.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-08-week-time-before.png"><figcaption>Isolated onboarding lab: week of 28 September, Friday 8 hours and Saturday 1.5 hours. Save daily drafts skips blank days; the saved result totals 9.5 hours.</figcaption></figure>
 
 
 <a id="course-lab-week-register-image"></a>
@@ -1222,7 +1412,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-corrected-saved-time-register.png"><figcaption>Separate onboarding lab, Browser onboarding worker: original 8 h and 1.5 h sources remain Needs changes, linked replacements 6 h and 1 h are Approved. The original submission was 9.5 h; the current approved replacement total is 7 h. Do not add both originals and replacements.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-corrected-saved-time-register.png"><figcaption>Separate onboarding lab, Browser onboarding worker: original 8 h and 1.5 h sources remain Needs changes, linked replacements 6 h and 1 h are Approved. The original submission was 9.5 h; the current approved replacement total is 7 h. Do not add both originals and replacements.</figcaption></figure>
 
 
 <a id="course-chapter-10"></a>
@@ -1242,7 +1432,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/47-worker-log-time.png"><figcaption>Time → Log time. Fill assigned Project, Date, actual duration/category and factual activity; use real clocks only when known.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/47-worker-log-time.png"><figcaption>Time → Log time. Fill assigned Project, Date, actual duration/category and factual activity; use real clocks only when known.</figcaption></figure>
 
 
 <a id="course-chief-hours-image"></a>
@@ -1251,7 +1441,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/48-chief-team-hours.png"><figcaption>Select delegated members; choose Same hours for each selected member or Different hours for each member. Fill the actual hours and activity, then review draft/submission mode.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/48-chief-team-hours.png"><figcaption>Select delegated members; choose Same hours for each selected member or Different hours for each member. Fill the actual hours and activity, then review draft/submission mode.</figcaption></figure>
 
 
 <a id="course-chapter-12"></a>
@@ -1281,7 +1471,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/56-expense-source-fields.png"><figcaption>Expenses → Record expense. Start with the assigned project/date and the correct category.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/56-expense-source-fields.png"><figcaption>Expenses → Record expense. Start with the assigned project/date and the correct category.</figcaption></figure>
 
 
 <a id="course-expense-money-image"></a>
@@ -1290,7 +1480,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/57-expense-money-fields.png"><figcaption>Fill the actual amount/currency, payer/payment method and supporting evidence. These source facts are reviewed separately from customer recovery.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/57-expense-money-fields.png"><figcaption>Fill the actual amount/currency, payer/payment method and supporting evidence. These source facts are reviewed separately from customer recovery.</figcaption></figure>
 
 
 <a id="course-chief-receipt-image"></a>
@@ -1299,7 +1489,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/49-chief-shared-receipt.png"><figcaption>Record one purchase and allocate its total to the selected time records. USD 30 + USD 30 must equal the one USD 60 receipt.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/49-chief-shared-receipt.png"><figcaption>Record one purchase and allocate its total to the selected time records. USD 30 + USD 30 must equal the one USD 60 receipt.</figcaption></figure>
 
 
 <a id="course-foreign-currency-remedy"></a>
@@ -1330,7 +1520,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-12-approval-return-before.png"><figcaption>Review actions → Required change → Needs changes. The reviewer enters why eight hours must become six. This is an actionable submitted record, before the final cleared queue.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-12-approval-return-before.png"><figcaption>Review actions → Required change → Needs changes. The reviewer enters why eight hours must become six. This is an actionable submitted record, before the final cleared queue.</figcaption></figure>
 
 
 <a id="course-lab-review-result-image"></a>
@@ -1339,7 +1529,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-13-approval-return-after.png"><figcaption>The source is returned, with its factual correction reason retained. Returning work does not decide customer billing or reimbursement.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-13-approval-return-after.png"><figcaption>The source is returned, with its factual correction reason retained. Returning work does not decide customer billing or reimbursement.</figcaption></figure>
 
 
 <a id="course-correction-states"></a>
@@ -1369,7 +1559,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-14-correction-six-hours-before.png"><figcaption>Create corrected draft: set Actual hours to 6, enter Correction reason, then Create owner override draft. A linked correction cannot be edited after creation; review before saving.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-14-correction-six-hours-before.png"><figcaption>Create corrected draft: set Actual hours to 6, enter Correction reason, then Create owner override draft. A linked correction cannot be edited after creation; review before saving.</figcaption></figure>
 
 
 <a id="course-lab-correction-saved-image"></a>
@@ -1378,7 +1568,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-15-correction-six-hours-draft.png"><figcaption>The isolated browser created the six-hour linked correction draft. The original eight-hour source remains part of traceable history.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-15-correction-six-hours-draft.png"><figcaption>The isolated browser created the six-hour linked correction draft. The original eight-hour source remains part of traceable history.</figcaption></figure>
 
 
 <a id="course-lab-correction-review-image"></a>
@@ -1387,7 +1577,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-17-correction-submitted-queue.png"><figcaption>After submission the linked correction appears in the approval flow. Check the resulting active source after operational and Finance review; do not submit a standalone duplicate.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-17-correction-submitted-queue.png"><figcaption>After submission the linked correction appears in the approval flow. Check the resulting active source after operational and Finance review; do not submit a standalone duplicate.</figcaption></figure>
 
 
 <a id="course-lab-direct-correction-submit-image"></a>
@@ -1396,7 +1586,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-27-owner-correction-direct-submit-before.png"><figcaption>Owner-authored unsubmitted correction details now expose Submit. Review the exact linked correction and use this individual control or the Time register; do not assume the weekly selector excludes corrections.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-27-owner-correction-direct-submit-before.png"><figcaption>Owner-authored unsubmitted correction details now expose Submit. Review the exact linked correction and use this individual control or the Time register; do not assume the weekly selector excludes corrections.</figcaption></figure>
 
 
 <a id="course-lab-direct-correction-result-image"></a>
@@ -1405,7 +1595,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-28-owner-correction-direct-submit-after.png"><figcaption>The second onboarding-lab correction changed 1.5 hours to 1 hour and submitted through its detail control. The original and replacement stay linked.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-28-owner-correction-direct-submit-after.png"><figcaption>The second onboarding-lab correction changed 1.5 hours to 1 hour and submitted through its detail control. The original and replacement stay linked.</figcaption></figure>
 
 
 <a id="course-lab-finance-active-image"></a>
@@ -1414,7 +1604,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-29-six-hour-finance-review-before.png"><figcaption>After operational approval, select Billable or Non-billable and click Record Finance review. This actual active BBS LAB card demonstrates the step before the cleared queue.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-29-six-hour-finance-review-before.png"><figcaption>After operational approval, select Billable or Non-billable and click Record Finance review. This actual active BBS LAB card demonstrates the step before the cleared queue.</figcaption></figure>
 
 
 <a id="course-lab-finance-reviewed-image"></a>
@@ -1423,7 +1613,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-30-six-hour-finance-reviewed.png"><figcaption>Record Finance review persisted Billable treatment for the operationally approved six-hour linked correction. The source remains linked to the preserved original.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-30-six-hour-finance-reviewed.png"><figcaption>Record Finance review persisted Billable treatment for the operationally approved six-hour linked correction. The source remains linked to the preserved original.</figcaption></figure>
 
 
 <a id="course-chapter-11"></a>
@@ -1432,7 +1622,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<div class="route"><strong>Go here:</strong> Owner/reviewer → Approvals → select project; then Finance review. Approved entries: Time → Filter time entries<br><a href="https://j-aautomation.com/j-aautomation/app/time?project=01a10c51-a391-7288-aad1-cb38be43f496&amp;from=2026-10-01&amp;to=2026-10-04&amp;status=approved&amp;category=&amp;worker=&amp;lang=en">Live company portal · open this workspace</a></div>
+<div class="route"><strong>Go here:</strong> Owner/reviewer → Approvals → select project; inspect financial acceptance (Owner approval now includes it; PM approval still needs Finance review). Approved entries: Time → Filter time entries<br><a href="https://j-aautomation.com/j-aautomation/app/time?project=01a10c51-a391-7288-aad1-cb38be43f496&amp;from=2026-10-01&amp;to=2026-10-04&amp;status=approved&amp;category=&amp;worker=&amp;lang=en">Live company portal · open this workspace</a></div>
 <table><thead><tr><th>Person</th><th>2 October</th><th>3 October</th><th>Actual total</th><th>Customer revenue</th></tr></thead><tbody><tr><td>Chief</td><td>8 h commissioning</td><td>2 h overtime</td><td>10 h</td><td>USD 800</td></tr><tr><td>Technician 1</td><td>8 h regular</td><td>3 h travel</td><td>11 h</td><td>USD 660</td></tr><tr><td>Technician 2</td><td>8 h regular</td><td>6 h travel</td><td>14 h</td><td>USD 770</td></tr><tr><td>Total</td><td>24 h</td><td>11 h</td><td>35 h</td><td>USD 2,230</td></tr></tbody></table>
 <ol><li>After submission, open <strong>Approvals</strong>, choose the training project and apply the filter. Review the operational source facts, then use <strong>Approve</strong> or the available changes/rejection action with a reason.</li><li>In the same workspace, scroll to <strong>Finance review</strong>. For approved time choose <strong>Commercial treatment: Billable</strong> or <strong>Non-billable</strong>, then click <strong>Record Finance review</strong>.</li><li>For an expense that says <strong>Classify this expense before Finance review</strong>, click <strong>Classify expense in Finance</strong>, save its treatment, return and record Finance review.</li><li>To inspect the example hours, open <strong>Time → Filter time entries</strong>, select the training project, dates 1–4 October, Approved, all workers and all categories, then click <strong>Apply filters</strong>.</li></ol>
 <aside>All six stage-1 records (35 hours) and all four expenses have both operational approval and Finance review saved. The screenshots show the six approved sources and the cleared Finance queue. “Approved” alone is the operational state, not proof that commercial review was completed.</aside>
@@ -1444,7 +1634,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/60-stage1-approved-35-hours.png"><figcaption>Dates 2–3 October: 8+8+8+2+3+6 = 35 actual hours. All six sources are Approved; their Finance review is also saved.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/60-stage1-approved-35-hours.png"><figcaption>Dates 2–3 October: 8+8+8+2+3+6 = 35 actual hours. All six sources are Approved; their Finance review is also saved.</figcaption></figure>
 
 
 <a id="course-chapter-13"></a>
@@ -1465,7 +1655,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/61-four-approved-expenses.png"><figcaption>Parking, hotel, one shared meal and company-card tools. Their saved Finance classifications/reviews produce USD 182 customer recovery from USD 230 spent.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/61-four-approved-expenses.png"><figcaption>Parking, hotel, one shared meal and company-card tools. Their saved Finance classifications/reviews produce USD 182 customer recovery from USD 230 spent.</figcaption></figure>
 
 
 <a id="course-finance-complete-image"></a>
@@ -1474,7 +1664,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/62-finance-review-cleared.png"><figcaption>Approvals → selected BBS training project → Finance review. After the saved reviews the app shows Finance queue clear. Commercial review follows operational approval.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/62-finance-review-cleared.png"><figcaption>Approvals → selected BBS training project → Finance review. After the saved reviews the app shows Finance queue clear. Commercial review follows operational approval.</figcaption></figure>
 
 
 <a id="course-report-model"></a>
@@ -1504,7 +1694,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-daily-report-top-fields.png"><figcaption>Separate onboarding lab, New technician worker: actual Project, Work date, Worker, Shift summary and Tasks completed controls. This read-only filled form was not saved again; the earlier separate Daily report submission/approval is shown next.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-daily-report-top-fields.png"><figcaption>Separate onboarding lab, New technician worker: actual Project, Work date, Worker, Shift summary and Tasks completed controls. This read-only filled form was not saved again; the earlier separate Daily report submission/approval is shown next.</figcaption></figure>
 
 
 <a id="course-lab-daily-review-image"></a>
@@ -1513,7 +1703,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-36-daily-report-approval-before.png"><figcaption>The isolated Owner reviews the submitted Daily report and approves its facts. One approved Daily report later appears in the onboarding-lab period record.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-36-daily-report-approval-before.png"><figcaption>The isolated Owner reviews the submitted Daily report and approves its facts. One approved Daily report later appears in the onboarding-lab period record.</figcaption></figure>
 
 
 <a id="course-technical-report-procedure"></a>
@@ -1533,7 +1723,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure class="pair"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-45-technical-report-approval-before.png"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-technical-readable-details.png"><figcaption>Separate onboarding lab: Submitted simulated-bench report had Approve report, then Approved was verified. The rebuilt selected-report UI uses readable labels, with no raw JSON and no 390 px overflow. Future PDF detail mapping passed output tests; the stored earlier v3 PDF is preserved, including its historical blank Detail cell. No real PLC change occurred.</figcaption></figure>
+<figure class="pair"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-45-technical-report-approval-before.png"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-technical-readable-details.png"><figcaption>Separate onboarding lab: Submitted simulated-bench report had Approve report, then Approved was verified. The rebuilt selected-report UI uses readable labels, with no raw JSON and no 390 px overflow. Future PDF detail mapping passed output tests; the stored earlier v3 PDF is preserved, including its historical blank Detail cell. No real PLC change occurred.</figcaption></figure>
 
 
 <a id="course-period-report-procedure"></a>
@@ -1552,7 +1742,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-37-period-report-generator.png"><figcaption>Refresh period reports → Open period refresh: select project/date scope/language and Hours and activity summary. Refresh reports created customer/internal record snapshots. The customer report was subsequently approved, its English PDF generated and downloaded; genuine sign-off remains pending.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-37-period-report-generator.png"><figcaption>Refresh period reports → Open period refresh: select project/date scope/language and Hours and activity summary. Refresh reports created customer/internal record snapshots. The customer report was subsequently approved, its English PDF generated and downloaded; genuine sign-off remains pending.</figcaption></figure>
 
 
 <a id="course-lab-customer-pdf-ready-image"></a>
@@ -1561,7 +1751,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-48-customer-report-native-pdf-ready.png"><figcaption>The isolated browser approved customer period version 2, generated its English artifact and downloaded the native Ready PDF. Other languages remain Not generated yet until explicitly requested.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-48-customer-report-native-pdf-ready.png"><figcaption>The isolated browser approved customer period version 2, generated its English artifact and downloaded the native Ready PDF. Other languages remain Not generated yet until explicitly requested.</figcaption></figure>
 
 
 <a id="course-signoff-evidence"></a>
@@ -1581,7 +1771,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-owner-signoff-evidence-form.png"><figcaption>The form binds the signed PDF to version 2 and its snapshot hash. Upload a genuine signed copy, enter actual signer/date and Record verified signed-copy evidence. The example fields remain empty; the suggested date is not signature evidence.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-owner-signoff-evidence-form.png"><figcaption>The form binds the signed PDF to version 2 and its snapshot hash. Upload a genuine signed copy, enter actual signer/date and Record verified signed-copy evidence. The example fields remain empty; the suggested date is not signature evidence.</figcaption></figure>
 
 
 <a id="course-signoff-simulated-completion"></a>
@@ -1601,7 +1791,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-accepted.png"><figcaption>Separate onboarding lab: marked synthetic signer and version 2 hash. The UI state transition was tested; no genuine customer signature or acceptance occurred. Invalidation subsequently retained this evidence and the original native v2 PDF.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-accepted.png"><figcaption>Separate onboarding lab: marked synthetic signer and version 2 hash. The UI state transition was tested; no genuine customer signature or acceptance occurred. Invalidation subsequently retained this evidence and the original native v2 PDF.</figcaption></figure>
 
 
 <a id="course-lab-signoff-replacement-image"></a>
@@ -1610,7 +1800,7 @@ Context: J&A · Separate onboarding lab · Read-only demonstration
 
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-replacement.png"><figcaption>Separate onboarding lab: after selecting the approved simulated Technical report, v3 moved Needs report → Approve customer report → Generate report → Queued → Ready for signature. English Download succeeded. V2 evidence remains preserved; no v3 signature or real customer acceptance is claimed.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-synthetic-signoff-replacement.png"><figcaption>Separate onboarding lab: after selecting the approved simulated Technical report, v3 moved Needs report → Approve customer report → Generate report → Queued → Ready for signature. English Download succeeded. V2 evidence remains preserved; no v3 signature or real customer acceptance is claimed.</figcaption></figure>
 
 
 <a id="course-chapter-16"></a>
@@ -1630,7 +1820,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<table><thead><tr><th>Requirement</th><th>What to check and where</th></tr></thead><tbody><tr><td>Project / stream</td><td>Billing → Billing streams: active dated stream, compatible project/currency and intended period.</td></tr><tr><td>Assignments / person terms</td><td>Project → Team and Billing → Review each person: membership and dated customer/pay/expense terms cover the source dates.</td></tr><tr><td>Source approval</td><td>Time/Expenses → submit; Approvals → operational approval, then Finance review/billability.</td></tr><tr><td>Expense classification</td><td>Finance → review/classify payer, recovery, reimbursement and any required evidence/FX. Only eligible customer charges enter the expense invoice.</td></tr><tr><td>Issuer authority / tax</td><td>Finance → Commercial Configuration → Project issuing authority; compatible issuer revision covers the entire invoice period. Review tax-profile validity.</td></tr><tr><td>Source availability</td><td>Included and Excluded / pending: sources or full day/week units already covered cannot be billed again.</td></tr><tr><td>Final-issue requirements</td><td>Customer sign-off when required and approved numbering/issue readiness can still block issue even when a reviewable draft PDF exists.</td></tr></tbody></table>
+<table><thead><tr><th>Requirement</th><th>What to check and where</th></tr></thead><tbody><tr><td>Project / stream</td><td>Billing → Billing streams: active dated stream, compatible project/currency and intended period.</td></tr><tr><td>Assignments / person terms</td><td>Project → Team and Billing → Review each person: membership and dated customer/pay/expense terms cover the source dates.</td></tr><tr><td>Source approval</td><td>Time/Expenses → submit; Approvals → operational approval and financial acceptance (combined for Owner approval); verify remaining billability and classification.</td></tr><tr><td>Expense classification</td><td>Finance → review/classify payer, recovery, reimbursement and any required evidence/FX. Only eligible customer charges enter the expense invoice.</td></tr><tr><td>Issuer authority / tax</td><td>Finance → Commercial Configuration → Project issuing authority; compatible issuer revision covers the entire invoice period. Review tax-profile validity.</td></tr><tr><td>Source availability</td><td>Included and Excluded / pending: sources or full day/week units already covered cannot be billed again.</td></tr><tr><td>Final-issue requirements</td><td>Customer sign-off when required and approved numbering/issue readiness can still block issue even when a reviewable draft PDF exists.</td></tr></tbody></table>
 <aside>A zero-source/zero-charge warning requires checking the period, approvals, terms and prior invoice reservations. Creating a stream or planning hours never satisfies the source prerequisites.</aside>
 
 
@@ -1651,7 +1841,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-correct-labor-wizard.png"><figcaption>Corrected capture: the original BBS Labor · Manual stream is selected, matching the initial labor example. The twelve stages identify what to review; this read-only capture did not create another invoice.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-correct-labor-wizard.png"><figcaption>Corrected capture: the original BBS Labor · Manual stream is selected, matching the initial labor example. The twelve stages identify what to review; this read-only capture did not create another invoice.</figcaption></figure>
 
 
 <a id="course-invoice-period-image"></a>
@@ -1660,7 +1850,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/43-invoice-period.png"><figcaption>Fill Period start and Period end. Click Check selected period and Next. Service period is separate from invoice date and due date.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/43-invoice-period.png"><figcaption>Fill Period start and Period end. Click Check selected period and Next. Service period is separate from invoice date and due date.</figcaption></figure>
 
 
 <a id="course-labor-lines-image"></a>
@@ -1669,7 +1859,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/22-labor-lines.png"><figcaption>Stage 1: 35 hours billed at the dated customer rates. Appendix A contains the later final issued PDF with the same sources and total.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/22-labor-lines.png"><figcaption>Stage 1: 35 hours billed at the dated customer rates. Appendix A contains the later final issued PDF with the same sources and total.</figcaption></figure>
 
 
 <a id="course-chapter-17"></a>
@@ -1689,7 +1879,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/23-expense-lines.png"><figcaption>Three customer charges from four source expenses: USD 22 parking + USD 100 hotel + USD 60 shared meal. Appendix B contains the later final issued PDF with the same expense lines.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/23-expense-lines.png"><figcaption>Three customer charges from four source expenses: USD 22 parking + USD 100 hotel + USD 60 shared meal. Appendix B contains the later final issued PDF with the same expense lines.</figcaption></figure>
 
 
 <a id="course-chapter-18"></a>
@@ -1710,7 +1900,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/24-mixed-lines.png"><figcaption>Two hours × USD 80 + one day × USD 600 + one week × USD 1,500 = USD 2,260. Additional covered parts are not another full-unit charge. Appendix C contains the later final issued PDF with the same grouped quantities and total.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/24-mixed-lines.png"><figcaption>Two hours × USD 80 + one day × USD 600 + one week × USD 1,500 = USD 2,260. Additional covered parts are not another full-unit charge. Appendix C contains the later final issued PDF with the same grouped quantities and total.</figcaption></figure>
 
 
 <a id="course-chapter-20"></a>
@@ -1740,7 +1930,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/44-edit-draft-dates.png"><figcaption>Open the saved draft, choose the editable detail field or Edit Invoice Details, and Save Details. Date changes belong to this draft.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/44-edit-draft-dates.png"><figcaption>Open the saved draft, choose the editable detail field or Edit Invoice Details, and Save Details. Date changes belong to this draft.</figcaption></figure>
 
 
 <a id="course-pdf-button-image"></a>
@@ -1749,7 +1939,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/27-pdf-download.png"><figcaption>Click Download PDF · Preview after reviewing the saved draft. This screenshot illustrates the preview stage. The three FINAL issued application downloads, obtained after approval and issue in isolated training, are appended unmodified and embedded as attachments.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/27-pdf-download.png"><figcaption>Click Download PDF · Preview after reviewing the saved draft. This screenshot illustrates the preview stage. The three FINAL issued application downloads, obtained after approval and issue in isolated training, are appended unmodified and embedded as attachments.</figcaption></figure>
 
 
 <a id="course-chapter-22"></a>
@@ -1780,7 +1970,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/86-training-numbering-policy.png"><figcaption>Isolated training form only: Legal entity, Prefix, Digits, Effective from and Accountant approved at. The displayed timestamp is synthetic fixture data, not an accountant approving production. Click Save numbering policy only with genuine approval in the real system.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/86-training-numbering-policy.png"><figcaption>Isolated training form only: Legal entity, Prefix, Digits, Effective from and Accountant approved at. The displayed timestamp is synthetic fixture data, not an accountant approving production. Click Save numbering policy only with genuine approval in the real system.</figcaption></figure>
 
 
 <a id="course-final-issue-procedure"></a>
@@ -1800,7 +1990,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-issued-unpaid-invoice-heading.png"><figcaption>Isolated original BBS labor invoice, USD 2,230: Issued and unpaid, Invoice · PDF Ready, Open PDF and Download PDF. This is the issuance checkpoint. Later Paid expense and partially paid mixed-labor examples belong to collection, not this step. The final native master is unchanged.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-issued-unpaid-invoice-heading.png"><figcaption>Isolated original BBS labor invoice, USD 2,230: Issued and unpaid, Invoice · PDF Ready, Open PDF and Download PDF. This is the issuance checkpoint. Later Paid expense and partially paid mixed-labor examples belong to collection, not this step. The final native master is unchanged.</figcaption></figure>
 
 
 <a id="course-invoice-dispatch"></a>
@@ -1820,7 +2010,7 @@ Context: J&A · New Accounting demo · Read-only demonstration
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-email-failed-retry.png"><figcaption>New Accounting demo: the saved training recipient has Email delivery error; automatic retry pending. Blank/reset form fields do not erase the retained event. Configure the delivery service through the operator before expecting a successful retry.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-email-failed-retry.png"><figcaption>New Accounting demo: the saved training recipient has Email delivery error; automatic retry pending. Blank/reset form fields do not erase the retained event. Configure the delivery service through the operator before expecting a successful retry.</figcaption></figure>
 
 
 <a id="course-issued-correction"></a>
@@ -1850,7 +2040,7 @@ Context: J&A · Reference procedure · supported receiving handoff
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-new-issued-credit-ready.png"><figcaption>New Accounting demo: issued credit DEMO-2026-00002, USD −100. Collected is USD 0 and credit balance USD 100. Review credit in ledger; do not record a customer payment against the credit merely to clear it.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-new-issued-credit-ready.png"><figcaption>New Accounting demo: issued credit DEMO-2026-00002, USD −100. Collected is USD 0 and credit balance USD 100. Review credit in ledger; do not record a customer payment against the credit merely to clear it.</figcaption></figure>
 
 
 <a id="course-collections-procedure"></a>
@@ -1870,7 +2060,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-new-collection-reversal.png"><figcaption>New Accounting demo: use the existing receipt’s reversal controls. The tested USD 100 receipt and USD 50 reversal remain separate append-only history, with USD 50 net collected.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-new-collection-reversal.png"><figcaption>New Accounting demo: use the existing receipt’s reversal controls. The tested USD 100 receipt and USD 50 reversal remain separate append-only history, with USD 50 net collected.</figcaption></figure>
 
 
 <a id="course-worker-schedules"></a>
@@ -1911,7 +2101,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/64-worker-settlement-period.png"><figcaption>Owner/Finance selects one worker and that worker’s compensation period. Finalize compensation saves a snapshot; it does not transfer money.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/64-worker-settlement-period.png"><figcaption>Owner/Finance selects one worker and that worker’s compensation period. Finalize compensation saves a snapshot; it does not transfer money.</figcaption></figure>
 
 
 <a id="course-worker-period-examples"></a>
@@ -1943,7 +2133,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/66-worker-payment-dates.png"><figcaption>The chief, technician 1 and technician 2 have different expected payment dates. The dated plans persisted after leaving and reopening the page.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/66-worker-payment-dates.png"><figcaption>The chief, technician 1 and technician 2 have different expected payment dates. The dated plans persisted after leaving and reopening the page.</figcaption></figure>
 
 
 <a id="course-worker-actual-payment"></a>
@@ -1963,7 +2153,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/67-worker-actual-payment-register.png"><figcaption>A prefilled amount is not evidence of a transfer. The Register actual payment button was not clicked; at this original baseline all three settlements are unpaid. The later isolated chief-payment sequence changes that copied obligation to fully paid.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/67-worker-actual-payment-register.png"><figcaption>A prefilled amount is not evidence of a transfer. The Register actual payment button was not clicked; at this original baseline all three settlements are unpaid. The later isolated chief-payment sequence changes that copied obligation to fully paid.</figcaption></figure>
 
 
 <a id="course-lab-initial-settlement-image"></a>
@@ -1972,7 +2162,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-initial-copied-settlement.png"><figcaption>Isolated BBS lifecycle: the copied USD 400 chief obligation already had a simulated USD 200 receipt before the additional-payment test. This differs from the earlier original unpaid baseline; technician 1/2 remain unpaid. The correct BBS project and duration sources stay selected.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-initial-copied-settlement.png"><figcaption>Isolated BBS lifecycle: the copied USD 400 chief obligation already had a simulated USD 200 receipt before the additional-payment test. This differs from the earlier original unpaid baseline; technician 1/2 remain unpaid. The correct BBS project and duration sources stay selected.</figcaption></figure>
 
 
 <a id="course-lab-partial-worker-payment-image"></a>
@@ -1981,7 +2171,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-partial-worker-settlement.png"><figcaption>Isolated BBS lifecycle: Register actual payment added simulated USD 100 to the previous USD 200. Net paid is USD 300 of USD 400. The next screenshot reverses this added USD 100 before recording the remaining USD 200.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-partial-worker-settlement.png"><figcaption>Isolated BBS lifecycle: Register actual payment added simulated USD 100 to the previous USD 200. Net paid is USD 300 of USD 400. The next screenshot reverses this added USD 100 before recording the remaining USD 200.</figcaption></figure>
 
 
 <a id="course-lab-payment-reversal-image"></a>
@@ -1990,7 +2180,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-reversed.png"><figcaption>Isolated simulated ledger: the added USD 100 payment was reversed with its reason. Net chief paid returned from USD 300 to USD 200, leaving USD 200 owed. No bank transfer occurred.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-reversed.png"><figcaption>Isolated simulated ledger: the added USD 100 payment was reversed with its reason. Net chief paid returned from USD 300 to USD 200, leaving USD 200 owed. No bank transfer occurred.</figcaption></figure>
 
 
 <a id="course-lab-payment-complete-image"></a>
@@ -1999,7 +2189,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-complete.png"><figcaption>The training register then recorded the remaining USD 200. Net simulated payments equal the chief’s USD 400 finalized obligation, with USD 0 remaining. Original payment and reversal history are preserved.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-finance-worker-payment-complete.png"><figcaption>The training register then recorded the remaining USD 200. Net simulated payments equal the chief’s USD 400 finalized obligation, with USD 0 remaining. Original payment and reversal history are preserved.</figcaption></figure>
 
 
 <a id="course-lab-final-settlements-image"></a>
@@ -2008,7 +2198,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-finance-settlements-cropped.png"><figcaption>Updated isolated register: Source shows 10 hrs, 13 hrs and 0 hrs; fixed-period USD 900 does not require a duration basis. Chief is USD 400 paid, zero remaining after the simulated payment sequence. Scroll horizontally for the full Timeline column.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-finance-settlements-cropped.png"><figcaption>Updated isolated register: Source shows 10 hrs, 13 hrs and 0 hrs; fixed-period USD 900 does not require a duration basis. Chief is USD 400 paid, zero remaining after the simulated payment sequence. Scroll horizontally for the full Timeline column.</figcaption></figure>
 
 
 <a id="course-expense-reimbursement"></a>
@@ -2028,7 +2218,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-finance-reimbursements-cropped.png"><figcaption>The isolated simulation marks USD 20 parking, USD 100 hotel and USD 60 meal reimbursed, retaining Actual timestamps. This is worker reimbursement, separate from USD 182 customer recovery.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-finance-reimbursements-cropped.png"><figcaption>The isolated simulation marks USD 20 parking, USD 100 hotel and USD 60 meal reimbursed, retaining Actual timestamps. This is worker reimbursement, separate from USD 182 customer recovery.</figcaption></figure>
 
 
 <a id="course-chapter-14"></a>
@@ -2048,7 +2238,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure class="pair"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/37-worker-pay-summary.png"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/38-worker-pay-project.png"><figcaption>Technician 2’s 1–4 October worker view: 840 approved minutes (14 h), USD 900 approved compensation and no reimbursement. The project row and amount are enlarged instead of shrinking an entire long page.</figcaption></figure>
+<figure class="pair"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/37-worker-pay-summary.png"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/38-worker-pay-project.png"><figcaption>Technician 2’s 1–4 October worker view: 840 approved minutes (14 h), USD 900 approved compensation and no reimbursement. The project row and amount are enlarged instead of shrinking an entire long page.</figcaption></figure>
 
 
 <a id="course-worker-pay-activity-image"></a>
@@ -2057,7 +2247,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/39-worker-pay-activity.png"><figcaption>The same worker period’s source activities support the fixed-period result. Worker views retain compensation privacy and do not expose customer rates or internal cost.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/39-worker-pay-activity.png"><figcaption>The same worker period’s source activities support the fixed-period result. Worker views retain compensation privacy and do not expose customer rates or internal cost.</figcaption></figure>
 
 
 <a id="course-economic-meaning"></a>
@@ -2088,7 +2278,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/68-download-finance-workbook.png"><figcaption>Project → Billing → Invoices and advanced settings → Download finance export. The example covers 1–5 October, including both demonstration stages.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/68-download-finance-workbook.png"><figcaption>Project → Billing → Invoices and advanced settings → Download finance export. The example covers 1–5 October, including both demonstration stages.</figcaption></figure>
 
 
 <a id="course-spreadsheet-sheets"></a>
@@ -2129,7 +2319,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/71-xlsx-summary-economics.png"><figcaption>Read the selected scope and economic labels. Potential customer charges, costs and compensation are distinct from issued invoices and collected cash.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/71-xlsx-summary-economics.png"><figcaption>Read the selected scope and economic labels. Potential customer charges, costs and compensation are distinct from issued invoices and collected cash.</figcaption></figure>
 
 
 <a id="course-72-xlsx-summary-cash"></a>
@@ -2138,7 +2328,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/72-xlsx-summary-cash.png"><figcaption>Read the selected scope and economic labels. Potential customer charges, costs and compensation are distinct from issued invoices and collected cash.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/72-xlsx-summary-cash.png"><figcaption>Read the selected scope and economic labels. Potential customer charges, costs and compensation are distinct from issued invoices and collected cash.</figcaption></figure>
 
 
 <a id="course-73-xlsx-labor-hours"></a>
@@ -2147,7 +2337,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/73-xlsx-labor-hours.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/73-xlsx-labor-hours.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
 
 
 <a id="course-74-xlsx-labor-economics"></a>
@@ -2156,7 +2346,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/74-xlsx-labor-economics.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/74-xlsx-labor-economics.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
 
 
 <a id="course-73b-xlsx-labor-hours"></a>
@@ -2165,7 +2355,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/73b-xlsx-labor-hours.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/73b-xlsx-labor-hours.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
 
 
 <a id="course-74b-xlsx-labor-economics"></a>
@@ -2174,7 +2364,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/74b-xlsx-labor-economics.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/74b-xlsx-labor-economics.png"><figcaption>Actual and billable hours are separate from the customer rate unit. The second part of a day/week can have zero additional customer charge. Reconcile fixed pay at the grouped Summary/settlement level.</figcaption></figure>
 
 
 <a id="course-75-xlsx-expense-payers"></a>
@@ -2183,7 +2373,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/75-xlsx-expense-payers.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/75-xlsx-expense-payers.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
 
 
 <a id="course-76-xlsx-expense-recovery"></a>
@@ -2192,7 +2382,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/76-xlsx-expense-recovery.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/76-xlsx-expense-recovery.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
 
 
 <a id="course-77-xlsx-invoices"></a>
@@ -2201,7 +2391,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/77-xlsx-invoices.png"><figcaption>The original pre-issue workbook lists three Draft invoices, USD 2,230 / USD 182 / USD 2,260, with USD 0 collected. Invoice service periods can extend beyond the operational export window.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/77-xlsx-invoices.png"><figcaption>The original pre-issue workbook lists three Draft invoices, USD 2,230 / USD 182 / USD 2,260, with USD 0 collected. Invoice service periods can extend beyond the operational export window.</figcaption></figure>
 
 
 <a id="course-78-xlsx-invoice-expenses"></a>
@@ -2210,7 +2400,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/78-xlsx-invoice-expenses.png"><figcaption>These native invoice lines total USD 182: parking USD 22 (10% markup), hotel USD 100 and shared meal USD 60. Company-card tools are included in labor and have no extra charge.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/78-xlsx-invoice-expenses.png"><figcaption>These native invoice lines total USD 182: parking USD 22 (10% markup), hotel USD 100 and shared meal USD 60. Company-card tools are included in labor and have no extra charge.</figcaption></figure>
 
 
 <a id="course-79-xlsx-unbilled"></a>
@@ -2219,7 +2409,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/79-xlsx-unbilled.png"><figcaption>Source IDs preserve traceability. Approved but unissued charges remain WIP; a draft preview is not an issued invoice.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/79-xlsx-unbilled.png"><figcaption>Source IDs preserve traceability. Approved but unissued charges remain WIP; a draft preview is not an issued invoice.</figcaption></figure>
 
 
 <a id="course-79b-xlsx-unbilled"></a>
@@ -2228,7 +2418,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/79b-xlsx-unbilled.png"><figcaption>Source IDs preserve traceability. Approved but unissued charges remain WIP; a draft preview is not an issued invoice.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/79b-xlsx-unbilled.png"><figcaption>Source IDs preserve traceability. Approved but unissued charges remain WIP; a draft preview is not an issued invoice.</figcaption></figure>
 
 
 <a id="course-expense-workbook-steps"></a>
@@ -2248,7 +2438,7 @@ Context: J&A · Reference procedure · Scope stated on this page
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/69-download-expenses-workbook.png"><figcaption>Expenses → Export filtered results → Download Excel. The downloaded workbook contains the four matching BBS purchases, with its own Totals by currency tab.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/69-download-expenses-workbook.png"><figcaption>Expenses → Export filtered results → Download Excel. The downloaded workbook contains the four matching BBS purchases, with its own Totals by currency tab.</figcaption></figure>
 
 
 <a id="course-80-xlsx-expense-register"></a>
@@ -2257,7 +2447,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/80-xlsx-expense-register.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/80-xlsx-expense-register.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
 
 
 <a id="course-82-xlsx-expense-reimbursement"></a>
@@ -2266,7 +2456,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/82-xlsx-expense-reimbursement.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/82-xlsx-expense-reimbursement.png"><figcaption>Receipt amount, company cost, reimbursement and customer recovery are independent. The four purchases total USD 230; eligible client recovery totals USD 182.</figcaption></figure>
 
 
 <a id="course-81-xlsx-expense-totals"></a>
@@ -2275,7 +2465,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 
 Context: J&A · Original BBS pre-issue · Historical snapshot
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/81-xlsx-expense-totals.png"><figcaption>The operational register totals purchases and reimbursement by receipt currency. This is not a customer expense invoice total.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/81-xlsx-expense-totals.png"><figcaption>The operational register totals purchases and reimbursement by receipt currency. This is not a customer expense invoice total.</figcaption></figure>
 
 
 <a id="course-spreadsheet-verified-scope"></a>
@@ -2306,7 +2496,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/83-xlsx-after-cash.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/83-xlsx-after-cash.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
 
 
 <a id="course-84-xlsx-after-invoices"></a>
@@ -2315,7 +2505,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/84-xlsx-after-invoices.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/84-xlsx-after-invoices.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
 
 
 <a id="course-85-xlsx-after-reimbursements"></a>
@@ -2324,7 +2514,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/85-xlsx-after-reimbursements.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/85-xlsx-after-reimbursements.png"><figcaption>Read-only landscape preview from the original after-lifecycle XLSX. Confirmed training invoice states and simulated collection/reimbursement entries; no bank transfer or customer email is asserted.</figcaption></figure>
 
 
 <a id="course-weekly-close-procedure"></a>
@@ -2344,7 +2534,7 @@ Context: J&A · New Accounting demo · Read-only demonstration
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-new-weekly-close-controls.png"><figcaption>New Accounting demo: Close period start/end and Report language precede Close sources. The actual 10–16 August close succeeded; a later approved 30-minute source did not rewrite its existing numbered invoice.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-new-weekly-close-controls.png"><figcaption>New Accounting demo: Close period start/end and Report language precede Close sources. The actual 10–16 August close succeeded; a later approved 30-minute source did not rewrite its existing numbered invoice.</figcaption></figure>
 
 
 <a id="course-owner-close-and-history"></a>
@@ -2410,7 +2600,7 @@ Context: J&A · New Accounting demo · Read-only demonstration
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-review.png"><figcaption>New Accounting demo, 1–5 October: PDF/XLSX/two CSVs/JSON Ready; Pending, Unclassified, Missing documents and Reconciliation issues all zero; no changes detected. The separate August snapshot’s advisories remain historical obligations.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-review.png"><figcaption>New Accounting demo, 1–5 October: PDF/XLSX/two CSVs/JSON Ready; Pending, Unclassified, Missing documents and Reconciliation issues all zero; no changes detected. The separate August snapshot’s advisories remain historical obligations.</figcaption></figure>
 
 
 <a id="course-lab-accounting-finalized-image"></a>
@@ -2419,7 +2609,7 @@ Context: J&A · New Accounting demo · Read-only demonstration
 
 Context: J&A · New Accounting demo · Read-only demonstration
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-final.png"><figcaption>New Accounting demo: Finalize reviewed version saved final for 1–5 October. All five authenticated native downloads matched stored hashes/lengths before and after finalization. Original BBS issued masters and the archived-issuer coverage blocker are unchanged.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-new-accounting-final.png"><figcaption>New Accounting demo: Finalize reviewed version saved final for 1–5 October. All five authenticated native downloads matched stored hashes/lengths before and after finalization. Original BBS issued masters and the archived-issuer coverage blocker are unchanged.</figcaption></figure>
 
 
 <a id="course-accounting-gap-remedy"></a>
@@ -2441,7 +2631,7 @@ Context: J&A · Isolated BBS lifecycle · Historical coverage error
 
 Context: J&A · Isolated BBS lifecycle · Historical coverage error
 
-<figure><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-finance-accounting-result.png"><figcaption>The blocked form retains 1–5 October 2026 and English so the intended scope is available for investigation and retry. This confirms the form behavior; generation has failed because the archived training issuer QA-W48-EUR lacks a legal revision covering the period end. Contact support is offered. The J&amp;A USD issuer is covered. No Accounting Pack artifact or finalization is claimed.</figcaption></figure>
+<figure><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-finance-accounting-result.png"><figcaption>The blocked form retains 1–5 October 2026 and English so the intended scope is available for investigation and retry. This confirms the form behavior; generation has failed because the archived training issuer QA-W48-EUR lacks a legal revision covering the period end. Contact support is offered. The J&amp;A USD issuer is covered. No Accounting Pack artifact or finalization is claimed.</figcaption></figure>
 
 
 <a id="course-private-documents"></a>
@@ -2461,7 +2651,7 @@ Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
 Context: J&A · Isolated BBS lifecycle · Read-only demonstration
 
-<figure class="pair"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-documents-upload-fields.png"><img src="file:///home/kripta/ja-manual-main-publish-20261005-side/docs/manuals/bbs-illustrated-en-v2/lab-documents-saved-private-row.png"><figcaption>Isolated original BBS project: a conspicuously synthetic file with restricted finance audience and Sensitive classification. Owner download matched its registered hash; a Worker on this project was denied before archive. This optional-scan fixture was not_scanned, not antivirus-clean.</figcaption></figure>
+<figure class="pair"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-documents-upload-fields.png"><img src="file:///home/kripta/ja-manuals-refresh-20261011/docs/manuals/bbs-illustrated-en-v2/lab-documents-saved-private-row.png"><figcaption>Isolated original BBS project: a conspicuously synthetic file with restricted finance audience and Sensitive classification. Owner download matched its registered hash; a Worker on this project was denied before archive. This optional-scan fixture was not_scanned, not antivirus-clean.</figcaption></figure>
 
 
 <a id="course-owner-profile-and-help"></a>

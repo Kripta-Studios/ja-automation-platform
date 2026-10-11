@@ -1,0 +1,21 @@
+{
+  "status": "passed",
+  "sourceBaseline": "22475a2b53fbea4b68a5dae5dd643ce5c99f88cc",
+  "scope": "Documentation and Help metadata only",
+  "currentRolePdfs": 8,
+  "manualDownloadTests": 17,
+  "privacyTests": 8,
+  "portalBuild": "passed; existing Svelte accessibility/CSS warnings retained",
+  "nativeOwnerAttachments": 6,
+  "nativeInvoiceAnnexPagesUnchanged": 6,
+  "legacyPdfEditions": 25,
+  "freshProductionRoleCoverage": [
+    "Owner",
+    "Finance",
+    "Project Manager",
+    "External Technician",
+    "Auditor"
+  ],
+  "unavailableDocumentedTestLogins": ["Internal Worker", "Supplier Coordinator"],
+  "productionBusinessFormsSubmitted": 0
+}

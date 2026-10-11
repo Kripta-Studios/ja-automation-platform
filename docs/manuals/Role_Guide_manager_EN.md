@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # Project manager: current operational guide
 
 **Deployed edition, 24 September 2026.** See the [full current guide](Current_Deployed_Workflows_2026-09-24.md) and [role-flow diagram](Role_Workflows.pdf). This guide uses an actual authenticated Project Manager test-account capture of the synthetic QA project.

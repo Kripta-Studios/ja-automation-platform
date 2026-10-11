@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # Work and projects functional guide
 
 > **Deployed edition notice (24 September 2026):** This is an earlier detailed/reference edition. For the actual deployed project, duration-time, crew and invoice setup screens, use the [current dated guide](Current_Deployed_Workflows_2026-09-24.md) and [role workflow PDF](Role_Workflows.pdf). Earlier screenshots and start/end or Billing-stream instructions below may not match the live release.

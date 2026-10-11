@@ -1,6 +1,6 @@
 # Finance · BBS operating cycle
 
-Financial review, customer billing, collections, worker obligations, exports and closing
+Financial review, customer billing, collections, worker obligations, exports and closing · Updated navigation and digital workflows, 11 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -68,8 +68,8 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner approval includes financial acceptance, defaulting pending time to billable while preserving explicit nonbillable treatment. PM approval still needs Finance review; missing rates or expense classification remain separate blockers. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Owner approval includes financial acceptance. Verify remaining classification and configuration before invoice preparation. |
 | Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance completes the required classification and reimbursement review. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
 | PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
@@ -77,6 +77,168 @@ Review is determined by the actual source, base role and current dated grants. C
 ### If you get stuck
 
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="release-navigation"></a>
+## Current navigation, task finder and form recovery
+
+Go here: Header → Go to section / Find a task; workspace → Search workspace
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+
+### Do the task
+
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+
+### Verify the result
+
+- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+
+### If you get stuck
+
+- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
+- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+
+<a id="release-project-work"></a>
+## Use the project workspace and current task shortcuts
+
+Go here: Projects → project → Work / Team / Reports
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.
+
+The Overview shows the project timezone, dates, site and contact details where configured. Review those facts before recording work. Planning, expected schedules and actual recorded hours remain independent.
+
+### Do the task
+
+1. Find the project by name or number and check its status. Open Work to review the time/expense sources and use Log time, Record expense or Create work report for the intended project.
+2. Use Team to inspect dated assignments; permitted managers can assign or update eligible memberships. Granting review permission is a separate Owner action.
+3. Follow the project links between Time, Expenses and Reports. Verify the project and selected dates after changing filters or returning from a detail.
+4. On a narrow screen use the labelled task actions on the project card and swipe the tab strip. Check the current-section label rather than assuming the first visible tab is selected.
+
+### Verify the result
+
+- The project heading, filter summary and saved record refer to the same project. Empty filtered results are not proof that no underlying records exist.
+
+### If you get stuck
+
+- If site or contact details are wrong, ask the Owner to update the project. If a person is missing from Team controls, check account and dated membership/authorization coverage.
+
+<a id="release-invoice-current"></a>
+## Prepare invoices from selected records or a whole period
+
+Go here: Project → Work / Billing → Create invoice; Billing → Invoices
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.
+
+Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice.
+
+### Do the task
+
+1. Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.
+2. Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.
+3. If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.
+4. For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.
+5. Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.
+6. Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle.
+
+### Verify the result
+
+- No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance.
+
+### If you get stuck
+
+- If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source.
+
+<a id="release-finance-case"></a>
+## Digital workers: reviewed finance case to invoice draft
+
+Go here: Digital workers → Ready to invoice
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+A finance case records a snapshot and a human review before handing labor/expense sources to an invoice draft. It does not approve actual work, decide policy, issue an invoice or send it. Milestone/fixed and other streams continue in their existing invoice workflow.
+
+### Do the task
+
+1. Select Project, Billing stream and inclusive Period start / Period end, then Apply filters. Inspect Current source register, eligibility, blockers, reservations and source links.
+2. Choose Whole period or Selected sources and Open case. Whole period preserves all source dispositions, including excluded records; selected scope preserves the chosen sources and unselected remainder. Reopening the same scope returns its existing case.
+3. Open case details and inspect blockers, dispositions, supporting report/customer-conformity identity and changes since review. If source population, version, selected rule or report identity changed, Refresh snapshot and examine the differences.
+4. Record the case review with a factual reason only after resolving the current blockers through their own workspaces. A case review is separate from source or invoice approval.
+5. Use Create invoice draft only when the current reviewed snapshot is eligible. The application rechecks sources transactionally. Follow the resulting invoice link and continue review/approval/issue there.
+
+### Verify the result
+
+- The handoff creates a draft only. Stale review, changed source population or existing reservations must not be bypassed. A saved historical case does not prove current eligibility.
+
+### If you get stuck
+
+- On a stale-state message, reload, reconcile the changed evidence, refresh and review again. If a retry returns an existing case/draft, inspect it instead of opening a parallel scope.
+
+<a id="release-policy"></a>
+## Record a manual policy proposal and understand automation
+
+Go here: Digital workers → Policy review; Notifications
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Digital workers uses saved records and explicit deterministic rules. No model key is required. It does not interpret a contract or email, automatically write reports, decide a charge or apply a proposed agreement.
+
+Existing background jobs generate queued artifacts and deliver due in-app follow-ups. Queued/running is not Ready. Each format has its own ready/failed state. Users do not manually process the job queue.
+
+### Do the task
+
+1. Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.
+2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.
+3. Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.
+4. Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email.
+
+### Verify the result
+
+- No policy or financial source changed merely because the proposal was saved/accepted. Keep agreement evidence, manual configuration and resulting record verification distinct.
+
+### If you get stuck
+
+- If generated output fails, use its offered retry/recovery controls and confirm the requested format becomes Ready. Do not send a stale or preview artifact as the final document.
+
+<a id="release-followup-review"></a>
+## Review operational follow-ups and coordinate the handoff
+
+Go here: Digital workers → existing work-item cards; Approvals → original sources
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Owner/Finance sees finance cases, policy creation and authorized existing work-item cards. The Create a follow-up form for Scope change, Handover and Evidence is in the assigned Project Manager workspace; coordinate new operational items with that manager. Use Approvals or the original source record for actual operational decisions.
+
+Work items coordinate a Scope change, Handover or Evidence request. They do not replace source review, a project plan or a customer acceptance record.
+
+### Do the task
+
+1. Open an existing authorized work-item card. Inspect project, type, factual title, description, assigned owner and deadline. Ask the project manager to create a new operational follow-up when needed; your Create a policy review form is a different task.
+2. For Scope change, explicitly classify the facts as existing scope, rework, goodwill, needs clarification or potential change. This is a coordination classification; send the factual context to the responsible Owner.
+3. Inspect the assigned person’s In progress / Ready for review update. Open supporting records and check whether references are current, claimed, missing or stale.
+4. Accept only after checking the actual evidence; Handover acceptance requires current supporting document/report evidence. A Waived decision requires a reason. Record the offered Review reason and save.
+5. Preserve an Accepted, Waived or Cancelled item as history. Create a new follow-up if the facts or requested work later change.
+
+### Verify the result
+
+- Current means the reference resolves to an authorized current record. It does not establish physical completion or customer acceptance.
+- The saved follow-up state and the original source’s review state are separate. A due item produces one in-app reminder per current owner/deadline.
+
+### If you get stuck
+
+- If evidence is stale, open the current version and replace the reference before review. If access or membership changed, reload and ask the Owner to check the dated grant.
 
 <a id="finance-start"></a>
 ## Start with your Finance account
@@ -173,6 +335,8 @@ The original three issued BBS documents total USD 4,672: opening labor 2,230, ex
 Go here: Approvals → Finance review
 
 Context: Worked example · FN01 · actual Finance Record Finance review on a separate synthetic October 26 source; before and saved after states verified.
+
+Current Owner shortcut: eligible operational approval actions can record operational approval and Finance acceptance together under the configured policy. Inspect the saved source before repeating Finance review. The separate October 26 Finance exercise below remains a historical worked example; combined approval does not remove required expense classification, evidence or invoice readiness checks.
 
 Operational approval and Finance billability are separate decisions. Internal time can be reviewed by Owner/Finance or a Project Manager with the applicable project grant; a Chief assignment alone does not authorize approval. Supplier TIME is an Owner review handoff. Finance review then determines commercial eligibility without changing actual hours.
 
@@ -288,6 +452,8 @@ The tested stream uses Labor, Manual, effective October 26, JA-USA issuer, USD a
 Go here: Billing → Invoices → Create invoice
 
 Context: Worked example · FN03 · actual normal source-based invoice draft for October 26; the earlier USD 1 debit is a separate amount-only exercise.
+
+For the current default selected-record flow, start with Prepare invoices from selected records or a whole period (release-invoice-current). The stage-by-stage exercise below demonstrates the whole-period wizard; it is not the only invoice entry route.
 
 Create invoice builds a draft snapshot from eligible approved, Finance-reviewed sources in the selected stream and cut. Save does not issue, number, send or collect the invoice. Review source inclusion and exclusions before saving.
 

@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # Chief / delegated team lead: current crew guide
 
 **Deployed edition, 24 September 2026.** See the [full current guide](Current_Deployed_Workflows_2026-09-24.md) and [role-flow diagram](Role_Workflows.pdf). The tablet screenshot below is from the actual deployed app with a Supplier Coordinator test account, without an active project delegation.

@@ -1,6 +1,6 @@
 # Chief · BBS crew operations
 
-Dated delegation, team hours, shared receipts, corrections and own Worker responsibilities
+Dated delegation, team hours, shared receipts, corrections and own Worker responsibilities · Updated navigation and digital workflows, 11 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -77,6 +77,115 @@ Review is determined by the source, base role and current dated grants. Chief de
 ### If you get stuck
 
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="release-navigation"></a>
+## Current navigation, task finder and form recovery
+
+Go here: Header → Go to section / Find a task; workspace → Search workspace
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+
+### Do the task
+
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+
+### Verify the result
+
+- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+
+### If you get stuck
+
+- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
+- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+
+<a id="release-capture"></a>
+## Digital workers: capture facts and create linked drafts
+
+Go here: Digital workers → Open work capture → Finish today
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.
+
+Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Actual minutes here differ from decimal Actual hours in the normal Time form.
+
+Work capture is for your own records. Continue to use Crew hours for delegated entries; capture does not create records for every crew member.
+
+### Do the task
+
+1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and minutes; 90 minutes means 1.5 hours.
+2. For Daily report check completed tasks, problems, corrective actions, downtime, blockers and next plan. For Expense enter the real category, amount, currency, payer and description. Review the separate output fields, not only the shared summary.
+3. Choose Save on this device if you need to pause. Recover local draft restores form text for this account/project/date on this device. Review it after recovery. It is not a server save, does not queue attachments and does not submit when connectivity returns.
+4. When online and signed in, choose Review facts. Check the review summary and then Create server drafts once. Open each link in the saved receipt, add required original evidence and submit each record through its normal workflow.
+5. If the same receipt is returned after a retry, use those existing record links. Inspect the date-filtered register before starting a new capture.
+
+### Verify the result
+
+- Each intended output has one linked server draft with the correct person, project, date and facts. Check each record separately for evidence and Submitted status; the capture receipt alone is not submission.
+
+### If you get stuck
+
+- If no project is offered, ask the Owner to check current project access and coverage of the intended work date in the project timezone. A past assignment does not automatically grant access today.
+- Local text can be unavailable on a different device or after browser storage is cleared. Keep approved source evidence through the normal record upload. Do not rely on local drafts as a backup.
+
+<a id="release-local-aids"></a>
+## Read document text and use optional on-device dictation
+
+Go here: Work capture → Expense → Read text from a document; supported note fields → Dictate on this device
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Text extraction accepts PNG, JPEG, text PDF or UTF-8 text up to 8 MiB. It uses local server tools, with English, Spanish and Portuguese image OCR. Text PDFs are read through page 20 and the preview is limited to 10,000 characters. This limit is separate from the normal receipt upload limit.
+
+Dictation requires browser support and an already installed on-device language pack. No external AI service is called by these aids. Dictation has no cloud fallback or automatic language-pack installation; type when unavailable.
+
+### Do the task
+
+1. Choose the document and run text extraction. Read the preview against the original, correcting names, dates, decimal separators, amounts and currency before Use reviewed text.
+2. Fill and verify the actual Expense fields yourself. Extraction does not attach the original receipt, verify its validity or fill every required value. Attach the original on the saved record.
+3. If Dictate on this device is offered, start it deliberately, speak the factual note, stop it and correct the text before saving.
+
+### Verify the result
+
+- The saved facts agree with the original evidence. A scanned PDF without a text layer may produce no usable text; a clear supported image or typed facts remains valid.
+- The local dictation capability has automated behavior coverage; a real microphone journey on every user device has not been certified.
+
+### If you get stuck
+
+- If extraction fails or is incomplete, enter the facts manually and retain the original evidence. For unavailable dictation, use the keyboard.
+
+<a id="release-followup-worker"></a>
+## Update an assigned follow-up and request review
+
+Go here: Digital workers → Assigned work
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Follow-ups are explicit next steps, separate from Planning cards and source records. The assigned person may update their own progress and evidence, then request review. Crew delegation does not confer follow-up acceptance authority.
+
+### Do the task
+
+1. Open your assigned item. Check its project, factual title, description, owner, due date and evidence references.
+2. Use In progress while doing the work. Expand Add evidence reference, choose Evidence type and enter the actual Evidence reference ID; add version/note when known. Supply the required Review reason. Choose Ready for review when the evidence is ready, then Update follow-up. A URL or prose note is not a substitute for the identifier of a native record.
+3. After saving, verify the state and evidence. The authorized reviewer decides Accepted or Waived with the required evidence/reason.
+
+### Verify the result
+
+- An accepted follow-up does not submit or approve the linked Time, Expense or report. Check those records separately.
+- A due follow-up creates one in-app notification for its current owner and deadline. It is not an email or a new reminder every day. Open Notifications to inspect the current permitted item.
+
+### If you get stuck
+
+- If the underlying evidence changes, tell the reviewer. Missing, claimed or stale evidence is not proof of completed work. Terminal decisions remain historical; a changed situation needs a new follow-up.
 
 <a id="chief-start"></a>
 ## Understand Chief authority before recording crew work

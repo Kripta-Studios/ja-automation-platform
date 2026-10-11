@@ -1,4 +1,4 @@
-# BBS role manuals · 6 October 2026
+# BBS role manuals · 11 October 2026
 
 The role content contract is a JSON file per persona in `content/`:
 
@@ -52,3 +52,7 @@ The eight role guides are English editions. Spanish and Portuguese Help interfac
 The assignment/crew supplement uses `docs/evidence/bbs-planning-20261006/`. It inserts operational chapters next to their related procedures, including dated expected schedules, own/delegated actual hours, PM review, supplier coverage and the goals capability boundary. Owner/PM/Worker figures reused across roles must be cropped to operational data before rendering. Source JSON is authoritative; regenerate all outputs after changing content or an image.
 
 `verify-help.mjs` accepts the isolated loopback runtimes on ports 5179 and 5180. Set `BBS_ROLE_QA_ORIGIN` and `BBS_ROLE_QA_PRIVATE_ROOT` to the matching private training sessions; port 5180 writes the assignment supplement evidence. It verifies role-specific Help libraries, authenticated native downloads, denied role downloads, canonical PDF hashes and responsive layouts. Production publication is a separate read-only check and must not reuse synthetic training cookies.
+
+Current `release-*` chapters lead each role’s dated exercises. The Owner standalone builder reuses the Owner chapters via `scripts/bbs-owner-manual/current-release-chapters.py`; the combined role builder excludes those imported duplicates. Rebuild the Owner standalone course first, then all role courses and assembly/verification. Current instructions are source-checked; retain the original date and evidence scope of earlier screenshots.
+
+Legacy PDF archive covers are rebuilt with `JA_MANUAL_PYTHON=<pypdf-python> node scripts/manuals-refresh/archive-notices.mjs`. The tool preserves original page streams and attachments, and replaces its own cover on repeat builds. The live current English role courses are separate from historical translated editions.

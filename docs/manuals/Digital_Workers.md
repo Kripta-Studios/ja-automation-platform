@@ -1,6 +1,8 @@
 # Digital workers: capture, follow-up and invoice handoff
 
-**J&A Automation · English operating guide · 11 October 2026**
+**J&A Automation · English operating guide · revised 11 October 2026**
+
+Start with your [current role manual](README.md). The [PDF edition](Digital_Workers.pdf) is a cross-role technical reference; role Help downloads contain only the instructions for that persona.
 
 This guide describes the deployed **Digital workers** workspace, release `digital-workers-2d7b76a250f6`. It is available immediately to eligible roles; due notifications run through the existing automatic jobs worker. There is no separate activation step. The guide explains the facts and approvals people still provide. See the [release evidence](../evidence/digital-workers-release-20261011/README.md) and the existing [project-to-invoice guide](Project_to_Invoice_Quick_Guide_EN.md) for invoice issue and payment.
 
@@ -17,7 +19,7 @@ Digital workers keeps the next action visible, gathers factual drafts and prepar
 
 Every action checks the active account, current role, live session and applicable project access again. A due follow-up produces one **in-app** notification for its current owner and deadline. The notification is rechecked when read; it does not send email or repeatedly nag each day.
 
-External technicians can open their own work overview, capture factual drafts and use local text extraction. Their profile does not gain financial cases or work-item decisions. Supplier coordinators remain in the supplier workspace.
+External technicians can open their own work overview, capture factual drafts and use local text extraction. Their profile does not show internal assigned-follow-up cards or gain financial cases or work-item decisions. Supplier coordinators remain in the supplier workspace.
 
 ## Worker: finish the day's facts
 
@@ -25,7 +27,7 @@ External technicians can open their own work overview, capture factual drafts an
 2. For time, enter the actual category and minutes. For a report, record completed tasks, problems, corrective actions, downtime, blockers and the next plan as applicable. For an expense, record the actual category, amount, currency and payer. Check the expense description against the original receipt.
 3. **Save on this device** keeps text/form values on this device under your account, project and date. **Recover local draft** restores them. Offline text drafts are not server records and do not queue attachments. Reconnect and sign in before creating server drafts; review the restored values first.
 4. Choose **Review facts** after completing the required fields. Check every displayed report and expense detail, then choose **Create server drafts**. The receipt links each new Time, Daily report or Expense **draft**. Open each record to add required original evidence, check it and submit through its normal workflow. Creating these drafts does not submit or approve them. If a retry returns the same receipt, inspect the saved records before attempting another capture.
-5. Work-item cards are assigned next steps. You may update your own progress and evidence, then mark a task **Ready for review**. A manager's accepted or waived work item is an organizational decision; it never changes time, report, customer conformity or invoice approval.
+5. Work-item cards are assigned next steps. You may update your own progress, provide the required **Review reason**, and add typed evidence by its record ID, then mark a task **Ready for review**. A manager's accepted or waived work item is an organizational decision; it never changes time, report, customer conformity or invoice approval.
 
 **Document text aid.** On the expense form, **Read text from a document** accepts PNG, JPEG, a text PDF or UTF-8 text up to 8 MiB. The server uses local tools with English, Spanish or Portuguese OCR for images. PDF text reading stops at page 20; the visible preview stops at 10,000 characters. Scanned PDFs without a text layer may yield no text: use a clear image or type the facts. Review and correct extracted text before **Use reviewed text**. Extraction does not attach the original, classify the expense or verify a receipt. Attach the original in the saved record's upload controls. The production image contains the local PDF/OCR tools; no external AI service is called.
 
@@ -33,13 +35,15 @@ External technicians can open their own work overview, capture factual drafts an
 
 ## Project Manager: coordinate an explicit next step
 
-Open **Digital workers** for the assigned project. Use the operational review list to open the original Time, Expense or report; approve or return it in its existing workflow when authorized. A follow-up can describe a **scope change**, **handover**, **evidence request** as an operational task. Give it a factual title, owner and due date. The recorded evidence link may be **current** as a current authorized record reference, **claimed** as a supplied reference, **missing** or **stale** after a version change. “Current” does not mean the physical work happened or the customer accepted it.
+Open **Digital workers** for the assigned project. Use the operational review list to open the original Time, Expense or report; approve or return it in its existing workflow when authorized. A follow-up can describe a **scope change**, **handover**, **evidence request** as an operational task. Give it a factual title, owner and due date. Expand **Evidence references**, select **Evidence type** and supply the actual **Evidence reference ID**, plus version/note when known. Add further evidence through subsequent updates. The recorded reference may be **current** as a current authorized record reference, **claimed** as a supplied reference, **missing** or **stale** after a version change. “Current” does not mean the physical work happened or the customer accepted it.
 
 For possible scope change, explicitly classify the work as **existing scope**, **rework**, **goodwill**, **needs clarification** or **potential change**. This label does not add an invoice line or change a billing rule. Handover acceptance requires current supporting document/report evidence; a waiver needs a reason. Terminal decisions are recorded and immutable. If facts change afterward, create a new follow-up and preserve the old decision.
 
+Owner/Finance reviews existing operational work-item cards in its workspace; creation of scope, handover and evidence follow-ups is offered in the Project Manager workspace. Owner/Finance has a separate **Create a policy review** form.
+
 ## Owner/Finance: take a reviewed case to a draft
 
-1. In **Digital workers → Ready to invoice**, filter by project, billing stream and inclusive period. Open the source register. It shows current source status, finance eligibility, blockers, prior invoice reservation and links to the original records. Resolve source approvals, expense classification, period report/customer conformity and commercial settings in their own workspaces.
+1. In **Digital workers → Ready to invoice**, filter by project, billing stream and inclusive period. Open the source register. It shows current source status, finance eligibility, blockers, prior invoice reservation and links to the original records. Resolve source approvals, expense classification, period report/customer conformity and commercial settings in their own workspaces. Owner operational approval already records financial acceptance; PM approval still requires Finance review. This does not supply missing classification, evidence or dated configuration.
 2. Choose **Whole period** or **Selected sources**, then **Open case**. A whole-period case lists every source, including excluded nonbillable or already reserved records; pending records remain blockers. A selected-source case lists the chosen sources and the unselected remainder. A duplicate scope reopens the same case rather than creating parallel cases.
 3. Open **case details**. Review source dispositions, blockers, report/conformity identity and changes from the last review. If the source population, a version, rule selection or report identity changes, **Refresh snapshot** and examine the differences. Record a dated **case review** with a reason only after that check. This review is distinct from operational source approval and invoice approval.
 4. **Create invoice draft** is enabled only for a current reviewed, canonically eligible snapshot. The command checks the sources again in one database transaction and uses the existing exact-money invoice composition. It creates a **draft** and links to the invoice workflow. The case then serves as a handoff record; continue any refresh, approval, issue, sending or correction in the invoice workflow. The case never approves, issues or sends an invoice.

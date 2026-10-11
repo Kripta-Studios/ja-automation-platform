@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # Owner administrator: current project-to-invoice guide
 
 **Deployed edition, 24 September 2026.** Use the [full current guide](Current_Deployed_Workflows_2026-09-24.md) and [role-flow diagram](Role_Workflows.pdf). The screenshots below come from the *Finance test account* on the deployed release because this documentation capture did not use the canonical Owner account; the Owner sequence is a workflow description, not a claim that Owner actions were replayed during capture.

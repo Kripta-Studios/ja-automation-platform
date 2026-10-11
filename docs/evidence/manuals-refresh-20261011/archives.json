@@ -1,0 +1,177 @@
+[
+  {
+    "filename": "Administration_Finance_Guide.pdf",
+    "language": "en",
+    "pages": 15,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "3bf2dc8ad3952a2cb6b1988210532d13409f887246b5a7deabbdb102683d6f7a"
+  },
+  {
+    "filename": "Administration_Finance_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 15,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "61f1fe177acc7a5504f42dd17800c292260568c857d81bdcc7528fdce9a6aa7c"
+  },
+  {
+    "filename": "Auditor_User_Guide.pdf",
+    "language": "en",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "ab0013e1dd79b8166a1c742f2f66b6f15b7caa7b6e7b0d8d9b09a39f5610300e"
+  },
+  {
+    "filename": "Auditor_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "f62664320ab7c57d4d88859ea70475baca84b7b74ac50059848b6efc992cd860"
+  },
+  {
+    "filename": "Current_Deployed_Workflows_2026-09-24.pdf",
+    "language": "en",
+    "pages": 10,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "d8204a90585526b6350d634dd355e58a56fed73ec083e34d623dd828f98b4af2"
+  },
+  {
+    "filename": "Employee_Field_Guide_EN.pdf",
+    "language": "en",
+    "pages": 19,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "9740e02749ba4033490240d9fbb9f54fdaf08f395dfa74e0a5d59a14634058bf"
+  },
+  {
+    "filename": "Employee_Field_Guide_ES.pdf",
+    "language": "es",
+    "pages": 19,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "a5c171faa8bb16b9dd257a30657dcd4bbfa248380eecf539913a8d8581652acc"
+  },
+  {
+    "filename": "Employee_Field_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 19,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "b586bba59aab2c98e4e475533dc961ff04e0ac1f62d9db5fcd799ea8f47b92e6"
+  },
+  {
+    "filename": "External_Technician_User_Guide.pdf",
+    "language": "en",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "6b97c202034735cea549d1dc37e912798c2d2537ed9489c52896f4a9b8dffbbb"
+  },
+  {
+    "filename": "External_Technician_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "3752b6676c3f6fc091ad74a487004004d7303e5d31255660be4e8ebba3171d0d"
+  },
+  {
+    "filename": "Finance_User_Guide.pdf",
+    "language": "en",
+    "pages": 10,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "6e6c3aa3c117e09de3b1ff6a66a9c9f87e3eba5ea65c7a103067a0af39fd1ce0"
+  },
+  {
+    "filename": "Finance_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 10,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "9b1a3f4dc137d807db7fa235d12bdb162e7b6db846e1a985f8a9492442ade8df"
+  },
+  {
+    "filename": "Guia_Pruebas_JA_Automation_ES.pdf",
+    "language": "es",
+    "pages": 50,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "51178551f8552c60d3b1f8129b4851f7d43af4ea18f46fde3cc180b7031c68dc"
+  },
+  {
+    "filename": "Owner_User_Guide.pdf",
+    "language": "en",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "5183ca39e08914823b7c73c5736e30b5a93efbf6018ced948810d639be6f26e8"
+  },
+  {
+    "filename": "Owner_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "6edfa4d9e1bd9f314b3e2deca3e8d6f883642050312ae89aa48249147b37e60b"
+  },
+  {
+    "filename": "Project_Manager_User_Guide.pdf",
+    "language": "en",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "1a4cdb1bd17af2ab90805e570fc3a423c54a468eeec20d6215d923f67c76f2a1"
+  },
+  {
+    "filename": "Project_Manager_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "a48b990da906f2d5349395139b9f31eabb1982aa414faf11918084ac485372fd"
+  },
+  {
+    "filename": "Supplier_Coordinator_User_Guide.pdf",
+    "language": "en",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "9154d5f072e10c03f5c8f51025bdcb5fbde4848789af010a3363a92669dc451f"
+  },
+  {
+    "filename": "Supplier_Coordinator_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 8,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "9b66b4b17bfb6525b3ada2bc660d88f0cc1f3f6d84b694b6cc412ca4c5d03afc"
+  },
+  {
+    "filename": "Supplier_Operations_Guide.pdf",
+    "language": "en",
+    "pages": 16,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "93fc3159d59f2427c964bb17a990a56d37d34ca0172e3448e80bdb537f7f4e68"
+  },
+  {
+    "filename": "Supplier_Operations_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 17,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "6510038e822837cefcd733b46088770b9b8e9f3522ddbe1c000858e21319dc99"
+  },
+  {
+    "filename": "Work_Projects_Guide.pdf",
+    "language": "en",
+    "pages": 19,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "544d5d4480db940599e8899088780d3d53198b5aa6d16309a207bb1a96d55d54"
+  },
+  {
+    "filename": "Work_Projects_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 19,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "c41975de04e0c724518de654625be6901e13d2946071ab8c97d9a996bc2ff854"
+  },
+  {
+    "filename": "Worker_User_Guide.pdf",
+    "language": "en",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "b5eff55e5c0cb3afc13745d23ea8b24ef4baf5104491fbcba84d5aaea2c2b6c1"
+  },
+  {
+    "filename": "Worker_User_Guide_PT-BR.pdf",
+    "language": "pt",
+    "pages": 11,
+    "originalPageStreamsUnchanged": true,
+    "sha256": "abe9aa79061e725cfb5272b35786611cab373351785da6f59670b5b711983887"
+  }
+]

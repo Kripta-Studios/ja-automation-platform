@@ -1,0 +1,72 @@
+{
+  "checkedAt": "2026-10-11T17:15:58.164Z",
+  "businessRequests": 0,
+  "checks": [
+    {
+      "role": "auditor",
+      "route": "/help",
+      "width": 390,
+      "status": 200,
+      "title": "Help and field guides · J&A Automation",
+      "headings": [
+        "Help and field guides",
+        "Use the invitation linked to your mailbox",
+        "Auditor: BBS read-only review",
+        "I am this role: where do I start?",
+        "A normal day at a glance"
+      ],
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "route": "/workflow",
+      "width": 390,
+      "status": 200,
+      "title": "Digital workers",
+      "headings": ["Digital workers", "Ready to invoice", "Finance cases", "Assigned work"],
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "route": "/accounting",
+      "width": 390,
+      "status": 200,
+      "title": "Monthly Accounting Pack | J&A Portal",
+      "headings": ["Monthly Accounting Pack", "Accounting", "Accounting Pack register"],
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "route": "/help",
+      "width": 1440,
+      "status": 200,
+      "title": "Help and field guides · J&A Automation",
+      "headings": [
+        "Help and field guides",
+        "Use the invitation linked to your mailbox",
+        "Auditor: BBS read-only review",
+        "I am this role: where do I start?",
+        "A normal day at a glance"
+      ],
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "route": "/workflow",
+      "width": 1440,
+      "status": 200,
+      "title": "Digital workers",
+      "headings": ["Digital workers", "Ready to invoice", "Finance cases", "Assigned work"],
+      "overflow": false
+    },
+    {
+      "role": "auditor",
+      "route": "/accounting",
+      "width": 1440,
+      "status": 200,
+      "title": "Monthly Accounting Pack | J&A Portal",
+      "headings": ["Monthly Accounting Pack", "Accounting", "Accounting Pack register"],
+      "overflow": false
+    }
+  ]
+}

@@ -1,8 +1,168 @@
 {
   "role": "owner",
   "title": "Owner · BBS operating manual",
-  "subtitle": "Role responsibilities, team handoffs and the complete illustrated BBS course.",
+  "subtitle": "Role responsibilities, team handoffs and the complete illustrated BBS course. · Updated navigation and digital workflows, 11 October 2026",
   "chapters": [
+    {
+      "id": "release-navigation",
+      "title": "Current navigation, task finder and form recovery",
+      "route": "Header → Go to section / Find a task; workspace → Search workspace",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.",
+        "Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.",
+        "The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language."
+      ],
+      "steps": [
+        "Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.",
+        "On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.",
+        "When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.",
+        "If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved."
+      ],
+      "checks": [
+        "The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states."
+      ],
+      "recovery": [
+        "If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.",
+        "For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it."
+      ]
+    },
+    {
+      "id": "release-project-setup",
+      "title": "Create projects with the current five-section form",
+      "route": "Projects → New project",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "The current form starts with essential identity/date fields. Optional details are grouped into Project context, People, Commercial defaults and Planning / reporting controls. Section links open their disclosure before focusing its fields.",
+        "The old illustrated three-stage creation screenshots are historical. Use the current field labels and the required/optional legend described here."
+      ],
+      "steps": [
+        "Select Client, enter Name and Cost center code, and check Currency, Site timezone, Start date and optional planned end. Review the selected client defaults; the cost center suffix contributes to the generated project number.",
+        "Open Project context for description, alias, manager, site address and on-site contact details. Owner/Finance can open the linked client or client contacts from the saved project; PM sees only the permitted operational identity.",
+        "Open People for authorized assignments and dated project/person terms; Commercial defaults for the agreed model and expected/minimum-hour settings; Planning for applicable budgets and reporting requirements. Enter only agreed values.",
+        "Use Create project once. Correct errors through the validation summary; hidden sections with errors open and values remain available. Reopen Overview, Team and Billing to verify saved identity and settings."
+      ],
+      "checks": [
+        "Creation did not fabricate actual time. Published planning, expected-hour schedules and actual work must still be handled separately."
+      ],
+      "recovery": [
+        "If a client is missing, create or correct the real client through its own form before retrying. Preserve entered context when following a remedy link, and check the selected client again on return."
+      ]
+    },
+    {
+      "id": "release-project-work",
+      "title": "Use the project workspace and current task shortcuts",
+      "route": "Projects → project → Work / Team / Reports",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.",
+        "The Overview shows the project timezone, dates, site and contact details where configured. Review those facts before recording work. Planning, expected schedules and actual recorded hours remain independent."
+      ],
+      "steps": [
+        "Find the project by name or number and check its status. Open Work to review the time/expense sources and use Log time, Record expense or Create work report for the intended project.",
+        "Use Team to inspect dated assignments; permitted managers can assign or update eligible memberships. Granting review permission is a separate Owner action.",
+        "Follow the project links between Time, Expenses and Reports. Verify the project and selected dates after changing filters or returning from a detail.",
+        "On a narrow screen use the labelled task actions on the project card and swipe the tab strip. Check the current-section label rather than assuming the first visible tab is selected."
+      ],
+      "checks": [
+        "The project heading, filter summary and saved record refer to the same project. Empty filtered results are not proof that no underlying records exist."
+      ],
+      "recovery": [
+        "If site or contact details are wrong, ask the Owner to update the project. If a person is missing from Team controls, check account and dated membership/authorization coverage."
+      ]
+    },
+    {
+      "id": "release-followup-review",
+      "title": "Review operational follow-ups and coordinate the handoff",
+      "route": "Digital workers → existing work-item cards; Approvals → original sources",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "Owner/Finance sees finance cases, policy creation and authorized existing work-item cards. The Create a follow-up form for Scope change, Handover and Evidence is in the assigned Project Manager workspace; coordinate new operational items with that manager. Use Approvals or the original source record for actual operational decisions.",
+        "Work items coordinate a Scope change, Handover or Evidence request. They do not replace source review, a project plan or a customer acceptance record."
+      ],
+      "steps": [
+        "Open an existing authorized work-item card. Inspect project, type, factual title, description, assigned owner and deadline. Ask the project manager to create a new operational follow-up when needed; your Create a policy review form is a different task.",
+        "For Scope change, explicitly classify the facts as existing scope, rework, goodwill, needs clarification or potential change. This is a coordination classification; send the factual context to the responsible Owner.",
+        "Inspect the assigned person’s In progress / Ready for review update. Open supporting records and check whether references are current, claimed, missing or stale.",
+        "Accept only after checking the actual evidence; Handover acceptance requires current supporting document/report evidence. A Waived decision requires a reason. Record the offered Review reason and save.",
+        "Preserve an Accepted, Waived or Cancelled item as history. Create a new follow-up if the facts or requested work later change."
+      ],
+      "checks": [
+        "Current means the reference resolves to an authorized current record. It does not establish physical completion or customer acceptance.",
+        "The saved follow-up state and the original source’s review state are separate. A due item produces one in-app reminder per current owner/deadline."
+      ],
+      "recovery": [
+        "If evidence is stale, open the current version and replace the reference before review. If access or membership changed, reload and ask the Owner to check the dated grant."
+      ]
+    },
+    {
+      "id": "release-invoice-current",
+      "title": "Prepare invoices from selected records or a whole period",
+      "route": "Project → Work / Billing → Create invoice; Billing → Invoices",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.",
+        "Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice."
+      ],
+      "steps": [
+        "Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.",
+        "Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.",
+        "If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.",
+        "For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.",
+        "Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.",
+        "Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle."
+      ],
+      "checks": [
+        "No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance."
+      ],
+      "recovery": [
+        "If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source."
+      ]
+    },
+    {
+      "id": "release-finance-case",
+      "title": "Digital workers: reviewed finance case to invoice draft",
+      "route": "Digital workers → Ready to invoice",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "A finance case records a snapshot and a human review before handing labor/expense sources to an invoice draft. It does not approve actual work, decide policy, issue an invoice or send it. Milestone/fixed and other streams continue in their existing invoice workflow."
+      ],
+      "steps": [
+        "Select Project, Billing stream and inclusive Period start / Period end, then Apply filters. Inspect Current source register, eligibility, blockers, reservations and source links.",
+        "Choose Whole period or Selected sources and Open case. Whole period preserves all source dispositions, including excluded records; selected scope preserves the chosen sources and unselected remainder. Reopening the same scope returns its existing case.",
+        "Open case details and inspect blockers, dispositions, supporting report/customer-conformity identity and changes since review. If source population, version, selected rule or report identity changed, Refresh snapshot and examine the differences.",
+        "Record the case review with a factual reason only after resolving the current blockers through their own workspaces. A case review is separate from source or invoice approval.",
+        "Use Create invoice draft only when the current reviewed snapshot is eligible. The application rechecks sources transactionally. Follow the resulting invoice link and continue review/approval/issue there."
+      ],
+      "checks": [
+        "The handoff creates a draft only. Stale review, changed source population or existing reservations must not be bypassed. A saved historical case does not prove current eligibility."
+      ],
+      "recovery": [
+        "On a stale-state message, reload, reconcile the changed evidence, refresh and review again. If a retry returns an existing case/draft, inspect it instead of opening a parallel scope."
+      ]
+    },
+    {
+      "id": "release-policy",
+      "title": "Record a manual policy proposal and understand automation",
+      "route": "Digital workers → Policy review; Notifications",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "Digital workers uses saved records and explicit deterministic rules. No model key is required. It does not interpret a contract or email, automatically write reports, decide a charge or apply a proposed agreement.",
+        "Existing background jobs generate queued artifacts and deliver due in-app follow-ups. Queued/running is not Ready. Each format has its own ready/failed state. Users do not manually process the job queue."
+      ],
+      "steps": [
+        "Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.",
+        "Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.",
+        "Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.",
+        "Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email."
+      ],
+      "checks": [
+        "No policy or financial source changed merely because the proposal was saved/accepted. Keep agreement evidence, manual configuration and resulting record verification distinct."
+      ],
+      "recovery": [
+        "If generated output fails, use its offered retry/recovery controls and confirm the requested format becomes Ready. Do not send a stale or preview artifact as the final document."
+      ]
+    },
     {
       "id": "owner-course",
       "title": "Use this Owner manual",
@@ -92,6 +252,7 @@
       "route": "Clients → Projects → Finance → Commercial Configuration → Billing → Configure billing",
       "context": "Ordered source-checked receiving procedure. No new legal issuer, tax profile, numbering policy or live invoice was created by this Owner introduction update.",
       "paragraphs": [
+        "Use the current five-section form described in Create projects with the current five-section form (release-project-setup); optional fields are behind disclosures. For eligible operational sources, Owner operational approval can also record Finance acceptance. Check the resulting source state and remaining classification/readiness blockers instead of repeating completed review.",
         "Use a clean authorized project for a new cycle, and preserve the existing BBS course as historical evidence. Obtain genuine contract, issuer and accountant-approved tax/numbering inputs before live issuance. Training legal details and approval timestamps are simulations.",
         "Billing’s New invoice issuer form creates the issuer directory record. It has Code, Legal name, Currency, Issuer address and phone, and Tax or registration identifier (optional), followed by Save legal entity. That form does not expose revision effective dates. Reviewed canonical revision and project-authority dates belong to Finance → Commercial Configuration → Project issuing authority."
       ],
@@ -216,7 +377,7 @@
       "paragraphs": [
         "The Project Manager’s separate October 21 practice plan was edited from two hours to three hours, 09:00–12:00 UTC. Worker 1’s agenda shows Planned: 3 h, while the Wednesday timesheet expectation remains 8.00h from the project schedule. Editing a plan does not rewrite that schedule.",
         "Planning and worker agendas display UTC explicitly. On October 20, 08:00–16:00 UTC is 10:00–18:00 in Europe/Madrid and 04:00–12:00 in America/New_York. These conversions apply to that date; daylight-saving transitions can change the offset. Enter the intended UTC interval rather than assuming the form uses the browser or project timezone.",
-        "There is no generic worker-goal module with Accept, Reject or Mark completed actions. Use published assignments for coordination, the expected schedule for reference hours, actual time for work performed and Daily / Technical reports for progress and deliverables. Project milestones are separate project checkpoints with their own permitted workflow; they are not personal hours targets."
+        "Planning cards do not have an acceptance/completion lifecycle. Digital workers now has separate assigned follow-ups with In progress and Ready for review, followed by an authorized review decision. Continue to record actual work and report facts through their normal workflows; accepting a follow-up does not approve those sources."
       ],
       "steps": [
         "To change a published plan, open its Published assignments record, change the worker, UTC interval, Planned minutes, Site or Required expertise as needed, and choose Save assignment. Creation uses planned hours; editing uses planned minutes: three hours equals 180 minutes.",
@@ -303,7 +464,8 @@
       "recovery": [
         "Correct issued documents only through the actual permitted void, credit, debit or replacement controls. Preserve issued masters and payment history. Inspect linked credit documents and reconcile their separate ledger balances; there is no general credit-allocation or refund-recording UI. Send unsupported allocation/refund requirements with document IDs, amount, currency and genuine transaction evidence to Finance/support; do not invent a receipt or negative payment.",
         "A disabled training email transport can queue or fail a delivery attempt. It does not establish a delivered customer email."
-      ]
+      ],
+      "checks": []
     },
     {
       "id": "owner-commercial-references",
@@ -401,7 +563,8 @@
           "caption": "New native customer-period PDF, October 13–18 v2: selected technical facts are populated in Detail. The separately preserved old blank-detail example remains historical.",
           "orientation": "portrait"
         }
-      ]
+      ],
+      "paragraphs": []
     },
     {
       "id": "owner-private-dated-terms",

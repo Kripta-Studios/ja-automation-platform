@@ -1,6 +1,6 @@
 # Project Manager · BBS operational course
 
-Assigned projects, planning, operational review, corrections, reports and precise role handoffs
+Assigned projects, planning, operational review, corrections, reports and precise role handoffs · Updated navigation and digital workflows, 11 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -77,6 +77,89 @@ Review is determined by the source, base role and current dated grants. Chief de
 ### If you get stuck
 
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="release-navigation"></a>
+## Current navigation, task finder and form recovery
+
+Go here: Header → Go to section / Find a task; workspace → Search workspace
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+
+### Do the task
+
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+
+### Verify the result
+
+- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+
+### If you get stuck
+
+- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
+- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+
+<a id="release-project-work"></a>
+## Use the project workspace and current task shortcuts
+
+Go here: Projects → project → Work / Team / Reports
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.
+
+The Overview shows the project timezone, dates, site and contact details where configured. Review those facts before recording work. Planning, expected schedules and actual recorded hours remain independent.
+
+### Do the task
+
+1. Find the project by name or number and check its status. Open Work to review the time/expense sources and use Log time, Record expense or Create work report for the intended project.
+2. Use Team to inspect dated assignments; permitted managers can assign or update eligible memberships. Granting review permission is a separate Owner action.
+3. Follow the project links between Time, Expenses and Reports. Verify the project and selected dates after changing filters or returning from a detail.
+4. On a narrow screen use the labelled task actions on the project card and swipe the tab strip. Check the current-section label rather than assuming the first visible tab is selected.
+
+### Verify the result
+
+- The project heading, filter summary and saved record refer to the same project. Empty filtered results are not proof that no underlying records exist.
+
+### If you get stuck
+
+- If site or contact details are wrong, ask the Owner to update the project. If a person is missing from Team controls, check account and dated membership/authorization coverage.
+
+<a id="release-followup-review"></a>
+## Coordinate scope, evidence and handover follow-ups
+
+Go here: Digital workers → Needs your decision / Team follow-up
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Needs your decision links to current operational sources in your authorized projects. Open the original record to approve or return it through its normal workflow. A current Can review grant is required for Project Manager decisions.
+
+Work items coordinate a Scope change, Handover or Evidence request. They do not replace source review, a project plan or a customer acceptance record.
+
+### Do the task
+
+1. Choose Create a follow-up. Select Project and Work type; enter a factual title and description, eligible Owner and due date. Expand Evidence references, select Evidence type and supply the actual Evidence reference ID; add Evidence version and Evidence note when known. Save follow-up and verify the item.
+2. For Scope change, explicitly classify the facts as existing scope, rework, goodwill, needs clarification or potential change. This is a coordination classification; send the factual context to the responsible Owner.
+3. Inspect the assigned person’s In progress / Ready for review update. Open supporting records and check whether references are current, claimed, missing or stale.
+4. Accept only after checking the actual evidence; Handover acceptance requires current supporting document/report evidence. A Waived decision requires a reason. Record the offered Review reason and save.
+5. Preserve an Accepted, Waived or Cancelled item as history. Create a new follow-up if the facts or requested work later change.
+
+### Verify the result
+
+- Current means the reference resolves to an authorized current record. It does not establish physical completion or customer acceptance.
+- The saved follow-up state and the original source’s review state are separate. A due item produces one in-app reminder per current owner/deadline.
+
+### If you get stuck
+
+- If evidence is stale, open the current version and replace the reference before review. If access or membership changed, reload and ask the Owner to check the dated grant.
 
 <a id="start"></a>
 ## Start with your account and assigned scope
@@ -451,7 +534,7 @@ The October 21 practice plan was edited to three hours, 09:00–12:00 UTC. Worke
 
 Planning and worker agendas display UTC. On October 20, 08:00–16:00 UTC means 10:00–18:00 Europe/Madrid or 04:00–12:00 America/New_York. Convert for the actual date, because daylight-saving changes can alter the offset.
 
-There is no generic worker-goal Accept / Reject / Mark completed workflow. Use assignments for coordination, expected hours for comparison and Daily / Technical reports for actual progress and blockers. Project milestones are separate project checkpoints; ask the Owner to establish any required milestone configuration.
+Planning cards do not have an acceptance/completion lifecycle. Digital workers now has separate assigned follow-ups with In progress and Ready for review, followed by an authorized review decision. Continue to record actual work and report facts through their normal workflows; accepting a follow-up does not approve those sources.
 
 After the earlier planning tables, the Owner added an explicitly synthetic October 23-only membership for Technician 1 in the existing fictional onboarding project. The later Worker weekly table shows Friday Expected and Difference as — because two own projects cover that day. Earlier screenshots still correctly show Friday eight hours and weekly forty before that extra assignment. No actual work was entered in the second project.
 

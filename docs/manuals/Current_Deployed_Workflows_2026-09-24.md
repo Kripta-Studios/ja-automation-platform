@@ -1,3 +1,5 @@
+> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+
 # J&A Automation portal: current work guide
 
 **Observed on the deployed site:** 24 September 2026, release `zip-d215671b99323d6d8c4ce34b74b4f8e0`, at `https://j-aautomation.com/j-aautomation/app`. This is the current English guide for project, crew, time, expense, report and invoice work. All screenshots below were captured in a real authenticated browser using existing **test accounts** and the synthetic `QA LIVE LIFECYCLE` project. No records were changed while preparing the screenshots. [Capture manifest](assets/deployed-2026-09-24/capture-manifest.json) gives the role, route pattern, viewport, capture time and SHA-256 of every image; the raw project UUID is withheld from this public guide.

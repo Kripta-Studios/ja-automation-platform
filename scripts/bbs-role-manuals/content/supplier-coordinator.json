@@ -1,8 +1,54 @@
 {
   "role": "supplier-coordinator",
   "title": "Supplier Coordinator · BBS operational course",
-  "subtitle": "Authorized supplier personnel, actual team hours, corrections and operational reporting",
+  "subtitle": "Authorized supplier personnel, actual team hours, corrections and operational reporting · Updated navigation and digital workflows, 11 October 2026",
   "chapters": [
+    {
+      "id": "release-navigation",
+      "title": "Current navigation, task finder and form recovery",
+      "route": "Header → Go to section / Find a task; workspace → Search workspace",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.",
+        "Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.",
+        "The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language."
+      ],
+      "steps": [
+        "Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.",
+        "On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.",
+        "When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.",
+        "If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved."
+      ],
+      "checks": [
+        "The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states."
+      ],
+      "recovery": [
+        "If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.",
+        "For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it."
+      ]
+    },
+    {
+      "id": "release-supplier-current",
+      "title": "Current supplier workflow and digital-workspace handoff",
+      "route": "Supplier team → Personnel / Record team hours / Review drafts; Digital workers",
+      "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
+      "paragraphs": [
+        "Supplier Coordinator remains a restricted Worker profile. The current Digital workers page directs coordination to Continue in the supplier workspace. It does not provide the coordinator with the internal assigned-follow-up controls or general work capture.",
+        "Use Supplier team for authorized personnel and team hours. Your own Time, Expenses, Daily and Technical reports remain separate from entries recorded for supplier personnel."
+      ],
+      "steps": [
+        "Check supplier authorization, project/date coverage and each person’s active directory/access status. A directory technician does not automatically have an application login or project membership.",
+        "Use Record team hours for actual duration, category and work performed. Inspect each created draft and submit eligible records through Review drafts; send supplier time to the authorized J&A Owner.",
+        "For your own work, use the normal Time/Expenses/Reports forms and attach original evidence. Open Operational report with the exact period and verify the native CSV totals.",
+        "Use Find a task for allowed supplier destinations. If Digital workers offers Continue in the supplier workspace, follow that link to the established team controls."
+      ],
+      "checks": [
+        "Team entry has the intended people/date and actual minutes; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage."
+      ],
+      "recovery": [
+        "For a missing person or date guard, ask the Owner to correct the real supplier authorization/assignment. Do not enter the work under another identity."
+      ]
+    },
     {
       "id": "start",
       "title": "Start with a supplier access profile, not an Owner account",
@@ -83,9 +129,7 @@
         "For this saved roster, the external technician is assigned October 5–31 and the directory technician October 6–31. Confirm the actual work date lies within both supplier authorization and technician assignment.",
         "Ask the Owner to resolve missing supplier authorization or expired coverage before entering team work."
       ],
-      "checks": [
-        "The native saved roster and dated assignments were inspected."
-      ],
+      "checks": ["The native saved roster and dated assignments were inspected."],
       "recovery": [
         "A missing technician can reflect scope or dates. Do not add a duplicate directory entry to bypass an expired assignment."
       ],

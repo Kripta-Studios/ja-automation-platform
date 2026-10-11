@@ -1,6 +1,6 @@
 # Auditor · BBS financial and audit review
 
-Read-only financial evidence, immutable history, source reconciliation and authorized handoffs
+Read-only financial evidence, immutable history, source reconciliation and authorized handoffs · Updated navigation and digital workflows, 11 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -68,8 +68,8 @@ Review is determined by the actual source, base role and current dated grants. C
 
 | Source / recorder | Operational reviewer and prerequisite | Next handoff |
 | --- | --- | --- |
-| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner/Finance records commercial Billable or Non-billable review separately. |
-| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Finance review follows Owner approval. |
+| Internal own or chief-delegated time | Owner or Finance; assigned PM with current active Can review membership for this project. | Owner approval includes financial acceptance, defaulting pending time to billable while preserving explicit nonbillable treatment. PM approval still needs Finance review; missing rates or expense classification remain separate blockers. |
+| External/supplier time, including coordinator own time | Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue. | Owner approval includes financial acceptance. Verify remaining classification and configuration before invoice preparation. |
 | Own/delegated expenses | Owner or Finance; assigned PM with current project review grant. Check factual purchase, payer and evidence. | Owner/Finance completes the required classification and reimbursement review. |
 | Daily and Technical reports, including supplier profiles | Owner or Finance; assigned PM with current project review grant and permitted project scope. | Owner/Finance prepares the customer period report and version-bound acceptance where required. |
 | PM’s own work | Route it to another authorized reviewer for an independent factual check. Do not infer a universal self-review prohibition solely from a job title. | Use the appropriate personal output and verify the review state. |
@@ -77,6 +77,61 @@ Review is determined by the actual source, base role and current dated grants. C
 ### If you get stuck
 
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
+
+<a id="release-navigation"></a>
+## Current navigation, task finder and form recovery
+
+Go here: Header → Go to section / Find a task; workspace → Search workspace
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+
+### Do the task
+
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+
+### Verify the result
+
+- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+
+### If you get stuck
+
+- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
+- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+
+<a id="release-audit-current"></a>
+## Review digital cases and current financial navigation
+
+Go here: Digital workers → case details; Finance Overview / Collections / Accounting
+
+Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+
+Your Digital workers view is read-only. Inspect recorded cases, source dispositions, snapshots, prior review reasons, draft links and permitted follow-ups. A historical case review is not fresh approval and does not certify unchanged sources.
+
+Finance Overview, Collections / Ledger and Accounting now show clearer project links, scoped counts and filter context. An empty filtered result is not an empty portfolio; use the offered filter reset.
+
+### Do the task
+
+1. Open the permitted case and compare project, stream and inclusive period with the intended audit scope. Read included/excluded sources and current blockers, then open authorized original records.
+2. Check whether the snapshot or evidence is stale, claimed or missing. Reconcile the linked invoice’s actual state and final artifact; a provisional number is not a final issued number.
+3. Use project/invoice links and the ledger register to reconcile collections and recorded reversals. Keep currencies separate and use the saved snapshot for historical outputs.
+4. In Accounting inspect the existing pack register and ready formats. Record a discrepancy with source IDs, version, dates and observed state; hand it to Owner/Finance for correction.
+
+### Verify the result
+
+- No create, refresh, review, approve, issue or policy mutation is part of Auditor work. A documented finding and receiving role are the output of this review.
+
+### If you get stuck
+
+- If a link no longer resolves within your access, preserve the reference and ask the Owner to verify permissions. Do not infer that the record was deleted or recreate it.
 
 <a id="auditor-start"></a>
 ## Start with an individual Auditor account

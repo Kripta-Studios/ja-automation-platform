@@ -109,13 +109,15 @@ export function commonChapters(role) {
           'Internal own or chief-delegated time',
           'Owner or Finance; assigned PM with current active Can review membership for this project.',
           financial
-            ? 'Owner/Finance records commercial Billable or Non-billable review separately.'
+            ? 'Owner approval includes financial acceptance, defaulting pending time to billable while preserving explicit nonbillable treatment. PM approval still needs Finance review; missing rates or expense classification remain separate blockers.'
             : 'Submit the checked work to the authorized reviewer and verify the resulting state.',
         ],
         [
           'External/supplier time, including coordinator own time',
           'Authorized Owner. Supplier authorization/recorder provenance keeps these sources outside the ordinary PM time queue.',
-          financial ? 'Finance review follows Owner approval.' : 'Verify the resulting review state.',
+          financial
+            ? 'Owner approval includes financial acceptance. Verify remaining classification and configuration before invoice preparation.'
+            : 'Verify the resulting review state.',
         ],
         [
           'Own/delegated expenses',
@@ -205,8 +207,8 @@ export function commonChapters(role) {
     id: 'verification',
     title: 'Verification · current coverage and historical evidence',
     paragraphs: [
-      'English readiness edition: 6 October 2026, based on repository abc12c0961b2 with the recorded readiness fixes. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.',
-      'The current evidence lives in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.',
+      'English operating edition: 11 October 2026, checked against main 22475a2b and production digital-workers-2d7b76a250f6. Current workflow chapters precede the dated illustrated exercises. The publication receipt identifies the final commit and deployment. This edition teaches the permitted ordinary cycle and supported handoffs; it does not certify every contract, device or external service.',
+      'Current release parity and manual validation are recorded in docs/evidence/manuals-refresh-20261011. Historical readiness evidence remains in docs/evidence/bbs-readiness-20261006. Its correction register maps all 72 suite findings to tasks, browser evidence or precise reference/support boundaries. Role manifests identify source IDs, state transitions and downloaded artifacts. Historical 5 October outputs remain historical; new screenshots do not rewrite their totals or private bytes.',
       'Recipient activation, actual authenticator verification and own passkey registration/revocation were exercised on a separate isolated recipient. The same account controls are shared, but enrollment was not repeated for every role or physical device. Offline/expired-link and lost-device paths remain precise references where not separately executed.',
       'Weekly submission was exercised with one ordinary draft and one eligible linked correction for Worker, Chief, External Technician and Supplier Coordinator: two selected drafts became two Submitted sources and zero remaining drafts. This does not guarantee that locked, withdrawn, out-of-scope or ineligible corrections will submit.',
       'A final Accounting cut succeeded in a separate clean Finance portfolio; an Auditor read and downloaded its outputs. Original BBS issuer-history and source-reconciliation blockers remain documented. Email transport, real bank movement, accountant approval and genuine customer acceptance are outside the synthetic tests.',
@@ -219,36 +221,86 @@ export function commonChapters(role) {
   // The full preparation/evidence history remains with the Owner trainer.
   if (!owner) {
     trainer.title = 'Practice setup · your account and starting records';
-    trainer.paragraphs = ['Obtain your own training account, isolated environment, authorized project and lesson dates from the trainer. Confirm the named starting records and expected result before saving. Ask the trainer to restore the checkpoint when needed.'];
-    trainer.table.rows = trainer.table.rows.filter(([label]) => ['Identity and environment', 'Project and dates', 'Source state', 'Expected outcome'].includes(label));
-    trainer.table.rows[3][1] = 'Expected saved state, source count, actual total and permitted output; named receiving reviewer where needed.';
-    trainer.checks = ['Confirm that the visible starting records match this lesson. If they differ or an action is unavailable, stop and ask the trainer for the correct checkpoint.'];
+    trainer.paragraphs = [
+      'Obtain your own training account, isolated environment, authorized project and lesson dates from the trainer. Confirm the named starting records and expected result before saving. Ask the trainer to restore the checkpoint when needed.',
+    ];
+    trainer.table.rows = trainer.table.rows.filter(([label]) =>
+      [
+        'Identity and environment',
+        'Project and dates',
+        'Source state',
+        'Expected outcome',
+      ].includes(label),
+    );
+    trainer.table.rows[3][1] =
+      'Expected saved state, source count, actual total and permitted output; named receiving reviewer where needed.';
+    trainer.checks = [
+      'Confirm that the visible starting records match this lesson. If they differ or an action is unavailable, stop and ask the trainer for the correct checkpoint.',
+    ];
     verification.title = 'Completion check · your permitted role cycle';
-    verification.paragraphs = ['Use the worked lessons for your own role. Historical examples retain their stated dates and states. A procedure labelled reference was checked against the controls; its outcome was not necessarily executed in the illustrated session.'];
-    verification.checks = role === 'auditor'
-      ? ['Inspect permitted source records and outputs, record findings, request corrections from the responsible actor and verify the resulting evidence. Keep the original and resulting references. Auditor does not change or submit records.']
-      : ['Confirm your identity, project and dates. Verify the saved and submitted source, its review state, supported correction or administrator handoff and each permitted Ready output. Submission, review and download are separate checkpoints.'];
+    verification.paragraphs = [
+      'Use the worked lessons for your own role. Historical examples retain their stated dates and states. A procedure labelled reference was checked against the controls; its outcome was not necessarily executed in the illustrated session.',
+    ];
+    verification.checks =
+      role === 'auditor'
+        ? [
+            'Inspect permitted source records and outputs, record findings, request corrections from the responsible actor and verify the resulting evidence. Keep the original and resulting references. Auditor does not change or submit records.',
+          ]
+        : [
+            'Confirm your identity, project and dates. Verify the saved and submitted source, its review state, supported correction or administrator handoff and each permitted Ready output. Submission, review and download are separate checkpoints.',
+          ];
   }
   if (!financial) {
-    access.checks[0] = 'The activation success message precedes the separate sign-in. Verify your own Profile and assigned projects after signing in.';
-    review.paragraphs[0] = 'Review is determined by the source, base role and current dated grants. Chief delegation grants recording, not approval. A Worker with Can review checked does not become a Project Manager. Send a factual reason with every requested correction.';
+    access.checks[0] =
+      'The activation success message precedes the separate sign-in. Verify your own Profile and assigned projects after signing in.';
+    review.paragraphs[0] =
+      'Review is determined by the source, base role and current dated grants. Chief delegation grants recording, not approval. A Worker with Can review checked does not become a Project Manager. Send a factual reason with every requested correction.';
     recovery.title = 'Recovery · correct a source or request help';
-    recovery.paragraphs = ['Use your role’s worked correction lesson and the controls offered on the current record. Preserve the original. A new purchase is different from correcting an existing purchase.'];
-    recovery.table.rows[4] = ['Approved, correction available', 'Use the offered linked correction and review every value before creating it. Submit the replacement for the authorized reviewer and verify its resulting state.'];
-    recovery.table.rows[5] = ['Locked or correction unavailable', 'Send the source ID, project, work date, visible state, requested correction and reason to the designated administrator. Do not create a duplicate. Wait for instructions before changing the record.'];
-    recovery.recovery = ['If an action is unavailable to your account, return to your workspace and contact the designated administrator with the record reference and requested action. Do not change dates or people to work around a restriction.'];
+    recovery.paragraphs = [
+      'Use your role’s worked correction lesson and the controls offered on the current record. Preserve the original. A new purchase is different from correcting an existing purchase.',
+    ];
+    recovery.table.rows[4] = [
+      'Approved, correction available',
+      'Use the offered linked correction and review every value before creating it. Submit the replacement for the authorized reviewer and verify its resulting state.',
+    ];
+    recovery.table.rows[5] = [
+      'Locked or correction unavailable',
+      'Send the source ID, project, work date, visible state, requested correction and reason to the designated administrator. Do not create a duplicate. Wait for instructions before changing the record.',
+    ];
+    recovery.recovery = [
+      'If an action is unavailable to your account, return to your workspace and contact the designated administrator with the record reference and requested action. Do not change dates or people to work around a restriction.',
+    ];
   }
   if (role === 'auditor') {
     recovery.title = 'Recovery · inspect, request and verify';
-    recovery.paragraphs = ['Auditor inspects records read-only. Identify the responsible author or reviewer, preserve the source and its state, request the supported correction, then verify the original, resulting record and evidence.'];
-    recovery.table.rows = [
-      ['Draft', 'Inspect the saved facts and evidence. Ask the author to correct missing or inaccurate information before submission.'],
-      ['Submitted', 'Inspect the current state and identify the authorized reviewer. Report discrepancies without submitting or reviewing the source yourself.'],
-      ['Needs changes or Rejected', 'Inspect the reason and ask the responsible author/reviewer to follow the supported correction route. Verify the resulting source and preserved history.'],
-      ['Approved', 'Document the discrepancy and request a supported correction from the responsible reviewer. Verify the original, replacement relationship and subsequent review evidence.'],
-      ['Issued, locked or finalized', 'Preserve the financial evidence and send a finding to Owner/Finance. Subsequently inspect the documented resolution and related references. Auditor does not edit, post, reverse or refresh these records.'],
+    recovery.paragraphs = [
+      'Auditor inspects records read-only. Identify the responsible author or reviewer, preserve the source and its state, request the supported correction, then verify the original, resulting record and evidence.',
     ];
-    recovery.recovery = ['For a support-controlled resolution, inspect the preserved original and the documented authorized outcome, including resulting references and source-lock status. Request missing evidence from Owner/Finance.'];
+    recovery.table.rows = [
+      [
+        'Draft',
+        'Inspect the saved facts and evidence. Ask the author to correct missing or inaccurate information before submission.',
+      ],
+      [
+        'Submitted',
+        'Inspect the current state and identify the authorized reviewer. Report discrepancies without submitting or reviewing the source yourself.',
+      ],
+      [
+        'Needs changes or Rejected',
+        'Inspect the reason and ask the responsible author/reviewer to follow the supported correction route. Verify the resulting source and preserved history.',
+      ],
+      [
+        'Approved',
+        'Document the discrepancy and request a supported correction from the responsible reviewer. Verify the original, replacement relationship and subsequent review evidence.',
+      ],
+      [
+        'Issued, locked or finalized',
+        'Preserve the financial evidence and send a finding to Owner/Finance. Subsequently inspect the documented resolution and related references. Auditor does not edit, post, reverse or refresh these records.',
+      ],
+    ];
+    recovery.recovery = [
+      'For a support-controlled resolution, inspect the preserved original and the documented authorized outcome, including resulting references and source-lock status. Request missing evidence from Owner/Finance.',
+    ];
   }
   return { before: [practice, access, trainer, review], after: [recovery, security, verification] };
 }

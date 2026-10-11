@@ -1,184 +1,151 @@
-# Project to invoice
+# Project to invoice · current quick guide
 
-**J&A Automation · Quick guide · English · 5 October 2026**
+**Owner operating reference · 11 October 2026.** For other roles, use your own [current role manual](README.md). Earlier BBS screenshots and issued examples are historical training evidence.
 
-Eight steps from a new customer and project to a saved invoice PDF. Existing projects can start at the first unfinished step.
+## Current navigation, task finder and form recovery
 
-Actual app screenshots from an isolated verification copy; example forms, English UI. Captures illustrate the controls without changing production records.
+**Go here:** Header → Go to section / Find a task; workspace → Search workspace
 
-<!-- page: 1 -->
+The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
 
-## 1. Set up the customer and invoice issuer
+Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
 
-**Who:** Owner for administration; Owner/Finance for permitted billing settings.
+The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
 
-1. Open **Projects → Clients → Create client** when the customer is missing. Set its name, billing address/email, currency, payment terms and optional PO reference. Add its billing contact.
-2. Open **Billing → Configure billing → New invoice issuer**. The Owner enters the issuing company's actual legal name, currency, address and registration/tax identifiers.
-3. Expand **Issuer payment and contact settings**. Choose **Add payment and contact settings** or **Edit**, then save the bank instructions and company contacts. These settings are shared by streams using that issuer and currency.
-4. Use **New tax profile** for the agreed component, percentage, currency, issuer and effective date. An explicit 0% profile is available when appropriate.
+1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
 
-**Numbering:** before final issue, the Owner configures **Invoice numbering policy** using the approved business numbering arrangement.
+2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
 
-**Existing records:** use Edit or Add. Archiving an issuer/tax profile removes it from active setup and retains history. **Clear payment and contact settings** empties those fields without deleting the issuer. Tax editing renames the profile; changed rates/dates require a new profile.
+3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
 
-![Billing setup: issuer, payment/contact and tax directories.](screenshots/project-to-invoice-20261005/01-billing-setup.png)
+4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
 
-<!-- page: 2 -->
+**Verify:** The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
 
-## 2. Create the project and assign workers
+**Recovery:** If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
 
-**Who:** Owner/Finance for permitted project creation; Owner for assignments.
+## Create projects with the current five-section form
 
-1. Open **Projects → New Project**. Choose the customer, name, currency, timezone, start date and manager. The required **Cost center code** ends in digits: CP020 gives project suffix P-020.
-2. In **2 · People**, optionally save **Project defaults for people** and use **Add worker assignment**. Choose default or individual terms for each person. You can also add workers later.
-3. In **3 · Commercial defaults**, choose **Time & materials**, **T&M · daily minimum**, **Hourly labor with included expenses (all-in)** or **Capped T&M** as agreed. Enter a cap only when the contract requires one; optional budgets may remain empty.
-4. Choose **Create project**. Reopen **Overview** and check the identifiers. Use the project editor for its PO number. Open **Team → Assign worker** for remaining active workers and their assignment dates.
+**Go here:** Projects → New project
 
-**No workers listed?** Owner first creates/activates the appropriate workforce account. Ending an assignment preserves past work.
+The current form starts with essential identity/date fields. Optional details are grouped into Project context, People, Commercial defaults and Planning / reporting controls. Section links open their disclosure before focusing its fields.
 
-Expected hours and planned shifts are planning context. Customer minimums and worker pay are separate rules. All-in generally keeps labor hourly while including selected expenses. None of these settings creates actual time.
+The old illustrated three-stage creation screenshots are historical. Use the current field labels and the required/optional legend described here.
 
-![Create project: customer, cost center and currency.](screenshots/project-to-invoice-20261005/02-project-team.png)
+1. Select Client, enter Name and Cost center code, and check Currency, Site timezone, Start date and optional planned end. Review the selected client defaults; the cost center suffix contributes to the generated project number.
 
-<!-- page: 3 -->
+2. Open Project context for description, alias, manager, site address and on-site contact details. Owner/Finance can open the linked client or client contacts from the saved project; PM sees only the permitted operational identity.
 
-## 3. Review each person's rates and pay
+3. Open People for authorized assignments and dated project/person terms; Commercial defaults for the agreed model and expected/minimum-hour settings; Planning for applicable budgets and reporting requirements. Enter only agreed values.
 
-**Who:** Owner/Finance.
+4. Use Create project once. Correct errors through the validation summary; hidden sections with errors open and values remain available. Reopen Overview, Team and Billing to verify saved identity and settings.
 
-In the project's **Billing** setup, open **3. Review each person**. Choose the person and **Terms effective from** date.
+**Verify:** Creation did not fabricate actual time. Published planning, expected-hour schedules and actual work must still be handled separately.
 
-| Setting                         | Meaning                                                                                                                      |
-| ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| Customer hourly rate            | Customer charge for eligible labor.                                                                                          |
-| Worker compensation method/rate | Worker pay: Hourly, Daily, Fixed per billing period, Fixed project amount or Percentage of eligible client labor, as agreed. |
-| Internal hourly cost            | Internal project labor cost.                                                                                                 |
-| Percentage basis                | Percentage pay only: eligible labor before tax, after approved discount, issued or collected.                                |
+**Recovery:** If a client is missing, create or correct the real client through its own form before retrying. Preserve entered context when following a remedy link, and check the selected client again on return.
 
-Review the expense policy described in step 6, then choose **Save person terms** for each required person.
+## Use the project workspace and current task shortcuts
 
-**Defaults versus overrides:** **Use project defaults in this draft** fills the draft. Review the date and save to apply it. Changed rates become person overrides. **Save these rates as explicit person overrides** also pins rates currently equal to a default. Later defaults/templates do not silently replace existing person agreements.
+**Go here:** Projects → project → Work / Team / Reports
 
-Bulk controls can copy one person's draft to selected people. Review their individual dates before saving; people can keep different rates and pay.
+The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.
 
-Use the project's commercial/Finance configuration for agreed minimums, travel, standby and overtime. Customer billing and worker compensation can differ.
+The Overview shows the project timezone, dates, site and contact details where configured. Review those facts before recording work. Planning, expected schedules and actual recorded hours remain independent.
 
-![Worker assignment: project defaults versus individual rates.](screenshots/project-to-invoice-20261005/03-person-terms.png)
+1. Find the project by name or number and check its status. Open Work to review the time/expense sources and use Log time, Record expense or Create work report for the intended project.
 
-<!-- page: 4 -->
+2. Use Team to inspect dated assignments; permitted managers can assign or update eligible memberships. Granting review permission is a separate Owner action.
 
-## 4. Configure the project's invoice arrangement
+3. Follow the project links between Time, Expenses and Reports. Verify the project and selected dates after changing filters or returning from a detail.
 
-**Who:** Owner/Finance.
+4. On a narrow screen use the labelled task actions on the project card and swipe the tab strip. Check the current-section label rather than assuming the first visible tab is selected.
 
-Open the project's **Billing** tab. Start from a saved template or **Configure from scratch**; a template supplies defaults to review.
+**Verify:** The project heading, filter summary and saved record refer to the same project. Empty filtered results are not proof that no underlying records exist.
 
-1. **Invoice arrangement:** choose **One invoice with two sections** for labor and expenses together, or **Two separate invoices**. Enter the configuration's effective date.
-2. **Billing details:** select the issuer matching project currency, tax profile(s), cadence, layout, grouping, contact, recipient email and payment terms.
-3. **Review each person:** finish and save their charge/pay/expense terms.
-4. **Review and save:** check the summary and missing terms. Optionally save a reusable template, then choose **Save billing setup**.
+**Recovery:** If site or contact details are wrong, ask the Owner to update the project. If a person is missing from Team controls, check account and dated membership/authorization coverage.
 
-| Cadence       | Period                              |
-| ------------- | ----------------------------------- |
-| Weekly        | Weekly.                             |
-| Every 14 days | Two weeks; requires an anchor date. |
-| Semi-monthly  | Days 1–15 and 16–month end.         |
-| Monthly       | Monthly.                            |
-| Manual        | Period selected deliberately.       |
+## Review operational follow-ups and coordinate the handoff
 
-Separate invoices can have different labor/expense cadence and taxes. Layout offers **Standard**, **Detailed** or **Summary**; grouping offers worker, day, category, detailed or summary. Automatic preparation creates drafts for review, never automatic issue or sending.
+**Go here:** Digital workers → existing work-item cards; Approvals → original sources
 
-**Project issuing authority:** in **Commercial Configuration**, select the project and **Project issuing authority**. Review/create the verified legal entity revision and dated assignment. It must agree with the stream's issuer; selecting a stream issuer does not replace this authority.
+Owner/Finance sees finance cases, policy creation and authorized existing work-item cards. The Create a follow-up form for Scope change, Handover and Evidence is in the assigned Project Manager workspace; coordinate new operational items with that manager. Use Approvals or the original source record for actual operational decisions.
 
-![Project Billing: invoice arrangement and configuration effective date.](screenshots/project-to-invoice-20261005/04-project-billing.png)
+Work items coordinate a Scope change, Handover or Evidence request. They do not replace source review, a project plan or a customer acceptance record.
 
-<!-- page: 5 -->
+1. Open an existing authorized work-item card. Inspect project, type, factual title, description, assigned owner and deadline. Ask the project manager to create a new operational follow-up when needed; your Create a policy review form is a different task.
+2. For Scope change, explicitly classify the facts as existing scope, rework, goodwill, needs clarification or potential change. This is a coordination classification; send the factual context to the responsible Owner.
+3. Inspect the assigned person’s In progress / Ready for review update. Open supporting records and check whether references are current, claimed, missing or stale.
+4. Accept only after checking the actual evidence; Handover acceptance requires current supporting document/report evidence. A Waived decision requires a reason. Record the offered Review reason and save.
+5. Preserve an Accepted, Waived or Cancelled item as history. Create a new follow-up if the facts or requested work later change.
 
-## 5. Record actual time and submit it
+**Verify:** Current means the reference resolves to an authorized current record. It does not establish physical completion or customer acceptance. The saved follow-up state and the original source’s review state are separate. A due item produces one in-app reminder per current owner/deadline.
 
-**Who:** Worker records; authorized reviewer approves.
+## Prepare invoices from selected records or a whole period
 
-1. Open **Time → Log time**. Select an assigned project and the actual date. A missing project usually needs an assignment check.
-2. Enter **Actual hours**, such as `7.5` for seven hours thirty minutes, category and factual activity.
-3. Use **Add start and end times** when the actual clocks are known. Enter the project's local clocks and real break; duration-only entries can remain duration-only.
-4. Choose **Save draft**. Review the saved entry in the register and choose **Submit**, or review the week and use **Submit all week drafts**.
-5. The responsible reviewer checks **Approvals** and approves or requests changes. Correct returned entries and submit again.
+**Go here:** Project → Work / Billing → Create invoice; Billing → Invoices
 
-Approved sources and configured rules determine billable time. Drafts, submitted records, expected hours and planned shifts are distinct states.
+The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.
 
-Submit Daily or Technical / PLC reports when required. If customer sign-off is required before billing, complete the signed/conformed period report before final issue; internal approval is separate.
+Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice.
 
-An authorized chief may enter shared or individual crew hours within their project/date delegation. Each worker's records follow normal review.
+1. Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.
 
-![Time entry: assignment, date and optional clocks.](screenshots/project-to-invoice-20261005/05-time.png)
+2. Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.
 
-<!-- page: 6 -->
+3. If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.
 
-## 6. Record expenses and review their treatment
+4. For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.
 
-**Who:** Worker records; authorized reviewer checks evidence; Owner/Finance sets treatment.
+5. Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.
 
-1. Open **Expenses → Record expense**. Enter project, date, category, description, amount/currency and real payer. Attach the required receipt; occurrence time is optional.
-2. **Save draft**, then review the saved record and use **Submit**. For expenses saved with time, follow the notice to submit the pair with weekly time entries.
-3. In the person's project **Billing** terms, choose **Expense payer**: Worker, Company card, Company direct, Client or Third party. Policies are separate for each payer.
-4. Review the independent decisions below, save the person terms and resolve any remaining commercial classification in Finance.
+6. Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle.
 
-| Decision                    | Choices                                                                                              |
-| --------------------------- | ---------------------------------------------------------------------------------------------------- |
-| Worker reimbursement source | Use project reimbursement default, or Override for this person; check the effective date.            |
-| Reimburse worker            | At cost or No reimbursement for worker-paid expenses.                                                |
-| Charge customer for expense | At cost, Cost plus markup, Included in labor price, Do not charge customer, or Client pays directly. |
+**Verify:** No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance.
 
-For example, J&A can reimburse a worker 100 while charging the customer 0. Included/all-in expenses affect project cost without a separate customer expense charge. Receipt approval does not itself decide these treatments.
+**Recovery:** If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source.
 
-Only approved, eligible customer-chargeable expenses enter the invoice. Allocate a shared crew receipt once; allocations must equal its total.
+## Digital workers: reviewed finance case to invoice draft
 
-![Expense entry: category, amount and currency.](screenshots/project-to-invoice-20261005/06-expenses.png)
+**Go here:** Digital workers → Ready to invoice
 
-<!-- page: 7 -->
+A finance case records a snapshot and a human review before handing labor/expense sources to an invoice draft. It does not approve actual work, decide policy, issue an invoice or send it. Milestone/fixed and other streams continue in their existing invoice workflow.
 
-## 7. Create the invoice draft for its period
+1. Select Project, Billing stream and inclusive Period start / Period end, then Apply filters. Inspect Current source register, eligibility, blockers, reservations and source links.
 
-**Who:** Owner/Finance.
+2. Choose Whole period or Selected sources and Open case. Whole period preserves all source dispositions, including excluded records; selected scope preserves the chosen sources and unselected remainder. Reopening the same scope returns its existing case.
 
-Open **Billing → Create invoice**. Choose the project and active stream. A stream defines sources, cadence, tax and template; saving it does not create an invoice.
+3. Open case details and inspect blockers, dispositions, supporting report/customer-conformity identity and changes since review. If source population, version, selected rule or report identity changed, Refresh snapshot and examine the differences.
 
-1. Check the suggested service period against the agreement. Manual dates are a deliberate change.
-2. Review **Included records** and **Excluded / pending**. Use the offered links to resolve approvals, missing rates, dates, issuer/tax or sign-off issues.
-3. Check customer/project/cost center, PO, currency, tax, recipient, terms, bank details and calculated totals against the sources.
-4. Review the preview, choose **Save invoice draft**, wait for confirmation and find it in **Invoices**.
+4. Record the case review with a factual reason only after resolving the current blockers through their own workspaces. A case review is separate from source or invoice approval.
 
-**No stream yet?** Finish the project Billing setup, or use **Configure billing → New billing stream**. That form fills project currency/PO, client terms/email and a uniquely identifiable billing contact. Review them; issuer and tax remain choices. Missing client terms show a 30-day starting value to review.
+5. Use Create invoice draft only when the current reviewed snapshot is eligible. The application rechecks sources transactionally. Follow the resulting invoice link and continue review/approval/issue there.
 
-The direct form offers labor, expense, milestone/other streams; detailed/summary/fixed-milestone templates; effective/anchor dates; additional Custom/Milestone cadence and draft automation. Use the choices applicable to your agreement. Line grouping is configured in project Billing.
+**Verify:** The handoff creates a draft only. Stale review, changed source population or existing reservations must not be bypassed. A saved historical case does not prove current eligibility.
 
-**Zero-source warning:** no eligible hours/expenses, zero billable total or an existing invoice for the period needs review. Check dates, approvals and terms before continuing. Customer sign-off may still block final issue.
+**Recovery:** On a stale-state message, reload, reconcile the changed evidence, refresh and review again. If a retry returns an existing case/draft, inspect it instead of opening a parallel scope.
 
-![Invoice creation: service-period dates and readiness steps.](screenshots/project-to-invoice-20261005/07-invoice-period.png)
+## Record a manual policy proposal and understand automation
 
-<!-- page: 8 -->
+**Go here:** Digital workers → Policy review; Notifications
 
-## 8. Review the saved draft and download the PDF
+Digital workers uses saved records and explicit deterministic rules. No model key is required. It does not interpret a contract or email, automatically write reports, decide a charge or apply a proposed agreement.
 
-**Who:** Owner/Finance edits permitted drafts; Auditor reads authorized evidence.
+Existing background jobs generate queued artifacts and deliver due in-app follow-ups. Queued/running is not Ready. Each format has its own ready/failed state. Users do not manually process the job queue.
 
-1. Open the saved **Draft** in **Billing → Invoices**. Check its preview, identifiers, service period, lines, taxes and total.
-2. Select an underlined field or **Edit Invoice Details**. Review dates, payment terms, Purchase No., notice and bank/contact fields. Choose **Save Details** and wait for confirmation.
-3. Choose **Download PDF · Preview**. This unissued draft PDF is for review; compare it with the saved preview after edits.
+1. Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.
 
-| Edited detail           | Saved to                                                             |
-| ----------------------- | -------------------------------------------------------------------- |
-| Invoice/due date        | This draft; an empty explicit due date uses invoice date plus terms. |
-| Terms / past-due notice | Actual stream and current draft.                                     |
-| Purchase No.            | Existing stream PO override, or project PO when no override exists.  |
-| Bank / company contacts | Shared issuer settings for that currency.                            |
+2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.
 
-Hours, rates, expenses, discounts, tax and totals use their source/calculation workflows. Follow source links, correct/reapprove as required and rebuild/recalculate the draft. A source conflict preserves entered values for reconciliation.
+3. Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.
 
-**Final issue:** when ready, resolve sign-off/readiness and numbering requirements, then use authorized approval and issue. Issue assigns the number and preserves the historical snapshot. Issuing is unnecessary for a draft review PDF.
+4. Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email.
 
-Issued invoices provide ready **Open PDF / Download PDF** controls. Wait/retry queued, running or failed generation. Corrections use void, credit/adjustment or replacement. **Earlier layout → Generate current layout** retains the previous artifact under **Previous PDF layouts**.
+**Verify:** No policy or financial source changed merely because the proposal was saved/accepted. Keep agreement evidence, manual configuration and resulting record verification distinct.
 
-Keep the invoice reference and PDF. Downloading does not send the invoice or record customer payment.
+**Recovery:** If generated output fails, use its offered retry/recovery controls and confirm the requested format becomes Ready. Do not send a stale or preview artifact as the final document.
 
-![Saved draft: PDF preview download.](screenshots/project-to-invoice-20261005/08-invoice-preview.png)
+## Owner approvals and invoice readiness
+
+Owner operational approval of time and expenses also records financial acceptance. Pending time defaults to billable; explicit nonbillable treatment is preserved. PM approval still needs Finance review. Verify expense classification, evidence, rates and dated issuer/tax/numbering configuration separately. Digital case review is an additional snapshot check, never invoice approval.
+
+The [full BBS Owner course](BBS_Owner_Manual_EN.pdf) retains worked examples and unchanged final training invoice annexes. [Digital workers](Digital_Workers.md) provides the detailed cross-role reference.

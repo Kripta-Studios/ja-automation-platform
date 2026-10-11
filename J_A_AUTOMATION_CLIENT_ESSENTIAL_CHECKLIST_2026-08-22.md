@@ -1866,3 +1866,8 @@ UX refresh branch and coordinated release validation remain required.
 ### Digital workers production release — 11 October 2026
 
 Supersedes the earlier candidate-only deployment status: production now runs `digital-workers-2d7b76a250f6` from `2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9`, integrated with main `413ad815` and all 200 UX improvements. The [release ledger](docs/evidence/digital-workers-release-20261011/README.md) records browser/security/finance checks, actual-role authenticated image-clone checks, local OCR, the first-attempt rollback, and the successful stopped-writer-backup cutover. Schema77 integrity/FK checks, 20 live role/viewport checks, preserved issued invoice/lines and 36 private files, automatic jobs and public reopening pass. No hosted model/API key is required. This is a scoped production release, not a new whole-product Client Essential certification.
+
+
+### 11 October 2026 · current role-manual refresh
+
+Scoped documentation refresh: eight current role courses, Owner reference, quick guide, Digital workers reference and workflow map; 25 earlier PDF editions explicitly archived without changing their original page streams. Production/main initially matched for 806 source files and 23,325 runtime entries. See [evidence and limits](docs/evidence/manuals-refresh-20261011/README.md), PDF verification and Help download tests. This does not change the overall Client Essential verdict or claim new end-to-end financial/device acceptance.

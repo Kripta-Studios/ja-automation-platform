@@ -267,3 +267,7 @@ and is checked during the Linux container smoke test. Deploying one rebuilds and
 [J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md](J_A_AUTOMATION_UNIFIED_SPEC_V3_LIGHTWEIGHT_2026-08-18.md)
 for subordinate, non-conflicting domain reference only. Historical fixture notes are retained in
 [docs/MVP_DEMO_STATUS.md](docs/MVP_DEMO_STATUS.md) and are not an active product access path.
+
+## Operating manuals
+
+Use the [current role manuals](docs/manuals/README.md) for the deployed portal. The 11 October 2026 edition covers navigation, Digital workers, capture, follow-ups and project-to-invoice workflows. [Deployment comparison and documentation verification](docs/evidence/manuals-refresh-20261011/README.md).

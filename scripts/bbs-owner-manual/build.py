@@ -181,6 +181,8 @@ build_financial_completion()
 order_course()
 exec(compile((ROOT/'readiness-chapters.py').read_text(), '<readiness-revision>', 'exec'))
 apply_readiness_revision()
+exec(compile((ROOT/'current-release-chapters.py').read_text(), '<current-release>', 'exec'))
+apply_current_release()
 
 guide_count = len(pages)
 index = {p['key']:n for n,p in enumerate(pages,1)}
@@ -198,7 +200,7 @@ css='''@page{size:A4;margin:16mm 15mm 15mm}@page wide{size:A4 landscape;margin:1
 output='<!doctype html><html lang="en"><head><meta charset="utf-8"><title>BBS · Owner operating reference and final invoice lab</title><style>'+css+'</style></head><body>'
 for num,p in enumerate(pages,1):
     classes='page'+(' wide' if p['wide'] else '')+(' figure-page' if p['figure'] else '')
-    output+='<section class="'+classes+'" id="'+p['key']+'"><div class="tag">J&amp;A · '+html.escape(p['context'])+'</div><h1>'+html.escape(p['title'])+'</h1><div class="content">'+p['body']+'</div><footer class="footer"><span>Fictional examples · English · 5 October 2026</span><span>'+str(num)+' / '+str(guide_count+6)+'</span></footer></section>'
+    output+='<section class="'+classes+'" id="'+p['key']+'"><div class="tag">J&amp;A · '+html.escape(p['context'])+'</div><h1>'+html.escape(p['title'])+'</h1><div class="content">'+p['body']+'</div><footer class="footer"><span>Fictional examples · English · Updated 11 October 2026</span><span>'+str(num)+' / '+str(guide_count+6)+'</span></footer></section>'
 output+='</body></html>'
 (DOCS/(NAME+'.html')).write_text(output)
 

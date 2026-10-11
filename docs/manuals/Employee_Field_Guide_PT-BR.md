@@ -1,3 +1,5 @@
+> Edição histórica. Para a navegação e os fluxos digitais de 11 de outubro de 2026, consulte os [manuais atuais por perfil](README.md). Os PDFs atuais estão em inglês; esta edição e suas capturas são referências históricas.
+
 # Guia de campo para colaboradores — revisão 2026-09-22
 
 > Use somente o endereço do portal e o contato de suporte admin@j-aautomation.com. Este guia usa exemplos sintéticos. Nunca compartilhe senha, código MFA, código de recuperação, comprovante ou sessão.

@@ -1,3 +1,5 @@
+> Edição histórica. Para a navegação e os fluxos digitais de 11 de outubro de 2026, consulte os [manuais atuais por perfil](README.md). Os PDFs atuais estão em inglês; esta edição e suas capturas são referências históricas.
+
 # Guia do usuário — Trabalhador
 
 **Contas externas:** Responsáveis de fornecedor e técnicos externos podem registrar horas, despesas e relatórios operacionais permitidos. Não podem acessar Meu pagamento, demonstrativos do trabalhador, remuneração, tarifas, margens ou administração financeira. Consulte “Equipes de fornecedor e contas restritas”.

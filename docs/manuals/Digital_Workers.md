@@ -1,8 +1,8 @@
 # Digital workers: capture, follow-up and invoice handoff
 
-**J&A Automation · English working guide · 11 October 2026**
+**J&A Automation · English operating guide · 11 October 2026**
 
-This guide describes the new **Digital workers** workspace on the `codex/digital-workers-20261011` branch. It has not been deployed. Use it after the branch is integrated and released. The existing [project-to-invoice guide](Project_to_Invoice_Quick_Guide_EN.md) remains the guide for approvals, billing configuration, invoice issue and payment.
+This guide describes the deployed **Digital workers** workspace, release `digital-workers-2d7b76a250f6`. It is available immediately to eligible roles; due notifications run through the existing automatic jobs worker. There is no separate activation step. The guide explains the facts and approvals people still provide. See the [release evidence](../evidence/digital-workers-release-20261011/README.md) and the existing [project-to-invoice guide](Project_to_Invoice_Quick_Guide_EN.md) for invoice issue and payment.
 
 Digital workers keeps the next action visible, gathers factual drafts and prepares a reviewed handoff to an invoice draft. It uses saved records and deterministic rules. It does not interpret a contract, approve work, decide billability, verify physical completion, sign for a customer, issue an invoice or send one.
 
@@ -16,6 +16,8 @@ Digital workers keeps the next action visible, gathers factual drafts and prepar
 | Read-only Auditor              | Recorded case and work-item views without mutation controls. A recorded case is historical evidence; it is not a fresh finance approval.                                                                                                               |
 
 Every action checks the active account, current role, live session and applicable project access again. A due follow-up produces one **in-app** notification for its current owner and deadline. The notification is rechecked when read; it does not send email or repeatedly nag each day.
+
+External technicians can open their own work overview, capture factual drafts and use local text extraction. Their profile does not gain financial cases or work-item decisions. Supplier coordinators remain in the supplier workspace.
 
 ## Worker: finish the day's facts
 
@@ -46,6 +48,6 @@ This case composer covers labor and expense streams. Milestone/fixed and other s
 
 ## Operation and recovery
 
-This branch adds SQLite migration `0077_digital_work_coordination.sql` for cases, immutable revisions/reviews/events, work items, deduplicated request receipts and capture receipts. Back up the database **and private artifacts** before upgrade, then use the existing migration, integrity, backup and restore procedures. A restored case must still be checked against the current source register before a new draft. This branch was developed in `/home/kripta/ja-digital-workers-20261011` from `27e57872`; coordinate it with the separate UX worktree before release. It has not been deployed. The [technical evidence ledger](../evidence/digital-workers-20261011/README.md) tracks test results and remaining validation.
+This release adds SQLite migration `0077_digital_work_coordination.sql`. Production migration, backup, restore rehearsal and role checks are recorded in the [release evidence](../evidence/digital-workers-release-20261011/README.md). Backups include both the database and private artifacts. Version76 code rejects a77 database: restoring only an old image is insufficient. Before delivery jobs start, recovery can restore the database/files snapshot; after jobs or user writes begin, recovery must preserve new business effects. A restored case must still be checked against current sources before creating an invoice draft.
 
 No hosted API key or model is required for the implemented capture, OCR, follow-up, source reconciliation and draft handoff. Semantic interpretation of freeform notes, automatic report writing and determining the meaning of email or contract text are outside this implementation. A hosted key would be one possible future model option, not an operational dependency of these workflows.

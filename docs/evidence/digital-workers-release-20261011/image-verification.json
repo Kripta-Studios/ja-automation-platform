@@ -1,0 +1,73 @@
+{
+  "status": "passed",
+  "verifiedAt": "2026-10-11T10:24:27Z",
+  "image": "ja-automation-portal:digital-workers-2d7b76a250f6",
+  "imageId": "sha256:ba33feb461d54cb4849b08dc233253f9103d2ceeda13c9d94324649f5489a170",
+  "sourceCommit": "2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9",
+  "helperSha256": "195aa1e5b8c27c4dbb0f39f98fb42c0ed50f521c1d63af8959b08f40a39bb397",
+  "migrationSha256": "06c38f455a60e179aa919c825adc615e5bc61cbf7b9f998980c3639dd858503d",
+  "runtime": {
+    "uid": 10001,
+    "gid": 10001,
+    "readOnly": true,
+    "network": "none"
+  },
+  "documentHelper": {
+    "status": "passed",
+    "uid": 10001,
+    "gid": 10001,
+    "migrationSha256Verified": true,
+    "jobsBundlePresent": true,
+    "portalHelperBundled": true,
+    "results": [
+      {
+        "name": "pdf",
+        "method": "pdf_text",
+        "markerFound": true,
+        "sourceSha256Verified": true,
+        "pageLimit": 20
+      },
+      {
+        "name": "en",
+        "method": "image_ocr",
+        "markerFound": true,
+        "sourceSha256Verified": true,
+        "pageLimit": null
+      },
+      {
+        "name": "es",
+        "method": "image_ocr",
+        "markerFound": true,
+        "sourceSha256Verified": true,
+        "pageLimit": null
+      },
+      {
+        "name": "pt",
+        "method": "image_ocr",
+        "markerFound": true,
+        "sourceSha256Verified": true,
+        "pageLimit": null
+      }
+    ]
+  },
+  "isolatedClone": {
+    "status": "passed",
+    "schema": 77,
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "portalReady": true,
+    "authenticatedRoles": 4,
+    "authenticatedRoutes": 5,
+    "businessSubmissionRequests": 0,
+    "businessRowsUnchangedBeforeJobs": true,
+    "fixtureBackupVerified": true,
+    "fixtureBackupDocuments": 36,
+    "jobsCycleObserved": true,
+    "successfulJobsCycle": {
+      "level": "info",
+      "failed": 0,
+      "outboxFailed": 0,
+      "outboxPermanentlyFailed": 0
+    }
+  }
+}

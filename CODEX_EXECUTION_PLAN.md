@@ -369,11 +369,9 @@ Also run applicable migration-upgrade, backup/restore, artifact openability/fail
 
 **Release verdict:** `CLIENT READY` only when every non-conditional Client Essential requirement and applicable DoD item is `PASS` with evidence, required gates pass, documentation matches behavior, and independent integration review has no Essential blocker. Historical V3.1–V3.4/207-row/42-step failures are deferred roadmap, not release blockers.
 
-
 ## 2026-10-05 scoped BBS Owner manual delivery
 
 User-authorized swarm packets and dependencies are recorded in [the evidence ledger](docs/evidence/bbs-owner-completion-20261005/README.md). Finance and supplementary Owner browser packets are integrated into the 203-page course. The candidate is frozen after native October Accounting generation/download/review/finalization, immutable issued-master checks, synthetic acceptance/invalidation/replacement, supplier/offboarding/planning/private-document checks, current workspace/static/build gates and independent review. Canonical production ZIP publication/deployment and read-only financial-history comparison are recorded in the evidence ledger. This packet does not change the global Client Essential verdict or supply real external approvals.
-
 
 ### Digital workers candidate — 11 October 2026
 
@@ -389,3 +387,7 @@ records final checks and limitations; the [operating guide](docs/manuals/Digital
 explains the role workflows. This scoped candidate does not change previous
 Client Essential verdicts. It is **not deployed**. Integration with the separate
 UX refresh branch and coordinated release validation remain required.
+
+### Digital workers production release — 11 October 2026
+
+Supersedes the earlier candidate-only deployment status: production now runs `digital-workers-2d7b76a250f6` from `2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9`, integrated with main `413ad815` and all 200 UX improvements. The [release ledger](docs/evidence/digital-workers-release-20261011/README.md) records browser/security/finance checks, actual-role authenticated image-clone checks, local OCR, the first-attempt rollback, and the successful stopped-writer-backup cutover. Schema77 integrity/FK checks, 20 live role/viewport checks, preserved issued invoice/lines and 36 private files, automatic jobs and public reopening pass. No hosted model/API key is required. This is a scoped production release, not a new whole-product Client Essential certification.

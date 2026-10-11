@@ -68,8 +68,8 @@
     "files": 15,
     "passed": 72
   },
-  "productionChanged": false,
-  "scope": "Predeployment combined candidate validation; not a whole-product Client Essential certification.",
+  "productionChanged": true,
+  "scope": "Scoped integrated digital-workers production release; not a whole-product Client Essential certification.",
   "assistantTestsPassed": 44,
   "portalTypecheck": "passed",
   "databaseTypecheck": "passed",
@@ -82,5 +82,7 @@
     "independentReview": "approved"
   },
   "restrictedProfileAndMembershipTestsPassed": 9,
-  "restrictedProfileFix": "External technician own-facts workflow/capture/extraction allowlist and navigation; supplier coordinator remains restricted; finance and case decisions remain denied."
+  "restrictedProfileFix": "External technician own-facts workflow/capture/extraction allowlist and navigation; supplier coordinator remains restricted; finance and case decisions remain denied.",
+  "deployedSourceCommit": "2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9",
+  "productionRelease": "digital-workers-2d7b76a250f6"
 }

@@ -1,0 +1,19 @@
+{
+  "sourceCommit": "2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9",
+  "tag": "digital-workers-2d7b76a250f6",
+  "image": "ja-automation-portal:digital-workers-2d7b76a250f6",
+  "baseImage": "ja-automation-portal:dw-runtime-base-1491b4b38944",
+  "baseImageId": "sha256:1491b4b389449002c5affdcf67f8a952e6ee446afd8d9f23d5b2caee1c591246",
+  "status": "built",
+  "productionMutations": false,
+  "sourceLockSha256": "0353b6c41f1679ce7e425e416d9713465e0fb492645cc777b6a628e9f205615f",
+  "runtimeManifestSha256": "6f6fcc4ff4583b8086d62377ce9adf5ccce2b95e9485b2155c5d15d142368ecf",
+  "runtimeFileEntries": 23325,
+  "runtimeBytes": 630147801,
+  "manualCount": 19,
+  "imageId": "sha256:ba33feb461d54cb4849b08dc233253f9103d2ceeda13c9d94324649f5489a170",
+  "sourceContext": "/home/kripta/ja-dw-release-evidence-20261011/incremental-context-2d7b76a250f6",
+  "finishedAt": "2026-10-11T12:20:18+0200",
+  "supervisorExitCode": 143,
+  "recoveryVerification": "Supervisor terminated during export; Docker completed successfully. Clean source, pinned base, lock, recipe, every export entry and every final runtime entry independently verified before receipt recovery."
+}

@@ -1,6 +1,8 @@
 # Digital workers evidence ledger
 
-**11 October 2026 · branch `codex/digital-workers-20261011` · base `27e57872` · not deployed**
+**Historical candidate record · branch `codex/digital-workers-20261011` · base `27e57872`**
+
+The integrated production release is now recorded in the [release evidence](../digital-workers-release-20261011/README.md). The original candidate-stage observations below are preserved as history.
 
 This ledger records the implemented scope and local candidate validation. It is not a release verdict. The separate UX refresh worktree must be integrated and rechecked before deployment. The [English operating guide](../../manuals/Digital_Workers.md) is a working guide for this branch, not a claim that these screens are live.
 

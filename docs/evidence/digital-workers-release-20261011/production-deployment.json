@@ -1,0 +1,186 @@
+{
+  "status": "deployed and verified",
+  "sourceCommit": "2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9",
+  "release": "digital-workers-2d7b76a250f6",
+  "previousRelease": "ux-b7d470d34ee4",
+  "backupPath": "/var/backups/jaautomation/2026-10-11T102508232Z-1133c35c-cbb5-4395-b446-20016a3af783",
+  "backupDatabaseSha256": "0d41c51e3d9426672a91ca607cde40e6f8f03318499d1ea42e319264df89f31e",
+  "historyPreservation": {
+    "issuedInvoicesUnchanged": true,
+    "issuedInvoiceLinesUnchanged": true,
+    "originalPrivateFilesUnchanged": true,
+    "issuedInvoiceCount": 1,
+    "issuedInvoiceLineCount": 2,
+    "originalPrivateFileCount": 36,
+    "schema": 77,
+    "integrity": "ok",
+    "foreignKeyViolations": 0
+  },
+  "productionBrowser": {
+    "status": "passed",
+    "phase": "gated validation",
+    "businessSubmissionRequests": 0,
+    "checks": [
+      {
+        "role": "finance",
+        "route": "/workflow?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/finance?view=commercial&lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/billing?view=streams&lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/workflow?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/finance?view=commercial&lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "finance",
+        "route": "/billing?view=streams&lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/workflow?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/projects?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/workflow?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "manager",
+        "route": "/projects?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/workflow?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/workflow/capture?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/time?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/workflow?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/workflow/capture?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "worker",
+        "route": "/time?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/workflow?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/accounting?lang=en",
+        "width": 390,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/workflow?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      },
+      {
+        "role": "auditor",
+        "route": "/accounting?lang=en",
+        "width": 1440,
+        "status": 200,
+        "horizontalOverflow": false
+      }
+    ]
+  },
+  "zipAutoDeployHeldUntilMainPush": true,
+  "portalReady": true,
+  "jobsCycleObserved": true,
+  "successfulJobsCycle": {
+    "timestamp": "2026-10-11T10:25:59.625Z",
+    "level": "info",
+    "event": "jobs.cycle",
+    "service": "jaautomation-jobs",
+    "processed": 2,
+    "failed": 0,
+    "overdueMarked": 0,
+    "outbox": {
+      "processed": 0,
+      "failed": 0,
+      "permanentlyFailed": 0
+    },
+    "actorId": "jobs-service-v1"
+  },
+  "maintenanceRemoved": true,
+  "verifiedAt": "2026-10-11T12:26:03+0200"
+}

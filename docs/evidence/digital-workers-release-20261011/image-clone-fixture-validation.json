@@ -1,0 +1,16 @@
+{
+  "status": "passed",
+  "sourceCommit": "2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9",
+  "imageId": "sha256:ba33feb461d54cb4849b08dc233253f9103d2ceeda13c9d94324649f5489a170",
+  "verifiedAt": "2026-10-11T10:24:37.048512+00:00",
+  "initialFixtureFailure": "Scheduled backup_verify found no completed backup in the isolated clone.",
+  "fixtureRepair": "Restored isolated schema76 database snapshot and created a canonical clone-only backup before rerun.",
+  "fixtureBackup": {
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "documentCount": 36
+  },
+  "finalImageGate": "passed",
+  "isolatedCloneRemovedAfterPass": true,
+  "productionMutations": 0
+}

@@ -1,0 +1,41 @@
+{
+  "status": "passed",
+  "sourceCommit": "a898181e892b2edad79986f85e65ee99c256fed0",
+  "startedAt": "2026-10-11T09:11:17.705Z",
+  "productionWrites": false,
+  "backup": {
+    "databaseSha256": "fd77c42b6fad035012a8097ec285752026f1518a74cb92afcecfe484a52cf1f3",
+    "databaseBytes": 344104960,
+    "documentCount": 36,
+    "privateFileManifestSha256": "97fc2932846e708a75ea103d9af1810d0d09073dfd8bb76495eac64dd17c18e2"
+  },
+  "migration": {
+    "from": 76,
+    "to": 77,
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "issuedInvoiceCount": 1,
+    "issuedInvoicesUnchanged": true,
+    "privateFilesUnchanged": true,
+    "historicalMigrationMetadataUnchanged": true,
+    "historicalMigrationRowsUnchanged": true,
+    "financeCutoverUnchanged": true,
+    "historicalAuditDataUnchanged": true,
+    "historicalAuditRegistryRowsUnchanged": true,
+    "unaffectedAuditTriggersUnchanged": true,
+    "newAuditRegistryRows": 6,
+    "metadataImmutabilityEnforced": true,
+    "reviewedManifestSha256": "b9a72034a2ebe07a3634fefc24124b8f8b2d7f10ae411f2ca48400ac3814b80e",
+    "migrationSqlSha256": "06c38f455a60e179aa919c825adc615e5bc61cbf7b9f998980c3639dd858503d"
+  },
+  "rollback": {
+    "schemaVersion": 76,
+    "integrity": "ok",
+    "foreignKeyViolations": 0,
+    "databaseBytesMatchOriginalSnapshot": true,
+    "privateFilesMatchOriginalSnapshot": true,
+    "historicalStateMatchesOriginalSnapshot": true
+  },
+  "scratchDatabaseAndDocumentsRemoved": true,
+  "finishedAt": "2026-10-11T09:11:42.636Z"
+}

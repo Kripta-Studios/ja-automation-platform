@@ -297,7 +297,6 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption(f.projectId);
   await page.getByLabel('Work date').fill('2026-10-05');
   // Scope selection must recover automatically without overwriting saved facts.
-  await page.waitForTimeout(900);
   await expect(page.getByLabel('What work happened?')).toHaveValue(summary);
   await expect(page.getByLabel('Actual minutes worked')).toHaveValue('37');
   await page.getByLabel('Create expense draft').check();

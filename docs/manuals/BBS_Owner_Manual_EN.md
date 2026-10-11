@@ -256,7 +256,7 @@ Existing background jobs generate queued artifacts and deliver due in-app follow
 ### Do the task
 
 1. Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.
-2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.
+2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum hours. Save follow-up.
 3. Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.
 4. Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email.
 
@@ -416,7 +416,7 @@ The connected BBS exercise uses the existing Chief, Technician 1 and Technician 
 2. Open Crew, select BBS and inspect the saved chief delegation. Its date range and the chief’s and colleague’s project assignments must all cover the work date. A chief can record delegated crew hours; this grant does not itself authorize approval.
 3. Open Planning → Publish field assignment. Select BBS, set Start (UTC) to 2026-10-20 08:00 and End (UTC, optional) to 2026-10-20 16:00, then select the Chief, Technician 1 and Technician 2 checkboxes.
 4. Enter 8 in Planned hours (optional) and a genuine operational site description. Required expertise is an operational planning field. Review every selected person, date and optional field before choosing Publish assignment.
-5. Choose the October 20 calendar day. The agenda must contain three separate published records, each with 480 planned minutes. Open a published record to verify its worker and interval.
+5. Choose the October 20 calendar day. The agenda must contain three separate published records, each with 8 planned hours. Open a published record to verify its worker and interval.
 6. Ask each person to use their own Worker account → Today → Upcoming assignments. They should see their own eight-hour BBS card. Workers do not edit the Owner’s plan; they request a correction from the Owner or authorized Project Manager.
 
 ### Verify the result
@@ -445,14 +445,14 @@ Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-ve
 
 Expected hours are reference targets derived from the effective project working schedule and the worker’s dated assignment. They are not the sum of planned assignments and do not change actual recorded time, worker compensation or customer billing.
 
-The BBS lab uses an expected schedule effective October 19: Monday–Friday 480 minutes (8 hours), Saturday–Sunday 0. The existing America/New_York timezone is retained. Saving this form also applies its timezone to the project; confirm the company’s correct IANA timezone before saving.
+The BBS lab uses an expected schedule effective October 19: Monday–Friday 8 hours, Saturday–Sunday 0 hours. The existing America/New_York timezone is retained. Saving this form also applies its timezone to the project; confirm the company’s correct IANA timezone before saving.
 
 A later isolated checkpoint adds a second project membership for Technician 1 on October 23 only, in the existing fictional onboarding project. Both own memberships cover that Friday, so the application leaves Expected and Difference unknown (—) instead of adding or choosing project targets. The earlier tables precede this addition; they correctly show Friday eight hours. No actual work was entered for the second project.
 
 ### Do the task
 
 1. Open Projects, choose BBS as the action context, open More actions and select Expected Working Schedule. Confirm the Project selector is C-0050-P-20261005.
-2. Keep Timezone as America/New_York for this saved BBS exercise. Enter Effective from 2026-10-19. Enter 480 in Mon, Tue, Wed, Thu and Fri minutes, and 0 in Sat and Sun minutes. The inputs are minutes, not hours.
+2. Keep Timezone as America/New_York for this saved BBS exercise. Enter Effective from 2026-10-19. Enter 8.0 hours for Mon, Tue, Wed, Thu and Fri, and 0.0 hours for Sat and Sun.
 3. Choose Save schedule. Verify Expected schedule saved. Ask the worker to reopen Time and use Week of 2026-10-19 → Open week so the weekly table loads the new effective schedule.
 4. Read Actual as time actually recorded, Expected as the weekday target, and Difference as Actual minus Expected. The reference schedule applies by effective date and project-assignment coverage.
 5. After operational approval, compare October 20: Technician 1 has 6.00h Actual, 8.00h Expected, −2.00h Difference and Needs note; Technician 2 has 7.00h / 8.00h / −1.00h and Needs note; Chief has 8.00h / 8.00h / 0.00h and Approved.
@@ -460,8 +460,8 @@ A later isolated checkpoint adds a second project membership for Technician 1 on
 
 ### Verify the result
 
-- The native Owner save persisted the dated 480 / 0 schedule and retained the BBS project timezone. Separate Worker weekly tables displayed the expected values after reload.
-- The three actual-time source rows remained Approved with their original 360 / 420 / 480 minutes. No hours were increased to force agreement with the eight-hour target.
+- The native Owner save persisted the dated 8.0-hour weekdays and 0.0-hour weekends and retained the BBS project timezone. Separate Worker weekly tables displayed the expected values after reload.
+- The three actual-time source rows remained Approved at their original six, seven and eight hours. No hours were increased to force agreement with the eight-hour target.
 - The later browser checkpoint showed October 23 Actual 0.00h, Expected — and Difference —, while October 20 retained Actual 6.00h / Expected 8.00h / Difference −2.00h. The future-only second project was absent from the current Worker project selector; only the target comparison counted its dated membership.
 
 ### If you get stuck
@@ -470,7 +470,7 @@ A later isolated checkpoint adds a second project membership for Technician 1 on
 - If several project assignments cover the same day, the application does not add their targets together without an allocation rule. Resolve the dated membership/schedule yourself, involving the authorized project lead as needed; continue recording truthful actual time. The later October 23 checkpoint demonstrates this rule through a saved one-day second assignment.
 - Zero is a valid target, such as the configured BBS weekend. A negative difference without actual records is planning context, not a missing bank payment or invoice.
 
-![Native Owner schedule controls: project, IANA timezone, effective date and seven daily values in minutes. 480 minutes equals eight hours.](../evidence/bbs-planning-20261006/owner/screenshots/02-owner-expected-schedule-before.png)
+![Historical 6 October Owner schedule screenshot: the earlier form displayed daily targets in minutes (480 = 8 hours). Current schedule controls use decimal hours: enter 8.0 on weekdays and 0.0 on weekends.](../evidence/bbs-planning-20261006/owner/screenshots/02-owner-expected-schedule-before.png)
 
 ![Separate Worker 1 view after PM approval: October 20 actual six hours versus expected eight, difference minus two, with Needs note. The source remains Approved; no compensation values appear in this cropped table.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
 
@@ -493,14 +493,14 @@ Planning cards do not have an acceptance/completion lifecycle. Digital workers n
 
 ### Do the task
 
-1. To change a published plan, open its Published assignments record, change the worker, UTC interval, Planned minutes, Site or Required expertise as needed, and choose Save assignment. Creation uses planned hours; editing uses planned minutes: three hours equals 180 minutes.
+1. To change a published plan, open its Published assignments record, change the worker, UTC interval, Planned hours, Site or Required expertise as needed, and choose Save assignment. Enter planned duration in decimal hours when creating or editing; for example, enter 3.0 for three hours.
 2. Reopen the record and ask the affected worker to reload Today. Verify the changed interval and planned quantity in both views.
 3. To cancel a plan, open the correct record and choose Cancel assignment. Check its date, project and worker before saving. Verify the calendar and worker agenda no longer show it as an upcoming published assignment.
 4. Use Daily / Technical reports to describe completed work and blockers. Submit truthful actual hours separately. Operational review, Finance classification and money records remain later, distinct steps.
 
 ### Verify the result
 
-- Native PM editing persisted October 21 09:00–12:00 UTC, 180 minutes and the updated fictional site. Worker 1 saw the changed three-hour card; that day still showed Expected 8.00h and Actual 0.00h.
+- Native PM editing persisted October 21 09:00–12:00 UTC, three planned hours and the updated fictional site. Worker 1 saw the changed three-hour card; that day still showed Expected 8.00h and Actual 0.00h.
 - A separate October 22 Technician 2 practice plan was cancelled through the PM browser. It disappeared from the worker’s upcoming agenda while its database record retained cancelled status. No actual time was created for that cancelled plan.
 
 ### If you get stuck
@@ -583,7 +583,7 @@ Actual time, customer labor revenue, worker compensation, internal cost and plan
 4. Client minimum: inspect Client minimum hours in Edit project, or Client daily minimum hours in Create project. This commercial top-up applies once per worker/project/day and does not change actual time or compensation. Compare eligible labor and Daily minimum adjustments in the calculation explanation.
 5. Cap: choose the agreed capped T&M Commercial model and PO cap. Inspect remaining contractual cap and generated labor/expense treatment; Revenue budget and Planned labor hours are planning inputs rather than substitute cap controls.
 6. Milestone: Project → Milestones → Create or edit milestones opens Owner management fields Project, Name, Description, Amount and Due date. Verify the saved draft, then use the permitted submission/review workflow. Calculation includes approved milestones only while un-invoiced; a milestone is not a worker-hours goal.
-7. Forecast: open Finance → Overview → Planned / Expected, then Estimate to complete. Check Planning basis available or No detailed plan, planned reference hours/minutes and the underlying rates/budgets. Missing planned-person rates or daily/weekly units without dated unit planning can leave the estimate unavailable. Use the displayed explanation before treating a forecast as complete; it creates no actual hours, collected revenue or paid cash.
+7. Forecast: open Finance → Overview → Planned / Expected, then Estimate to complete. Check Planning basis available or No detailed plan, planned reference hours and the underlying rates/budgets. Missing planned-person rates or daily/weekly units without dated unit planning can leave the estimate unavailable. Use the displayed explanation before treating a forecast as complete; it creates no actual hours, collected revenue or paid cash.
 
 ### Verify the result
 
@@ -1382,7 +1382,7 @@ Context: J&A · Original BBS pre-issue · Historical snapshot
 Context: J&A · Separate onboarding lab · Read-only demonstration
 
 <div class="route"><strong>Go here:</strong> Planning → selected fictional project/worker; worker Profile → availability<br><a href="https://j-aautomation.com/j-aautomation/app/planning?lang=en">Live company portal · open this workspace</a></div>
-<ol><li>Select the intended project/worker; inspect the displayed timezone. The tested Planning page uses UTC.</li><li>Expand <strong>Manage worker expertise → New expertise</strong>, fill <strong>Code</strong> and <strong>Name</strong>, then <strong>Save expertise</strong>. In <strong>Assign expertise</strong>, select Worker, Expertise and Proficiency, then <strong>Update expertise matrix</strong>. The lab saved Instrumentation QA at 3/5; skills do not grant project access.</li><li>Select <strong>Project</strong> and <strong>Workers</strong>; fill <strong>Start (UTC)</strong>, optional <strong>End (UTC)</strong>, <strong>Planned hours</strong>, <strong>Site</strong> and <strong>Required expertise</strong>, then <strong>Publish assignment</strong>. The lab published 6 October 09:00–11:00 UTC, 120 planned minutes.</li><li>In <strong>Published assignments</strong>, edit the same row and <strong>Save assignment</strong>. The lab saved 10:00–12:00 UTC and an updated site, then <strong>Cancel assignment</strong>. The day’s event disappeared and schedule count returned to zero.</li><li>In Profile, select <strong>Inspect worker → View worker profile</strong>. Use <strong>Add availability</strong>: Starts, Ends, Availability and Note → <strong>Save availability</strong>. The lab saved Tentative 12:00–15:00 UTC, then Edit availability changed the note. Check calendar/table after saving.</li></ol>
+<ol><li>Select the intended project/worker; inspect the displayed timezone. The tested Planning page uses UTC.</li><li>Expand <strong>Manage worker expertise → New expertise</strong>, fill <strong>Code</strong> and <strong>Name</strong>, then <strong>Save expertise</strong>. In <strong>Assign expertise</strong>, select Worker, Expertise and Proficiency, then <strong>Update expertise matrix</strong>. The lab saved Instrumentation QA at 3/5; skills do not grant project access.</li><li>Select <strong>Project</strong> and <strong>Workers</strong>; fill <strong>Start (UTC)</strong>, optional <strong>End (UTC)</strong>, <strong>Planned hours</strong>, <strong>Site</strong> and <strong>Required expertise</strong>, then <strong>Publish assignment</strong>. The lab published 6 October 09:00–11:00 UTC, a two-hour plan.</li><li>In <strong>Published assignments</strong>, edit the same row and <strong>Save assignment</strong>. The lab saved 10:00–12:00 UTC and an updated site, then <strong>Cancel assignment</strong>. The day’s event disappeared and schedule count returned to zero.</li><li>In Profile, select <strong>Inspect worker → View worker profile</strong>. Use <strong>Add availability</strong>: Starts, Ends, Availability and Note → <strong>Save availability</strong>. The lab saved Tentative 12:00–15:00 UTC, then Edit availability changed the note. Check calendar/table after saving.</li></ol>
 <aside>Isolated browser plus narrow read-only verification: one cancelled plan, one tentative availability window and zero actual time entries for that worker on 6 October. Planning publication/cancellation does not create actual work. Phone agenda was readable after scrolling; no confirmed responsive defect was observed.</aside>
 
 

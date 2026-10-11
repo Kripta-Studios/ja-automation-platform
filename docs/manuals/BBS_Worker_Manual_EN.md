@@ -116,11 +116,11 @@ Context: Current operating instructions · 11 October 2026 · checked against ma
 
 This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.
 
-Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Actual minutes here differ from decimal Actual hours in the normal Time form.
+Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Enter duration in decimal hours here, just as in the normal Time form; for example, 1.5 hours is ninety minutes.
 
 ### Do the task
 
-1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and minutes; 90 minutes means 1.5 hours.
+1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and duration in decimal hours; enter 1.5 for ninety minutes.
 2. For Daily report check completed tasks, problems, corrective actions, downtime, blockers and next plan. For Expense enter the real category, amount, currency, payer and description. Review the separate output fields, not only the shared summary.
 3. Choose Save on this device if you need to pause. Recover local draft restores form text for this account/project/date on this device. Review it after recovery. It is not a server save, does not queue attachments and does not submit when connectivity returns.
 4. When online and signed in, choose Review facts. Check the review summary and then Create server drafts once. Open each link in the saved receipt, add required original evidence and submit each record through its normal workflow.
@@ -285,7 +285,7 @@ Context: Isolated readiness lab · own Worker 2 report · synthetic October 12, 
 
 A daily report tells the operational story. It does not create actual hours, technical approval or customer acceptance. The Worker exercise describes a fictional bench inspection and has its own report ID.
 
-The actual form begins with Project, Work date, Site / shift, Shift summary and Tasks completed. It also offers Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and a safety flag. Report actual conditions, including genuine risks; this training bench had no live production change.
+The actual form begins with Project, Work date, Site / shift, Shift summary and Tasks completed. It also offers Problems found, Corrective actions, Downtime (hours), Standby reason, Open items, Next day plan and a safety flag. Enter downtime in decimal hours. Report actual conditions, including genuine risks; this training bench had no live production change.
 
 The readiness exercise saved an own Draft, generated its English source PDF, checked Ready with Refresh and downloaded the readable native file before Submit for review. The PDF panel’s Language selects English, Spanish or Portuguese independently of the navigation language.
 
@@ -303,7 +303,7 @@ The readiness exercise saved an own Draft, generated its English source PDF, che
 
 - Correct an unsent draft using its available edit controls. For submitted/returned/approved reports, use the offered correction flow or hand the specific record to the reviewer; do not overwrite approved history.
 
-![Own Worker 2 Daily form with its complete native save button.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-full-save.png)
+![Historical 6 October Worker 2 Daily-form screenshot; the earlier downtime control used a minute label. The current form labels it Downtime (hours).](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-full-save.png)
 
 ![Own source PDF Ready while the report was still Draft.](../evidence/bbs-readiness-20261006/worker-chief/screenshots/worker-daily-ready-presubmit.png)
 
@@ -626,7 +626,7 @@ Go here: Time → Week of → Open week
 
 Context: Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours
 
-The Owner configures the project’s effective working schedule in minutes for each weekday. In this training scope, the schedule is effective October 19 with 480 minutes on Monday–Friday and zero on Saturday/Sunday. Eight expected hours are a planning target; they do not create actual work records.
+The Owner configures the project’s effective working schedule in decimal hours for each weekday. In this training scope, the schedule is effective October 19 with 8.0 hours on Monday–Friday and 0.0 hours on Saturday/Sunday. Eight expected hours are a planning target; they do not create actual work records.
 
 Expected is determined from dated project membership and its effective schedule, rather than by adding published plans. A three-hour published plan can therefore coexist with an eight-hour daily Expected figure. Where the application cannot determine an unambiguous target, it displays a dash instead of inventing one.
 

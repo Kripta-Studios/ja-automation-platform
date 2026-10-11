@@ -786,21 +786,41 @@
           if (
             form.hasAttribute('data-project-commercial-policy-form') &&
             fieldErrors.overtimeThresholdMinutes &&
-            form.querySelector('input[type="hidden"][name="overtimeThresholdMinutes"]')
+            form.querySelector('input[type="hidden"][name="overtimeThresholdMinutes"]') &&
+            !form.querySelector('input[name="overtimeThresholdMinutesHours"]')
           ) {
             fieldErrors.overtimeEnabled = fieldErrors.overtimeThresholdMinutes;
             delete fieldErrors.overtimeThresholdMinutes;
           }
-          reportFormFieldErrors(form, fieldErrors);
+          const mappedHourInputs: Array<{ field: string; input: HTMLInputElement }> = [];
+          const originalHourNames: Array<{ input: HTMLInputElement; name: string }> = [];
+          for (const field of Object.keys(fieldErrors)) {
+            const input = Array.from(form.querySelectorAll<HTMLInputElement>('input[name]')).find(
+              (candidate) =>
+                candidate.name === `${field}Hours` &&
+                candidate.type !== 'hidden' &&
+                candidate.getClientRects().length > 0,
+            );
+            if (!input) continue;
+            mappedHourInputs.push({ field, input });
+            originalHourNames.push({ input, name: input.name });
+            input.name = field;
+          }
+          try {
+            reportFormFieldErrors(form, fieldErrors);
+          } finally {
+            for (const { input, name } of originalHourNames) input.name = name;
+          }
           const fields = Object.keys(fieldErrors);
           const visibleField =
             fields.length === 1
-              ? Array.from(form.querySelectorAll<HTMLElement>('[name]')).find(
+              ? (mappedHourInputs.find(({ field }) => field === fields[0])?.input ??
+                Array.from(form.querySelectorAll<HTMLElement>('[name]')).find(
                   (control) =>
                     control.getAttribute('name') === fields[0] &&
                     control.getClientRects().length > 0 &&
                     !control.hasAttribute('disabled'),
-                )
+                ))
               : undefined;
           if (commercialAssignmentProblemInForm)
             fieldFocus = form.querySelector<HTMLElement>(
@@ -1505,7 +1525,7 @@
     return [
       {
         key: 'planned-minutes',
-        label: translate('Planned reference minutes'),
+        label: translate('Planned reference hours'),
         value: displayHours(finance.plannedMinutes),
         note: translate('Planning input only; it never creates actual time'),
       },
@@ -2256,7 +2276,7 @@
           </div>
           <div class="finance-overview__budget-row">
             <article class="finance-overview__metric" data-metric="planned-minutes">
-              <span>{translate('Planned reference minutes')}</span>
+              <span>{translate('Planned reference hours')}</span>
               <strong>{displayHours(finance.plannedMinutes)}</strong>
               <small>{translate('Planning input only; it never creates actual time')}</small>
             </article>
@@ -2560,7 +2580,7 @@
                 <h3>{translate('Time source records')}</h3>
                 <p>
                   {translate(
-                    'Review recorded minutes, billing status, effective rates and direct cost.',
+                    'Review recorded hours, billing status, effective rates and direct cost.',
                   )}
                 </p>
               </div>

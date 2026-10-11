@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import TimeCategorySelect from '../ui/TimeCategorySelect.svelte';
+  import DecimalHoursInput from '../ui/DecimalHoursInput.svelte';
   import UnusedIssuingAuthorityReplacementForm from './UnusedIssuingAuthorityReplacementForm.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -13,6 +14,7 @@
   import { paymentMoney } from '../payment-money';
   import { expenseCategories } from '../expense-categories';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
+  import { decimalHoursFromMinutes } from '../minute-hours';
 
   let {
     data,
@@ -101,6 +103,10 @@
       if (value !== null && value !== undefined && value !== '') return String(value);
     }
     return '';
+  };
+  const hoursFromMinutes = (minutes: unknown): string => {
+    const value = decimalHoursFromMinutes(minutes);
+    return value === '—' ? value : `${value} h`;
   };
   const selectedProjectCurrency = $derived(
     rowValue(
@@ -2364,21 +2370,21 @@
           {#if overtimeEnabled}
             <Field
               id="finance-policy-threshold"
-              label={translate('Overtime threshold (minutes)')}
+              label={translate('Overtime threshold (hours)')}
               help={translate(
-                'Use the effective project schedule and enter the threshold in actual minutes.',
+                'Use the effective project schedule and enter the threshold in decimal hours.',
               )}
               required
             >
-              <input
+              <DecimalHoursInput
                 id="finance-policy-threshold"
                 name="overtimeThresholdMinutes"
-                type="number"
-                min="1"
-                max="1440"
-                inputmode="numeric"
+                minMinutes={1}
+                maxMinutes={1440}
+                invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
                 value={failedValue('createProjectCommercialPolicy', 'overtimeThresholdMinutes') ??
                   ''}
+                label={translate('Overtime threshold (hours)')}
                 required
               />
             </Field>
@@ -2462,8 +2468,9 @@
                   {translate('Overtime')}:
                   {#if booleanValue(policy, 'overtimeEnabled', 'overtime_enabled')}
                     {translate('after')}
-                    {rowValue(policy, 'overtimeThresholdMinutes', 'overtime_threshold_minutes')}
-                    {translate('minutes')}
+                    {hoursFromMinutes(
+                      rowValue(policy, 'overtimeThresholdMinutes', 'overtime_threshold_minutes'),
+                    )}
                   {:else}
                     {translate('disabled')}
                   {/if}
@@ -3410,16 +3417,18 @@
               {/if}
               <Field
                 id="finance-comp-daily"
-                label={translate('Daily guarantee (minutes)')}
+                label={translate('Daily guarantee (hours)')}
                 data-field="dailyGuaranteeMinutes"
               >
-                <input
+                <DecimalHoursInput
                   id="finance-comp-daily"
                   name="dailyGuaranteeMinutes"
-                  type="number"
                   value={failedValue('createCompensationRule', 'dailyGuaranteeMinutes') ?? ''}
-                  min="0"
-                  max="1440"
+                  minMinutes={0}
+                  maxMinutes={1440}
+                  invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+                  label={translate('Daily guarantee (hours)')}
+                  data-field="dailyGuaranteeMinutes"
                 />
               </Field>
               <Field

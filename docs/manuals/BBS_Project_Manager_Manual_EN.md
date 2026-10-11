@@ -440,7 +440,7 @@ The positive BBS exercise published a future October 16 08:00–10:00 UTC assign
 2. Select the existing assigned worker(s). Verify availability and assignment coverage for the intended date.
 3. Enter Start (UTC), optional End (UTC), optional Planned hours, Site and Required expertise. Use the actual agreed schedule; do not convert site-local time silently.
 4. Choose Publish assignment. Open the October 16 day and the Published schedule record.
-5. Confirm the selected worker, UTC start/end and 120 planned minutes. Ask the worker to verify their agenda; they still record actual work independently afterward.
+5. Confirm the selected worker, UTC start/end and two planned hours. Ask the worker to verify their agenda; they still record actual work independently afterward.
 
 ### Verify the result
 
@@ -454,7 +454,7 @@ The positive BBS exercise published a future October 16 08:00–10:00 UTC assign
 
 ![Actual PM publish form before saving the synthetic future assignment.](../evidence/bbs-role-manuals-20261006/manager/screenshots/07-pm-publish-plan-before.png)
 
-![Actual PM published plan:120 minutes in UTC, independent of actual work.](../evidence/bbs-role-manuals-20261006/manager/screenshots/32-pm-published-plan-details.png)
+![Historical 6 October PM screenshot: the published plan was recorded as 120 minutes in UTC, independent of actual work. Current planning displays its two-hour duration in hours.](../evidence/bbs-role-manuals-20261006/manager/screenshots/32-pm-published-plan-details.png)
 
 <a id="plan-update"></a>
 ## Change a published assignment and verify persistence
@@ -468,7 +468,7 @@ A published assignment can be edited through its own record. Updating the plan d
 ### Do the task
 
 1. Open Published schedule and choose Open record for the correct BBS worker/date.
-2. Inspect Worker, Start, End, Planned minutes, Site and Required expertise.
+2. Inspect Worker, Start, End, Planned hours, Site and Required expertise.
 3. Change the intended planning value and choose Save assignment. Reopen the same record to verify the new value.
 4. If the assignment should be canceled, use Cancel assignment on that record, then verify its state and tell the affected worker. The separate October 22 cancellation was executed in the historical planning checkpoint; the original positive assignment example remains separate.
 
@@ -482,7 +482,7 @@ A published assignment can be edited through its own record. Updating the plan d
 - Check that you opened a planning record, not a time-entry source. Actual submitted work requires the reviewed correction path.
 - Coordinate a genuine cancellation with the worker; do not assume a changed plan deletes recorded history.
 
-![Actual PM Save assignment result after changing the fictional site note.](../evidence/bbs-role-manuals-20261006/manager/screenshots/33-pm-plan-update-saved.png)
+![Historical 6 October PM Save assignment capture after changing the fictional site note; the earlier edit form used Planned minutes. Current edits use Planned hours.](../evidence/bbs-role-manuals-20261006/manager/screenshots/33-pm-plan-update-saved.png)
 
 <a id="plan-connected-crew"></a>
 ## Follow a shared plan through crew work and review
@@ -497,7 +497,7 @@ Actual work differed: Technician 1 personally recorded six hours; the Chief reco
 
 ### Do the task
 
-1. Open Planning, choose October 20 and inspect the three BBS agenda records. Confirm project, worker, UTC interval and 480 planned minutes for each.
+1. Open Planning, choose October 20 and inspect the three BBS agenda records. Confirm project, worker, UTC interval and eight planned hours for each.
 2. Ask each worker to check Today → Upcoming assignments using their own account. They do not accept or complete the plan with a task button; they record and report actual work separately.
 3. For delegated crew entry, have the Chief check project, date and managed worker before saving individual actual hours. Avoid duplicating a crew-entered source through a worker’s own time form.
 4. Open Approvals for BBS and October 20. Review the submitted 6 / 7 / 8 hours and operational notes. Choose the supported Approve control for each truthful source.
@@ -505,7 +505,7 @@ Actual work differed: Technician 1 personally recorded six hours; the Chief reco
 
 ### Verify the result
 
-- Native multi-worker publication created no actual time. Later separately authored sources persisted Approved with 360 / 420 / 480 minutes and the correct creator identities.
+- Native multi-worker publication created no actual time. Later separately authored sources persisted Approved at six, seven and eight hours, with the correct creator identities.
 - Needs note is a weekly comparison indicator for approved time differing from its expectation. The underlying source remains Approved. Explain the work difference in operational notes/reports; never force actual hours to match a target.
 
 ### If you get stuck
@@ -513,7 +513,7 @@ Actual work differed: Technician 1 personally recorded six hours; the Chief reco
 - A chief’s ability to record crew time does not automatically grant review authority. Ask the Owner to verify the separate review permission.
 - If a worker reports a missing plan, compare today in UTC, project membership and the published plan date. If the actual source is wrong, use the correction chapter rather than editing planning.
 
-![Owner-created shared BBS plan visible in the authorized planning agenda: one record per person, each 480 planned minutes.](../evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png)
+![Historical 6 October Owner calendar screenshot: one saved 8-hour BBS plan per person. Current planning displays planned durations in hours.](../evidence/bbs-planning-20261006/owner/screenshots/03-owner-three-published-plans.png)
 
 ![Separate Worker 1 view after PM review: six actual hours versus an eight-hour expectation.](../evidence/bbs-planning-20261006/worker/screenshots/07-worker1-approved-needs-note.png)
 
@@ -528,9 +528,9 @@ Go here: Planning; Worker: Today and Time; Owner: Projects → Expected Working 
 
 Context: Isolated BBS planning and crew lab · October 20–25, 2026. Browser-verified synthetic operational records; no real dispatch, payment or customer acceptance. Earlier examples retain their original date scope.
 
-The Owner configures Expected Working Schedule through Projects → More actions. It has an effective date, IANA timezone and a minutes value for each weekday. The BBS lab’s October 19 schedule is 480 minutes Monday–Friday and zero on weekends. This reference is separate from published planning and never creates actual work.
+The Owner configures Expected Working Schedule through Projects → More actions. It has an effective date, IANA timezone and a decimal-hours value for each weekday. The BBS lab’s October 19 schedule is 8.0 hours Monday–Friday and 0.0 hours on weekends. This reference is separate from published planning and never creates actual work.
 
-The October 21 practice plan was edited to three hours, 09:00–12:00 UTC. Worker 1 sees Planned: 3 h, while the Wednesday timesheet still expects 8.00h and records 0.00h until actual work is entered. Creation displays Planned hours; the edit form displays Planned minutes, so three hours is 180 minutes.
+The October 21 practice plan was edited to three hours, 09:00–12:00 UTC. Worker 1 sees Planned: 3 h, while the Wednesday timesheet still expects 8.00h and records 0.00h until actual work is entered. Creation and editing both use Planned hours; enter 3.0 for three hours.
 
 Planning and worker agendas display UTC. On October 20, 08:00–16:00 UTC means 10:00–18:00 Europe/Madrid or 04:00–12:00 America/New_York. Convert for the actual date, because daylight-saving changes can alter the offset.
 
@@ -542,7 +542,7 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 
 ### Do the task
 
-1. Open an existing Published assignments record, edit the interval, Planned minutes and optional site, and choose Save assignment. Reopen it to verify persistence and ask the worker to reload Today.
+1. Open an existing Published assignments record, edit the interval, Planned hours and optional site, and choose Save assignment. Reopen it to verify persistence and ask the worker to reload Today.
 2. To cancel a plan, identify the correct project, person and dates and choose Cancel assignment. Check the calendar and the worker’s upcoming agenda. Cancellation does not erase or correct an actual-time source.
 3. If Today has no plan but lists Your assigned projects, check whether the plan is future or has not been published. Membership alone does not publish a shift.
 4. If the worker is unavailable in the publish form, ask the Owner to check active account status and project-assignment coverage for the selected interval. Supplier personnel with coverage ending October 31 are not eligible on November 1.
@@ -551,7 +551,7 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 
 ### Verify the result
 
-- Native PM edit saved 180 minutes, updated UTC dates and site; the Worker agenda reflected those values after reload. The weekly expected eight hours did not change.
+- Native PM edit saved three planned hours, updated UTC dates and site; the Worker agenda reflected those values after reload. The weekly expected eight hours did not change.
 - A separate October 22 Worker 2 plan was cancelled natively and disappeared from the Worker agenda. Its retained record has cancelled status and no actual-time source was generated.
 - The later separate Worker session showed October 23 Actual 0.00h / Expected — / Difference — while the main October 20 six actual and eight expected hours stayed unchanged. Counting a future own membership for ambiguity did not expose that project in the current selector or add actual records.
 
@@ -561,7 +561,7 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 - Use screenshots and hours comparisons to explain operational issues within your authorized project. Send questions outside that scope to the Owner.
 - After a publish-field validation message, correct the highlighted field and recheck the retained person, UTC interval, planned quantity, Site and Required expertise before retrying.
 
-![PM published record reopened after editing: October 21 09:00–12:00 UTC, 180 planned minutes and the saved fictional site.](../evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png)
+![Historical 6 October PM screenshot: the reopened October 21 09:00–12:00 UTC record showed 180 planned minutes and the saved fictional site. Current edits use decimal planned hours; enter 3.0 for three hours.](../evidence/bbs-planning-20261006/manager/screenshots/02-pm-updated-plan-persisted.png)
 
 ![Separate Worker 1 agenda after the edit: the published three-hour practice plan appears alongside the eight-hour crew plan.](../evidence/bbs-planning-20261006/owner/screenshots/07-worker-updated-three-hour-agenda.png)
 
@@ -573,7 +573,7 @@ The earlier cancellation screenshots are a historical checkpoint, not the final 
 
 ![Separate Worker 1 historical week: dashes before the October 1 assignment demonstrate an unknown expected target, rather than a zero-hour schedule.](../evidence/bbs-planning-20261006/owner/screenshots/05-worker-missing-expected-before-membership.png)
 
-![Additional PM October 25 practice publication reopened after correcting an invalid interval: saved UTC 08:00–10:00, 120 planned minutes, fictional Site and Required expertise. No actual work was generated.](../evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png)
+![Historical 6 October PM screenshot: the October 25 practice publication was saved for 08:00–10:00 UTC as 120 planned minutes with fictional Site and Required expertise. Current planning displays this two-hour duration in hours. No actual work was generated.](../evidence/bbs-planning-20261006/manager/screenshots/08-pm-fixed-publication-persisted.png)
 
 ![Later isolated checkpoint, after an additional one-day project membership on October 23: Friday Actual is zero and Expected / Difference are unknown (—). October 20 remains six actual versus eight expected hours. Earlier weekly tables precede this added membership and correctly show Friday eight expected hours.](../evidence/bbs-planning-20261006/owner/screenshots/09-worker-multiple-project-expected-unknown.png)
 

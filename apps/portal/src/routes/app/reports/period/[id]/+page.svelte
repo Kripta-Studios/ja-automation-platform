@@ -16,6 +16,7 @@
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { money as formatMoney } from '$lib/portal/portal-format';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -581,7 +582,7 @@
   );
   const display = (value: unknown, fallback = '—') =>
     value === null || value === undefined || value === '' ? fallback : String(value);
-  const hours = (minutes: unknown) => `${(Number(minutes ?? 0) / 60).toFixed(1)} h`;
+  const hours = (minutes: unknown) => `${decimalHoursFromMinutes(minutes ?? 0)} h`;
   const signoffLabel = (state: string): string => {
     switch (state) {
       case 'ready_for_signature':
@@ -1479,7 +1480,7 @@
         <table>
           <thead
             ><tr
-              ><th>{t('Stream')}</th><th>{t('Calculation basis')}</th><th>{t('Minutes')}</th><th
+              ><th>{t('Stream')}</th><th>{t('Calculation basis')}</th><th>{t('Hours')}</th><th
                 >{t('Amount')}</th
               ></tr
             ></thead
@@ -1609,7 +1610,7 @@
             {#if typeof item.startTime === 'string' && typeof item.endTime === 'string'}
               <small
                 >{item.startTime}–{item.endTime}{#if typeof item.breakMinutes === 'number'}
-                  · {t('Break')}: {item.breakMinutes} {t('min')}{/if}</small
+                  · {t('Break')}: {hours(item.breakMinutes)}{/if}</small
               >
             {/if}
           </div>

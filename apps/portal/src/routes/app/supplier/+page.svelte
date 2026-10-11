@@ -18,6 +18,7 @@
     reportFormFieldErrors,
   } from '$lib/portal/ui';
   import type { ProblemData } from '$lib/problem/contract';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import { supplierCopy, supplierStateLabel, supplierManagementCopy } from './copy';
   import { standaloneActionMessage } from '../standalone-locale';
@@ -34,8 +35,7 @@
   );
   let periodProblemContainer = $state<HTMLDivElement>();
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
-  // Two decimal places always round back to the original whole minute on the supplier action.
-  const editableDecimalHours = (minutes: number): string => (minutes / 60).toFixed(2);
+  const editableDecimalHours = (minutes: number): string => decimalHoursFromMinutes(minutes);
   function syncBreakHours(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
     const hidden = input.nextElementSibling as HTMLInputElement;

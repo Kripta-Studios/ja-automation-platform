@@ -7,6 +7,7 @@
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
     applyStandaloneDocumentLocale,
@@ -248,12 +249,9 @@
   }
 
   function hours(minutes: unknown): string {
-    const amount = Number(minutes);
-    if (!Number.isFinite(amount)) return t('Unknown');
-    return `${(amount / 60)
-      .toFixed(2)
-      .replace(/\.00$/u, '')
-      .replace('.', locale === 'en' ? '.' : ',')} h`;
+    const amount = decimalHoursFromMinutes(minutes);
+    if (amount === '—') return t('Unknown');
+    return `${amount.replace('.', locale === 'en' ? '.' : ',')} h`;
   }
 
   function stateLabel(value: unknown): string {

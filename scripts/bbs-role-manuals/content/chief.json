@@ -34,11 +34,11 @@
       "context": "Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.",
       "paragraphs": [
         "This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.",
-        "Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Actual minutes here differ from decimal Actual hours in the normal Time form.",
+        "Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Enter duration in decimal hours here, just as in the normal Time form; for example, 1.5 hours is ninety minutes.",
         "Work capture is for your own records. Continue to use Crew hours for delegated entries; capture does not create records for every crew member."
       ],
       "steps": [
-        "Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and minutes; 90 minutes means 1.5 hours.",
+        "Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and duration in decimal hours; enter 1.5 for ninety minutes.",
         "For Daily report check completed tasks, problems, corrective actions, downtime, blockers and next plan. For Expense enter the real category, amount, currency, payer and description. Review the separate output fields, not only the shared summary.",
         "Choose Save on this device if you need to pause. Recover local draft restores form text for this account/project/date on this device. Review it after recovery. It is not a server save, does not queue attachments and does not submit when connectivity returns.",
         "When online and signed in, choose Review facts. Check the review summary and then Create server drafts once. Open each link in the saved receipt, add required original evidence and submit each record through its normal workflow.",
@@ -478,7 +478,7 @@
       "context": "Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours",
       "paragraphs": [
         "The Owner/PM publishes a work plan to assigned people. Selecting the Chief and both technicians creates an individual published planning row for each person. Your Today agenda shows your own plan; dated crew delegation does not turn it into a combined crew agenda.",
-        "In this connected isolated example, October 20 is planned for 08:00–16:00 UTC with eight planned hours per person. Publication initially created zero actual time. The Owner separately configured an expected weekday schedule of 480 minutes from October 19.",
+        "In this connected isolated example, October 20 is planned for 08:00–16:00 UTC with eight planned hours per person. Publication initially created zero actual time. The Owner separately configured an expected weekday schedule of 8.0 hours from October 19.",
         "Project membership, work planning and crew delegation are separate dated controls. Both the Chief and managed worker need project coverage for the work date, and the delegation must cover that date. Receiving a plan does not grant permission to record another worker’s hours.",
         "There are no Accept, Reject or Mark completed goal buttons on the assignment cards. Use Activity summary and Daily/Technical reports to describe completed tasks, remaining work, problems and handover."
       ],
@@ -559,7 +559,7 @@
       "route": "Time → Week of → Open week",
       "context": "Isolated BBS planning lab · synthetic October 20, 2026 work · genuine role sessions · no production hours",
       "paragraphs": [
-        "Expected comes from the effective working schedule and dated project coverage, not from adding published plans or crew sources. In this example, Monday–Friday target 480 minutes each and Saturday/Sunday target zero.",
+        "Expected comes from the effective working schedule and dated project coverage, not from adding published plans or crew sources. In this example, Monday–Friday target 8.0 hours each and Saturday/Sunday target 0.0 hours.",
         "The Chief’s own October 20 row is Actual 8.00h, Expected 8.00h and Difference 0.00h, with Approved status. Technician 1’s personal view is 6/8/−2 and Technician 2’s is 7/8/−1; their weekly comparison rows show Needs note after operational approval.",
         "Needs note flags an approved duration different from the daily expectation. It does not mean the source was returned, and it did not prevent approval. No dedicated Add note or Clear Needs note action was present in the tested controls. Explain differences in the source summary and reports; the comparison can continue to show Needs note.",
         "The weekly total includes scheduled days with no actual records, including future training dates. Check the specific day when reconciling a finished shift. Do not copy a target into fictitious hours or add delegated colleagues’ hours to your own totals."

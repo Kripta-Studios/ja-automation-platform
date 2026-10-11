@@ -106,7 +106,7 @@
       ],
       "steps": [
         "Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.",
-        "Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.",
+        "Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum hours. Save follow-up.",
         "Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.",
         "Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email."
       ],

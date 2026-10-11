@@ -3,12 +3,14 @@
   import { SvelteMap } from 'svelte/reactivity';
   import { page } from '$app/stores';
   import ActionBar from '$lib/portal/ui/ActionBar.svelte';
+  import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
   import Field from '$lib/portal/ui/Field.svelte';
   import FieldGroup from '$lib/portal/ui/FieldGroup.svelte';
   import FormCard from '$lib/portal/ui/FormCard.svelte';
   import SectionCard from '$lib/portal/ui/SectionCard.svelte';
   import StatusBadge from '$lib/portal/ui/StatusBadge.svelte';
   import { billingReadinessMessageKey } from '$lib/portal/billing-readiness';
+  import { minutesToProjectHours } from '$lib/portal/sections/project-budget-input';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import { workflowActionCopy, workflowStatus, workflowText } from '$lib/portal/workflow/copy';
   import type { ActionData, PageData } from './$types';
@@ -229,7 +231,7 @@
       ['cadenceType', 'Cadence'],
       ['currency', 'Currency'],
       ['includeExpenses', 'Include expenses'],
-      ['minimumMinutes', 'Minimum minutes per day'],
+      ['minimumMinutes', 'Minimum hours per day'],
       ['fixedPriceMinor', 'Fixed price'],
       ['note', 'Proposal note'],
     ];
@@ -237,6 +239,10 @@
       if (!Object.hasOwn(values, name)) return [];
       let text = proposalValue(settings, name === 'fixedPriceMinor' ? name : name);
       if (name === 'includeExpenses') text = values[name] === true ? t('Yes') : t('No');
+      if (name === 'minimumMinutes') {
+        const hours = minutesToProjectHours(String(values[name]));
+        text = hours ? `${hours} h` : '';
+      }
       if (name === 'streamType')
         text = t(
           text === 'labor'
@@ -1141,15 +1147,15 @@
                       ><option value="false">{t('No')}</option></select
                     ></Field
                   >
-                  <Field id="policy-minimum" label={t('Minimum minutes per day')}
-                    ><input
+                  <Field id="policy-minimum" label={t('Minimum hours per day')}
+                    ><DecimalHoursInput
                       id="policy-minimum"
                       name="minimumMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
-                      step="1"
+                      label={t('Minimum hours per day')}
                       value={value('minimumMinutes')}
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={t('Enter a number of hours from 0 to 24.')}
                     /></Field
                   >
                   <Field
@@ -1345,17 +1351,15 @@
                             ><option value="false">{t('No')}</option></select
                           ></Field
                         >
-                        <Field
-                          id={`finance-minimum-${item.id}`}
-                          label={t('Minimum minutes per day')}
-                          ><input
+                        <Field id={`finance-minimum-${item.id}`} label={t('Minimum hours per day')}
+                          ><DecimalHoursInput
                             id={`finance-minimum-${item.id}`}
                             name="minimumMinutes"
-                            type="number"
-                            min="0"
-                            max="1440"
-                            step="1"
+                            label={t('Minimum hours per day')}
                             value={proposalValue(item.proposedSettings, 'minimumMinutes')}
+                            minMinutes={0}
+                            maxMinutes={1440}
+                            invalidMessage={t('Enter a number of hours from 0 to 24.')}
                           /></Field
                         >
                         <Field

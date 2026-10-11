@@ -1,0 +1,75 @@
+{
+  "scope": "Decimal hours UI and human-readable PDF/XLSX/CSV exports",
+  "baselineCommit": "c9f308b3f8e162272db8b1f9be0f4c9c575d9534",
+  "exportSuite": {
+    "passed": 72,
+    "failed": 4,
+    "failuresReproducedOnBaseline": true
+  },
+  "invariantsAndUnitSuite": {
+    "passed": 27,
+    "failed": 0
+  },
+  "focusedSuite": {
+    "passed": 55,
+    "failed": 4,
+    "failuresReproducedOnBaseline": true
+  },
+  "workflowBrowser": {
+    "passed": 4,
+    "skipped": 2,
+    "skipReason": "Each report case targets one viewport; opposite viewport case skipped",
+    "widths": [390, 1440],
+    "compiledArtifact": "final production build"
+  },
+  "previewBrowser": {
+    "passed": true,
+    "forms": 9,
+    "widths": [360, 390, 768, 1440],
+    "businessSubmissions": 0
+  },
+  "quality": {
+    "portalTypecheck": "passed",
+    "reportingTypecheck": "passed",
+    "changedSourceLint": "passed",
+    "changedSourceFormat": "passed",
+    "portalProductionBuild": "passed",
+    "jobsBuild": "passed"
+  },
+  "logSha256": {
+    "final-export-tests.log": "27cc7f25042b5edd1981650fcd7745af239d3db19ae57496b916dbb96df56969",
+    "invariants-tests.log": "30db595937644576c64a2cb17a6bea4e889776abdd4f049325b8267b8f1eac57",
+    "focused-tests.log": "3daeb3e0428787e427dffcc38a26f8483832b6bdcda7cec348d3df10b5fccb92",
+    "baseline-invoice-tests.log": "aee58915b9e356cfcec567d0652ad17dc02457bfbb4a9cb24eb21780d15d504c",
+    "baseline-report-immutability.log": "b6b9f787d52c8df6e2960278fc599d02f5c89a522b539e171305930cf950cb97",
+    "portal-typecheck-final.log": "03ec29f4e134a29dc87944f6142712d6d64e85d1fd20bd5a949a74e2d86d75d1",
+    "reporting-typecheck.log": "8366207267355d3e3d5bf3bf6e8c94c5f93f6078c34f08973fa2b38cdda6cc92",
+    "portal-build.log": "a54914a509b91fbcd22e988aa2343155ad1287d9ace70b457b0046e5bfc0b37e",
+    "jobs-build.log": "1a44c3c2490ee8de2c2306288a780420b128554c760508c8ca459e79a0446bda",
+    "format-lint.log": "17166dccd8519e9f67bd1d6a1bc7994f98d91d3c0f8827e43f970edc4a3cd43a"
+  },
+  "supplierDownloadBrowser": {
+    "passed": 1,
+    "width": 1440,
+    "actualCsvResponseSaved": true,
+    "actualPrintedPdfSaved": true,
+    "breakHours": 0.25,
+    "actualHours": 1.25
+  },
+  "manuals": {
+    "rolePdfsVerified": 8,
+    "strictPdf": "passed",
+    "screenshotHashes": "passed",
+    "ownerPages": 276,
+    "ownerMissingImages": 0,
+    "ownerLayoutOverflows": 0,
+    "digitalWorkersPages": 4,
+    "historicalAttachmentsPreserved": true
+  },
+  "independentReview": {
+    "verdict": "ship",
+    "financeSecurityExports": "no remaining blocker",
+    "runtimePackageAndJobsSynchronization": "reviewed",
+    "releaseCleanSourceAndPostJobsHistoryChecks": "reviewed"
+  }
+}

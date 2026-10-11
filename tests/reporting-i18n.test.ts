@@ -428,9 +428,7 @@ describe('localized report PDF renderers', () => {
         expectPdf(pdf);
         const text = textFromPdf(pdf, '-raw').replace(/\s+/g, ' ').trim();
         expect(containsPdfCopy(text, '08:15–16:15')).toBe(true);
-        expect(containsPdfCopy(text, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`)).toBe(
-          true,
-        );
+        expect(containsPdfCopy(text, `${locale === 'en' ? 'Break' : 'Intervalo'}: 1 h`)).toBe(true);
         expect(text).toContain(locale === 'en' ? '7.0 h' : '7,0 h');
         expect(text).toContain('Commissioned line sensors');
       }
@@ -448,9 +446,9 @@ describe('localized report PDF renderers', () => {
       expectPdf(workerPdf);
       const workerText = textFromPdf(workerPdf, '-raw');
       expect(containsPdfCopy(workerText, '08:15–16:15')).toBe(true);
-      expect(
-        containsPdfCopy(workerText, `${locale === 'en' ? 'Break' : 'Intervalo'}: 60 min`),
-      ).toBe(true);
+      expect(containsPdfCopy(workerText, `${locale === 'en' ? 'Break' : 'Intervalo'}: 1 h`)).toBe(
+        true,
+      );
       expect(containsPdfCopy(workerText, '7.00')).toBe(true);
       const legacyPeriod = expectPdf(periodReportPdf(base));
       const legacyWorker = expectPdf(workerStatementPdf(worker));
@@ -467,7 +465,7 @@ describe('localized report PDF renderers', () => {
     expect(normalizeReportLocale('pt-BR')).toBe('pt');
     expect(
       translateCalculationBasis('approved_billable_minutes_effective_client_labor_rates', 'pt-BR'),
-    ).toContain('Minutos faturáveis');
+    ).toContain('Horas faturáveis');
     expect(translateReportMetric('candidateSubtotalMinor', 'pt-BR')).toBe(
       'Candidato de faturamento calculado',
     );

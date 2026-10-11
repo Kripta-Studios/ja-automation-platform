@@ -153,9 +153,8 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
         c.worker,
         c.date,
         c.category,
-        ...(hasIntervals ? [c.startTime, c.endTime, c.breakHours, c.breakMinutes] : []),
+        ...(hasIntervals ? [c.startTime, c.endTime, c.breakHours] : []),
         c.actualHours,
-        c.minutes,
         c.summary,
         c.state,
         c.recordedBy,
@@ -170,11 +169,9 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
               row.startTime ?? '',
               row.endTime ?? '',
               row.startTime && row.endTime ? supplierHoursFromMinutes(row.breakMinutes ?? 0) : '',
-              row.startTime && row.endTime ? (row.breakMinutes ?? 0) : '',
             ]
           : []),
         supplierHoursFromMinutes(row.minutes),
-        row.minutes,
         row.summary,
         row.isSuperseded
           ? `${supplierStateLabel(locale, row.state)} (${c.superseded})`

@@ -30,7 +30,7 @@ const changedFieldLabels: Readonly<Record<string, string>> = {
   problemsFound: 'Problems found',
   correctiveActions: 'Corrective actions',
   clientDecisions: 'Client decisions',
-  downtimeMinutes: 'Downtime minutes',
+  downtimeMinutes: 'Downtime (hours)',
   standbyReason: 'Standby reason',
   blockers: 'Blockers',
   openItems: 'Open items',

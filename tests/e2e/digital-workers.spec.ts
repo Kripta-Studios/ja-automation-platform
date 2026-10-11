@@ -249,6 +249,41 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   });
   await page.goto(portal('/workflow/capture?lang=en'));
   await expect(page.getByRole('heading', { name: 'Finish today', exact: true })).toBeVisible();
+  // Older local capture drafts store integral minutes. The new hours input must
+  // render those saved values correctly without changing their canonical storage.
+  await page.evaluate(
+    async ({ userId, projectId, workDate }) => {
+      const request = indexedDB.open('ja-field-capture-v1', 1);
+      request.onupgradeneeded = () => request.result.createObjectStore('drafts');
+      const database = await new Promise<IDBDatabase>((resolve, reject) => {
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+      await new Promise<void>((resolve, reject) => {
+        const transaction = database.transaction('drafts', 'readwrite');
+        transaction.objectStore('drafts').put(
+          {
+            userId,
+            projectId,
+            workDate,
+            savedAt: '2026-10-05T08:00:00.000Z',
+            values: {
+              includeTime: true,
+              timeCategory: 'regular',
+              minutes: '480',
+              includeReport: true,
+              downtimeMinutes: '60',
+            },
+          },
+          JSON.stringify([userId, projectId, workDate]),
+        );
+        transaction.oncomplete = () => resolve();
+        transaction.onerror = () => reject(transaction.error);
+      });
+      database.close();
+    },
+    { userId: f.workerId, projectId: f.projectId, workDate: '2026-10-05' },
+  );
   await page.getByRole('combobox', { name: 'Project', exact: true }).selectOption(f.projectId);
   await page.getByLabel('Work date').fill('2026-10-05');
   const summary = `Checked emergency-stop recovery · ${f.suffix}`;
@@ -263,8 +298,17 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   await expect(page.getByLabel('What work happened?')).toHaveValue(summary);
   await page.getByLabel('Create time draft').check();
   await page.getByLabel('Category').fill('regular');
-  await expect(page.getByLabel('Actual minutes worked')).toHaveValue('');
-  await page.getByLabel('Actual minutes worked').fill('37');
+  const actualHours = page.getByLabel('Actual hours worked', { exact: true });
+  await expect(actualHours).toHaveValue('8');
+  await actualHours.fill('0');
+  await expect(
+    actualHours.evaluate((input: HTMLInputElement) => input.validity.valid),
+  ).resolves.toBe(false);
+  await actualHours.fill('24.5');
+  await expect(
+    actualHours.evaluate((input: HTMLInputElement) => input.validity.valid),
+  ).resolves.toBe(false);
+  await actualHours.fill('7,5');
   await page.getByLabel('Create daily report draft').check();
   const receiptPng = await sharp(
     Buffer.from(
@@ -289,7 +333,13 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   };
   for (const [label, value] of Object.entries(reportFacts))
     await page.getByLabel(label, { exact: true }).fill(value);
-  await page.getByLabel('Downtime minutes').fill('7');
+  const downtimeHours = page.getByLabel('Downtime hours', { exact: true });
+  await expect(downtimeHours).toHaveValue('1');
+  await downtimeHours.fill('24.5');
+  await expect(
+    downtimeHours.evaluate((input: HTMLInputElement) => input.validity.valid),
+  ).resolves.toBe(false);
+  await downtimeHours.fill('0.25');
   await page.getByLabel('Safety related').check();
   await page.getByRole('button', { name: 'Save on this device', exact: true }).click();
   await expect(
@@ -300,7 +350,8 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   await page.getByLabel('Work date').fill('2026-10-05');
   // Scope selection must recover automatically without overwriting saved facts.
   await expect(page.getByLabel('What work happened?')).toHaveValue(summary);
-  await expect(page.getByLabel('Actual minutes worked')).toHaveValue('37');
+  await expect(actualHours).toHaveValue('7.5');
+  await expect(downtimeHours).toHaveValue('0.25');
   await page.getByLabel('Create expense draft').check();
   await page.getByRole('combobox', { name: 'Expense category', exact: true }).selectOption('meals');
   await page.getByLabel('Vendor').fill('Fixture site cafeteria');
@@ -333,8 +384,8 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   for (const value of Object.values(reportFacts)) await expect(review).toContainText(value);
   await expect(review).toContainText('Meals');
   await expect(review).toContainText('Fixture site cafeteria');
-  await expect(review.getByText('Downtime minutes', { exact: true })).toBeVisible();
-  await expect(review.getByText('7', { exact: true })).toBeVisible();
+  await expect(review.getByText('Downtime hours', { exact: true })).toBeVisible();
+  await expect(review.getByText('0.25 h', { exact: true })).toBeVisible();
   await expect(review.getByText('Safety related', { exact: true })).toBeVisible();
   await expect(review.getByText('Yes', { exact: true })).toBeVisible();
   await readableControl(
@@ -348,6 +399,8 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
     string,
     string
   >;
+  expect(submitted.minutes).toBe('450');
+  expect(submitted.downtimeMinutes).toBe('15');
   // The extractor's File input is deliberately not part of this server capture payload.
   await page.getByRole('button', { name: 'Create server drafts', exact: true }).click();
   await expect(
@@ -377,7 +430,7 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
       .prepare('SELECT id,minutes,approval_state FROM time_entry WHERE project_id=?')
       .all(f.projectId);
     expect(time).toHaveLength(1);
-    expect(time[0]).toMatchObject({ minutes: 37, approval_state: 'draft' });
+    expect(time[0]).toMatchObject({ minutes: 450, approval_state: 'draft' });
     expect(
       sqlite.prepare('SELECT count(*) n FROM daily_report WHERE project_id=?').get(f.projectId)?.n,
     ).toBe(1);

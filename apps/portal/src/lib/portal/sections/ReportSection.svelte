@@ -36,6 +36,7 @@
     writeOperationalRegisterState,
   } from './operational-register';
   import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
+  import DecimalHoursInput from '../ui/DecimalHoursInput.svelte';
 
   let {
     data,
@@ -124,6 +125,14 @@
       : {};
   const nativeReportValue = (field: string): string =>
     typeof nativeReportValues[field] === 'string' ? String(nativeReportValues[field]) : '';
+  const visibleReportFieldErrors = (
+    fieldErrors: Readonly<Record<string, readonly string[] | string>>,
+  ): Record<string, readonly string[] | string> => {
+    const visible = { ...fieldErrors };
+    if (visible.downtimeMinutes && !visible.downtimeMinutesHours)
+      visible.downtimeMinutesHours = visible.downtimeMinutes;
+    return visible;
+  };
   const nativeReportSurface: 'daily' | 'technical' | 'generate' | null =
     nativeReportForm?.code &&
     !nativeReportValue('recordType') &&
@@ -372,7 +381,7 @@
       void tick().then(() => {
         const form = document.querySelector<HTMLFormElement>('[data-report-entry-surface]');
         if (!form) return;
-        reportFormFieldErrors(form, nativeReportForm.fieldErrors);
+        reportFormFieldErrors(form, visibleReportFieldErrors(nativeReportForm.fieldErrors));
         document
           .querySelector<HTMLElement>('[data-operational-form-error]')
           ?.focus({ preventScroll: true });
@@ -2067,12 +2076,13 @@
       </div>
       <div class="report-entry-grid">
         <label
-          ><span>{translate('Downtime minutes')}</span><input
+          ><span>{translate('Downtime (hours)')}</span><DecimalHoursInput
             name="downtimeMinutes"
-            type="number"
-            min="0"
-            max="1440"
             value={restoredReportValue('downtimeMinutes') || '0'}
+            label={translate('Downtime (hours)')}
+            minMinutes={0}
+            maxMinutes={1440}
+            invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
           /></label
         >
         <label

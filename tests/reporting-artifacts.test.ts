@@ -18,6 +18,7 @@ import {
   accountingPackArtifacts,
   accountingPackPdf,
   invoicePdf,
+  dailyReportPdf,
   periodReportPdf,
 } from '@ja/reporting';
 
@@ -40,15 +41,57 @@ const textFromPdf = (bytes: Uint8Array, layout = true): string => {
 };
 
 describe('production reporting artifacts', () => {
+  it('preserves one minute as decimal hours in period PDF totals and detail', () => {
+    const text = textFromPdf(
+      periodReportPdf({
+        project: { number: 'HOURS-001', name: 'Decimal hours audit', clientName: 'QA client' },
+        periodStart: '2026-10-11',
+        periodEnd: '2026-10-11',
+        audience: 'internal',
+        locale: 'en',
+        commercialSummary: {
+          currency: 'EUR',
+          actualMinutes: 1,
+          approvedMinutes: 1,
+          billableMinutes: 1,
+        },
+        timeSummary: [
+          { date: '2026-10-11', workerDisplay: 'QA worker', minutes: 1, approvalState: 'approved' },
+        ],
+      }),
+    );
+    expect(text).toContain('0.0167');
+    expect(text.match(/0\.0167/g)?.length).toBeGreaterThanOrEqual(4);
+    expect(text).not.toMatch(/\b0\.0 h\b/);
+  });
+  it.each([
+    ['en', 'Downtime hours'],
+    ['es', 'Horas de parada'],
+    ['pt-BR', 'Horas de parada'],
+  ])('renders daily report downtime as hours in %s', (locale, label) => {
+    const text = textFromPdf(
+      dailyReportPdf({
+        locale,
+        projectName: 'Decimal hours audit',
+        workDate: '2026-10-11',
+        downtimeMinutes: 450,
+        summary: 'Synthetic duration verification',
+      }),
+    );
+    expect(text).toContain(label);
+    expect(text).toContain('7.50');
+    expect(text).not.toMatch(/\b450\b|Downtime minutes|Minutos de parada/);
+  });
+
   it('keeps issued families stable while versioning redesigned report and spreadsheet families', () => {
-    expect(INVOICE_TEMPLATE_VERSION).toBe('2026.09.02.2');
-    expect(ACCOUNTING_PACK_PDF_TEMPLATE_VERSION).toBe('2026.09.22.1');
+    expect(INVOICE_TEMPLATE_VERSION).toBe('2026.10.01.1');
+    expect(ACCOUNTING_PACK_PDF_TEMPLATE_VERSION).toBe('2026.10.11.1');
     expect(ACCOUNTING_PACK_DATA_TEMPLATE_VERSION).toBe('2026.09.02.2');
-    expect(PERIOD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
-    expect(WORKER_STATEMENT_TEMPLATE_VERSION).toBe('2026.09.22.1');
-    expect(FIELD_REPORT_TEMPLATE_VERSION).toBe('2026.09.22.1');
-    expect(SPREADSHEET_TEMPLATE_VERSION).toBe('2026.09.22.1');
-    expect(REPORT_TEMPLATE_VERSION).toBe(INVOICE_TEMPLATE_VERSION);
+    expect(PERIOD_REPORT_TEMPLATE_VERSION).toBe('2026.10.11.1');
+    expect(WORKER_STATEMENT_TEMPLATE_VERSION).toBe('2026.10.11.1');
+    expect(FIELD_REPORT_TEMPLATE_VERSION).toBe('2026.10.11.1');
+    expect(SPREADSHEET_TEMPLATE_VERSION).toBe('2026.10.11.1');
+    expect(REPORT_TEMPLATE_VERSION).toBe('2026.09.02.2');
   });
 
   it('uses source field units for Accounting Pack worker hours', () => {

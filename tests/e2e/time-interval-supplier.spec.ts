@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import { portal } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
@@ -69,12 +70,11 @@ test('supplier clocks persist through edit, web report, CSV and printed PDF', as
     const csv = await page.request.get(portal(`/supplier/report.csv?${query}`));
     expect(csv.status()).toBe(200);
     const csvText = await csv.text();
+    writeFileSync(testInfo.outputPath('supplier-report.csv'), csvText, 'utf8');
     expect(csvText).toContain(start);
     expect(csvText).toContain(editedEnd);
-    expect(csvText).toContain(
-      '"Break (decimal hours)","Break (minutes)","Actual hours","Actual minutes"',
-    );
-    expect(csvText).toContain('"0.25","15","1.25","75"');
+    expect(csvText).toContain('"Break (decimal hours)","Actual hours"');
+    expect(csvText).toContain('"0.25","1.25"');
     const pdfPath = testInfo.outputPath('supplier-report.pdf');
     await page.pdf({ path: pdfPath, format: 'A4', printBackground: true });
     const text = execFileSync('pdftotext', [pdfPath, '-'], { encoding: 'utf8' });

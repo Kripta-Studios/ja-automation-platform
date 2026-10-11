@@ -57,6 +57,34 @@ function headers(files: Map<string, string>, sheet: number): string[] {
 }
 
 describe('project finance XLSX export', () => {
+  it('exports accounting worker durations as numeric hours without raw-minute columns', () => {
+    const files = unzip(
+      accountingPackXlsx({
+        invoiceRegister: [],
+        collections: [],
+        expenseRegister: [],
+        workerCosts: [
+          {
+            worker: 'Hours audit',
+            currency: 'EUR',
+            actualApprovedMinutes: 450,
+            regularMinutes: 420,
+            standbyMinutes: 30,
+            overtimeMinutes: 0,
+            travelMinutes: 90,
+            approvedCompensationMinor: '12345',
+          },
+        ],
+      }),
+    );
+    expect(headers(files, 3).join(' ')).not.toMatch(/minutes/i);
+    expect(cellByHeader(files, 3, 'Approved work hours')).toContain('<v>7.5</v>');
+    expect(cellByHeader(files, 3, 'Regular Hours')).toContain('<v>7</v>');
+    expect(cellByHeader(files, 3, 'Standby Hours')).toContain('<v>0.5</v>');
+    expect(cellByHeader(files, 3, 'Travel Hours')).toContain('<v>1.5</v>');
+    expect(cellByHeader(files, 3, 'Calculated worker compensation')).toContain('<v>123.45</v>');
+  });
+
   it('keeps declared numeric values numeric, dates sortable, and identifiers/formula-like text literal', () => {
     const bytes = xlsxFromSheets([
       {
@@ -521,7 +549,8 @@ describe('project finance XLSX export', () => {
     const labor = files.get('xl/worksheets/sheet2.xml') ?? '';
     expect(labor).toContain('Alex Worker');
     expect(labor).toContain('<c r="D2"><v>1.5</v></c>');
-    expect(labor).toContain('<c r="H2" s="2"><v>1234.56</v></c>');
+    expect(cellByHeader(files, 2, 'Potential amount to charge client')).toContain('<v>1234.56</v>');
+    expect(headers(files, 2).join(' ')).not.toMatch(/minutes/i);
     expect(labor).toContain('123456');
     expect(cellByHeader(files, 2, 'Potential amount to charge client')).toContain('<v>1234.56</v>');
     expect(cellByHeader(files, 2, 'Calculated internal labor cost')).toContain('<v>800</v>');

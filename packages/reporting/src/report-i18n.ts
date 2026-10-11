@@ -217,7 +217,7 @@ const en: ReportCopy = {
   blockers: 'Blockers',
   nextDayPlan: 'Next-day plan',
   customerContact: 'Customer contact',
-  downtimeMinutes: 'Downtime minutes',
+  downtimeMinutes: 'Downtime hours',
   standbyReason: 'Standby reason',
   invoiceRegister: 'Invoice register',
   workerCosts: 'Worker costs',
@@ -334,7 +334,7 @@ const pt: ReportCopy = {
   blockers: 'Bloqueios',
   nextDayPlan: 'Plano do dia seguinte',
   customerContact: 'Contato do cliente',
-  downtimeMinutes: 'Minutos de parada',
+  downtimeMinutes: 'Horas de parada',
   standbyReason: 'Motivo de espera',
   invoiceRegister: 'Registro de faturas',
   workerCosts: 'Custos dos colaboradores',
@@ -451,7 +451,7 @@ const es: ReportCopy = {
   blockers: 'Bloqueos',
   nextDayPlan: 'Plan del día siguiente',
   customerContact: 'Contacto del cliente',
-  downtimeMinutes: 'Minutos de parada',
+  downtimeMinutes: 'Horas de parada',
   standbyReason: 'Motivo de espera',
   invoiceRegister: 'Registro de facturas',
   workerCosts: 'Costes de trabajadores',
@@ -738,9 +738,9 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     approved_unbilled_wip_minor: 'Approved unbilled WIP',
     unapproved_wip_minor: 'Unapproved WIP',
     daily_minimum_top_up_minor: 'Daily minimum top-up',
-    actual_minutes: 'Actual minutes',
-    approved_minutes: 'Approved minutes',
-    billable_minutes: 'Billable minutes',
+    actual_minutes: 'Actual hours',
+    approved_minutes: 'Approved hours',
+    billable_minutes: 'Billable hours',
     invoice_count: 'Invoices',
     expense_count: 'Expenses',
     labor_invoiced_minor: 'Labor invoiced',
@@ -777,9 +777,9 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     approved_unbilled_wip_minor: 'WIP aprovado não faturado',
     unapproved_wip_minor: 'WIP não aprovado',
     daily_minimum_top_up_minor: 'Complemento do mínimo diário',
-    actual_minutes: 'Minutos reais',
-    approved_minutes: 'Minutos aprovados',
-    billable_minutes: 'Minutos faturáveis',
+    actual_minutes: 'Horas reais',
+    approved_minutes: 'Horas aprovadas',
+    billable_minutes: 'Horas faturáveis',
     invoice_count: 'Faturas',
     expense_count: 'Despesas',
     labor_invoiced_minor: 'Mão de obra faturada',
@@ -816,9 +816,9 @@ const metricLabels: Record<ReportLocale, Record<string, string>> = {
     approved_unbilled_wip_minor: 'WIP aprobado no facturado',
     unapproved_wip_minor: 'WIP no aprobado',
     daily_minimum_top_up_minor: 'Complemento del mínimo diario',
-    actual_minutes: 'Minutos reales',
-    approved_minutes: 'Minutos aprobados',
-    billable_minutes: 'Minutos facturables',
+    actual_minutes: 'Horas reales',
+    approved_minutes: 'Horas aprobadas',
+    billable_minutes: 'Horas facturables',
     invoice_count: 'Facturas',
     expense_count: 'Gastos',
     labor_invoiced_minor: 'Mano de obra facturada',
@@ -850,7 +850,7 @@ const calculationBasis: Record<ReportLocale, Record<string, string>> = {
     approved_milestones_eligible_for_this_period_and_not_yet_invoiced:
       'Approved milestones eligible for this period and not yet invoiced',
     approved_billable_minutes_effective_client_labor_rates:
-      'Approved billable minutes × effective client labor rates',
+      'Approved billable hours × effective client labor rates',
     approved_reimbursable_expenses_plus_configured_markup:
       'Approved reimbursable expenses plus configured markup',
     approved_milestones_eligible_for_this_period: 'Approved milestones eligible for this period',
@@ -860,7 +860,7 @@ const calculationBasis: Record<ReportLocale, Record<string, string>> = {
     approved_milestones_eligible_for_this_period_and_not_yet_invoiced:
       'Marcos aprovados elegíveis para este período e ainda não faturados',
     approved_billable_minutes_effective_client_labor_rates:
-      'Minutos faturáveis aprovados × tarifas efetivas de mão de obra do cliente',
+      'Horas faturáveis aprovadas × tarifas efetivas de mão de obra do cliente',
     approved_reimbursable_expenses_plus_configured_markup:
       'Despesas reembolsáveis aprovadas mais margem configurada',
     approved_milestones_eligible_for_this_period: 'Marcos aprovados elegíveis para este período',
@@ -870,7 +870,7 @@ const calculationBasis: Record<ReportLocale, Record<string, string>> = {
     approved_milestones_eligible_for_this_period_and_not_yet_invoiced:
       'Hitos aprobados elegibles para este periodo y aún no facturados',
     approved_billable_minutes_effective_client_labor_rates:
-      'Minutos facturables aprobados × tarifas efectivas de mano de obra del cliente',
+      'Horas facturables aprobadas × tarifas efectivas de mano de obra del cliente',
     approved_reimbursable_expenses_plus_configured_markup:
       'Gastos reembolsables aprobados más margen configurado',
     approved_milestones_eligible_for_this_period: 'Hitos aprobados elegibles para este periodo',

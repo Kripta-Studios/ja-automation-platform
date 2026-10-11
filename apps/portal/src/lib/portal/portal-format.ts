@@ -1,3 +1,4 @@
+import { decimalHoursFromMinutes } from './minute-hours';
 import { paymentMoney } from './payment-money';
 
 /**
@@ -8,7 +9,10 @@ import { paymentMoney } from './payment-money';
 export const money = (minor: unknown, currency = 'USD', locale = 'en-US'): string =>
   paymentMoney(minor, currency, locale);
 
-export const hours = (minutes: unknown): string => `${(Number(minutes ?? 0) / 60).toFixed(1)}h`;
+export const hours = (minutes: unknown): string => {
+  const value = decimalHoursFromMinutes(minutes ?? 0);
+  return value === '—' ? value : `${value}h`;
+};
 
 export type CategoryLabelFormatter = (category: string) => string;
 

@@ -12,6 +12,7 @@
     standaloneText,
   } from '../../standalone-locale';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import type { ProblemData } from '$lib/problem/contract';
@@ -69,7 +70,7 @@
     const fields = [
       ['workDate', 'Date'],
       ['category', 'Operational category'],
-      ['minutes', 'Actual minutes'],
+      ['minutes', 'Actual hours'],
       ['startTime', 'Start time'],
       ['endTime', 'End time'],
       ['breakMinutes', 'Break'],
@@ -82,7 +83,15 @@
       const value = values[name];
       if (typeof value !== 'string' || !value.trim()) return [];
       return [
-        { label: t(label), value: name === 'category' ? controlled('timeCategory', value) : value },
+        {
+          label: t(label),
+          value:
+            name === 'category'
+              ? controlled('timeCategory', value)
+              : name === 'minutes' || name === 'breakMinutes'
+                ? hours(value)
+                : value,
+        },
       ];
     });
   });
@@ -222,10 +231,10 @@
     if (language) params.set('lang', language);
     return `${base}/app/expenses?${params.toString()}`;
   });
-  const hours = (minutes: unknown) => {
-    const actualMinutes = Number(minutes ?? 0);
-    return `${String(Number((actualMinutes / 60).toFixed(4)))} h`;
-  };
+  function hours(minutes: unknown): string {
+    const value = decimalHoursFromMinutes(minutes);
+    return value === '—' ? value : `${value} h`;
+  }
   const localMoment = (value: unknown): string => {
     if (!value) return t('Not submitted');
     const date = new Date(String(value));
@@ -303,8 +312,8 @@
           <dd>{controlled('status', record.approval_state)}</dd>
         </div>
         <div>
-          <dt>{t('Actual minutes')}</dt>
-          <dd>{record.minutes}</dd>
+          <dt>{t('Actual hours')}</dt>
+          <dd>{hours(record.minutes)}</dd>
         </div>
         <div>
           <dt>{t('Operational category')}</dt>

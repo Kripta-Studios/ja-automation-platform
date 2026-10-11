@@ -1,0 +1,626 @@
+{
+  "status": "passed",
+  "scope": "isolated preview UI",
+  "checkedAt": "2026-10-11T21:24:08.474Z",
+  "liveFormValuesUntouched": false,
+  "submittedForms": 0,
+  "nonReadRequests": 0,
+  "viewportWidths": [360, 390, 768, 1440],
+  "checks": [
+    {
+      "route": "owner-project-schedule",
+      "controls": [
+        {
+          "field": "mondayMinutes",
+          "formDataName": "mondayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "tuesdayMinutes",
+          "formDataName": "tuesdayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "wednesdayMinutes",
+          "formDataName": "wednesdayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "thursdayMinutes",
+          "formDataName": "thursdayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "fridayMinutes",
+          "formDataName": "fridayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "saturdayMinutes",
+          "formDataName": "saturdayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        },
+        {
+          "field": "sundayMinutes",
+          "formDataName": "sundayMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Mon hours Mon hours",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-owner-project-schedule-360.png",
+          "preview-owner-project-schedule-390.png",
+          "preview-owner-project-schedule-768.png",
+          "preview-owner-project-schedule-1440.png"
+        ],
+        "viewportScreenshots": [
+          "preview-owner-project-schedule-360-viewport.png",
+          "preview-owner-project-schedule-390-viewport.png",
+          "preview-owner-project-schedule-768-viewport.png",
+          "preview-owner-project-schedule-1440-viewport.png"
+        ]
+      }
+    },
+    {
+      "route": "owner-planning-create",
+      "controls": [
+        {
+          "field": "plannedMinutes",
+          "formDataName": "plannedMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Planned hours (optional) Planned hours (optional)",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-owner-planning-create-360.png",
+          "preview-owner-planning-create-390.png",
+          "preview-owner-planning-create-768.png",
+          "preview-owner-planning-create-1440.png"
+        ],
+        "viewportScreenshots": []
+      }
+    },
+    {
+      "route": "owner-overtime-policy",
+      "controls": [
+        {
+          "field": "overtimeThresholdMinutes",
+          "formDataName": "overtimeThresholdMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Overtime threshold (hours) Overtime threshold (hours)\nRequired",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 77,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-owner-overtime-policy-360.png",
+          "preview-owner-overtime-policy-390.png",
+          "preview-owner-overtime-policy-768.png",
+          "preview-owner-overtime-policy-1440.png"
+        ],
+        "viewportScreenshots": []
+      }
+    },
+    {
+      "route": "owner-daily-guarantee",
+      "controls": [
+        {
+          "field": "dailyGuaranteeMinutes",
+          "formDataName": "dailyGuaranteeMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Daily guarantee (hours) Daily guarantee (hours)",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 45,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-owner-daily-guarantee-360.png",
+          "preview-owner-daily-guarantee-390.png",
+          "preview-owner-daily-guarantee-768.png",
+          "preview-owner-daily-guarantee-1440.png"
+        ],
+        "viewportScreenshots": [
+          "preview-owner-daily-guarantee-360-viewport.png",
+          "preview-owner-daily-guarantee-390-viewport.png",
+          "preview-owner-daily-guarantee-768-viewport.png",
+          "preview-owner-daily-guarantee-1440-viewport.png"
+        ]
+      }
+    },
+    {
+      "route": "owner-generic-planning-edit",
+      "controls": [
+        {
+          "field": "planned_minutes",
+          "formDataName": "planned_minutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Planned hours (optional) Planned hours (optional)",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-owner-generic-planning-edit-360.png",
+          "preview-owner-generic-planning-edit-390.png",
+          "preview-owner-generic-planning-edit-768.png",
+          "preview-owner-generic-planning-edit-1440.png"
+        ],
+        "viewportScreenshots": []
+      }
+    },
+    {
+      "route": "project-edit",
+      "field": "expectedHoursPerDay",
+      "step": "0.0001",
+      "oneMinuteValueValid": true,
+      "above24HoursRejected": true
+    },
+    {
+      "route": "project-edit",
+      "field": "clientDailyMinimumHours",
+      "step": "0.0001",
+      "oneMinuteValueValid": true,
+      "above24HoursRejected": true
+    },
+    {
+      "route": "worker-time-create",
+      "controls": [
+        {
+          "field": "durationHours",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "accepts24Hours": true,
+          "rejectsAbove24Hours": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Actual hours",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-worker-time-create-360.png",
+          "preview-worker-time-create-390.png",
+          "preview-worker-time-create-768.png",
+          "preview-worker-time-create-1440.png"
+        ],
+        "viewportScreenshots": []
+      }
+    },
+    {
+      "route": "worker-daily-report-create",
+      "controls": [
+        {
+          "field": "downtimeMinutes",
+          "conversions": [
+            {
+              "input": "7.5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "7,5",
+              "canonicalMinutes": "450"
+            },
+            {
+              "input": "0.0167",
+              "canonicalMinutes": "1"
+            }
+          ],
+          "lowerAndUpperBounds": true,
+          "rejectsOutOfRange": true
+        }
+      ],
+      "visual": {
+        "accessibleLabel": "Downtime (hours) Downtime (hours)",
+        "responsive": [
+          {
+            "width": 360,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 390,
+            "touchHeight": 47,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 768,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          },
+          {
+            "width": 1440,
+            "touchHeight": 44,
+            "focusable": true,
+            "overflow": false
+          }
+        ],
+        "screenshots": [
+          "preview-worker-daily-report-create-360.png",
+          "preview-worker-daily-report-create-390.png",
+          "preview-worker-daily-report-create-768.png",
+          "preview-worker-daily-report-create-1440.png"
+        ],
+        "viewportScreenshots": []
+      }
+    }
+  ],
+  "screenshots": [
+    "preview-owner-project-schedule-360.png",
+    "preview-owner-project-schedule-360-viewport.png",
+    "preview-owner-project-schedule-390.png",
+    "preview-owner-project-schedule-390-viewport.png",
+    "preview-owner-project-schedule-768.png",
+    "preview-owner-project-schedule-768-viewport.png",
+    "preview-owner-project-schedule-1440.png",
+    "preview-owner-project-schedule-1440-viewport.png",
+    "preview-owner-planning-create-360.png",
+    "preview-owner-planning-create-390.png",
+    "preview-owner-planning-create-768.png",
+    "preview-owner-planning-create-1440.png",
+    "preview-owner-overtime-policy-360.png",
+    "preview-owner-overtime-policy-390.png",
+    "preview-owner-overtime-policy-768.png",
+    "preview-owner-overtime-policy-1440.png",
+    "preview-owner-daily-guarantee-360.png",
+    "preview-owner-daily-guarantee-360-viewport.png",
+    "preview-owner-daily-guarantee-390.png",
+    "preview-owner-daily-guarantee-390-viewport.png",
+    "preview-owner-daily-guarantee-768.png",
+    "preview-owner-daily-guarantee-768-viewport.png",
+    "preview-owner-daily-guarantee-1440.png",
+    "preview-owner-daily-guarantee-1440-viewport.png",
+    "preview-owner-generic-planning-edit-360.png",
+    "preview-owner-generic-planning-edit-390.png",
+    "preview-owner-generic-planning-edit-768.png",
+    "preview-owner-generic-planning-edit-1440.png",
+    "preview-project-edit-expectedHoursPerDay-360.png",
+    "preview-project-edit-expectedHoursPerDay-390.png",
+    "preview-project-edit-expectedHoursPerDay-768.png",
+    "preview-project-edit-expectedHoursPerDay-1440.png",
+    "preview-project-edit-clientDailyMinimumHours-360.png",
+    "preview-project-edit-clientDailyMinimumHours-390.png",
+    "preview-project-edit-clientDailyMinimumHours-768.png",
+    "preview-project-edit-clientDailyMinimumHours-1440.png",
+    "preview-worker-time-create-360.png",
+    "preview-worker-time-create-390.png",
+    "preview-worker-time-create-768.png",
+    "preview-worker-time-create-1440.png",
+    "preview-worker-daily-report-create-360.png",
+    "preview-worker-daily-report-create-390.png",
+    "preview-worker-daily-report-create-768.png",
+    "preview-worker-daily-report-create-1440.png"
+  ]
+}

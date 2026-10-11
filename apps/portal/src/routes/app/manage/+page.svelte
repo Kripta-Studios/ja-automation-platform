@@ -2,7 +2,9 @@
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import { page } from '$app/stores';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
@@ -140,7 +142,7 @@
         ...document.querySelectorAll<HTMLFormElement>('[data-management-record-id]'),
       ].find((candidate) => candidate.dataset.managementRecordId === failedRecordId);
       if (targetForm && formProblem.fieldErrors)
-        reportFormFieldErrors(targetForm, formProblem.fieldErrors);
+        reportManagementFieldErrors(targetForm, formProblem.fieldErrors);
       const target =
         targetForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
         targetForm?.querySelector<HTMLElement>(
@@ -196,6 +198,25 @@
     if (!row && type === 'project') return String(data.selectedProjectId ?? '');
     const value = String(row?.[name] ?? '');
     return type === 'datetime-local' ? value.slice(0, 16) : value;
+  }
+  function reportManagementFieldErrors(
+    targetForm: HTMLFormElement,
+    fieldErrors: Readonly<Record<string, readonly string[] | string>>,
+  ): void {
+    const renamed: Array<[HTMLInputElement, string]> = [];
+    for (const field of Object.keys(fieldErrors)) {
+      const visible = Array.from(targetForm.querySelectorAll<HTMLInputElement>('input')).find(
+        (candidate) => candidate.name === `${field}Hours`,
+      );
+      if (!visible) continue;
+      renamed.push([visible, visible.name]);
+      visible.name = field;
+    }
+    try {
+      reportFormFieldErrors(targetForm, fieldErrors);
+    } finally {
+      for (const [input, name] of renamed) input.name = name;
+    }
   }
   let catalogPage = $state<typeof data.catalogRows>([]);
   let recordPage = $state<typeof data.records>([]);
@@ -283,7 +304,8 @@
               {row.archived_at ? t('Archived') : String(row.starts_at ?? row.due_on ?? '')} · {controlled(
                 row.status || row.approval_state ? 'status' : 'availability',
                 row.status ?? row.approval_state ?? row.availability,
-              )}
+              )}{#if data.area === 'planning_assignment' && row.planned_minutes != null}
+                · {t('Planned hours (optional)')}: {decimalHoursFromMinutes(row.planned_minutes)} h{/if}
             </p>
             <details
               open={data.focusId === row.id ||
@@ -452,8 +474,18 @@
     /><input type="hidden" name="token" value={String(row?.token ?? '')} />
     {#each data.catalog?.fields ?? [] as field}
       <label
-        >{t(field.label)}
-        {#if field.type === 'project'}<select
+        >{t(field.name === 'planned_minutes' ? 'Planned hours (optional)' : field.label)}
+        {#if field.name === 'planned_minutes'}<DecimalHoursInput
+            id={`catalog-${String(row?.id ?? 'new')}-${field.name}`}
+            name={field.name}
+            value={fieldValue(row, field.name, field.type)}
+            minMinutes={0}
+            maxMinutes={10080}
+            required={field.required}
+            invalidMessage={t('Enter valid decimal hours within the allowed range.')}
+            label={t('Planned hours (optional)')}
+            data-field={field.name}
+          />{:else if field.type === 'project'}<select
             name={field.name}
             value={fieldValue(row, field.name, field.type)}
             required

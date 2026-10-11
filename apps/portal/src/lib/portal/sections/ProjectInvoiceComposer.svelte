@@ -10,6 +10,7 @@
   import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import { compatibleBillingPeriod, type BillingPeriodStream } from '../billing-period-recovery';
   import { journeyText, journeyReason, journeyMoney } from '../project-invoice-journey';
+  import { decimalHoursFromMinutes } from '../minute-hours';
   import type { InvoiceCompositionSource, InvoiceCompositionSourceRef } from '@ja/database';
 
   type Rule = Record<string, unknown>;
@@ -102,6 +103,10 @@
     onStateChange?: (state: InvoiceComposerState) => void;
   } = $props();
   const text = (key: Parameters<typeof journeyText>[1]) => journeyText(locale, key);
+  function hoursFromMinutes(minutes: unknown): string {
+    const hours = decimalHoursFromMinutes(minutes);
+    return hours === '—' ? hours : `${hours} h`;
+  }
   const supportedRules = $derived(
     rules.filter(
       (rule) =>
@@ -1035,7 +1040,7 @@
                     >{source.date} · {text(
                       source.type === 'time' ? 'labor' : 'expense',
                     )}{source.minutes != null
-                      ? ` · ${Math.floor(source.minutes / 60)}h ${source.minutes % 60}min`
+                      ? ` · ${hoursFromMinutes(source.minutes)}`
                       : ` · ${journeyMoney(source.amountMinor ?? '0', source.currency, locale)}`}</span
                   ><span>{source.summary}</span></span
                 ></label
@@ -1134,9 +1139,11 @@
           {#each [...new Set(selectedSources.map((source) => source.workerId))] as workerId}<p>
               {selectedSources.find((source) => source.workerId === workerId)?.workerName} · {text(
                 'labor',
-              )}: {selectedSources
-                .filter((source) => source.workerId === workerId && source.type === 'time')
-                .reduce((sum, source) => sum + (source.minutes ?? 0), 0)} min · {text('expense')}: {selectedSources.filter(
+              )}: {hoursFromMinutes(
+                selectedSources
+                  .filter((source) => source.workerId === workerId && source.type === 'time')
+                  .reduce((sum, source) => sum + (source.minutes ?? 0), 0),
+              )} · {text('expense')}: {selectedSources.filter(
                 (source) => source.workerId === workerId && source.type === 'expense',
               ).length}
             </p>{/each}

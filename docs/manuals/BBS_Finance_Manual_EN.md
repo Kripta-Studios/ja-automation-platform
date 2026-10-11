@@ -200,7 +200,7 @@ Existing background jobs generate queued artifacts and deliver due in-app follow
 ### Do the task
 
 1. Choose Create a policy review. Select the project and eligible Owner/Finance recipient, factual title, policy reference, due date and source quote or description.
-2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum minutes. Save follow-up.
+2. Enter only the proposed settings offered by the form, such as rule reference, effective dates, stream, cadence, currency, expense inclusion or minimum hours. Save follow-up.
 3. Review the proposal against the original agreement. Acceptance records the decision only; apply any authorized settings separately through their normal dated configuration controls and verify their saved effect.
 4. Open Notifications for due items. A follow-up sends one in-app notification for its current owner and deadline, not repeated daily email.
 

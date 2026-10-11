@@ -33,6 +33,7 @@
     billingReadinessReviewPath,
   } from '$lib/portal/billing-readiness';
   import { formatDecimalHours } from '$lib/portal/sections/time-entry-actions';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -1757,10 +1758,10 @@
                   <dd>{formatProjectDate(overview.schedule.effective_from)}</dd>
                 </div>
                 <div>
-                  <dt>{t('Weekday minutes')}</dt>
+                  <dt>{t('Weekday hours')}</dt>
                   <dd class="schedule-weekday-list">
                     {#each scheduleWeekdays as day}
-                      <span><strong>{day.label}</strong> {display(day.minutes, '0')}</span>
+                      <span><strong>{day.label}</strong> {hours(day.minutes)}</span>
                     {/each}
                   </dd>
                 </div>
@@ -1786,7 +1787,7 @@
               onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),
-                title: `${display(plan.worker_name)}${plan.planned_minutes == null ? '' : ` · ${display(plan.planned_minutes)} min`}`,
+                title: `${display(plan.worker_name)}${plan.planned_minutes == null ? '' : ` · ${hours(plan.planned_minutes)}`}`,
                 startsAt: String(plan.starts_at),
                 endsAt: plan.ends_at == null ? undefined : String(plan.ends_at),
                 href:
@@ -2571,13 +2572,13 @@
             >{t('Expected hours / day')}<input
               name="expectedHoursPerDay"
               type="number"
-              step="0.25"
+              step="0.0001"
               min="0"
               max="24"
               value={projectValue(
                 'expectedHoursPerDay',
                 project.expected_minutes_per_day != null
-                  ? Number((Number(project.expected_minutes_per_day) / 60).toFixed(2))
+                  ? decimalHoursFromMinutes(project.expected_minutes_per_day)
                   : '',
               )}
               required
@@ -2587,13 +2588,13 @@
             >{t('Client minimum hours')}<input
               name="clientDailyMinimumHours"
               type="number"
-              step="0.25"
+              step="0.0001"
               min="0"
               max="24"
               value={projectValue(
                 'clientDailyMinimumHours',
                 project.client_daily_minimum_minutes != null
-                  ? Number((Number(project.client_daily_minimum_minutes) / 60).toFixed(2))
+                  ? decimalHoursFromMinutes(project.client_daily_minimum_minutes)
                   : '',
               )}
             /></label

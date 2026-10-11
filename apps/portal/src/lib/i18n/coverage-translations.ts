@@ -2694,8 +2694,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Os orçamentos do projeto não podem ser negativos. Revise os valores.',
   ],
   'problem.project.laborBudgetInvalid': [
-    'Introduce los minutos presupuestados de mano de obra como un número entero no negativo.',
-    'Informe os minutos orçados de mão de obra como um número inteiro não negativo.',
+    'Introduce horas presupuestadas de mano de obra no negativas.',
+    'Informe horas orçadas de mão de obra não negativas.',
   ],
   'problem.project.costCenterFormat': [
     'Termina el código de centro de coste con dígitos para poder crear un número de proyecto.',
@@ -2722,8 +2722,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Cronogramas só são permitidos em projetos ativos, planejados ou pausados. Revise o status do projeto.',
   ],
   'problem.project.scheduleMinutesInvalid': [
-    'Introduce los minutos programados de cada día como un número entero de 0 a 1440.',
-    'Informe os minutos programados de cada dia como um número inteiro de 0 a 1.440.',
+    'Introduce las horas programadas de cada día entre 0 y 24.',
+    'Informe as horas programadas de cada dia entre 0 e 24.',
   ],
   'problem.assignment.unavailable': [
     'Esta asignación ya no está disponible. Revisa las asignaciones actuales del proyecto.',
@@ -2746,8 +2746,8 @@ const exact: Record<string, readonly [string, string]> = {
     'A remoção imediata não pode usar uma data de término futura. Escolha hoje ou uma data anterior.',
   ],
   'problem.assignment.plannedMinutesInvalid': [
-    'Introduce los minutos previstos como un número entero no negativo.',
-    'Informe os minutos planejados como um número inteiro não negativo.',
+    'Introduce horas planificadas no negativas.',
+    'Informe horas planejadas não negativas.',
   ],
   'problem.assignment.versionRequired': [
     'Esta asignación necesita una versión actual. Revísala antes de guardar.',
@@ -4038,12 +4038,12 @@ const exact: Record<string, readonly [string, string]> = {
     'Só o coordenador que registrou este rascunho pode descartá-lo.',
   ],
   'problem.supplier.minutesInvalid': [
-    'Los minutos deben ser un número entero de 0 a 1440.',
-    'Os minutos devem ser um número inteiro de 0 a 1440.',
+    'Introduce las horas reales entre 0 y 24.',
+    'Informe as horas reais entre 0 e 24.',
   ],
   'problem.supplier.breakInvalid': [
-    'Los minutos de descanso no son válidos.',
-    'Os minutos de intervalo não são válidos.',
+    'Introduce una pausa válida en horas decimales dentro del turno.',
+    'Informe um intervalo válido em horas decimais dentro do turno.',
   ],
   'problem.supplier.timeNotFound': [
     'Este registro de horas ya no está disponible. Revisa los borradores actuales.',
@@ -5068,8 +5068,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Selecione uma semana que comece na segunda-feira e revise os rascunhos antes de enviar.',
   ],
   'problem.time.minutesInvalid': [
-    'Introduce un número entero de minutos entre 0 y 1440.',
-    'Informe um número inteiro de minutos entre 0 e 1440.',
+    'Introduce las horas reales entre 0 y 24.',
+    'Informe as horas reais entre 0 e 24.',
   ],
   'problem.time.dailyLimit': [
     'Este trabajador ya tiene horas en el día seleccionado. El total no puede superar las 24 horas.',
@@ -5084,12 +5084,12 @@ const exact: Record<string, readonly [string, string]> = {
     'O horário de fim deve ser posterior ao de início no mesmo dia.',
   ],
   'problem.time.breakInvalid': [
-    'Los minutos de descanso deben ser un número entero dentro del turno.',
-    'Os minutos de intervalo devem ser um número inteiro dentro do turno.',
+    'Introduce una pausa válida en horas decimales dentro del turno.',
+    'Informe um intervalo válido em horas decimais dentro do turno.',
   ],
   'problem.time.durationMismatch': [
-    'Los minutos registrados deben coincidir con el tiempo entre el inicio y el fin, descontando el descanso.',
-    'Os minutos registrados devem corresponder ao tempo entre o início e o fim, descontando o intervalo.',
+    'Las horas registradas deben coincidir con el tiempo entre el inicio y el fin, descontando el descanso.',
+    'As horas registradas devem corresponder ao tempo entre o início e o fim, descontando o intervalo.',
   ],
   'problem.expense.submissionChanged': [
     'Este borrador cambió desde que lo abriste. Revisa el gasto actualizado antes de enviarlo.',
@@ -5917,8 +5917,8 @@ const exact: Record<string, readonly [string, string]> = {
     'A data deste relatório técnico tem uma origem diferente. Revise o relatório atual antes de salvar.',
   ],
   'problem.report.downtimeInvalid': [
-    'El tiempo de parada debe estar entre 0 y 1440 minutos. Revisa los minutos introducidos.',
-    'O tempo de parada deve ser de 0 a 1440 minutos. Revise os minutos informados.',
+    'El tiempo de parada debe estar entre 0 y 24 horas. Revisa las horas introducidas.',
+    'O tempo de parada deve ser de 0 a 24 horas. Revise as horas informadas.',
   ],
   'problem.report.submissionChanged': [
     'Este informe cambió desde que lo abriste. Revisa la versión actualizada antes de enviarlo.',
@@ -8271,8 +8271,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Informe um valor positivo com no máximo duas casas decimais.',
   ],
   'action.management.plannedMinutes': [
-    'Introduce los minutos planificados como un número entero entre 1 y 10080.',
-    'Informe os minutos planejados como um número inteiro entre 1 e 10080.',
+    'Introduce horas planificadas mayores que 0 y no superiores a 168.',
+    'Informe horas planejadas maiores que 0 e não superiores a 168.',
   ],
   'action.management.projectNotFound': [
     'El proyecto ya no está disponible. Selecciona un proyecto actual.',
@@ -8714,8 +8714,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'A data e hora de fim devem ser posteriores ao início.',
   ],
   'action.planning.invalidMinutes': [
-    'Introduce minutos planificados válidos para el turno.',
-    'Informe minutos planejados válidos para o turno.',
+    'Introduce horas planificadas entre 0 y 168.',
+    'Informe horas planejadas entre 0 e 168.',
   ],
   'action.planning.changed': [
     'Esta asignación cambió mientras la editabas. Recarga y vuelve a revisar sus datos.',
@@ -9122,7 +9122,7 @@ function englishActionMessage(key: string): string {
     'action.management.safetyEvidence':
       'This change affects safety. Complete the validation and rollback information before saving.',
     'action.management.amount': 'Enter a positive amount with no more than two decimal places.',
-    'action.management.plannedMinutes': 'Enter planned minutes as a whole number from 1 to 10080.',
+    'action.management.plannedMinutes': 'Enter planned hours greater than 0 and no more than 168.',
     'action.management.projectNotFound':
       'The project is no longer available. Select a current project.',
     'action.management.recordNotFound':
@@ -9291,7 +9291,7 @@ function englishActionMessage(key: string): string {
     'action.planning.workerOverlap': 'The worker already has an overlapping shift.',
     'action.planning.workerUnavailable': 'The worker is unavailable during this shift.',
     'action.planning.invalidWindow': 'The shift end must be after its start.',
-    'action.planning.invalidMinutes': 'Enter valid planned minutes for the shift.',
+    'action.planning.invalidMinutes': 'Enter planned hours between 0 and 168.',
     'action.planning.changed':
       'This assignment changed while you edited it. Reload and review it again.',
     'action.planning.alreadyCancelled': 'This assignment is already cancelled.',
@@ -9997,8 +9997,7 @@ const problemEnglish: Record<string, string> = {
     'The planned end date must be on or after the project start date. Review the dates.',
   'problem.project.budgetNegative':
     'Project budgets cannot be negative. Review the entered amounts.',
-  'problem.project.laborBudgetInvalid':
-    'Enter a non-negative whole number of labor budget minutes.',
+  'problem.project.laborBudgetInvalid': 'Enter non-negative labor budget hours.',
   'problem.project.costCenterFormat':
     'End the cost center code with digits so a project number can be created.',
   'problem.project.costCenterDuplicate':
@@ -10009,8 +10008,7 @@ const problemEnglish: Record<string, string> = {
   'problem.milestone.amountInvalid': 'Enter a milestone amount greater than zero.',
   'problem.project.scheduleBlockedStatus':
     'Schedules are allowed only for Active, Planned, or Paused projects. Review the project status.',
-  'problem.project.scheduleMinutesInvalid':
-    'Enter each day’s scheduled minutes as a whole number from 0 to 1,440.',
+  'problem.project.scheduleMinutesInvalid': 'Enter each day’s scheduled hours from 0 to 24.',
   'problem.assignment.unavailable':
     'This assignment is no longer available. Review the current project assignments.',
   'problem.assignment.startDateInvalid':
@@ -10021,8 +10019,7 @@ const problemEnglish: Record<string, string> = {
     'The assignment end date must be on or after its start date. Review the dates.',
   'problem.assignment.removalFutureDate':
     'Immediate removal cannot use a future end date. Choose today or an earlier date.',
-  'problem.assignment.plannedMinutesInvalid':
-    'Enter planned minutes as a non-negative whole number.',
+  'problem.assignment.plannedMinutesInvalid': 'Enter non-negative planned hours.',
   'problem.assignment.versionRequired':
     'This assignment needs a current version. Review it before saving.',
   'problem.project.initialWorkerLimit': 'Select no more than 100 workers when creating a project.',
@@ -10502,8 +10499,8 @@ const problemEnglish: Record<string, string> = {
   'problem.supplier.accountRoleChanged': 'Account role changed',
   'problem.supplier.draftRecorderRequired':
     'Only the coordinator who recorded this draft may discard it',
-  'problem.supplier.minutesInvalid': 'Minutes must be an integer from 0 to 1440',
-  'problem.supplier.breakInvalid': 'Break minutes are invalid',
+  'problem.supplier.minutesInvalid': 'Enter actual hours between 0 and 24.',
+  'problem.supplier.breakInvalid': 'Enter a valid break in decimal hours within the shift.',
   'problem.supplier.timeNotFound':
     'This time entry is no longer available. Review the current drafts.',
   'problem.supplier.timeCorrectionStale': 'Returned correction changed before retry',
@@ -11487,14 +11484,14 @@ const problemEnglish: Record<string, string> = {
     'The batch contains more than one entry for a day. Keep one entry per day and save again.',
   'problem.time.weekStartInvalid':
     'Select a week that starts on Monday, then review its drafts before submitting.',
-  'problem.time.minutesInvalid': 'Enter a whole number of minutes between 0 and 1440.',
+  'problem.time.minutesInvalid': 'Enter actual hours between 0 and 24.',
   'problem.time.dailyLimit':
     'This worker already has time on the selected day. Total time cannot exceed 24 hours.',
   'problem.time.intervalIncomplete': 'Enter both start and end time, or leave both empty.',
   'problem.time.intervalOrderInvalid': 'End time must be later than start time on the same day.',
-  'problem.time.breakInvalid': 'Break minutes must be a whole number within the shift.',
+  'problem.time.breakInvalid': 'Enter a valid break in decimal hours within the shift.',
   'problem.time.durationMismatch':
-    'Recorded minutes must equal the time between start and end, less the break.',
+    'Recorded hours must equal the time between start and end, less the break.',
   'problem.expense.submissionChanged':
     'This draft changed since you opened it. Review the updated expense before submitting.',
   'problem.expense.submissionNotDraft':
@@ -11880,7 +11877,7 @@ const problemEnglish: Record<string, string> = {
   'problem.report.dateProvenanceChanged':
     'This technical report date has a different source. Review the current report before saving.',
   'problem.report.downtimeInvalid':
-    'Downtime must be between 0 and 1440 minutes. Review the entered minutes.',
+    'Downtime must be between 0 and 24 hours. Review the entered hours.',
   'problem.report.submissionChanged':
     'This report changed since you opened it. Review the updated version before submitting.',
   'problem.report.submissionStateBlocked':

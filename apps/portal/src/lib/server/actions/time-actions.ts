@@ -127,7 +127,7 @@ const timeFieldProblems: Record<string, TimeFieldProblem> = {
   minutes: {
     code: 'TIME_MINUTES_INVALID',
     key: 'problem.time.minutesInvalid',
-    message: 'Enter a whole number of minutes between 0 and 1440.',
+    message: 'Enter actual hours between 0 and 24.',
   },
   startTime: {
     code: 'TIME_INTERVAL_INCOMPLETE',
@@ -142,7 +142,7 @@ const timeFieldProblems: Record<string, TimeFieldProblem> = {
   breakMinutes: {
     code: 'TIME_BREAK_INVALID',
     key: 'problem.time.breakInvalid',
-    message: 'Break minutes must be a whole number within the shift.',
+    message: 'Enter a valid break in decimal hours within the shift.',
   },
   id: {
     code: 'TIME_RECORD_INVALID',
@@ -536,7 +536,7 @@ const timeProblems: Record<string, TimeProblem> = {
     status: 400,
     code: 'TIME_MINUTES_INVALID',
     key: 'problem.time.minutesInvalid',
-    message: 'Enter a whole number of minutes between 0 and 1440.',
+    message: 'Enter actual hours between 0 and 24.',
     field: 'minutes',
     remedy: 'review_time',
   },
@@ -568,7 +568,7 @@ const timeProblems: Record<string, TimeProblem> = {
     status: 400,
     code: 'TIME_BREAK_INVALID',
     key: 'problem.time.breakInvalid',
-    message: 'Break minutes must be a whole number within the shift.',
+    message: 'Enter a valid break in decimal hours within the shift.',
     field: 'breakMinutes',
     remedy: 'review_time',
   },
@@ -576,7 +576,7 @@ const timeProblems: Record<string, TimeProblem> = {
     status: 400,
     code: 'TIME_BREAK_INVALID',
     key: 'problem.time.breakInvalid',
-    message: 'Break minutes must be a whole number within the shift.',
+    message: 'Enter a valid break in decimal hours within the shift.',
     field: 'breakMinutes',
     remedy: 'review_time',
   },
@@ -584,7 +584,7 @@ const timeProblems: Record<string, TimeProblem> = {
     status: 400,
     code: 'TIME_DURATION_MISMATCH',
     key: 'problem.time.durationMismatch',
-    message: 'Recorded minutes must equal the time between start and end, less the break.',
+    message: 'Recorded hours must equal the time between start and end, less the break.',
     field: 'minutes',
     remedy: 'review_time',
   },

@@ -353,8 +353,8 @@
       "overflows": [],
       "instructionBlocks": 245,
       "instructionText": "PASS",
-      "bytes": 2143390,
-      "sha256": "4a1fdf370382653f59ddf73b43a8c9508a25353b0f8b79a0262fec38191ecec2",
+      "bytes": 2143438,
+      "sha256": "0ec1e70f9da14ca310ed70f061e1ec2e96cf99b42bc5816df03dd81c5bd4c391",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -637,8 +637,8 @@
       "overflows": [],
       "instructionBlocks": 206,
       "instructionText": "PASS",
-      "bytes": 3240064,
-      "sha256": "2109f97606efff39a05ea1efa5f24d070c1132709b917b84a91247eb91ac88fc",
+      "bytes": 3240436,
+      "sha256": "f72a2c4908f345e1789834b6da36d2b4fbfa6c28546d538481efb5c80fc98643",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -942,8 +942,8 @@
       "overflows": [],
       "instructionBlocks": 292,
       "instructionText": "PASS",
-      "bytes": 1715538,
-      "sha256": "c8575c50bf298148bf1b7c3ae49d8688e851b7af062a7b1729cc8b9aef3df1b5",
+      "bytes": 1715526,
+      "sha256": "8cb3e615e1bb5b1d63adccf8dc6095356ce4123ab489ed3a30260dfb3c2b1bc6",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -1240,8 +1240,8 @@
       "overflows": [],
       "instructionBlocks": 297,
       "instructionText": "PASS",
-      "bytes": 4371883,
-      "sha256": "56e662fde138750344e747823fea23f462b1081e8724d011c18b9f453b763eff",
+      "bytes": 4372557,
+      "sha256": "4a44f5ae9b2ce3864b4873bad27c35bb3ccc66587f51349dbd95420c6a21e915",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2075,8 +2075,8 @@
       "overflows": [],
       "instructionBlocks": 656,
       "instructionText": "PASS",
-      "bytes": 9515870,
-      "sha256": "175a0438fd29b13ae140f2c13121174ab8f4efdd0a6513d50617f7ec90c87c44",
+      "bytes": 9515911,
+      "sha256": "ae772723eef1cbe88edefc1d1f97856c1c375d6b3a1aa31c0dfd0301e2df28b9",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2728,8 +2728,8 @@
       "overflows": [],
       "instructionBlocks": 213,
       "instructionText": "PASS",
-      "bytes": 3653105,
-      "sha256": "d58cc367637a15c226211ded2d701ff532f32b61f807efe94a64ffea72785e92",
+      "bytes": 3653118,
+      "sha256": "e0c5ffecba3ea8fe3c7ee189b2c6417bed0901c7a80099ba7487232e8a61d4d0",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -3030,8 +3030,8 @@
       "overflows": [],
       "instructionBlocks": 276,
       "instructionText": "PASS",
-      "bytes": 3359628,
-      "sha256": "ed8371d9d95666b7b58b492dc1c928f12094573b679247794bdc60afed7f9437",
+      "bytes": 3359925,
+      "sha256": "4f0138cb8424dff217ab353f3cbaad963f3a099a18e1341cdd486a1a1b3452da",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",

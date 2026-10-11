@@ -151,9 +151,9 @@ describe('Client Essential Worker statement allowlist', () => {
     ).not.toThrow();
   });
 
-  it('adds interval CSV columns only for actual clocks while preserving net minutes and legacy headers', () => {
+  it('exports decimal-hour duration columns and includes clocks only when actually recorded', () => {
     const legacy = Buffer.from(workerStatementCsv(snapshot)).toString('utf8');
-    expect(legacy.split('\n')[0]).not.toMatch(/startTime|endTime|breakMinutes/u);
+    expect(legacy.split('\n')[0]).not.toMatch(/startTime|endTime|breakHours/u);
     const timed = {
       ...snapshot,
       activities: snapshot.activities.map((row) => ({
@@ -164,10 +164,28 @@ describe('Client Essential Worker statement allowlist', () => {
       })),
     };
     const csv = Buffer.from(workerStatementCsv(timed)).toString('utf8');
-    expect(csv.split('\n')[0]).toMatch(/startTime,endTime,breakMinutes/u);
-    expect(csv).toContain('08:15,16:15,60');
-    expect(csv).toContain('420');
+    expect(csv.split('\n')[0]).toMatch(/startTime,endTime,breakHours/u);
+    expect(csv).toContain('08:15,16:15,1.00');
+    expect(csv).toContain(',7.00,');
+    expect(csv.split('\n')[0]).not.toMatch(/minutes/i);
     expect(csv).not.toMatch(/clientRate|internalCost|margin/u);
+  });
+
+  it('keeps short durations recoverable from the exported hours', () => {
+    for (const [minutes, hours] of [
+      [1, '0.0167'],
+      [7, '0.1167'],
+      [450, '7.50'],
+    ] as const) {
+      const csv = Buffer.from(
+        workerStatementCsv({
+          ...snapshot,
+          activities: snapshot.activities.map((row) => ({ ...row, actualMinutes: minutes })),
+        }),
+      ).toString('utf8');
+      expect(csv).toContain(`,${hours},`);
+      expect(csv.split('\n')[0]).not.toMatch(/minutes/i);
+    }
   });
 
   it('exports own activity and expected/actual timelines using exact money strings', () => {
@@ -175,7 +193,8 @@ describe('Client Essential Worker statement allowlist', () => {
 
     expect(csv).toContain('time_activity');
     expect(csv).toContain('Validated the line');
-    expect(csv).toContain('420');
+    expect(csv).toContain(',7.00,');
+    expect(csv.split('\n')[0]).not.toMatch(/minutes/i);
     expect(csv).toContain('2026-09-05');
     expect(csv).toContain('2026-09-06');
     expect(csv).toContain('123456789012345678');

@@ -43,7 +43,7 @@
         "Use Find a task for allowed supplier destinations. If Digital workers offers Continue in the supplier workspace, follow that link to the established team controls."
       ],
       "checks": [
-        "Team entry has the intended people/date and actual minutes; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage."
+        "Team entry has the intended people/date and actual hours; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage."
       ],
       "recovery": [
         "For a missing person or date guard, ask the Owner to correct the real supplier authorization/assignment. Do not enter the work under another identity."

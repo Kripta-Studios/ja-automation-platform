@@ -764,7 +764,12 @@ function metricDisplay(
 ): string {
   const normalized = key.toLowerCase();
   if (normalized.includes('minor')) return exactMoneyText(currency, value, locale);
-  if (normalized.includes('minutes')) return formatReportInteger(value, locale);
+  if (normalized.includes('minutes')) {
+    const hours = minutesAsHours(value);
+    return hours
+      ? `${new Intl.NumberFormat(localeTag(locale), { maximumFractionDigits: 4 }).format(Number(hours))} h`
+      : '';
+  }
   if (normalized.includes('bps')) {
     const bps = Number(value ?? 0);
     if (Number.isFinite(bps))
@@ -843,6 +848,17 @@ export function accountingPackXlsx(
     { amount: 'internalLoadedLaborCost', minor: 'internalLoadedLaborCostMinor' },
     { amount: 'reimbursement', minor: 'reimbursementMinor' },
   ]);
+  const workerHourRows = workerCosts.map((row) => {
+    const output: Record<string, Cell> = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (key.endsWith('Minutes')) output[key.slice(0, -7) + 'Hours'] = minutesAsHours(value);
+      else if (key.endsWith('_minutes'))
+        output[key.slice(0, -8) + '_hours'] = minutesAsHours(value);
+      else if (key === 'minutes') output.hours = minutesAsHours(value);
+      else output[key] = value;
+    }
+    return output;
+  });
   const expenseRegister = withAccountingAmounts(snapshot.expenseRegister, [
     { amount: 'amount', minor: 'amountMinor' },
     { amount: 'tax', minor: 'taxMinor' },
@@ -912,12 +928,12 @@ export function accountingPackXlsx(
     },
     {
       name: 'Worker direct costs',
-      rows: workerCosts,
+      rows: workerHourRows,
       headerLabels: {
         worker: 'Worker',
         project: 'Project number',
         currency: 'Project currency',
-        actualApprovedMinutes: 'Approved work minutes',
+        actualApprovedHours: 'Approved work hours',
         approvedCompensation: 'Calculated worker compensation',
         settledCompensation: 'Worker compensation paid',
         internalLoadedLaborCost: 'Internal labor cost',
@@ -929,11 +945,11 @@ export function accountingPackXlsx(
         missingCostRuleCount: 'Missing cost rules',
       },
       numericColumns: [
-        'actualApprovedMinutes',
-        'regularMinutes',
-        'standbyMinutes',
-        'overtimeMinutes',
-        'travelMinutes',
+        'actualApprovedHours',
+        'regularHours',
+        'standbyHours',
+        'overtimeHours',
+        'travelHours',
         'missingCostRuleCount',
         'approvedCompensation',
         'settledCompensation',
@@ -1060,9 +1076,7 @@ export function projectFinanceXlsx(
         'date',
         'category',
         'actualHours',
-        'actualMinutes',
         'billableHours',
-        'billableMinutes',
         'clientRevenue',
         'internalCost',
         'workerCompensation',
@@ -1079,9 +1093,7 @@ export function projectFinanceXlsx(
         date: 'Work date',
         category: 'Time category',
         actualHours: 'Hours recorded',
-        actualMinutes: 'Minutes recorded',
         billableHours: 'Hours eligible to charge client',
-        billableMinutes: 'Minutes eligible to charge client',
         clientRevenue: 'Potential amount to charge client',
         internalCost: 'Calculated internal labor cost',
         workerCompensation: 'Calculated worker compensation',
@@ -1095,9 +1107,7 @@ export function projectFinanceXlsx(
       },
       numericColumns: [
         'actualHours',
-        'actualMinutes',
         'billableHours',
-        'billableMinutes',
         'clientRevenue',
         'internalCost',
         'workerCompensation',
@@ -1207,23 +1217,15 @@ export function projectFinanceXlsx(
     {
       name: labels.minimumSheet,
       rows: projectFinanceMinimumRows(finance.dailyMinimumAdjustments, currency, locale),
-      columns: [
-        'workerId',
-        'date',
-        'adjustmentHours',
-        'adjustmentMinutes',
-        'revenue',
-        'revenueExactMinor',
-      ],
+      columns: ['workerId', 'date', 'adjustmentHours', 'revenue', 'revenueExactMinor'],
       headerLabels: {
         workerId: 'Worker ID',
         date: 'Work date',
         adjustmentHours: 'Extra billable hours from daily minimum',
-        adjustmentMinutes: 'Extra billable minutes from daily minimum',
         revenue: 'Potential client charge from daily minimum',
         revenueExactMinor: 'Daily minimum charge (minor units)',
       },
-      numericColumns: ['adjustmentHours', 'adjustmentMinutes', 'revenue'],
+      numericColumns: ['adjustmentHours', 'revenue'],
       dateColumns: ['date'],
       moneyColumns: ['revenue'],
     },
@@ -1414,15 +1416,19 @@ function projectFinanceCopy(locale: ReportLocale): ProjectFinanceCopy {
 }
 
 function minutesAsHours(value: unknown): string {
-  const minutes = Number(value);
-  if (!Number.isInteger(minutes)) return '';
-  const sign = minutes < 0 ? '-' : '';
-  const absolute = Math.abs(minutes);
-  const hours = Math.trunc(absolute / 60);
-  const remainder = absolute % 60;
-  const hundredths = Math.round((remainder * 100) / 60);
-  if (hundredths === 100) return `${sign}${hours + 1}.00`;
-  return `${sign}${hours}.${String(hundredths).padStart(2, '0')}`;
+  if (value === null || value === undefined || String(value).trim() === '') return '';
+  if (typeof value === 'number' && !Number.isSafeInteger(value)) return '';
+  const raw = String(value).trim();
+  if (!/^-?\d+$/u.test(raw)) return '';
+  const minutes = BigInt(raw);
+  const absolute = minutes < 0n ? -minutes : minutes;
+  const scaled = (absolute * 10_000n + 30n) / 60n;
+  const fraction = (scaled % 10_000n)
+    .toString()
+    .padStart(4, '0')
+    .replace(/0+$/u, '')
+    .padEnd(2, '0');
+  return `${minutes < 0n ? '-' : ''}${scaled / 10_000n}.${fraction}`;
 }
 
 function formatBpsExact(value: unknown): string {
@@ -1979,11 +1985,8 @@ const workerStatementColumns = [
   'amount',
   'amountMinor',
   'actualHours',
-  'actualMinutes',
   'approvedHours',
-  'approvedMinutes',
   'pendingHours',
-  'pendingMinutes',
   'approvalState',
   'paymentStatus',
   'expectedPaymentOn',
@@ -2124,6 +2127,8 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
     amountMeaning: meanings[String(row.recordType ?? '')] ?? '',
     amount: majorAmountCell(String(row.currency ?? ''), row.amountMinor, 'en'),
     actualHours: row.actualMinutes == null ? '' : minutesAsHours(row.actualMinutes),
+    breakHours:
+      row.breakMinutes == null || row.breakMinutes === '' ? '' : minutesAsHours(row.breakMinutes),
     approvedHours: row.approvedMinutes == null ? '' : minutesAsHours(row.approvedMinutes),
     pendingHours: row.pendingMinutes == null ? '' : minutesAsHours(row.pendingMinutes),
   }));
@@ -2131,7 +2136,7 @@ function workerStatementRows(snapshot: WorkerStatementSnapshot): readonly Row[] 
 
 export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Array {
   const columns = snapshot.activities.some((activity) => actualTimeInterval(activity))
-    ? [...workerStatementColumns, 'startTime', 'endTime', 'breakMinutes']
+    ? [...workerStatementColumns, 'startTime', 'endTime', 'breakHours']
     : workerStatementColumns;
   return new TextEncoder().encode(
     toCsv(workerStatementRows(snapshot), columns, {
@@ -2139,12 +2144,9 @@ export function workerStatementCsv(snapshot: WorkerStatementSnapshot): Uint8Arra
         'amountMinor',
         'amount',
         'actualHours',
-        'actualMinutes',
         'approvedHours',
-        'approvedMinutes',
         'pendingHours',
-        'pendingMinutes',
-        'breakMinutes',
+        'breakHours',
       ],
     }),
   );
@@ -2974,7 +2976,7 @@ export function accountingPackHtml(
   const workerRows = workerSource.map((row) => [
     row.worker,
     row.project,
-    `${row.hours.toFixed(2)} h`,
+    `${row.hours.toLocaleString(localeTag(locale), { minimumFractionDigits: 2, maximumFractionDigits: 4, useGrouping: false })} h`,
     knownMoney(row.currency, row.amount),
   ]);
   const totalWorkerHours = workerSource.reduce((acc, row) => acc + row.hours, 0);
@@ -3111,7 +3113,7 @@ export function accountingPackHtml(
             ? [
                 copy.total,
                 '',
-                `${totalWorkerHours.toFixed(2)} h`,
+                `${totalWorkerHours.toLocaleString(localeTag(locale), { minimumFractionDigits: 2, maximumFractionDigits: 4, useGrouping: false })} h`,
                 registerTotal(
                   snapshot.workerCosts,
                   workerSource.map((row) => row.amount),
@@ -3211,7 +3213,7 @@ export function periodReportHtml(
   const hours = (minutes: unknown): string =>
     (Number(minutes ?? 0) / 60).toLocaleString(localeTag(locale), {
       minimumFractionDigits: 1,
-      maximumFractionDigits: 1,
+      maximumFractionDigits: 4,
     });
   const moneyMetric = (label: string, value: unknown): string =>
     `<div class="metric" data-report-field="commercialSources"><span class="muted">${htmlEscape(label)}</span><strong>${value === null || value === undefined || value === '' ? '—' : moneyText(currency, value, locale)}</strong></div>`;
@@ -3679,7 +3681,7 @@ export function dailyReportHtml(snapshot: DailyReportSnapshot): string {
     ),
     reportField(
       copy.downtimeMinutes,
-      reportNarrative(snapshot, 'downtimeMinutes', 'downtime_minutes'),
+      minutesAsHours(snapshot.downtimeMinutes ?? snapshot.downtime_minutes),
       'downtimeMinutes',
     ),
     reportField(

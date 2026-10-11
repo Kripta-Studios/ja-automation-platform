@@ -2,6 +2,7 @@
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { onMount } from 'svelte';
   import { portalText } from '../../portal-i18n';
+  import { decimalHoursFromMinutes } from '../minute-hours';
   import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
   import OwnerFinanceDashboard from './OwnerFinanceDashboard.svelte';
   import type { PortalData, PortalRow } from '../portal-data';
@@ -45,15 +46,8 @@
 
   const formatPlanningMinutes = (value: unknown): string | null => {
     if (value == null || value === '') return null;
-    const minutes = typeof value === 'number' ? value : Number(value);
-    if (!Number.isFinite(minutes) || minutes < 0) return null;
-
-    const wholeMinutes = Math.floor(minutes);
-    const hours = Math.floor(wholeMinutes / 60);
-    const remainingMinutes = wholeMinutes % 60;
-    if (hours === 0) return `${remainingMinutes} min`;
-    if (remainingMinutes === 0) return `${hours} h`;
-    return `${hours} h ${remainingMinutes} min`;
+    const hours = decimalHoursFromMinutes(value);
+    return hours === '—' ? null : `${hours} h`;
   };
 
   let agendaDate = $state(new Date());
@@ -139,7 +133,7 @@
   <div class="finance-grid dashboard-metrics">
     <a class="metric" href={`${base}/app/time`}>
       <span>{translate('RECORDED HOURS')}</span><strong
-        >{(data.dashboard.actualMinutes / 60).toFixed(1)}</strong
+        >{decimalHoursFromMinutes(data.dashboard.actualMinutes)} h</strong
       >
       <p>{translate('Approved and submitted field time')}</p>
     </a>

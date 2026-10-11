@@ -13,6 +13,8 @@
   import LocalDictation from '$lib/portal/local-dictation/LocalDictation.svelte';
   import LocalDocumentText from '$lib/portal/local-document-text/LocalDocumentText.svelte';
   import { expenseCategories } from '$lib/portal/expense-categories';
+  import { minutesToProjectHours } from '$lib/portal/sections/project-budget-input';
+  import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
   import type { PageData, ActionData } from './$types';
 
   export let data: PageData;
@@ -73,14 +75,16 @@
       summary: 'What work happened?',
       time: 'Create time draft',
       category: 'Category',
-      minutes: 'Actual minutes worked',
+      minutes: 'Actual hours worked',
+      hoursInvalid: 'Enter more than 0 and no more than 24 hours.',
       report: 'Create daily report draft',
       tasks: 'Tasks completed',
       site: 'Site / shift',
       problems: 'Problems found',
       corrective: 'Corrective actions',
       decisions: 'Client decisions',
-      downtime: 'Downtime minutes',
+      downtime: 'Downtime hours',
+      downtimeHoursInvalid: 'Enter between 0 and 24 hours.',
       standby: 'Standby reason',
       blockers: 'Blockers',
       open: 'Open items',
@@ -103,7 +107,7 @@
       supplier:
         'Use the existing supplier time and report workflow for supplier coordinated entries.',
       needOne: 'Choose at least one draft.',
-      noDefault: 'Enter actual minutes. No planned or minimum hours are used.',
+      noDefault: 'Enter actual hours. No planned or minimum hours are used.',
       recovered: 'Recovered a draft saved on this device.',
       offline:
         'This is stored on this device only. Server authorization is checked when you create drafts.',
@@ -125,14 +129,16 @@
       summary: '¿Qué trabajo se realizó?',
       time: 'Crear borrador de tiempo',
       category: 'Categoría',
-      minutes: 'Minutos reales trabajados',
+      minutes: 'Horas reales trabajadas',
+      hoursInvalid: 'Introduce más de 0 y hasta 24 horas.',
       report: 'Crear borrador de informe diario',
       tasks: 'Tareas completadas',
       site: 'Lugar / turno',
       problems: 'Problemas encontrados',
       corrective: 'Acciones correctivas',
       decisions: 'Decisiones del cliente',
-      downtime: 'Minutos de parada',
+      downtime: 'Horas de parada',
+      downtimeHoursInvalid: 'Introduce entre 0 y 24 horas.',
       standby: 'Motivo de espera',
       blockers: 'Bloqueos',
       open: 'Pendientes',
@@ -155,7 +161,7 @@
       supplier:
         'Usa el flujo existente de tiempo e informes de proveedores para registros coordinados.',
       needOne: 'Elige al menos un borrador.',
-      noDefault: 'Introduce minutos reales. No se usan horas previstas ni mínimas.',
+      noDefault: 'Introduce las horas reales. No se usan horas previstas ni mínimas.',
       recovered: 'Se recuperó un borrador de este dispositivo.',
       offline:
         'Solo se guarda en este dispositivo. La autorización se comprueba al crear los borradores.',
@@ -177,14 +183,16 @@
       summary: 'Que trabalho foi realizado?',
       time: 'Criar rascunho de tempo',
       category: 'Categoria',
-      minutes: 'Minutos reais trabalhados',
+      minutes: 'Horas reais trabalhadas',
+      hoursInvalid: 'Introduza mais de 0 e até 24 horas.',
       report: 'Criar rascunho de relatório diário',
       tasks: 'Tarefas concluídas',
       site: 'Local / turno',
       problems: 'Problemas encontrados',
       corrective: 'Ações corretivas',
       decisions: 'Decisões do cliente',
-      downtime: 'Minutos de paragem',
+      downtime: 'Horas de inatividade',
+      downtimeHoursInvalid: 'Introduza entre 0 e 24 horas.',
       standby: 'Motivo de espera',
       blockers: 'Impedimentos',
       open: 'Itens em aberto',
@@ -207,7 +215,7 @@
       supplier:
         'Use o fluxo existente de tempo e relatórios de fornecedores para entradas coordenadas.',
       needOne: 'Escolha pelo menos um rascunho.',
-      noDefault: 'Introduza minutos reais. Não são usadas horas planeadas ou mínimas.',
+      noDefault: 'Introduza as horas reais. Não são usadas horas planeadas ou mínimas.',
       recovered: 'Rascunho recuperado deste dispositivo.',
       offline: 'Guardado apenas neste dispositivo. A autorização é verificada ao criar rascunhos.',
       retry: 'Se um pedido falhar após o envio, repita com a mesma chave e os mesmos factos.',
@@ -227,7 +235,7 @@
     [t.problems, problemsFound],
     [t.corrective, correctiveActions],
     [t.decisions, clientDecisions],
-    [t.downtime, String(downtimeMinutes)],
+    [t.downtime, `${minutesToProjectHours(downtimeMinutes)} h`],
     [t.standby, standbyReason],
     [t.blockers, blockers],
     [t.open, openItems],
@@ -476,13 +484,13 @@
                     required
                   /></label
                 ><label
-                  >{t.minutes}<input
+                  >{t.minutes}<DecimalHoursInput
                     name="minutes"
-                    type="number"
-                    min="1"
-                    max="1440"
-                    step="1"
                     bind:value={minutes}
+                    label={t.minutes}
+                    minMinutes={1}
+                    maxMinutes={1440}
+                    invalidMessage={t.hoursInvalid}
                     required
                   /></label
                 >
@@ -506,13 +514,13 @@
               >
               <div class="grid">
                 <label>{t.site}<input name="siteShift" bind:value={siteShift} /></label><label
-                  >{t.downtime}<input
+                  >{t.downtime}<DecimalHoursInput
                     name="downtimeMinutes"
-                    type="number"
-                    min="0"
-                    max="1440"
-                    step="1"
                     bind:value={downtimeMinutes}
+                    label={t.downtime}
+                    minMinutes={0}
+                    maxMinutes={1440}
+                    invalidMessage={t.downtimeHoursInvalid}
                     required
                   /></label
                 >
@@ -603,7 +611,7 @@
                   <dt>{t.category}</dt>
                   <dd>{timeCategory}</dd>
                   <dt>{t.minutes}</dt>
-                  <dd>{minutes}</dd>
+                  <dd>{minutesToProjectHours(minutes)} h</dd>
                 </dl>{/if}
               {#if includeReport}<h3>{t.report}</h3>
                 <dl class="review-facts">

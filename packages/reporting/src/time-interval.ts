@@ -33,7 +33,7 @@ export function actualTimeInterval(
   const pause = row.breakMinutes;
   return `${row.startTime}–${row.endTime}${
     typeof pause === 'number' && Number.isSafeInteger(pause) && pause >= 0
-      ? ` · ${labels[normalizeReportLocale(locale)]}: ${pause} min`
+      ? ` · ${labels[normalizeReportLocale(locale)]}: ${String(Number((pause / 60).toFixed(4)))} h`
       : ''
   }`;
 }

@@ -8,8 +8,16 @@ export function supplierCsv(rows: unknown[][]): string {
   return '\uFEFF' + rows.map((row) => row.map(supplierCsvCell).join(',')).join('\r\n') + '\r\n';
 }
 
-/** Decimal display for CSV readers; the adjacent exact-minute column remains authoritative. */
+/** Decimal hours with enough precision to round-trip each canonical whole minute. */
 export function supplierHoursFromMinutes(value: unknown): string {
+  if (value === null || value === undefined || String(value).trim() === '') return '';
   const minutes = Number(value);
-  return Number.isSafeInteger(minutes) && minutes >= 0 ? (minutes / 60).toFixed(2) : '';
+  if (!Number.isSafeInteger(minutes) || minutes < 0) return '';
+  const scaled = (BigInt(minutes) * 10_000n + 30n) / 60n;
+  const fraction = (scaled % 10_000n)
+    .toString()
+    .padStart(4, '0')
+    .replace(/0+$/u, '')
+    .padEnd(2, '0');
+  return `${scaled / 10_000n}.${fraction}`;
 }

@@ -89,6 +89,7 @@
   } from './portal/sections/ProjectSection.svelte';
   import ExpertiseWorkerSelect from './portal/sections/ExpertiseWorkerSelect.svelte';
   import ProjectBudgetInput from './portal/sections/ProjectBudgetInput.svelte';
+  import DecimalHoursInput from './portal/ui/DecimalHoursInput.svelte';
   import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
   import { projectUxText, projectTimezoneSuggestions } from '$lib/portal/project-ux-copy';
   import ApprovalSection from './portal/sections/ApprovalSection.svelte';
@@ -116,6 +117,7 @@
     hours,
     initials,
   } from './portal/portal-format';
+  import { decimalHoursFromMinutes } from './portal/minute-hours';
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
   import {
@@ -426,6 +428,10 @@
       default:
         return portalText(locale, value);
     }
+  };
+  const hoursFromMinutes = (minutes: unknown): string => {
+    const value = decimalHoursFromMinutes(minutes);
+    return value === '—' ? value : `${value} h`;
   };
   const projectUx = (
     key: Parameters<typeof projectUxText>[1],
@@ -1493,6 +1499,26 @@
   const planningEditValue = (row: Row, field: string, fallback: unknown): string =>
     planningEditForms[planningEditKey(row)]?.[field] ??
     planningUpdateValue(field, String(row.id), fallback);
+  function mapDecimalHourNames(
+    formElement: HTMLFormElement,
+    fieldErrors: Readonly<Record<string, unknown>>,
+  ): () => void {
+    const mapped: Array<{ input: HTMLInputElement; originalName: string }> = [];
+    for (const field of Object.keys(fieldErrors)) {
+      const input = Array.from(formElement.querySelectorAll<HTMLInputElement>('input[name]')).find(
+        (candidate) =>
+          candidate.name === `${field}Hours` &&
+          candidate.type !== 'hidden' &&
+          candidate.getClientRects().length > 0,
+      );
+      if (!input) continue;
+      mapped.push({ input, originalName: input.name });
+      input.name = field;
+    }
+    return () => {
+      for (const { input, originalName } of mapped) input.name = originalName;
+    };
+  }
   const rememberPlanningEdit = (row: Row, form: HTMLFormElement): void => {
     planningEditorsExpanded[planningEditKey(row)] = true;
     planningEditForms[planningEditKey(row)] = Object.fromEntries(
@@ -1870,19 +1896,13 @@
       const target =
         matching.find((candidate) => candidate.closest('details')?.open) ?? matching[0];
       if (target && Object.keys(fieldErrors).length) {
-        // ProjectBudgetInput submits a hidden minute value while its visible hours input has
-        // no name. Give the visible control the server field name only while attaching errors.
-        const plannedHoursInput =
-          operation === 'createPlanning' && fieldErrors.plannedMinutes
-            ? target
-                .querySelector<HTMLInputElement>('input[type="hidden"][name="plannedMinutes"]')
-                ?.parentElement?.querySelector<HTMLInputElement>('input:not([type="hidden"])')
-            : null;
-        if (plannedHoursInput) plannedHoursInput.name = 'plannedMinutes';
+        // The decimal-hours component submits canonical minutes through a hidden field. Map
+        // its visible input to that field name only while attaching the server error.
+        const restoreNames = mapDecimalHourNames(target, fieldErrors);
         try {
           reportFormFieldErrors(target, fieldErrors);
         } finally {
-          plannedHoursInput?.removeAttribute('name');
+          restoreNames();
         }
       }
       requestAnimationFrame(() =>
@@ -2076,8 +2096,14 @@
       scheduleFormResult?.success === false &&
       scheduleFormResult.fieldErrors &&
       ownerScheduleForm
-    )
-      reportFormFieldErrors(ownerScheduleForm, scheduleFormResult.fieldErrors);
+    ) {
+      const restoreNames = mapDecimalHourNames(ownerScheduleForm, scheduleFormResult.fieldErrors);
+      try {
+        reportFormFieldErrors(ownerScheduleForm, scheduleFormResult.fieldErrors);
+      } finally {
+        restoreNames();
+      }
+    }
   });
   type AssignmentFormResult = {
     actionName?: string;
@@ -4707,7 +4733,7 @@
                 )}</strong
               >
               {#if currencyApprovedMinutes !== null}
-                <p>{currencyApprovedMinutes} {translate('approved minutes')}</p>
+                <p>{translate('Approved hours')}: {hoursFromMinutes(currencyApprovedMinutes)}</p>
               {/if}
             </a>
             <a href="{base}/app/expenses" class="metric metric-link">
@@ -4925,7 +4951,7 @@
                       {/if}
                       {hours(activity.actualMinutes ?? 0)}
                       {#if Number(activity.breakMinutes ?? 0) > 0}
-                        · {translate('Break')}: {String(activity.breakMinutes)} {translate('min')}
+                        · {translate('Break')}: {hoursFromMinutes(activity.breakMinutes)}
                       {/if}
                     </td>
                     <td>{controlledValue('status', activity.approvalState)}</td>
@@ -6900,65 +6926,93 @@
                     /></label
                   >
                   <label
-                    >{translate('Mon minutes')}<input
+                    >{translate('Mon hours')}<DecimalHoursInput
+                      id="schedule-monday-hours"
+                      label={translate('Mon hours')}
                       name="mondayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'mondayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Tue minutes')}<input
+                    >{translate('Tue hours')}<DecimalHoursInput
+                      id="schedule-tuesday-hours"
+                      label={translate('Tue hours')}
                       name="tuesdayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'tuesdayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Wed minutes')}<input
+                    >{translate('Wed hours')}<DecimalHoursInput
+                      id="schedule-wednesday-hours"
+                      label={translate('Wed hours')}
                       name="wednesdayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'wednesdayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Thu minutes')}<input
+                    >{translate('Thu hours')}<DecimalHoursInput
+                      id="schedule-thursday-hours"
+                      label={translate('Thu hours')}
                       name="thursdayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'thursdayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Fri minutes')}<input
+                    >{translate('Fri hours')}<DecimalHoursInput
+                      id="schedule-friday-hours"
+                      label={translate('Fri hours')}
                       name="fridayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'fridayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Sat minutes')}<input
+                    >{translate('Sat hours')}<DecimalHoursInput
+                      id="schedule-saturday-hours"
+                      label={translate('Sat hours')}
                       name="saturdayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'saturdayMinutes')}
                       required
                     /></label
                   ><label
-                    >{translate('Sun minutes')}<input
+                    >{translate('Sun hours')}<DecimalHoursInput
+                      id="schedule-sunday-hours"
+                      label={translate('Sun hours')}
                       name="sundayMinutes"
-                      type="number"
-                      min="0"
-                      max="1440"
+                      minMinutes={0}
+                      maxMinutes={1440}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={projectContextFormValue(scheduleFormResult, 'sundayMinutes', '0')}
                       required
                     /></label
@@ -7026,7 +7080,7 @@
           initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.records ?? []).map((row) => ({
             id: String(row.id),
-            title: `${row.worker_name} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${row.planned_minutes} min`}`,
+            title: `${row.worker_name} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
             startsAt: String(row.starts_at),
             endsAt: row.ends_at == null ? undefined : String(row.ends_at),
             href: planningRecordHref(row),
@@ -7070,8 +7124,8 @@
               {/if}
               {#if focusedPlanningRecord.planned_minutes != null}
                 <div>
-                  <dt>{translate('Planned minutes (optional)')}</dt>
-                  <dd>{focusedPlanningRecord.planned_minutes} min</dd>
+                  <dt>{translate('Planned hours (optional)')}</dt>
+                  <dd>{hoursFromMinutes(focusedPlanningRecord.planned_minutes)}</dd>
                 </div>
               {/if}
               {#if focusedPlanningRecord.site}
@@ -7238,11 +7292,15 @@
                       >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
                     >{/if}
                   <label
-                    >{translate('Planned minutes (optional)')}<input
+                    >{translate('Planned hours (optional)')}<DecimalHoursInput
+                      id={`planning-${row.id}-planned-hours`}
+                      label={translate('Planned hours (optional)')}
                       name="plannedMinutes"
-                      type="number"
-                      min="0"
-                      max="10080"
+                      minMinutes={0}
+                      maxMinutes={10080}
+                      invalidMessage={translate(
+                        'Enter valid decimal hours within the allowed range.',
+                      )}
                       value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
                     /></label
                   >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
@@ -7424,14 +7482,19 @@
             >{#if planningFieldMessage('endsAt', 'createPlanning')}<small
                 class="field-error"
                 role="alert">{planningFieldMessage('endsAt', 'createPlanning')}</small
-              >{/if}<ProjectBudgetInput
-              name="plannedMinutes"
-              label={translate('Planned hours (optional)')}
-              kind="hours"
-              value={planningFailure?.operation === 'createPlanning'
-                ? String(planningFailure.values?.plannedMinutes ?? '')
-                : ''}
-            />
+              >{/if}<label
+              >{translate('Planned hours (optional)')}<DecimalHoursInput
+                id="planning-create-planned-hours"
+                label={translate('Planned hours (optional)')}
+                name="plannedMinutes"
+                value={planningFailure?.operation === 'createPlanning'
+                  ? String(planningFailure.values?.plannedMinutes ?? '')
+                  : ''}
+                minMinutes={0}
+                maxMinutes={10080}
+                invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+              /></label
+            >
             {#if planningFieldMessage('plannedMinutes', 'createPlanning')}<small
                 class="field-error"
                 role="alert">{planningFieldMessage('plannedMinutes', 'createPlanning')}</small
@@ -7700,7 +7763,9 @@
                   >{String(row.starts_at).replace('T', ' ').slice(0, 16)}{row.planned_minutes ==
                   null
                     ? ''
-                    : ` · ${row.planned_minutes} min`}{row.site ? ` · ${row.site}` : ''}</small
+                    : ` · ${hoursFromMinutes(row.planned_minutes)}`}{row.site
+                    ? ` · ${row.site}`
+                    : ''}</small
                 >
               </div>
               <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>

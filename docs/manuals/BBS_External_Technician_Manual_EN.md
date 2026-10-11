@@ -116,13 +116,13 @@ Context: Current operating instructions · 11 October 2026 · checked against ma
 
 This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.
 
-Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Actual minutes here differ from decimal Actual hours in the normal Time form.
+Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Enter duration in decimal hours here, just as in the normal Time form; for example, 1.5 hours is ninety minutes.
 
 External Technician can use own work overview, factual capture and document text extraction. The restricted profile has no internal assigned-follow-up decisions, Today agenda or Planning calendar. Keep the normal supplier review handoff for submitted time.
 
 ### Do the task
 
-1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and minutes; 90 minutes means 1.5 hours.
+1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and duration in decimal hours; enter 1.5 for ninety minutes.
 2. For Daily report check completed tasks, problems, corrective actions, downtime, blockers and next plan. For Expense enter the real category, amount, currency, payer and description. Review the separate output fields, not only the shared summary.
 3. Choose Save on this device if you need to pause. Recover local draft restores form text for this account/project/date on this device. Review it after recovery. It is not a server save, does not queue attachments and does not submit when connectivity returns.
 4. When online and signed in, choose Review facts. Check the review summary and then Create server drafts once. Open each link in the saved receipt, add required original evidence and submit each record through its normal workflow.
@@ -317,7 +317,7 @@ Context: Isolated BBS supplier role lab · genuine External Technician account �
 
 Daily reports record operational facts, not timesheet hours, supplier payment or customer acceptance. This report’s author is the genuine External Technician account. Its fictional summary says no live equipment.
 
-Fields include Project, Work date, Site / shift, Shift summary, Tasks completed, Problems found, Corrective actions, Downtime minutes, Standby reason, Open items, Next day plan and safety impact. Include genuine problems and next steps; do not invent a successful outcome.
+Fields include Project, Work date, Site / shift, Shift summary, Tasks completed, Problems found, Corrective actions, Downtime (hours), Standby reason, Open items, Next day plan and safety impact. Enter downtime in decimal hours. Include genuine problems and next steps; do not invent a successful outcome.
 
 ### Do the task
 
@@ -333,7 +333,7 @@ Fields include Project, Work date, Site / shift, Shift summary, Tasks completed,
 
 - Edit only through offered unsent-draft controls. For returned/approved content, preserve history and use a supported correction or reviewer handoff.
 
-![Native own Daily input in the role lab.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png)
+![Historical 6 October capture of the own Daily form; its downtime control was labelled in minutes. The current form labels this field Downtime (hours).](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/10-external-daily-form.png)
 
 ![Own Daily after separate submission and genuine PM operational approval; ready output is a later step.](../evidence/bbs-role-manuals-20261006/external-technician/screenshots/27-external-daily-approved-source.png)
 

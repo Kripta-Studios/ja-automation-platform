@@ -127,7 +127,7 @@ Use Supplier team for authorized personnel and team hours. Your own Time, Expens
 
 ### Verify the result
 
-- Team entry has the intended people/date and actual minutes; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage.
+- Team entry has the intended people/date and actual hours; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage.
 
 ### If you get stuck
 

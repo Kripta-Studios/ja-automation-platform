@@ -5,12 +5,17 @@
   import { page } from '$app/stores';
   import { tick } from 'svelte';
   import { paymentMoney } from '$lib/portal/payment-money';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { ProblemNotice, TableRegion } from '$lib/portal/ui';
   import type { ProblemData } from '$lib/problem/contract';
   let { data } = $props();
   const locale = $derived(normalizePortalLocale(data.locale));
   const t = (value: string) => portalText(locale, value);
+  const hours = (minutes: unknown): string => {
+    const value = decimalHoursFromMinutes(minutes);
+    return value === '—' ? value : `${value} h`;
+  };
   const filterProblem = $derived((data.filterProblem ?? null) as ProblemData | null);
   const problemFields = $derived(Object.keys(filterProblem?.fieldErrors ?? {}));
   const firstProblemField = $derived(problemFields[0] ?? 'worker');
@@ -185,9 +190,8 @@
         {/each}
       </div>
       <p>
-        {t('Approved actual time')}: {data.pay.approvedMinutes}
-        {t('minutes')} · {t('Pending actual time')}: {data.pay.pendingMinutes}
-        {t('minutes')}
+        {t('Approved hours')}: {hours(data.pay.approvedMinutes)} · {t('Pending actual time')}:
+        {hours(data.pay.pendingMinutes)}
       </p>
       {#if data.pay.missingCompensationRules > 0}<p role="status">
           {data.pay.missingCompensationRules}
@@ -222,7 +226,7 @@
             ><tr
               ><th>{t('Date')}</th><th>{t('Project')}</th><th>{t('Category')}</th><th
                 >{t('Activity')}</th
-              ><th>{t('Actual minutes')}</th><th>{t('Approval')}</th></tr
+              ><th>{t('Actual hours')}</th><th>{t('Approval')}</th></tr
             ></thead
           >
           <tbody>
@@ -231,7 +235,7 @@
                 ><td>{String(row.date)}</td><td
                   >{String(row.projectNumber)} · {String(row.projectName)}</td
                 ><td>{String(row.category)}</td><td>{String(row.activitySummary ?? '—')}</td><td
-                  >{String(row.actualMinutes)}</td
+                  >{hours(row.actualMinutes)}</td
                 ><td>{String(row.approvalState)}</td></tr
               >
             {:else}<tr><td colspan="6">{t('No activity recorded in this period.')}</td></tr>{/each}

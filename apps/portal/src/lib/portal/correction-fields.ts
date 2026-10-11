@@ -33,7 +33,7 @@ export const dailyCorrectionFields: readonly CorrectionField[] = [
   {
     name: 'downtimeMinutes',
     column: 'downtime_minutes',
-    label: 'Downtime minutes',
+    label: 'Downtime (hours)',
     kind: 'number',
   },
   { name: 'standbyReason', column: 'standby_reason', label: 'Standby reason', kind: 'text' },

@@ -1,5 +1,30 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Downtime (hours)': ['Tiempo de parada (horas)', 'Tempo de parada (horas)'],
+  'Overtime threshold (hours)': ['Umbral de horas extra (horas)', 'Limite de horas extras (horas)'],
+  'Daily guarantee (hours)': ['Garantía diaria (horas)', 'Garantia diária (horas)'],
+  'Weekday hours': ['Horas por día de la semana', 'Horas por dia da semana'],
+  'Planned reference hours': ['Horas previstas de referencia', 'Horas planejadas de referência'],
+  'Approved hours': ['Horas aprobadas', 'Horas aprovadas'],
+  'Enter valid decimal hours within the allowed range.': [
+    'Introduce horas decimales válidas dentro del intervalo permitido.',
+    'Informe horas decimais válidas dentro do intervalo permitido.',
+  ],
+  'Use the effective project schedule and enter the threshold in decimal hours.': [
+    'Usa el horario vigente del proyecto e introduce el umbral en horas decimales.',
+    'Use a programação vigente do projeto e informe o limite em horas decimais.',
+  ],
+  'Review recorded hours, billing status, effective rates and direct cost.': [
+    'Revisa las horas registradas, el estado de facturación, las tarifas vigentes y el coste directo.',
+    'Revise as horas registradas, o estado de faturamento, as tarifas vigentes e o custo direto.',
+  ],
+  'Mon hours': ['Lunes (horas)', 'Segunda-feira (horas)'],
+  'Tue hours': ['Martes (horas)', 'Terça-feira (horas)'],
+  'Wed hours': ['Miércoles (horas)', 'Quarta-feira (horas)'],
+  'Thu hours': ['Jueves (horas)', 'Quinta-feira (horas)'],
+  'Fri hours': ['Viernes (horas)', 'Sexta-feira (horas)'],
+  'Sat hours': ['Sábado (horas)', 'Sábado (horas)'],
+  'Sun hours': ['Domingo (horas)', 'Domingo (horas)'],
   'A project appears here when a milestone has been submitted for review. Check its evidence, then Approve or Reject with a reason. Time, expenses and reports are reviewed separately.':
     [
       'Aquí aparecen los hitos enviados para revisión. Comprueba los justificantes y aprueba o rechaza con un motivo. Las horas, los gastos y los informes se revisan por separado.',

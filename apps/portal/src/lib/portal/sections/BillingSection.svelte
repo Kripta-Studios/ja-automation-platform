@@ -34,6 +34,7 @@
     billingReadinessReviewPath,
     billingReadinessRecoveryRequest,
   } from '../billing-readiness';
+  import { decimalHoursFromMinutes } from '../minute-hours';
   import { requestGuidedRecovery } from '../guided-recovery/events';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
@@ -1676,7 +1677,8 @@
   }
 
   function timeReadinessHours(minutes: number): string {
-    return `${Math.floor(minutes / 60)} h${minutes % 60 ? ` ${minutes % 60} min` : ''}`;
+    const hours = decimalHoursFromMinutes(minutes);
+    return hours === '—' ? hours : `${hours} h`;
   }
 
   function reopenBlockedSelection(): void {

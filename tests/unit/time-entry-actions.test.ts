@@ -22,10 +22,10 @@ describe('time entry form helpers', () => {
     expect(decimalHoursToMinutes('0.01')).toBe(1);
     expect(decimalHoursToMinutes('24.01')).toBeNull();
     expect(decimalHoursToMinutes('1.234')).toBeNull();
-    expect(formatDecimalHours(90)).toBe('1.50h');
-    expect(formatDecimalHours(1)).toBe('0.02h');
+    expect(formatDecimalHours(90)).toBe('1.5h');
+    expect(formatDecimalHours(1)).toBe('0.0167h');
     expect(formatDecimalHours(165)).toBe('2.75h');
-    expect(formatDecimalHours(0)).toBe('0.00h');
+    expect(formatDecimalHours(0)).toBe('0h');
   });
 
   it('allows the owner to delete only never-submitted unlinked drafts', () => {

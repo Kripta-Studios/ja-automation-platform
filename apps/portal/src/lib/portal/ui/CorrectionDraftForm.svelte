@@ -6,6 +6,7 @@
   import { page } from '$app/stores';
   import { normalizePortalLocale, portalText } from '../../portal-i18n';
   import { dailyCorrectionFields, technicalCorrectionFields } from '../correction-fields';
+  import DecimalHoursInput from './DecimalHoursInput.svelte';
   import { expenseCategories } from '../expense-categories';
   import { base } from '$app/paths';
   import { onMount, untrack } from 'svelte';
@@ -450,15 +451,27 @@
           {:else if field.kind === 'checkbox'}
             <input name={field.name} type="checkbox" checked={checked(field.name, field.column)} />
           {:else if field.kind === 'number'}
-            <input
-              name={field.name}
-              type="number"
-              min="0"
-              max="1440"
-              step="1"
-              required
-              value={fieldValue(field.name, field.column) || '0'}
-            />
+            {#if field.name === 'downtimeMinutes'}
+              <DecimalHoursInput
+                name={field.name}
+                value={fieldValue(field.name, field.column) || '0'}
+                label={translate(field.label)}
+                required
+                minMinutes={0}
+                maxMinutes={1440}
+                invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+              />
+            {:else}
+              <input
+                name={field.name}
+                type="number"
+                min="0"
+                max="1440"
+                step="1"
+                required
+                value={fieldValue(field.name, field.column) || '0'}
+              />
+            {/if}
           {:else}
             <input
               name={field.name}

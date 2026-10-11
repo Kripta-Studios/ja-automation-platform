@@ -565,8 +565,11 @@
   function availability(row: PortalRow): string {
     const explicit = value(row, 'availability', 'availability_status');
     if (explicit) return controlledValue?.('availability', explicit) || translate(explicit);
-    const minutes = value(row, 'available_minutes', 'hours_available');
-    if (minutes) return `${minutes} ${translate('available')}`;
+    const availableMinutes = value(row, 'available_minutes');
+    if (availableMinutes !== '')
+      return `${formatDecimalHours(Number(availableMinutes))} ${translate('available')}`;
+    const availableHours = value(row, 'hours_available');
+    if (availableHours !== '') return `${availableHours}h ${translate('available')}`;
     const status = value(row, 'status');
     return status
       ? controlledValue?.('status', status) || translate(status)

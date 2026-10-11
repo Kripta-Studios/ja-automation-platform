@@ -1,3 +1,4 @@
+import { decimalHoursFromMinutes } from '../minute-hours';
 type TimeDeleteRow = Readonly<{
   worker_id?: unknown;
   approval_state?: unknown;
@@ -40,9 +41,8 @@ export function decimalHoursToMinutes(value: string): number | null {
 }
 
 export function formatDecimalHours(minutes: unknown): string {
-  const value = Number(minutes ?? 0);
-  if (!Number.isFinite(value)) return '—';
-  return `${(Math.round((value * 100) / 60) / 100).toFixed(2)}h`;
+  const value = decimalHoursFromMinutes(minutes ?? 0);
+  return value === '—' ? value : `${value}h`;
 }
 
 export function weekDates(weekStart: string): string[] {

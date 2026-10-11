@@ -604,7 +604,7 @@ const reportProblems: Record<string, ReportProblem> = {
     status: 400,
     code: 'REPORT_DOWNTIME_INVALID',
     key: 'problem.report.downtimeInvalid',
-    message: 'Downtime must be between 0 and 1440 minutes. Review the entered minutes.',
+    message: 'Downtime must be between 0 and 24 hours. Review the entered hours.',
     field: 'downtimeMinutes',
     remedy: 'review_report_fields',
   },
@@ -1389,7 +1389,7 @@ function planningActionFailure(
     'Planned minutes must be between 0 and 10080': {
       key: 'action.planning.invalidMinutes',
       code: 'PLANNING_MINUTES_INVALID',
-      message: 'Planned minutes must be between 0 and 10080',
+      message: 'Enter planned hours between 0 and 168.',
       field: 'plannedMinutes',
       status: 400,
       remedy: 'review_planning_fields',

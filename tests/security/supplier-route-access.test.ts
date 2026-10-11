@@ -103,6 +103,15 @@ describe('supplier operational surface', () => {
     expect(coordinator.primary.map((item) => item.section)).not.toContain('workflow');
     expect(JSON.stringify(portalNavigationForRole('/app', 'worker'))).toContain('My Pay');
   });
+  it('preserves whole-minute precision using decimal hours without a minute column', () => {
+    expect(supplierHoursFromMinutes(1)).toBe('0.0167');
+    expect(supplierHoursFromMinutes(7)).toBe('0.1167');
+    expect(supplierHoursFromMinutes(450)).toBe('7.50');
+    for (let minutes = 0; minutes <= 1440; minutes += 1)
+      expect(Math.round(Number(supplierHoursFromMinutes(minutes)) * 60)).toBe(minutes);
+    expect(supplierHoursFromMinutes(null)).toBe('');
+  });
+
   it('exports quoted UTF-8 CSV and neutralizes formulas without dropping work descriptions', () => {
     for (const value of ['=HYPERLINK("https://example.invalid")', ' +cmd', '\t@SUM(A1)', '-1'])
       expect(supplierCsvCell(value)).toMatch(/^"'/);

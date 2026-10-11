@@ -49,6 +49,8 @@
   import { workRound2Text } from '$lib/portal/work-ux-round2-copy';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
+  import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
+  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import { dailyCorrectionFields, technicalCorrectionFields } from '$lib/portal/correction-fields';
   import {
     readSessionItem,
@@ -219,7 +221,9 @@
                   value:
                     field.kind === 'checkbox'
                       ? t(value === 'on' ? 'problem.report.checked' : 'problem.report.notChecked')
-                      : value || '—',
+                      : field.name === 'downtimeMinutes'
+                        ? decimalHoursFromMinutes(value)
+                        : value || '—',
                 },
               ];
         })
@@ -243,11 +247,12 @@
     const field = (isDaily ? dailyCorrectionFields : technicalCorrectionFields).find(
       (item) => item.name === name,
     );
-    const control = editFormElement()?.elements.namedItem(name);
+    const control = editFormElement()?.elements.namedItem(visibleReportControlName(name));
     if (!field || !(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement))
       return null;
     return {
       ...field,
+      kind: field.name === 'downtimeMinutes' ? 'text' : field.kind,
       label: t(field.label),
       value:
         control instanceof HTMLInputElement && control.type === 'checkbox'
@@ -259,7 +264,7 @@
   }
   function updatePreviewField(name: string, value: string): void {
     if (!previewField(name)) return;
-    const control = editFormElement()?.elements.namedItem(name);
+    const control = editFormElement()?.elements.namedItem(visibleReportControlName(name));
     if (!(control instanceof HTMLInputElement || control instanceof HTMLTextAreaElement)) return;
     if (control instanceof HTMLInputElement && control.type === 'checkbox')
       control.checked = value === 'on';
@@ -545,7 +550,15 @@
   }
   let autosaveVersion = $derived(loadedEditVersion());
   const currentReportVersion = $derived(Math.max(Number(report.version), autosaveVersion));
-  let confirmedSnapshot = $derived(loadedReportAutosaveSnapshot(data.detail.type, report));
+  let confirmedSnapshot = $derived.by(() => {
+    const snapshot = loadedReportAutosaveSnapshot(data.detail.type, report);
+    return snapshot && isDaily
+      ? {
+          ...snapshot,
+          downtimeMinutesHours: decimalHoursFromMinutes(snapshot.downtimeMinutes ?? '0'),
+        }
+      : snapshot;
+  });
   let unresolvedReportFailure = $derived(
     reportForm?.actionName === 'updateReport' && reportForm.success !== true,
   );
@@ -560,6 +573,17 @@
   let disposed = false;
   const display = (value: Value): string =>
     value === null || value === undefined ? '' : String(value);
+  function visibleReportControlName(name: string): string {
+    return name === 'downtimeMinutes' ? 'downtimeMinutesHours' : name;
+  }
+  function visibleReportFieldErrors(
+    fieldErrors: Readonly<Record<string, readonly string[] | string>>,
+  ): Record<string, readonly string[] | string> {
+    const visible = { ...fieldErrors };
+    if (visible.downtimeMinutes && !visible.downtimeMinutesHours)
+      visible.downtimeMinutesHours = visible.downtimeMinutes;
+    return visible;
+  }
   const submitted = (name: string, fallback: Value): string =>
     reportForm?.actionName === 'updateReport' && typeof reportForm.values?.[name] === 'string'
       ? reportForm.values[name]
@@ -652,6 +676,7 @@
         ? parsed.changedFields
             .filter((field): field is string => typeof field === 'string')
             .map((field) => {
+              if (field === 'downtimeMinutes') return t('Downtime (hours)');
               const caption = reportHistoryChangedFieldLabel(field);
               return caption ? t(caption) : field;
             })
@@ -1058,6 +1083,20 @@
       return;
     }
     applyReportSnapshot(editForm, recoveryDraft.payload);
+    if (isDaily) {
+      const hoursControl = editForm.elements.namedItem('downtimeMinutesHours');
+      if (
+        !Object.hasOwn(recoveryDraft.payload, 'downtimeMinutesHours') &&
+        typeof recoveryDraft.payload.downtimeMinutes === 'string' &&
+        hoursControl instanceof HTMLInputElement
+      ) {
+        const legacyMinutes = recoveryDraft.payload.downtimeMinutes;
+        const recoveredHours = decimalHoursFromMinutes(legacyMinutes);
+        hoursControl.value = recoveredHours === '—' ? '0' : recoveredHours;
+      }
+      if (hoursControl instanceof HTMLInputElement)
+        hoursControl.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     const draftVersion = Number(recoveryDraft.payload.version ?? recoveryDraft.version);
     if (Number.isInteger(draftVersion) && draftVersion > 0) setReportVersion(draftVersion);
     recoveryOpen = false;
@@ -1105,7 +1144,8 @@
       void tick().then(() => {
         const editForm = reportForm?.actionName === 'updateReport' ? editFormElement() : null;
         if (editForm && reportForm?.values) applyReportSnapshot(editForm, reportForm.values);
-        if (editForm && problem.fieldErrors) reportFormFieldErrors(editForm, problem.fieldErrors);
+        if (editForm && problem.fieldErrors)
+          reportFormFieldErrors(editForm, visibleReportFieldErrors(problem.fieldErrors));
         const target =
           editForm?.querySelector<HTMLElement>('[data-validation-summary]') ??
           document.querySelector<HTMLElement>('[data-report-problem] [data-ui="problem-notice"]');
@@ -1377,7 +1417,9 @@
                   : checked(field.value)
                     ? t('Review required')
                     : t('No safety flag')
-                : display(field.value) || '—'}
+                : field.name === 'downtimeMinutes'
+                  ? decimalHoursFromMinutes(field.value)
+                  : display(field.value) || '—'}
             </dd>
           </div>
         {/each}
@@ -1569,18 +1611,19 @@
                 ></textarea>
               </Field>
               <Field
-                id="report-downtime-minutes"
-                label={t('Downtime minutes')}
+                id="report-downtime-hours"
+                label={t('Downtime (hours)')}
                 data-field="downtimeMinutes"
               >
-                <input
-                  id="report-downtime-minutes"
+                <DecimalHoursInput
+                  id="report-downtime-hours"
                   data-field="downtimeMinutes"
                   name="downtimeMinutes"
-                  type="number"
-                  min="0"
-                  max="1440"
                   value={submitted('downtimeMinutes', report.downtime_minutes ?? 0)}
+                  label={t('Downtime (hours)')}
+                  minMinutes={0}
+                  maxMinutes={1440}
+                  invalidMessage={t('Enter valid decimal hours within the allowed range.')}
                 />
               </Field>
               <Field

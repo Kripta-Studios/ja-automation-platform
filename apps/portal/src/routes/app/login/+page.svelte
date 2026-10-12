@@ -290,14 +290,16 @@
         </button>
       {/if}
       <label class="login-field"
-        ><span>{t('Work email')}</span><input
+        ><span>{t('Email or username')}</span><input
           bind:this={emailInput}
           bind:value={email}
           name="email"
-          type="email"
+          type="text"
+          autocapitalize="none"
+          spellcheck="false"
           autocomplete="username"
           placeholder={t('you@company.com')}
-          aria-label={t('Work email')}
+          aria-label={t('Email or username')}
           aria-invalid={emailError ? 'true' : undefined}
           aria-describedby={emailError ? 'login-email-error' : undefined}
           oninput={clearCredentialError}

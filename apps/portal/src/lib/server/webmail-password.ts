@@ -2,6 +2,7 @@ import { createDatabase } from '@ja/database';
 import { hashPassword, verifyPassword } from 'better-auth/crypto';
 import { normalizeCorporateEmail, verifyImapCredentials } from './imap-auth';
 import { createConfiguredStalwartClient } from './stalwart-client';
+import { verifyTemporaryOwnerPassword } from './temporary-owner-login';
 
 type LinkedCredential = Readonly<{
   email: string;
@@ -45,6 +46,8 @@ export async function verifyPortalPassword(input: {
   hash: string;
   password: string;
 }): Promise<boolean> {
+  const temporary = await verifyTemporaryOwnerPassword(input);
+  if (temporary !== null) return temporary;
   if (await verifyPassword(input).catch(() => false)) return true;
   const linked = linkedCredentialForHash(input.hash);
   if (!linked) return false;

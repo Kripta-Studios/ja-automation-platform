@@ -6,6 +6,13 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Requested temporary Owner alias — 2026-10-12
+
+User-approved 30-day additional alias for the existing Antonny Owner account. Existing
+local/mailbox credentials and role boundaries remain unchanged. Eighteen focused auth tests,
+portal TypeScript, scoped lint and independent security review pass. Expiration is enforced
+across renewed sessions. [Scope, evidence and revocation](docs/evidence/temporary-owner-login-20261012.md).
+
 ## Requested Owner tutorial playback speed — 2026-10-11
 
 Owner Help adds a labeled playback-speed selector with 0.75×, normal, 1.25×, 1.5×,

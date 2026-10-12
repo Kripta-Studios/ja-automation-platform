@@ -1883,6 +1883,7 @@ export const PORTAL_LITERAL_KEYS = [
   'Window',
   'Work date',
   'Work email',
+  'Email or username',
   'Work laptop',
   'Work performed',
   'Worker',

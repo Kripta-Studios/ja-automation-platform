@@ -1,6 +1,10 @@
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { building } from '$app/environment';
 import { auth, revokeSessionsUnlessUserIsActive } from '$lib/server/auth';
+import {
+  withTemporaryOwnerLogin,
+  revokeExpiredTemporaryOwnerSessions,
+} from '$lib/server/temporary-owner-login';
 import { createDatabase } from '@ja/database';
 import { supplierRouteAllowed } from '$lib/server/supplier-route-access';
 import { createHash, randomUUID } from 'node:crypto';
@@ -318,6 +322,7 @@ export const handle: Handle = async ({ event, resolve }) => {
   if (portalAlias) return applySecurityHeaders(portalAlias, true, path, correlationId);
   const isPortal = path === portalBase || path.startsWith(`${portalBase}/`);
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
+  if (!building && isPortal) revokeExpiredTemporaryOwnerSessions();
   const isInvitationAccept = path === `${portalBase}/api/invitations/accept`;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
@@ -424,7 +429,10 @@ export const handle: Handle = async ({ event, resolve }) => {
   }
   let response: Response;
   try {
-    response = await svelteKitHandler({ event, resolve, auth, building });
+    response = await withTemporaryOwnerLogin(event.request, portalBase, async (request) => {
+      event.request = request;
+      return svelteKitHandler({ event, resolve, auth, building });
+    });
   } catch (caught) {
     if (production || process.env.JA_JSON_LOGS === 'true')
       console.error(

@@ -2990,6 +2990,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'O que este artefato contém e por que é mantido',
   ],
   'Work date': ['Fecha de trabajo', 'Data de trabalho'],
+  'Email or username': ['Correo electrónico o usuario', 'E-mail ou usuário'],
   'Work email': ['Correo electrónico de trabajo', 'E-mail de trabalho'],
   'Worker cost rules remain effective-dated and auditable.': [
     'Las reglas de coste del trabajador mantienen fechas de vigencia y son auditables.',

@@ -8,6 +8,7 @@ import { sveltekitCookies } from 'better-auth/svelte-kit';
 import { twoFactor } from 'better-auth/plugins';
 import { authAuditAfter, authAuditBefore } from './auth-audit';
 import { resolveAuthOriginConfig } from './auth-origins';
+import { temporaryOwnerSessionData } from './temporary-owner-login';
 import {
   hashPortalPassword,
   isWebmailOnlyUser,
@@ -178,6 +179,7 @@ export const auth = betterAuth({
           const user = await context.context.internalAdapter.findUserById(session.userId);
           if (!user || (user as Record<string, unknown>).status !== 'active')
             throw invalidCredentialsError();
+          return { data: temporaryOwnerSessionData(session) };
         },
       },
     },

@@ -2299,11 +2299,8 @@
       ),
     },
   });
-  const firstAuthorizedProjectId = $derived(String(data.projects?.[0]?.id ?? '').trim() || null);
   const invoiceDraftHref = $derived(
-    canManageProjects && firstAuthorizedProjectId
-      ? `${base}/app/projects/${encodeURIComponent(firstAuthorizedProjectId)}`
-      : null,
+    canManageProjects ? `${base}/app/billing?assistantSurface=invoice-create&lang=${locale}` : null,
   );
 
   /**

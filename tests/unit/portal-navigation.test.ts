@@ -5,6 +5,7 @@ import {
   accountNavigationFor,
   activeNavItem,
   isNavItemActive,
+  navigationShortcutsFor,
   portalGlobalNavigationForRole,
   portalLandingForRole,
   portalNavigationForRole,
@@ -23,6 +24,58 @@ const flatten = (role: string | null | undefined): NavItem[] => {
 
 const labels = (role: string | null | undefined): string[] =>
   flatten(role).map((item) => item.label);
+
+describe('searchable navigation settings', () => {
+  const itemHref = (item: NavItem) => item.href ?? `/j-aautomation/app/${item.section}`;
+
+  it.each(['owner_admin', 'finance_admin'])(
+    'opens the existing settings for %s directly',
+    (role) => {
+      const shortcuts = navigationShortcutsFor(flatten(role), itemHref, role);
+      const billing = shortcuts.find((item) => item.label === 'Configure billing');
+      expect(billing?.href).toBe('/j-aautomation/app/billing?view=setup');
+      expect(billing?.parentLabel).toBe('Billing');
+      const compensation = shortcuts.find((item) => item.label === 'Worker compensation');
+      const target = new URL(compensation!.href!, 'https://portal.test');
+      expect(target.searchParams.get('view')).toBe('commercial');
+      expect(target.searchParams.get('task')).toBe('Worker compensation');
+      expect(target.hash).toBe('#finance-worker-compensation');
+      const internalCost = new URL(
+        shortcuts.find((item) => item.label === 'Internal loaded cost')!.href!,
+        'https://portal.test',
+      );
+      expect(internalCost.searchParams.get('task')).toBe('Internal loaded cost');
+      expect(internalCost.hash).toBe('#finance-internal-cost-form');
+      expect(new Set(shortcuts.map((item) => item.href)).size).toBe(shortcuts.length);
+    },
+  );
+
+  it.each(['worker', 'project_manager', 'auditor_read_only', undefined])(
+    'does not introduce financial settings for %s',
+    (role) => {
+      const shortcuts = navigationShortcutsFor(flatten(role), itemHref, role);
+      expect(shortcuts.some((item) => item.href?.includes('view=commercial'))).toBe(false);
+      expect(shortcuts.some((item) => item.href?.includes('view=setup'))).toBe(false);
+      expect(shortcuts.find((item) => item.label === 'Profile & security')?.href).toBe(
+        '/j-aautomation/app/profile#account-mfa',
+      );
+    },
+  );
+
+  it('preserves an authorized selected finance project in settings links', () => {
+    const shortcuts = navigationShortcutsFor(
+      flatten('finance_admin'),
+      (item) => `${itemHref(item)}${itemHref(item).includes('?') ? '&' : '?'}project=authorized`,
+      'finance_admin',
+    );
+    const target = new URL(
+      shortcuts.find((item) => item.label === 'Worker compensation')!.href!,
+      'https://portal.test',
+    );
+    expect(target.searchParams.get('project')).toBe('authorized');
+    expect(target.hash).toBe('#finance-worker-compensation');
+  });
+});
 
 describe('portal role navigation contract', () => {
   it('keeps the worker menu operational and free of administrative destinations', () => {

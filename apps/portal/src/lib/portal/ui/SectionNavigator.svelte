@@ -1,18 +1,20 @@
 <script lang="ts">
   import DirectionIcon from './DirectionIcon.svelte';
   import { onMount, tick } from 'svelte';
-  import type { NavItem } from '../../portal-navigation';
+  import type { NavItem, NavShortcut } from '../../portal-navigation';
   import type { PortalLocale } from '../../portal-i18n';
   import { navigationUxText } from '../navigation-ux-copy';
   import { assistantCopy } from '../assistant/copy';
   let {
     items,
+    shortcuts = [],
     itemHref,
     translate,
     currentSection = '',
     locale = 'en',
   }: {
     items: readonly NavItem[];
+    shortcuts?: readonly NavShortcut[];
     itemHref: (item: NavItem) => string;
     translate: (key: string) => string;
     currentSection?: string;
@@ -24,8 +26,24 @@
   let trigger: HTMLButtonElement;
   let query = $state('');
   const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-  const matches = $derived(
-    items.filter((item) => normalize(translate(item.label)).includes(normalize(query.trim()))),
+  const matches = $derived.by(() => {
+    const term = normalize(query.trim());
+    const candidates: readonly (NavItem | NavShortcut)[] = term ? [...items, ...shortcuts] : items;
+    return candidates.filter((item) =>
+      normalize(
+        `${translate(item.label)} ${'parentLabel' in item ? translate(item.parentLabel) : ''}`,
+      ).includes(term),
+    );
+  });
+  const frequentSettings = $derived(
+    shortcuts.filter((item) =>
+      [
+        'Configure billing',
+        'Project commercial and time policy',
+        'Worker compensation',
+        'Profile & security',
+      ].includes(item.label),
+    ),
   );
   const resultCount = $derived(
     navigationUxText(locale, 'sectionNavigator', 'resultCount', { count: matches.length }),
@@ -151,7 +169,7 @@
     >
   </div>
   <p id={`${id}-description`}>
-    {translate('Search the sections available to your profile.')}
+    {navigationUxText(locale, 'sectionNavigator', 'searchHint')}
     {#if currentSection}
       {navigationUxText(locale, 'sectionNavigator', 'currentSection', { section: currentSection })}
     {/if}
@@ -168,15 +186,41 @@
     autocomplete="off"
   />
   <p class="section-result-count" role="status" aria-live="polite">{resultCount}</p>
+  {#if !query.trim() && frequentSettings.length}
+    <div class="section-settings" aria-labelledby={`${id}-settings`}>
+      <h3 id={`${id}-settings`}>
+        {navigationUxText(locale, 'sectionNavigator', 'frequentSettings')}
+      </h3>
+      <div class="section-settings-links">
+        {#each frequentSettings as item}
+          <a
+            class="section-result section-setting"
+            href={itemHref(item)}
+            onclick={() => dialog.close()}
+          >
+            <span>{translate(item.label)}</span><DirectionIcon />
+          </a>
+        {/each}
+      </div>
+    </div>
+  {/if}
   <nav aria-label={translate('Go to section')}>
     {#each matches as item}
       <a
         class="section-result"
-        class:section-result-current={translate(item.label) === currentSection}
-        aria-current={translate(item.label) === currentSection ? 'page' : undefined}
+        class:section-result-current={!('parentLabel' in item) &&
+          translate(item.label) === currentSection}
+        aria-current={!('parentLabel' in item) && translate(item.label) === currentSection
+          ? 'page'
+          : undefined}
         href={itemHref(item)}
         aria-label={`${translate('Open section')}: ${translate(item.label)}`}
-        onclick={() => dialog.close()}><span>{translate(item.label)}</span><DirectionIcon /></a
+        onclick={() => dialog.close()}
+        ><span
+          >{translate(item.label)}{#if 'parentLabel' in item}<small
+              >{translate(item.parentLabel)}</small
+            >{/if}</span
+        ><DirectionIcon /></a
       >
     {/each}
     {#if !matches.length}<p role="status">{translate('No matching sections')}</p>{/if}
@@ -184,6 +228,37 @@
 </dialog>
 
 <style>
+  .section-settings {
+    margin-top: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--ja-line, #d6d5d2);
+  }
+  .section-settings h3 {
+    margin: 0 0 0.5rem;
+    font-size: 0.8125rem;
+  }
+  .section-settings-links {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .section-setting {
+    background: #edf5fc;
+    border: 1px solid #d3e2ee;
+  }
+  .section-result span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .section-result small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #626359;
+    font-size: 0.75rem;
+  }
+  .section-result :global(svg) {
+    flex-shrink: 0;
+  }
   .section-task-action {
     display: flex;
     align-items: center;
@@ -343,6 +418,11 @@
     .section-trigger,
     dialog {
       display: none;
+    }
+  }
+  @media (max-width: 480px) {
+    .section-settings-links {
+      grid-template-columns: 1fr;
     }
   }
 </style>

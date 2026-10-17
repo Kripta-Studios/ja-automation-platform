@@ -132,7 +132,7 @@ test('section navigator exposes a labelled mobile trigger and returns focus afte
   await trigger.click();
   const dialog = page.getByRole('dialog', { name: 'Go to section' });
   await expect(dialog).toBeVisible();
-  await expect(dialog.locator('.section-result-count')).toContainText('sections available');
+  await expect(dialog.locator('.section-result-count')).toContainText('destinations available');
   await page.keyboard.press('Escape');
   await expect(trigger).toBeFocused();
   expect(errors).toEqual([]);

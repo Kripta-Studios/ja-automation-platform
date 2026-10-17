@@ -181,19 +181,51 @@ function invoiceProjectFixture(): { projectId: string } {
 async function selectWholePeriodStep(page: import('@playwright/test').Page, label: string) {
   const surface = page.locator('[data-invoice-creation-mode="whole_period"]');
   await expect(surface).toBeVisible();
-  const mobile = surface.locator('.billing-section__wizard-mobile-progress');
-  if (await mobile.isVisible()) {
-    await mobile.locator('summary').click();
-    await mobile.getByRole('button', { name: new RegExp(label) }).click();
-  } else {
-    await surface
-      .locator('.billing-section__wizard-progress')
-      .getByRole('button', { name: new RegExp(label) })
-      .click();
-  }
+  await surface
+    .locator('.billing-section__wizard-progress')
+    .getByRole('button', { name: new RegExp(label) })
+    .click();
 }
 
 test.describe('billing UX refresh · read-only feature parity', () => {
+  test('whole-period invoice uses three decisions and keeps detailed review available', async ({
+    page,
+  }) => {
+    await signIn(page, 'finance');
+    await page.goto(portal('/billing?lang=en'));
+    await page.waitForLoadState('networkidle');
+    await page.getByRole('button', { name: 'Create invoice', exact: true }).first().click();
+    await page
+      .locator('[data-invoice-creation-modes] button')
+      .filter({ hasText: 'Whole period' })
+      .click();
+    const surface = page.locator('[data-invoice-creation-mode="whole_period"]');
+    const steps = surface.locator('.billing-section__wizard-progress button');
+    await expect(steps).toHaveCount(3);
+    await steps.nth(0).click();
+    await surface.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(surface.locator('[data-billing-wizard-period-start]')).toBeVisible();
+    await surface.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(surface.locator('[data-invoice-review-summary]')).toBeVisible();
+    await expect(
+      surface.getByRole('button', { name: 'Save invoice draft', exact: true }),
+    ).toBeDisabled();
+    await expect(
+      surface.getByRole('button', { name: 'Check selected period', exact: true }),
+    ).toBeVisible();
+    await surface.locator('.billing-section__wizard-reference summary').click();
+    await surface.getByRole('button', { name: 'Taxes', exact: true }).click();
+    await expect(surface.getByRole('heading', { name: 'Taxes', exact: true })).toBeVisible();
+    await surface.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(surface.locator('[data-invoice-review-summary]')).toBeVisible();
+    const dialog = page.getByRole('dialog');
+    const bounds = await dialog.evaluate((element) => ({
+      available: element.clientWidth,
+      content: element.scrollWidth,
+    }));
+    expect(bounds.content).toBeLessThanOrEqual(bounds.available + 1);
+  });
+
   test('keeps stream setup options visible and separates invoice creation modes', async ({
     page,
   }) => {

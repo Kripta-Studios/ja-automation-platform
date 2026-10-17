@@ -934,7 +934,6 @@
       (reversalInvoiceId || invoiceFailureId || $page.url.searchParams.get('invoice') || ''),
   );
   let invoiceWizardOpen = $state(false);
-  let wholePeriodOpen = $state(false);
   let invoiceCreationMode = $state<InvoiceCreationMode>('records');
   let recordComposer = $state<InvoiceComposerHandle | null>(null);
   let recordComposerModeLocked = $state(false);
@@ -1689,7 +1688,6 @@
       wizardPeriodEnd = String(form?.periodEnd ?? '');
     }
     invoiceWizardStep = 4;
-    wholePeriodOpen = true;
     invoiceWizardOpen = true;
   }
 
@@ -1699,7 +1697,6 @@
     wizardPeriodStart = String(form.periodStart ?? '');
     wizardPeriodEnd = String(form.periodEnd ?? '');
     invoiceWizardStep = 12;
-    wholePeriodOpen = true;
     invoiceWizardOpen = true;
   });
 
@@ -1845,6 +1842,14 @@
     'Preview',
     'Save / issue',
   ];
+  // Required decisions stay in three steps; reference information remains optional.
+  const wizardMainSteps = [1, 4, 12];
+  const wizardMainStep = $derived(invoiceWizardStep === 1 ? 1 : invoiceWizardStep === 4 ? 2 : 3);
+  const wizardMainLabels = $derived([
+    translate('Client / project'),
+    translate('Period'),
+    timeReadinessText('Review and save', 'Revisar y guardar', 'Revisar e salvar'),
+  ]);
   let setupProjectId = $state('');
   let setupStreamType = $state('labor');
   let setupCadence = $state('weekly');
@@ -2617,7 +2622,6 @@
     wizardPeriodStart = state.scope.periodStart;
     wizardPeriodEnd = state.scope.periodEnd;
     invoiceCreationMode = 'records';
-    wholePeriodOpen = false;
     invoiceWizardStep = 1;
   }
 
@@ -2634,7 +2638,6 @@
         return;
       }
       invoiceCreationMode = 'whole_period';
-      wholePeriodOpen = true;
       invoiceWizardStep = 4;
       return;
     }
@@ -2646,7 +2649,6 @@
     });
     if (!applied) return;
     invoiceCreationMode = 'records';
-    wholePeriodOpen = false;
     invoiceWizardStep = 1;
   }
 
@@ -2665,7 +2667,6 @@
       ? mode
       : 'whole_period';
     invoiceCreationMode = effectiveMode;
-    wholePeriodOpen = effectiveMode === 'whole_period';
     invoiceWizardStep = effectiveMode === 'whole_period' ? 4 : 1;
     invoiceWizardOpen = true;
   }
@@ -2710,7 +2711,6 @@
     const requestedMode = $page.url.searchParams.get('mode') === 'whole-period';
     invoiceCreationMode =
       requestedMode || !selectedRuleSupportsRecords ? 'whole_period' : 'records';
-    wholePeriodOpen = invoiceCreationMode === 'whole_period';
     invoiceWizardStep = invoiceCreationMode === 'whole_period' && !globallyUnscoped ? 4 : 1;
     const requestedStart = $page.url.searchParams.get('periodStart');
     const requestedEnd = $page.url.searchParams.get('periodEnd');
@@ -3136,6 +3136,7 @@
       >
         <ProjectInvoiceComposer
           bind:this={recordComposer}
+          showProjectContext={false}
           projectId={invoiceScopeProjectId || undefined}
           rules={activeWizardRules}
           projects={availableProjects}
@@ -3150,14 +3151,12 @@
           userId={String(data.user.id)}
         />
       </div>
-      <details
-        bind:open={wholePeriodOpen}
+      <div
         class="billing-section__creation-surface"
         data-invoice-creation-mode="whole_period"
         hidden={invoiceCreationMode !== 'whole_period'}
         aria-hidden={invoiceCreationMode !== 'whole_period'}
       >
-        <summary class="secondary-button">{journeyText(locale, 'wholePeriod')}</summary>
         <form
           method="POST"
           action="?/createDraft"
@@ -3175,33 +3174,45 @@
           <input type="hidden" name="periodStart" value={wizardPeriodStart} />
           <input type="hidden" name="periodEnd" value={wizardPeriodEnd} />
           <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
-            {#each wizardStepLabels as label, index}
-              <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
-                <button type="button" onclick={() => (invoiceWizardStep = index + 1)}>
-                  <span>{index + 1}</span>{translate(label)}
+            {#each wizardMainSteps as step, index}
+              <li aria-current={wizardMainStep === index + 1 ? 'step' : undefined}>
+                <button type="button" onclick={() => (invoiceWizardStep = step)}>
+                  <span>{index + 1}</span>{wizardMainLabels[index]}
                 </button>
               </li>
             {/each}
           </ol>
-          <details class="billing-section__wizard-mobile-progress">
+          <p class="billing-section__wizard-mobile-progress" aria-live="polite">
+            {translate('Invoice steps')} · {wizardMainStep}/3 · {wizardMainLabels[
+              wizardMainStep - 1
+            ]}
+          </p>
+          <details class="billing-section__wizard-reference">
             <summary
-              >{translate('Invoice steps')} · {invoiceWizardStep}/12 · {translate(
-                wizardStepLabels[invoiceWizardStep - 1] ?? 'Invoice steps',
+              >{timeReadinessText(
+                'Review billing details',
+                'Consultar detalles de facturación',
+                'Consultar detalhes do faturamento',
               )}</summary
             >
-            <ol aria-label={translate('Invoice steps')}>
+            <nav
+              aria-label={timeReadinessText(
+                'Billing details',
+                'Detalles de facturación',
+                'Detalhes do faturamento',
+              )}
+            >
               {#each wizardStepLabels as label, index}
-                <li aria-current={invoiceWizardStep === index + 1 ? 'step' : undefined}>
+                {#if !wizardMainSteps.includes(index + 1)}
                   <button
                     type="button"
-                    onclick={(event) => {
-                      invoiceWizardStep = index + 1;
-                      event.currentTarget.closest('details')?.removeAttribute('open');
-                    }}><span>{index + 1}</span>{translate(label)}</button
+                    class="secondary-button"
+                    aria-pressed={invoiceWizardStep === index + 1}
+                    onclick={() => (invoiceWizardStep = index + 1)}>{translate(label)}</button
                   >
-                </li>
+                {/if}
               {/each}
-            </ol>
+            </nav>
           </details>
 
           {#if invoiceWizardStep === 1}
@@ -3801,7 +3812,45 @@
             </section>
           {:else}
             <section>
-              <h3>{translate('Save / issue')}</h3>
+              <h3>{wizardMainLabels[2]}</h3>
+              <dl data-invoice-review-summary>
+                <div>
+                  <dt>{translate('Project')}</dt>
+                  <dd>
+                    {wizardContextProject
+                      ? projectLabel(wizardContextProject)
+                      : rowValue(wizardRule, 'project_number', 'projectNumber')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Period')}</dt>
+                  <dd>{wizardPeriodStart || '—'} → {wizardPeriodEnd || '—'}</dd>
+                </div>
+                <div>
+                  <dt>{translate('Invoice issuer')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
+                      translate('Missing')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Tax profile')}</dt>
+                  <dd>
+                    {rowValue(wizardRule, 'tax_profile_name', 'taxProfileName') ||
+                      translate('No tax profile configured')}
+                  </dd>
+                </div>
+                {#if wizardReadiness}
+                  <div>
+                    <dt>{translate('Included source records')}</dt>
+                    <dd>{wizardReadiness.includedSourceCount}</dd>
+                  </div>
+                  <div>
+                    <dt>{translate('Excluded or pending source records')}</dt>
+                    <dd>{wizardReadiness.excludedSourceCount}</dd>
+                  </div>
+                {/if}
+              </dl>
               {#if wizardReadiness?.state === 'ready' && !wizardHasNoBillableSources}<p>
                   {translate(
                     'Save the draft now. Finance can then review lines and adjustments, approve it, issue the immutable numbered version, send it and register collections.',
@@ -3865,19 +3914,19 @@
               type="button"
               class="secondary-button"
               disabled={invoiceWizardStep === 1}
-              onclick={() => (invoiceWizardStep = Math.max(1, invoiceWizardStep - 1))}
+              onclick={() => (invoiceWizardStep = wizardMainStep === 3 ? 4 : 1)}
               >{translate('Previous')}</button
             >
             {#if invoiceWizardStep < 12}
               <button
                 type="button"
-                onclick={() => (invoiceWizardStep = Math.min(12, invoiceWizardStep + 1))}
+                onclick={() => (invoiceWizardStep = invoiceWizardStep === 1 ? 4 : 12)}
                 >{translate('Next')}</button
               >
             {/if}
           </div>
         </form>
-      </details>
+      </div>
     </ResponsiveSheet>
   {/if}
 
@@ -3963,7 +4012,11 @@
           aria-pressed={stageFilter === summary[0]}
           onclick={() => (stageFilter = summary[0] as BillingStage)}
         >
-          <span>{translate(String(summary[1]))}</span>
+          <span
+            >{summary[0] === 'drafts'
+              ? journeyText(locale, 'draftsAwaitingIssue')
+              : translate(String(summary[1]))}</span
+          >
           <strong>{summary[2]}</strong>
         </button>
       {/each}
@@ -5811,7 +5864,7 @@
             mobileMode="cards"
             cardRows={invoiceCardRows}
           >
-            <table class="billing-section__table">
+            <table class="billing-section__table billing-section__invoice-register">
               <caption class="sr-only">{translate('Invoice register')}</caption>
               <thead>
                 <tr>
@@ -7180,6 +7233,62 @@
     border-collapse: collapse;
   }
 
+  .billing-section .billing-section__invoice-list .billing-section__invoice-register {
+    width: 100%;
+    table-layout: fixed;
+    min-width: 62rem;
+  }
+  .billing-section__invoice-register th,
+  .billing-section__invoice-register td {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .billing-section__invoice-register th:nth-child(1) {
+    width: 11%;
+  }
+  .billing-section__invoice-register th:nth-child(2) {
+    width: 10%;
+  }
+  .billing-section__invoice-register th:nth-child(3) {
+    width: 16%;
+  }
+  .billing-section__invoice-register th:nth-child(4) {
+    width: 15%;
+  }
+  .billing-section__invoice-register th:nth-child(5),
+  .billing-section__invoice-register th:nth-child(6) {
+    width: 11%;
+  }
+  .billing-section__invoice-register th:nth-child(7) {
+    width: 9%;
+  }
+  .billing-section__invoice-register th:nth-child(8) {
+    width: 7%;
+  }
+  .billing-section__invoice-register td:nth-child(5),
+  .billing-section__invoice-register td:nth-child(6) {
+    white-space: nowrap;
+    overflow-wrap: normal;
+    padding-inline: 0.5rem;
+  }
+  .billing-section__invoice-register th:nth-child(9) {
+    width: 10%;
+  }
+  .billing-section__invoice-register .billing-section__invoice-date-line {
+    min-width: 0;
+  }
+  .billing-section__invoice-register td {
+    font-size: 0.8125rem;
+  }
+  .billing-section__invoice-register td:last-child button {
+    padding: 0.5rem;
+    font-size: 0.8125rem;
+    overflow-wrap: normal;
+  }
+  .billing-section__invoice-register td :global([data-ui='status-badge']) {
+    overflow-wrap: normal;
+  }
+
   .billing-section__rule-mobile-label {
     display: none;
   }
@@ -8194,6 +8303,36 @@
     display: none;
   }
 
+  .billing-section__invoice-wizard label {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+  }
+  .billing-section__invoice-wizard input,
+  .billing-section__invoice-wizard select {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+  .billing-section__wizard-reference {
+    min-width: 0;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.5rem;
+    padding: 0.65rem;
+  }
+  .billing-section__wizard-reference summary {
+    min-height: 2.75rem;
+    align-content: center;
+    cursor: pointer;
+    font-weight: 650;
+  }
+  .billing-section__wizard-reference nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
   .billing-section__wizard-progress {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -8439,44 +8578,17 @@
       grid-template-columns: 1fr;
     }
 
-    .billing-section__wizard-progress {
-      display: none;
+    .billing-section__wizard-progress button {
+      flex-direction: column;
+      align-items: flex-start;
+      height: 100%;
+      font-size: 0.8125rem;
+      overflow-wrap: anywhere;
     }
     .billing-section__wizard-mobile-progress {
       display: block;
-      min-width: 0;
-    }
-    .billing-section__wizard-mobile-progress summary {
-      padding: 0.65rem;
-      border: 1px solid var(--portal-border, #dfdedc);
-      border-radius: 0.45rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .billing-section__wizard-mobile-progress ol {
-      display: grid;
-      gap: 0.35rem;
-      max-height: min(40vh, 20rem);
-      overflow-y: auto;
-      margin: 0.4rem 0 0;
-      padding: 0;
-      list-style: none;
-    }
-    .billing-section__wizard-mobile-progress button {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      width: 100%;
-      min-height: 2.75rem;
-      padding: 0.55rem;
-      border: 1px solid var(--portal-border, #dfdedc);
-      background: var(--portal-wash, #f9f9f8);
-      color: var(--portal-ink, #20201d);
-      text-align: left;
-    }
-    .billing-section__wizard-mobile-progress li[aria-current='step'] button {
-      border-color: var(--portal-accent, #53524c);
-      font-weight: 700;
+      margin: 0;
+      color: var(--portal-muted, #67675f);
     }
 
     .billing-section__filters label:first-child,

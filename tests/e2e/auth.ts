@@ -104,7 +104,7 @@ export async function signIn(page: Page, role: keyof typeof e2eCredentials): Pro
   const credentials = e2eCredentials[role];
   await page.goto(portal('/login'));
   await page.waitForLoadState('networkidle');
-  await page.getByLabel('Work email').fill(credentials.email);
+  await page.locator('input[name="email"]').fill(credentials.email);
   await page.getByLabel('Password').fill(credentials.password);
   await page.getByRole('button', { name: 'Continue to workspace' }).click();
   const application = new URL(portal(''));

@@ -27,6 +27,23 @@ export type PortalNavigation = {
 };
 
 export type NavSubsection = { label: string; href: string };
+export type NavShortcut = NavItem & { parentLabel: string };
+
+/** Search existing role-authorized destinations down to their visible settings. */
+export function navigationShortcutsFor(
+  items: readonly NavItem[],
+  itemHref: (item: NavItem) => string,
+  role?: string | null,
+): NavShortcut[] {
+  const seen = new Set(items.map(itemHref));
+  return items.flatMap((item) =>
+    subsectionsForNavItem(item, itemHref(item), role).flatMap((shortcut) => {
+      if (seen.has(shortcut.href)) return [];
+      seen.add(shortcut.href);
+      return [{ ...item, ...shortcut, parentLabel: item.label }];
+    }),
+  );
+}
 
 /** Carry only an authorized project selection between the related finance views. */
 export function financeProjectNavigationHref(
@@ -192,10 +209,10 @@ export function subsectionsForNavItem(
   if (item.section === 'finance' && item.label === 'Commercial Configuration' && finance)
     return [
       link('How labor terms are selected', '#commercial-terms-summary'),
-      link('Worker compensation', '#finance-rule-registers', {
+      link('Worker compensation', '#finance-worker-compensation', {
         task: 'Worker compensation',
       }),
-      link('Internal loaded cost', '#finance-rule-registers', {
+      link('Internal loaded cost', '#finance-internal-cost-form', {
         task: 'Internal loaded cost',
       }),
       link('Project issuing authority', '#project-issuing-authority', {

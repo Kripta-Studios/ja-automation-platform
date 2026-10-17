@@ -8,6 +8,7 @@
   import {
     accountNavigationFor,
     activeNavItem,
+    navigationShortcutsFor,
     portalGlobalNavigationForRole,
     subsectionsForNavItem,
     type NavItem,
@@ -530,12 +531,13 @@
   </div>
   <SectionNavigator
     items={sectionDestinations}
+    shortcuts={navigationShortcutsFor(sectionDestinations, itemHref, data.user.role)}
     currentSection={currentNavItem ? translate(currentNavItem.label) : ''}
     {locale}
     itemHref={(item) => {
       const target = new URL(itemHref(item), $page.url);
       target.searchParams.set('lang', locale);
-      return `${target.pathname}${target.search}`;
+      return `${target.pathname}${target.search}${target.hash}`;
     }}
     {translate}
   />

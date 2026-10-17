@@ -28,6 +28,7 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  'Digital workers': 'Digital workers',
   'action.billing.readiness.missingInternalCost':
     'Accepted time still needs an internal cost rule covering its worker and worked date. Configure and review this separate cost in Finance before billing. A client sale rate does not establish internal cost.',
   'action.billing.readiness.missingCompensationRule':
@@ -648,6 +649,7 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  'Digital workers': 'Trabajadores digitales',
   'action.billing.readiness.missingInternalCost':
     'Las horas aceptadas aún necesitan una regla de coste interno que cubra al trabajador y la fecha de trabajo. Configura y revisa este coste separado en Finanzas antes de facturar. Una tarifa de venta al cliente no determina el coste interno.',
   'action.billing.readiness.missingCompensationRule':
@@ -1269,6 +1271,7 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  'Digital workers': 'Trabalhadores digitais',
   'action.billing.readiness.missingInternalCost':
     'As horas aceitas ainda precisam de uma regra de custo interno que cubra o trabalhador e a data de trabalho. Configure e revise esse custo separado em Finanças antes de faturar. Uma tarifa de venda ao cliente não determina o custo interno.',
   'action.billing.readiness.missingCompensationRule':

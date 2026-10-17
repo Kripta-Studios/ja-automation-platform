@@ -2935,12 +2935,18 @@
 {/if}
 
 <style>
-  .project-detail-page {
+  /* Sheets are siblings of the page, so they need the same surface tokens. */
+  .project-detail-page,
+  :global(.project-edit-sheet),
+  :global(.project-invoice-sheet) {
     --project-ink: var(--ja-ink, #1f1f1c);
     --project-muted: var(--ja-steel, #77756d);
     --project-line: var(--ja-line, #e4e4e2);
     --project-surface: var(--ja-white, #fff);
     --project-soft: #f8f8f7;
+  }
+
+  .project-detail-page {
     max-width: 78rem;
     margin: 0 auto;
     padding: clamp(1rem, 2.5vw, 2.25rem);

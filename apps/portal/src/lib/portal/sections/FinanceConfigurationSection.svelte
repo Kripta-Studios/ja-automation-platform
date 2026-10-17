@@ -3180,7 +3180,11 @@
   {#if !isAuditor}
     <div class="management-stack compact-stack">
       {#if selectedAction === 'Worker compensation'}
-        <FormSection title={translate('Worker compensation')}>
+        <FormSection
+          id="finance-worker-compensation"
+          data-navigation-align="start"
+          title={translate('Worker compensation')}
+        >
           <form
             method="POST"
             action={configurationActionUrl('createCompensationRule')}
@@ -3784,7 +3788,11 @@
       {/if}
 
       {#if selectedAction === 'Internal loaded cost'}
-        <FormSection title={translate('Internal loaded cost')}>
+        <FormSection
+          id="finance-internal-cost-form"
+          data-navigation-align="start"
+          title={translate('Internal loaded cost')}
+        >
           <form
             method="POST"
             action={configurationActionUrl('createInternalCostRule')}

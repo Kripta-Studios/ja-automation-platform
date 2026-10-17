@@ -813,7 +813,7 @@ test('late whole-period readiness cannot open a repair dialog after browser Back
     const legacy = page.locator('form.billing-section__invoice-wizard');
     await expect(legacy).toBeVisible();
     // Project-scoped entry already carries its stream and opens the period step.
-    await expect(legacy.locator('.billing-section__wizard-mobile-progress')).toContainText('4/12');
+    await expect(legacy.locator('.billing-section__wizard-mobile-progress')).toContainText('2/3');
     await legacy.getByRole('button', { name: 'Check selected period', exact: true }).click();
     await requestCaptured;
     await page.goBack();

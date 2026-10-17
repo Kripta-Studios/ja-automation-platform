@@ -6,6 +6,16 @@
 **Client validation update:** 2026-08-24
 The requirements clarified directly with J&A on 2026-08-24 are release-authoritative. Existing PASS/PARTIAL evidence must be revalidated where these clarifications materially change the behavior; no prior PASS may be assumed to prove a newly clarified rule.
 
+## Requested browser-swarm UI/UX repair — 2026-10-17
+
+Scoped CORE-10 / CORE-14 repairs: direct dashboard invoice creation, searchable
+authorized settings, three-step whole-period invoice preparation, readable invoice
+register columns, and restored project-sheet field borders and opaque action bars.
+Browser review covers Owner/Finance and operational/read-only role boundaries at
+360/390/768/1440 px. Independent review findings were corrected and rechecked.
+[Changes, evidence and validation limits](docs/evidence/ui-ux-swarm-20261017.md).
+This does not change the overall Client Essential acceptance status.
+
 ## Requested temporary Owner alias — 2026-10-12
 
 User-approved 30-day additional alias for the existing Antonny Owner account. Existing

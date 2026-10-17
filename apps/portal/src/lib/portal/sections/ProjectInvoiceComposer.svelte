@@ -78,6 +78,7 @@
     rules,
     projects = [],
     projectTimezone = '',
+    showProjectContext = true,
     locale = 'en',
     role,
     userId,
@@ -92,6 +93,7 @@
     rules: readonly Rule[];
     projects?: readonly Rule[];
     projectTimezone?: string;
+    showProjectContext?: boolean;
     locale?: PortalLocale;
     role: string;
     userId: string;
@@ -787,7 +789,7 @@
         {/if}
       </div>
     {:else}
-      {#if currentProjectId}
+      {#if currentProjectId && showProjectContext}
         <aside class="composer-context" aria-label={text('projectContext')}>
           <div>
             <span>{text('projectContext')}</span>
@@ -803,7 +805,7 @@
           void loadRecords();
         }}
       >
-        <label
+        <label class="composer-stream-field"
           >{text('stream')}<select
             bind:value={ruleId}
             onchange={() => {
@@ -1414,6 +1416,9 @@
     gap: 1rem;
     align-items: end;
     margin: 1rem 0;
+  }
+  .composer-stream-field {
+    grid-column: 1 / -1;
   }
   .composer-context {
     display: flex;

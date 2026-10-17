@@ -46,7 +46,9 @@ export const navigationUxCopy = {
   },
   sectionNavigator: {
     currentSection: 'Current section: {section}',
-    resultCount: '{count} sections available',
+    resultCount: '{count} destinations available',
+    searchHint: 'Search sections and settings available to your profile.',
+    frequentSettings: 'Frequent settings',
   },
 } as const;
 
@@ -99,7 +101,9 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     },
     sectionNavigator: {
       currentSection: 'Sección actual: {section}',
-      resultCount: '{count} secciones disponibles',
+      resultCount: '{count} destinos disponibles',
+      searchHint: 'Busca secciones y ajustes disponibles para tu perfil.',
+      frequentSettings: 'Ajustes frecuentes',
     },
   },
   pt: {
@@ -143,7 +147,9 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     },
     sectionNavigator: {
       currentSection: 'Seção atual: {section}',
-      resultCount: '{count} seções disponíveis',
+      resultCount: '{count} destinos disponíveis',
+      searchHint: 'Busque seções e configurações disponíveis para seu perfil.',
+      frequentSettings: 'Configurações frequentes',
     },
   },
 };

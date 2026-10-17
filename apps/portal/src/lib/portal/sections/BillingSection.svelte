@@ -1842,9 +1842,22 @@
     'Preview',
     'Save / issue',
   ];
-  // Required decisions stay in three steps; reference information remains optional.
+  // Every detail is shown automatically within its stage and is also directly reachable.
   const wizardMainSteps = [1, 4, 12];
-  const wizardMainStep = $derived(invoiceWizardStep === 1 ? 1 : invoiceWizardStep === 4 ? 2 : 3);
+  const wizardMainStep = $derived(invoiceWizardStep <= 3 ? 1 : invoiceWizardStep <= 6 ? 2 : 3);
+  const wizardStageSections = [
+    [1, 2, 3],
+    [4, 5, 6],
+    [7, 8, 9, 10, 11, 12],
+  ];
+
+  async function visitWizardSection(section: number): Promise<void> {
+    invoiceWizardStep = section;
+    await tick();
+    const target = document.getElementById(`invoice-wizard-section-${section}`);
+    target?.focus({ preventScroll: true });
+    target?.scrollIntoView({ block: 'start', behavior: 'instant' });
+  }
   const wizardMainLabels = $derived([
     translate('Client / project'),
     translate('Period'),
@@ -2638,7 +2651,7 @@
         return;
       }
       invoiceCreationMode = 'whole_period';
-      invoiceWizardStep = 4;
+      invoiceWizardStep = 1;
       return;
     }
     if (!recordModeAvailable || !wizardRuleId) return;
@@ -2667,7 +2680,7 @@
       ? mode
       : 'whole_period';
     invoiceCreationMode = effectiveMode;
-    invoiceWizardStep = effectiveMode === 'whole_period' ? 4 : 1;
+    invoiceWizardStep = 1;
     invoiceWizardOpen = true;
   }
 
@@ -2699,7 +2712,6 @@
     const requestedRuleIsEligible = eligibleRules.some(
       (rule) => rowValue(rule, 'id') === requestedRule,
     );
-    const globallyUnscoped = !projectFilter && !requestedRuleIsEligible;
     const selectedRuleId = requestedRuleIsEligible
       ? requestedRule!
       : rowValue(eligibleRules[0], 'id');
@@ -2711,7 +2723,7 @@
     const requestedMode = $page.url.searchParams.get('mode') === 'whole-period';
     invoiceCreationMode =
       requestedMode || !selectedRuleSupportsRecords ? 'whole_period' : 'records';
-    invoiceWizardStep = invoiceCreationMode === 'whole_period' && !globallyUnscoped ? 4 : 1;
+    invoiceWizardStep = 1;
     const requestedStart = $page.url.searchParams.get('periodStart');
     const requestedEnd = $page.url.searchParams.get('periodEnd');
     if (
@@ -3176,7 +3188,10 @@
           <ol class="billing-section__wizard-progress" aria-label={translate('Invoice steps')}>
             {#each wizardMainSteps as step, index}
               <li aria-current={wizardMainStep === index + 1 ? 'step' : undefined}>
-                <button type="button" onclick={() => (invoiceWizardStep = step)}>
+                <button
+                  type="button"
+                  onclick={() => void visitWizardSection(step === 12 ? 7 : step)}
+                >
                   <span>{index + 1}</span>{wizardMainLabels[index]}
                 </button>
               </li>
@@ -3187,37 +3202,55 @@
               wizardMainStep - 1
             ]}
           </p>
-          <details class="billing-section__wizard-reference">
-            <summary
+          <nav
+            class="billing-section__wizard-reference"
+            aria-label={timeReadinessText(
+              'Billing details',
+              'Detalles de facturación',
+              'Detalhes do faturamento',
+            )}
+            data-invoice-details-overview
+          >
+            <strong
               >{timeReadinessText(
-                'Review billing details',
-                'Consultar detalles de facturación',
-                'Consultar detalhes do faturamento',
-              )}</summary
+                'All invoice details',
+                'Todos los detalles de la factura',
+                'Todos os detalhes da fatura',
+              )}</strong
             >
-            <nav
-              aria-label={timeReadinessText(
-                'Billing details',
-                'Detalles de facturación',
-                'Detalhes do faturamento',
+            <p>
+              {timeReadinessText(
+                'Each step shows all its details below. Use these shortcuts to review any section. Choose records above if you want to select individual hours or expenses.',
+                'Cada paso muestra todos sus detalles debajo. Usa estos accesos para revisar cualquier sección. Elige registros arriba si quieres seleccionar horas o gastos concretos.',
+                'Cada etapa mostra todos os seus detalhes abaixo. Use estes atalhos para revisar qualquer seção. Escolha registros acima para selecionar horas ou despesas específicas.',
               )}
-            >
-              {#each wizardStepLabels as label, index}
-                {#if !wizardMainSteps.includes(index + 1)}
-                  <button
-                    type="button"
-                    class="secondary-button"
-                    aria-pressed={invoiceWizardStep === index + 1}
-                    onclick={() => (invoiceWizardStep = index + 1)}>{translate(label)}</button
-                  >
-                {/if}
-              {/each}
-            </nav>
-          </details>
+            </p>
+            {#each wizardStageSections as sections, stage}
+              <div class="billing-section__wizard-detail-group">
+                <span>{stage + 1}. {wizardMainLabels[stage]}</span>
+                <div>
+                  {#each sections.filter((section) => !wizardMainSteps.includes(section)) as section}
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => void visitWizardSection(section)}
+                    >
+                      {translate(wizardStepLabels[section - 1])}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/each}
+          </nav>
 
-          {#if invoiceWizardStep === 1}
-            <section>
-              <h3>{translate('Client / project')}</h3>
+          {#if wizardMainStep === 1}
+            <section
+              id="invoice-wizard-section-1"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-1"
+              data-invoice-detail="1"
+            >
+              <h3 id="invoice-wizard-heading-1">{translate('Client / project')}</h3>
               <p>{translate('Choose the project whose approved source records will be billed.')}</p>
               <label>
                 <span>{translate('Project and billing stream')}</span>
@@ -3245,9 +3278,22 @@
                 </select>
               </label>
             </section>
-          {:else if invoiceWizardStep === 2}
-            <section>
-              <h3>{translate('Billing stream')}</h3>
+          {/if}
+          {#if wizardMainStep === 1}
+            <section
+              id="invoice-wizard-section-2"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-2"
+              data-invoice-detail="2"
+            >
+              <h3 id="invoice-wizard-heading-2">{translate('Billing stream')}</h3>
+              <p data-invoice-configuration-help>
+                {timeReadinessText(
+                  'These are the saved billing settings. Manage stream closes this assistant and opens the billing streams list. Find the project and stream shown above, then choose Manage stream in its row to edit it. Return to Create invoice after saving your changes.',
+                  'Estos son los ajustes de facturación guardados. Gestionar flujo cierra este asistente y abre la lista de flujos de facturación. Busca el proyecto y flujo indicados arriba y pulsa Gestionar flujo en su fila para editarlos. Vuelve a Crear factura después de guardar los cambios.',
+                  'Estas são as configurações de faturamento salvas. Gerenciar fluxo fecha este assistente e abre a lista de fluxos de faturamento. Localize o projeto e fluxo indicados acima e selecione Gerenciar fluxo na respectiva linha para editar. Volte a Criar fatura após salvar as alterações.',
+                )}
+              </p>
               <p>
                 {translate(
                   'Labor and expenses approved for customer billing use independent streams, cadence and tax configuration. Non-billable expenses are excluded even if J&A reimburses the worker.',
@@ -3289,9 +3335,15 @@
                 }}>{translate('Manage stream')}</button
               >
             </section>
-          {:else if invoiceWizardStep === 3}
-            <section>
-              <h3>{translate('Labor / expenses')}</h3>
+          {/if}
+          {#if wizardMainStep === 1}
+            <section
+              id="invoice-wizard-section-3"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-3"
+              data-invoice-detail="3"
+            >
+              <h3 id="invoice-wizard-heading-3">{translate('Labor / expenses')}</h3>
               <p>
                 {translate(
                   'This stream includes one source family only, preventing the same labor or expense from being invoiced twice.',
@@ -3320,9 +3372,15 @@
                 )}
               </p>
             </section>
-          {:else if invoiceWizardStep === 4}
-            <section>
-              <h3>{translate('Period')}</h3>
+          {/if}
+          {#if wizardMainStep === 2}
+            <section
+              id="invoice-wizard-section-4"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-4"
+              data-invoice-detail="4"
+            >
+              <h3 id="invoice-wizard-heading-4">{translate('Period')}</h3>
               <p>
                 {timeReadinessText(
                   'The suggested dates come from this stream’s configured cadence. Checking incompatible dates aligns them with the stream and shows the change before creating the draft.',
@@ -3540,9 +3598,15 @@
                 >
               {/if}
             </section>
-          {:else if invoiceWizardStep === 5}
-            <section>
-              <h3>{translate('Included records')}</h3>
+          {/if}
+          {#if wizardMainStep === 2}
+            <section
+              id="invoice-wizard-section-5"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-5"
+              data-invoice-detail="5"
+            >
+              <h3 id="invoice-wizard-heading-5">{translate('Included records')}</h3>
               <p>
                 {translate(
                   'The draft includes approved, eligible and unbilled records from this exact period. The generated draft preserves a source-by-source snapshot for review.',
@@ -3613,14 +3677,24 @@
                   </table>
                 {/if}
               {:else}
-                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                  >{translate('Check selected period')}</button
-                >
+                <p>
+                  {timeReadinessText(
+                    'Check the selected period above to see these records.',
+                    'Comprueba el período seleccionado arriba para ver estos registros.',
+                    'Verifique o período selecionado acima para ver estes registros.',
+                  )}
+                </p>
               {/if}
             </section>
-          {:else if invoiceWizardStep === 6}
-            <section>
-              <h3>{translate('Excluded / pending')}</h3>
+          {/if}
+          {#if wizardMainStep === 2}
+            <section
+              id="invoice-wizard-section-6"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-6"
+              data-invoice-detail="6"
+            >
+              <h3 id="invoice-wizard-heading-6">{translate('Excluded / pending')}</h3>
               <p>
                 {translate(
                   'Pending approvals, active corrections, missing rates or required reports block this exact period. The result explains each exclusion and keeps your selected dates.',
@@ -3643,17 +3717,40 @@
                   <p>{translate('No blocking conditions were found for this exact period.')}</p>
                 {/if}
               {:else}
-                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
-                  >{translate('Check selected period')}</button
-                >
+                <p>
+                  {timeReadinessText(
+                    'Check the selected period above to see these records.',
+                    'Comprueba el período seleccionado arriba para ver estos registros.',
+                    'Verifique o período selecionado acima para ver estes registros.',
+                  )}
+                </p>
               {/if}
               <a class="secondary-button" href={readinessActionHref(wizardReadiness?.reasons ?? [])}
                 >{translate('Review pending records')}</a
               >
             </section>
-          {:else if invoiceWizardStep === 7}
-            <section>
-              <h3>{translate('Taxes')}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-7"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-7"
+              data-invoice-detail="7"
+            >
+              <h3 id="invoice-wizard-heading-7">{translate('Taxes')}</h3>
+              <p data-invoice-review-help>
+                {timeReadinessText(
+                  'Review taxes, invoice data, payment terms and adjustments below before saving. These values come from the saved billing setup. Commercial adjustments are added to the draft after saving, before issue.',
+                  'Revisa abajo los impuestos, datos de factura, condiciones de pago y ajustes antes de guardar. Estos valores proceden de la configuración guardada. Los ajustes comerciales se añaden al borrador después de guardarlo, antes de emitir.',
+                  'Revise abaixo os impostos, dados da fatura, condições de pagamento e ajustes antes de salvar. Estes valores vêm da configuração salva. Os ajustes comerciais são adicionados ao rascunho após salvar, antes da emissão.',
+                )}
+              </p>
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => void visitWizardSection(2)}
+                >{translate('Review billing setup')}</button
+              >
               <p>
                 {translate(
                   'A selected tax profile calculates tax. Without one, the draft adds no tax.',
@@ -3673,9 +3770,15 @@
                 </div>
               </dl>
             </section>
-          {:else if invoiceWizardStep === 8}
-            <section>
-              <h3>{translate('Invoice data')}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-8"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-8"
+              data-invoice-detail="8"
+            >
+              <h3 id="invoice-wizard-heading-8">{translate('Invoice data')}</h3>
               <p>
                 {translate(
                   'The invoice issuer is your company. The customer legal name comes from the client used to create this project.',
@@ -3713,9 +3816,15 @@
                 </div>
               </dl>
             </section>
-          {:else if invoiceWizardStep === 9}
-            <section>
-              <h3>{translate('Banking / payment')}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-9"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-9"
+              data-invoice-detail="9"
+            >
+              <h3 id="invoice-wizard-heading-9">{translate('Banking / payment')}</h3>
               <p>
                 {translate(
                   'Payment terms come from the billing stream. Review payment instructions on the draft before issuing.',
@@ -3735,9 +3844,15 @@
                 </div>
               </dl>
             </section>
-          {:else if invoiceWizardStep === 10}
-            <section>
-              <h3>{translate('Commercial adjustments')}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-10"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-10"
+              data-invoice-detail="10"
+            >
+              <h3 id="invoice-wizard-heading-10">{translate('Commercial adjustments')}</h3>
               <p>
                 {translate(
                   'Correct a wrong source record in Time or Expenses. A commercial adjustment changes only what is billed and never overwrites the actual work record.',
@@ -3749,9 +3864,15 @@
                 )}
               </p>
             </section>
-          {:else if invoiceWizardStep === 11}
-            <section>
-              <h3>{translate('Preview')}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-11"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-11"
+              data-invoice-detail="11"
+            >
+              <h3 id="invoice-wizard-heading-11">{translate('Preview')}</h3>
               <dl>
                 <div>
                   <dt>{translate('Customer legal entity')}</dt>
@@ -3810,9 +3931,15 @@
                   {translate('Check the selected billing period before saving a draft.')}
                 </p>{/if}
             </section>
-          {:else}
-            <section>
-              <h3>{wizardMainLabels[2]}</h3>
+          {/if}
+          {#if wizardMainStep === 3}
+            <section
+              id="invoice-wizard-section-12"
+              tabindex="-1"
+              aria-labelledby="invoice-wizard-heading-12"
+              data-invoice-detail="12"
+            >
+              <h3 id="invoice-wizard-heading-12">{wizardMainLabels[2]}</h3>
               <dl data-invoice-review-summary>
                 <div>
                   <dt>{translate('Project')}</dt>
@@ -3875,7 +4002,7 @@
                 <button
                   type="button"
                   class="secondary-button"
-                  onclick={() => (invoiceWizardStep = 4)}
+                  onclick={() => void visitWizardSection(4)}
                   >{translate('Period')} <DirectionIcon /></button
                 >
               {:else if !wizardReadiness || wizardReadiness.state === 'incomplete'}
@@ -3913,14 +4040,14 @@
             <button
               type="button"
               class="secondary-button"
-              disabled={invoiceWizardStep === 1}
-              onclick={() => (invoiceWizardStep = wizardMainStep === 3 ? 4 : 1)}
+              disabled={wizardMainStep === 1}
+              onclick={() => void visitWizardSection(wizardMainStep === 3 ? 4 : 1)}
               >{translate('Previous')}</button
             >
-            {#if invoiceWizardStep < 12}
+            {#if wizardMainStep < 3}
               <button
                 type="button"
-                onclick={() => (invoiceWizardStep = invoiceWizardStep === 1 ? 4 : 12)}
+                onclick={() => void visitWizardSection(wizardMainStep === 1 ? 4 : 7)}
                 >{translate('Next')}</button
               >
             {/if}
@@ -8321,17 +8448,39 @@
     border-radius: 0.5rem;
     padding: 0.65rem;
   }
-  .billing-section__wizard-reference summary {
-    min-height: 2.75rem;
-    align-content: center;
-    cursor: pointer;
+  .billing-section__wizard-reference > p {
+    margin: 0.4rem 0 0.75rem;
+  }
+  .billing-section__wizard-detail-group {
+    display: grid;
+    gap: 0.35rem;
+    margin-top: 0.65rem;
+  }
+  .billing-section__wizard-detail-group > span {
     font-weight: 650;
   }
-  .billing-section__wizard-reference nav {
+  .billing-section__wizard-detail-group > div {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
+    gap: 0.4rem;
+  }
+  .billing-section__wizard-detail-group button {
+    min-height: 2.75rem;
+    max-width: 100%;
+    white-space: normal;
+    text-align: left;
+  }
+  .billing-section__invoice-wizard [data-invoice-detail] {
+    padding: 1rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.5rem;
+    scroll-margin-top: 1rem;
+    overflow-wrap: anywhere;
+  }
+  .billing-section__invoice-wizard [data-invoice-detail]:focus-visible,
+  .billing-section__wizard-reference button:focus-visible {
+    outline: 2px solid var(--portal-accent, #53524c);
+    outline-offset: 3px;
   }
   .billing-section__wizard-progress {
     display: grid;
@@ -8576,6 +8725,11 @@
     .billing-section__planning-fields,
     .billing-section__wizard-fields {
       grid-template-columns: 1fr;
+    }
+
+    .billing-section__invoice-wizard dl > div {
+      grid-template-columns: minmax(0, 1fr);
+      gap: 0.25rem;
     }
 
     .billing-section__wizard-progress button {

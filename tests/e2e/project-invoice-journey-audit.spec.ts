@@ -812,7 +812,10 @@ test('late whole-period readiness cannot open a repair dialog after browser Back
     await page.getByRole('button', { name: /^Whole period or milestone/ }).click();
     const legacy = page.locator('form.billing-section__invoice-wizard');
     await expect(legacy).toBeVisible();
-    // Project-scoped entry already carries its stream and opens the period step.
+    // Keep the scoped stream, but show its saved settings before checking the period.
+    await expect(legacy.locator('.billing-section__wizard-mobile-progress')).toContainText('1/3');
+    await expect(legacy.locator('[data-invoice-detail="2"]')).toBeVisible();
+    await legacy.getByRole('button', { name: 'Next', exact: true }).click();
     await expect(legacy.locator('.billing-section__wizard-mobile-progress')).toContainText('2/3');
     await legacy.getByRole('button', { name: 'Check selected period', exact: true }).click();
     await requestCaptured;

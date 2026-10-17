@@ -17,6 +17,9 @@ not a claim of complete Client Essential acceptance.
   Three main decisions now cover project/stream, period and review/save. Detailed
   information remains available. Readiness checks, source eligibility and the
   explicit draft/approval/issue lifecycle are unchanged.
+  The subsequent user-requested [visibility correction](invoice-detail-visibility-20261017.md)
+  replaces the collapsed detail navigation with visible shortcuts and shows all
+  detail sections automatically within those three stages.
 - Long invoice identities pushed status, totals and actions out of the desktop
   register. Deliberate column widths and text wrapping keep the register usable,
   while monetary amounts, statuses and action labels remain readable. Existing

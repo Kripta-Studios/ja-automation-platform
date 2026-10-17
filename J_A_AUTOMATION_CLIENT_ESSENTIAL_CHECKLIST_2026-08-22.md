@@ -16,6 +16,11 @@ Browser review covers Owner/Finance and operational/read-only role boundaries at
 [Changes, evidence and validation limits](docs/evidence/ui-ux-swarm-20261017.md).
 This does not change the overall Client Essential acceptance status.
 
+Follow-up at the user's request: invoice details are no longer collapsed or
+skipped by the ordinary journey. All twelve sections appear across three stages,
+with nine visible shortcuts and explicit configuration/draft guidance in EN/ES/PT.
+See the [visibility correction and scoped checks](docs/evidence/invoice-detail-visibility-20261017.md).
+
 ## Requested temporary Owner alias — 2026-10-12
 
 User-approved 30-day additional alias for the existing Antonny Owner account. Existing

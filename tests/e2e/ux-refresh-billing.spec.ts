@@ -188,7 +188,7 @@ async function selectWholePeriodStep(page: import('@playwright/test').Page, labe
 }
 
 test.describe('billing UX refresh · read-only feature parity', () => {
-  test('whole-period invoice uses three decisions and keeps detailed review available', async ({
+  test('whole-period invoice uses three stages and displays detailed review automatically', async ({
     page,
   }) => {
     await signIn(page, 'finance');
@@ -213,10 +213,14 @@ test.describe('billing UX refresh · read-only feature parity', () => {
     await expect(
       surface.getByRole('button', { name: 'Check selected period', exact: true }),
     ).toBeVisible();
-    await surface.locator('.billing-section__wizard-reference summary').click();
+    await expect(surface.locator('[data-invoice-details-overview]')).toBeVisible();
+    await expect(surface.locator('details')).toHaveCount(0);
     await surface.getByRole('button', { name: 'Taxes', exact: true }).click();
     await expect(surface.getByRole('heading', { name: 'Taxes', exact: true })).toBeVisible();
-    await surface.getByRole('button', { name: 'Next', exact: true }).click();
+    await expect(surface.locator('[data-invoice-detail="7"]')).toBeFocused();
+    await expect(
+      surface.getByRole('heading', { name: 'Banking / payment', exact: true }),
+    ).toBeVisible();
     await expect(surface.locator('[data-invoice-review-summary]')).toBeVisible();
     const dialog = page.getByRole('dialog');
     const bounds = await dialog.evaluate((element) => ({
@@ -370,6 +374,11 @@ test.describe('billing UX refresh · read-only feature parity', () => {
     await expect(wholeStream).toHaveValue(other!.id);
     await expect(page.locator('input[name="periodStart"]')).toHaveValue('2026-09-01');
     await expect(page.locator('input[name="periodEnd"]')).toHaveValue('2026-09-30');
+    await selectWholePeriodStep(page, 'Period');
+    await expect(wholeSurface.locator('[data-billing-wizard-period-start]')).toHaveValue(
+      '2026-09-01',
+    );
+    await expect(wholeSurface.getByLabel('Period end', { exact: true })).toHaveValue('2026-09-30');
 
     await page
       .locator('[data-invoice-creation-modes] button')
@@ -499,6 +508,14 @@ test.describe('billing UX refresh · read-only feature parity', () => {
       page.locator('[data-invoice-creation-modes] button').filter({ hasText: 'Choose records' }),
     ).toBeDisabled();
     await expect(page.locator('[data-invoice-creation-mode="whole_period"]')).toBeVisible();
+    await expect(page.locator('[data-invoice-detail="2"]')).toBeVisible();
+    await selectWholePeriodStep(page, 'Period');
+    await expect(page.locator('[data-billing-wizard-period-start]')).toBeVisible();
+    await expect(
+      page
+        .locator('[data-invoice-creation-mode="whole_period"]')
+        .getByLabel('Period end', { exact: true }),
+    ).toBeVisible();
   });
 
   test('keeps milestone-only project invoice entry usable', async ({ page }) => {
@@ -517,6 +534,14 @@ test.describe('billing UX refresh · read-only feature parity', () => {
       page.locator('[data-invoice-creation-modes] button').filter({ hasText: 'Choose records' }),
     ).toBeDisabled();
     await expect(page.locator('[data-invoice-creation-mode="whole_period"]')).toBeVisible();
+    await expect(page.locator('[data-invoice-detail="2"]')).toBeVisible();
+    await selectWholePeriodStep(page, 'Period');
+    await expect(page.locator('[data-billing-wizard-period-start]')).toBeVisible();
+    await expect(
+      page
+        .locator('[data-invoice-creation-mode="whole_period"]')
+        .getByLabel('Period end', { exact: true }),
+    ).toBeVisible();
   });
 
   test('keeps the mobile invoice project action inside its card', async ({ page }) => {

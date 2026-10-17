@@ -1,0 +1,49 @@
+{
+  "status": "Primary responsive acceptance passed; optional root-size stress case recorded separately",
+  "trigger": "Independent production review found clipped Create invoice/Overdue at 1024px and a 3px heading search overflow, missed by initial four-width acceptance",
+  "scope": "CSS only: BillingSection.svelte layout and portal shell intrinsic search sizing",
+  "changes": [
+    "Explicit minmax(0,1fr) billing track and shrinkable children",
+    "Billing heading wraps its actions",
+    "Container-based filter layout at50rem prevents fixed minimum column overflow",
+    "Global search retains preferred width while shrinking within available heading space"
+  ],
+  "sourceBehavior": "Billing script and markup byte-identical to 2339fe1a; financial/backend/schema/manual contents unchanged",
+  "privateEvidenceRoot": "/home/kripta/ja-sota-implementation-20261017/production-independent",
+  "productionAcceptance": "Operational receipts remain external to keep runtime commit and GitHub main identical",
+  "localAcceptance": {
+    "viewports": [
+      "360x844",
+      "390x844",
+      "768x1024",
+      "1024x768",
+      "1440x900"
+    ],
+    "billingSettingsInvoiceOverflowPx": 0,
+    "billingCreateAndSummaryCardsFullyVisible": true,
+    "filterClearAndTableRegionWithinViewport": true,
+    "tableHorizontalScrolling": "Local to the table region",
+    "settingsLanguages1024": [
+      "en",
+      "es",
+      "pt"
+    ],
+    "normal320Settings": "passed",
+    "responsiveSheetGeometry320Through1440": "fixed to viewport; full height; wide sheet up to 1088px",
+    "browserErrors": 0,
+    "blockedMutationRequests": 0
+  },
+  "sourceHashes": {
+    "apps/portal/src/lib/portal/sections/BillingSection.svelte": "e0efb389572174ade735b30128724b536c2af0953e341ac4ce7a0560db77d8b1",
+    "apps/portal/src/styles/portal/shell.css": "9712d7cb0030da8dd558c9c36ec77b04e906be5438d8de8b08c5168e7f38d739"
+  },
+  "extendedStressFinding": {
+    "status": "Pre-existing limitation, outside primary viewport acceptance",
+    "method": "320x844 plus test-only html { font-size: 200% !important; }; scales rem-based spacing and controls as well as text. Not browser zoom or an isolated WCAG text-spacing test.",
+    "candidateDocumentWidth": 450,
+    "baseline2339DocumentWidth": 450,
+    "overflowPx": 130,
+    "affected": "Shared header locale/account controls, long title, and pre-existing Finance content minimum widths. Corrected global search fits.",
+    "noRegressionAttribution": "Same overflow reproduced read-only on the deployed 2339 baseline. No claim of 200% browser zoom or full WCAG compliance."
+  }
+}

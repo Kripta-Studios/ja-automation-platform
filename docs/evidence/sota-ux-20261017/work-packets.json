@@ -124,6 +124,25 @@
         "production/main source parity",
         "no user-data/volume cleanup"
       ]
+    },
+    {
+      "owner": "landscape_fix",
+      "reviewer": "sota_ui_review",
+      "class": "A / Luna Max",
+      "requirements": [
+        "UX-05",
+        "CORE-14"
+      ],
+      "files": [
+        "BillingSection.svelte CSS",
+        "styles/portal/shell.css"
+      ],
+      "invariants": [
+        "Explicit grid track, container-based filter wrapping and intrinsic search sizing preserve visible actions at landscape tablet widths",
+        "Intentional table scrolling remains local; no global clipping workaround",
+        "No changes to financial behavior or named controls"
+      ],
+      "acceptance": "Independent responsive browser evidence recorded in landscape-followup.json"
     }
   ],
   "review": "Independent forms/navigation/billing review completed; bounded source review and browser results recorded in browser-acceptance.json",

@@ -3,7 +3,7 @@
   "portalProductionBuild": {
     "exitCode": 0,
     "sourceUnchangedDuringBuild": true,
-    "completedAtEpoch": 1792245160.2759242
+    "completedAtEpoch": 1792247464.8905377
   },
   "portalTypecheck": {
     "exitCode": 0
@@ -27,6 +27,24 @@
     "packages (financial/domain/database logic)",
     "deployment source"
   ],
-  "sourceReview": "Independent bounded UI and operational-script review found no remaining release blocker. Image packaging will verify a complete runtime manifest and clean committed worktree.",
-  "knownBuildOutput": "Existing warnings in unrelated components and third-party Rollup annotations; no claim that the repository has zero baseline warnings."
+  "sourceReview": "Independent browser review accepted the five primary viewports and the landscape CSS follow-up; optional 320px root-font-size stress limitation is documented separately. Operational scripts reviewed independently; runtime packaging verifies a complete manifest and clean committed worktree.",
+  "knownBuildOutput": "Existing warnings in unrelated components and third-party Rollup annotations; no claim that the repository has zero baseline warnings.",
+  "landscapeFollowupChecks": [
+    {
+      "check": "eslint",
+      "exitCode": 0
+    },
+    {
+      "check": "prettier",
+      "exitCode": 0
+    },
+    {
+      "check": "diff",
+      "exitCode": 0
+    },
+    {
+      "check": "typecheck",
+      "exitCode": 0
+    }
+  ]
 }

@@ -8678,7 +8678,15 @@
 
   .billing-section {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-width: 0;
+    container-name: billing-section;
+    container-type: inline-size;
     gap: 1.25rem;
+  }
+
+  .billing-section > * {
+    min-width: 0;
   }
 
   .billing-section__workspace {
@@ -8711,9 +8719,14 @@
 
   .billing-section__context {
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
     gap: 1rem;
+  }
+
+  .billing-section__context > div {
+    min-width: 0;
   }
 
   .billing-section__eyebrow {
@@ -9770,6 +9783,17 @@
 
     .billing-section__invoice-dates {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @container billing-section (max-width: 50rem) {
+    .billing-section__filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .billing-section__filters label:first-child,
+    .billing-section__filters button {
+      grid-column: 1 / -1;
     }
   }
 

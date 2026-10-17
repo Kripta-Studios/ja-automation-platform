@@ -640,6 +640,8 @@ body.portal-drawer-open {
   display: flex;
   align-items: center;
   gap: 0.7rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .visually-hidden {
@@ -658,7 +660,9 @@ body.portal-drawer-open {
   display: flex;
   align-items: center;
   gap: 0.45rem;
-  min-width: min(29rem, 42vw);
+  width: min(29rem, 42vw);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .global-search input {

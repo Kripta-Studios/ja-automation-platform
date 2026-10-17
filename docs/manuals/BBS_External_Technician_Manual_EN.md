@@ -1,6 +1,6 @@
 # External Technician · BBS field operations
 
-Authorized own work, expenses, reports, corrections and supplier operational evidence · Updated navigation and digital workflows, 11 October 2026
+Authorized own work, expenses, reports, corrections and supplier operational evidence · Updated navigation and digital workflows, 17 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -81,38 +81,42 @@ Review is determined by the source, base role and current dated grants. Chief de
 <a id="release-navigation"></a>
 ## Current navigation, task finder and form recovery
 
-Go here: Header → Go to section / Find a task; workspace → Search workspace
+Go here: Header → Go to section / Find a task; workspace → record search when available
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
-The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+Go to section opens Find a section (Ctrl/⌘ Shift K). It groups allowed destinations as Actions, Configuration and Sections. Find a task is separate (Ctrl/⌘ K): describe a task in English, Spanish or Portuguese and choose a role-available result to open its workspace or form. Choosing a task does not save, submit, approve or send anything.
 
-Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+Record search is a separate Records handoff that appears only when enabled for the active account. It sends the query to the workspace record search, where available records are checked against current access again. A task may also ask you to choose a record inside its destination; that local choice is part of the task flow, not the separate Records handoff.
 
-The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+Examples of supported task wording include “create an invoice”, “crear factura” and “criar fatura” for authorized billing roles. The matching task list depends on the current account, role and permissions. The English, Spanish and Portuguese labels in the interface can differ; the current illustrated role courses are English, and Help identifies an English-PDF fallback.
+
+At 200% browser text scaling, forms follow a natural page flow so labels and focus remain clear. If validation fails, read the summary and follow its field link; a hidden optional section opens before focus moves to the field. Correct the value, check that the rest of your entries remain, then use the named Save or Submit action once.
+
+Global record search is not shown for this restricted profile. Use your own assigned work and the Supplier workspace when it is authorized.
 
 ### Do the task
 
-1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
-2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
-3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
-4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+1. Use Go to section to locate an authorized action, configuration or section. Use Find a task when you know the outcome you want; inspect the destination and choose the correct project or record when asked.
+2. Use the separate Records handoff only when it appears for your account. Open an authorized result and verify its project, owner and dates before acting. If the handoff is absent, use the role’s normal workspace and permissions.
+3. On a narrow screen or at enlarged text, follow the labelled controls in their natural page order. Use a field link from the error summary to reach the correction; retained values remain available while the form reflows.
+4. If asked about unsaved changes, stay to continue editing or deliberately leave after saving. Opening a section or choosing a task is not confirmation that a previous form saved.
 
 ### Verify the result
 
-- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+- Before a write action, check the page heading, account, language, project, record and dates. Wait for a saved confirmation and reopen the record when needed; draft, submitted, approved, issued and sent are different states.
 
 ### If you get stuck
 
-- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
-- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+- If a task is unavailable, use a permitted section or ask the Owner to check access. If a record search handoff is absent, the profile may not have global search; stay in the designated workspace.
+- If a save response is uncertain, inspect the existing record before retrying so you do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval.
 
 <a id="release-capture"></a>
 ## Digital workers: capture facts and create linked drafts
 
 Go here: Digital workers → Open work capture → Finish today
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.
 
@@ -142,7 +146,7 @@ External Technician can use own work overview, factual capture and document text
 
 Go here: Work capture → Expense → Read text from a document; supported note fields → Dictate on this device
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 Text extraction accepts PNG, JPEG, text PDF or UTF-8 text up to 8 MiB. It uses local server tools, with English, Spanish and Portuguese image OCR. Text PDFs are read through page 20 and the preview is limited to 10,000 characters. This limit is separate from the normal receipt upload limit.
 

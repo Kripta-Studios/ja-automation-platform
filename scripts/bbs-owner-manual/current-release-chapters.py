@@ -19,7 +19,7 @@ def apply_current_release():
             key = chapter['id'] + ('-'+str(i+1) if i else '')
             title = chapter['title'] + (' · continued' if i else '')
             body = route(html.escape(chapter['route'])) + ''.join('<p><strong>'+kind+':</strong> '+html.escape(text)+'</p>' for kind,text in chunk)
-            additions.append(dict(key=key,title=title,body=body,toc=i==0,wide=False,figure=False,context='Current workflow reference · 11 October 2026 · earlier figures retain their original dates'))
+            additions.append(dict(key=key,title=title,body=body,toc=i==0,wide=False,figure=False,context='Current workflow reference · 17 October 2026 · earlier figures retain their original dates'))
     # Current instructions precede the dated BBS practice; final invoice masters remain last.
     position = next(i for i,p in enumerate(pages) if not (p['key']=='cover' or p['key'].startswith('contents-')))
     pages[position:position] = additions
@@ -28,4 +28,4 @@ def apply_current_release():
         p['body']=p['body'].replace('then Finance review.', 'inspect financial acceptance (Owner approval now includes it; PM approval still needs Finance review).')
         p['body']=p['body'].replace('operational approval, then Finance review/billability.', 'operational approval and financial acceptance (combined for Owner approval); verify remaining billability and classification.')
         if p['key']=='cover':
-            p['body']='<p><strong>Updated 11 October 2026.</strong> Start with the current navigation, project, follow-up and invoice chapters. Later screenshots preserve dated training examples; use the current instructions when screen layout differs.</p>'+p['body']
+            p['body']='<p><strong>Updated 17 October 2026.</strong> Start with the current navigation, project, follow-up and invoice chapters. Later screenshots preserve dated training examples; use the current instructions when screen layout differs.</p>'+p['body']

@@ -118,8 +118,10 @@ describe('Help manual catalog', () => {
     const guide = manualForRole('bbs-project-invoices-guide', 'owner_admin');
     expect(guide?.locales).toEqual(['en']);
     expect(guide?.audience).toBe('administration-finance');
-    expect(guide?.revision).toBe('2026-10-11');
-    expect(guide?.description.en).toContain('final training invoices');
+    expect(guide?.revision).toBe('2026-10-17');
+    expect(guide?.description.en).toContain('whole-period scope');
+    expect(guide?.description.es).toContain('en inglés');
+    expect(guide?.description.pt).toContain('em inglês');
     expect(guide?.description.en).not.toContain('23-page');
     expect(manualForRole('bbs-project-invoices-guide', 'finance_admin')).toBeNull();
     for (const role of ['worker', 'project_manager', 'auditor_read_only'])
@@ -128,8 +130,18 @@ describe('Help manual catalog', () => {
   });
 
   it('keeps current role PDFs within their persisted persona boundary', async () => {
+    const currentCourses = manualCatalog.filter(
+      (item) => item.id.startsWith('bbs-') && item.id !== 'bbs-project-invoices-guide',
+    );
+    expect(currentCourses).toHaveLength(8);
+    for (const guide of currentCourses) {
+      expect(guide.revision).toBe('2026-10-17');
+      expect(guide.locales).toEqual(['en']);
+      expect(guide.description.es).toContain('inglés');
+      expect(guide.description.pt).toContain('inglês');
+    }
     for (const [role, profile, ids] of roleMatrix) {
-      for (const guide of manualCatalog.filter((item) => item.revision === '2026-10-11')) {
+      for (const guide of currentCourses) {
         const allowed = (ids as readonly string[]).includes(guide.id);
         expect(Boolean(manualForRole(guide.id, role, profile))).toBe(allowed);
         if (allowed) {

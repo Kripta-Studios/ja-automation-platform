@@ -1,4 +1,5 @@
 import { chromium } from 'playwright';
+import { launchManualChromium } from '../manuals-refresh/chromium.mjs';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve, dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -6,10 +7,7 @@ const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const docs = join(root, 'docs/manuals');
 const html = join(docs, 'BBS_Project_to_Client_Invoices_Guide_EN.html');
 const layout = JSON.parse(readFileSync(join(docs, 'bbs-manual-layout.json')));
-const browser = await chromium.launch({
-  headless: true,
-  args: process.getuid?.() === 0 ? ['--no-sandbox'] : [],
-});
+const browser = await launchManualChromium(chromium);
 try {
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   await page.goto(pathToFileURL(html).href, { waitUntil: 'load' });

@@ -128,11 +128,13 @@
     // Existing form sheets stay mounted, retaining entered values and navigation guards.
     window.addEventListener('keydown', shortcut);
     window.addEventListener('ja:open-task-assistant', show);
+    window.addEventListener('ja:select-task-assistant', selectTaskFromNavigation);
     document.addEventListener('keydown', escape, true);
     return () => {
       surfaceObserver.disconnect();
       window.removeEventListener('keydown', shortcut);
       window.removeEventListener('ja:open-task-assistant', show);
+      window.removeEventListener('ja:select-task-assistant', selectTaskFromNavigation);
       document.removeEventListener('keydown', escape, true);
       dialog?.close();
     };
@@ -226,6 +228,20 @@
       return;
     }
     void navigate(task);
+  }
+
+  function selectTaskFromNavigation(event: Event): void {
+    const taskId = (event as CustomEvent<{ taskId?: unknown }>).detail?.taskId;
+    if (typeof taskId !== 'string') return;
+    const task = tasksForContext(context).find((available) => available.id === taskId);
+    if (!task) return;
+    notice = '';
+    if (!open && task.recordKind) {
+      show();
+      void tick().then(() => choose(task));
+      return;
+    }
+    choose(task);
   }
 </script>
 

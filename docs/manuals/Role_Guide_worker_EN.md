@@ -1,4 +1,4 @@
-> Historical edition. For the 11 October 2026 navigation and digital workflows, use the [current role manuals](README.md). The current role PDFs are English; this dated edition and its screenshots are retained as historical reference.
+> Historical edition. For the current 17 October 2026 procedures and role-appropriate guidance, sign in and open Help or use the [current role manuals](README.md). Current role PDFs are English; older procedures, translations, screenshots and saved outcomes remain historical reference.
 
 # Worker: current time, expense and report guide
 

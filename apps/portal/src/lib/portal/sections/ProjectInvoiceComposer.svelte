@@ -152,7 +152,7 @@
   let busy = $state(false);
   let worker = $state('');
   let stateFilter = $state('all');
-  let filtersOpen = $state(true);
+  let preserveSelectionOnReload = $state(false);
   let feedback = $state<Feedback | null>(null);
   let notice = $state('');
   let requestKey = $state('');
@@ -220,6 +220,9 @@
       periodEnd: end,
     }),
   );
+  function loadIdentity(): string {
+    return JSON.stringify({ scope: currentScope, rule });
+  }
   const selectionCurrent = $derived(loadedScope === currentScope && !invoice);
   const shownProblem = $derived(
     feedback?.code && feedback.messageKey && feedback.correlationId
@@ -249,9 +252,16 @@
   const hiddenSelected = $derived(
     selectedSources.filter((source) => !visible.some((row) => key(row) === key(source))).length,
   );
+  const visibleCountText = $derived.by(() => {
+    const total = inventory?.sources.length ?? 0;
+    if (locale === 'es') return `${visible.length} de ${total} registros visibles`;
+    if (locale === 'pt') return `${visible.length} de ${total} registros visíveis`;
+    return `${visible.length} of ${total} records visible`;
+  });
   const refs = () => selectedSources.map(({ type, id, version }) => ({ type, id, version }));
   function invalidateSelection() {
     preview = null;
+    previewIdentity = '';
     feedback = null;
     notice = '';
     requestKey = crypto.randomUUID();
@@ -381,12 +391,13 @@
     feedback = null;
     notice = '';
   }
-  async function readResponse(response: Response) {
+  async function readResponse(response: Response, expectedLoadIdentity?: string) {
     responseUncertain = false;
     const result = await response.json().catch(() => {
       responseUncertain = true;
       return { success: false, code: 'INVOICE_COMPOSER_UNAVAILABLE' };
     });
+    if (expectedLoadIdentity && loadIdentity() !== expectedLoadIdentity) return null;
     if (response.status >= 500) responseUncertain = true;
     if (!response.ok || result.success === false) {
       feedback = result;
@@ -394,30 +405,36 @@
     }
     return result;
   }
-  async function loadRecords(preserve = false, align = true) {
-    if (!rule || busy || uncertainCreate) return;
+  async function loadRecords(preserve = false, align = true): Promise<boolean> {
+    if (!rule || busy || uncertainCreate) return false;
     if (align) {
       const adjusted = compatibleBillingPeriod(periodStream(rule), { start, end });
       if (!adjusted) {
         feedback = { code: 'INVOICE_COMPOSER_SELECTION_INVALID' };
-        return;
+        return false;
       }
       if (adjusted.start !== start || adjusted.end !== end)
         notice = `${text('changed')} ${adjusted.start} → ${adjusted.end}`;
       start = adjusted.start;
       end = adjusted.end;
     }
+    const requestIdentity = loadIdentity();
+    const requestScope = currentScope;
+    const requestInput = scopeInput();
     busy = true;
     feedback = null;
     preview = null;
+    let loaded = false;
     try {
-      const result = await readResponse(
-        await fetch(`${endpoint}?${new URLSearchParams(scopeInput())}`),
-      );
+      const response = await fetch(`${endpoint}?${new URLSearchParams(requestInput)}`);
+      const result = await readResponse(response, requestIdentity);
+      if (loadIdentity() !== requestIdentity) {
+        if (preserve) preserveSelectionOnReload = true;
+        return false;
+      }
       if (result) {
         inventory = result as Inventory;
-        if (inventory.sources.length === 0) filtersOpen = false;
-        loadedScope = currentScope;
+        loadedScope = requestScope;
         selected = preserve
           ? selected.filter((value) =>
               inventory!.sources.some((source) => key(source) === value && !reserved(source)),
@@ -437,12 +454,16 @@
           inventory.issuing.revisions.find(
             (item) => item.effectiveFrom <= start && (!item.effectiveTo || item.effectiveTo >= end),
           )?.revisionId ?? '';
+        preserveSelectionOnReload = false;
+        loaded = true;
       }
     } catch {
-      feedback = { code: 'INVOICE_COMPOSER_UNAVAILABLE' };
+      if (loadIdentity() === requestIdentity) feedback = { code: 'INVOICE_COMPOSER_UNAVAILABLE' };
+      else if (preserve) preserveSelectionOnReload = true;
     } finally {
       busy = false;
     }
+    return loaded;
   }
   async function command(operation: string) {
     if (busy || formBusy) return;
@@ -479,14 +500,15 @@
       frozenCreate ??= input;
       input = frozenCreate as typeof input;
     }
+    const expectedLoadIdentity = operation === 'preview' ? loadIdentity() : undefined;
     try {
-      const result = await readResponse(
-        await fetch(endpoint, {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify(input),
-        }),
-      );
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+      const result = await readResponse(response, expectedLoadIdentity);
+      if (expectedLoadIdentity && loadIdentity() !== expectedLoadIdentity) return;
       if (result) {
         if (operation === 'preview') {
           preview = result as Preview;
@@ -511,7 +533,8 @@
         if (invoice) await refreshInvoice();
       }
     } catch {
-      feedback = { code: 'INVOICE_COMPOSER_UNAVAILABLE' };
+      if (!expectedLoadIdentity || loadIdentity() === expectedLoadIdentity)
+        feedback = { code: 'INVOICE_COMPOSER_UNAVAILABLE' };
       if (operation === 'create') uncertainCreate = true;
     } finally {
       busy = false;
@@ -652,6 +675,98 @@
     return { billingRuleId: ruleId, periodStart: start, periodEnd: end };
   }
 
+  function discardSelectionAfterScopeChange(): void {
+    selected = [];
+    inventory = null;
+    loadedScope = '';
+    preview = null;
+    previewIdentity = '';
+    preserveSelectionOnReload = false;
+  }
+
+  export async function revalidateKeepingSelection(): Promise<{
+    preservedCount: number;
+    invalidatedCount: number;
+    invalidatedRefs: Array<Pick<InvoiceCompositionSourceRef, 'type' | 'id'>>;
+    previewRefreshed: boolean;
+  }> {
+    if (busy || formBusy || uncertainCreate || invoice)
+      throw new Error('The invoice selection cannot be revalidated while an operation is active.');
+
+    const scopeBefore = currentScope;
+    const loadIdentityBefore = loadIdentity();
+    const selectionBefore = [...selected];
+    preview = null;
+    previewIdentity = '';
+    feedback = null;
+    notice = '';
+    loadedScope = '';
+    inventory = null;
+    preserveSelectionOnReload = true;
+    requestKey = crypto.randomUUID();
+
+    await tick();
+    if (currentScope !== scopeBefore || loadIdentity() !== loadIdentityBefore) {
+      discardSelectionAfterScopeChange();
+      throw new Error('The invoice rules changed while the selection was being revalidated.');
+    }
+
+    const compatiblePeriod = rule
+      ? compatibleBillingPeriod(periodStream(rule), { start, end })
+      : null;
+    if (!compatiblePeriod || compatiblePeriod.start !== start || compatiblePeriod.end !== end) {
+      feedback = {
+        code: 'INVOICE_COMPOSER_SELECTION_INVALID',
+        reasons: [{ code: 'invalid_period' }],
+      };
+      loadedScope = '';
+      preserveSelectionOnReload = true;
+      throw new Error('The saved period is incompatible with the updated stream cadence.');
+    }
+
+    if (!(await loadRecords(true, false))) {
+      if (currentScope === scopeBefore && loadIdentity() === loadIdentityBefore) {
+        inventory = null;
+        loadedScope = '';
+        selected = selectionBefore;
+        preserveSelectionOnReload = true;
+      } else discardSelectionAfterScopeChange();
+      throw new Error('The invoice selection could not be revalidated.');
+    }
+
+    if (currentScope !== scopeBefore || loadIdentity() !== loadIdentityBefore) {
+      discardSelectionAfterScopeChange();
+      throw new Error('The invoice rules changed while the selection was being revalidated.');
+    }
+
+    const preserved = new Set(selected);
+    const invalidatedRefs = selectionBefore.flatMap((value) => {
+      if (preserved.has(value)) return [];
+      const separator = value.indexOf(':');
+      const type = value.slice(0, separator);
+      const id = value.slice(separator + 1);
+      return separator > 0 && id && (type === 'time' || type === 'expense')
+        ? [{ type, id } as const]
+        : [];
+    });
+    let previewRefreshed = false;
+    if (selected.length > 0) {
+      await command('preview');
+      if (currentScope !== scopeBefore || loadIdentity() !== loadIdentityBefore) {
+        discardSelectionAfterScopeChange();
+        throw new Error('The invoice rules changed while the preview was being refreshed.');
+      }
+      previewRefreshed = Boolean(preview && previewIdentity === selectionIdentity());
+      if (!previewRefreshed) preserveSelectionOnReload = true;
+    }
+    return {
+      preservedCount: selected.length,
+      invalidatedCount: invalidatedRefs.length,
+      invalidatedRefs,
+      previewRefreshed,
+    };
+  }
+
   export function canSwitchMode(): boolean {
     return (
       mounted &&
@@ -686,7 +801,7 @@
     selected = [];
     inventory = null;
     loadedScope = '';
-    filtersOpen = true;
+    preserveSelectionOnReload = false;
     invalidateSelection();
     try {
       await tick();
@@ -802,7 +917,8 @@
         class="composer-fields"
         onsubmit={(event) => {
           event.preventDefault();
-          void loadRecords();
+          const preserve = preserveSelectionOnReload;
+          void loadRecords(preserve, !preserve);
         }}
       >
         <label class="composer-stream-field"
@@ -810,6 +926,7 @@
             bind:value={ruleId}
             onchange={() => {
               preview = null;
+              preserveSelectionOnReload = false;
             }}
             disabled={busy || formBusy || !!invoice || uncertainCreate}
             required
@@ -832,6 +949,7 @@
             bind:value={start}
             onchange={() => {
               preview = null;
+              preserveSelectionOnReload = false;
             }}
             required
             disabled={busy || formBusy || !!invoice || uncertainCreate}
@@ -843,6 +961,7 @@
             bind:value={end}
             onchange={() => {
               preview = null;
+              preserveSelectionOnReload = false;
             }}
             required
             disabled={busy || formBusy || !!invoice || uncertainCreate}
@@ -976,12 +1095,12 @@
             {/each}
           </section>
         {/if}
-        <details
+        <section
           class="composer-filters-panel"
-          bind:open={filtersOpen}
+          aria-label={text('filters')}
           data-filters-empty={inventory.sources.length === 0 ? 'true' : undefined}
         >
-          <summary>{text('filters')}</summary>
+          <h3>{text('filters')}</h3>
           <div class="composer-fields composer-filters">
             <label
               >{text('worker')}<select bind:value={worker} disabled={busy || formBusy}
@@ -1010,8 +1129,11 @@
               type="button"
               class="secondary-button"
               onclick={selectVisible}
-              disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
-              >{text('select')}</button
+              disabled={busy ||
+                formBusy ||
+                !selectionCurrent ||
+                uncertainCreate ||
+                !visible.some((source) => !reserved(source))}>{text('select')}</button
             ><button
               type="button"
               class="secondary-button"
@@ -1019,10 +1141,14 @@
                 selected = [];
                 invalidateSelection();
               }}
-              disabled={busy || formBusy || uncertainCreate}>{text('clear')}</button
+              disabled={busy || formBusy || uncertainCreate || selected.length === 0}
+              >{text('clear')}</button
             >
+            <strong class="composer-filter-counts" role="status" aria-live="polite">
+              {visibleCountText} · {text('selected')}: {selectedSources.length}
+            </strong>
           </div>
-        </details>
+        </section>
         {#if loadedScope !== currentScope}<p role="status">{text('load')}</p>{/if}
         <div class="composer-records" aria-label={text('records')}>
           {#each visible as source (key(source))}
@@ -1467,15 +1593,17 @@
     border-radius: 0.65rem;
     padding: 0.7rem 0.9rem;
   }
-  .composer-filters-panel > summary {
-    min-height: 44px;
-    display: flex;
-    align-items: center;
-    cursor: pointer;
+  .composer-filters-panel > h3 {
+    margin: 0.2rem 0 0.8rem;
+    font-size: 1rem;
     font-weight: 700;
   }
   .composer-filters-panel .composer-fields {
     margin: 0.5rem 0;
+  }
+  .composer-filter-counts {
+    min-width: 0;
+    overflow-wrap: anywhere;
   }
   .composer-empty-actions {
     align-items: stretch;

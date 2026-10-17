@@ -1,3 +1,5 @@
+> Historical edition. For the current 17 October 2026 procedures and role-appropriate guidance, sign in and open Help or use the [current role manuals](README.md). Current role PDFs are English; older procedures, translations, screenshots and saved outcomes remain historical reference.
+
 > Edição histórica. Para a navegação e os fluxos digitais de 11 de outubro de 2026, consulte os [manuais atuais por perfil](README.md). Os PDFs atuais estão em inglês; esta edição e suas capturas são referências históricas.
 
 # Guia funcional de administração e finanças

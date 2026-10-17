@@ -34,12 +34,12 @@ const wordGroups: Record<string, string> = {
   finance:
     'finance financial economic forecast budgets budget commercial financiero financiera financiero financiero economia economico economica previsao presupuesto presupuestos orcamento orcamentos comercial',
   compensation:
-    'compensation salary salaries wage wages remuneracion remuneracao sueldo salario settlement settlements liquidar liquidacion liquidacao',
+    'compensation compensacion compensacao salary salaries wage wages remuneracion remuneracao sueldo salario settlement settlements liquidar liquidacion liquidacao',
   labor: 'labor labour rate rates tarifa tarifas mao obra',
   cost: 'cost costs coste costes costo costos custo custos loaded',
   billing: 'billing bill facturacion faturacao stream streams flujo flujos fluxo fluxos',
   invoice: 'invoice invoices factura facturas fatura faturas',
-  tax: 'tax taxes fiscal fiscales fiscais impuesto impuestos',
+  tax: 'tax taxes vat iva icms fiscal fiscales fiscais imposto impostos impuesto impuestos',
   ledger: 'ledger collection collections cobro cobros cobranças cobrancas cobranza razao mayor',
   accounting:
     'accounting contable contables contabilidade contabilistico pack packs paquete paquetes pacote pacotes',

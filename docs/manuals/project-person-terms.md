@@ -1,3 +1,5 @@
+> Historical edition. For the current 17 October 2026 procedures and role-appropriate guidance, sign in and open Help or use the [current role manuals](README.md). Current role PDFs are English; older procedures, translations, screenshots and saved outcomes remain historical reference.
+
 # Project defaults and individual worker agreements
 
 Owners can configure customer rates, internal costs, worker compensation and expense terms for each project assignment. Finance can maintain financial terms within its authorized scope.

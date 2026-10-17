@@ -1,0 +1,145 @@
+{
+  "scope": "UX-01 through UX-08, all high and medium priorities from 17 October research; preserve features, RBAC, exact-money and immutable history",
+  "baseCommit": "eacc85fe664fddff167f9638270dbf9c94adab8c",
+  "status": "Scoped source/UI/browser/manual candidate acceptance passed; publication and cleanup are certified separately by external operational receipts",
+  "dependencies": {
+    "forms": [
+      "research"
+    ],
+    "billing": [
+      "forms public size and revalidation contracts",
+      "research"
+    ],
+    "navigation": [
+      "research"
+    ],
+    "integrated_browser": [
+      "forms",
+      "billing",
+      "navigation"
+    ],
+    "manuals": [
+      "integrated_browser"
+    ],
+    "release": [
+      "manuals",
+      "independent_review",
+      "runtime_and_backup_verification"
+    ],
+    "github_main": [
+      "release"
+    ],
+    "storage_cleanup": [
+      "release",
+      "github_main"
+    ]
+  },
+  "packets": [
+    {
+      "owner": "sota_forms",
+      "class": "A / Luna Max",
+      "requirements": [
+        "UX-01",
+        "UX-02",
+        "CORE-14"
+      ],
+      "files": [
+        "ResponsiveSheet.svelte",
+        "ProjectInvoiceComposer.svelte",
+        "sota-forms browser tests"
+      ],
+      "invariants": [
+        "focus visibility at 360/390/768/1440 + zoom/text spacing",
+        "filters always visible",
+        "filtering preserves selection",
+        "failed refresh prevents stale save"
+      ]
+    },
+    {
+      "owner": "sota_billing",
+      "class": "A / Luna Max",
+      "requirements": [
+        "UX-03",
+        "UX-05",
+        "UX-06",
+        "UX-07",
+        "UX-08",
+        "CORE-10",
+        "CORE-14"
+      ],
+      "files": [
+        "BillingSection.svelte",
+        "sota-billing browser tests"
+      ],
+      "invariants": [
+        "one active sheet",
+        "preserve precise selection and scope",
+        "revalidate after edit",
+        "all 12 panels and nine shortcuts visible",
+        "issued history immutable"
+      ],
+      "implementationStatus": "All four core viewports and three desktop edge cases passed on frozen integrated build; see browser-acceptance.json"
+    },
+    {
+      "owner": "sota_navigation",
+      "class": "A / Luna Max",
+      "requirements": [
+        "UX-04",
+        "CORE-01",
+        "CORE-14"
+      ],
+      "files": [
+        "SectionNavigator.svelte",
+        "section-search.ts",
+        "assistant matcher/catalog",
+        "minimal PortalChrome/NavigationAssistant wiring",
+        "sota-navigation tests"
+      ],
+      "invariants": [
+        "existing role authorization",
+        "ES/EN/PT synonyms",
+        "no IVA substring false positives",
+        "real tasks use existing resolver"
+      ],
+      "implementationStatus": "71 unit checks, 28 automated browser cases and 6 independent manual rendered-result checks passed"
+    },
+    {
+      "owner": "root",
+      "class": "C / integration authority",
+      "requirements": [
+        "CORE-10",
+        "CORE-14",
+        "CORE-15",
+        "CORE-17"
+      ],
+      "files": [
+        "test configuration",
+        "evidence",
+        "manual coordination",
+        "deployment operations"
+      ],
+      "invariants": [
+        "independent browser/review before deployment",
+        "verified backup and rollback",
+        "production/main source parity",
+        "no user-data/volume cleanup"
+      ]
+    }
+  ],
+  "review": "Independent forms/navigation/billing review completed; bounded source review and browser results recorded in browser-acceptance.json",
+  "forbiddenForImplementers": [
+    "server financial logic",
+    "schema or migrations",
+    "production writes",
+    "manuals",
+    "deployment",
+    "other packet owned paths"
+  ],
+  "manuals": {
+    "currentPdfs": 12,
+    "historicalPdfNotices": 25,
+    "historicalBodyStreamsPreserved": 327,
+    "helpCatalogDownloadTestsPassed": 20,
+    "evidence": "manuals/README.md"
+  }
+}

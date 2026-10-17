@@ -2003,9 +2003,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/finance?view=economic#finance-source-records',
     actionNames: [],
     phrases: {
-      en: ['Review economic source records'],
-      es: ['Revisar registros económicos de origen'],
-      pt: ['Rever registos económicos de origem'],
+      en: ['Review economic source records', 'Review worker compensation settlements'],
+      es: ['Revisar registros económicos de origen', 'Revisar liquidaciones de remuneración'],
+      pt: ['Rever registos económicos de origem', 'Rever liquidações de remuneração'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -2583,9 +2583,20 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/pay#pay-export-title',
     actionNames: [],
     phrases: {
-      en: ['View own pay and export worker statement'],
-      es: ['Ver pagos propios y exportar estado'],
-      pt: ['Ver pagamentos próprios e exportar extrato'],
+      en: [
+        'View own pay and export worker statement',
+        'View own salary and compensation statement',
+      ],
+      es: [
+        'Ver pagos propios y exportar estado',
+        'Ver salario y remuneración propios',
+        'Ver compensación propia',
+      ],
+      pt: [
+        'Ver pagamentos próprios e exportar extrato',
+        'Ver salário e remuneração próprios',
+        'Ver compensação própria',
+      ],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',

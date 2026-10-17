@@ -1,0 +1,104 @@
+{
+  "status": "passed for scoped browser acceptance",
+  "date": "2026-10-17",
+  "environment": "Chromium, production-built local portal, isolated disposable fixture database",
+  "viewports": [
+    {
+      "width": 360,
+      "height": 800
+    },
+    {
+      "width": 390,
+      "height": 844
+    },
+    {
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "width": 1440,
+      "height": 900
+    }
+  ],
+  "sourceHashes": {
+    "apps/portal/src/lib/portal/sections/BillingSection.svelte": "a861e7abe39fd6ef4dbc2ab17a1d93a0da16f207816e093f79d3f4f4538a0130",
+    "apps/portal/src/lib/portal/sections/ProjectInvoiceComposer.svelte": "3a32e98d82f6977b626a3b2c2e590e03a9d4f2321700c3a77c8822cfbaa81aed",
+    "apps/portal/src/lib/portal/ui/ResponsiveSheet.svelte": "92f38e691de9fa5409964c6c502d3fc55c10aa95ee43fed7a2e33e8b9ebd7785",
+    "apps/portal/src/lib/portal/ui/SectionNavigator.svelte": "b1a4f6537eb4276aaf3f7445a88142b1e38a0c929251b8eb40c1ba2960086064",
+    "apps/portal/src/lib/portal/ui/section-search.ts": "abcc1426913b1aa44548187697b4e250874e4d555bde3b0cb41ec7e5a8f05e13",
+    "apps/portal/src/lib/PortalChrome.svelte": "c220246b268bbcd50f908a556cde2d1962787263c5d1e9c51c966d60f675d94f"
+  },
+  "suites": [
+    {
+      "area": "UX-01 focused controls",
+      "result": "passed",
+      "coverage": "320/360/390/768/1440; Tab/Shift+Tab label and control visibility, Escape focus return, 200% root-text enlargement and text-spacing stress",
+      "reviewer": "independent final_forms_review",
+      "privateEvidence": "review-forms/spacing-accepted"
+    },
+    {
+      "area": "UX-02 record filters",
+      "result": "passed",
+      "coverage": "320/360/390/768/1440 \u00d7 EN/ES/PT; visible filters/counts, 44px targets, selection retained, no POST",
+      "reviewer": "independent final_forms_review",
+      "privateEvidence": "review-forms/filter-visual"
+    },
+    {
+      "area": "UX-03/05/06/07/08 billing",
+      "result": "passed across completed runs on the final integrated UI build",
+      "coverage": "core editor/cancel/mode switching, native and server validation, failed refresh/retry, selection and context preservation at all four viewports; desktop delayed preview mutex, reserved-source pruning with named reason/View draft, EN/ES/PT and empty-selection feedback",
+      "privateEvidence": [
+        "billing-final-matrix-2",
+        "billing-final-specialized-3",
+        "billing-capacity-fixture"
+      ],
+      "executionNote": "A later aggregate rerun was interrupted after cumulative fixture entries exhausted daily capacity. The test helper now chooses a day with room under the existing 1440-minute rule; the reservation case passed again. No production data or business limits changed."
+    },
+    {
+      "area": "UX-04 navigation",
+      "result": "passed",
+      "coverage": "28 automated role/viewport cases, plus 6 independent manual rendered-result checks including 1024\u00d7768 landscape; 71 unit checks",
+      "privateEvidence": "review-ui/final-independent-review.md"
+    },
+    {
+      "area": "existing invoice details regression",
+      "result": "12 passed",
+      "coverage": "EN/ES/PT \u00d7360/390/768/1440; 12 panels, three stages, nine named shortcuts, 44px targets and title focus",
+      "privateEvidence": "visibility-built-accepted"
+    },
+    {
+      "area": "existing responsive/task regressions",
+      "result": "5 passed, 3 intentional viewport skips",
+      "coverage": "four responsive layouts; one global invoice CTA test confirms no arbitrary project choice",
+      "privateEvidence": "general-built-accepted"
+    },
+    {
+      "area": "production smoke rehearsal",
+      "result": "four viewports passed; zero page errors and zero blocked mutation attempts",
+      "coverage": "dashboard invoice CTA, detail visibility, settings handoff, project-editor footer and horizontal overflow",
+      "privateEvidence": "smoke-built-accepted/result.json"
+    },
+    {
+      "area": "financial invariants",
+      "result": "40 passed",
+      "publicEvidence": "financial-checks.json"
+    }
+  ],
+  "independentReview": {
+    "status": "no release blocker found in bounded review",
+    "reviewers": [
+      "final_forms_review",
+      "sota_ui_review"
+    ],
+    "billingSourceSha256": "a861e7abe39fd6ef4dbc2ab17a1d93a0da16f207816e093f79d3f4f4538a0130",
+    "laterBrowserConfirmation": "Delayed-POST mutex and reserved-source tests passed after source review, with the reviewed source unchanged."
+  },
+  "limitations": [
+    "Browser viewport evidence, not physical iPad/Safari certification.",
+    "200% text enlargement and 320px reflow were tested; this is not a claim of physical-browser zoom or full WCAG certification.",
+    "No human task-time benchmark or whole-product error-free claim.",
+    "Mutation workflows ran only in the disposable fixture; production smoke is read-only.",
+    "Screenshots, business identifiers, credentials, sessions and database contents remain outside Git."
+  ],
+  "viewportNote": "Primary suite project dimensions; supplementary focus, layout and production-smoke checks also use 900px/1000px heights."
+}

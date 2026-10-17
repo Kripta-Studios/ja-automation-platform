@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { searchAssistantTasks } from './matcher';
+import type { AssistantContext } from './types';
 
 const owner = { role: 'owner_admin', canonicalOwner: true };
-const ids = (query: string, context = owner) =>
+const ids = (query: string, context: AssistantContext = owner) =>
   searchAssistantTasks(query, context, 'en').matches.map((match) => match.task.id);
 
 describe('deterministic multilingual task matching', () => {
@@ -18,6 +19,16 @@ describe('deterministic multilingual task matching', () => {
     ['crear informe técnico PLC', 'report-technical'],
     ['criar relatório diário', 'report-daily'],
     ['create an invoice', 'invoice-create'],
+    ['crear factura', 'invoice-create'],
+    ['criar fatura', 'invoice-create'],
+    ['impuestos', 'billing-tax'],
+    ['imposto', 'billing-tax'],
+    ['IVA', 'billing-tax'],
+    ['salario', 'finance-compensation-create'],
+    ['salary', 'finance-compensation-create'],
+    ['salário', 'finance-compensation-create'],
+    ['compensación', 'finance-compensation-create'],
+    ['compensação', 'finance-compensation-create'],
     ['quero registrar horas no projeto', 'time-create'],
     ['quero lançar uma despesa no projeto', 'expense-create'],
     ['I wannt record hours on the project', 'time-create'],
@@ -72,6 +83,21 @@ describe('deterministic multilingual task matching', () => {
     expect(
       searchAssistantTasks('quero criar uma fatura no projeto', supplier, 'pt').matches,
     ).toEqual([]);
+  });
+  it('maps salary and compensation to each role’s permitted destination', () => {
+    expect(ids('salary')[0]).toBe('finance-compensation-create');
+    expect(ids('compensación', { role: 'worker' })).toContain('pay-statement');
+    expect(ids('compensação', { role: 'project_manager' })).toContain('pay-statement');
+    expect(ids('compensation', { role: 'auditor_read_only' })).toContain('finance-economic');
+    expect(ids('compensación', { role: 'auditor_read_only' })).toContain('finance-economic');
+    expect(ids('compensação', { role: 'auditor_read_only' })).toContain('finance-economic');
+    for (const role of ['worker', 'project_manager', 'auditor_read_only']) {
+      expect(ids('salary', { role }).some((id) => id.startsWith('finance-compensation'))).toBe(
+        false,
+      );
+      expect(ids('IVA', { role })).not.toContain('billing-tax');
+      expect(ids('create invoice', { role })).not.toContain('invoice-create');
+    }
   });
   it('gates suppliers and canonical owners before searching', () => {
     expect(ids('invoice', { role: 'worker', canonicalOwner: false })).toEqual([]);

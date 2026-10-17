@@ -1,3 +1,5 @@
+> Historical edition. For the current 17 October 2026 procedures and role-appropriate guidance, sign in and open Help or use the [current role manuals](README.md). Current role PDFs are English; older procedures, translations, screenshots and saved outcomes remain historical reference.
+
 > Edición histórica. Para la navegación y los flujos digitales del 11 de octubre de 2026, consulta los [manuales actuales por perfil](README.md). Los PDF actuales están en inglés; esta edición y sus capturas se conservan como referencia histórica.
 
 # Guía de campo para empleados — revisión 2026-09-22

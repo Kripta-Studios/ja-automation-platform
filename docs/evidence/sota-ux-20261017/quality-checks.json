@@ -1,0 +1,32 @@
+{
+  "status": "passed",
+  "portalProductionBuild": {
+    "exitCode": 0,
+    "sourceUnchangedDuringBuild": true,
+    "completedAtEpoch": 1792245160.2759242
+  },
+  "portalTypecheck": {
+    "exitCode": 0
+  },
+  "changedTypeScriptAndSvelte": [
+    {
+      "check": "eslint",
+      "exitCode": 0
+    },
+    {
+      "check": "prettier",
+      "exitCode": 0
+    },
+    {
+      "check": "diff",
+      "exitCode": 0
+    }
+  ],
+  "unchangedProtectedScope": [
+    "migrations",
+    "packages (financial/domain/database logic)",
+    "deployment source"
+  ],
+  "sourceReview": "Independent bounded UI and operational-script review found no remaining release blocker. Image packaging will verify a complete runtime manifest and clean committed worktree.",
+  "knownBuildOutput": "Existing warnings in unrelated components and third-party Rollup annotations; no claim that the repository has zero baseline warnings."
+}

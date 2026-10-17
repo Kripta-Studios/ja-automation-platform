@@ -1,28 +1,20 @@
 # Project to invoice · current quick guide
 
-**Owner operating reference · 11 October 2026.** For other roles, use your own [current role manual](README.md). Earlier BBS screenshots and issued examples are historical training evidence.
+**Owner operating reference · 17 October 2026.** For other roles, use your own [current role manual](README.md). Earlier BBS screenshots and issued examples are historical training evidence.
 
-## Current navigation, task finder and form recovery
+## Find a section, task or record and recover a form
 
-**Go here:** Header → Go to section / Find a task; workspace → Search workspace
+**Go here:** Header → Go to section / Find a task; a separate Records handoff appears only when enabled for your account.
 
-The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+Go to section opens Find a section with Ctrl/⌘ Shift K and groups allowed destinations under Actions, Configuration and Sections. Find a task is separate (Ctrl/⌘ K): describe a task in English, Spanish or Portuguese, then review the role-available destination. For example, authorized billing roles can search “create an invoice”, “crear factura” or “criar fatura”. Choosing a task only opens a workspace or form; it does not save, submit, approve or send.
 
-Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+Record search is a separate Records handoff to the workspace search, shown only when the active account can use it. A task may ask you to choose a record within its destination; that local choice is part of the task flow. Supplier profiles without global record search should stay in Supplier team and their authorized operational workspace. Role PDFs remain English; Help states when an English guide is the fallback for another interface language.
 
-The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+At 200% browser text scaling, forms reflow into a natural page flow and keep labels and focus clear. When validation fails, follow a field link from the summary; a hidden optional section opens before focus moves to the field. Correct the value, check that other entries remain, and use the named Save or Submit action once. If asked about unsaved changes, choose to stay or deliberately leave after saving.
 
-1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
+**Verify:** Check the account, page heading, project, record and dates. Wait for a saved confirmation; a draft, submission, approval, invoice issue and send are different states.
 
-2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
-
-3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
-
-4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
-
-**Verify:** The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
-
-**Recovery:** If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+**Recovery:** If a task or record handoff is not available, use a permitted workspace or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying.
 
 ## Create projects with the current five-section form
 
@@ -82,27 +74,29 @@ Work items coordinate a Scope change, Handover or Evidence request. They do not 
 
 ## Prepare invoices from selected records or a whole period
 
-**Go here:** Project → Work / Billing → Create invoice; Billing → Invoices
+**Go here:** Project → Work / Billing → Create invoice; Billing → Billing streams / Invoices
 
-The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.
+Choose selected records for a deliberate eligible subset, or Whole period / milestone for the complete configured period. Whole-period totals always describe that full period; they do not apply to a selected subset.
 
-Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice.
+The record composer keeps Worker, Show and Record type filters visible. Show offers All records, Pending approval, Ready to invoice, and In a draft or invoiced. Record type offers Hours and expenses, Hours, and Expenses. The visible/total and selected counts include selected records hidden by current filters. Changing a filter changes visibility only; it never changes selection. Select visible records adds only visible eligible rows, and Clear selection explicitly removes the current selection.
 
-1. Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.
+The Whole period or milestone composer has three stages: Client / project (Client / project, Billing stream, Labor / expenses); Period (Period, Included records, Excluded / pending); Review and save (Taxes, Invoice data, Banking / payment, Commercial adjustments, Preview, Save / issue). All 12 details appear in the stages, with nine directly visible shortcuts in the compact index.
 
-2. Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.
+1. Open the project and matching stream. Review the source list, period, exclusions, pending items and existing reservations. Confirm the intended invoice scope before proceeding.
 
-3. If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.
+2. In selected-record mode, inspect filter and selection counts, including any selected records outside these filters. In whole-period mode, inspect all sources and all three stages. The total in this mode represents the whole period.
 
-4. For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.
+3. To edit the selected stream, use Edit selected stream settings in the same invoice sheet. The editor preserves the project, mode, dates and source references. Saving returns to the invoice and revalidates the sources. If a source became reserved, it is removed and the message links to its containing draft. If revalidation cannot be confirmed, settings may have saved, but no invoice draft was created or issued. With an empty selection, the period readiness still refreshes without a record preview.
 
-5. Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.
+4. During an active invoice operation, stream editing is disabled; finish the operation before opening it. The separate Billing streams workspace has explicit Edit stream settings, Archive billing stream and Close sources forms; those actions do not create, approve or issue invoices.
 
-6. Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle.
+5. Tax profile is read-only in the current editor. To change tax, cadence or commercial conditions, open Edit selected stream settings → New effective-dated conditions and select the successor terms and applicable dates. A blank optional recipient or missing tax profile does not block a draft; no tax profile means the draft adds no tax.
 
-**Verify:** No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance.
+6. Save draft does not issue or send it. Wait for the generated document to report Ready before downloading or sending. Review an uncertain result in the existing draft before retrying.
 
-**Recovery:** If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source.
+**Verify:** Project, stream, mode, dates and selected records match the intended scope. Filters did not silently change selection. Whole-period totals cover the full period. The draft and final-document states are explicit.
+
+**Recovery:** For a reserved source, use its containing draft. After stream-save revalidation, review the updated selection and count. If revalidation is uncertain, check period and records before continuing; do not infer invoice creation from the saved stream settings.
 
 ## Digital workers: reviewed finance case to invoice draft
 

@@ -1,6 +1,6 @@
 {
-  "guidePages": 210,
-  "totalPages": 216,
+  "guidePages": 213,
+  "totalPages": 219,
   "contents": [
     [
       "Current navigation, task finder and form recovery",
@@ -9,437 +9,437 @@
     ],
     [
       "Create projects with the current five-section form",
-      8,
+      9,
       "release-project-setup"
     ],
     [
       "Use the project workspace and current task shortcuts",
-      9,
+      10,
       "release-project-work"
     ],
     [
       "Review operational follow-ups and coordinate the handoff",
-      10,
+      11,
       "release-followup-review"
     ],
     [
       "Prepare invoices from selected records or a whole period",
-      12,
+      13,
       "release-invoice-current"
     ],
     [
       "Digital workers: reviewed finance case to invoice draft",
-      14,
+      17,
       "release-finance-case"
     ],
     [
       "Record a manual policy proposal and understand automation",
-      16,
+      19,
       "release-policy"
     ],
     [
       "Start here \u00b7 Owner access and this guide",
-      17,
+      20,
       "owner-first-access"
     ],
     [
       "Before practising \u00b7 obtain a separate training environment",
-      18,
+      21,
       "before-practising"
     ],
     [
       "Owner navigation \u00b7 choose the workspace",
-      19,
+      22,
       "owner-navigation"
     ],
     [
       "Person, role, assignment and review permission",
-      20,
+      23,
       "owner-access-model"
     ],
     [
       "Create workforce access \u00b7 exact controls",
-      21,
+      24,
       "owner-team-onboarding"
     ],
     [
       "Two learning paths \u00b7 inspect or build",
-      24,
+      27,
       "bbs-inspect-or-create"
     ],
     [
       "Understand the operating cycle",
-      25,
+      28,
       "chapter-1"
     ],
     [
       "Create a client and project",
-      27,
+      30,
       "chapter-2"
     ],
     [
       "Project, client and budget field reference",
-      28,
+      31,
       "client-fields"
     ],
     [
       "Optional worker table during project creation",
-      35,
+      38,
       "creation-people"
     ],
     [
       "Initial data sheet \u00b7 before the first work record",
-      40,
+      43,
       "bbs-initial-sheet"
     ],
     [
       "Project defaults and person overrides",
-      41,
+      44,
       "chapter-3"
     ],
     [
       "Translate the contract into independent settings",
-      44,
+      47,
       "contract-decisions"
     ],
     [
       "J&A issuer and invoice details",
-      45,
+      48,
       "chapter-4"
     ],
     [
       "Crew chief: hourly billing and hourly pay",
-      48,
+      51,
       "chapter-5"
     ],
     [
       "Technician 1: full daily customer charge",
-      51,
+      54,
       "chapter-6"
     ],
     [
       "Technician 2: weekly charge, fixed-period pay",
-      54,
+      57,
       "chapter-7"
     ],
     [
       "More compensation and expense options",
-      57,
+      60,
       "chapter-8"
     ],
     [
       "Customer hourly/daily/weekly unit meanings",
-      58,
+      61,
       "billing-unit-meaning"
     ],
     [
       "Configure overtime \u00b7 separate customer, worker and cost rules",
-      59,
+      62,
       "overtime-reference"
     ],
     [
       "Daily minimum, caps and forecast \u00b7 reference exercises",
-      61,
+      64,
       "alternative-contracts"
     ],
     [
       "Assign the crew and chief",
-      62,
+      65,
       "chapter-9"
     ],
     [
       "Supplier setup and personnel \u00b7 exact tested controls",
-      64,
+      67,
       "suppliers-owner"
     ],
     [
       "Team role, external profile and access removal",
-      66,
+      69,
       "supplier-access-lifecycle"
     ],
     [
       "Separate labor and expense billing streams",
-      67,
+      70,
       "chapter-15"
     ],
     [
       "Billing stream prerequisites",
-      68,
+      71,
       "stream-prerequisites"
     ],
     [
       "Stream field meanings and defaults",
-      69,
+      72,
       "stream-core-fields"
     ],
     [
       "Issuer coverage and legal revisions",
-      74,
+      77,
       "chapter-19"
     ],
     [
       "Planning, skills and availability \u00b7 tested lab cycle",
-      75,
+      78,
       "planning-skills-availability"
     ],
     [
       "Owner weekly entry \u00b7 actual hours and layout copy",
-      76,
+      79,
       "planning-owner-time"
     ],
     [
       "Record and submit time",
-      79,
+      82,
       "chapter-10"
     ],
     [
       "Record expenses and a shared receipt",
-      82,
+      85,
       "chapter-12"
     ],
     [
       "Foreign-currency expense \u00b7 supported escalation",
-      87,
+      90,
       "foreign-currency-remedy"
     ],
     [
       "Review an active queue \u00b7 Owner and Finance handoff",
-      88,
+      91,
       "operational-review"
     ],
     [
       "Correct time by its current state",
-      91,
+      94,
       "correction-states"
     ],
     [
       "Worked correction \u00b7 eight hours should be six",
-      92,
+      95,
       "correction-worked"
     ],
     [
       "Stage 1: 35 approved actual hours",
-      100,
+      103,
       "chapter-11"
     ],
     [
       "Four approved, Finance-reviewed expenses",
-      102,
+      105,
       "chapter-13"
     ],
     [
       "Reports and customer acceptance \u00b7 distinct evidence",
-      105,
+      108,
       "report-model"
     ],
     [
       "Create and review a Daily report",
-      106,
+      109,
       "daily-report-procedure"
     ],
     [
       "Technical / PLC report \u00b7 tested review procedure",
-      109,
+      112,
       "technical-report-procedure"
     ],
     [
       "Generate the customer-safe period file",
-      111,
+      114,
       "period-report-procedure"
     ],
     [
       "Record genuine sign-off against the exact version",
-      114,
+      117,
       "signoff-evidence"
     ],
     [
       "Training acceptance, invalidation and a replacement version",
-      116,
+      119,
       "signoff-simulated-completion"
     ],
     [
       "Create the 35-hour client invoice",
-      119,
+      122,
       "chapter-16"
     ],
     [
       "Invoice prerequisites and 12 review stages",
-      120,
+      123,
       "invoice-prerequisites"
     ],
     [
       "Create the client expense invoice",
-      125,
+      128,
       "chapter-17"
     ],
     [
       "One invoice with hourly, daily and weekly units",
-      127,
+      130,
       "chapter-18"
     ],
     [
       "Edit a draft and download its PDF",
-      129,
+      132,
       "chapter-20"
     ],
     [
       "Invoice edit/save scope",
-      130,
+      133,
       "invoice-edit-fields"
     ],
     [
       "Pre-issue checkpoint and troubleshooting",
-      133,
+      136,
       "chapter-22"
     ],
     [
       "Numbering policy \u00b7 approved inputs and neutral example",
-      134,
+      137,
       "final-numbering"
     ],
     [
       "Final invoice issuance \u00b7 exact tested progression",
-      136,
+      139,
       "final-issue-procedure"
     ],
     [
       "Dispatch \u00b7 explicit email consent and failure recovery",
-      138,
+      141,
       "invoice-dispatch"
     ],
     [
       "Issued correction \u00b7 linked credit and void safeguards",
-      140,
+      143,
       "issued-correction"
     ],
     [
       "Credit balance \u00b7 allocation and refund boundary",
-      141,
+      144,
       "credit-receiving"
     ],
     [
       "Record collections \u00b7 partial, later and correction",
-      143,
+      146,
       "collections-procedure"
     ],
     [
       "Different worker payment periods and dates",
-      145,
+      148,
       "worker-schedules"
     ],
     [
       "Reimburse a worker expense \u00b7 exact tested register",
-      159,
+      162,
       "expense-reimbursement"
     ],
     [
       "Worker and chief views",
-      161,
+      164,
       "chapter-14"
     ],
     [
       "Finance figures \u00b7 economic position versus cash",
-      164,
+      167,
       "economic-meaning"
     ],
     [
       "Spreadsheet exports: hours, costs and revenue",
-      165,
+      168,
       "spreadsheet-exports"
     ],
     [
       "Reconcile internal costing with compensation owed",
-      169,
+      172,
       "cost-reconciliation"
     ],
     [
       "After lifecycle XLSX \u00b7 compare a second snapshot",
-      188,
+      191,
       "after-lifecycle-workbook"
     ],
     [
       "Weekly close \u00b7 reviewed sources and a later arrival",
-      192,
+      195,
       "weekly-close-procedure"
     ],
     [
       "Project closure and archive \u00b7 exact tested empty-project cycle",
-      194,
+      197,
       "owner-close-and-history"
     ],
     [
       "Populated closeout \u00b7 final packages and supported reopening",
-      195,
+      198,
       "populated-closeout"
     ],
     [
       "Accounting Pack \u00b7 generate, review and finalize",
-      196,
+      199,
       "accounting-pack"
     ],
     [
       "Accounting demo \u00b7 reviewed October pack finalized",
-      197,
+      200,
       "accounting-success"
     ],
     [
       "Accounting period \u00b7 invoices, cash and older work dates",
-      198,
+      201,
       "accounting-period-reconciliation"
     ],
     [
       "Accounting error \u00b7 understand the retained dates",
-      201,
+      204,
       "accounting-gap-remedy"
     ],
     [
       "Documents \u00b7 register, classify and recover a private file",
-      203,
+      206,
       "private-documents"
     ],
     [
       "Audit, notifications, security and Help \u00b7 exact scope",
-      205,
+      208,
       "owner-profile-and-help"
     ],
     [
       "UX corrections and remaining operating limits",
-      206,
+      209,
       "ux-improvements"
     ],
     [
       "Owner completion checklist \u00b7 verify the business result",
-      207,
+      210,
       "owner-task-checklist"
     ],
     [
       "Validation matrix \u00b7 completed, reference and blocked",
-      208,
+      211,
       "verification-scope"
     ],
     [
       "Evidence history \u00b7 keep snapshots and outcomes separate",
-      209,
+      212,
       "testing-history"
     ],
     [
       "Final issued invoice PDFs \u00b7 original downloads",
-      210,
+      213,
       "appendices"
     ],
     [
       "Appendix A \u00b7 Actual labor PDF",
-      211,
+      214,
       "native-a"
     ],
     [
       "Appendix B \u00b7 Actual expense PDF",
-      213,
+      216,
       "native-b"
     ],
     [
       "Appendix C \u00b7 Actual hour/day/week PDF",
-      215,
+      218,
       "native-c"
     ]
   ],
@@ -490,7 +490,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-navigation-2",
@@ -498,7 +498,15 @@
       "toc": false,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
+    },
+    {
+      "key": "release-navigation-3",
+      "title": "Current navigation, task finder and form recovery \u00b7 continued",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-project-setup",
@@ -506,7 +514,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-project-work",
@@ -514,7 +522,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-followup-review",
@@ -522,7 +530,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-followup-review-2",
@@ -530,7 +538,7 @@
       "toc": false,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-invoice-current",
@@ -538,7 +546,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-invoice-current-2",
@@ -546,7 +554,23 @@
       "toc": false,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
+    },
+    {
+      "key": "release-invoice-current-3",
+      "title": "Prepare invoices from selected records or a whole period \u00b7 continued",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
+    },
+    {
+      "key": "release-invoice-current-4",
+      "title": "Prepare invoices from selected records or a whole period \u00b7 continued",
+      "toc": false,
+      "wide": false,
+      "figure": false,
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-finance-case",
@@ -554,7 +578,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-finance-case-2",
@@ -562,7 +586,7 @@
       "toc": false,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "release-policy",
@@ -570,7 +594,7 @@
       "toc": true,
       "wide": false,
       "figure": false,
-      "context": "Current workflow reference \u00b7 11 October 2026 \u00b7 earlier figures retain their original dates"
+      "context": "Current workflow reference \u00b7 17 October 2026 \u00b7 earlier figures retain their original dates"
     },
     {
       "key": "owner-first-access",

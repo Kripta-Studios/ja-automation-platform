@@ -1,0 +1,112 @@
+{
+  "BBS_Project_to_Client_Invoices_Guide_EN.pdf": {
+    "pages": 216,
+    "annex_pages": [
+      {
+        "page": 211,
+        "contents_sha256": "923c8b5b2af738b0df1c98d51f1cdca88df973686ff6dab7442ebcc6baab1e88",
+        "contents_bytes": 20107
+      },
+      {
+        "page": 212,
+        "contents_sha256": "69ac064e7676d4299675059052faec18f521728ab8194460b72b93019315c3a6",
+        "contents_bytes": 15182
+      },
+      {
+        "page": 213,
+        "contents_sha256": "066af20e168973ad6b55136249194f9cbbffda5630b87a923aa9d1c1b1e0908f",
+        "contents_bytes": 16813
+      },
+      {
+        "page": 214,
+        "contents_sha256": "fb59724a05799b76e83d5c481ddb796b11c8194b39cb9c08ccfe9d82b73f73bd",
+        "contents_bytes": 7941
+      },
+      {
+        "page": 215,
+        "contents_sha256": "b4a0eb66b3cc399beac2b907d9ea98d1f4537f582b22abee3902289e3a87b4d8",
+        "contents_bytes": 21979
+      },
+      {
+        "page": 216,
+        "contents_sha256": "aa0dfa3b39b4d6b3e329dcbd1f58fdc91d9adcaefb9e6f24b2d478d333597508",
+        "contents_bytes": 17985
+      }
+    ],
+    "attachments": {
+      "BBS-DEMO-expense-issued-en.pdf": [
+        "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3"
+      ],
+      "BBS-DEMO-labor-issued-en.pdf": [
+        "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb"
+      ],
+      "BBS-DEMO-mixed-issued-en.pdf": [
+        "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b"
+      ],
+      "BBS-expenses-2026-10-02_2026-10-03.xlsx": [
+        "ab2b753146f084426097e0bc3529e340d2bc9cc87a6739d22a3b1e728b50206d"
+      ],
+      "BBS-project-finance-2026-10-01_2026-10-05.xlsx": [
+        "730cbd586403ee5d86ec2888fa1610ad38ece4056a4e4231accc41ea73fe6a2d"
+      ],
+      "BBS-project-finance-after-lifecycle.xlsx": [
+        "9b75131962ab9180cd82a19c73740d7c3a191ba84180c507ee2e4110bf89b6fb"
+      ]
+    }
+  },
+  "BBS_Owner_Manual_EN.pdf": {
+    "pages": 276,
+    "annex_pages": [
+      {
+        "page": 271,
+        "contents_sha256": "923c8b5b2af738b0df1c98d51f1cdca88df973686ff6dab7442ebcc6baab1e88",
+        "contents_bytes": 20107
+      },
+      {
+        "page": 272,
+        "contents_sha256": "69ac064e7676d4299675059052faec18f521728ab8194460b72b93019315c3a6",
+        "contents_bytes": 15182
+      },
+      {
+        "page": 273,
+        "contents_sha256": "066af20e168973ad6b55136249194f9cbbffda5630b87a923aa9d1c1b1e0908f",
+        "contents_bytes": 16813
+      },
+      {
+        "page": 274,
+        "contents_sha256": "fb59724a05799b76e83d5c481ddb796b11c8194b39cb9c08ccfe9d82b73f73bd",
+        "contents_bytes": 7941
+      },
+      {
+        "page": 275,
+        "contents_sha256": "b4a0eb66b3cc399beac2b907d9ea98d1f4537f582b22abee3902289e3a87b4d8",
+        "contents_bytes": 21979
+      },
+      {
+        "page": 276,
+        "contents_sha256": "aa0dfa3b39b4d6b3e329dcbd1f58fdc91d9adcaefb9e6f24b2d478d333597508",
+        "contents_bytes": 17985
+      }
+    ],
+    "attachments": {
+      "BBS-DEMO-expense-issued-en.pdf": [
+        "f1e717119c3fa76bb5152e3f70b1494c514d16e96d1285f81a567492a4f725d3"
+      ],
+      "BBS-DEMO-labor-issued-en.pdf": [
+        "1ca5cbf312e4d548113aeec930608c01bb766c70a673753210f960531a4486bb"
+      ],
+      "BBS-DEMO-mixed-issued-en.pdf": [
+        "bd58a2292b4e4b1eb169dcc38f0d97cacb31e532dd685535dd7156c144ddb21b"
+      ],
+      "BBS-expenses-2026-10-02_2026-10-03.xlsx": [
+        "ab2b753146f084426097e0bc3529e340d2bc9cc87a6739d22a3b1e728b50206d"
+      ],
+      "BBS-project-finance-2026-10-01_2026-10-05.xlsx": [
+        "730cbd586403ee5d86ec2888fa1610ad38ece4056a4e4231accc41ea73fe6a2d"
+      ],
+      "BBS-project-finance-after-lifecycle.xlsx": [
+        "9b75131962ab9180cd82a19c73740d7c3a191ba84180c507ee2e4110bf89b6fb"
+      ]
+    }
+  }
+}

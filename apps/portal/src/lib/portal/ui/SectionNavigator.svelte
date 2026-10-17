@@ -5,17 +5,25 @@
   import type { PortalLocale } from '../../portal-i18n';
   import { navigationUxText } from '../navigation-ux-copy';
   import { assistantCopy } from '../assistant/copy';
+  import { searchSectionDestinations, type SectionSearchEntry } from './section-search';
+  import type { AssistantContext } from '../assistant/types';
   let {
     items,
     shortcuts = [],
+    context,
     itemHref,
+    recordSearchHref,
+    canSearchRecords = false,
     translate,
     currentSection = '',
     locale = 'en',
   }: {
     items: readonly NavItem[];
     shortcuts?: readonly NavShortcut[];
+    context: AssistantContext;
     itemHref: (item: NavItem) => string;
+    recordSearchHref?: (query: string) => string;
+    canSearchRecords?: boolean;
     translate: (key: string) => string;
     currentSection?: string;
     locale?: PortalLocale;
@@ -25,16 +33,16 @@
   let input: HTMLInputElement;
   let trigger: HTMLButtonElement;
   let query = $state('');
-  const normalize = (value: string) => value.normalize('NFD').replace(/\p{M}/gu, '').toLowerCase();
-  const matches = $derived.by(() => {
-    const term = normalize(query.trim());
-    const candidates: readonly (NavItem | NavShortcut)[] = term ? [...items, ...shortcuts] : items;
-    return candidates.filter((item) =>
-      normalize(
-        `${translate(item.label)} ${'parentLabel' in item ? translate(item.parentLabel) : ''}`,
-      ).includes(term),
-    );
-  });
+  const results = $derived(
+    searchSectionDestinations(query, {
+      items,
+      shortcuts,
+      context,
+      locale,
+      translate,
+      itemHref,
+    }),
+  );
   const frequentSettings = $derived(
     shortcuts.filter((item) =>
       [
@@ -46,7 +54,9 @@
     ),
   );
   const resultCount = $derived(
-    navigationUxText(locale, 'sectionNavigator', 'resultCount', { count: matches.length }),
+    navigationUxText(locale, 'sectionNavigator', 'resultCount', {
+      count: query.trim() ? results.count : items.length + frequentSettings.length,
+    }),
   );
   const triggerLabel = $derived(
     currentSection
@@ -70,6 +80,28 @@
     await tick();
     requestAnimationFrame(() => window.dispatchEvent(new Event('ja:open-task-assistant')));
   }
+  function selectTask(entry: SectionSearchEntry) {
+    if (!entry.task) return;
+    const taskId = entry.task.id;
+    dialog.close();
+    requestAnimationFrame(() =>
+      window.dispatchEvent(new CustomEvent('ja:select-task-assistant', { detail: { taskId } })),
+    );
+  }
+  function groupLabel(kind: 'action' | 'configuration' | 'section'): string {
+    const key =
+      kind === 'action' ? 'actions' : kind === 'configuration' ? 'configurations' : 'sections';
+    return navigationUxText(locale, 'sectionNavigator', key);
+  }
+  const resultGroups = $derived([
+    { kind: 'action' as const, label: groupLabel('action'), entries: results.actions },
+    {
+      kind: 'configuration' as const,
+      label: groupLabel('configuration'),
+      entries: results.configurations,
+    },
+    { kind: 'section' as const, label: groupLabel('section'), entries: results.sections },
+  ]);
   function navigateResults(event: KeyboardEvent) {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -78,7 +110,7 @@
       return;
     }
     if (!['ArrowDown', 'ArrowUp', 'Enter'].includes(event.key)) return;
-    const links = Array.from(dialog.querySelectorAll<HTMLAnchorElement>('.section-result'));
+    const links = Array.from(dialog.querySelectorAll<HTMLElement>('.section-result'));
     if (event.key === 'Enter') {
       if (event.target === input && links[0]) {
         event.preventDefault();
@@ -87,7 +119,7 @@
       return;
     }
     event.preventDefault();
-    const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+    const index = links.indexOf(document.activeElement as HTMLElement);
     const next =
       index < 0
         ? event.key === 'ArrowDown'
@@ -154,6 +186,7 @@
 </button>
 <dialog
   bind:this={dialog}
+  data-section-search-dialog
   aria-labelledby={`${id}-title`}
   aria-describedby={`${id}-description`}
   onkeydown={navigateResults}
@@ -180,6 +213,7 @@
   <label for={`${id}-search`}>{translate('Find a section')}</label>
   <input
     id={`${id}-search`}
+    data-section-search-input
     bind:this={input}
     type="search"
     bind:value={query}
@@ -205,26 +239,94 @@
     </div>
   {/if}
   <nav aria-label={translate('Go to section')}>
-    {#each matches as item}
-      <a
-        class="section-result"
-        class:section-result-current={!('parentLabel' in item) &&
-          translate(item.label) === currentSection}
-        aria-current={!('parentLabel' in item) && translate(item.label) === currentSection
-          ? 'page'
-          : undefined}
-        href={itemHref(item)}
-        aria-label={`${translate('Open section')}: ${translate(item.label)}`}
-        onclick={() => dialog.close()}
-        ><span
-          >{translate(item.label)}{#if 'parentLabel' in item}<small
-              >{translate(item.parentLabel)}</small
-            >{/if}</span
-        ><DirectionIcon /></a
-      >
-    {/each}
-    {#if !matches.length}<p role="status">{translate('No matching sections')}</p>{/if}
+    {#if query.trim()}
+      {#each resultGroups as group (group.kind)}
+        {#if group.entries.length}
+          <section class="section-result-group" aria-label={group.label}>
+            <h3>{group.label}</h3>
+            {#each group.entries as entry (entry.id)}
+              {#if entry.task}
+                <button
+                  class="section-result section-result-action"
+                  type="button"
+                  data-section-result-kind={entry.kind}
+                  data-assistant-task={entry.task.id}
+                  aria-label={`${group.label}: ${entry.label}`}
+                  onclick={() => selectTask(entry)}
+                >
+                  <span>{entry.label}</span><DirectionIcon />
+                </button>
+              {:else if entry.href}
+                <a
+                  class="section-result"
+                  class:section-result-current={entry.kind === 'section' &&
+                    entry.label === currentSection}
+                  data-section-result-kind={entry.kind}
+                  aria-current={entry.kind === 'section' && entry.label === currentSection
+                    ? 'page'
+                    : undefined}
+                  href={entry.href}
+                  aria-label={`${group.label}: ${entry.label}`}
+                  onclick={() => dialog.close()}
+                >
+                  <span
+                    >{entry.label}{#if entry.parentLabel}<small>{entry.parentLabel}</small
+                      >{/if}</span
+                  ><DirectionIcon />
+                </a>
+              {/if}
+            {/each}
+          </section>
+        {/if}
+      {/each}
+      {#if !results.count}
+        <p class="section-no-matches" role="status">
+          {navigationUxText(locale, 'sectionNavigator', 'noMatches')}
+        </p>
+      {/if}
+      {#if canSearchRecords && recordSearchHref && query.trim().length >= 2}
+        <section
+          class="section-result-group section-record-search"
+          aria-label={navigationUxText(locale, 'sectionNavigator', 'records')}
+        >
+          <h3>{navigationUxText(locale, 'sectionNavigator', 'records')}</h3>
+          <a
+            class="section-result"
+            data-section-result-kind="record-search"
+            href={recordSearchHref(query.trim())}
+            aria-label={navigationUxText(locale, 'sectionNavigator', 'recordSearch', {
+              query: query.trim(),
+            })}
+            onclick={() => dialog.close()}
+          >
+            <span>
+              {navigationUxText(locale, 'sectionNavigator', 'recordSearch', {
+                query: query.trim(),
+              })}
+              <small>{navigationUxText(locale, 'sectionNavigator', 'recordSearchHint')}</small>
+            </span>
+            <DirectionIcon />
+          </a>
+        </section>
+      {/if}
+    {:else}
+      {#each items as item}
+        <a
+          class="section-result"
+          class:section-result-current={translate(item.label) === currentSection}
+          aria-current={translate(item.label) === currentSection ? 'page' : undefined}
+          href={itemHref(item)}
+          aria-label={`${translate('Open section')}: ${translate(item.label)}`}
+          onclick={() => dialog.close()}><span>{translate(item.label)}</span><DirectionIcon /></a
+        >
+      {/each}
+    {/if}
   </nav>
+  {#if !query.trim() && canSearchRecords}
+    <p class="section-record-note">
+      {navigationUxText(locale, 'sectionNavigator', 'recordSearchHint')}
+    </p>
+  {/if}
 </dialog>
 
 <style>
@@ -249,6 +351,26 @@
   .section-result span {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+  .section-result-group {
+    display: grid;
+    gap: 0.25rem;
+    padding-top: 0.75rem;
+  }
+  .section-result-group h3 {
+    margin: 0.2rem 0;
+    font-size: 0.8125rem;
+  }
+  .section-no-matches,
+  .section-record-note {
+    margin: 0.65rem 0 0;
+    color: #626359;
+    font-size: 0.8125rem;
+  }
+  .section-record-search {
+    margin-top: 0.6rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--ja-line, #d6d5d2);
   }
   .section-result small {
     display: block;
@@ -393,6 +515,15 @@
     color: inherit;
     text-decoration: none;
     font-size: 0.9375rem;
+  }
+  button.section-result {
+    width: 100%;
+    border: 1px solid transparent;
+    background: white;
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
   }
   .section-result:hover,
   .section-result:focus-visible {

@@ -112,6 +112,27 @@ describe('role-aware navigation catalogue', () => {
         .sort(),
     ).toEqual(['notifications', 'profile-security']);
   });
+  it('shares invoice, tax and compensation destinations without crossing role boundaries', () => {
+    const financeIds = tasksForContext({ role: 'finance_admin' }).map((task) => task.id);
+    const ownerIds = tasksForContext({ role: 'owner_admin' }).map((task) => task.id);
+    const workerIds = tasksForContext({ role: 'worker' }).map((task) => task.id);
+    const managerIds = tasksForContext({ role: 'project_manager' }).map((task) => task.id);
+    const auditorIds = tasksForContext({ role: 'auditor_read_only' }).map((task) => task.id);
+
+    for (const ids of [financeIds, ownerIds]) {
+      expect(ids).toContain('invoice-create');
+      expect(ids).toContain('billing-tax');
+      expect(ids).toContain('finance-compensation-create');
+    }
+    for (const ids of [workerIds, managerIds, auditorIds]) {
+      expect(ids).not.toContain('invoice-create');
+      expect(ids).not.toContain('billing-tax');
+      expect(ids).not.toContain('finance-compensation-create');
+    }
+    expect(workerIds).toContain('pay-statement');
+    expect(managerIds).toContain('pay-statement');
+    expect(auditorIds).toContain('finance-economic');
+  });
   it('covers major operational and financial source actions', () => {
     const actions = new Set(assistantTasks.flatMap((task) => task.actionNames));
     for (const action of [

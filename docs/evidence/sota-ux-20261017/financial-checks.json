@@ -1,0 +1,26 @@
+{
+  "checks": [
+    {
+      "suite": "financial-baseline",
+      "status": "passed",
+      "tests": 25,
+      "files": [
+        "tests/integration/invoice-composer-api.test.ts",
+        "tests/integration/billing-mag-period-readiness.test.ts",
+        "tests/unit/billing-readiness-api-problems.test.ts"
+      ],
+      "scope": "existing server financial behavior; disposable databases, no production mutations"
+    },
+    {
+      "suite": "financial-invariants",
+      "status": "passed",
+      "tests": 15,
+      "files": [
+        "tests/invariants/invoice-composition.test.ts",
+        "tests/invariants/invoice.test.ts",
+        "tests/security/issued-invoice-artifact-immutability.test.ts"
+      ],
+      "scope": "existing server financial behavior; disposable databases, no production mutations"
+    }
+  ]
+}

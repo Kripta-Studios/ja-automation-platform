@@ -1,0 +1,45 @@
+{
+  "method": "Chromium browser geometry of same whole-period wizard at 900px height; production eacc baseline and built fixture candidate. Data differs; this is layout geometry, not human-task speed.",
+  "results": [
+    {
+      "viewport": 360,
+      "beforeSheetWidth": 360,
+      "afterSheetWidth": 360,
+      "beforeFirstControlOffset": 1144.546875,
+      "afterFirstControlOffset": 835.40625,
+      "offsetReductionPercent": 27.0,
+      "visibleNamedShortcuts": 9,
+      "documentOverflow": false
+    },
+    {
+      "viewport": 390,
+      "beforeSheetWidth": 390,
+      "afterSheetWidth": 390,
+      "beforeFirstControlOffset": 1094.15625,
+      "afterFirstControlOffset": 835.40625,
+      "offsetReductionPercent": 23.6,
+      "visibleNamedShortcuts": 9,
+      "documentOverflow": false
+    },
+    {
+      "viewport": 768,
+      "beforeSheetWidth": 460.796875,
+      "afterSheetWidth": 768,
+      "beforeFirstControlOffset": 918.796875,
+      "afterFirstControlOffset": 703.15625,
+      "offsetReductionPercent": 23.5,
+      "visibleNamedShortcuts": 9,
+      "documentOverflow": false
+    },
+    {
+      "viewport": 1440,
+      "beforeSheetWidth": 544,
+      "afterSheetWidth": 1088,
+      "beforeFirstControlOffset": 841.015625,
+      "afterFirstControlOffset": 697.390625,
+      "offsetReductionPercent": 17.1,
+      "visibleNamedShortcuts": 9,
+      "documentOverflow": false
+    }
+  ]
+}

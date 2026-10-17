@@ -1922,3 +1922,8 @@ Publication verified: `manuals-848c07f20efc` is live and its application/manual 
 ### 11 October 2026 · decimal hours in forms and exports
 
 Scoped CORE-04/07/10/14/15 presentation update: duration forms and new PDF/XLSX/CSV reports use decimal hours, while stored whole minutes, exact-money calculations, role access and historical issued documents retain their meaning. [Verification and known baseline failures](docs/evidence/decimal-hours-20261011/README.md) includes actual PDF text, numeric workbook cells, CSV precision/security, 27 invariant/unit checks, production builds, four phone/desktop capture/report workflows and nine responsive form checks at 360/390/768/1440. Current role instructions and PDFs are refreshed; historical screenshot/archive evidence is retained. This does not change the overall Client Essential verdict. Deployment and history-preservation receipts remain in the private operational release evidence directory.
+
+
+### 17 October 2026 · eight-priority SOTA UX implementation
+
+Scoped candidate acceptance completed for UX-01–08 (all high and medium priorities): visible capabilities, context, precise selections, role boundaries and immutable financial history are preserved. Independent browser checks, forty financial invariant tests, current manuals and Help/download verification are recorded in the [dependency, ownership and acceptance ledger](docs/evidence/sota-ux-20261017/README.md). Publication, exact production/main parity, restore verification and storage cleanup are certified by the external operational receipts identified there. This does not change the whole-product Client Essential verdict.

@@ -1,3 +1,5 @@
+> Historical edition. For the current 17 October 2026 procedures and role-appropriate guidance, sign in and open Help or use the [current role manuals](README.md). Current role PDFs are English; older procedures, translations, screenshots and saved outcomes remain historical reference.
+
 # Edit documents from their preview
 
 Use the document preview to review saved content, open editable fields and download the corresponding PDF. Highlighted or underlined fields indicate an available edit or a link to the record that owns the value. You can activate these fields with a mouse or with Tab and Enter.

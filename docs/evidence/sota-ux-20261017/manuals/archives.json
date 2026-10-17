@@ -1,0 +1,1392 @@
+{
+  "archiveNoticeRevision": "2026-10-17",
+  "currentHelpUrl": "https://j-aautomation.com/j-aautomation/app/help",
+  "historicalPdfCount": 25,
+  "baselinePageStreamCountIncludingOldNotices": 352,
+  "replacedExistingArchiveNoticeCount": 25,
+  "preservedHistoricalBodyPageStreamCount": 327,
+  "allHistoricalBodyPageStreamsUnchanged": true,
+  "allHistoricalBodyAnnotationsUnchanged": true,
+  "allAttachmentsUnchanged": true,
+  "pdfs": [
+    {
+      "filename": "Administration_Finance_Guide.pdf",
+      "language": "en",
+      "pages": 15,
+      "historicalBodyPageCount": 14,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "75e624810aa8d18f662e6f7b7692632096d5f67a64904d7bdf95dba2fce19e9b",
+          "07d0758e70c1dcdd4d796d605336f6e87b6b9a85aa646c5436062fd3eb85b537",
+          "9c35460ca8393ef7cf497c095f692adce0f17372024edfa1445fc5f993f4e7dc",
+          "ddbd37f135a96e46ffd95c9b0fc02b1af5a412bb836a46f2f978ca0769e58f1a",
+          "12a3b327bdafe482969584d1898d8acbdbbdb103ce7e365d465521d77a14566b",
+          "fb38a8da54934bd06ef0b4f884249e785263e0ed4a513c9677b37f50011ef52a",
+          "8cbc1d83cb3f1b81d9fadf8061059580f6ca8932bf1a6929eba39de387289f17",
+          "8451c1ed7e95d783d4f4ce77a04a57d5dc6e4703eec3f06dd00f7e796bf0356c",
+          "8674dd3ee10510633f45f55758566df19fa2d8ee58d3d47edab40ce7447a7510",
+          "47646113e8cb78ec1c8a6bd5189665778b681c291dd45b6f3cdfce94978823d8",
+          "279c00c639baf914dd3af7adea6a98a779f8926095f57febc30f6b86e616b5dc",
+          "0f33111e82679bb47cf40e3a75e8767c7400b34855bcb4006d5f4b095a96e3d3",
+          "9714a32ab1623ac2ebe958e9207f675269b7c05e5cf64096b1e74f9eb793fe46",
+          "d3a02b58f5af9b39363678b2a2637eafa28605f1edfcb6afda8f108ae8163b2b"
+        ],
+        "afterSha256": [
+          "75e624810aa8d18f662e6f7b7692632096d5f67a64904d7bdf95dba2fce19e9b",
+          "07d0758e70c1dcdd4d796d605336f6e87b6b9a85aa646c5436062fd3eb85b537",
+          "9c35460ca8393ef7cf497c095f692adce0f17372024edfa1445fc5f993f4e7dc",
+          "ddbd37f135a96e46ffd95c9b0fc02b1af5a412bb836a46f2f978ca0769e58f1a",
+          "12a3b327bdafe482969584d1898d8acbdbbdb103ce7e365d465521d77a14566b",
+          "fb38a8da54934bd06ef0b4f884249e785263e0ed4a513c9677b37f50011ef52a",
+          "8cbc1d83cb3f1b81d9fadf8061059580f6ca8932bf1a6929eba39de387289f17",
+          "8451c1ed7e95d783d4f4ce77a04a57d5dc6e4703eec3f06dd00f7e796bf0356c",
+          "8674dd3ee10510633f45f55758566df19fa2d8ee58d3d47edab40ce7447a7510",
+          "47646113e8cb78ec1c8a6bd5189665778b681c291dd45b6f3cdfce94978823d8",
+          "279c00c639baf914dd3af7adea6a98a779f8926095f57febc30f6b86e616b5dc",
+          "0f33111e82679bb47cf40e3a75e8767c7400b34855bcb4006d5f4b095a96e3d3",
+          "9714a32ab1623ac2ebe958e9207f675269b7c05e5cf64096b1e74f9eb793fe46",
+          "d3a02b58f5af9b39363678b2a2637eafa28605f1edfcb6afda8f108ae8163b2b"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 16,
+        "afterCount": 16,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "a9006b3756dc4c8aefd76724ddfffaa031da0b0739d33664a7eccae4b195f48e",
+      "refreshedPdfSha256": "a9006b3756dc4c8aefd76724ddfffaa031da0b0739d33664a7eccae4b195f48e"
+    },
+    {
+      "filename": "Administration_Finance_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 15,
+      "historicalBodyPageCount": 14,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "332c3b55cec5e3635c0bc38d08c0ab1ed759fb3f72148fe8bd3010fcf02146de",
+          "eba65a026c6806684dbc54cfb089e2b9b44bff26c2a088af3444c583acf3da5b",
+          "34456725c9621b28b8eeaa066c262d165424ab969ba9a0b1cc42a418b4fe10a4",
+          "3b3ae3af0cdb4c2a674ec317b5dd5ca01f437b3c91199ca563196a1ad6948730",
+          "98b0886a993f0d8d14f483f4d3b3ccd611e17e3d867a6184c86779faf5103edc",
+          "c95da5758e24840d44bea44b731b60bc0176eeff30d8301da0031024a4144ce7",
+          "af5fe20d97d1e637fcc2cadddaec2cce0d84477f8d05bca7ee846ad5d120d0ef",
+          "7c6b1293832ff7546fe586135ebec9bc95f94b9cc7d5fbba1c4da718d6e46f8d",
+          "74bafef262d588911041b97c79c2ae53bc6bc35c6a92dc671b48a1d95d1adf21",
+          "6212228945e0b6849265bed0112ed5385728e46332b1007b1759d442ac8a7903",
+          "c2bd66c6807ab58ecaee0488e5a2d3b54ee147478edd56d13b595eb957cebaef",
+          "8ea6020393676b8d336782bf4c1787146ff0514e8d73f4c4d6d74de3463c5928",
+          "a1d1a0d1361ec537e921873764a0a3a97673b62cd71ab646f24f430be278a7a1",
+          "f093a194759606d4ae3c43cb35667c6bc48c12225e901c83a1a65abe58d2475f"
+        ],
+        "afterSha256": [
+          "332c3b55cec5e3635c0bc38d08c0ab1ed759fb3f72148fe8bd3010fcf02146de",
+          "eba65a026c6806684dbc54cfb089e2b9b44bff26c2a088af3444c583acf3da5b",
+          "34456725c9621b28b8eeaa066c262d165424ab969ba9a0b1cc42a418b4fe10a4",
+          "3b3ae3af0cdb4c2a674ec317b5dd5ca01f437b3c91199ca563196a1ad6948730",
+          "98b0886a993f0d8d14f483f4d3b3ccd611e17e3d867a6184c86779faf5103edc",
+          "c95da5758e24840d44bea44b731b60bc0176eeff30d8301da0031024a4144ce7",
+          "af5fe20d97d1e637fcc2cadddaec2cce0d84477f8d05bca7ee846ad5d120d0ef",
+          "7c6b1293832ff7546fe586135ebec9bc95f94b9cc7d5fbba1c4da718d6e46f8d",
+          "74bafef262d588911041b97c79c2ae53bc6bc35c6a92dc671b48a1d95d1adf21",
+          "6212228945e0b6849265bed0112ed5385728e46332b1007b1759d442ac8a7903",
+          "c2bd66c6807ab58ecaee0488e5a2d3b54ee147478edd56d13b595eb957cebaef",
+          "8ea6020393676b8d336782bf4c1787146ff0514e8d73f4c4d6d74de3463c5928",
+          "a1d1a0d1361ec537e921873764a0a3a97673b62cd71ab646f24f430be278a7a1",
+          "f093a194759606d4ae3c43cb35667c6bc48c12225e901c83a1a65abe58d2475f"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 16,
+        "afterCount": 16,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "c32caf308962bdfeb36b4eb22f4c3ce0d9577aa5fd24dacda2fdf4a917802938",
+      "refreshedPdfSha256": "c32caf308962bdfeb36b4eb22f4c3ce0d9577aa5fd24dacda2fdf4a917802938"
+    },
+    {
+      "filename": "Auditor_User_Guide.pdf",
+      "language": "en",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "164be3020ecd43262b6f49de472f5007d09ca66c1f82c8c5bb089c85d476c639",
+          "25eca5b1a28b568476b692f47c7ff95565ef74b46bf14192e46dc81b51fa6aef",
+          "6f2722dc67078664c6c754922f1bb662274f5e6fd74962867f90309b96f03f9f",
+          "e81fbbc37cdfb9268a3d0fbf203989a140b1e10be04b1b01ce582c7a05422690",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "07f54f6a1cdbfff94461dbfb179c275e8165b43bc54b22869ea8fe38e7f08762",
+          "ca4533cd798b6ef2c59f5caaecf44b02640b58c3630593e47aeea51009d91a83"
+        ],
+        "afterSha256": [
+          "164be3020ecd43262b6f49de472f5007d09ca66c1f82c8c5bb089c85d476c639",
+          "25eca5b1a28b568476b692f47c7ff95565ef74b46bf14192e46dc81b51fa6aef",
+          "6f2722dc67078664c6c754922f1bb662274f5e6fd74962867f90309b96f03f9f",
+          "e81fbbc37cdfb9268a3d0fbf203989a140b1e10be04b1b01ce582c7a05422690",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "07f54f6a1cdbfff94461dbfb179c275e8165b43bc54b22869ea8fe38e7f08762",
+          "ca4533cd798b6ef2c59f5caaecf44b02640b58c3630593e47aeea51009d91a83"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "857c580aaac1201e1a38d0e722540baf77d3fc2c0511e8b8992131781e695efb",
+      "refreshedPdfSha256": "857c580aaac1201e1a38d0e722540baf77d3fc2c0511e8b8992131781e695efb"
+    },
+    {
+      "filename": "Auditor_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "8eff450ec91b7906c81fed958dd0600a78d05495194bcbbe5996e44732256d8b",
+          "d7c4bfb1ff0c7484b52b12430bd0b737bd2a0d6840da57c41ed511d1f49aba4f",
+          "b3676266598861c6eb2b408f5fdb29e013c3fccf01a8d8e79f94d4901ee9651f",
+          "ddfc241845dcfa1f5d309739c43f4415d8842141b336c08ef736858e8ecc0fc0",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "6162d237f2368e580678e71c91d17560ad3e2a414886c5f07a12f9cb9f5bbdfc",
+          "0626662c50de9b22121743e09c36a0593b46321c3da741895a9bb24ea17ba450"
+        ],
+        "afterSha256": [
+          "8eff450ec91b7906c81fed958dd0600a78d05495194bcbbe5996e44732256d8b",
+          "d7c4bfb1ff0c7484b52b12430bd0b737bd2a0d6840da57c41ed511d1f49aba4f",
+          "b3676266598861c6eb2b408f5fdb29e013c3fccf01a8d8e79f94d4901ee9651f",
+          "ddfc241845dcfa1f5d309739c43f4415d8842141b336c08ef736858e8ecc0fc0",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "6162d237f2368e580678e71c91d17560ad3e2a414886c5f07a12f9cb9f5bbdfc",
+          "0626662c50de9b22121743e09c36a0593b46321c3da741895a9bb24ea17ba450"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "68c1f975b2d75fe20ab64a0e3c2f0bdac46fcbe1c6c82587a852a1627df22589",
+      "refreshedPdfSha256": "68c1f975b2d75fe20ab64a0e3c2f0bdac46fcbe1c6c82587a852a1627df22589"
+    },
+    {
+      "filename": "Current_Deployed_Workflows_2026-09-24.pdf",
+      "language": "en",
+      "pages": 10,
+      "historicalBodyPageCount": 9,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "2e649523bd7bf8d6a7f13ac657607412c5a4b3a0091755123a65aec3919b6547",
+          "f57ef107f15ea35925498b8580d62a492aff2564066b8d86f5f1067a1555bd52",
+          "2d7b913117220d89e02f36434766cbe24c7fb68adf5359d6e469eb9bed556bb8",
+          "e5d497759e0b56a18b18675323bc9ed3e0d59ca3c8e600ddd0bcdcf7ed35dfce",
+          "2c69d7f1a1a9b1fef615bcc1ccbb5faf5c27917214c452db43c96010072fc94d",
+          "7a16701dab5039bb18b89703dd62f51fa3ec257650b7ae7e5bce02ce8459301c",
+          "52f218cece8e57944e5e332acc70f33ec8ecc9c6bd4c19cfdc2e48a23a5e0b9b",
+          "15185fd3b74ab81e9517b68f98260dbad3a10d8e4b8b4682e4f732c7315eaf38",
+          "488ceffa7b91aeff92d5dc77967efdbfc1045f48e8a392485c588da330643bb0"
+        ],
+        "afterSha256": [
+          "2e649523bd7bf8d6a7f13ac657607412c5a4b3a0091755123a65aec3919b6547",
+          "f57ef107f15ea35925498b8580d62a492aff2564066b8d86f5f1067a1555bd52",
+          "2d7b913117220d89e02f36434766cbe24c7fb68adf5359d6e469eb9bed556bb8",
+          "e5d497759e0b56a18b18675323bc9ed3e0d59ca3c8e600ddd0bcdcf7ed35dfce",
+          "2c69d7f1a1a9b1fef615bcc1ccbb5faf5c27917214c452db43c96010072fc94d",
+          "7a16701dab5039bb18b89703dd62f51fa3ec257650b7ae7e5bce02ce8459301c",
+          "52f218cece8e57944e5e332acc70f33ec8ecc9c6bd4c19cfdc2e48a23a5e0b9b",
+          "15185fd3b74ab81e9517b68f98260dbad3a10d8e4b8b4682e4f732c7315eaf38",
+          "488ceffa7b91aeff92d5dc77967efdbfc1045f48e8a392485c588da330643bb0"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 0,
+        "afterCount": 0,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "d209838f7de220eeaf54d0860763c217ccee6fbf3d10097f5743cfb899e582ed",
+      "refreshedPdfSha256": "d209838f7de220eeaf54d0860763c217ccee6fbf3d10097f5743cfb899e582ed"
+    },
+    {
+      "filename": "Employee_Field_Guide_EN.pdf",
+      "language": "en",
+      "pages": 19,
+      "historicalBodyPageCount": 18,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "dea79a0b97d130b1f51adb7302e24a54180bf40e45f9027f4698cf50de112067",
+          "82b2fd2e24df0d37f9a281ebe7570c4f756d638d25693dae9af4db5c251c12ce",
+          "37e16bc1a22e6d20f2d96f1c07be0a6ace353aba053b2043ff1177067281c752",
+          "6367d7c1c37d9ccbafafa483dd40ea35df374896f65555a2696ee4a304c7352f",
+          "4fec669fd68d57599634ea00a39f4a3cbbeeaa50941038954f994b99b4dd0c4d",
+          "9d437825f15b2fa13639dac19212a801542303e25e91c7469180d476ee0cdae6",
+          "b653681147ba679a07eef4d012f822a735818c57ad17bea6a1431709c2251271",
+          "959fb44088e51ca6e9dfc35642390ae5ed58bb6a36300b216f1103899e67eacf",
+          "ae772614fd84c12c5104f30aa6c15f209975f812d1678d1c6ddd63f939e01e24",
+          "020c58acf403216bd1f574276ee882fd10c15f1669e0224e44a151b530919977",
+          "8a088e5f935b458bc921f61887371e3d2cda29aba7268b2a9752929e1733fa77",
+          "f5aa442ceaeeddd51d600477e6180aa094543f76b4eb4cca9ffd1fd4f39d2dc7",
+          "a0b7613d968664df7bc3a92199223a83d0a58559fbe31ee348f0d8685b982811",
+          "402424db3d4cef38873888720439026e96ea198c47898ca97de553534b2d8526",
+          "356e6f6ba3798521034b3a5477a233be83bc980f035ae910a22264fdd06a31af",
+          "ec28ceeaaf876e547e1bc4548cc847f4c749ffb6ba9e8c8bdd867a15f6059d5f",
+          "830efac6ab9800049394d24355e03ee3c40ebf65732a521ac4b37f7b4f0382d4",
+          "0322307b4a9901b3e1866eeacbaaff4477e54fe6db55d8fed604dc8c60f1b35c"
+        ],
+        "afterSha256": [
+          "dea79a0b97d130b1f51adb7302e24a54180bf40e45f9027f4698cf50de112067",
+          "82b2fd2e24df0d37f9a281ebe7570c4f756d638d25693dae9af4db5c251c12ce",
+          "37e16bc1a22e6d20f2d96f1c07be0a6ace353aba053b2043ff1177067281c752",
+          "6367d7c1c37d9ccbafafa483dd40ea35df374896f65555a2696ee4a304c7352f",
+          "4fec669fd68d57599634ea00a39f4a3cbbeeaa50941038954f994b99b4dd0c4d",
+          "9d437825f15b2fa13639dac19212a801542303e25e91c7469180d476ee0cdae6",
+          "b653681147ba679a07eef4d012f822a735818c57ad17bea6a1431709c2251271",
+          "959fb44088e51ca6e9dfc35642390ae5ed58bb6a36300b216f1103899e67eacf",
+          "ae772614fd84c12c5104f30aa6c15f209975f812d1678d1c6ddd63f939e01e24",
+          "020c58acf403216bd1f574276ee882fd10c15f1669e0224e44a151b530919977",
+          "8a088e5f935b458bc921f61887371e3d2cda29aba7268b2a9752929e1733fa77",
+          "f5aa442ceaeeddd51d600477e6180aa094543f76b4eb4cca9ffd1fd4f39d2dc7",
+          "a0b7613d968664df7bc3a92199223a83d0a58559fbe31ee348f0d8685b982811",
+          "402424db3d4cef38873888720439026e96ea198c47898ca97de553534b2d8526",
+          "356e6f6ba3798521034b3a5477a233be83bc980f035ae910a22264fdd06a31af",
+          "ec28ceeaaf876e547e1bc4548cc847f4c749ffb6ba9e8c8bdd867a15f6059d5f",
+          "830efac6ab9800049394d24355e03ee3c40ebf65732a521ac4b37f7b4f0382d4",
+          "0322307b4a9901b3e1866eeacbaaff4477e54fe6db55d8fed604dc8c60f1b35c"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 9,
+        "afterCount": 9,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "e6ebd450878fbb8464aa2a811a06b1f7599355cdaf2e08835179cc7915521fbc",
+      "refreshedPdfSha256": "e6ebd450878fbb8464aa2a811a06b1f7599355cdaf2e08835179cc7915521fbc"
+    },
+    {
+      "filename": "Employee_Field_Guide_ES.pdf",
+      "language": "es",
+      "pages": 19,
+      "historicalBodyPageCount": 18,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "e5ba71f48e49fa4670d65a28bedf962075deb3c10dd25d66c0590fb0a7e634b5",
+      "replacementNoticePageStreamSha256": "5c979581e593215ea4339bdf3c32584d703b002f720e22f8fbfc3a4bf6f02f51",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "b5ba226cda0975350544aa0782717df0b67df4a6fc00c775c4ce3b15a6f03dad",
+          "725eea9e42aec03ad8501446f064636ae222eb18ff664ba77e685c16b1b6e4c1",
+          "4649bd00e27bc6fee72a98875d7a315c7eb76e14dce7abc6ba2e17b9dabe9523",
+          "3c96a61693397ef21f3e5337a8dfe646c28f50a0277fc03c61de3e4cdf6775ab",
+          "91b8e42d5cbb66b35dffa5a4e45d348c927cdb2484456507c8c2447582546893",
+          "b85d0d00864487927f1571997ad8345bbf59fa211ffba5b9700b8aa901c077de",
+          "b509af22773822e3922a577b21785c25fe5e98ea55d2238992d8a226e6f063cb",
+          "f1e5f1a7639b1b68f318ec33659e16156017c5ec6781d42356dd01461b32254a",
+          "aa216b5481a2c1f38242873dd415fc1a4926c80bfd8cdf1822c9609ca7737798",
+          "fa23d20488025b0ea1769eb7b7555bfda218d562de10dd1df67ee122d727c721",
+          "7fbdf66f0bdf2160398d5d0e418f01dba559a57affdc435374ab5a86c03e322f",
+          "0120cd843df0bdeabbadd9b1b837f2445bd9741629a470b0e04a207902738de4",
+          "11fd20428f5d37972e729e686f98fc5c70e57736d280d197bb59ca631276b67d",
+          "e27aa06e7fb16419d07341ed05e423dbeed4c8f12d1b92cea36e56c5255d092d",
+          "bc8aa3021a50ed5498194468c7e6b935ed36bafa5804e5b19bf171a1630bf5a4",
+          "223bf5037deee55079bd822a60c28de016f547f4c19cd76ff87b73370212a81f",
+          "292cc017b804df96b9135485065c392fa7b7dd31773a24e6b15d13df6da70176",
+          "b14e8cb08b40c254f5fdbabce2ea9b5f8386f63da8494b8401182af3ed914eae"
+        ],
+        "afterSha256": [
+          "b5ba226cda0975350544aa0782717df0b67df4a6fc00c775c4ce3b15a6f03dad",
+          "725eea9e42aec03ad8501446f064636ae222eb18ff664ba77e685c16b1b6e4c1",
+          "4649bd00e27bc6fee72a98875d7a315c7eb76e14dce7abc6ba2e17b9dabe9523",
+          "3c96a61693397ef21f3e5337a8dfe646c28f50a0277fc03c61de3e4cdf6775ab",
+          "91b8e42d5cbb66b35dffa5a4e45d348c927cdb2484456507c8c2447582546893",
+          "b85d0d00864487927f1571997ad8345bbf59fa211ffba5b9700b8aa901c077de",
+          "b509af22773822e3922a577b21785c25fe5e98ea55d2238992d8a226e6f063cb",
+          "f1e5f1a7639b1b68f318ec33659e16156017c5ec6781d42356dd01461b32254a",
+          "aa216b5481a2c1f38242873dd415fc1a4926c80bfd8cdf1822c9609ca7737798",
+          "fa23d20488025b0ea1769eb7b7555bfda218d562de10dd1df67ee122d727c721",
+          "7fbdf66f0bdf2160398d5d0e418f01dba559a57affdc435374ab5a86c03e322f",
+          "0120cd843df0bdeabbadd9b1b837f2445bd9741629a470b0e04a207902738de4",
+          "11fd20428f5d37972e729e686f98fc5c70e57736d280d197bb59ca631276b67d",
+          "e27aa06e7fb16419d07341ed05e423dbeed4c8f12d1b92cea36e56c5255d092d",
+          "bc8aa3021a50ed5498194468c7e6b935ed36bafa5804e5b19bf171a1630bf5a4",
+          "223bf5037deee55079bd822a60c28de016f547f4c19cd76ff87b73370212a81f",
+          "292cc017b804df96b9135485065c392fa7b7dd31773a24e6b15d13df6da70176",
+          "b14e8cb08b40c254f5fdbabce2ea9b5f8386f63da8494b8401182af3ed914eae"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 9,
+        "afterCount": 9,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "71a17e16ebb115f185c79f9d0fd1458bdb99d9abffaa179c8ed583638d38bd73",
+      "refreshedPdfSha256": "71a17e16ebb115f185c79f9d0fd1458bdb99d9abffaa179c8ed583638d38bd73"
+    },
+    {
+      "filename": "Employee_Field_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 19,
+      "historicalBodyPageCount": 18,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "810dd40296c44e96acb2e7a1f52f1ac7f6a865946a72c63c740f5f7790d56458",
+          "cb3565f26918afff48dadaedba84ba556004f1f65cedb1e33a7e7c1a39778ca6",
+          "13a167ec249334057bd8ddfe8b36f573f06564700335ff716f60f3f3d8682f54",
+          "227feb77b62ae228df128eb260398d775173491f855dcf54294ee556897b6d92",
+          "ada0ff6f4e54a246803a3ec784b8ac51a5242606610df2e3ae806cb93615c330",
+          "a2f473ca9c06210876f8d53f07b9a3a827a853bcc00e49169210324486955680",
+          "8c86a6a894b0638c6a23fa50f157ed3dd6932fc467c240641a50e2a18672f141",
+          "65304bdbfb799a3c14f7b4d8add4e9aa85bcfe3c80804b8ccdbedfbbfc9e3de0",
+          "eae032baa309414ef3a9d331672b72438036faa354b78ef62cdbbd8d2ea4e954",
+          "6bdd8630352ddefa4cb0fc4cbdec3dfc0778e2955360b43a6963f921bb013b5b",
+          "d0ba49dfae2b0c9cfae9581f8dbbc52084e528ab7f869ea0fe829c2589cbc198",
+          "c01c2b3b1d816b9802ff456e0979384c8b37e0296eb92b74dc729edf9c83ccea",
+          "3d04b913246ea14e6c536bc104728fb49e2dc3bc9f8510b496ff9dae479f937e",
+          "4491383ec1d53aa61dd1bf9736721a111ed1d3ad14de1e779997445fd6ffca1f",
+          "575f2bd698dfe0dd1e9b08797e99df1f90bc7b6e25503fec40ba376b8a535f02",
+          "248fba805a96453acb56a35906f80ba855e214ca101df9f897e37b8ff8fb15c6",
+          "74413b7a0944072a1b0e560236c6cd1b3b8018c877961f1734a874ef12fac9dc",
+          "d1bc01faecbbd74b8aa4e1af71d8dd4ad775e2d68067d65b18ac8db4c14b1b37"
+        ],
+        "afterSha256": [
+          "810dd40296c44e96acb2e7a1f52f1ac7f6a865946a72c63c740f5f7790d56458",
+          "cb3565f26918afff48dadaedba84ba556004f1f65cedb1e33a7e7c1a39778ca6",
+          "13a167ec249334057bd8ddfe8b36f573f06564700335ff716f60f3f3d8682f54",
+          "227feb77b62ae228df128eb260398d775173491f855dcf54294ee556897b6d92",
+          "ada0ff6f4e54a246803a3ec784b8ac51a5242606610df2e3ae806cb93615c330",
+          "a2f473ca9c06210876f8d53f07b9a3a827a853bcc00e49169210324486955680",
+          "8c86a6a894b0638c6a23fa50f157ed3dd6932fc467c240641a50e2a18672f141",
+          "65304bdbfb799a3c14f7b4d8add4e9aa85bcfe3c80804b8ccdbedfbbfc9e3de0",
+          "eae032baa309414ef3a9d331672b72438036faa354b78ef62cdbbd8d2ea4e954",
+          "6bdd8630352ddefa4cb0fc4cbdec3dfc0778e2955360b43a6963f921bb013b5b",
+          "d0ba49dfae2b0c9cfae9581f8dbbc52084e528ab7f869ea0fe829c2589cbc198",
+          "c01c2b3b1d816b9802ff456e0979384c8b37e0296eb92b74dc729edf9c83ccea",
+          "3d04b913246ea14e6c536bc104728fb49e2dc3bc9f8510b496ff9dae479f937e",
+          "4491383ec1d53aa61dd1bf9736721a111ed1d3ad14de1e779997445fd6ffca1f",
+          "575f2bd698dfe0dd1e9b08797e99df1f90bc7b6e25503fec40ba376b8a535f02",
+          "248fba805a96453acb56a35906f80ba855e214ca101df9f897e37b8ff8fb15c6",
+          "74413b7a0944072a1b0e560236c6cd1b3b8018c877961f1734a874ef12fac9dc",
+          "d1bc01faecbbd74b8aa4e1af71d8dd4ad775e2d68067d65b18ac8db4c14b1b37"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 9,
+        "afterCount": 9,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "2252d58e8a2f3e2629acc9b4ca9c090e32bd176cd0c0005489ccfcf354c9706a",
+      "refreshedPdfSha256": "2252d58e8a2f3e2629acc9b4ca9c090e32bd176cd0c0005489ccfcf354c9706a"
+    },
+    {
+      "filename": "External_Technician_User_Guide.pdf",
+      "language": "en",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "418f59424e0e0d6bbc08758dd53a16fc82e5fd1cbea9df4efbeb768ab16694af",
+          "71f27d49a5755c6e322d889731f3ba2171eac1d6c683743aa32eebe8aacaa1b1",
+          "ba3daa8dabfdaf923be5993dd499c94cf8608ac8390e46554fd05cca5ac171c8",
+          "1031c42399301158e7e535696b891788d2cd2ed8d6a42d24d9fd0b9f56adcb6c",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "60b63ad57c02d21fd5b5c8411ef5f494a38abea35ba0a60d47ebd0a07b38f7f6",
+          "b0231fe5d2d80f1e570ed64a26ba68aae1379bfecbc3df82219fde733e52c9c7"
+        ],
+        "afterSha256": [
+          "418f59424e0e0d6bbc08758dd53a16fc82e5fd1cbea9df4efbeb768ab16694af",
+          "71f27d49a5755c6e322d889731f3ba2171eac1d6c683743aa32eebe8aacaa1b1",
+          "ba3daa8dabfdaf923be5993dd499c94cf8608ac8390e46554fd05cca5ac171c8",
+          "1031c42399301158e7e535696b891788d2cd2ed8d6a42d24d9fd0b9f56adcb6c",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "60b63ad57c02d21fd5b5c8411ef5f494a38abea35ba0a60d47ebd0a07b38f7f6",
+          "b0231fe5d2d80f1e570ed64a26ba68aae1379bfecbc3df82219fde733e52c9c7"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "502bdada69c823fe6b5dd72c8fe9b7d441d8597420d78464488b117f60788696",
+      "refreshedPdfSha256": "502bdada69c823fe6b5dd72c8fe9b7d441d8597420d78464488b117f60788696"
+    },
+    {
+      "filename": "External_Technician_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "b9734d4321872641728ad082793d153b41c880f7aad969cffed46f451dc9e421",
+          "242773439bac569edd1212651e3748d54644e7ab4bc387cc0595d40a30fd5091",
+          "e6256dfc3ebac43285a8970a8524c1b54a8fd4ff884100988e2f2a82bdd8eb76",
+          "87f5ecd1433568462cee9a3b668fe7ce5e23a01a70f387ddaf44192f94b4874a",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "07a79268203fdf5e93f9ca4da1ba5b0aff5c76525acba4ed80082038e54811d1",
+          "21cf5dc4c73b0fc5bb1a15d7e0e51da1df04f1f6570a4cf316868e3bbd89321d"
+        ],
+        "afterSha256": [
+          "b9734d4321872641728ad082793d153b41c880f7aad969cffed46f451dc9e421",
+          "242773439bac569edd1212651e3748d54644e7ab4bc387cc0595d40a30fd5091",
+          "e6256dfc3ebac43285a8970a8524c1b54a8fd4ff884100988e2f2a82bdd8eb76",
+          "87f5ecd1433568462cee9a3b668fe7ce5e23a01a70f387ddaf44192f94b4874a",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "07a79268203fdf5e93f9ca4da1ba5b0aff5c76525acba4ed80082038e54811d1",
+          "21cf5dc4c73b0fc5bb1a15d7e0e51da1df04f1f6570a4cf316868e3bbd89321d"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "789f81be9f7bfba1e745a8845f66acf399b96af75be95765e107d703d881c688",
+      "refreshedPdfSha256": "789f81be9f7bfba1e745a8845f66acf399b96af75be95765e107d703d881c688"
+    },
+    {
+      "filename": "Finance_User_Guide.pdf",
+      "language": "en",
+      "pages": 10,
+      "historicalBodyPageCount": 9,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "9451f1ab29d0dd82d66ae5767fd496c544ec21d0a31611960b5c8bd9d451e135",
+          "8577eb6053b48373c00972d7021ae3e60c7d811083314bf14f9f274ed113fa47",
+          "6d7ac63d2a4223c2e4fa4d9aeace90a7a40320017cbadf752403ff4a4ff42561",
+          "694eeb1708d5dc8c7326af7cf13067e6baaa75010dd79235f9ac9cd08ce6d0e8",
+          "3bd4142320e5354de7f87f851e23c828252ea5a505feedf84aac0a8a0e9aa0ff",
+          "6bebe824447cd0f590f2e78ea8effb56477e7fe133a26fb64d68fe8a9924279e",
+          "c315a562e63ee85311a10acb3fa07c1af3f6a5ce06a8efe9322e1c2133a30c71",
+          "b117e2e61aad7b9af99593628f2bc6abde86be46392685148bfa6c1c9e6b96fe",
+          "1a49d867d1477e4e4a80938191c9f016124722cbe44c7fab5bb73512f83f36ef"
+        ],
+        "afterSha256": [
+          "9451f1ab29d0dd82d66ae5767fd496c544ec21d0a31611960b5c8bd9d451e135",
+          "8577eb6053b48373c00972d7021ae3e60c7d811083314bf14f9f274ed113fa47",
+          "6d7ac63d2a4223c2e4fa4d9aeace90a7a40320017cbadf752403ff4a4ff42561",
+          "694eeb1708d5dc8c7326af7cf13067e6baaa75010dd79235f9ac9cd08ce6d0e8",
+          "3bd4142320e5354de7f87f851e23c828252ea5a505feedf84aac0a8a0e9aa0ff",
+          "6bebe824447cd0f590f2e78ea8effb56477e7fe133a26fb64d68fe8a9924279e",
+          "c315a562e63ee85311a10acb3fa07c1af3f6a5ce06a8efe9322e1c2133a30c71",
+          "b117e2e61aad7b9af99593628f2bc6abde86be46392685148bfa6c1c9e6b96fe",
+          "1a49d867d1477e4e4a80938191c9f016124722cbe44c7fab5bb73512f83f36ef"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "ed90b016e420ab727723318a4c4d6bac375f192f1f4444481a955dc1483b0d61",
+      "refreshedPdfSha256": "ed90b016e420ab727723318a4c4d6bac375f192f1f4444481a955dc1483b0d61"
+    },
+    {
+      "filename": "Finance_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 10,
+      "historicalBodyPageCount": 9,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "0c409802987ffcb8ae632470a4aaa5e4c430cc130e86286fffb6284e5be8c1eb",
+          "d46047ba2329acfb6d6fcfaccdfd36261359f3f6662754349750e9e623e86a46",
+          "6c3f83683359de19ea3b331761eb053acca3ce410982704da209e13ace126031",
+          "93bd72ebfcc81d364a9bc62ac2a9f272bfc371b4842cc0eca771e9792d687ef3",
+          "5e0e4fefcf0ffdcdfcbcdc278ad3f98c46497c1d1c7a8242e2052915c9baa274",
+          "115d124a10d5a38ed45122e04cb89eff9111111bc2199d2f9466a83a66645549",
+          "297a0aebe300a973b3243cb739be6b01116b508a3b97222dbac07b1523f60f1e",
+          "1a7044778b6616cfad14decd88cdb21dd7aa9d93134900d89dbdd4048bff4dee",
+          "22671d4dcbb45b432857ec0ffc6e29bbf6a470a4dd345945edf4c9997efb93af"
+        ],
+        "afterSha256": [
+          "0c409802987ffcb8ae632470a4aaa5e4c430cc130e86286fffb6284e5be8c1eb",
+          "d46047ba2329acfb6d6fcfaccdfd36261359f3f6662754349750e9e623e86a46",
+          "6c3f83683359de19ea3b331761eb053acca3ce410982704da209e13ace126031",
+          "93bd72ebfcc81d364a9bc62ac2a9f272bfc371b4842cc0eca771e9792d687ef3",
+          "5e0e4fefcf0ffdcdfcbcdc278ad3f98c46497c1d1c7a8242e2052915c9baa274",
+          "115d124a10d5a38ed45122e04cb89eff9111111bc2199d2f9466a83a66645549",
+          "297a0aebe300a973b3243cb739be6b01116b508a3b97222dbac07b1523f60f1e",
+          "1a7044778b6616cfad14decd88cdb21dd7aa9d93134900d89dbdd4048bff4dee",
+          "22671d4dcbb45b432857ec0ffc6e29bbf6a470a4dd345945edf4c9997efb93af"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "7fcc1bb9675ff4e3c0a6cf8f7b9b28d6f3f2903bb80778a58315fa10b7281302",
+      "refreshedPdfSha256": "7fcc1bb9675ff4e3c0a6cf8f7b9b28d6f3f2903bb80778a58315fa10b7281302"
+    },
+    {
+      "filename": "Guia_Pruebas_JA_Automation_ES.pdf",
+      "language": "es",
+      "pages": 50,
+      "historicalBodyPageCount": 49,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "e5ba71f48e49fa4670d65a28bedf962075deb3c10dd25d66c0590fb0a7e634b5",
+      "replacementNoticePageStreamSha256": "5c979581e593215ea4339bdf3c32584d703b002f720e22f8fbfc3a4bf6f02f51",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "da7b3e1b38d618dac6799952749007d3924500e416bd4e9dd3fe0daf748d4edc",
+          "91a86b05babd9253eba07ca981ac67cc52f7194ce51c6be5bbad21129e2d9ef2",
+          "d551029e74cf82f934985993f0172e37e267bce47547d4d271d3e7275ed66d2d",
+          "e9ddf81586c7d89ef65a97cc8f4ffa680ff65a7f80eec41d605067be39be0c2f",
+          "1d3e648202984b20a61b7cb1050f00222a50758b13f3d41c136ba8be07a49ef3",
+          "bee1fad11a9a9ac5b82062e1155af3fae5b17ab2dcd12668e3f28488dd69b3f7",
+          "cb69f30d90cdef7148031cda12fde16e327ee0f3c5ff5b516c457fa3725706d4",
+          "ba6f474b0b5b30625ede9805504191c3f7265fc29e15c754cf27abcee13cfaa8",
+          "db0ba31330177c40221156fae5f5977060ed6ffa8d9f11ca3a96a97596c56683",
+          "ae1207a0920d5cffdac12fc776e79545ad23922a95d0704ce746314ef62d140e",
+          "f590a415bd38b16fe9088384d0e164aa0de14145deefa95fb8d8afd6d2909661",
+          "0bad9b62d8a50b917bfc97f98e36179e53c0620262ce3a71fcf63dc85a24d36e",
+          "7b70917ed50afbffc8316af8c6d92695d120c8856b91be57c8610f6587219c00",
+          "7647b8bf2cb1c29dc4e5e1498d8a8f44e4b2aa596f9668a91aeb85cd8ac8211b",
+          "60e4c70a634cbc1d066eda4362451b54417e75d30e5d770a2c2d1b5d364094e6",
+          "c33e1a9ba52c7f4d71a325cae485e1007faf3d1de74f575545e08eb6fe4dc1ea",
+          "5047ddc00e1d85e295d2262f215ca86291d4758b9cdf6c91226793c32054481a",
+          "28fd401fe8eca99e3f230bb328e19fa0ec4a0708eedca641cf8d3ca9aedbdd9a",
+          "188c4ccc06c9fac3f41fdb9085f49e5be1a11bb439496c4bb647c4f4cc9e8294",
+          "87b8a0e48fe1cf5dc60aeec9aed00d4e831490d8ca888464092971d5e995b7cc",
+          "634cc9b7e75b8f9250856e69a5b5f2a6e5a025a438414662dacfc14596ee3a8b",
+          "55373f13ad9a1937476e0920b3028ee2f6b68856b1a65e0082479882cd00d603",
+          "4bd2d0875e62404b1a50d67379fa43235791f6f2a74de0b26396c381716c492f",
+          "0b34e4c334bb9d3d0f41074594f1746ff0f9dea054faa0e21a59e55b8f0b8bf9",
+          "73d038d5fb978e40f68fcab0e54958efaddacb8556de366388f568e0673dbd84",
+          "944a8fbb7c7f3dc306280cf44a4777efd58c635594a2e9542fa3f388dae22f5d",
+          "7340b2ff6c3e204914cc80cdbd51ef88be65703f0b6cc4712f3138781a9c5acb",
+          "8641863546d904f22af0893bac6050ee08924abe72d622e840ce3d7d91612de5",
+          "13e9c4a71663d3cdaf9c38aaec311e507ed06b181f686f9a1fc266dbdc1eec0d",
+          "9c1d22635431e8129eaf7d1b815ee9588c77a819c173eb30348bc706953b8e29",
+          "e88f47be3c383402b76f985fc1375307954dacc1044fcad880a842c639f9f06a",
+          "76af3b8444f000db991aeeb8168958342148b3bdcff779ce1b68151e4d88fbf2",
+          "393fa3b1723a7b88f0ce36adaa0d0f96a17ab9a82537d4ea8a8626ab75470448",
+          "fe6f67afa0940f4a59ab5a35bc76e7cce659262e173445473321f098c3f4f3c8",
+          "fac40f1c9685f394d082b4e89c5933c86c79ed42241254db5252a540d1583b7a",
+          "d119b15c85cb1caa00424ae198b4096a67cc96bd6b9283d6b52bb64228e168e5",
+          "ce5e21c5ff51ec57e7dd6651da39f129978e8b933a7220b2186d459a3a60bac1",
+          "9e27b03daa2ebcb1fd704eab2c00813e22bd2d9a00c298d82207bd47d9e3631d",
+          "9ea7e93cb2ad6d09fb2843ea64314c79ec1bffce8aafca34739254ae2f63ff30",
+          "8bb21772d63643a8d2afa1664f47a1cd212fc5c69460b1ad255b7e4ce2b262a4",
+          "4a73e75ad9e8ca6c20c091741df6d235ffce15fa62851ce4815ed373f3f8c9fe",
+          "78a11ced24e3d54b63163ecd8d9699fa485ce3ae0d3d30bc76a5aaa45ae5af04",
+          "32690f67ea6c77bbd0dd29eb2cbcb0ac4503968a8e46b8d474a8a156ea0a2f88",
+          "81d50cf3ffe8be54832d259514f006a02ae63f6632ec98ac4ea19b642a9fde47",
+          "384f3d4f2b9b04e2a10c6e9cd73f4672710fc587dbdd2119c4ed2e3e1bf21400",
+          "03c5981ec189d737d9d9a94c57993f6164fbc2a500c290b9b338cced30b856b1",
+          "a09083deb71190edc4b7f785fcd4456dab51341e98ff83560c4de8840538f85c",
+          "dd02fe218b6af4110f2c6b6e3a8a772509b6c9537e6fd0c32114adaa7e85ddc0",
+          "9ee83a95c4f86e6bea46f7b3e80b63c82f826bd0d1d2f92d28f20cfae7a9c916"
+        ],
+        "afterSha256": [
+          "da7b3e1b38d618dac6799952749007d3924500e416bd4e9dd3fe0daf748d4edc",
+          "91a86b05babd9253eba07ca981ac67cc52f7194ce51c6be5bbad21129e2d9ef2",
+          "d551029e74cf82f934985993f0172e37e267bce47547d4d271d3e7275ed66d2d",
+          "e9ddf81586c7d89ef65a97cc8f4ffa680ff65a7f80eec41d605067be39be0c2f",
+          "1d3e648202984b20a61b7cb1050f00222a50758b13f3d41c136ba8be07a49ef3",
+          "bee1fad11a9a9ac5b82062e1155af3fae5b17ab2dcd12668e3f28488dd69b3f7",
+          "cb69f30d90cdef7148031cda12fde16e327ee0f3c5ff5b516c457fa3725706d4",
+          "ba6f474b0b5b30625ede9805504191c3f7265fc29e15c754cf27abcee13cfaa8",
+          "db0ba31330177c40221156fae5f5977060ed6ffa8d9f11ca3a96a97596c56683",
+          "ae1207a0920d5cffdac12fc776e79545ad23922a95d0704ce746314ef62d140e",
+          "f590a415bd38b16fe9088384d0e164aa0de14145deefa95fb8d8afd6d2909661",
+          "0bad9b62d8a50b917bfc97f98e36179e53c0620262ce3a71fcf63dc85a24d36e",
+          "7b70917ed50afbffc8316af8c6d92695d120c8856b91be57c8610f6587219c00",
+          "7647b8bf2cb1c29dc4e5e1498d8a8f44e4b2aa596f9668a91aeb85cd8ac8211b",
+          "60e4c70a634cbc1d066eda4362451b54417e75d30e5d770a2c2d1b5d364094e6",
+          "c33e1a9ba52c7f4d71a325cae485e1007faf3d1de74f575545e08eb6fe4dc1ea",
+          "5047ddc00e1d85e295d2262f215ca86291d4758b9cdf6c91226793c32054481a",
+          "28fd401fe8eca99e3f230bb328e19fa0ec4a0708eedca641cf8d3ca9aedbdd9a",
+          "188c4ccc06c9fac3f41fdb9085f49e5be1a11bb439496c4bb647c4f4cc9e8294",
+          "87b8a0e48fe1cf5dc60aeec9aed00d4e831490d8ca888464092971d5e995b7cc",
+          "634cc9b7e75b8f9250856e69a5b5f2a6e5a025a438414662dacfc14596ee3a8b",
+          "55373f13ad9a1937476e0920b3028ee2f6b68856b1a65e0082479882cd00d603",
+          "4bd2d0875e62404b1a50d67379fa43235791f6f2a74de0b26396c381716c492f",
+          "0b34e4c334bb9d3d0f41074594f1746ff0f9dea054faa0e21a59e55b8f0b8bf9",
+          "73d038d5fb978e40f68fcab0e54958efaddacb8556de366388f568e0673dbd84",
+          "944a8fbb7c7f3dc306280cf44a4777efd58c635594a2e9542fa3f388dae22f5d",
+          "7340b2ff6c3e204914cc80cdbd51ef88be65703f0b6cc4712f3138781a9c5acb",
+          "8641863546d904f22af0893bac6050ee08924abe72d622e840ce3d7d91612de5",
+          "13e9c4a71663d3cdaf9c38aaec311e507ed06b181f686f9a1fc266dbdc1eec0d",
+          "9c1d22635431e8129eaf7d1b815ee9588c77a819c173eb30348bc706953b8e29",
+          "e88f47be3c383402b76f985fc1375307954dacc1044fcad880a842c639f9f06a",
+          "76af3b8444f000db991aeeb8168958342148b3bdcff779ce1b68151e4d88fbf2",
+          "393fa3b1723a7b88f0ce36adaa0d0f96a17ab9a82537d4ea8a8626ab75470448",
+          "fe6f67afa0940f4a59ab5a35bc76e7cce659262e173445473321f098c3f4f3c8",
+          "fac40f1c9685f394d082b4e89c5933c86c79ed42241254db5252a540d1583b7a",
+          "d119b15c85cb1caa00424ae198b4096a67cc96bd6b9283d6b52bb64228e168e5",
+          "ce5e21c5ff51ec57e7dd6651da39f129978e8b933a7220b2186d459a3a60bac1",
+          "9e27b03daa2ebcb1fd704eab2c00813e22bd2d9a00c298d82207bd47d9e3631d",
+          "9ea7e93cb2ad6d09fb2843ea64314c79ec1bffce8aafca34739254ae2f63ff30",
+          "8bb21772d63643a8d2afa1664f47a1cd212fc5c69460b1ad255b7e4ce2b262a4",
+          "4a73e75ad9e8ca6c20c091741df6d235ffce15fa62851ce4815ed373f3f8c9fe",
+          "78a11ced24e3d54b63163ecd8d9699fa485ce3ae0d3d30bc76a5aaa45ae5af04",
+          "32690f67ea6c77bbd0dd29eb2cbcb0ac4503968a8e46b8d474a8a156ea0a2f88",
+          "81d50cf3ffe8be54832d259514f006a02ae63f6632ec98ac4ea19b642a9fde47",
+          "384f3d4f2b9b04e2a10c6e9cd73f4672710fc587dbdd2119c4ed2e3e1bf21400",
+          "03c5981ec189d737d9d9a94c57993f6164fbc2a500c290b9b338cced30b856b1",
+          "a09083deb71190edc4b7f785fcd4456dab51341e98ff83560c4de8840538f85c",
+          "dd02fe218b6af4110f2c6b6e3a8a772509b6c9537e6fd0c32114adaa7e85ddc0",
+          "9ee83a95c4f86e6bea46f7b3e80b63c82f826bd0d1d2f92d28f20cfae7a9c916"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 57,
+        "afterCount": 57,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "b6834debe6a69ab467939c132e9e152140b0cced698bd6100ecba13353e10bb0",
+      "refreshedPdfSha256": "b6834debe6a69ab467939c132e9e152140b0cced698bd6100ecba13353e10bb0"
+    },
+    {
+      "filename": "Owner_User_Guide.pdf",
+      "language": "en",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "4ce525c8e6c952d883aceb899ae9d5a656695b176b7571a8a2b6b485b9a70f26",
+          "2b1fda97572373963c39f668ab85ad30bf458878d09e40e613c42279840b929d",
+          "3ee412e1348b8d27c88282899b14e38cdf82798cedb5e5b435ac9da537dd6890",
+          "bece7639d995b1846a36dac2eb3156fd9d897468be26245d606965467c116e02",
+          "06b78567b440ce852c452db7392f2c0d758330f3f2cafb15e1fe47bd89aac367",
+          "2db65a19931bac839374609278e951a6dbffc3a4442dc78b311be503214ff353",
+          "18a9095d2ee38e0f2b18db43bce366da7c4dadf6c525f080d8b6832b94b327db",
+          "715c95f6a1b03fe0154cf64b71385191a3594c5343d5aebbb9f78f8a2ad5feff",
+          "eaf23265c4b0c293074c6717b1f2a1845d0b29392534a55c2e090f47a1149bda",
+          "89dac7e6f1e67bf73cc85c370f8abc6d4b3a9c058e877bb036c3ccb57d84a695"
+        ],
+        "afterSha256": [
+          "4ce525c8e6c952d883aceb899ae9d5a656695b176b7571a8a2b6b485b9a70f26",
+          "2b1fda97572373963c39f668ab85ad30bf458878d09e40e613c42279840b929d",
+          "3ee412e1348b8d27c88282899b14e38cdf82798cedb5e5b435ac9da537dd6890",
+          "bece7639d995b1846a36dac2eb3156fd9d897468be26245d606965467c116e02",
+          "06b78567b440ce852c452db7392f2c0d758330f3f2cafb15e1fe47bd89aac367",
+          "2db65a19931bac839374609278e951a6dbffc3a4442dc78b311be503214ff353",
+          "18a9095d2ee38e0f2b18db43bce366da7c4dadf6c525f080d8b6832b94b327db",
+          "715c95f6a1b03fe0154cf64b71385191a3594c5343d5aebbb9f78f8a2ad5feff",
+          "eaf23265c4b0c293074c6717b1f2a1845d0b29392534a55c2e090f47a1149bda",
+          "89dac7e6f1e67bf73cc85c370f8abc6d4b3a9c058e877bb036c3ccb57d84a695"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 6,
+        "afterCount": 6,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "e50f8a07ac4a0e55919e2ce2deb0aa38601d1bbc59568a38025266470c0b4cc4",
+      "refreshedPdfSha256": "e50f8a07ac4a0e55919e2ce2deb0aa38601d1bbc59568a38025266470c0b4cc4"
+    },
+    {
+      "filename": "Owner_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "fe54c247cf6f491a1769eee16e41b4a86f4bf2e6363eaf18cafebd0b561311c0",
+          "6f09b5a885447cf37c1b26cadcec9ff0d4402ff9d0ae14b360556ef70639b59d",
+          "97e8f84daccfb369fd42d22b0ffa6ff0a40f057bf625ddb0e0be2207a0f06b14",
+          "db086b35bf7a5db480543753ec64402158b9b119c252e47e1427e2793a6dc7b1",
+          "cf65ee942cea4a4e6395f4555675be0637d354fc9468d5fba5d82defd5ef9ef9",
+          "27c54a4853643997a9a89632b16d8cab78155e9f99d2648c92e2214ac0c3c943",
+          "76ca44f9a2b9a7ffcbf0c381f2248779f5fbd83990723f4e89ba54a12a601699",
+          "b11709df0d4001ce97b967aa28f99fd58f9c5dbf8a1d63ad680d666f3e052f88",
+          "fa86fa7def7e0fe95588922cf08e9d06eff5f3b4036cd1a6d0a8c8302bc7c9d9",
+          "c657e5aec388ce83afb9c2bdad50092228c9c76d1d44594f1cc349bdd07429bd"
+        ],
+        "afterSha256": [
+          "fe54c247cf6f491a1769eee16e41b4a86f4bf2e6363eaf18cafebd0b561311c0",
+          "6f09b5a885447cf37c1b26cadcec9ff0d4402ff9d0ae14b360556ef70639b59d",
+          "97e8f84daccfb369fd42d22b0ffa6ff0a40f057bf625ddb0e0be2207a0f06b14",
+          "db086b35bf7a5db480543753ec64402158b9b119c252e47e1427e2793a6dc7b1",
+          "cf65ee942cea4a4e6395f4555675be0637d354fc9468d5fba5d82defd5ef9ef9",
+          "27c54a4853643997a9a89632b16d8cab78155e9f99d2648c92e2214ac0c3c943",
+          "76ca44f9a2b9a7ffcbf0c381f2248779f5fbd83990723f4e89ba54a12a601699",
+          "b11709df0d4001ce97b967aa28f99fd58f9c5dbf8a1d63ad680d666f3e052f88",
+          "fa86fa7def7e0fe95588922cf08e9d06eff5f3b4036cd1a6d0a8c8302bc7c9d9",
+          "c657e5aec388ce83afb9c2bdad50092228c9c76d1d44594f1cc349bdd07429bd"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 6,
+        "afterCount": 6,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "6c3497d47bbe4d568d20e3e6e5c985d2b6382b65ea162f8c5d6acca8538572ee",
+      "refreshedPdfSha256": "6c3497d47bbe4d568d20e3e6e5c985d2b6382b65ea162f8c5d6acca8538572ee"
+    },
+    {
+      "filename": "Project_Manager_User_Guide.pdf",
+      "language": "en",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "73b556b3b453065aa0ab12928f12f05e4daccaf5e00fd0336fa3b8da86c73b77",
+          "aeffff7c82cf932f922aec5f2893166130daed2fdf9c3bcb85e673f99d1df05e",
+          "bdf476b0a70eea084cff2b3a9dbadca737232d8f6c466dbd60d2d6531410fd0b",
+          "76e032392dc8aa02527208692432d1f60c65e23100a4f4c73be4c9d2e1890d98",
+          "e7e5159dd50e662d0e1fc10ca368a2663a40fb3266a3e72618d5b394875e05dc",
+          "bd1d7358877ef09d19f6ad29dcf91d43b32fb330dbcb7ededc4a1a6e79b327aa",
+          "a82adc8965913bfb6be19e1a26f0abe684cd20b511ba27dabd3ceba035e8083d",
+          "b9835fc4bd0800809291d1331b6402bc1d1905bbcbd122395e0d77291ae9e273",
+          "dabc5573b884fe563d3f907570bcee44a6454cea07134a7e8df428950a96f686",
+          "c543274aa3b3f644d85f0d54c1a6e423b0c6488f38f0afe8bedb477138e91246"
+        ],
+        "afterSha256": [
+          "73b556b3b453065aa0ab12928f12f05e4daccaf5e00fd0336fa3b8da86c73b77",
+          "aeffff7c82cf932f922aec5f2893166130daed2fdf9c3bcb85e673f99d1df05e",
+          "bdf476b0a70eea084cff2b3a9dbadca737232d8f6c466dbd60d2d6531410fd0b",
+          "76e032392dc8aa02527208692432d1f60c65e23100a4f4c73be4c9d2e1890d98",
+          "e7e5159dd50e662d0e1fc10ca368a2663a40fb3266a3e72618d5b394875e05dc",
+          "bd1d7358877ef09d19f6ad29dcf91d43b32fb330dbcb7ededc4a1a6e79b327aa",
+          "a82adc8965913bfb6be19e1a26f0abe684cd20b511ba27dabd3ceba035e8083d",
+          "b9835fc4bd0800809291d1331b6402bc1d1905bbcbd122395e0d77291ae9e273",
+          "dabc5573b884fe563d3f907570bcee44a6454cea07134a7e8df428950a96f686",
+          "c543274aa3b3f644d85f0d54c1a6e423b0c6488f38f0afe8bedb477138e91246"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "2c4e6a0c6dbec7310ab52f751a47d7e97eaa5250af6fa453d03f1a190344f41b",
+      "refreshedPdfSha256": "2c4e6a0c6dbec7310ab52f751a47d7e97eaa5250af6fa453d03f1a190344f41b"
+    },
+    {
+      "filename": "Project_Manager_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "64c00306910237851c9d3b6dbfbe6bbca0bb49f2b3ff4dd9bf51e6c3ff6dc20c",
+          "7d08b9632b49421635e9cd1ef9834688e972ac158f6a917e009e089a6da54c0d",
+          "93dc0748d107345a5c3db93dc7e818c212c180dbd3be698c0c7a776c24b33b75",
+          "f4537acf2b87b28b0c5c485bde8047d85b3f6b001b18102d656cacaec9fe00f2",
+          "6394061c657a223101d617cc945db92ddc4a1288263c1e8caf12cd8860a884f6",
+          "4071ed915fec1adeba70537c15620edb493dba31f6be5d341ffae572f13cee3b",
+          "30887039dfe1d76a27b812cd768bf8704db97bc4f5c2299ace116a193d172d9c",
+          "c0036a8d81d979bd1005d035daf5bbeaace7cccde4e685d9d8726e426449332b",
+          "aab32f2a0d7d3c6a7359ea1860576a82dc4ababfcee74e542e976346e866cbe5",
+          "4cbaedefcd9fb5184f5b18203c8ec756665e14e0f04a6a61cca9cd37942d1544"
+        ],
+        "afterSha256": [
+          "64c00306910237851c9d3b6dbfbe6bbca0bb49f2b3ff4dd9bf51e6c3ff6dc20c",
+          "7d08b9632b49421635e9cd1ef9834688e972ac158f6a917e009e089a6da54c0d",
+          "93dc0748d107345a5c3db93dc7e818c212c180dbd3be698c0c7a776c24b33b75",
+          "f4537acf2b87b28b0c5c485bde8047d85b3f6b001b18102d656cacaec9fe00f2",
+          "6394061c657a223101d617cc945db92ddc4a1288263c1e8caf12cd8860a884f6",
+          "4071ed915fec1adeba70537c15620edb493dba31f6be5d341ffae572f13cee3b",
+          "30887039dfe1d76a27b812cd768bf8704db97bc4f5c2299ace116a193d172d9c",
+          "c0036a8d81d979bd1005d035daf5bbeaace7cccde4e685d9d8726e426449332b",
+          "aab32f2a0d7d3c6a7359ea1860576a82dc4ababfcee74e542e976346e866cbe5",
+          "4cbaedefcd9fb5184f5b18203c8ec756665e14e0f04a6a61cca9cd37942d1544"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "c81e071605414669556ab8e3666ad3d58733721336d09d3ae8651739a7afc3bb",
+      "refreshedPdfSha256": "c81e071605414669556ab8e3666ad3d58733721336d09d3ae8651739a7afc3bb"
+    },
+    {
+      "filename": "Supplier_Coordinator_User_Guide.pdf",
+      "language": "en",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "e3d40ee98d8ba17137f2f38b22156b51a47c05daedb2d692ad1f466f0959fe9b",
+          "6004295775d99e0926ebe5184412cfb578d85439f198dbd2b3072e2b97bcf81b",
+          "6e2ae5e7b1127b5b14a4aac5b4a9207612e6504f838b1d7e2ed423c2e6faff91",
+          "74e551e7e562fee1a8d454abe078eb4ec2e81635e9c5d000640b1108edd3a998",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "da07c0523d9862c7cead28b55759530338d62acbcffb025ffb24808bfd309ec5",
+          "1e2409af05b1f9a4110d700076bea66524ea9902437b0339a283758acb2a4556"
+        ],
+        "afterSha256": [
+          "e3d40ee98d8ba17137f2f38b22156b51a47c05daedb2d692ad1f466f0959fe9b",
+          "6004295775d99e0926ebe5184412cfb578d85439f198dbd2b3072e2b97bcf81b",
+          "6e2ae5e7b1127b5b14a4aac5b4a9207612e6504f838b1d7e2ed423c2e6faff91",
+          "74e551e7e562fee1a8d454abe078eb4ec2e81635e9c5d000640b1108edd3a998",
+          "71a7ec8c1b72b4de0c63d8989c0105414b427102ff270e37ffdb7b4c49fe315f",
+          "da07c0523d9862c7cead28b55759530338d62acbcffb025ffb24808bfd309ec5",
+          "1e2409af05b1f9a4110d700076bea66524ea9902437b0339a283758acb2a4556"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "60ba7e57a08cfad3b05e52f34d53b6c8f612279411f1a72ae319ac95363e4347",
+      "refreshedPdfSha256": "60ba7e57a08cfad3b05e52f34d53b6c8f612279411f1a72ae319ac95363e4347"
+    },
+    {
+      "filename": "Supplier_Coordinator_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 8,
+      "historicalBodyPageCount": 7,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "1c07a939bbceaa3a0daa5db9ff03b60c4f531100c92978cce57eef7404878c64",
+          "e5b16761791e32058ea67099a690d3ea3823b31394826485848444f78d3d7eaa",
+          "ce78bdc8c262f8d028e80dc8f3b36a9c8de56f668d1d3f5e563a4e60b1cd041c",
+          "147f57424f5a70c327a457315bd03a7e22a26786f4f037242efc0bfd312f4ca6",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "ddc02ce3c514132c2aa5f669bffd15587da288f7e38a87fc5248843ed0533e89",
+          "03d6472fa2b9d02d7294163da5dede5c0e34966d075743ca5bdb3b4cd414f164"
+        ],
+        "afterSha256": [
+          "1c07a939bbceaa3a0daa5db9ff03b60c4f531100c92978cce57eef7404878c64",
+          "e5b16761791e32058ea67099a690d3ea3823b31394826485848444f78d3d7eaa",
+          "ce78bdc8c262f8d028e80dc8f3b36a9c8de56f668d1d3f5e563a4e60b1cd041c",
+          "147f57424f5a70c327a457315bd03a7e22a26786f4f037242efc0bfd312f4ca6",
+          "f44c0def99e4a63b87e8cd7f329eafe8998dd0f4c1bf72c8c2bb711d79f60764",
+          "ddc02ce3c514132c2aa5f669bffd15587da288f7e38a87fc5248843ed0533e89",
+          "03d6472fa2b9d02d7294163da5dede5c0e34966d075743ca5bdb3b4cd414f164"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 5,
+        "afterCount": 5,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "14d44eb832a153db26dd3cdb22b9c65b6529a50ebc558e90f277d10d06418581",
+      "refreshedPdfSha256": "14d44eb832a153db26dd3cdb22b9c65b6529a50ebc558e90f277d10d06418581"
+    },
+    {
+      "filename": "Supplier_Operations_Guide.pdf",
+      "language": "en",
+      "pages": 16,
+      "historicalBodyPageCount": 15,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "c5692eacd3c9d044584e18a8a72aa41a4839494256d052195f6561f351298311",
+          "b6a3c9cf7b534d14c67149f45c56340a1867927ec58efe54a8c748b364505953",
+          "7d3bb543cd02933ee05e17837c106d5edca539aef7b2d9ca4fbfffe4da62a818",
+          "7e465df718330db14c8a3a8aafb2760039c44da99931b268ad08e730df3ac148",
+          "2254b06f847cc09f6bc742b0673556a3758d635bb8120cd4e141b74ac895c61f",
+          "dd0488f58648b45c090a57453bcd05f0735b5304e30fbbdd6a377eb8f58b9d0a",
+          "ed15c00a8004a02c979f4ba5ca05593ae84da5e1664d6a9b5a3e3d49a1cffc0b",
+          "6c63c0d66d8110f4dc3b4049df339f546d2bb7524ea83a21be8f3a256e273271",
+          "b0b41c264bbf69384fb91837efadb523580ccc231b2c772670eeb52b46cfd713",
+          "73bf2542302556192ac045640f47a44f470efdb6721302eda0a9c14fe2e8ee46",
+          "52e89b7f6c3e5f5a5e223d4539912c83acbe133dc3f8ee8f34e05e58a2c7b3f8",
+          "363036cc498225711e6ee46a06536d1f888fc21e98960b4999f34a9d8dc00f17",
+          "161a0cb78930a7d034543e43954b96dae313fe5e4f22f3198addb16b9eba017d",
+          "35e9094fd591e9324d8607bc3cac3946affdac40f0e2c85db0c7ca2af87bae29",
+          "8ff7019d0db65b47931a4ed4883707560b1ab2aa2d19dff70ab7703dddcbe7b6"
+        ],
+        "afterSha256": [
+          "c5692eacd3c9d044584e18a8a72aa41a4839494256d052195f6561f351298311",
+          "b6a3c9cf7b534d14c67149f45c56340a1867927ec58efe54a8c748b364505953",
+          "7d3bb543cd02933ee05e17837c106d5edca539aef7b2d9ca4fbfffe4da62a818",
+          "7e465df718330db14c8a3a8aafb2760039c44da99931b268ad08e730df3ac148",
+          "2254b06f847cc09f6bc742b0673556a3758d635bb8120cd4e141b74ac895c61f",
+          "dd0488f58648b45c090a57453bcd05f0735b5304e30fbbdd6a377eb8f58b9d0a",
+          "ed15c00a8004a02c979f4ba5ca05593ae84da5e1664d6a9b5a3e3d49a1cffc0b",
+          "6c63c0d66d8110f4dc3b4049df339f546d2bb7524ea83a21be8f3a256e273271",
+          "b0b41c264bbf69384fb91837efadb523580ccc231b2c772670eeb52b46cfd713",
+          "73bf2542302556192ac045640f47a44f470efdb6721302eda0a9c14fe2e8ee46",
+          "52e89b7f6c3e5f5a5e223d4539912c83acbe133dc3f8ee8f34e05e58a2c7b3f8",
+          "363036cc498225711e6ee46a06536d1f888fc21e98960b4999f34a9d8dc00f17",
+          "161a0cb78930a7d034543e43954b96dae313fe5e4f22f3198addb16b9eba017d",
+          "35e9094fd591e9324d8607bc3cac3946affdac40f0e2c85db0c7ca2af87bae29",
+          "8ff7019d0db65b47931a4ed4883707560b1ab2aa2d19dff70ab7703dddcbe7b6"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 16,
+        "afterCount": 16,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "850ad694a15272e9636520f7198b4b854c3b5567c6da25c159a4a649de4d9062",
+      "refreshedPdfSha256": "850ad694a15272e9636520f7198b4b854c3b5567c6da25c159a4a649de4d9062"
+    },
+    {
+      "filename": "Supplier_Operations_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 17,
+      "historicalBodyPageCount": 16,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "b51f65e13db1db2385816c611b051b4dba6604036a1265c941d9d4da214cefb5",
+          "25727c8ec49943c527502424b20680ec7abe43da54437f943a10d37cc223574a",
+          "bc42baf085c69df2e68f2d01c8bf4ecc886a331d2add2d7a8883a545fd880de2",
+          "9a5ef21a49ab85d1c940703529f73f4eb4a41e94dbafca7e60d2f763c6cc3fbe",
+          "80390cd24127de9c1be6fb6ea7c5ef9eca495097298f3fd46aeb0201803a3dd8",
+          "145fc05628c5e9833ead7eaadccc5ab6d565cc20293e1b9f0e5660a86859f2a5",
+          "81e3e6e291a9b21e90edf653e893b7a5480202ab2f94af069f5e6b8dc2ac0923",
+          "e944668e22af453523eb892ba474ad9739f76db6e7890530d21dd80e1bc00d20",
+          "bbd01f661fdf76899e616c58394d2e04730ff23f31fa9d39fd46844881e79a09",
+          "095f3c1554fd373b1b972cddf1b30715c123a2d23f294e3fa67abd4b13d80332",
+          "28c993332af8b19a21aaefa6be705e9a0ed5ddda6c1136f3dd3ea9e33dff9759",
+          "d1709155a28695f66025233bb8b20a4eeb3f521057580133f23ac9ab8fbdb16c",
+          "47dfc32482f74adf6edb6f76da2eadefe3291f2266c3171d663f57183b2b4664",
+          "481ce37951733bb8b3a6d9e39f42c5bba5f57aa2416758cc577250ff5056889c",
+          "98684d7704856f8383fab3aa7b345ae603a3d3872d93ddbbe63ca45e5d2a0267",
+          "217ed8b84d0ac07d10bc984cfe2c5a30ff8efec2165a588617a7ccf11bd9e6e0"
+        ],
+        "afterSha256": [
+          "b51f65e13db1db2385816c611b051b4dba6604036a1265c941d9d4da214cefb5",
+          "25727c8ec49943c527502424b20680ec7abe43da54437f943a10d37cc223574a",
+          "bc42baf085c69df2e68f2d01c8bf4ecc886a331d2add2d7a8883a545fd880de2",
+          "9a5ef21a49ab85d1c940703529f73f4eb4a41e94dbafca7e60d2f763c6cc3fbe",
+          "80390cd24127de9c1be6fb6ea7c5ef9eca495097298f3fd46aeb0201803a3dd8",
+          "145fc05628c5e9833ead7eaadccc5ab6d565cc20293e1b9f0e5660a86859f2a5",
+          "81e3e6e291a9b21e90edf653e893b7a5480202ab2f94af069f5e6b8dc2ac0923",
+          "e944668e22af453523eb892ba474ad9739f76db6e7890530d21dd80e1bc00d20",
+          "bbd01f661fdf76899e616c58394d2e04730ff23f31fa9d39fd46844881e79a09",
+          "095f3c1554fd373b1b972cddf1b30715c123a2d23f294e3fa67abd4b13d80332",
+          "28c993332af8b19a21aaefa6be705e9a0ed5ddda6c1136f3dd3ea9e33dff9759",
+          "d1709155a28695f66025233bb8b20a4eeb3f521057580133f23ac9ab8fbdb16c",
+          "47dfc32482f74adf6edb6f76da2eadefe3291f2266c3171d663f57183b2b4664",
+          "481ce37951733bb8b3a6d9e39f42c5bba5f57aa2416758cc577250ff5056889c",
+          "98684d7704856f8383fab3aa7b345ae603a3d3872d93ddbbe63ca45e5d2a0267",
+          "217ed8b84d0ac07d10bc984cfe2c5a30ff8efec2165a588617a7ccf11bd9e6e0"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 16,
+        "afterCount": 16,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "61e8f98c9fa614a6eb6da221c908a6f77b5b83a7502b84cdeb605478ac177344",
+      "refreshedPdfSha256": "61e8f98c9fa614a6eb6da221c908a6f77b5b83a7502b84cdeb605478ac177344"
+    },
+    {
+      "filename": "Work_Projects_Guide.pdf",
+      "language": "en",
+      "pages": 19,
+      "historicalBodyPageCount": 18,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "1706bc531084cd0d6c594c4d67a71e5667b19ecb2c37f20a2abb7a9b0ab11563",
+          "808e739299ab34ea22cd0659286cc153c1938c6b310378dff8a9d9ade5b14732",
+          "c6c20fcfbdaaeab6447773456159b3504994a3defef970f76f0574f18871b892",
+          "dc8b0dd0c033ccf81f73d3ca843aa873301a5d05c5363c3277afb93d56e71536",
+          "3126bcac9571bbbacd2c6783c87a82a32d27e99b42e363c42648ba3f4bd1a470",
+          "d0dbfdd5ea6371c104564ef593ec5a2f8b6a239af283ca5eab740d7e01fc09c1",
+          "d9ace02115dca1ae3da12b6f091c6f618fc702113a0cc007e17e781aab88d372",
+          "3bc42cc657b1b799523a4a30ece6b80550ae112969b12bfccac26c69bd4e2840",
+          "e45b6053e0ecfb701de1c36d8ec6ba9330822c40f29b299873a461f6227d6e24",
+          "ca06558929ad5a3df0a2b90860a6b48aedf7aa164248187f7bbe774800c3f6b9",
+          "dbf79bcc7e5077d26984a702da5cfedb2a6b779a249ac7a3ae639c18caefa73d",
+          "641f07c8a61879ce9d61354c0879a0c37644413afa9df5f5746dcee78f51d2a4",
+          "c05f5a35b201b321ed977abcab4e255f23b3fb7068c6fb3cfb3176a8f8c82b89",
+          "be797302784cafbe220b0ea861966ede452a25f663a8971897cfaa3523f84a96",
+          "83445fe9c01c43f82abb760bd3fe2a29405920f659892b5ebca7639b3503f6d7",
+          "abdf84196909357a3b48e153f4755403eb37d6c586715565137b1a28e7922721",
+          "4f779847f03836d7c101cad082e6bf857554b642e579620c3af953579f95f6a7",
+          "1cd07820e7386b1d497ed6fbb27e3ebcbf7a9d0460b7efb8ab59115882f782bc"
+        ],
+        "afterSha256": [
+          "1706bc531084cd0d6c594c4d67a71e5667b19ecb2c37f20a2abb7a9b0ab11563",
+          "808e739299ab34ea22cd0659286cc153c1938c6b310378dff8a9d9ade5b14732",
+          "c6c20fcfbdaaeab6447773456159b3504994a3defef970f76f0574f18871b892",
+          "dc8b0dd0c033ccf81f73d3ca843aa873301a5d05c5363c3277afb93d56e71536",
+          "3126bcac9571bbbacd2c6783c87a82a32d27e99b42e363c42648ba3f4bd1a470",
+          "d0dbfdd5ea6371c104564ef593ec5a2f8b6a239af283ca5eab740d7e01fc09c1",
+          "d9ace02115dca1ae3da12b6f091c6f618fc702113a0cc007e17e781aab88d372",
+          "3bc42cc657b1b799523a4a30ece6b80550ae112969b12bfccac26c69bd4e2840",
+          "e45b6053e0ecfb701de1c36d8ec6ba9330822c40f29b299873a461f6227d6e24",
+          "ca06558929ad5a3df0a2b90860a6b48aedf7aa164248187f7bbe774800c3f6b9",
+          "dbf79bcc7e5077d26984a702da5cfedb2a6b779a249ac7a3ae639c18caefa73d",
+          "641f07c8a61879ce9d61354c0879a0c37644413afa9df5f5746dcee78f51d2a4",
+          "c05f5a35b201b321ed977abcab4e255f23b3fb7068c6fb3cfb3176a8f8c82b89",
+          "be797302784cafbe220b0ea861966ede452a25f663a8971897cfaa3523f84a96",
+          "83445fe9c01c43f82abb760bd3fe2a29405920f659892b5ebca7639b3503f6d7",
+          "abdf84196909357a3b48e153f4755403eb37d6c586715565137b1a28e7922721",
+          "4f779847f03836d7c101cad082e6bf857554b642e579620c3af953579f95f6a7",
+          "1cd07820e7386b1d497ed6fbb27e3ebcbf7a9d0460b7efb8ab59115882f782bc"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 17,
+        "afterCount": 17,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "f9ac6390433b9735bc818eed40e923492dea0523e94907f00ad1795742826c63",
+      "refreshedPdfSha256": "f9ac6390433b9735bc818eed40e923492dea0523e94907f00ad1795742826c63"
+    },
+    {
+      "filename": "Work_Projects_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 19,
+      "historicalBodyPageCount": 18,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "d3f38d215b02d43c9ef09d2ba84c3e60d9ac966fdb722504be71778d5d4b8b5b",
+          "1cacacf997e57e55c43389e5282f0131129da18327741d9bc478540f01fdb99d",
+          "c10852eb4d34a9e9dc12b2ae885665c29cbf2929322680bb5c0dde7521891608",
+          "f34dbece948544ae704801761aaa0b0331af58d63832dfb2e20d639796d2cc7f",
+          "872d5bdc8ebcab1d7d1dbd43767d04155ccd1b78d6b23c98de6971d5669a891b",
+          "1e753925c97beaec725800832e945c3e7f2d7308e03912c0d1e0871b84c318e7",
+          "7981581f6d99df98b96970acdcd7d20852e3bf7c0485ba5692f1465c716b68f8",
+          "384cbfb98b41c7554fd7d9424badbca134c5cc3f4f0a67ba0eb96d209864a56f",
+          "52752973fa17aaba23154c69b7c78aee0ff01d32eceb4ff60f72dfd54ee37cdd",
+          "89d782431ba85bc8568862b606db5c71e166510c3f12e1a76628b623eb5e3061",
+          "63187d545d453d8b7e2083a82ebb55f294f59197b8479505e9194481a7fde863",
+          "8de8cb234f4bfee796cde34310105d765bb0d745e16601f06ad76d2e62e01ae7",
+          "c0e8caf4c21645cd274e9e62feef423df6b515e0dbc8dbdb961b1aabcb34e9b7",
+          "3bc168a936367d0f5d6e45a52f5b4731754fe74ac48dadf14ec28846c7326f26",
+          "a9c344d58618c8a31bc1818bd65d74881559763f9f10aa63dd84279831a68604",
+          "7b689f1197883c47f1985bc5779594644b7b1d6d2f6fd392e70ce304fdc876d9",
+          "e7308ea31a482e9f31f68b414488ec4137793a09a2048cf05d344a236d8f4df1",
+          "9952ba3428c59daccea642d5a9f90d5e10a373ef1d8bce00568fb2e3e0e02684"
+        ],
+        "afterSha256": [
+          "d3f38d215b02d43c9ef09d2ba84c3e60d9ac966fdb722504be71778d5d4b8b5b",
+          "1cacacf997e57e55c43389e5282f0131129da18327741d9bc478540f01fdb99d",
+          "c10852eb4d34a9e9dc12b2ae885665c29cbf2929322680bb5c0dde7521891608",
+          "f34dbece948544ae704801761aaa0b0331af58d63832dfb2e20d639796d2cc7f",
+          "872d5bdc8ebcab1d7d1dbd43767d04155ccd1b78d6b23c98de6971d5669a891b",
+          "1e753925c97beaec725800832e945c3e7f2d7308e03912c0d1e0871b84c318e7",
+          "7981581f6d99df98b96970acdcd7d20852e3bf7c0485ba5692f1465c716b68f8",
+          "384cbfb98b41c7554fd7d9424badbca134c5cc3f4f0a67ba0eb96d209864a56f",
+          "52752973fa17aaba23154c69b7c78aee0ff01d32eceb4ff60f72dfd54ee37cdd",
+          "89d782431ba85bc8568862b606db5c71e166510c3f12e1a76628b623eb5e3061",
+          "63187d545d453d8b7e2083a82ebb55f294f59197b8479505e9194481a7fde863",
+          "8de8cb234f4bfee796cde34310105d765bb0d745e16601f06ad76d2e62e01ae7",
+          "c0e8caf4c21645cd274e9e62feef423df6b515e0dbc8dbdb961b1aabcb34e9b7",
+          "3bc168a936367d0f5d6e45a52f5b4731754fe74ac48dadf14ec28846c7326f26",
+          "a9c344d58618c8a31bc1818bd65d74881559763f9f10aa63dd84279831a68604",
+          "7b689f1197883c47f1985bc5779594644b7b1d6d2f6fd392e70ce304fdc876d9",
+          "e7308ea31a482e9f31f68b414488ec4137793a09a2048cf05d344a236d8f4df1",
+          "9952ba3428c59daccea642d5a9f90d5e10a373ef1d8bce00568fb2e3e0e02684"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 17,
+        "afterCount": 17,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "bb9faf3f9c921dfee425f54d6141af8c31c2ecb6fe3fb65402f9e3b62bc9d3d5",
+      "refreshedPdfSha256": "bb9faf3f9c921dfee425f54d6141af8c31c2ecb6fe3fb65402f9e3b62bc9d3d5"
+    },
+    {
+      "filename": "Worker_User_Guide.pdf",
+      "language": "en",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "910592549be5febc8860410ed32606e6918553832ab24d21c71deafd177a4d19",
+      "replacementNoticePageStreamSha256": "a9246eef021056d089c241262d61a37b0c04670c9e7d46a71deb3c1a5e823c08",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "8191dda586020c3941940806b91a8e11bc4882d72e3fa6a93e7733d1731ab337",
+          "80c01c95a4798a72ca32f2f5d79ed138699757ac46858745c436de33cd48a77a",
+          "53a7e7907683fa17d21056d56d23cba36a3749b9f20e5546e61d6467e3886723",
+          "4a735c625aee8e491120dff7d55013aebf19becacaff4817475b8eb914c1b364",
+          "06b78567b440ce852c452db7392f2c0d758330f3f2cafb15e1fe47bd89aac367",
+          "2db65a19931bac839374609278e951a6dbffc3a4442dc78b311be503214ff353",
+          "0ccfe4ba6643363960622947decb22bf9d698626d36d2cc2bb380479dc6d596a",
+          "3884bd162663298ec1959bfedecdc9516e2c409e894b2c1e628cb9d7744383f9",
+          "b06100fba27906e1b76b3a165ec6db99609e090ad9239c0e2a63c8675a75ef1f",
+          "38a08fb88b30ef66c9128e890d8c0f100dc44cd152865b45245073c80373c2aa"
+        ],
+        "afterSha256": [
+          "8191dda586020c3941940806b91a8e11bc4882d72e3fa6a93e7733d1731ab337",
+          "80c01c95a4798a72ca32f2f5d79ed138699757ac46858745c436de33cd48a77a",
+          "53a7e7907683fa17d21056d56d23cba36a3749b9f20e5546e61d6467e3886723",
+          "4a735c625aee8e491120dff7d55013aebf19becacaff4817475b8eb914c1b364",
+          "06b78567b440ce852c452db7392f2c0d758330f3f2cafb15e1fe47bd89aac367",
+          "2db65a19931bac839374609278e951a6dbffc3a4442dc78b311be503214ff353",
+          "0ccfe4ba6643363960622947decb22bf9d698626d36d2cc2bb380479dc6d596a",
+          "3884bd162663298ec1959bfedecdc9516e2c409e894b2c1e628cb9d7744383f9",
+          "b06100fba27906e1b76b3a165ec6db99609e090ad9239c0e2a63c8675a75ef1f",
+          "38a08fb88b30ef66c9128e890d8c0f100dc44cd152865b45245073c80373c2aa"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 6,
+        "afterCount": 6,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "a82b3ac7462233975e74c6c868b4ef4da89c7ec531a394ce91d489cade1a0390",
+      "refreshedPdfSha256": "a82b3ac7462233975e74c6c868b4ef4da89c7ec531a394ce91d489cade1a0390"
+    },
+    {
+      "filename": "Worker_User_Guide_PT-BR.pdf",
+      "language": "pt",
+      "pages": 11,
+      "historicalBodyPageCount": 10,
+      "archiveNoticeRevision": "2026-10-17",
+      "sourceNoticeRevision": "2026-10-17",
+      "baselineNoticePageStreamSha256": "24593d01aa5935c746e3c9616eb7e2fa6f5ac01b57f0c715d224d9d5f28ca25e",
+      "replacementNoticePageStreamSha256": "ac2ba6b415e875070621a584b95542dd30027d9d6197e15e974dd1381dc6d63e",
+      "historicalBodyPageStreams": {
+        "beforeSha256": [
+          "9d8cd1d2e751d43891bf5e227773f336f11767c48e40ed572acd23843c8d736e",
+          "78b372556776ca634b196f3e2d72511685b248bd0e9feb24a6ac1e1e322295e0",
+          "5d848a269a790ea6c6d8b0ed2474fd8fe581d93389f1a2efe536f8fabd8d2a0d",
+          "293ccfc50fd0540c7b1d1205010fca194967c244b2e638283daecf04db7d6fd0",
+          "cf65ee942cea4a4e6395f4555675be0637d354fc9468d5fba5d82defd5ef9ef9",
+          "27c54a4853643997a9a89632b16d8cab78155e9f99d2648c92e2214ac0c3c943",
+          "109409103eafdebbede91888c5876b1de5fa57c413cbb0ac1d51ff5d98817808",
+          "e8aaf31d76e1897118669988a1aa81dbc7f8a5c899289855248c7020b12097fb",
+          "531f8b768b1b726c1d86e96870c03171c1cb9492fcd4b69eae27f153e378e0fa",
+          "86c5910e06ddd7f3274fa29fa2c0ba4677bce9dbe210389a84fa51cfdbfd809a"
+        ],
+        "afterSha256": [
+          "9d8cd1d2e751d43891bf5e227773f336f11767c48e40ed572acd23843c8d736e",
+          "78b372556776ca634b196f3e2d72511685b248bd0e9feb24a6ac1e1e322295e0",
+          "5d848a269a790ea6c6d8b0ed2474fd8fe581d93389f1a2efe536f8fabd8d2a0d",
+          "293ccfc50fd0540c7b1d1205010fca194967c244b2e638283daecf04db7d6fd0",
+          "cf65ee942cea4a4e6395f4555675be0637d354fc9468d5fba5d82defd5ef9ef9",
+          "27c54a4853643997a9a89632b16d8cab78155e9f99d2648c92e2214ac0c3c943",
+          "109409103eafdebbede91888c5876b1de5fa57c413cbb0ac1d51ff5d98817808",
+          "e8aaf31d76e1897118669988a1aa81dbc7f8a5c899289855248c7020b12097fb",
+          "531f8b768b1b726c1d86e96870c03171c1cb9492fcd4b69eae27f153e378e0fa",
+          "86c5910e06ddd7f3274fa29fa2c0ba4677bce9dbe210389a84fa51cfdbfd809a"
+        ],
+        "unchanged": true
+      },
+      "historicalBodyAnnotations": {
+        "beforeCount": 6,
+        "afterCount": 6,
+        "unchanged": true
+      },
+      "attachments": {
+        "beforeSha256ByName": {},
+        "afterSha256ByName": {},
+        "unchanged": true
+      },
+      "sourcePdfSha256": "7cb58f4fe3bb35ae73eac7c623c29968d62ff60321ee92c69f62318c4310a30d",
+      "refreshedPdfSha256": "7cb58f4fe3bb35ae73eac7c623c29968d62ff60321ee92c69f62318c4310a30d"
+    }
+  ]
+}

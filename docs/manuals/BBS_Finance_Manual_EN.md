@@ -1,6 +1,6 @@
 # Finance · BBS operating cycle
 
-Financial review, customer billing, collections, worker obligations, exports and closing · Updated navigation and digital workflows, 11 October 2026
+Financial review, customer billing, collections, worker obligations, exports and closing · Updated navigation and digital workflows, 17 October 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -81,38 +81,42 @@ Review is determined by the actual source, base role and current dated grants. C
 <a id="release-navigation"></a>
 ## Current navigation, task finder and form recovery
 
-Go here: Header → Go to section / Find a task; workspace → Search workspace
+Go here: Header → Go to section / Find a task; workspace → record search when available
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
-The header section chooser opens with Ctrl/⌘ Shift K. Find a task opens with Ctrl/⌘ K. The task finder suggests allowed tasks and can request a project or record before opening its screen. It is a navigation assistant: selecting a result does not save, approve or send anything.
+Go to section opens Find a section (Ctrl/⌘ Shift K). It groups allowed destinations as Actions, Configuration and Sections. Find a task is separate (Ctrl/⌘ K): describe a task in English, Spanish or Portuguese and choose a role-available result to open its workspace or form. Choosing a task does not save, submit, approve or send anything.
 
-Type a short task in English, Spanish or Portuguese, such as record time or write a daily report. Results depend on your role and current access. Search workspace finds authorized records; Go to section finds destinations. These are separate controls.
+Record search is a separate Records handoff that appears only when enabled for the active account. It sends the query to the workspace record search, where available records are checked against current access again. A task may also ask you to choose a record inside its destination; that local choice is part of the task flow, not the separate Records handoff.
 
-The interface language can be English, Español or Português (Brasil). The current illustrated role courses are English; Help labels the fallback when an English PDF is downloaded from another interface language.
+Examples of supported task wording include “create an invoice”, “crear factura” and “criar fatura” for authorized billing roles. The matching task list depends on the current account, role and permissions. The English, Spanish and Portuguese labels in the interface can differ; the current illustrated role courses are English, and Help identifies an English-PDF fallback.
+
+At 200% browser text scaling, forms follow a natural page flow so labels and focus remain clear. If validation fails, read the summary and follow its field link; a hidden optional section opens before focus moves to the field. Correct the value, check that the rest of your entries remain, then use the named Save or Submit action once.
+
+Invoice setup and issue tasks are available only within your Finance authorization; search never grants a billing permission.
 
 ### Do the task
 
-1. Open the task finder, enter your intended task, inspect its destination and choose the correct project/record if asked. Check the destination heading and selected project before acting.
-2. On a phone use the full labelled navigation and section chooser. Inside a project, swipe the horizontal tab strip to reach the remaining tabs. Work and Team shortcuts remain available in project cards.
-3. When a form reports a problem, read the summary and follow its field link. Correct the highlighted value, including fields inside an automatically opened optional section. Recheck retained values and press the named Save or Submit control once.
-4. If prompted about unsaved changes, choose to stay to keep editing or deliberately leave after saving. Opening a section is not confirmation that the previous form saved.
+1. Use Go to section to locate an authorized action, configuration or section. Use Find a task when you know the outcome you want; inspect the destination and choose the correct project or record when asked.
+2. Use the separate Records handoff only when it appears for your account. Open an authorized result and verify its project, owner and dates before acting. If the handoff is absent, use the role’s normal workspace and permissions.
+3. On a narrow screen or at enlarged text, follow the labelled controls in their natural page order. Use a field link from the error summary to reach the correction; retained values remain available while the form reflows.
+4. If asked about unsaved changes, stay to continue editing or deliberately leave after saving. Opening a section or choosing a task is not confirmation that a previous form saved.
 
 ### Verify the result
 
-- The heading, account, language, project and dates match your intention. Wait for the saved confirmation and reopen the record; draft, submitted and approved remain different states.
+- Before a write action, check the page heading, account, language, project, record and dates. Wait for a saved confirmation and reopen the record when needed; draft, submitted, approved, issued and sent are different states.
 
 ### If you get stuck
 
-- If a task is unavailable, use the permitted section or ask the Owner to check access. If a save response is uncertain, inspect the existing record before retrying; do not create a duplicate.
-- For sign-in rate limits, wait for the displayed retry interval. Do not repeatedly submit or change accounts to bypass it.
+- If a task is unavailable, use a permitted section or ask the Owner to check access. If a record search handoff is absent, the profile may not have global search; stay in the designated workspace.
+- If a save response is uncertain, inspect the existing record before retrying so you do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval.
 
 <a id="release-project-work"></a>
 ## Use the project workspace and current task shortcuts
 
 Go here: Projects → project → Work / Team / Reports
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 The project workspace keeps the selected project while opening Time, Expenses and work reports. Register filters show the result count and active context; Reset filters helps distinguish an empty search from missing access.
 
@@ -136,37 +140,45 @@ The Overview shows the project timezone, dates, site and contact details where c
 <a id="release-invoice-current"></a>
 ## Prepare invoices from selected records or a whole period
 
-Go here: Project → Work / Billing → Create invoice; Billing → Invoices
+Go here: Project → Work / Billing → Create invoice; Billing → Billing streams / Invoices
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
-The current invoice entry offers record selection and the whole-period workflow. For labor/expenses, select explicit sources when you need a controlled subset. Use the whole-period flow for a configured complete cut or a supported milestone. These are alternative entry modes, not two submissions for the same sources.
+Choose the selected-record workflow when billing a deliberate set of eligible sources, or Whole period / milestone when preparing the complete configured period. These modes describe different scopes. A whole-period total always describes the entire period; it never represents or applies to a selected subset.
 
-Project Work exposes source status and existing invoice reservations. A source already held by a draft should be opened through its containing draft instead of selected for a duplicate invoice.
+The record composer keeps Worker, Show and Record type filters visible. Show includes All records, Pending approval, Ready to invoice, and In a draft or invoiced. Record type includes Hours and expenses, Hours, and Expenses. The sheet reports visible and selected counts, including selected records hidden by filters.
+
+Changing filters changes only which rows are visible. It never changes the current selection. Select visible records adds only visible eligible rows; Clear selection explicitly removes the selection. Review the count and any selected records outside these filters before previewing.
+
+The Whole period or milestone composer has three stages: Client / project (Client / project, Billing stream, Labor / expenses); Period (Period, Included records, Excluded / pending); Review and save (Taxes, Invoice data, Banking / payment, Commercial adjustments, Preview, Save / issue). All 12 details appear automatically in their stage. The compact index offers nine direct shortcuts; it does not replace the full sequence.
 
 ### Do the task
 
-1. Open the intended project and choose the matching stream. Review stream type, currency, effective dates and cadence. Current/previous period shortcuts align with the stream and project timezone; the end date is inclusive.
-2. Load the source register. Review included, excluded, pending and reserved sources, and open blockers at their original records. For selected-record mode choose only the intended eligible records and check the unselected remainder.
-3. If a source belongs to another draft, use its draft link. Review or refresh that draft through its offered controls; use the permitted discard/cancel action and verify any released reservation before recomposing.
-4. For whole-period mode, check the selected interval and continue through the existing invoice review stages. Verify taxes, invoice details, banking/payment instructions, adjustments and preview, then save the draft.
-5. Open the saved draft, inspect lines/source identities and readiness messages. A provisional number is a preview, not a reserved final identifier. Resolve numbering or issuer issues through the offered configuration link; issuance assigns the final number.
-6. Approve and issue only through the invoice’s authorized controls. Wait for a Ready final PDF before downloading/sending. Sending and collection remain separate actions; issued history is corrected through the supported void/adjustment/replacement lifecycle.
+1. Open the intended project and choose the matching stream. Review stream type, currency and effective dates. Confirm whether the job uses selected records or the complete configured period before continuing.
+2. For record mode, load the source list and inspect worker, status and type filters. Select only intended eligible rows, or use Select visible records for the visible eligible rows. Check selected and visible counts; hidden selected rows remain selected until you clear or remove them explicitly.
+3. For whole-period mode, review the complete date range and all included, excluded, pending and reserved sources through all three stages. The nine shortcuts link into details; use the stage sequence to review every panel. Do not treat a whole-period total as a selected-record subtotal.
+4. To change the selected billing stream, choose Edit selected stream settings in the same invoice sheet. The editor keeps the project and current invoice mode, dates and source references. Save billing stream returns to the sheet and revalidates the records before preview can continue.
+5. If a source has become reserved while editing, revalidation removes that source from the selection and reports it; follow its View draft link. If revalidation cannot be confirmed, the stream settings may be saved, but no invoice draft was created or issued. Check the period and selected records before continuing. With an empty selection, no record preview is needed; period readiness is still refreshed.
+6. The stream editor is temporarily unavailable while an invoice operation is active. Finish the current operation, then reopen Edit selected stream settings. In Billing streams, Edit stream settings, Archive billing stream and Close sources open separate explicit forms; those lifecycle actions do not create, approve or issue an invoice.
+7. Tax profile is read-only in the current stream editor and invoice details. To change it, choose Edit selected stream settings, then New effective-dated conditions, and explicitly select the appropriate profile and effective dates. Cadence and commercial changes also use the existing effective-dated successor flow so historic periods keep their meaning.
+8. A blank optional recipient or a missing tax profile does not block a draft; without a profile, the draft adds no tax. Saving a draft does not issue or send it. If final document generation is queued or running, wait until its status is Ready before downloading or sending.
 
 ### Verify the result
 
-- No source appears in two active invoice reservations. The saved draft matches the intended subset/period and original sources; preview totals and provisional numbering do not prove issuance.
+- The chosen scope, project, stream, dates and selected sources match the intended work. Filters have not silently changed selection; all whole-period figures refer to the full period. The invoice remains a draft until an authorized person explicitly approves/issues it, and its final document is usable only when Ready.
 
 ### If you get stuck
 
-- If work changed, refresh and review the draft again before approval. If a financial prerequisite is missing, follow its specific remedy rather than altering actual hours or copying a source.
+- If a source becomes reserved, open its containing draft and resolve it there. Review the selected count again after stream-save revalidation; do not re-add a source that remains reserved.
+- If revalidation fails or the response is uncertain, use the explicit status message, review the source period and selected records, and confirm whether a draft exists before retrying. A stream settings save by itself never proves that an invoice draft was created.
+- For tax, cadence or commercial changes, create effective-dated successor conditions and select them for the applicable dates. Do not edit historic stream meaning or infer tax from a blank profile.
 
 <a id="release-finance-case"></a>
 ## Digital workers: reviewed finance case to invoice draft
 
 Go here: Digital workers → Ready to invoice
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 A finance case records a snapshot and a human review before handing labor/expense sources to an invoice draft. It does not approve actual work, decide policy, issue an invoice or send it. Milestone/fixed and other streams continue in their existing invoice workflow.
 
@@ -191,7 +203,7 @@ A finance case records a snapshot and a human review before handing labor/expens
 
 Go here: Digital workers → Policy review; Notifications
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 Digital workers uses saved records and explicit deterministic rules. No model key is required. It does not interpret a contract or email, automatically write reports, decide a charge or apply a proposed agreement.
 
@@ -217,7 +229,7 @@ Existing background jobs generate queued artifacts and deliver due in-app follow
 
 Go here: Digital workers → existing work-item cards; Approvals → original sources
 
-Context: Current operating instructions · 11 October 2026 · checked against main 22475a2b and deployed digital-workers-2d7b76a250f6. Historical illustrated exercises retain their original dates and saved outcomes.
+Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
 
 Owner/Finance sees finance cases, policy creation and authorized existing work-item cards. The Create a follow-up form for Scope change, Handover and Evidence is in the assigned Project Manager workspace; coordinate new operational items with that manager. Use Approvals or the original source record for actual operational decisions.
 

@@ -1,0 +1,14 @@
+{
+  "status": "passed",
+  "reviewer": "root integration",
+  "currentPdfs": 12,
+  "historicalPdfs": 25,
+  "totalTopLevelPdfs": 37,
+  "allManualPdfsCoveredExactlyOnce": true,
+  "allPdfHashesMatchVerificationReceipts": true,
+  "comparedReceipts": [
+    "current-artifacts.json",
+    "archives.json"
+  ],
+  "privacy": "No credentials, authenticated sessions or production business screenshots added."
+}

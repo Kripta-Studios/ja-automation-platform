@@ -1,5 +1,5 @@
 {
-  "revision": "2026-10-11",
+  "revision": "2026-10-17",
   "project": "C-0050-P-20261005",
   "reports": [
     {
@@ -112,10 +112,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 165,
+      "instructionBlocks": 167,
       "instructionText": "PASS",
-      "bytes": 859121,
-      "sha256": "35d150da94f35eb5f1178d0dd4bbbbc01e661aee14d9c589ece6f82e8e6e6f14",
+      "bytes": 860120,
+      "sha256": "5675eec996a8feebc4f5d0769571edcf8d049911563fc5c482083b3821ea297e",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -351,10 +351,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 245,
+      "instructionBlocks": 247,
       "instructionText": "PASS",
-      "bytes": 2143438,
-      "sha256": "0ec1e70f9da14ca310ed70f061e1ec2e96cf99b42bc5816df03dd81c5bd4c391",
+      "bytes": 2144009,
+      "sha256": "f9f48675f8ace8a16b09fc39151bff160a2f9b2068bba2dce3a22f46075d6a0a",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -635,10 +635,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 206,
+      "instructionBlocks": 208,
       "instructionText": "PASS",
-      "bytes": 3240436,
-      "sha256": "f72a2c4908f345e1789834b6da36d2b4fbfa6c28546d538481efb5c80fc98643",
+      "bytes": 3241173,
+      "sha256": "f2a6bba6c1abce44ae766a874f3af36febe6a4f92e2343eaf9da00ecf09c5e2c",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -940,10 +940,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 292,
+      "instructionBlocks": 300,
       "instructionText": "PASS",
-      "bytes": 1715526,
-      "sha256": "8cb3e615e1bb5b1d63adccf8dc6095356ce4123ab489ed3a30260dfb3c2b1bc6",
+      "bytes": 1720097,
+      "sha256": "387fb505cfe4f4e4765555fb9deb9a1326bca70fbd743b4b47f35039849a864d",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -1238,10 +1238,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 297,
+      "instructionBlocks": 299,
       "instructionText": "PASS",
-      "bytes": 4372557,
-      "sha256": "4a44f5ae9b2ce3864b4873bad27c35bb3ccc66587f51349dbd95420c6a21e915",
+      "bytes": 4373179,
+      "sha256": "de532a17732b777f653c879b113fb54903947ff0d3db0aa0d6776f927ffe229f",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2073,10 +2073,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 656,
+      "instructionBlocks": 664,
       "instructionText": "PASS",
-      "bytes": 9515911,
-      "sha256": "ae772723eef1cbe88edefc1d1f97856c1c375d6b3a1aa31c0dfd0301e2df28b9",
+      "bytes": 9520355,
+      "sha256": "95e65271031e003dad785924b1511139e18d88ad06fc2078d38fd0cf83e3dce3",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -2726,10 +2726,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 213,
+      "instructionBlocks": 215,
       "instructionText": "PASS",
-      "bytes": 3653118,
-      "sha256": "e0c5ffecba3ea8fe3c7ee189b2c6417bed0901c7a80099ba7487232e8a61d4d0",
+      "bytes": 3653979,
+      "sha256": "9d7bb96f8e6e362789bb2a67dfbfea9af531cfb78a455a94fe2c5fb84a2ce6cd",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -3028,10 +3028,10 @@
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 276,
+      "instructionBlocks": 278,
       "instructionText": "PASS",
-      "bytes": 3359925,
-      "sha256": "4f0138cb8424dff217ab353f3cbaad963f3a099a18e1341cdd486a1a1b3452da",
+      "bytes": 3360306,
+      "sha256": "56ef137dd8d2377c6009fea902547a823872bdef7e7532cd55807211926d6149",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",

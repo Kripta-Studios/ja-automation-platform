@@ -1,12 +1,20 @@
 # Digital workers: capture, follow-up and invoice handoff
 
-**J&A Automation · English operating guide · revised 11 October 2026**
+**J&A Automation · English operating guide · revised 17 October 2026**
 
 Start with your [current role manual](README.md). The [PDF edition](Digital_Workers.pdf) is a cross-role technical reference; role Help downloads contain only the instructions for that persona.
 
 This guide describes the deployed **Digital workers** workspace, release `digital-workers-2d7b76a250f6`. It is available immediately to eligible roles; due notifications run through the existing automatic jobs worker. There is no separate activation step. The guide explains the facts and approvals people still provide. See the [release evidence](../evidence/digital-workers-release-20261011/README.md) and the existing [project-to-invoice guide](Project_to_Invoice_Quick_Guide_EN.md) for invoice issue and payment.
 
 Digital workers keeps the next action visible, gathers factual drafts and prepares a reviewed handoff to an invoice draft. It uses saved records and deterministic rules. It does not interpret a contract, approve work, decide billability, verify physical completion, sign for a customer, issue an invoice or send one.
+
+## Find a workspace, task or record
+
+Go to section opens Find a section (Ctrl/⌘ Shift K) and groups authorized actions, configuration and sections. Find a task is separate (Ctrl/⌘ K): describe an outcome in English, Spanish or Portuguese and choose the task available to your role. Choosing a result opens a workspace or form; it does not save, submit, approve, issue or send anything. A local record chooser may appear inside a task flow.
+
+The Records handoff is a separate search of workspace records and appears only when enabled for the current account. Its destination checks access again. Restricted supplier profiles continue in Supplier team and do not gain general record search. The current role courses are English; Help identifies an English PDF fallback for Spanish or Portuguese interfaces.
+
+At 200% text scaling, forms reflow in natural page order while keeping labels and focus clear. If a form reports an error, follow the field link from its summary, correct the value, and check that other entries remain before saving once. An optional section with an error opens before focus moves to it. Review the saved record when a response is uncertain.
 
 ## Who sees what
 

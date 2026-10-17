@@ -391,3 +391,8 @@ UX refresh branch and coordinated release validation remain required.
 ### Digital workers production release — 11 October 2026
 
 Supersedes the earlier candidate-only deployment status: production now runs `digital-workers-2d7b76a250f6` from `2d7b76a250f6e5dc4adf8db4205fe8de5e4fb4c9`, integrated with main `413ad815` and all 200 UX improvements. The [release ledger](docs/evidence/digital-workers-release-20261011/README.md) records browser/security/finance checks, actual-role authenticated image-clone checks, local OCR, the first-attempt rollback, and the successful stopped-writer-backup cutover. Schema77 integrity/FK checks, 20 live role/viewport checks, preserved issued invoice/lines and 36 private files, automatic jobs and public reopening pass. No hosted model/API key is required. This is a scoped production release, not a new whole-product Client Essential certification.
+
+
+### 17 October 2026 · eight-priority SOTA UX implementation
+
+Scoped candidate acceptance completed for UX-01–08 (all high and medium priorities): visible capabilities, context, precise selections, role boundaries and immutable financial history are preserved. Independent browser checks, forty financial invariant tests, current manuals and Help/download verification are recorded in the [dependency, ownership and acceptance ledger](docs/evidence/sota-ux-20261017/README.md). Publication, exact production/main parity, restore verification and storage cleanup are certified by the external operational receipts identified there. This does not change the whole-product Client Essential verdict.

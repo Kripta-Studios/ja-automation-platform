@@ -3,6 +3,7 @@ import { chromium } from 'playwright';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { launchManualChromium } from '../../scripts/manuals-refresh/chromium.mjs';
 
 const directory = dirname(new URL(import.meta.url).pathname);
 const base = process.argv[2] ?? 'Current_Deployed_Workflows_2026-09-24';
@@ -108,10 +109,7 @@ const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 </style></head><body>${body}</body></html>`;
 const htmlPath = join(directory, `${base}.html`);
 writeFileSync(htmlPath, html);
-const browser = await chromium.launch({
-  headless: true,
-  args: process.getuid?.() === 0 ? ['--no-sandbox'] : [],
-});
+const browser = await launchManualChromium(chromium);
 try {
   const page = await browser.newPage();
   await page.goto(pathToFileURL(resolve(htmlPath)).href, { waitUntil: 'load' });

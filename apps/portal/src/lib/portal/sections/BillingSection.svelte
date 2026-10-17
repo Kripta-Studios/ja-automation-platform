@@ -146,6 +146,12 @@
     getScope: () => InvoiceComposerScope;
     canSwitchMode: () => boolean;
     setScope: (scope: InvoiceComposerScope) => Promise<boolean>;
+    revalidateKeepingSelection: () => Promise<{
+      preservedCount: number;
+      invalidatedCount: number;
+      invalidatedRefs: Array<{ type: 'time' | 'expense'; id: string }>;
+      previewRefreshed: boolean;
+    }>;
   };
   let invoiceScopeProjectId = $state('');
   type InvoicePdfStatus = 'queued' | 'running' | 'ready' | 'failed' | 'unavailable';
@@ -934,6 +940,15 @@
       (reversalInvoiceId || invoiceFailureId || $page.url.searchParams.get('invoice') || ''),
   );
   let invoiceWizardOpen = $state(false);
+  let streamEditorRuleId = $state('');
+  let streamEditorReturnsToInvoice = $state(false);
+  let streamEditorFocusAction = $state<'settings' | 'archive' | 'close'>('settings');
+  let streamEditorReturnFocusId = $state('');
+  let streamEditorDirty = $state(false);
+  let streamEditorSaving = $state(false);
+  let streamEditorAnnouncement = $state('');
+  let streamEditorFallbackError = $state('');
+  let streamUpdateFailureNonce = $state(0);
   let invoiceCreationMode = $state<InvoiceCreationMode>('records');
   let recordComposer = $state<InvoiceComposerHandle | null>(null);
   let recordComposerModeLocked = $state(false);
@@ -960,6 +975,26 @@
   $effect(() => {
     if (!invoiceWizardOpen && wizardReadinessController) cancelWizardReadiness();
   });
+  $effect(() => {
+    if (!streamEditorRuleId || !streamEditorDirty) return;
+    const guardUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', guardUnload);
+    return () => window.removeEventListener('beforeunload', guardUnload);
+  });
+  beforeNavigate((navigation) => {
+    if (
+      !streamEditorRuleId ||
+      !streamEditorDirty ||
+      window.confirm(
+        translate('Discard your unsaved changes? Your entered information will be lost.'),
+      )
+    )
+      return;
+    navigation.cancel();
+  });
   let wizardReadinessError = $state('');
   let wizardReadinessRemedy = $state('');
   let wizardReadinessReference = $state('');
@@ -968,14 +1003,89 @@
     if (!wizardReadinessError) return;
     void tick().then(() => wizardReadinessAlert?.focus());
   });
+  function billingRuleServerFieldError(message: string): { field: string; message: string } | null {
+    if (/^payment terms must be between 0 and 365 days$/iu.test(message))
+      return {
+        field: 'paymentTermsDays',
+        message:
+          locale === 'es'
+            ? 'Introduce un número entero entre 0 y 365 días.'
+            : locale === 'pt'
+              ? 'Insira um número inteiro entre 0 e 365 dias.'
+              : 'Enter a whole number from 0 to 365 days.',
+      };
+    if (/^recipient email is invalid$/iu.test(message))
+      return {
+        field: 'recipientEmail',
+        message:
+          locale === 'es'
+            ? 'Introduce un correo electrónico válido o deja el campo vacío.'
+            : locale === 'pt'
+              ? 'Insira um e-mail válido ou deixe o campo em branco.'
+              : 'Enter a valid email address or leave this optional field blank.',
+      };
+    if (/^past due notice is too long$/iu.test(message))
+      return {
+        field: 'pastDueNotice',
+        message:
+          locale === 'es'
+            ? 'Usa un máximo de 2.000 caracteres.'
+            : locale === 'pt'
+              ? 'Use no máximo 2.000 caracteres.'
+              : 'Use no more than 2,000 characters.',
+      };
+    if (/^unsupported invoice template$/iu.test(message))
+      return {
+        field: 'templateId',
+        message:
+          locale === 'es'
+            ? 'Elige una de las plantillas disponibles.'
+            : locale === 'pt'
+              ? 'Escolha um dos modelos disponíveis.'
+              : 'Choose one of the available invoice templates.',
+      };
+    return null;
+  }
+  function billingRuleSubmittedFieldError(
+    values: Record<string, string>,
+  ): { field: string; message: string } | null {
+    const rawTerms = values.paymentTermsDays;
+    if (rawTerms === undefined) return null;
+    const terms = Number(rawTerms);
+    if (Number.isInteger(terms) && terms >= 0 && terms <= 365) return null;
+    return billingRuleServerFieldError('Payment terms must be between 0 and 365 days');
+  }
   const billingProblem = $derived.by((): ProblemData | null => {
-    if (
-      !form ||
-      form.success !== false ||
-      typeof form.code !== 'string' ||
-      typeof form.messageKey !== 'string'
-    )
-      return null;
+    if (!form || form.success !== false) return null;
+    if (form.billingOperation === 'updateBillingRule') {
+      const returnedFieldErrors =
+        form.fieldErrors && typeof form.fieldErrors === 'object' && !Array.isArray(form.fieldErrors)
+          ? (form.fieldErrors as Record<string, unknown>)
+          : null;
+      const hasReturnedFieldErrors = Boolean(
+        returnedFieldErrors && Object.keys(returnedFieldErrors).length > 0,
+      );
+      const fieldError = hasReturnedFieldErrors
+        ? null
+        : ((typeof form.message === 'string' ? billingRuleServerFieldError(form.message) : null) ??
+          (form.messageKey === 'action.error.invalid'
+            ? billingRuleSubmittedFieldError(billingFailureValues)
+            : null));
+      if (fieldError)
+        return {
+          code: 'BILLING_STREAM_FIELDS_INVALID',
+          messageKey: 'problem.billing.streamFieldsInvalid',
+          message: translate('Check the billing stream fields before saving.'),
+          params: {},
+          fieldErrors: { [fieldError.field]: [fieldError.message] },
+          remedies: [{ id: 'review_billing_setup' }],
+          correlationId: String(
+            form.correlationId ||
+              `billing-stream-update-${streamUpdateFailureNonce}-${form.message}`,
+          ),
+        };
+    }
+    if (typeof form.code !== 'string' || typeof form.messageKey !== 'string') return null;
     return {
       code: form.code,
       messageKey: form.messageKey as ProblemData['messageKey'],
@@ -1180,7 +1290,7 @@
         control.insertAdjacentElement('afterend', small);
         visibleErrors.push({ control, message });
       }
-      if (visibleErrors.length > 1) {
+      if (visibleErrors.length > 0) {
         const summary = document.createElement('div');
         summary.dataset.ui = 'validation-summary';
         summary.dataset.billingRecoverySummary = '';
@@ -1215,7 +1325,7 @@
               ) ?? [],
             ).find((notice) => notice.dataset.problemCode === problem.code);
             const target =
-              visibleErrors.length > 1
+              visibleErrors.length > 0
                 ? formElement.querySelector<HTMLElement>('[data-billing-recovery-summary]')
                 : (visibleErrors[0]?.control ?? failureNotice);
             target?.focus({ preventScroll: true });
@@ -1792,6 +1902,22 @@
   let billingRulePage = $state<Row[]>([]);
   const streamFocusId = $derived($page.url.searchParams.get('focus')?.trim() ?? '');
   const wizardRule = $derived(billingRules.find((rule) => rowValue(rule, 'id') === wizardRuleId));
+  const streamEditorRule = $derived(
+    billingRules.find((rule) => rowValue(rule, 'id') === streamEditorRuleId),
+  );
+  const streamEditorProjectId = $derived(rowValue(streamEditorRule, 'project_id', 'projectId'));
+  const streamEditorContext = $derived.by(() =>
+    [
+      rowValue(streamEditorRule, 'client_number', 'clientNumber'),
+      rowValue(streamEditorRule, 'client_name', 'clientName'),
+      rowValue(streamEditorRule, 'project_number', 'projectNumber'),
+      rowValue(streamEditorRule, 'project_name', 'projectName'),
+      controlledValue('billingStream', rowValue(streamEditorRule, 'stream_type', 'streamType')),
+      `${rowValue(streamEditorRule, 'effective_from', 'effectiveFrom')} → ${rowValue(streamEditorRule, 'effective_to', 'effectiveTo') || '…'}`,
+    ]
+      .filter(Boolean)
+      .join(' · '),
+  );
   const wizardProjectId = $derived(invoiceScopeProjectId);
   const wizardContextProjectId = $derived(
     invoiceScopeProjectId || rowValue(wizardRule, 'project_id', 'projectId'),
@@ -2085,6 +2211,7 @@
         });
       }
     } else if (
+      !streamEditorRuleId &&
       ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].includes(billingFailureOperation)
     ) {
       workspace = 'streams';
@@ -2277,6 +2404,14 @@
   });
   const billingProblemByForm = $derived.by(() => {
     if (!billingProblem) return false;
+    if (
+      streamEditorRuleId &&
+      ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].includes(
+        billingFailureOperation,
+      ) &&
+      billingFailureValues.billingRuleId === streamEditorRuleId
+    )
+      return true;
     if (invoiceWizardOpen && billingFailureOperation === 'createDraft') return true;
     if (selectedInvoice && invoiceFailureId === selectedInvoiceId) return true;
     if (
@@ -2494,7 +2629,7 @@
     wizardReadinessReference = '';
   }
 
-  async function checkWizardPeriod(): Promise<void> {
+  async function checkWizardPeriod(preserveSelectedDates = false): Promise<void> {
     resetWizardReadiness();
     if (!wizardRuleId || !wizardPeriodStart || !wizardPeriodEnd) {
       wizardReadinessError = translate('Select a billing stream and valid period first.');
@@ -2505,7 +2640,11 @@
     const compatible = wizardRule
       ? compatibleBillingPeriod(streamPeriodConfiguration(wizardRule), selected)
       : null;
-    if (compatible && (compatible.start !== selected.start || compatible.end !== selected.end)) {
+    if (
+      !preserveSelectedDates &&
+      compatible &&
+      (compatible.start !== selected.start || compatible.end !== selected.end)
+    ) {
       wizardPeriodAlignment = selected;
       wizardPeriodStart = compatible.start;
       wizardPeriodEnd = compatible.end;
@@ -2683,6 +2822,249 @@
     invoiceWizardStep = 1;
     invoiceWizardOpen = true;
   }
+
+  function openBillingStreamEditor(
+    ruleId: string,
+    returnToInvoice = false,
+    focusAction: 'settings' | 'archive' | 'close' = 'settings',
+  ): void {
+    if (returnToInvoice && invoiceCreationMode === 'records' && !recordComposer?.canSwitchMode()) {
+      streamEditorAnnouncement = timeReadinessText(
+        'Finish the current invoice operation before editing this stream.',
+        'Termina la operación de factura actual antes de editar este flujo.',
+        'Conclua a operação atual da fatura antes de editar este fluxo.',
+      );
+      return;
+    }
+    const selectedRule = billingRules.find((candidate) => rowValue(candidate, 'id') === ruleId);
+    if (!selectedRule || selectedRule.browser_status !== 'active') return;
+    streamEditorRuleId = ruleId;
+    streamEditorReturnsToInvoice = returnToInvoice;
+    streamEditorFocusAction = focusAction;
+    streamEditorReturnFocusId =
+      returnToInvoice && document.activeElement instanceof HTMLElement
+        ? document.activeElement.id
+        : '';
+    streamEditorDirty = false;
+    streamEditorFallbackError = '';
+    streamEditorAnnouncement = '';
+    if (!returnToInvoice) invoiceWizardOpen = false;
+    void tick().then(() => {
+      const focusTarget =
+        focusAction === 'archive'
+          ? document.getElementById('billing-stream-archive')
+          : focusAction === 'close'
+            ? document.getElementById('billing-stream-close')
+            : document.getElementById('billing-stream-editor-heading');
+      focusTarget?.focus({ preventScroll: true });
+      focusTarget?.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  async function leaveBillingStreamEditor(
+    confirmDiscard = true,
+    completingSave = false,
+  ): Promise<void> {
+    if (!streamEditorRuleId || (streamEditorSaving && !completingSave)) return;
+    if (
+      confirmDiscard &&
+      streamEditorDirty &&
+      !window.confirm(
+        translate('Discard your unsaved changes? Your entered information will be lost.'),
+      )
+    )
+      return;
+    const ruleId = streamEditorRuleId;
+    const returnToInvoice = streamEditorReturnsToInvoice;
+    streamEditorRuleId = '';
+    streamEditorReturnsToInvoice = false;
+    streamEditorFocusAction = 'settings';
+    streamEditorDirty = false;
+    streamEditorFallbackError = '';
+    if (streamFocusId === ruleId) {
+      const url = new URL(location.href);
+      url.searchParams.delete('focus');
+      replaceState(url, $page.state);
+    }
+    await tick();
+    if (returnToInvoice)
+      (
+        (streamEditorReturnFocusId && document.getElementById(streamEditorReturnFocusId)) ||
+        document.getElementById(`invoice-edit-stream-${ruleId}`) ||
+        document.getElementById('invoice-wizard-heading-2')
+      )?.focus({ preventScroll: true });
+  }
+
+  function streamEditorSavedMessage(result?: {
+    invalidatedCount: number;
+    preservedCount: number | null;
+    previewRefreshed: boolean;
+    revalidationFailed?: boolean;
+    readinessFailed?: boolean;
+  }): string {
+    const noInvoice = timeReadinessText(
+      'No invoice draft was created or issued.',
+      'No se creó ni se emitió ninguna factura.',
+      'Nenhum rascunho de fatura foi criado ou emitido.',
+    );
+    if (!streamEditorReturnsToInvoice)
+      return `${timeReadinessText('Billing stream settings saved.', 'Se guardaron los ajustes del flujo de facturación.', 'As configurações do fluxo de faturamento foram salvas.')} ${noInvoice}`;
+    if (result?.revalidationFailed)
+      return timeReadinessText(
+        'Stream settings saved. No invoice draft was created or issued. The selected dates and source selection were kept, but revalidation could not be confirmed. Check the period and selected records before saving.',
+        'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. Se conservaron las fechas y los registros seleccionados, pero no se pudo confirmar la revalidación. Comprueba el período y los registros antes de guardar.',
+        'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. As datas e os registros selecionados foram mantidos, mas não foi possível confirmar a revalidação. Confira o período e os registros antes de salvar.',
+      );
+    if (result?.invalidatedCount) {
+      const count = result.invalidatedCount;
+      const status = result.readinessFailed
+        ? timeReadinessText(
+            'Period readiness could not be refreshed; review the dates and records before saving.',
+            'No se pudo actualizar la preparación del período; revisa las fechas y los registros antes de guardar.',
+            'Não foi possível atualizar a prontidão do período; confira as datas e os registros antes de salvar.',
+          )
+        : result.preservedCount === 0 && !result.previewRefreshed
+          ? timeReadinessText(
+              'No source records are selected, so no record preview was needed; period readiness was refreshed.',
+              'No hay registros seleccionados, así que no se necesitaba una vista previa; se actualizó la preparación del período.',
+              'Nenhum registro está selecionado, então não era necessária uma prévia; a prontidão do período foi atualizada.',
+            )
+          : !result.previewRefreshed
+            ? timeReadinessText(
+                'The current record preview could not be refreshed; review the selected dates and records before saving.',
+                'No se pudo actualizar la vista previa de registros; revisa las fechas y los registros seleccionados antes de guardar.',
+                'Não foi possível atualizar a prévia de registros; confira as datas e os registros selecionados antes de salvar.',
+              )
+            : timeReadinessText(
+                'Readiness and preview were refreshed.',
+                'Se actualizaron la preparación y la vista previa.',
+                'A prontidão e a prévia foram atualizadas.',
+              );
+      return timeReadinessText(
+        `Stream settings saved. No invoice draft was created or issued. ${count} selected source ${count === 1 ? 'record is' : 'records are'} no longer eligible and ${count === 1 ? 'was' : 'were'} removed. ${status}`,
+        `Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. Se quitaron ${count} ${count === 1 ? 'registro seleccionado que ya no es elegible' : 'registros seleccionados que ya no son elegibles'}. ${status}`,
+        `As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. ${count} ${count === 1 ? 'registro selecionado deixou' : 'registros selecionados deixaram'} de ser elegível e ${count === 1 ? 'foi removido' : 'foram removidos'}. ${status}`,
+      );
+    }
+    if (result?.readinessFailed)
+      return timeReadinessText(
+        'Stream settings saved. No invoice draft was created or issued. Period readiness could not be refreshed; review the dates and records before saving.',
+        'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. No se pudo actualizar la preparación del período; revisa las fechas y los registros antes de guardar.',
+        'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. Não foi possível atualizar a prontidão do período; revise as datas e os registros antes de salvar.',
+      );
+    if (result?.preservedCount === 0 && !result.previewRefreshed)
+      return timeReadinessText(
+        'Stream settings saved. No invoice draft was created or issued. No source records are selected, so no record preview was needed; period readiness was refreshed.',
+        'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. No hay registros seleccionados, así que no se necesitaba una vista previa de registros; se actualizó la preparación del período.',
+        'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. Nenhum registro está selecionado, então não era necessária uma prévia de registros; a prontidão do período foi atualizada.',
+      );
+    if (!result?.previewRefreshed)
+      return timeReadinessText(
+        'Stream settings saved. No invoice draft was created or issued, but the current readiness or preview could not be refreshed. Review the selected dates and records before saving.',
+        'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura, pero no se pudo actualizar la preparación o la vista previa. Revisa las fechas y los registros antes de guardar.',
+        'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido, mas não foi possível atualizar a prontidão ou a prévia. Revise as datas e os registros antes de salvar.',
+      );
+    return timeReadinessText(
+      result?.preservedCount === null
+        ? 'Stream settings saved. No invoice draft was created or issued. The same project and dates were kept; whole-period readiness was refreshed.'
+        : 'Stream settings saved. No invoice draft was created or issued. The same project, dates, and selected records were kept; readiness and preview were refreshed.',
+      result?.preservedCount === null
+        ? 'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. Se conservaron el proyecto y las fechas; se actualizó la preparación del período completo.'
+        : 'Se guardaron los ajustes del flujo. No se creó ni se emitió ninguna factura. Se conservaron el proyecto, las fechas y los registros seleccionados; se actualizaron la preparación y la vista previa.',
+      result?.preservedCount === null
+        ? 'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. O mesmo projeto e as datas foram mantidos; a prontidão do período completo foi atualizada.'
+        : 'As configurações do fluxo foram salvas. Nenhum rascunho foi criado ou emitido. O mesmo projeto, as datas e os registros selecionados foram mantidos; a prontidão e a prévia foram atualizadas.',
+    );
+  }
+
+  async function finishBillingStreamSave(): Promise<void> {
+    streamEditorDirty = false;
+    streamEditorFallbackError = '';
+    if (!streamEditorReturnsToInvoice) {
+      streamEditorAnnouncement = streamEditorSavedMessage();
+      return;
+    }
+
+    resetWizardReadiness();
+
+    let invalidatedCount = 0;
+    let preservedCount: number | null = null;
+    let previewRefreshed = true;
+    let revalidationFailed = false;
+    let readinessFailed = false;
+    try {
+      if (invoiceCreationMode === 'records') {
+        const composer = recordComposer;
+        if (!composer) throw new Error('The invoice composer is not available for revalidation.');
+        const result = await composer.revalidateKeepingSelection();
+        invalidatedCount = result.invalidatedCount;
+        preservedCount = result.preservedCount;
+        previewRefreshed = result.previewRefreshed;
+      }
+    } catch {
+      revalidationFailed = true;
+      previewRefreshed = false;
+    }
+    if (!revalidationFailed) {
+      await checkWizardPeriod(true);
+      readinessFailed = Boolean(wizardReadinessError || !wizardReadiness);
+    }
+    streamEditorAnnouncement = streamEditorSavedMessage({
+      invalidatedCount,
+      preservedCount,
+      previewRefreshed,
+      revalidationFailed,
+      readinessFailed,
+    });
+    await leaveBillingStreamEditor(false, true);
+  }
+
+  async function finishBillingLifecycleAction(operation: 'archive' | 'close'): Promise<void> {
+    streamEditorDirty = false;
+    streamEditorFallbackError = '';
+    if (operation === 'archive') {
+      const ruleId = streamEditorRuleId;
+      streamEditorRuleId = '';
+      streamEditorReturnsToInvoice = false;
+      await invalidateAll();
+      streamEditorAnnouncement = timeReadinessText(
+        'Billing stream archived. Existing invoice history remains unchanged.',
+        'Flujo de facturación archivado. El historial de facturas existente no cambia.',
+        'Fluxo de faturamento arquivado. O histórico de faturas existente permanece inalterado.',
+      );
+      await tick();
+      document.querySelector<HTMLElement>(`[data-billing-rule="${CSS.escape(ruleId)}"]`)?.focus();
+      return;
+    }
+    streamEditorAnnouncement = timeReadinessText(
+      'The selected period was closed. No invoice was created or issued.',
+      'El período seleccionado se cerró. No se creó ni se emitió ninguna factura.',
+      'O período selecionado foi fechado. Nenhuma fatura foi criada ou emitida.',
+    );
+    await invalidateAll();
+  }
+
+  async function showNewEffectiveDatedConditions(): Promise<void> {
+    const projectId = streamEditorProjectId;
+    await leaveBillingStreamEditor();
+    if (streamEditorRuleId) return;
+    if (projectId && setupProjectId !== projectId) applySetupProjectDefaults(projectId);
+    await showSetupAction('stream');
+  }
+
+  $effect(() => {
+    if (
+      !streamFocusId ||
+      !canManageBilling ||
+      streamEditorRuleId ||
+      invoiceWizardOpen ||
+      !billingRules.some(
+        (rule) => rowValue(rule, 'id') === streamFocusId && rule.browser_status === 'active',
+      )
+    )
+      return;
+    openBillingStreamEditor(streamFocusId);
+  });
 
   function openNewBillingStream(): void {
     if (projectFilter && setupProjectId !== projectFilter) applySetupProjectDefaults(projectFilter);
@@ -3057,6 +3439,11 @@
       remedyLinks={problemRemedyLinks}
     />
   {/if}
+  {#if streamEditorAnnouncement && !streamEditorRuleId && !invoiceWizardOpen}
+    <p class="billing-section__stream-editor-feedback" role="status" aria-live="polite">
+      {streamEditorAnnouncement}
+    </p>
+  {/if}
   {#if form?.success && String(form.messageKey ?? '').startsWith('action.billing.invoiceDraft') && form.messageParams?.invoiceId}
     <p role="status">
       <a
@@ -3075,17 +3462,553 @@
     </p>
   {/if}
 
-  {#if invoiceWizardOpen && canManageBilling}
+  {#if (invoiceWizardOpen || streamEditorRuleId) && canManageBilling}
     <ResponsiveSheet
       open={true}
-      title={translate('Create invoice')}
-      description={translate('Guided invoice workflow')}
+      title={streamEditorRuleId
+        ? timeReadinessText(
+            'Billing stream settings',
+            'Ajustes del flujo de facturación',
+            'Configurações do fluxo de faturamento',
+          )
+        : translate('Create invoice')}
+      description={streamEditorRuleId
+        ? streamEditorContext
+        : timeReadinessText(
+            'Review the details below; all sections stay visible.',
+            'Revisa los detalles; todas las secciones siguen visibles.',
+            'Revise os detalhes; todas as seções continuam visíveis.',
+          )}
       closeLabel={translate('Close')}
-      protectChanges
-      onclose={() => (invoiceWizardOpen = false)}
+      size="wide"
+      protectChanges={!streamEditorRuleId}
+      onclose={() => {
+        if (streamEditorRuleId) void leaveBillingStreamEditor(true);
+        else invoiceWizardOpen = false;
+      }}
     >
+      {#if streamEditorRule}
+        <details
+          id={`billing-stream-${streamEditorRuleId}`}
+          class="billing-section__rule-editor billing-section__stream-editor-disclosure"
+          open
+        >
+          <summary>{translate('Manage stream')}</summary>
+          <section
+            class="billing-section__stream-editor-surface"
+            aria-labelledby="billing-stream-editor-heading"
+            data-billing-stream-editor={streamEditorRuleId}
+            data-returns-to-invoice={streamEditorReturnsToInvoice}
+          >
+            <header class="billing-section__stream-editor-heading">
+              <div>
+                <h2 id="billing-stream-editor-heading" tabindex="-1">
+                  {timeReadinessText(
+                    'Edit this billing stream',
+                    'Editar este flujo de facturación',
+                    'Editar este fluxo de faturamento',
+                  )}
+                </h2>
+                <p>
+                  {timeReadinessText(
+                    'The saved stream below is the exact client, project, service, cadence and effective date range selected for this invoice.',
+                    'El flujo guardado es el cliente, proyecto, servicio, frecuencia y período efectivo exactos seleccionados para esta factura.',
+                    'O fluxo salvo é o cliente, projeto, serviço, frequência e período efetivo exatos selecionados para esta fatura.',
+                  )}
+                </p>
+              </div>
+              <dl class="billing-section__stream-editor-context">
+                <div>
+                  <dt>{translate('Client')}</dt>
+                  <dd>
+                    {rowValue(streamEditorRule, 'client_number', 'clientNumber')} · {rowValue(
+                      streamEditorRule,
+                      'client_name',
+                      'clientName',
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Project')}</dt>
+                  <dd>
+                    {rowValue(streamEditorRule, 'project_number', 'projectNumber')} · {rowValue(
+                      streamEditorRule,
+                      'project_name',
+                      'projectName',
+                    )}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Stream')}</dt>
+                  <dd>
+                    {controlledValue(
+                      'billingStream',
+                      rowValue(streamEditorRule, 'stream_type', 'streamType'),
+                    )} · {controlledValue(
+                      'billingStream',
+                      rowValue(streamEditorRule, 'cadence_type', 'cadenceType'),
+                    )} · {rowValue(streamEditorRule, 'currency')}
+                  </dd>
+                </div>
+                <div>
+                  <dt>{translate('Effective')}</dt>
+                  <dd>
+                    {rowValue(streamEditorRule, 'effective_from', 'effectiveFrom')} → {rowValue(
+                      streamEditorRule,
+                      'effective_to',
+                      'effectiveTo',
+                    ) || '…'}
+                  </dd>
+                </div>
+              </dl>
+            </header>
+
+            {#if streamEditorAnnouncement}
+              <p class="billing-section__stream-editor-feedback" role="status" aria-live="polite">
+                {streamEditorAnnouncement}
+              </p>
+            {/if}
+            {#if streamEditorFallbackError}
+              <p
+                class="billing-section__stream-editor-feedback billing-section__stream-editor-feedback--error"
+                role="alert"
+              >
+                {streamEditorFallbackError}
+              </p>
+            {/if}
+
+            <div class="billing-section__stream-editor-grid">
+              <section
+                class="billing-section__stream-editor-panel"
+                aria-labelledby="billing-stream-settings-heading"
+              >
+                <h3 id="billing-stream-settings-heading">
+                  {timeReadinessText(
+                    'Invoice defaults',
+                    'Valores predeterminados de factura',
+                    'Padrões da fatura',
+                  )}
+                </h3>
+                <p>
+                  {timeReadinessText(
+                    'These values are saved on this stream and set defaults for future drafts. Issued invoice snapshots and history do not change.',
+                    'Estos valores se guardan en este flujo y definen valores iniciales para futuros borradores. Las facturas emitidas y su historial no cambian.',
+                    'Estes valores são salvos neste fluxo e definem padrões para futuros rascunhos. As faturas emitidas e seu histórico não mudam.',
+                  )}
+                </p>
+                {#if problemFor('updateBillingRule', 'billingRuleId', streamEditorRuleId) && billingProblem}
+                  <ProblemNotice
+                    problem={billingProblem}
+                    kind="error"
+                    remedyLinks={problemRemedyLinks}
+                  />
+                {/if}
+                <form
+                  method="POST"
+                  action="?/updateBillingRule"
+                  class="billing-section__stream-editor-form billing-section__inline-form"
+                  data-billing-stream-update-form
+                  aria-busy={streamEditorSaving}
+                  oninput={() => (streamEditorDirty = true)}
+                  onchange={() => (streamEditorDirty = true)}
+                  use:recoverBillingForm={recoveryOptions(
+                    'updateBillingRule',
+                    'billingRuleId',
+                    streamEditorRuleId,
+                  )}
+                  use:enhance={({ cancel }) => {
+                    if (streamEditorSaving) {
+                      cancel();
+                      return;
+                    }
+                    streamEditorSaving = true;
+                    streamEditorFallbackError = '';
+                    return async ({ result, update }) => {
+                      try {
+                        if (result.type !== 'success') streamUpdateFailureNonce += 1;
+                        await update({ reset: false });
+                        if (result.type === 'success') {
+                          await finishBillingStreamSave();
+                        } else if (result.type === 'failure') {
+                          streamEditorDirty = true;
+                          if (!billingProblem)
+                            streamEditorFallbackError = String(
+                              form?.message ||
+                                timeReadinessText(
+                                  'Check the billing stream fields before saving.',
+                                  'Revisa los campos del flujo antes de guardar.',
+                                  'Confira os campos do fluxo antes de salvar.',
+                                ),
+                            );
+                        } else if (result.type === 'error') {
+                          streamEditorDirty = true;
+                          streamEditorFallbackError =
+                            result.error.message ||
+                            timeReadinessText(
+                              'Could not save billing stream settings. Your entered values remain here.',
+                              'No se pudieron guardar los ajustes. Tus datos siguen aquí.',
+                              'Não foi possível salvar as configurações. Seus dados continuam aqui.',
+                            );
+                        }
+                      } catch {
+                        streamEditorDirty = true;
+                        streamEditorFallbackError = timeReadinessText(
+                          'Could not save billing stream settings. Your entered values remain here.',
+                          'No se pudieron guardar los ajustes. Tus datos siguen aquí.',
+                          'Não foi possível salvar as configurações. Seus dados continuam aqui.',
+                        );
+                      } finally {
+                        streamEditorSaving = false;
+                      }
+                    };
+                  }}
+                >
+                  <input type="hidden" name="billingRuleId" value={streamEditorRuleId} />
+                  <label>
+                    <span>{translate('Invoice template')}</span>
+                    <select
+                      name="templateId"
+                      value={rowValue(streamEditorRule, 'template_id', 'templateId')}
+                    >
+                      <option value="default">{translate('Default')}</option>
+                      <option value="labor-detailed">{translate('Labor detailed')}</option>
+                      <option value="labor-summary">{translate('Labor summary')}</option>
+                      <option value="expenses-detailed">{translate('Expenses detailed')}</option>
+                      <option value="fixed-milestone">{translate('Fixed milestone')}</option>
+                    </select>
+                    <small
+                      >{timeReadinessText(
+                        'Origin: this saved stream. Impact: controls line presentation on future drafts; issued invoices keep their snapshots.',
+                        'Origen: este flujo guardado. Efecto: define cómo se presentan las líneas en futuros borradores; las facturas emitidas conservan su copia.',
+                        'Origem: este fluxo salvo. Efeito: define a apresentação das linhas em futuros rascunhos; faturas emitidas mantêm suas cópias.',
+                      )}</small
+                    >
+                  </label>
+                  <label>
+                    <span
+                      >{translate('Recipient email')} · {timeReadinessText(
+                        'optional',
+                        'opcional',
+                        'opcional',
+                      )}</span
+                    >
+                    <input
+                      name="recipientEmail"
+                      type="email"
+                      value={rowValue(streamEditorRule, 'recipient_email', 'recipientEmail')}
+                    />
+                    <small
+                      >{timeReadinessText(
+                        'Origin: the saved recipient for this stream. Optional; leaving it blank does not block creating a draft. Use this exact field to change the value.',
+                        'Origen: destinatario guardado para este flujo. Es opcional; dejarlo vacío no impide crear un borrador. Cambia el valor en este campo.',
+                        'Origem: destinatário salvo neste fluxo. É opcional; deixá-lo em branco não impede criar um rascunho. Altere o valor neste campo.',
+                      )}</small
+                    >
+                  </label>
+                  <label>
+                    <span>{translate('Payment terms (days)')}</span>
+                    <input
+                      name="paymentTermsDays"
+                      type="number"
+                      min="0"
+                      max="365"
+                      value={rowValue(streamEditorRule, 'payment_terms_days', 'paymentTermsDays') ||
+                        '30'}
+                    />
+                    <small
+                      >{timeReadinessText(
+                        'Origin: the saved stream setting (30 days when no value is saved). Impact: future draft due dates. Edit the number here.',
+                        'Origen: ajuste guardado en el flujo (30 días si no hay un valor guardado). Efecto: vencimiento de futuros borradores. Cambia el número aquí.',
+                        'Origem: configuração salva no fluxo (30 dias quando não há valor salvo). Efeito: vencimento de futuros rascunhos. Altere o número aqui.',
+                      )}</small
+                    >
+                  </label>
+                  <label>
+                    <span
+                      >{translate('Past Due Notice')} · {timeReadinessText(
+                        'optional',
+                        'opcional',
+                        'opcional',
+                      )}</span
+                    >
+                    <textarea name="pastDueNotice" rows="3" maxlength="2000"
+                      >{rowValue(streamEditorRule, 'past_due_notice', 'pastDueNotice')}</textarea
+                    >
+                    <small
+                      >{timeReadinessText(
+                        'Origin: text saved on this stream. Optional reminder wording; it does not change invoice amounts or issue a reminder by itself.',
+                        'Origen: texto guardado en este flujo. El recordatorio es opcional; no cambia importes ni envía avisos por sí solo.',
+                        'Origem: texto salvo neste fluxo. O lembrete é opcional; não altera valores nem envia avisos por conta própria.',
+                      )}</small
+                    >
+                  </label>
+                  <label>
+                    <span
+                      >{translate('PO reference')} · {timeReadinessText(
+                        'optional',
+                        'opcional',
+                        'opcional',
+                      )}</span
+                    >
+                    <input
+                      name="poNumberOverride"
+                      value={rowValue(streamEditorRule, 'po_number_override', 'poNumberOverride')}
+                    />
+                    <small
+                      >{timeReadinessText(
+                        'Origin: the stream’s saved override. Optional reference text for future drafts; edit or clear it here.',
+                        'Origen: valor alternativo guardado en este flujo. Es una referencia opcional para futuros borradores; cámbiala o bórrala aquí.',
+                        'Origem: substituição salva neste fluxo. Referência opcional para futuros rascunhos; altere ou limpe aqui.',
+                      )}</small
+                    >
+                  </label>
+                  <div class="billing-section__stream-editor-grouping">
+                    <p data-billing-grouping-help>
+                      {translate(
+                        'Grouping cannot be customized here. Invoice layout follows the selected template.',
+                      )}
+                    </p>
+                    <p data-billing-saved-grouping>
+                      <strong>{translate('Saved grouping setting')}:</strong>
+                      {groupingLabel(rowValue(streamEditorRule, 'grouping_mode', 'groupingMode'))}
+                    </p>
+                  </div>
+                  <label class="billing-section__checkbox">
+                    <input type="hidden" name="autoGenerateDraftPresent" value="1" />
+                    <input
+                      name="autoGenerateDraft"
+                      type="checkbox"
+                      checked={String(
+                        rowValue(streamEditorRule, 'auto_generate_draft', 'autoGenerateDraft'),
+                      ) === '1'}
+                    />
+                    <span>{translate('Automatically prepare draft after period close')}</span>
+                    <small
+                      >{timeReadinessText(
+                        'Origin: the saved stream setting. When enabled, eligible periods may be prepared automatically; creation still follows billing readiness.',
+                        'Origen: ajuste guardado en el flujo. Al activarlo, los períodos elegibles pueden prepararse automáticamente; se siguen aplicando los requisitos de facturación.',
+                        'Origem: configuração salva no fluxo. Quando ativada, períodos elegíveis podem ser preparados automaticamente; a prontidão de faturamento continua valendo.',
+                      )}</small
+                    >
+                  </label>
+                  <div class="billing-section__stream-editor-actions">
+                    <button type="submit" disabled={streamEditorSaving}
+                      >{streamEditorSaving
+                        ? translate('Saving…')
+                        : translate('Save billing stream')}</button
+                    >
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => void leaveBillingStreamEditor(true)}
+                      disabled={streamEditorSaving}>{translate('Cancel')}</button
+                    >
+                  </div>
+                </form>
+                <p class="billing-section__effective-note">
+                  {translate(
+                    'Cadence and commercial conditions use effective-dated streams. Create a successor for a future change so historic periods are never reinterpreted.',
+                  )}
+                </p>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => void showNewEffectiveDatedConditions()}
+                  >{translate('New effective-dated conditions')}</button
+                >
+              </section>
+
+              {#if !streamEditorReturnsToInvoice}
+                <aside
+                  class="billing-section__stream-editor-panel billing-section__stream-editor-lifecycle"
+                  aria-labelledby="billing-stream-lifecycle-heading"
+                >
+                  <h3 id="billing-stream-lifecycle-heading">
+                    {timeReadinessText(
+                      'Stream lifecycle',
+                      'Ciclo del flujo',
+                      'Ciclo de vida do fluxo',
+                    )}
+                  </h3>
+                  <p>
+                    {timeReadinessText(
+                      'These actions apply to stream availability or source billing status. They do not create, approve or issue an invoice.',
+                      'Estas acciones afectan la disponibilidad del flujo o el estado de facturación de los registros. No crean, aprueban ni emiten una factura.',
+                      'Estas ações afetam a disponibilidade do fluxo ou o status de faturamento dos registros. Elas não criam, aprovam nem emitem uma fatura.',
+                    )}
+                  </p>
+                  {#if problemFor('archiveBillingRule', 'billingRuleId', streamEditorRuleId) && billingProblem}
+                    <ProblemNotice
+                      problem={billingProblem}
+                      kind="error"
+                      remedyLinks={problemRemedyLinks}
+                    />
+                  {/if}
+                  <div
+                    id="billing-stream-archive"
+                    tabindex="-1"
+                    class="billing-section__stream-editor-lifecycle-action"
+                  >
+                    <ProblemNotice
+                      problem={archiveStreamWarning}
+                      kind="warning"
+                      remedyLinks={problemRemedyLinks}
+                    />
+                    <form
+                      method="POST"
+                      action="?/archiveBillingRule"
+                      use:recoverBillingForm={recoveryOptions(
+                        'archiveBillingRule',
+                        'billingRuleId',
+                        streamEditorRuleId,
+                      )}
+                      onsubmit={(event) => {
+                        if (!confirm(translate('Archive this billing rule?')))
+                          event.preventDefault();
+                      }}
+                      use:enhance={({ cancel }) => {
+                        if (streamEditorSaving) {
+                          cancel();
+                          return;
+                        }
+                        streamEditorSaving = true;
+                        return async ({ result, update }) => {
+                          try {
+                            await update({ reset: false });
+                            if (result.type === 'success')
+                              await finishBillingLifecycleAction('archive');
+                            else if (result.type === 'error')
+                              streamEditorFallbackError =
+                                result.error.message ||
+                                translate('Could not archive billing stream.');
+                          } finally {
+                            streamEditorSaving = false;
+                          }
+                        };
+                      }}
+                    >
+                      <input type="hidden" name="billingRuleId" value={streamEditorRuleId} />
+                      <button type="submit" class="danger" disabled={streamEditorSaving}
+                        >{translate('Archive billing stream')}</button
+                      >
+                    </form>
+                  </div>
+                  {#if problemFor('closePeriod', 'billingRuleId', streamEditorRuleId) && billingProblem}
+                    <ProblemNotice
+                      problem={billingProblem}
+                      kind="error"
+                      remedyLinks={problemRemedyLinks}
+                    />
+                  {/if}
+                  <details
+                    id="billing-stream-close"
+                    class="billing-section__close-sources"
+                    open={streamEditorFocusAction === 'close' ||
+                      problemFor('closePeriod', 'billingRuleId', streamEditorRuleId)}
+                    tabindex="-1"
+                  >
+                    <summary>{translate('Close sources')}</summary>
+                    <p>
+                      {translate(
+                        'Close sources after the invoice is issued so leftover work cannot be billed twice.',
+                      )}
+                    </p>
+                    <form
+                      method="POST"
+                      action="?/closePeriod"
+                      class="billing-section__period-form"
+                      aria-busy={streamEditorSaving}
+                      oninput={() => (streamEditorDirty = true)}
+                      onchange={() => (streamEditorDirty = true)}
+                      use:recoverBillingForm={recoveryOptions(
+                        'closePeriod',
+                        'billingRuleId',
+                        streamEditorRuleId,
+                      )}
+                      use:enhance={({ cancel }) => {
+                        if (streamEditorSaving) {
+                          cancel();
+                          return;
+                        }
+                        streamEditorSaving = true;
+                        return async ({ result, update }) => {
+                          try {
+                            await update({ reset: false });
+                            if (result.type === 'success')
+                              await finishBillingLifecycleAction('close');
+                            else if (result.type === 'error')
+                              streamEditorFallbackError =
+                                result.error.message || translate('Could not close this period.');
+                          } finally {
+                            streamEditorSaving = false;
+                          }
+                        };
+                      }}
+                    >
+                      <input type="hidden" name="billingRuleId" value={streamEditorRuleId} />
+                      <label
+                        ><span>{translate('Close period start')}</span><input
+                          name="periodStart"
+                          type="date"
+                          value={streamDraftPeriod(streamEditorRule).start}
+                          required
+                        /></label
+                      >
+                      <label
+                        ><span>{translate('Close period end')}</span><input
+                          name="periodEnd"
+                          type="date"
+                          value={streamDraftPeriod(streamEditorRule).end}
+                          required
+                        /></label
+                      >
+                      <label
+                        ><span>{translate('Report language')}</span><select name="reportLocale"
+                          ><option value="en">{translate('English')}</option><option value="pt"
+                            >{translate('Português (BR)')}</option
+                          ><option value="es">{translate('Spanish')}</option></select
+                        ></label
+                      >
+                      <button type="submit" disabled={streamEditorSaving}
+                        >{translate('Close sources')}</button
+                      >
+                    </form>
+                  </details>
+                </aside>
+              {:else}
+                <aside
+                  class="billing-section__stream-editor-panel billing-section__stream-editor-lifecycle"
+                >
+                  <h3>
+                    {timeReadinessText(
+                      'Stream lifecycle',
+                      'Ciclo del flujo',
+                      'Ciclo de vida do fluxo',
+                    )}
+                  </h3>
+                  <p>
+                    {timeReadinessText(
+                      'Archive and close-period actions remain available from the billing streams workspace, outside this invoice context.',
+                      'Las acciones de archivo y cierre de período están disponibles en el espacio de flujos, fuera de esta factura.',
+                      'As ações de arquivamento e fechamento de período ficam no espaço de fluxos, fora deste contexto de fatura.',
+                    )}
+                  </p>
+                </aside>
+              {/if}
+            </div>
+          </section>
+        </details>
+      {/if}
+      {#if invoiceWizardOpen && !streamEditorRuleId && streamEditorAnnouncement}
+        <p class="billing-section__stream-editor-feedback" role="status" aria-live="polite">
+          {streamEditorAnnouncement}
+        </p>
+      {/if}
       <div
         class="billing-section__creation-modes"
+        hidden={Boolean(streamEditorRuleId)}
+        inert={Boolean(streamEditorRuleId)}
+        aria-hidden={Boolean(streamEditorRuleId)}
         role="group"
         aria-label={journeyText(locale, 'creationMode')}
         data-invoice-creation-modes
@@ -3098,7 +4021,13 @@
           onclick={() => void switchInvoiceCreationMode('records')}
         >
           <strong>{journeyText(locale, 'recordMode')}</strong>
-          <span>{journeyText(locale, 'recordModeHelp')}</span>
+          <span>
+            {timeReadinessText(
+              'Choose approved hours and expenses, then review each source before saving.',
+              'Elige horas y gastos aprobados y revisa cada registro antes de guardar.',
+              'Escolha horas e despesas aprovadas e revise cada registro antes de salvar.',
+            )}
+          </span>
         </button>
         <button
           type="button"
@@ -3108,12 +4037,21 @@
           onclick={() => void switchInvoiceCreationMode('whole_period')}
         >
           <strong>{journeyText(locale, 'wholePeriodMode')}</strong>
-          <span>{journeyText(locale, 'wholePeriodModeHelp')}</span>
+          <span>
+            {timeReadinessText(
+              'Use the configured amount or milestone for a complete period.',
+              'Usa el importe configurado o el hito para un período completo.',
+              'Use o valor configurado ou o marco para um período completo.',
+            )}
+          </span>
         </button>
       </div>
       {#if wizardRuleId}
         <aside
           class="billing-section__creation-context"
+          hidden={Boolean(streamEditorRuleId)}
+          inert={Boolean(streamEditorRuleId)}
+          aria-hidden={Boolean(streamEditorRuleId)}
           data-invoice-creation-context
           aria-label={journeyText(locale, 'projectContext')}
         >
@@ -3133,18 +4071,70 @@
               rowValue(wizardRule, 'cadence_type', 'cadenceType'),
             )}
           </small>
+          {#if invoiceCreationMode === 'records'}
+            <div class="billing-section__record-stream-edit">
+              <span>
+                {timeReadinessText(
+                  'This stream’s saved settings apply to the selected project and dates.',
+                  'Los ajustes guardados de este flujo se aplican al proyecto y las fechas seleccionados.',
+                  'As configurações salvas deste fluxo se aplicam ao projeto e às datas selecionados.',
+                )}
+              </span>
+              {#if recordComposerModeLocked}
+                <small id={`invoice-stream-record-edit-help-${wizardRuleId}`}>
+                  {timeReadinessText(
+                    'Finish the current invoice operation before editing this stream.',
+                    'Termina la operación de factura actual antes de editar este flujo.',
+                    'Conclua a operação atual da fatura antes de editar este fluxo.',
+                  )}
+                </small>
+              {/if}
+              <button
+                id={`invoice-stream-record-edit-${wizardRuleId}`}
+                type="button"
+                class="secondary-button"
+                disabled={recordComposerModeLocked}
+                title={recordComposerModeLocked
+                  ? timeReadinessText(
+                      'Finish the current invoice operation before editing this stream.',
+                      'Termina la operación de factura actual antes de editar este flujo.',
+                      'Conclua a operação atual da fatura antes de editar este fluxo.',
+                    )
+                  : undefined}
+                aria-describedby={recordComposerModeLocked
+                  ? `invoice-stream-record-edit-help-${wizardRuleId}`
+                  : undefined}
+                aria-label={`${timeReadinessText('Edit selected stream settings', 'Editar ajustes del flujo seleccionado', 'Editar configurações do fluxo selecionado')} · ${wizardContextProject ? projectLabel(wizardContextProject) : rowValue(wizardRule, 'project_number', 'projectNumber')} · ${controlledValue('billingStream', rowValue(wizardRule, 'stream_type', 'streamType'))} · ${rowValue(wizardRule, 'effective_from', 'effectiveFrom')}`}
+                onclick={() => openBillingStreamEditor(wizardRuleId, true)}
+              >
+                {timeReadinessText(
+                  'Edit selected stream settings',
+                  'Editar ajustes del flujo seleccionado',
+                  'Editar configurações do fluxo selecionado',
+                )}
+              </button>
+            </div>
+          {/if}
         </aside>
       {/if}
       {#if recordComposerHasUnresolvedOperation}
-        <p class="billing-section__creation-resume" data-invoice-resume-context role="status">
+        <p
+          class="billing-section__creation-resume"
+          data-invoice-resume-context
+          role="status"
+          hidden={Boolean(streamEditorRuleId)}
+          inert={Boolean(streamEditorRuleId)}
+          aria-hidden={Boolean(streamEditorRuleId)}
+        >
           {journeyText(locale, 'uncertain')}
         </p>
       {/if}
       <div
         class="billing-section__creation-surface"
         data-invoice-creation-mode="records"
-        hidden={invoiceCreationMode !== 'records'}
-        aria-hidden={invoiceCreationMode !== 'records'}
+        hidden={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'records'}
+        inert={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'records'}
+        aria-hidden={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'records'}
       >
         <ProjectInvoiceComposer
           bind:this={recordComposer}
@@ -3166,8 +4156,9 @@
       <div
         class="billing-section__creation-surface"
         data-invoice-creation-mode="whole_period"
-        hidden={invoiceCreationMode !== 'whole_period'}
-        aria-hidden={invoiceCreationMode !== 'whole_period'}
+        hidden={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'whole_period'}
+        inert={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'whole_period'}
+        aria-hidden={Boolean(streamEditorRuleId) || invoiceCreationMode !== 'whole_period'}
       >
         <form
           method="POST"
@@ -3220,9 +4211,9 @@
             >
             <p>
               {timeReadinessText(
-                'Each step shows all its details below. Use these shortcuts to review any section. Choose records above if you want to select individual hours or expenses.',
-                'Cada paso muestra todos sus detalles debajo. Usa estos accesos para revisar cualquier sección. Elige registros arriba si quieres seleccionar horas o gastos concretos.',
-                'Cada etapa mostra todos os seus detalhes abaixo. Use estes atalhos para revisar qualquer seção. Escolha registros acima para selecionar horas ou despesas específicas.',
+                'All 12 details appear in these three stages; use a link to jump.',
+                'Los 12 detalles se muestran en estas tres etapas; usa un enlace para ir a uno.',
+                'Os 12 detalhes aparecem nestas três etapas; use um link para ir a um.',
               )}
             </p>
             {#each wizardStageSections as sections, stage}
@@ -3251,7 +4242,9 @@
               data-invoice-detail="1"
             >
               <h3 id="invoice-wizard-heading-1">{translate('Client / project')}</h3>
-              <p>{translate('Choose the project whose approved source records will be billed.')}</p>
+              <p>
+                {translate('Choose the project whose approved source records will be billed.')}
+              </p>
               <label>
                 <span>{translate('Project and billing stream')}</span>
                 <select
@@ -3289,9 +4282,9 @@
               <h3 id="invoice-wizard-heading-2">{translate('Billing stream')}</h3>
               <p data-invoice-configuration-help>
                 {timeReadinessText(
-                  'These are the saved billing settings. Manage stream closes this assistant and opens the billing streams list. Find the project and stream shown above, then choose Manage stream in its row to edit it. Return to Create invoice after saving your changes.',
-                  'Estos son los ajustes de facturación guardados. Gestionar flujo cierra este asistente y abre la lista de flujos de facturación. Busca el proyecto y flujo indicados arriba y pulsa Gestionar flujo en su fila para editarlos. Vuelve a Crear factura después de guardar los cambios.',
-                  'Estas são as configurações de faturamento salvas. Gerenciar fluxo fecha este assistente e abre a lista de fluxos de faturamento. Localize o projeto e fluxo indicados acima e selecione Gerenciar fluxo na respectiva linha para editar. Volte a Criar fatura após salvar as alterações.',
+                  'These saved settings apply to this exact project and stream. Edit them here without leaving the invoice wizard; period dates and current record selection stay in context.',
+                  'Estos ajustes guardados corresponden a este proyecto y flujo. Edítalos aquí sin salir del asistente; se conservan el período y los registros seleccionados.',
+                  'Estas configurações salvas pertencem a este projeto e fluxo. Edite aqui sem sair do assistente; o período e os registros selecionados ficam no contexto.',
                 )}
               </p>
               <p>
@@ -3325,15 +4318,30 @@
                       translate('No tax profile configured')}
                   </dd>
                 </div>
+                <div>
+                  <dt>{translate('Invoice template')}</dt>
+                  <dd>{templateLabel(rowValue(wizardRule, 'template_id', 'templateId'))}</dd>
+                </div>
               </dl>
               <button
+                id={`invoice-stream-invoice-edit-${wizardRuleId}`}
                 type="button"
                 class="secondary-button"
-                onclick={() => {
-                  selectBillingWorkspace('streams');
-                  invoiceWizardOpen = false;
-                }}>{translate('Manage stream')}</button
+                aria-label={`${timeReadinessText('Edit selected stream settings', 'Editar ajustes del flujo seleccionado', 'Editar configurações do fluxo selecionado')} · ${wizardContextProject ? projectLabel(wizardContextProject) : rowValue(wizardRule, 'project_number', 'projectNumber')} · ${controlledValue('billingStream', rowValue(wizardRule, 'stream_type', 'streamType'))} · ${rowValue(wizardRule, 'effective_from', 'effectiveFrom')}`}
+                onclick={() => openBillingStreamEditor(wizardRuleId, true)}
+                >{timeReadinessText(
+                  'Edit selected stream settings',
+                  'Editar ajustes del flujo seleccionado',
+                  'Editar configurações do fluxo selecionado',
+                )}</button
               >
+              <p class="billing-section__field-origin">
+                {timeReadinessText(
+                  'Origin: this stream supplies the tax profile and invoice template shown here. The tax profile is read-only in the stream editor; to change it, choose Edit selected stream settings, then New effective-dated conditions and explicitly select a profile. With no profile, the draft adds no tax. Template edits apply to future drafts; issued invoices keep their snapshots.',
+                  'Origen: este flujo proporciona el perfil fiscal y la plantilla mostrados aquí. El perfil fiscal es de solo lectura en el editor; para cambiarlo, elige Editar ajustes del flujo seleccionado y luego Nuevas condiciones con fecha de vigencia para seleccionar un perfil. Sin perfil, el borrador no añade impuestos. Los cambios de plantilla se aplican a futuros borradores; las facturas emitidas conservan su copia.',
+                  'Origem: este fluxo fornece o perfil fiscal e o modelo exibidos aqui. O perfil fiscal é somente leitura no editor; para alterá-lo, escolha Editar configurações do fluxo selecionado e depois Novas condições com data de vigência para selecionar um perfil. Sem perfil, o rascunho não inclui imposto. Alterações no modelo valem para futuros rascunhos; faturas emitidas mantêm suas cópias.',
+                )}
+              </p>
             </section>
           {/if}
           {#if wizardMainStep === 1}
@@ -3740,16 +4748,21 @@
               <h3 id="invoice-wizard-heading-7">{translate('Taxes')}</h3>
               <p data-invoice-review-help>
                 {timeReadinessText(
-                  'Review taxes, invoice data, payment terms and adjustments below before saving. These values come from the saved billing setup. Commercial adjustments are added to the draft after saving, before issue.',
-                  'Revisa abajo los impuestos, datos de factura, condiciones de pago y ajustes antes de guardar. Estos valores proceden de la configuración guardada. Los ajustes comerciales se añaden al borrador después de guardarlo, antes de emitir.',
-                  'Revise abaixo os impostos, dados da fatura, condições de pagamento e ajustes antes de salvar. Estes valores vêm da configuração salva. Os ajustes comerciais são adicionados ao rascunho após salvar, antes da emissão.',
+                  'Review copied billing details and optional adjustments before saving; changes are still a draft until Finance issues the invoice.',
+                  'Revisa los datos copiados y los ajustes opcionales antes de guardar; seguirá siendo un borrador hasta que Finanzas emita la factura.',
+                  'Revise os dados copiados e os ajustes opcionais antes de salvar; a fatura continua como rascunho até ser emitida por Finanças.',
                 )}
               </p>
               <button
                 type="button"
                 class="secondary-button"
-                onclick={() => void visitWizardSection(2)}
-                >{translate('Review billing setup')}</button
+                id={`invoice-stream-tax-edit-${wizardRuleId}`}
+                onclick={() => openBillingStreamEditor(wizardRuleId, true)}
+                >{timeReadinessText(
+                  'Edit the selected stream',
+                  'Editar el flujo seleccionado',
+                  'Editar o fluxo selecionado',
+                )}</button
               >
               <p>
                 {translate(
@@ -3769,6 +4782,13 @@
                   <dd>{rowValue(wizardRule, 'currency')}</dd>
                 </div>
               </dl>
+              <p class="billing-section__field-origin">
+                {timeReadinessText(
+                  'Origin: this profile is selected on the current stream. Its effective tax components apply to draft preview; a missing profile adds no tax. The invoice editor cannot change the profile. To choose another, open Edit selected stream settings, then New effective-dated conditions and explicitly select a profile for the applicable dates.',
+                  'Origen: el perfil está seleccionado en el flujo actual. Sus componentes fiscales vigentes se aplican a la vista previa; sin perfil no se añade impuesto. El editor de facturas no puede cambiar el perfil. Para elegir otro, abre Editar ajustes del flujo seleccionado y luego Nuevas condiciones con fecha de vigencia para seleccionar un perfil para las fechas aplicables.',
+                  'Origem: este perfil foi selecionado no fluxo atual. Seus componentes fiscais vigentes são aplicados à prévia; sem perfil, nenhum imposto é adicionado. O editor de faturas não pode alterar o perfil. Para escolher outro, abra Editar configurações do fluxo selecionado e depois Novas condições com data de vigência para selecionar um perfil para as datas aplicáveis.',
+                )}
+              </p>
             </section>
           {/if}
           {#if wizardMainStep === 3}
@@ -3788,33 +4808,89 @@
                 <div>
                   <dt>{translate('Invoice issuer')}</dt>
                   <dd>
-                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
-                      translate('Missing')}
+                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') || '—'}
+                    <small
+                      >{timeReadinessText(
+                        'Origin: invoice issuer saved on the selected stream; controls issuer identity on this draft.',
+                        'Origen: emisor guardado en el flujo seleccionado; define la identidad del emisor en este borrador.',
+                        'Origem: emissor salvo no fluxo selecionado; define a identidade do emissor neste rascunho.',
+                      )}</small
+                    >
                   </dd>
                 </div>
                 <div>
                   <dt>{translate('Customer legal entity')}</dt>
-                  <dd>{rowValue(wizardRule, 'client_legal_name', 'clientLegalName')}</dd>
+                  <dd>
+                    {rowValue(wizardRule, 'client_legal_name', 'clientLegalName') || '—'}<small
+                      >{timeReadinessText(
+                        'Origin: legal record on the client for this project; copied to the draft for review.',
+                        'Origen: datos legales del cliente de este proyecto; se copian al borrador para revisión.',
+                        'Origem: dados legais do cliente deste projeto; são copiados para o rascunho para revisão.',
+                      )}</small
+                    >
+                  </dd>
                 </div>
                 <div>
                   <dt>{translate('Customer billing address')}</dt>
                   <dd>
-                    {rowValue(wizardRule, 'client_billing_address', 'clientBillingAddress') ||
-                      translate('Missing')}
+                    {rowValue(wizardRule, 'client_billing_address', 'clientBillingAddress') || '—'}
+                    <small
+                      >{timeReadinessText(
+                        'Origin: billing address on the client record; copied to the draft for review.',
+                        'Origen: dirección de facturación del registro del cliente; se copia al borrador para revisión.',
+                        'Origem: endereço de cobrança no cadastro do cliente; copiado para o rascunho para revisão.',
+                      )}</small
+                    >
                   </dd>
                 </div>
                 <div>
-                  <dt>{translate('Recipient email')}</dt>
+                  <dt>
+                    {translate('Recipient email')} · {timeReadinessText(
+                      'optional',
+                      'opcional',
+                      'opcional',
+                    )}
+                  </dt>
                   <dd>
-                    {rowValue(wizardRule, 'recipient_email', 'recipientEmail') ||
-                      translate('Missing')}
+                    {rowValue(wizardRule, 'recipient_email', 'recipientEmail') || '—'}
+                    <small
+                      >{timeReadinessText(
+                        'Origin: recipient saved on the selected stream. Optional; blank does not block draft creation.',
+                        'Origen: destinatario guardado en el flujo seleccionado. Es opcional; dejarlo vacío no impide crear un borrador.',
+                        'Origem: destinatário salvo no fluxo selecionado. É opcional; deixá-lo em branco não impede criar um rascunho.',
+                      )}</small
+                    >
                   </dd>
                 </div>
                 <div>
                   <dt>{translate('PO reference')}</dt>
-                  <dd>{rowValue(wizardRule, 'po_number_override', 'poNumberOverride') || '—'}</dd>
+                  <dd>
+                    {rowValue(wizardRule, 'po_number_override', 'poNumberOverride') || '—'}<small
+                      >{timeReadinessText(
+                        'Origin: PO reference setting on the selected stream; used as invoice reference text.',
+                        'Origen: referencia PO configurada en el flujo seleccionado; se usa como texto de referencia de la factura.',
+                        'Origem: referência de PO configurada no fluxo selecionado; usada como texto de referência da fatura.',
+                      )}</small
+                    >
+                  </dd>
                 </div>
               </dl>
+              <button
+                type="button"
+                class="secondary-button"
+                id={`invoice-stream-data-edit-${wizardRuleId}`}
+                aria-label={timeReadinessText(
+                  'Edit selected recipient and PO reference settings',
+                  'Editar destinatario y referencia PO del flujo',
+                  'Editar destinatário e referência de PO do fluxo',
+                )}
+                onclick={() => openBillingStreamEditor(wizardRuleId, true)}
+                >{timeReadinessText(
+                  'Edit selected stream settings',
+                  'Editar ajustes del flujo seleccionado',
+                  'Editar configurações do fluxo selecionado',
+                )}</button
+              >
             </section>
           {/if}
           {#if wizardMainStep === 3}
@@ -3834,15 +4910,45 @@
                 <div>
                   <dt>{translate('Issuing entity')}</dt>
                   <dd>
-                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') ||
-                      translate('Missing')}
+                    {rowValue(wizardRule, 'legal_entity_code', 'legalEntityCode') || '—'}
+                    <small
+                      >{timeReadinessText(
+                        'Origin: issuer selected on the billing stream; payment instructions are reviewed on the draft.',
+                        'Origen: emisor seleccionado en el flujo; las instrucciones de pago se revisan en el borrador.',
+                        'Origem: emissor selecionado no fluxo; as instruções de pagamento são revisadas no rascunho.',
+                      )}</small
+                    >
                   </dd>
                 </div>
                 <div>
                   <dt>{translate('Payment terms (days)')}</dt>
-                  <dd>{rowValue(wizardRule, 'payment_terms_days', 'paymentTermsDays') || '30'}</dd>
+                  <dd>
+                    {rowValue(wizardRule, 'payment_terms_days', 'paymentTermsDays') || '30'}<small
+                      >{timeReadinessText(
+                        'Origin: payment terms saved on this stream (30 days if no value is saved). Impact: due date on future drafts.',
+                        'Origen: condiciones guardadas en este flujo (30 días si no hay valor guardado). Efecto: vencimiento de futuros borradores.',
+                        'Origem: condições salvas neste fluxo (30 dias se não houver valor salvo). Efeito: vencimento de futuros rascunhos.',
+                      )}</small
+                    >
+                  </dd>
                 </div>
               </dl>
+              <button
+                type="button"
+                class="secondary-button"
+                id={`invoice-stream-payment-edit-${wizardRuleId}`}
+                aria-label={timeReadinessText(
+                  'Edit selected payment terms',
+                  'Editar condiciones de pago seleccionadas',
+                  'Editar condições de pagamento selecionadas',
+                )}
+                onclick={() => openBillingStreamEditor(wizardRuleId, true)}
+                >{timeReadinessText(
+                  'Edit selected stream settings',
+                  'Editar ajustes del flujo seleccionado',
+                  'Editar configurações do fluxo selecionado',
+                )}</button
+              >
             </section>
           {/if}
           {#if wizardMainStep === 3}
@@ -5659,235 +6765,39 @@
                           <button type="submit">{translate('Create invoice draft')}</button>
                         </form>
                       </details>
-                      <details
-                        id={`billing-stream-${rowValue(rule, 'id')}`}
-                        class="billing-section__rule-editor"
-                        open={streamFocusId === rowValue(rule, 'id') ||
-                          ['updateBillingRule', 'archiveBillingRule', 'closePeriod'].some(
-                            (operation) =>
-                              problemFor(operation, 'billingRuleId', rowValue(rule, 'id')),
-                          )}
+                      <div
+                        class="billing-section__stream-row-actions"
+                        aria-label={translate('Billing stream actions')}
                       >
-                        <summary
+                        <button
+                          id={`invoice-edit-stream-${rowValue(rule, 'id')}`}
+                          type="button"
                           class="secondary-button"
-                          aria-label={`${translate('Manage stream')} · ${streamContext}`}
-                          >{translate('Manage stream')}</summary
+                          aria-label={`${timeReadinessText('Edit stream settings', 'Editar ajustes del flujo', 'Editar configurações do fluxo')} · ${streamContext}`}
+                          onclick={() => openBillingStreamEditor(rowValue(rule, 'id'))}
+                          >{timeReadinessText(
+                            'Edit stream settings',
+                            'Editar ajustes del flujo',
+                            'Editar configurações do fluxo',
+                          )}</button
                         >
-                        <div class="billing-section__rule-actions">
-                          {#if problemFor('updateBillingRule', 'billingRuleId', rowValue(rule, 'id'))}
-                            <ProblemNotice
-                              problem={billingProblem!}
-                              kind="error"
-                              remedyLinks={problemRemedyLinks}
-                            />
-                          {/if}
-                          <form
-                            method="POST"
-                            action="?/updateBillingRule"
-                            class="billing-section__inline-form"
-                            use:recoverBillingForm={recoveryOptions(
-                              'updateBillingRule',
-                              'billingRuleId',
-                              rowValue(rule, 'id'),
-                            )}
-                          >
-                            <input
-                              type="hidden"
-                              name="billingRuleId"
-                              value={rowValue(rule, 'id')}
-                            />
-                            <label
-                              ><span>{translate('Invoice template')}</span><select
-                                name="templateId"
-                              >
-                                <option
-                                  value="default"
-                                  selected={rowValue(rule, 'template_id', 'templateId') ===
-                                    'default'}>{translate('Default')}</option
-                                >
-                                <option
-                                  value="labor-detailed"
-                                  selected={rowValue(rule, 'template_id', 'templateId') ===
-                                    'labor-detailed'}>{translate('Labor detailed')}</option
-                                >
-                                <option
-                                  value="labor-summary"
-                                  selected={rowValue(rule, 'template_id', 'templateId') ===
-                                    'labor-summary'}>{translate('Labor summary')}</option
-                                >
-                                <option
-                                  value="expenses-detailed"
-                                  selected={rowValue(rule, 'template_id', 'templateId') ===
-                                    'expenses-detailed'}>{translate('Expenses detailed')}</option
-                                >
-                                <option
-                                  value="fixed-milestone"
-                                  selected={rowValue(rule, 'template_id', 'templateId') ===
-                                    'fixed-milestone'}>{translate('Fixed milestone')}</option
-                                >
-                              </select></label
-                            >
-                            <label
-                              ><span>{translate('Recipient email')}</span><input
-                                name="recipientEmail"
-                                type="email"
-                                value={rowValue(rule, 'recipient_email', 'recipientEmail')}
-                              /></label
-                            >
-                            <label
-                              ><span>{translate('Payment terms (days)')}</span><input
-                                name="paymentTermsDays"
-                                type="number"
-                                min="0"
-                                max="365"
-                                value={rowValue(rule, 'payment_terms_days', 'paymentTermsDays') ||
-                                  '30'}
-                              /></label
-                            >
-                            <label
-                              ><span>{translate('Past Due Notice')}</span><textarea
-                                name="pastDueNotice"
-                                rows="3"
-                                maxlength="2000"
-                                >{rowValue(rule, 'past_due_notice', 'pastDueNotice')}</textarea
-                              ></label
-                            >
-                            <label
-                              ><span>{translate('PO reference')}</span><input
-                                name="poNumberOverride"
-                                value={rowValue(rule, 'po_number_override', 'poNumberOverride')}
-                              /></label
-                            >
-                            <p data-billing-grouping-help>
-                              {translate(
-                                'Grouping cannot be customized here. Invoice layout follows the selected template.',
-                              )}
-                            </p>
-                            <p data-billing-saved-grouping>
-                              <strong>{translate('Saved grouping setting')}:</strong>
-                              {groupingLabel(rowValue(rule, 'grouping_mode', 'groupingMode'))}
-                            </p>
-                            <label class="billing-section__checkbox">
-                              <input type="hidden" name="autoGenerateDraftPresent" value="1" />
-                              <input
-                                name="autoGenerateDraft"
-                                type="checkbox"
-                                checked={String(
-                                  rowValue(rule, 'auto_generate_draft', 'autoGenerateDraft'),
-                                ) === '1'}
-                              />
-                              <span
-                                >{translate('Automatically prepare draft after period close')}</span
-                              >
-                            </label>
-                            <button type="submit">{translate('Save billing stream')}</button>
-                          </form>
-                          <button
-                            type="button"
-                            class="secondary-button"
-                            onclick={() => void showSetupAction('stream')}
-                            >{translate('New effective-dated conditions')}</button
-                          >
-                          <p class="billing-section__effective-note">
-                            {translate(
-                              'Cadence and commercial conditions use effective-dated streams. Create a successor for a future change so historic periods are never reinterpreted.',
-                            )}
-                          </p>
-                          {#if problemFor('archiveBillingRule', 'billingRuleId', rowValue(rule, 'id'))}
-                            <ProblemNotice
-                              problem={billingProblem!}
-                              kind="error"
-                              remedyLinks={problemRemedyLinks}
-                            />
-                          {/if}
-                          <ProblemNotice
-                            problem={archiveStreamWarning}
-                            kind="warning"
-                            remedyLinks={problemRemedyLinks}
-                          />
-                          <form
-                            method="POST"
-                            action="?/archiveBillingRule"
-                            use:recoverBillingForm={recoveryOptions(
-                              'archiveBillingRule',
-                              'billingRuleId',
-                              rowValue(rule, 'id'),
-                            )}
-                            onsubmit={(event) => {
-                              if (!confirm(translate('Archive this billing rule?')))
-                                event.preventDefault();
-                            }}
-                          >
-                            <input
-                              type="hidden"
-                              name="billingRuleId"
-                              value={rowValue(rule, 'id')}
-                            />
-                            <button type="submit" class="danger"
-                              >{translate('Archive billing stream')}</button
-                            >
-                          </form>
-                          <details
-                            class="billing-section__close-sources"
-                            open={problemFor('closePeriod', 'billingRuleId', rowValue(rule, 'id'))}
-                          >
-                            <summary>{translate('Close sources')}</summary>
-                            <p>
-                              {translate(
-                                'Close sources after the invoice is issued so leftover work cannot be billed twice.',
-                              )}
-                            </p>
-                            {#if problemFor('closePeriod', 'billingRuleId', rowValue(rule, 'id'))}
-                              <ProblemNotice
-                                problem={billingProblem!}
-                                kind="error"
-                                remedyLinks={problemRemedyLinks}
-                              />
-                            {/if}
-                            <form
-                              method="POST"
-                              action="?/closePeriod"
-                              class="billing-section__period-form"
-                              use:recoverBillingForm={recoveryOptions(
-                                'closePeriod',
-                                'billingRuleId',
-                                rowValue(rule, 'id'),
-                              )}
-                            >
-                              <input
-                                type="hidden"
-                                name="billingRuleId"
-                                value={rowValue(rule, 'id')}
-                              />
-                              <label
-                                ><span>{translate('Close period start')}</span><input
-                                  name="periodStart"
-                                  type="date"
-                                  value={streamDraftPeriod(rule).start}
-                                  required
-                                /></label
-                              >
-                              <label
-                                ><span>{translate('Close period end')}</span><input
-                                  name="periodEnd"
-                                  type="date"
-                                  value={streamDraftPeriod(rule).end}
-                                  required
-                                /></label
-                              >
-                              <label
-                                ><span>{translate('Report language')}</span><select
-                                  name="reportLocale"
-                                  ><option value="en">{translate('English')}</option><option
-                                    value="pt">{translate('Português (BR)')}</option
-                                  ><option value="es">{translate('Spanish')}</option></select
-                                ></label
-                              >
-                              <button type="submit">{translate('Close sources')}</button>
-                            </form>
-                          </details>
-                        </div>
-                      </details>
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          aria-label={`${translate('Archive billing stream')} · ${streamContext}`}
+                          onclick={() =>
+                            openBillingStreamEditor(rowValue(rule, 'id'), false, 'archive')}
+                          >{translate('Archive billing stream')}</button
+                        >
+                        <button
+                          type="button"
+                          class="secondary-button"
+                          aria-label={`${translate('Close sources')} · ${streamContext}`}
+                          onclick={() =>
+                            openBillingStreamEditor(rowValue(rule, 'id'), false, 'close')}
+                          >{translate('Close sources')}</button
+                        >
+                      </div>
                     {:else if rule.browser_status !== 'active'}
                       <details
                         id={`billing-stream-${rowValue(rule, 'id')}`}
@@ -7470,6 +8380,227 @@
     gap: 0.5rem;
   }
 
+  .billing-section__stream-row-actions {
+    display: grid;
+    gap: 0.45rem;
+    min-width: 10rem;
+    margin-top: 0.55rem;
+  }
+
+  .billing-section__stream-row-actions button {
+    width: 100%;
+    white-space: normal;
+    text-align: start;
+  }
+
+  .billing-section__stream-editor-feedback {
+    margin: 0.65rem 0;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-inline-start: 0.3rem solid var(--portal-accent, #53524c);
+    border-radius: 0.55rem;
+    background: var(--portal-surface-muted, #f7f7f4);
+    color: var(--portal-ink, #20201d);
+    line-height: 1.5;
+  }
+
+  .billing-section__stream-editor-feedback--error {
+    border-inline-start-color: var(--portal-danger, #a40f18);
+  }
+
+  .billing-section__stream-editor-disclosure > summary {
+    box-sizing: border-box;
+    width: fit-content;
+    margin: 0 0 0.75rem;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--portal-border-strong, #c4c4bf);
+    border-radius: 0.5rem;
+    color: var(--portal-ink, #20201d);
+    cursor: pointer;
+    font-weight: 700;
+    list-style: none;
+  }
+
+  .billing-section__stream-editor-disclosure > summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .billing-section__stream-editor-surface {
+    display: grid;
+    gap: 1rem;
+    min-width: 0;
+    padding: 0 0 0.5rem;
+  }
+
+  .billing-section__stream-editor-heading {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.8fr);
+    align-items: start;
+    gap: 1rem;
+    padding-bottom: 0.8rem;
+    border-bottom: 1px solid var(--portal-border, #dfdedc);
+  }
+
+  .billing-section__stream-editor-heading h2 {
+    margin: 0;
+    font-size: clamp(1.3rem, 2vw, 1.8rem);
+    line-height: 1.2;
+  }
+
+  .billing-section__stream-editor-heading p,
+  .billing-section__stream-editor-panel > p {
+    margin: 0.45rem 0 0;
+    color: var(--portal-muted, #67675f);
+    line-height: 1.5;
+  }
+
+  .billing-section__stream-editor-context {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem 1rem;
+    margin: 0;
+    padding: 0.75rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.6rem;
+    background: var(--portal-surface-muted, #f7f7f4);
+  }
+
+  .billing-section__stream-editor-context > div {
+    min-width: 0;
+  }
+
+  .billing-section__stream-editor-context dt {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.75rem;
+    font-weight: 750;
+    text-transform: uppercase;
+  }
+
+  .billing-section__stream-editor-context dd {
+    margin: 0.15rem 0 0;
+    overflow-wrap: anywhere;
+    font-weight: 650;
+  }
+
+  .billing-section__stream-editor-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(15rem, 0.8fr);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  .billing-section__stream-editor-panel {
+    display: grid;
+    align-content: start;
+    gap: 0.8rem;
+    min-width: 0;
+    padding: 1rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.7rem;
+    background: var(--portal-surface, #fff);
+  }
+
+  .billing-section__stream-editor-panel h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+
+  .billing-section__stream-editor-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.8rem 1rem;
+    padding: 0.25rem 0 0;
+    border: 0;
+  }
+
+  .billing-section__stream-editor-form > label {
+    display: grid;
+    align-content: start;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .billing-section__stream-editor-form > label > span {
+    font-weight: 650;
+  }
+
+  .billing-section__stream-editor-form > label small,
+  .billing-section__field-origin {
+    display: block;
+    margin: 0;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .billing-section__stream-editor-form .billing-section__checkbox {
+    display: grid !important;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.35rem 0.6rem !important;
+    grid-column: 1 / -1;
+  }
+
+  .billing-section__stream-editor-form .billing-section__checkbox input[type='checkbox'] {
+    grid-row: span 2;
+    margin-top: 0.2rem;
+  }
+
+  .billing-section__stream-editor-form .billing-section__checkbox small {
+    grid-column: 2;
+  }
+
+  .billing-section__stream-editor-grouping,
+  .billing-section__stream-editor-actions {
+    grid-column: 1 / -1;
+  }
+
+  .billing-section__stream-editor-grouping {
+    display: grid;
+    gap: 0.4rem;
+    padding: 0.65rem 0.75rem;
+    border-inline-start: 0.2rem solid var(--portal-border-strong, #c4c4bf);
+    background: var(--portal-surface-muted, #f7f7f4);
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.45;
+  }
+
+  .billing-section__stream-editor-grouping p {
+    margin: 0;
+  }
+
+  .billing-section__stream-editor-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    padding-top: 0.5rem;
+  }
+
+  .billing-section__stream-editor-actions button {
+    min-height: 2.75rem;
+  }
+
+  .billing-section__stream-editor-lifecycle-action {
+    scroll-margin-top: 1rem;
+  }
+
+  .billing-section__stream-editor-lifecycle-action form {
+    margin-top: 0.45rem;
+  }
+
+  .billing-section__stream-editor-lifecycle :global([data-ui='problem-notice']) {
+    margin-bottom: 0.7rem;
+  }
+
+  .billing-section__invoice-wizard dd small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
   .billing-section__direct-draft-entry {
     display: grid;
     gap: 0.65rem;
@@ -7984,6 +9115,25 @@
     color: var(--portal-muted, #67675f);
   }
 
+  .billing-section__record-stream-edit {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.65rem;
+    margin-top: 0.25rem;
+  }
+
+  .billing-section__record-stream-edit > span {
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.4;
+  }
+
+  .billing-section__record-stream-edit > button {
+    flex: 0 0 auto;
+    min-height: 2.75rem;
+  }
+
   .billing-section__creation-resume {
     margin: 0 0 1rem;
     color: var(--portal-muted, #67675f);
@@ -8446,15 +9596,18 @@
     min-width: 0;
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.5rem;
-    padding: 0.65rem;
+    padding: 0.5rem 0.6rem;
   }
   .billing-section__wizard-reference > p {
-    margin: 0.4rem 0 0.75rem;
+    margin: 0.25rem 0 0.4rem;
+    color: var(--portal-muted, #67675f);
+    font-size: 0.8125rem;
+    line-height: 1.3;
   }
   .billing-section__wizard-detail-group {
     display: grid;
-    gap: 0.35rem;
-    margin-top: 0.65rem;
+    gap: 0.25rem;
+    margin-top: 0.45rem;
   }
   .billing-section__wizard-detail-group > span {
     font-weight: 650;
@@ -8467,8 +9620,11 @@
   .billing-section__wizard-detail-group button {
     min-height: 2.75rem;
     max-width: 100%;
+    padding: 0.4rem 0.55rem;
     white-space: normal;
     text-align: left;
+    font-size: 0.8125rem;
+    line-height: 1.2;
   }
   .billing-section__invoice-wizard [data-invoice-detail] {
     padding: 1rem;
@@ -8585,6 +9741,15 @@
   }
 
   @media (max-width: 52rem) {
+    .billing-section__stream-editor-heading,
+    .billing-section__stream-editor-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .billing-section__stream-editor-context {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
     .billing-section__filters {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -8609,6 +9774,18 @@
   }
 
   @media (max-width: 760px) {
+    .billing-section__stream-editor-form {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .billing-section__stream-editor-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .billing-section__stream-editor-context {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
     .billing-section__rule-list .billing-section__table,
     .billing-section__rule-list .billing-section__table tbody,
     .billing-section__rule-list .billing-section__table tr,
@@ -8795,12 +9972,74 @@
     }
 
     .billing-section__creation-modes {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+      margin-bottom: 0.65rem;
+    }
+
+    .billing-section__creation-modes button {
+      min-height: 0;
+      gap: 0.2rem;
+      padding: 0.55rem;
+    }
+
+    .billing-section__creation-modes button strong {
+      font-size: 0.8125rem;
+      line-height: 1.2;
+    }
+
+    .billing-section__creation-modes button span {
+      font-size: 0.7rem;
+      line-height: 1.25;
+    }
+
+    .billing-section__record-stream-edit {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .billing-section__record-stream-edit > button {
+      width: 100%;
+    }
+
+    .billing-section__wizard-mobile-progress {
+      display: none;
+    }
+
+    .billing-section__wizard-reference {
+      padding: 0.4rem;
+    }
+
+    .billing-section__wizard-detail-group {
+      margin-top: 0.35rem;
+    }
+
+    .billing-section__wizard-detail-group > span {
+      font-size: 0.75rem;
+    }
+
+    .billing-section__wizard-detail-group > div {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.3rem;
+    }
+
+    .billing-section__wizard-detail-group button {
+      min-height: 2.75rem;
+      padding: 0.3rem 0.35rem;
+      font-size: 0.7rem;
     }
 
     .billing-section__stream-create-actions {
       display: grid;
       grid-template-columns: 1fr;
+    }
+
+    .billing-section__stream-row-actions,
+    .billing-section__stream-row-actions button {
+      width: 100%;
+      min-width: 0;
     }
 
     .billing-section__stream-create-actions button,

@@ -46,9 +46,17 @@ export const navigationUxCopy = {
   },
   sectionNavigator: {
     currentSection: 'Current section: {section}',
-    resultCount: '{count} destinations available',
-    searchHint: 'Search sections and settings available to your profile.',
+    resultCount: '{count} matching destinations',
+    searchHint:
+      'Find authorized actions, settings and sections. Record search appears separately when available.',
     frequentSettings: 'Frequent settings',
+    actions: 'Actions',
+    configurations: 'Configuration',
+    sections: 'Sections',
+    records: 'Records',
+    recordSearch: 'Search records for “{query}”',
+    recordSearchHint: 'The workspace search will show records available to your account.',
+    noMatches: 'No matching actions, settings or sections.',
   },
 } as const;
 
@@ -101,9 +109,18 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     },
     sectionNavigator: {
       currentSection: 'Sección actual: {section}',
-      resultCount: '{count} destinos disponibles',
-      searchHint: 'Busca secciones y ajustes disponibles para tu perfil.',
+      resultCount: '{count} destinos coincidentes',
+      searchHint:
+        'Busca acciones, ajustes y secciones autorizados. La búsqueda de registros aparece aparte cuando está disponible.',
       frequentSettings: 'Ajustes frecuentes',
+      actions: 'Acciones',
+      configurations: 'Configuración',
+      sections: 'Secciones',
+      records: 'Registros',
+      recordSearch: 'Buscar registros para «{query}»',
+      recordSearchHint:
+        'La búsqueda del espacio mostrará los registros disponibles para tu cuenta.',
+      noMatches: 'No hay acciones, ajustes ni secciones coincidentes.',
     },
   },
   pt: {
@@ -147,9 +164,17 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     },
     sectionNavigator: {
       currentSection: 'Seção atual: {section}',
-      resultCount: '{count} destinos disponíveis',
-      searchHint: 'Busque seções e configurações disponíveis para seu perfil.',
+      resultCount: '{count} destinos correspondentes',
+      searchHint:
+        'Encontre ações, configurações e seções autorizadas. A busca por registros aparece à parte quando disponível.',
       frequentSettings: 'Configurações frequentes',
+      actions: 'Ações',
+      configurations: 'Configurações',
+      sections: 'Seções',
+      records: 'Registros',
+      recordSearch: 'Pesquisar registros por “{query}”',
+      recordSearchHint: 'A pesquisa da área mostrará os registros disponíveis para sua conta.',
+      noMatches: 'Nenhuma ação, configuração ou seção correspondente.',
     },
   },
 };

@@ -2,10 +2,11 @@
 
 The builder preserves the worked BBS chapters and extends them with Owner operating procedures. Source scripts and selected screenshot/XLSX/final invoice assets are committed; no database, credentials or cookie jar is required to rebuild the guide.
 
-From the repository root, with the repository Playwright installation and Python dependencies available:
+From the repository root, with the repository Playwright installation and Python dependencies available. Set `JA_MANUAL_CHROMIUM_EXECUTABLE_PATH` to pin a system Chromium when needed:
 
 ```sh
 python -m pip install -r scripts/bbs-owner-manual/requirements.txt
+export JA_MANUAL_CHROMIUM_EXECUTABLE_PATH=/path/to/chrome # optional
 python scripts/bbs-owner-manual/build.py
 node scripts/bbs-owner-manual/render.mjs
 python scripts/bbs-owner-manual/assemble.py

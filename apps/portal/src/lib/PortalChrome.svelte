@@ -14,11 +14,18 @@
     type NavItem,
   } from './portal-navigation';
   import SectionNavigator from './portal/ui/SectionNavigator.svelte';
+  import { workspaceRecordSearchHref } from './portal/ui/section-search';
   import PortalNavIcon from './PortalNavIcon.svelte';
 
   type ChromeData = {
     section: string;
-    user: { name: string; role?: string; workforceProfile?: string };
+    canonicalOwner?: boolean;
+    user: {
+      name: string;
+      role?: string;
+      workforceProfile?: string;
+      canonicalOwner?: boolean;
+    };
   };
 
   let {
@@ -532,8 +539,17 @@
   <SectionNavigator
     items={sectionDestinations}
     shortcuts={navigationShortcutsFor(sectionDestinations, itemHref, data.user.role)}
+    context={{
+      role: data.user.role,
+      workforceProfile: data.user.workforceProfile,
+      canonicalOwner: data.user.canonicalOwner === true || data.canonicalOwner === true,
+    }}
     currentSection={currentNavItem ? translate(currentNavItem.label) : ''}
     {locale}
+    canSearchRecords={!['external_technician', 'supplier_coordinator'].includes(
+      data.user.workforceProfile ?? '',
+    )}
+    recordSearchHref={(query) => workspaceRecordSearchHref(base, data.user.role, query, locale)}
     itemHref={(item) => {
       const target = new URL(itemHref(item), $page.url);
       target.searchParams.set('lang', locale);

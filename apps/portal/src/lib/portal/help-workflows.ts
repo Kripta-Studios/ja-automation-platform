@@ -10,6 +10,32 @@ const topics: Record<
     pt: [string, string];
   }
 > = {
+  navigation: {
+    roles: [
+      'owner_admin',
+      'finance_admin',
+      'project_manager',
+      'worker',
+      'auditor_read_only',
+      'chief',
+      'supplier_coordinator',
+      'external_technician',
+    ],
+    // The app root resolves the active role/profile before showing its landing workspace.
+    route: '',
+    en: [
+      'Find sections, tasks and records',
+      'Use {{Go to section}} (Ctrl/⌘ Shift K) for authorized actions, configuration and sections. {{Find a task}} (Ctrl/⌘ K) suggests tasks available to your account in English, Spanish or Portuguese, then opens a workspace or form for you to review. Choosing a result does not save, submit, approve or send anything. Record search is a separate handoff shown only when enabled for your account; the destination checks access again. At 200% text scaling, follow visible labels and error-summary links as forms reflow and retain entered values. Restricted supplier profiles stay in Supplier team.',
+    ],
+    es: [
+      'Buscar secciones, tareas y registros',
+      'Usa {{Go to section}} (Ctrl/⌘ Shift K) para buscar acciones, configuración y secciones autorizadas. Buscar una tarea (Ctrl/⌘ K) sugiere tareas permitidas para tu cuenta en inglés, español o portugués y abre el espacio o formulario para que lo revises. Elegir un resultado no guarda, envía, aprueba ni emite nada. La búsqueda de registros es un acceso separado que solo aparece si está habilitado para tu cuenta; el destino vuelve a comprobar el acceso. Al ampliar el texto al 200 %, sigue las etiquetas y los enlaces del resumen de errores mientras el formulario se adapta y conserva los datos introducidos. Los perfiles de proveedor restringidos continúan en Supplier team.',
+    ],
+    pt: [
+      'Encontrar seções, tarefas e registros',
+      'Use {{Go to section}} (Ctrl/⌘ Shift K) para localizar ações, configurações e seções autorizadas. Buscar uma tarefa (Ctrl/⌘ K) sugere tarefas permitidas para sua conta em inglês, espanhol ou português e abre uma área ou formulário para você revisar. Escolher um resultado não salva, envia, aprova nem emite nada. A busca de registros é um encaminhamento separado, exibido somente quando habilitado para sua conta; o destino verifica o acesso novamente. Com o texto ampliado em 200%, siga os rótulos visíveis e os links do resumo de erros enquanto o formulário se reorganiza e preserva os dados digitados. Perfis restritos de fornecedor continuam em Supplier team.',
+    ],
+  },
   time: {
     roles: ['worker', 'project_manager', 'owner_admin'],
     route: 'time',
@@ -143,15 +169,15 @@ const topics: Record<
     route: 'billing',
     en: [
       'Prepare, review and issue an invoice',
-      'Billing streams defines what is billed, how often, by which legal entity and with which tax profile. Create an invoice draft for a project and service period after approving its source records. Review the lines and PDF, edit the draft billing and bank details, then approve and issue explicitly. Issued invoices keep their historical values; use void or credit/adjustment to correct them.',
+      'Choose selected records for an eligible subset, or Whole period or milestone for the complete configured period; whole-period totals always describe that full period, never a selected subset. Worker, Show and Record type filters change visibility only. Select visible records adds visible eligible rows; Clear selection explicitly removes the selection. Check visible/selected counts and selected records outside these filters. The whole-period composer has three stages, all 12 details and nine direct shortcuts. Edit selected stream settings returns to this sheet and revalidates sources; a newly reserved source is removed and linked to its draft. If revalidation cannot be confirmed, no invoice draft was created or issued; check the period and selected records before continuing. An empty selection refreshes period readiness without a record preview. Tax is read-only in the current editor: choose Edit selected stream settings → New effective-dated conditions and select a successor tax profile for the applicable dates. Cadence and commercial changes also use effective-dated successors. A blank optional recipient or missing tax profile does not block a draft; without a profile the draft adds no tax. Saving a draft does not issue or send it; wait until a queued/running document is Ready before use. Review the invoice and PDF, then approve, issue and send only through their explicit controls. Issued invoices keep their historical values; use void or credit/adjustment to correct them.',
     ],
     es: [
       'Preparar, revisar y emitir una factura',
-      '{{Billing streams}} define qué se factura, cada cuánto, con qué entidad emisora e impuestos. Crea un borrador para el proyecto y periodo tras aprobar los registros de origen. Revisa líneas y PDF, edita datos de facturación y bancarios del borrador y aprueba y emite expresamente. Las facturas emitidas conservan su histórico; se corrigen mediante anulación o abono/ajuste.',
+      'Elige registros seleccionados para una parte elegible o Período completo o hito para todo el período configurado; sus totales siempre describen el período entero, nunca una selección parcial. Los filtros Trabajador, Mostrar y Tipo de registro solo cambian lo visible. Seleccionar registros visibles añade filas elegibles visibles; Quitar selección elimina expresamente la selección. Comprueba los recuentos visibles/seleccionados y los registros seleccionados fuera de estos filtros. El flujo de período completo tiene tres etapas, 12 detalles y nueve accesos directos. Editar ajustes del flujo seleccionado vuelve a esta hoja y revalida los registros; si una fuente queda reservada, se quita de la selección y se enlaza a su borrador. Si no se puede confirmar la revalidación, no se creó ni emitió ningún borrador; revisa el período y los registros seleccionados antes de continuar. Una selección vacía actualiza la disponibilidad del período sin vista previa de registros. El perfil fiscal es de solo lectura: elige Editar ajustes del flujo seleccionado → Nuevas condiciones con fecha de vigencia y selecciona un perfil sucesor para las fechas aplicables. La frecuencia y las condiciones comerciales también usan sucesores con fecha de vigencia. Un destinatario opcional vacío o la ausencia de perfil fiscal no bloquean un borrador; sin perfil no se añade impuesto. Guardar el borrador no lo emite ni lo envía; espera a que el documento en cola o en proceso indique Listo. Revisa la factura y el PDF, y luego aprueba, emite y envía solo mediante sus controles explícitos. Las facturas emitidas conservan su histórico; se corrigen mediante anulación o abono/ajuste.',
     ],
     pt: [
       'Preparar, revisar e emitir uma fatura',
-      '{{Billing streams}} define o que faturar, frequência, entidade emissora e impostos. Crie um rascunho por projeto e período após aprovar os registros de origem. Revise linhas e PDF, edite dados bancários e de cobrança, depois aprove e emita explicitamente. Faturas emitidas preservam o histórico; corrija por anulação ou crédito/ajuste.',
+      'Escolha registros selecionados para uma parte elegível ou Período completo ou marco para todo o período configurado; os totais sempre descrevem o período inteiro, nunca uma seleção parcial. Os filtros Trabalhador, Mostrar e Tipo de registro alteram somente a visibilidade. Selecionar registros visíveis adiciona linhas elegíveis visíveis; Limpar seleção remove a seleção expressamente. Confira as quantidades visíveis/selecionadas e os registros selecionados fora destes filtros. O fluxo de período completo tem três etapas, 12 detalhes e nove atalhos diretos. Editar configurações do fluxo selecionado retorna a esta tela e revalida os registros; se uma fonte ficar reservada, ela é removida da seleção e vinculada ao rascunho correspondente. Se não for possível confirmar a revalidação, nenhum rascunho foi criado ou emitido; confira o período e os registros selecionados antes de continuar. Uma seleção vazia atualiza a prontidão do período sem prévia de registros. O perfil fiscal é somente leitura: escolha Editar configurações do fluxo selecionado → Novas condições com data de vigência e selecione um perfil sucessor para as datas aplicáveis. Frequência e condições comerciais também usam sucessores com data de vigência. Destinatário opcional em branco ou ausência de perfil fiscal não bloqueiam um rascunho; sem perfil, nenhum imposto é adicionado. Salvar o rascunho não o emite nem envia; aguarde o documento na fila ou em processamento indicar Pronto. Revise a fatura e o PDF; depois aprove, emita e envie somente por controles explícitos. Faturas emitidas preservam o histórico; corrija por anulação ou crédito/ajuste.',
     ],
   },
   cash: {

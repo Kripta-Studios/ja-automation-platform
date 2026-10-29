@@ -1927,3 +1927,10 @@ Scoped CORE-04/07/10/14/15 presentation update: duration forms and new PDF/XLSX/
 ### 17 October 2026 · eight-priority SOTA UX implementation
 
 Scoped candidate acceptance completed for UX-01–08 (all high and medium priorities): visible capabilities, context, precise selections, role boundaries and immutable financial history are preserved. Independent browser checks, forty financial invariant tests, current manuals and Help/download verification are recorded in the [dependency, ownership and acceptance ledger](docs/evidence/sota-ux-20261017/README.md). Publication, exact production/main parity, restore verification and storage cleanup are certified by the external operational receipts identified there. This does not change the whole-product Client Essential verdict.
+
+
+### 29 October 2026 · optional mailbox during account creation
+
+The owner account-creation form now defaults to creating a linked corporate mailbox with the entered address and initial password. Opt-out preserves portal-only access. Invalid corporate addresses, existing mailboxes and unavailable directory checks stop before local creation; failure after local creation opens the resumable mailbox form with the original role and request key, without retaining the password. No migrations or authentication-policy changes.
+
+Scoped verification: 64 unit/integration/security/translation checks passed; portal typecheck, scoped ESLint and build passed; 8 browser scenarios passed at 360/390/768/1440, including EN/ES/PT labels, default state, validation recovery, opt-out and auditor mailbox recovery. Independent identity/security review passed. The broader i18n inventory test still fails on pre-existing missing keys, reproduced against HEAD before this change (15 other checks pass); new mailbox messages pass their focused three-locale tests. Operational evidence and verified online database backups are under `/srv/mail/ja-account-mailbox-build` and `/srv/mail/maintenance-backups/ja-leonardo-20261029` on the VPS. This scoped result does not change the whole-product Client Essential verdict.

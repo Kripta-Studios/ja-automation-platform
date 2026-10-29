@@ -44,6 +44,10 @@ test('restore access asks to restore and restores a user created through the tea
   const name = `Browser access audit ${suffix}`;
   await page.getByRole('button', { name: 'Create user', exact: true }).click();
   const form = page.locator('form[action*="createLocalPortalUser"]');
+  await expect(
+    form.getByRole('checkbox', { name: 'Create a mailbox for this user' }),
+  ).toBeChecked();
+  await form.getByRole('checkbox', { name: 'Create a mailbox for this user' }).uncheck();
   await form.getByLabel('Name', { exact: true }).fill(name);
   await form.getByLabel('Email', { exact: true }).fill(`access-${suffix}@example.test`);
   await form.getByLabel('Initial password').fill(`Audit!${randomUUID()}`);

@@ -5067,6 +5067,15 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Initial password': ['Contraseña inicial', 'Senha inicial'],
   'Invitation link': ['Enlace de invitación', 'Link de convite'],
   'Select supplier': ['Selecciona un proveedor', 'Selecione o fornecedor'],
+  'Create a mailbox for this user': [
+    'Crear un buzón de correo para este usuario',
+    'Criar uma caixa de correio para este usuário',
+  ],
+  'Creates a linked @j-aautomation.com mailbox with the email and initial password entered here. Uncheck for an external email address or portal access only.':
+    [
+      'Crea un buzón @j-aautomation.com vinculado con el correo y la contraseña inicial indicados aquí. Desmarca la casilla para un correo externo o para crear solo el acceso a la aplicación.',
+      'Cria uma caixa @j-aautomation.com vinculada com o e-mail e a senha inicial informados aqui. Desmarque para um e-mail externo ou para criar apenas o acesso ao aplicativo.',
+    ],
   'Set email and password': ['Configurar correo y contraseña', 'Definir e-mail e senha'],
   'Show password to copy': ['Mostrar contraseña para copiar', 'Mostrar senha para copiar'],
   Supplier: ['Proveedor', 'Fornecedor'],

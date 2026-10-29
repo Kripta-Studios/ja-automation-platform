@@ -1000,6 +1000,7 @@ export const accessActions = {
     const email = typeof object.email === 'string' ? object.email : '';
     const password = typeof object.password === 'string' ? object.password : '';
     const accessRole = typeof object.role === 'string' ? object.role : '';
+    const createMailbox = object.createMailbox === 'on';
     const supplierId = typeof object.supplierId === 'string' ? object.supplierId : undefined;
     const values = Object.fromEntries(
       [
@@ -1015,6 +1016,7 @@ export const accessActions = {
       ].map((key) => [key, typeof object[key] === 'string' ? object[key] : '']),
     );
     const denied = teamAuthorizationFailure(event, 'createLocalPortalUser', values);
+    values.createMailbox = createMailbox ? 'on' : '';
     if (denied) return denied;
     if (!name.trim() || password.length < 12 || password.length > 128)
       return actionFail(
@@ -1095,6 +1097,41 @@ export const accessActions = {
       if (context.principal.role !== 'owner_admin')
         return teamOwnerFailure('createLocalPortalUser', values, locals.correlationId);
       assertLiveSession(context.sqlite, context.principal, AccessDeniedError);
+      let mailboxUsername: string | undefined;
+      if (createMailbox) {
+        new MailIdentityRepository(context.sqlite).assertCanonicalOwner(context.principal);
+        const { validateLocalAccountMailbox } = await import('$lib/server/mail-directory');
+        try {
+          mailboxUsername = await validateLocalAccountMailbox(email, password);
+        } catch (error) {
+          const errorCode = error instanceof Error ? error.message : '';
+          const passwordInvalid = errorCode === 'MAILBOX_PASSWORD_INVALID';
+          const emailInvalid = ['MAILBOX_EMAIL_INVALID', 'MAILBOX_ALIAS_INVALID'].includes(
+            errorCode,
+          );
+          const exists = errorCode === 'LOCAL_MAILBOX_ALREADY_EXISTS';
+          const key = exists
+            ? 'problem.access.localMailboxExists'
+            : passwordInvalid
+              ? 'action.access.mailbox.invalidPassword'
+              : emailInvalid
+                ? 'problem.access.localMailboxEmail'
+                : 'problem.access.localMailboxUnavailable';
+          return actionFail(
+            exists ? 409 : emailInvalid || passwordInvalid ? 400 : 503,
+            key,
+            {},
+            undefined,
+            {
+              code: 'ACCESS_LOCAL_MAILBOX_INPUT_INVALID',
+              actionName: 'createLocalPortalUser',
+              values,
+              correlationId: locals.correlationId,
+              fieldErrors: { [passwordInvalid ? 'password' : 'email']: [key] },
+            },
+          );
+        }
+      }
       // Better Auth's configured crypto is the only password implementation.
       // The resulting hash is passed to the transaction; plaintext is never
       // returned, recorded, or placed in an audit payload.
@@ -1116,6 +1153,47 @@ export const accessActions = {
         contactName: typeof object.contactName === 'string' ? object.contactName : undefined,
         notes: typeof object.notes === 'string' ? object.notes : undefined,
       });
+      if (mailboxUsername) {
+        const { createMailboxAccount } = await import('$lib/server/mail-directory');
+        const idempotencyKey = `portal-account-mailbox:${created.userId}`;
+        try {
+          await createMailboxAccount(context.sqlite, context.principal, {
+            username: mailboxUsername,
+            name,
+            password,
+            quotaMb: 5120,
+            provisionRole: mapped.role,
+            idempotencyKey,
+          });
+        } catch {
+          // The portal transaction has committed. Open the existing resumable mailbox
+          // form, never invite the operator to create the same portal user again.
+          return actionFail(
+            502,
+            'problem.access.localMailboxPending',
+            { email: email.trim().toLowerCase() },
+            undefined,
+            {
+              code: 'ACCESS_LOCAL_MAILBOX_PENDING',
+              actionName: 'createMailboxAccount',
+              correlationId: locals.correlationId,
+              values: {
+                username: mailboxUsername,
+                name,
+                quotaMb: '5120',
+                provisionRole: mapped.role,
+                idempotencyKey,
+              },
+              remedies: [{ id: 'review_mailbox_identity' }],
+            },
+          );
+        }
+        return actionSuccess(
+          'action.access.localAccount.withMailbox',
+          { userId: created.userId, role: accessRole },
+          'Portal access and linked mailbox created.',
+        );
+      }
       return actionSuccess(
         'action.access.localAccount.provisioned',
         { userId: created.userId, role: accessRole },
@@ -1489,7 +1567,8 @@ export const accessActions = {
     const provisionRole = String(form.get('provisionRole') ?? 'worker') as
       | 'worker'
       | 'project_manager'
-      | 'finance_admin';
+      | 'finance_admin'
+      | 'auditor_read_only';
     const values = {
       username,
       name,
@@ -1519,7 +1598,9 @@ export const accessActions = {
         { password: ['action.access.mailbox.invalidPassword'] },
         locals.correlationId,
       );
-    if (!['worker', 'project_manager', 'finance_admin'].includes(provisionRole))
+    if (
+      !['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(provisionRole)
+    )
       return directoryInputFailure(
         'createMailboxAccount',
         values,

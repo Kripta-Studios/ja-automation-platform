@@ -9,6 +9,22 @@ import { explicitCoverageLiterals } from './coverage-literals';
  */
 
 const exact: Record<string, readonly [string, string]> = {
+  'problem.access.localMailboxEmail': [
+    'Para crear un buzón, usa una dirección válida @j-aautomation.com con un alias de 2 a 64 caracteres. Si usas un correo externo, desmarca la casilla de crear buzón.',
+    'Para criar uma caixa de correio, use um endereço válido @j-aautomation.com com um alias de 2 a 64 caracteres. Para e-mail externo, desmarque a opção de criar caixa de correio.',
+  ],
+  'problem.access.localMailboxPending': [
+    'El acceso a la aplicación para {email} ya está creado, pero no se ha confirmado la creación y vinculación del buzón. No vuelvas a crear el usuario. Revisa el formulario de buzón y reintenta con la misma contraseña inicial.',
+    'O acesso ao aplicativo para {email} já foi criado, mas a criação e vinculação da caixa de correio não foram confirmadas. Não crie o usuário novamente. Revise o formulário da caixa de correio e tente novamente com a mesma senha inicial.',
+  ],
+  'problem.access.localMailboxExists': [
+    'Este buzón ya existe. Vincúlalo desde Cuentas de correo o desmarca la casilla para crear solo el acceso a la aplicación.',
+    'Esta caixa de correio já existe. Vincule-a em Contas de e-mail ou desmarque a opção para criar apenas o acesso ao aplicativo.',
+  ],
+  'problem.access.localMailboxUnavailable': [
+    'No se pudo comprobar el servidor de correo. No se ha creado el acceso. Reintenta o desmarca la casilla para crear solo el acceso a la aplicación.',
+    'Não foi possível verificar o servidor de correio. O acesso não foi criado. Tente novamente ou desmarque a opção para criar apenas o acesso ao aplicativo.',
+  ],
   ...projectClientWorkflowLiterals,
   'action.expense.draftAlreadySaved': [
     'El borrador de gasto ya estaba guardado. No se creó un duplicado.',
@@ -8286,6 +8302,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Revisa {fieldLabel}: completa el campo con un valor válido.',
     'Revise {fieldLabel}: preencha o campo com um valor válido.',
   ],
+  'action.access.localAccount.withMailbox': [
+    'Acceso a la aplicación y buzón vinculado creados.',
+    'Acesso ao aplicativo e caixa de correio vinculada criados.',
+  ],
   'action.access.localAccount.provisioned': [
     'Acceso local al portal creado.',
     'Acesso local ao portal criado.',
@@ -9143,6 +9163,7 @@ function englishActionMessage(key: string): string {
     'action.validation.missingEmails': 'No email accounts selected.',
     'action.validation.invalid': 'Check the submitted values.',
     'action.validation.missingUsername': 'Username is required.',
+    'action.access.localAccount.withMailbox': 'Portal access and linked mailbox created.',
     'action.access.localAccount.provisioned': 'Local portal access created.',
     'action.access.denied': 'You do not have permission to perform this action.',
     'action.validation.localProvision': 'Check local access and supplier fields.',
@@ -9513,6 +9534,14 @@ function englishActionMessage(key: string): string {
 }
 
 const problemEnglish: Record<string, string> = {
+  'problem.access.localMailboxExists':
+    'This mailbox already exists. Link it from Mail accounts or uncheck the option to create portal access only.',
+  'problem.access.localMailboxUnavailable':
+    'The mail server could not be checked. Portal access has not been created. Retry or uncheck the option to create portal access only.',
+  'problem.access.localMailboxPending':
+    'Portal access for {email} has been created, but mailbox creation and linking have not been confirmed. Do not create the user again. Review the mailbox form and retry with the same initial password.',
+  'problem.access.localMailboxEmail':
+    'To create a mailbox, use a valid @j-aautomation.com address with a 2–64 character alias. For external email, uncheck the mailbox option.',
   'problem.correction.recordLocked':
     'This record cannot be changed here. Contact the project owner or designated administrator.',
   'problem.time.saveRequestInvalid':

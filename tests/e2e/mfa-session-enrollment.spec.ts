@@ -38,6 +38,7 @@ test('password Worker manages optional MFA by live session and recovery codes re
   await page.goto(portal('/projects?view=team&lang=en'), { waitUntil: 'networkidle' });
   await page.getByRole('button', { name: 'Create user', exact: true }).click();
   const create = page.locator('form[action*="createLocalPortalUser"]');
+  await create.getByRole('checkbox', { name: 'Create a mailbox for this user' }).uncheck();
   await create.locator('[name="name"]').fill(name);
   await create.locator('[name="email"]').fill(email);
   await create.getByLabel('Initial password').fill(password);

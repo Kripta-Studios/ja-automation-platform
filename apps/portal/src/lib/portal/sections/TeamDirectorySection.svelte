@@ -156,6 +156,7 @@
   let existingUserId = $state('');
   let localName = $state('');
   let localEmail = $state('');
+  let localCreateMailbox = $state(true);
   let localPhone = $state('');
   let localCompany = $state('');
   let localContactName = $state('');
@@ -213,6 +214,7 @@
       existingUserId = String(values.existingUserId ?? '');
       localName = String(values.name ?? '');
       localEmail = String(values.email ?? '');
+      localCreateMailbox = values.createMailbox === 'on';
       localRole = String(values.role ?? 'worker');
       localSupplierId = String(values.supplierId ?? '');
       localPhone = String(values.phone ?? '');
@@ -1100,6 +1102,20 @@
                     required
                   /></label
                 >
+                <label class="team-directory__mailbox-choice">
+                  <input
+                    type="checkbox"
+                    name="createMailbox"
+                    bind:checked={localCreateMailbox}
+                    aria-describedby="local-mailbox-help"
+                  />
+                  <span>{translate('Create a mailbox for this user')}</span>
+                </label>
+                <p id="local-mailbox-help">
+                  {translate(
+                    'Creates a linked @j-aautomation.com mailbox with the email and initial password entered here. Uncheck for an external email address or portal access only.',
+                  )}
+                </p>
                 <label
                   >{translate('Phone')}<input
                     name="phone"
@@ -2296,6 +2312,11 @@
         aria-busy={mailboxAction.status === 'pending' &&
           mailboxAction.action === 'createMailboxAccount'}
       >
+        {#if problemPayload?.code === 'ACCESS_LOCAL_MAILBOX_PENDING'}
+          <div class="team-directory__mailbox-recovery-notice">
+            <ProblemNotice problem={problemPayload} />
+          </div>
+        {/if}
         <input
           type="hidden"
           name="idempotencyKey"
@@ -2350,7 +2371,9 @@
           required
           ><option value="worker">{translate('Worker (default)')}</option><option
             value="project_manager">{translate('Project Manager')}</option
-          ><option value="finance_admin">{translate('Finance Admin')}</option></select
+          ><option value="finance_admin">{translate('Finance Admin')}</option><option
+            value="auditor_read_only">{translate('Auditor (Read Only)')}</option
+          ></select
         >
         <p class="team-directory__danger-copy">
           {translate(
@@ -2376,6 +2399,22 @@
 </div>
 
 <style>
+  .team-directory__mailbox-recovery-notice {
+    grid-column: 1 / -1;
+  }
+  .team-directory__create-form .team-directory__mailbox-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-height: 44px;
+  }
+  .team-directory__mailbox-choice input[type='checkbox'] {
+    width: 1.15rem;
+    height: 1.15rem;
+    flex: 0 0 1.15rem;
+    margin-top: 0.15rem;
+  }
+
   .team-directory__facts a,
   .team-directory__assignment a {
     display: inline-flex;

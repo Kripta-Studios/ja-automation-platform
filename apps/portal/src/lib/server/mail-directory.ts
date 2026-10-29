@@ -51,6 +51,21 @@ function validatePassword(password: string): void {
     throw new Error('MAILBOX_PASSWORD_INVALID');
 }
 
+/** Validate before saving portal access, so invalid mailbox input creates neither account. */
+export async function validateLocalAccountMailbox(
+  email: string,
+  password: string,
+): Promise<string> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized.endsWith('@j-aautomation.com')) throw new Error('MAILBOX_EMAIL_INVALID');
+  const username = normalizeAlias(normalized.slice(0, -'@j-aautomation.com'.length));
+  validatePassword(password);
+  const mailboxes = await (await configuredClient()).listMailboxes();
+  if (mailboxes.some((mailbox) => mailbox.email.toLowerCase() === normalized))
+    throw new Error('LOCAL_MAILBOX_ALREADY_EXISTS');
+  return username;
+}
+
 function toQuotaBytes(quotaMb: number): number {
   if (!Number.isSafeInteger(quotaMb) || quotaMb < 0 || quotaMb > 10_485_760)
     throw new Error('MAILBOX_QUOTA_INVALID');

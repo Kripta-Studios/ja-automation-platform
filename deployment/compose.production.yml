@@ -14,7 +14,7 @@ services:
     build:
       context: ..
       dockerfile: deployment/Dockerfile.site
-    image: ja-automation-site:${JA_RELEASE_TAG:-local}
+    image: local-security/deployment-site-1:20261022
     restart: unless-stopped
     ports:
       - 127.0.0.1:5101:3000
@@ -38,7 +38,7 @@ services:
     build:
       context: ..
       dockerfile: deployment/Dockerfile.portal
-    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
+    image: local-security/deployment-portal-1:20261022
     restart: unless-stopped
     env_file:
       - path: /etc/jaautomation/jaautomation.env
@@ -88,10 +88,10 @@ services:
           'node -e "fetch(''http://127.0.0.1:5100/j-aautomation/health/ready'').then(r=>{if(!r.ok)process.exit(1)})"',
         ]
       interval: 30s
-      timeout: 5s
+      timeout: 60s
       retries: 3
   jobs:
-    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
+    image: local-security/deployment-jobs-1:20261022
     restart: unless-stopped
     # Keep the worker environment allowlisted. In particular, never inject the
     # retired JA_JOB_ACTOR_ID from an older host environment: the authoritative

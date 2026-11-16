@@ -52,7 +52,9 @@ describe('draft delete controls', () => {
     const correctionForm = read('apps/portal/src/lib/portal/ui/CorrectionDraftForm.svelte');
     const actions = read('apps/portal/src/lib/server/actions/expense-actions.ts');
     expect(expense).toContain("row.approval_state === 'needs_changes'");
-    expect(expense).toContain("row.approval_state === 'approved'");
+    // Approved records open the detail page (title link), whose correction form
+    // is the single entry point for append-only corrections.
+    expect(detail).toContain('id="expense-correction-title"');
     expect(expense).toContain('#expense-correction-title');
     expect(detail).toContain('recordType="expense"');
     expect(detailAction).toContain('createCorrectionDraft: async');

@@ -305,7 +305,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           includeArchived,
         );
         normalizeProjectQuery(scope.projectIds);
-        const records = visibleProjectRecords(authorizedRecords, scope.projectIds);
+        // Returned expenses show the reviewer's note in the list so the person
+        // knows what to fix. Rows are already authorized; the note is the same
+        // operational review reason the expense detail view returns.
+        const reviewNote = (() => {
+          let statement: ReturnType<typeof context.sqlite.prepare> | undefined;
+          return {
+            get: (id: string) =>
+              (statement ??= context.sqlite.prepare(
+                "SELECT reason FROM approval_event WHERE entity_type='expense' AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+              )).get(id),
+          };
+        })();
+        const records = visibleProjectRecords(authorizedRecords, scope.projectIds).map((row) =>
+          ['needs_changes', 'rejected'].includes(String(row.approval_state))
+            ? {
+                ...row,
+                review_note:
+                  (reviewNote.get(String(row.id)) as { reason: string | null } | undefined)
+                    ?.reason ?? null,
+              }
+            : row,
+        );
         return {
           ...common,
           projects: scope.projects,

@@ -41,11 +41,17 @@ const en = {
     'This expense has been accepted but still needs commercial classification. Configure its client billing and reimbursement treatment in Finance before billing it.',
   'problem.billing.readinessAmbiguousClientRate':
     'Different client sale rates cover the same scope and dates, so the invoice amount cannot be determined. Review and correct the conflicting rates in Finance → Client labor rates, then check this period again.',
+  'action.approval.batchTimeApproved': 'Approved {count} time entries ({hours} h).',
+  'action.approval.batchApproved': 'Approved {count} records.',
+  'action.approval.sentBack': 'Sent back to the worker with your note.',
+  'action.approval.rejected': 'Rejected. The worker can see your reason.',
+  'problem.approval.ownRecord':
+    'You cannot approve your own time or expenses. Another reviewer must decide it.',
   'action.approval.ownerDecisionRecorded':
     'Owner approval recorded, including financial review. Sale rates and expense classification still follow Finance configuration.',
   'problem.warning.ownerApprovalIncludesFinance':
     'Owner approval records operational and financial acceptance together. Review the source facts before approving. Client sale rates and expense classification remain required Finance configuration.',
-  'approval.ownerApproveLabel': 'Approve including financial review',
+  'approval.ownerApproveLabel': 'Approve',
   'approval.ownerFinanceQueueHelp':
     'Owner approval already includes financial review. This queue contains records still requiring Finance acceptance; sale rates and expense classification are configured in Finance.',
   'problem.billing.readinessGuidance':
@@ -662,11 +668,17 @@ const esBase: Record<keyof typeof en, string> = {
     'Este gasto se ha aceptado, pero aún necesita clasificación comercial. Configura su tratamiento de facturación al cliente y reembolso en Finanzas antes de facturarlo.',
   'problem.billing.readinessAmbiguousClientRate':
     'Distintas tarifas de venta al cliente cubren el mismo ámbito y fechas, por lo que no se puede determinar el importe de la factura. Revisa y corrige las tarifas en conflicto en Finanzas → Tarifas del cliente y vuelve a comprobar este período.',
+  'action.approval.batchTimeApproved': 'Aprobados {count} registros de horas ({hours} h).',
+  'action.approval.batchApproved': 'Aprobados {count} registros.',
+  'action.approval.sentBack': 'Devuelto al trabajador con tu nota.',
+  'action.approval.rejected': 'Rechazado. El trabajador puede ver tu motivo.',
+  'problem.approval.ownRecord':
+    'No puedes aprobar tus propias horas o gastos. Debe decidirlo otro revisor.',
   'action.approval.ownerDecisionRecorded':
     'Aprobación del propietario registrada, incluida la revisión financiera. Las tarifas de venta y la clasificación de gastos siguen la configuración de Finanzas.',
   'problem.warning.ownerApprovalIncludesFinance':
     'La aprobación del propietario registra conjuntamente la aceptación operativa y financiera. Revisa los datos de origen antes de aprobar. Las tarifas de venta al cliente y la clasificación de gastos siguen siendo configuración obligatoria de Finanzas.',
-  'approval.ownerApproveLabel': 'Aprobar incluyendo revisión financiera',
+  'approval.ownerApproveLabel': 'Aprobar',
   'approval.ownerFinanceQueueHelp':
     'La aprobación del propietario ya incluye la revisión financiera. Esta cola contiene registros que aún requieren aceptación de Finanzas; las tarifas de venta y la clasificación de gastos se configuran en Finanzas.',
   'problem.billing.readinessGuidance':
@@ -1284,11 +1296,17 @@ const ptBase: Record<keyof typeof en, string> = {
     'Esta despesa foi aceita, mas ainda precisa de classificação comercial. Configure seu tratamento de faturamento ao cliente e reembolso em Finanças antes de faturá-la.',
   'problem.billing.readinessAmbiguousClientRate':
     'Tarifas de venda ao cliente diferentes cobrem o mesmo âmbito e datas, por isso não é possível determinar o valor da fatura. Revise e corrija as tarifas em conflito em Finanças → Tarifas do cliente e verifique este período novamente.',
+  'action.approval.batchTimeApproved': 'Aprovados {count} registros de horas ({hours} h).',
+  'action.approval.batchApproved': 'Aprovados {count} registros.',
+  'action.approval.sentBack': 'Devolvido ao trabalhador com a sua nota.',
+  'action.approval.rejected': 'Rejeitado. O trabalhador pode ver o seu motivo.',
+  'problem.approval.ownRecord':
+    'Você não pode aprovar suas próprias horas ou despesas. Outro revisor deve decidir.',
   'action.approval.ownerDecisionRecorded':
     'Aprovação do proprietário registrada, incluindo a revisão financeira. As tarifas de venda e a classificação de despesas seguem a configuração de Finanças.',
   'problem.warning.ownerApprovalIncludesFinance':
     'A aprovação do proprietário registra a aceitação operacional e financeira em conjunto. Revise os dados de origem antes de aprovar. As tarifas de venda ao cliente e a classificação de despesas continuam sendo configurações obrigatórias de Finanças.',
-  'approval.ownerApproveLabel': 'Aprovar incluindo revisão financeira',
+  'approval.ownerApproveLabel': 'Aprovar',
   'approval.ownerFinanceQueueHelp':
     'A aprovação do proprietário já inclui a revisão financeira. Esta fila contém registros que ainda exigem aceitação de Finanças; as tarifas de venda e a classificação de despesas são configuradas em Finanças.',
   'problem.billing.readinessGuidance':

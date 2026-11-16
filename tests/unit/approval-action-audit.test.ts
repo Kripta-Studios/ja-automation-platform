@@ -93,7 +93,8 @@ describe('approval action exception audit', () => {
     vi.mocked(openPortalRepository).mockReturnValueOnce({
       repository,
       principal: { userId: 'reviewer-1', role: 'pm' },
-      sqlite: { close },
+      // The own-record guard reads the record's worker; this one belongs to someone else.
+      sqlite: { close, prepare: () => ({ get: () => ({ worker_id: 'worker-2' }) }) },
     } as unknown as ReturnType<typeof openPortalRepository>);
     const result = await submit('approveRecord', {
       id: timeId,

@@ -30,7 +30,8 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toContain('data-team-directory');
     expect(source).toContain('assignments?: PortalRow[]');
     expect(source).toContain('Availability');
-    expect(source).toContain('Project assignments');
+    // 2026-11-16: assignments live on the person page (PersonProjectsPanel).
+    expect(source).toContain('<PersonProjectsPanel');
     expect(source).toContain('planned_minutes');
     expect(source).toContain('actual_minutes');
     expect(source).toContain('Actual hours');
@@ -38,8 +39,9 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toContain('canManageTeam?: boolean');
     expect(source).toContain('data-team-actions');
     expect(source).toContain('?view=team&/createInvitation');
-    expect(source).toContain('?view=team&/updateWorkerProfile');
-    expect(source).toContain("action={teamActionHref('updateUserStatus')}");
+    // Person-scoped action URLs keep the person page open after a native POST.
+    expect(source).toContain("action={teamActionHref('updateWorkerProfile', workerId(worker))}");
+    expect(source).toContain("action={teamActionHref('updateUserStatus', workerId(worker))}");
     expect(source).toContain("if (lang) params.set('lang', lang);");
     expect(source).toContain('return `?${params.toString()}&/${actionName}`;');
     expect(source).toContain('data-invitation-result');

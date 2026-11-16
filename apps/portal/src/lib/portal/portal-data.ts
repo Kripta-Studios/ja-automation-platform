@@ -89,6 +89,14 @@ export type PortalData = {
     rows: PortalRow[];
   };
   contacts?: PortalRow[];
+  /** People directory (projects?view=team) projections; see team-directory-load.ts. */
+  teamStats?: PortalRow[];
+  teamWeekStart?: string;
+  teamWeekEnd?: string;
+  mailboxLinkedIds?: string[];
+  personPayRules?: PortalRow[];
+  defaultsProjectIds?: string[];
+  personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
   workers?: PortalRow[];
   planningFilterWorkers?: PortalRow[];
   skills?: PortalRow[];

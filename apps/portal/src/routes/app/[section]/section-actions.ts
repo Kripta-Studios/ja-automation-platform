@@ -101,6 +101,7 @@ export const sectionActions: Actions = {
   deleteTime: timeActions.deleteTime,
   createExpense: expenseActions.createExpense,
   createExpenseWeek: expenseActions.createExpenseWeek,
+  createExpenseBatch: expenseActions.createExpenseBatch,
   submitExpenseWeek: expenseActions.submitExpenseWeek,
   updateExpense: expenseActions.updateExpense,
   uploadPrivateDocument: documentActions.uploadPrivateDocument,

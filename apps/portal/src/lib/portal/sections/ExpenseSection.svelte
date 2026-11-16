@@ -9,6 +9,7 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
+  import { replaceState } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
@@ -22,7 +23,9 @@
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
   import { expenseCategories, primaryExpenseCategories } from '../expense-categories';
-  import { expenseReceiptState, expenseSearchMatches } from '../expense-evidence';
+  import { expenseReceiptState } from '../expense-evidence';
+  import ExpenseOverview from './ExpenseOverview.svelte';
+  import { expenseStatusLabel, expenseStatusOf, expenseStatusVariant } from './expense-status';
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { expenseCopy, expenseLocaleTag, type ExpenseCopyKey } from './expense-copy';
 
@@ -53,7 +56,6 @@
   const me = $derived(String(data.user.id));
   const isOwner = $derived(role === 'owner_admin');
   const canOverridePayer = $derived(['owner_admin', 'finance_admin'].includes(role));
-  const reviewerView = $derived(role !== 'worker');
   const canRecord = $derived(!isAuditor);
   const text = (row: Row | undefined, key: string): string => {
     const value = row?.[key];
@@ -75,72 +77,51 @@
       .sort((a, b) => a.name.localeCompare(b.name)),
   );
 
-  /* ------------------------------------------------------------- filters */
-  const params = $page.url.searchParams;
-  let personFilter = $state(params.get('worker') ?? '');
-  let projectFilter = $state(params.get('project') ?? '');
-  let statusFilter = $state(params.get('status') ?? '');
-  let search = $state(params.get('q') ?? '');
-  let fromFilter = $state(params.get('from') ?? '');
-  let toFilter = $state(params.get('to') ?? '');
-  const filtersActive = $derived(
-    Boolean(personFilter || projectFilter || statusFilter || search || fromFilter || toFilter),
+  /* -------------------------------------------------------------- views */
+  // Two separate experiences: capture (add + submit, every role) and the
+  // review overview (owner, finance, PM for their projects).
+  const canReview = $derived(['owner_admin', 'finance_admin', 'project_manager'].includes(role));
+  let view = $state<'capture' | 'overview'>(
+    $page.url.searchParams.get('view') === 'overview' ? 'overview' : 'capture',
   );
-  function clearFilters(): void {
-    personFilter = projectFilter = statusFilter = search = fromFilter = toFilter = '';
+  function chooseView(next: 'capture' | 'overview'): void {
+    view = next;
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    if (next === 'overview') url.searchParams.set('view', 'overview');
+    else url.searchParams.delete('view');
+    replaceState(url, $page.state);
   }
 
-  type Status =
-    | 'draft'
-    | 'submitted'
-    | 'approved'
-    | 'needs_changes'
-    | 'rejected'
-    | 'reimbursed'
-    | 'withdrawn';
-  function statusOf(row: Row): Status {
-    const state = text(row, 'approval_state');
-    if (
-      ['approved', 'locked'].includes(state) &&
-      (text(row, 'reimbursement_state') === 'reimbursed' || text(row, 'reimbursed_at'))
-    )
-      return 'reimbursed';
-    if (state === 'locked') return 'approved';
-    if (['draft', 'submitted', 'approved', 'needs_changes', 'rejected'].includes(state))
-      return state as Status;
-    return 'withdrawn';
-  }
-  const statusLabel: Record<Status, ExpenseCopyKey> = {
-    draft: 'statusDraft',
-    submitted: 'statusSubmitted',
-    approved: 'statusApproved',
-    needs_changes: 'statusNeedsChanges',
-    rejected: 'statusRejected',
-    reimbursed: 'statusReimbursed',
-    withdrawn: 'statusWithdrawn',
-  };
-  const statusVariant: Record<Status, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
-    draft: 'neutral',
-    submitted: 'info',
-    approved: 'success',
-    needs_changes: 'warning',
-    rejected: 'danger',
-    reimbursed: 'success',
-    withdrawn: 'neutral',
-  };
+  const statusOf = expenseStatusOf;
+  const statusLabel = expenseStatusLabel;
+  const statusVariant = expenseStatusVariant;
 
+  /* ---------------------------------------------------- capture scope */
+  // Capture shows the person's own items (and crew entries they recorded);
+  // the owner also sees every draft so entries made for others get submitted.
+  const mine = $derived(
+    records.filter(
+      (row) =>
+        text(row, 'worker_id') === me ||
+        text(row, 'crew_recorded_by_user_id') === me ||
+        (isOwner && row.approval_state === 'draft'),
+    ),
+  );
+  let showAll = $state(false);
+  const recentFrom = $derived.by(() => {
+    const today = new Date(`${localToday()}T00:00:00Z`);
+    today.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7) - 28);
+    return today.toISOString().slice(0, 10);
+  });
   const visible = $derived(
-    records.filter((row) => {
-      const spentOn = text(row, 'spent_on');
-      return (
-        (!personFilter || text(row, 'worker_id') === personFilter) &&
-        (!projectFilter || text(row, 'project_id') === projectFilter) &&
-        (!statusFilter || statusOf(row) === statusFilter) &&
-        (!fromFilter || spentOn >= fromFilter) &&
-        (!toFilter || spentOn <= toFilter) &&
-        expenseSearchMatches(row, search)
-      );
-    }),
+    showAll
+      ? mine
+      : mine.filter(
+          (row) =>
+            text(row, 'spent_on') >= recentFrom ||
+            ['draft', 'needs_changes'].includes(text(row, 'approval_state')),
+        ),
   );
 
   /* --------------------------------------------------------------- weeks */
@@ -236,9 +217,7 @@
   });
   let weekLimit = $state(6);
   const shownWeeks = $derived(weeks.slice(0, weekLimit));
-  const showPersonHeaders = $derived(
-    reviewerView || records.some((row) => text(row, 'worker_id') !== me),
-  );
+  const showPersonHeaders = $derived(mine.some((row) => text(row, 'worker_id') !== me));
   const canSubmitBlock = (block: PersonBlock): boolean =>
     !isAuditor && block.drafts.length > 0 && (block.workerId === me || isOwner);
 
@@ -332,11 +311,7 @@
       : projects.length === 1
         ? text(projects[0], 'id')
         : rememberedProject();
-    fWorker = isOwner
-      ? people.some((p) => p.id === requestedWorker)
-        ? requestedWorker
-        : personFilter
-      : '';
+    fWorker = isOwner ? (people.some((p) => p.id === requestedWorker) ? requestedWorker : '') : '';
     fCategory = 'meals';
     moreCategories = false;
     fAmount = '';
@@ -499,19 +474,88 @@
     else if (/^record/u.test(url.get('action') ?? '') || url.get('timeEntry')) openCreate();
   });
 
-  /* ------------------------------------------------------------ export */
-  const exportHref = (format: 'csv' | 'xlsx' | 'pdf'): string | null => {
-    const dates = visible.map((row) => text(row, 'spent_on')).sort();
-    if (!dates.length) return null;
-    const query = new URLSearchParams({ from: dates[0]!, to: dates.at(-1)!, format });
-    if (projectFilter) query.set('project', projectFilter);
-    if (personFilter) query.set('worker', personFilter);
-    if (statusFilter && !['reimbursed', 'withdrawn'].includes(statusFilter))
-      query.set('status', statusFilter);
-    if (search) query.set('q', search);
-    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
-    return `${base}/app/expenses/export?${query}`;
+  /* -------------------------------------------------------- bulk entry */
+  type BulkRow = {
+    key: number;
+    date: string;
+    category: string;
+    amount: string;
+    note: string;
+    file: string;
   };
+  let bulkOpen = $state(false);
+  let bulkFormKey = $state(0);
+  let bulkProject = $state('');
+  let bulkCurrency = $state('USD');
+  let bulkWorker = $state('');
+  let bulkRows = $state<BulkRow[]>([]);
+  let bulkRequestId = $state('');
+  let bulkSaving = $state(false);
+  let bulkError = $state('');
+  let bulkErrorRow = $state<number | null>(null);
+  let nextBulkKey = 0;
+  const blankRow = (date: string): BulkRow => ({
+    key: nextBulkKey++,
+    date,
+    category: 'meals',
+    amount: '',
+    note: '',
+    file: '',
+  });
+  function openBulk(): void {
+    if (!canRecord) return;
+    mode = null;
+    bulkProject = projects.length === 1 ? text(projects[0], 'id') : rememberedProject();
+    bulkCurrency = projectCurrency(bulkProject);
+    bulkWorker = '';
+    const today = localToday();
+    bulkRows = [blankRow(today), blankRow(today), blankRow(today)];
+    bulkRequestId = crypto.randomUUID();
+    bulkError = '';
+    bulkErrorRow = null;
+    bulkFormKey += 1;
+    bulkOpen = true;
+  }
+  function addBulkRow(): void {
+    if (bulkRows.length >= 20) return;
+    bulkRows = [...bulkRows, blankRow(bulkRows.at(-1)?.date ?? localToday())];
+  }
+  /** Exact decimal-to-minor parsing for the live total (no floating point). */
+  function decimalMinor(value: string): bigint | null {
+    const match = /^(\d+)(?:[.,](\d{1,2}))?$/u.exec(value.trim());
+    return match ? BigInt(`${match[1]}${(match[2] ?? '').padEnd(2, '0')}`) : null;
+  }
+  const bulkFilled = $derived(bulkRows.filter((row) => row.amount.trim() || row.file));
+  const bulkTotal = $derived(
+    money(
+      bulkFilled.reduce((sum, row) => sum + (decimalMinor(row.amount) ?? 0n), 0n).toString(),
+      bulkCurrency,
+      tag,
+    ),
+  );
+  const submitBulk = createOperationalSubmit({
+    locale: () => locale,
+    translate: (value) => translate(value),
+    setSaving: (value) => {
+      bulkSaving = value;
+    },
+    setError: (value) => {
+      bulkError = value;
+    },
+    setProblem: (value) => {
+      const row = (value as (ProblemData & { batchRow?: number }) | null)?.batchRow;
+      bulkErrorRow = typeof row === 'number' ? row : null;
+    },
+    onSuccess: () => {
+      try {
+        localStorage.setItem(lastProjectKey(), bulkProject);
+      } catch {
+        /* Remembering the project is only a convenience. */
+      }
+      bulkOpen = false;
+    },
+    offlineHandled: () => false,
+  });
 </script>
 
 {#snippet categoryIcon(value: string)}
@@ -534,195 +578,333 @@
   </svg>
 {/snippet}
 
-<div class="xp">
-  <header class="xp-head">
-    <div>
-      <h2>{reviewerView ? c('all') : c('mine')}</h2>
-      <p>{reviewerView ? c('ownerIntro') : c('intro')}</p>
-    </div>
-    {#if canRecord && projects.length > 0}
+{#if canReview}
+  <div class="xp-tabs" role="tablist" aria-label={c('title')}>
+    <button
+      type="button"
+      role="tab"
+      class="xp-tab"
+      aria-selected={view === 'capture'}
+      onclick={() => chooseView('capture')}>{c('tabCapture')}</button
+    >
+    <button
+      type="button"
+      role="tab"
+      class="xp-tab"
+      data-expense-overview-tab
+      aria-selected={view === 'overview'}
+      onclick={() => chooseView('overview')}>{c('tabOverview')}</button
+    >
+  </div>
+{/if}
+
+{#if view === 'overview' && canReview}
+  <ExpenseOverview {records} projects={availableProjects} {people} {locale} {translate} />
+{:else}
+  <div class="xp">
+    <header class="xp-head">
+      <div>
+        <h2>{isOwner ? c('recentOwner') : c('mine')}</h2>
+        <p>{c('intro')}</p>
+      </div>
+      {#if canRecord && projects.length > 0}
+        <div class="xp-head-actions">
+          <button
+            type="button"
+            class="secondary-button xp-several"
+            onclick={openBulk}
+            data-expense-bulk-open>{c('addSeveral')}</button
+          >
+          <button
+            type="button"
+            class="xp-add"
+            data-expense-primary-cta
+            data-assistant-target="expense-create-open"
+            onclick={openCreate}
+          >
+            <span aria-hidden="true">+</span>
+            {c('add')}
+          </button>
+        </div>
+      {/if}
+    </header>
+
+    {#if canRecord && projects.length === 0}
+      <p class="xp-notice" role="status">{c('noProjects')}</p>
+    {/if}
+
+    {#if shownWeeks.length === 0}
+      <div class="xp-empty" role="status">
+        <p>{c('empty')}</p>
+      </div>
+    {/if}
+
+    {#each shownWeeks as week (week.start)}
+      <section class="xp-week" aria-labelledby={`xp-week-${week.start}`}>
+        <header class="xp-week-head">
+          <h3 id={`xp-week-${week.start}`}>{c('week', { range: weekRange(week.start) })}</h3>
+          <strong class="xp-total">{totals(week.rows)}</strong>
+        </header>
+        {#each week.people as block (block.workerId)}
+          <div class="xp-person">
+            {#if showPersonHeaders}
+              <p class="xp-person-name">
+                {block.workerId === me ? c('me') : block.workerName}
+                {#if week.people.length > 1}<span class="xp-muted">· {totals(block.rows)}</span
+                  >{/if}
+              </p>
+            {/if}
+            <ul class="xp-rows">
+              {#each block.rows as row (text(row, 'id'))}
+                {@const status = statusOf(row)}
+                <li class="xp-row" data-status={status}>
+                  <span class="xp-icon">{@render categoryIcon(text(row, 'category'))}</span>
+                  <div class="xp-row-main">
+                    <p class="xp-row-title">
+                      <a class="xp-open" href={detailHref(row)}
+                        >{categoryLabel(text(row, 'category'))}</a
+                      >
+                      {#if text(row, 'vendor')}<span class="xp-muted">· {text(row, 'vendor')}</span
+                        >{/if}
+                    </p>
+                    <p class="xp-row-meta">
+                      {dayLabel(text(row, 'spent_on'))} · {text(row, 'project_number')}
+                      {#if row.approval_state === 'draft' && expenseReceiptState(row) !== 'attached'}
+                        · <span class="xp-warn">{c('noReceipt')}</span>
+                      {/if}
+                    </p>
+                  </div>
+                  <div class="xp-row-side">
+                    <strong class="xp-amount"
+                      >{money(
+                        text(row, 'amount_minor'),
+                        text(row, 'currency') || 'USD',
+                        tag,
+                      )}</strong
+                    >
+                    <StatusBadge variant={statusVariant[status]} text={c(statusLabel[status])} />
+                  </div>
+                  {#if (status === 'needs_changes' || status === 'rejected') && text(row, 'review_note')}
+                    <p class="xp-note">
+                      <strong>{c('reviewerNote')}:</strong>
+                      {text(row, 'review_note')}
+                    </p>
+                  {/if}
+                  <div class="xp-row-actions">
+                    {#if canEdit(row)}
+                      <button type="button" class="secondary-button" onclick={() => openEdit(row)}
+                        >{c('edit')}</button
+                      >
+                    {:else if row.approval_state === 'draft' && row.linked_pair_time_id}
+                      <span class="xp-muted">{c('withTime')}</span>
+                    {:else if row.approval_state === 'needs_changes' && (text(row, 'worker_id') === me || isOwner)}
+                      {#if row.active_correction_id}
+                        <a
+                          class="secondary-button"
+                          href={`${base}/app/expenses/${encodeURIComponent(text(row, 'active_correction_id'))}`}
+                          >{c('openCorrection')}</a
+                        >
+                      {:else}
+                        <a class="xp-fix" href={`${detailHref(row)}#expense-correction-title`}
+                          >{c('fix')}</a
+                        >
+                      {/if}
+                    {/if}
+                    {#if row.approval_state === 'draft' && !isAuditor && text(row, 'worker_id') !== me && !isOwner && !row.linked_pair_time_id}
+                      <form method="POST" action="?/submitExpense" use:enhance>
+                        <input type="hidden" name="id" value={text(row, 'id')} />
+                        <input type="hidden" name="version" value={text(row, 'version')} />
+                        <button type="submit">{c('submit')}</button>
+                      </form>
+                    {/if}
+                  </div>
+                </li>
+              {/each}
+            </ul>
+            {#if canSubmitBlock(block)}
+              <div class="xp-submit-bar">
+                <span>{c('drafts', { n: block.drafts.length })} · {totals(block.drafts)}</span>
+                <button
+                  type="button"
+                  data-expense-submit-week
+                  onclick={() => {
+                    confirmError = '';
+                    confirmBlock = { week: week.start, block };
+                  }}>{c('submitWeek')}</button
+                >
+              </div>
+            {/if}
+          </div>
+        {/each}
+      </section>
+    {/each}
+
+    {#if weeks.length > shownWeeks.length || (!showAll && mine.length > visible.length)}
       <button
         type="button"
-        class="xp-add"
-        data-expense-primary-cta
-        data-assistant-target="expense-create-open"
-        onclick={openCreate}
+        class="secondary-button xp-older"
+        onclick={() => {
+          if (weeks.length > shownWeeks.length) weekLimit += 6;
+          else showAll = true;
+        }}>{c('showOlder')}</button
       >
-        <span aria-hidden="true">+</span>
-        {c('add')}
-      </button>
     {/if}
-  </header>
+  </div>
+{/if}
 
-  {#if canRecord && projects.length === 0}
-    <p class="xp-notice" role="status">{c('noProjects')}</p>
-  {/if}
-
-  {#if reviewerView}
-    <details class="xp-filters" open={filtersActive}>
-      <summary>
-        {c('filters')}{#if filtersActive}<span class="xp-dot" aria-hidden="true"></span>{/if}
-      </summary>
-      <div class="xp-filter-grid">
-        <label>
+<ResponsiveSheet
+  open={bulkOpen}
+  title={c('bulkTitle')}
+  closeLabel={c('cancel')}
+  protectChanges
+  size="wide"
+  class="expense-entry-sheet"
+  onclose={() => (bulkOpen = false)}
+>
+  {#key bulkFormKey}
+    <form
+      method="POST"
+      action="?/createExpenseBatch"
+      enctype="multipart/form-data"
+      class="xp-form"
+      data-expense-bulk-form
+      aria-busy={bulkSaving}
+      use:dirtyFormGuard
+      use:operationalFieldValidation
+      use:enhance={submitBulk}
+    >
+      <p class="xp-muted">{c('bulkHint')}</p>
+      {#if bulkError}
+        <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
+          {#if bulkErrorRow !== null}{c('rowLabel', { n: bulkErrorRow + 1 })}:
+          {/if}{bulkError}
+        </p>
+      {/if}
+      <input type="hidden" name="requestId" value={bulkRequestId} />
+      <input type="hidden" name="rowCount" value={bulkRows.length} />
+      {#if isOwner}
+        <label class="xp-field">
           <span>{c('person')}</span>
-          <select bind:value={personFilter}>
-            <option value="">{c('allPeople')}</option>
+          <select name="workerId" bind:value={bulkWorker}>
+            <option value="">{c('me')} ({data.user.name})</option>
             {#each people as person (person.id)}
               <option value={person.id}>{person.name}</option>
             {/each}
           </select>
         </label>
-        <label>
-          <span>{c('project')}</span>
-          <select bind:value={projectFilter}>
-            <option value="">{c('allProjects')}</option>
-            {#each availableProjects as project (text(project, 'id'))}
-              <option value={text(project, 'id')}
-                >{text(project, 'project_number')} · {text(project, 'name')}</option
-              >
-            {/each}
-          </select>
-        </label>
-        <label>
-          <span>{translate('Status')}</span>
-          <select bind:value={statusFilter}>
-            <option value="">{c('allStatuses')}</option>
-            {#each ['draft', 'submitted', 'needs_changes', 'approved', 'reimbursed', 'rejected'] as const as status (status)}
-              <option value={status}>{c(statusLabel[status])}</option>
-            {/each}
-          </select>
-        </label>
-        <label>
-          <span>{c('search')}</span>
-          <input type="search" bind:value={search} autocomplete="off" />
-        </label>
-      </div>
-      <div class="xp-filter-actions">
-        {#if filtersActive}
-          <button type="button" class="secondary-button" onclick={clearFilters}>{c('clear')}</button
-          >
-        {/if}
-        {#if exportHref('csv')}
-          <span class="xp-muted">{c('download')}:</span>
-          <a href={exportHref('csv')} download>CSV</a>
-          <a href={exportHref('xlsx')} download>Excel</a>
-          <a href={exportHref('pdf')} download>PDF</a>
-        {/if}
-      </div>
-    </details>
-  {/if}
-
-  {#if shownWeeks.length === 0}
-    <div class="xp-empty" role="status">
-      <p>{filtersActive ? c('emptyFiltered') : c('empty')}</p>
-      {#if filtersActive}
-        <button type="button" class="secondary-button" onclick={clearFilters}>{c('clear')}</button>
       {/if}
-    </div>
-  {/if}
-
-  {#each shownWeeks as week (week.start)}
-    <section class="xp-week" aria-labelledby={`xp-week-${week.start}`}>
-      <header class="xp-week-head">
-        <h3 id={`xp-week-${week.start}`}>{c('week', { range: weekRange(week.start) })}</h3>
-        <strong class="xp-total">{totals(week.rows)}</strong>
-      </header>
-      {#each week.people as block (block.workerId)}
-        <div class="xp-person">
-          {#if showPersonHeaders}
-            <p class="xp-person-name">
-              {block.workerId === me ? c('me') : block.workerName}
-              {#if week.people.length > 1}<span class="xp-muted">· {totals(block.rows)}</span>{/if}
-            </p>
-          {/if}
-          <ul class="xp-rows">
-            {#each block.rows as row (text(row, 'id'))}
-              {@const status = statusOf(row)}
-              <li class="xp-row" data-status={status}>
-                <span class="xp-icon">{@render categoryIcon(text(row, 'category'))}</span>
-                <div class="xp-row-main">
-                  <p class="xp-row-title">
-                    <a class="xp-open" href={detailHref(row)}
-                      >{categoryLabel(text(row, 'category'))}</a
-                    >
-                    {#if text(row, 'vendor')}<span class="xp-muted">· {text(row, 'vendor')}</span
-                      >{/if}
-                  </p>
-                  <p class="xp-row-meta">
-                    {dayLabel(text(row, 'spent_on'))} · {text(row, 'project_number')}
-                    {#if row.approval_state === 'draft' && expenseReceiptState(row) !== 'attached'}
-                      · <span class="xp-warn">{c('noReceipt')}</span>
-                    {/if}
-                  </p>
-                </div>
-                <div class="xp-row-side">
-                  <strong class="xp-amount"
-                    >{money(text(row, 'amount_minor'), text(row, 'currency') || 'USD', tag)}</strong
-                  >
-                  <StatusBadge variant={statusVariant[status]} text={c(statusLabel[status])} />
-                </div>
-                {#if (status === 'needs_changes' || status === 'rejected') && text(row, 'review_note')}
-                  <p class="xp-note">
-                    <strong>{c('reviewerNote')}:</strong>
-                    {text(row, 'review_note')}
-                  </p>
-                {/if}
-                <div class="xp-row-actions">
-                  {#if canEdit(row)}
-                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}
-                      >{c('edit')}</button
-                    >
-                  {:else if row.approval_state === 'draft' && row.linked_pair_time_id}
-                    <span class="xp-muted">{c('withTime')}</span>
-                  {:else if row.approval_state === 'needs_changes' && (text(row, 'worker_id') === me || isOwner)}
-                    {#if row.active_correction_id}
-                      <a
-                        class="secondary-button"
-                        href={`${base}/app/expenses/${encodeURIComponent(text(row, 'active_correction_id'))}`}
-                        >{c('openCorrection')}</a
-                      >
-                    {:else}
-                      <a class="xp-fix" href={`${detailHref(row)}#expense-correction-title`}
-                        >{c('fix')}</a
-                      >
-                    {/if}
-                  {/if}
-                  {#if row.approval_state === 'draft' && !isAuditor && text(row, 'worker_id') !== me && !isOwner && !row.linked_pair_time_id}
-                    <form method="POST" action="?/submitExpense" use:enhance>
-                      <input type="hidden" name="id" value={text(row, 'id')} />
-                      <input type="hidden" name="version" value={text(row, 'version')} />
-                      <button type="submit">{c('submit')}</button>
-                    </form>
-                  {/if}
-                </div>
-              </li>
+      <div class="xp-amount-row">
+        {#if projects.length === 1}
+          <input type="hidden" name="projectId" value={bulkProject} />
+          <p class="xp-fixed">
+            <span>{c('project')}</span>
+            <strong>{text(projects[0], 'project_number')} · {text(projects[0], 'name')}</strong>
+          </p>
+        {:else}
+          <label class="xp-field">
+            <span>{c('project')}</span>
+            <select
+              name="projectId"
+              required
+              value={bulkProject}
+              onchange={(event) => {
+                bulkProject = event.currentTarget.value;
+                bulkCurrency = projectCurrency(bulkProject);
+              }}
+            >
+              <option value="" disabled>{c('chooseProject')}</option>
+              {#each projects as project (text(project, 'id'))}
+                <option value={text(project, 'id')}
+                  >{text(project, 'project_number')} · {text(project, 'name')}</option
+                >
+              {/each}
+            </select>
+          </label>
+        {/if}
+        <label class="xp-field xp-currency">
+          <span>{c('currency')}</span>
+          <select name="currency" bind:value={bulkCurrency} required>
+            {#each ['USD', 'EUR', 'BRL'] as code (code)}
+              <option value={code}>{code}</option>
             {/each}
-          </ul>
-          {#if canSubmitBlock(block)}
-            <div class="xp-submit-bar">
-              <span>{c('drafts', { n: block.drafts.length })} · {totals(block.drafts)}</span>
+          </select>
+        </label>
+      </div>
+
+      <ol class="xp-bulk">
+        {#each bulkRows as row, index (row.key)}
+          <li class="xp-bulk-row" class:xp-bulk-bad={bulkErrorRow === index}>
+            <span class="xp-bulk-n" aria-hidden="true">{index + 1}</span>
+            <label class="xp-field">
+              <span>{c('date')}</span>
+              <input type="date" name={`spentOn_${index}`} bind:value={row.date} required />
+            </label>
+            <label class="xp-field">
+              <span>{c('category')}</span>
+              <select name={`category_${index}`} bind:value={row.category}>
+                {#each primaryExpenseCategories as item (item.value)}
+                  <option value={item.value}>{c(item.copy as ExpenseCopyKey)}</option>
+                {/each}
+                <optgroup label={c('moreCategories')}>
+                  {#each expenseCategories.filter(([value]) => !primaryExpenseCategories.some((item) => item.value === value)) as [value, label] (value)}
+                    <option {value}>{translate(label)}</option>
+                  {/each}
+                </optgroup>
+              </select>
+            </label>
+            <label class="xp-field">
+              <span>{c('amount')}</span>
+              <input
+                name={`amount_${index}`}
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="0.00"
+                pattern={'^\\d+([.,]\\d{1,2})?$'}
+                aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('amount')}`}
+                bind:value={row.amount}
+              />
+            </label>
+            <label class="xp-bulk-file" class:has-file={row.file}>
+              <input
+                type="file"
+                name={`receipt_${index}`}
+                accept="image/*,.heic,.heif,application/pdf"
+                aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('receipt')}`}
+                onchange={(event) => (row.file = event.currentTarget.files?.[0]?.name ?? '')}
+              />
+              <span>{row.file || c('receipt')}</span>
+            </label>
+            <label class="xp-field xp-bulk-note">
+              <span>{c('note')}</span>
+              <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
+            </label>
+            {#if bulkRows.length > 1}
               <button
                 type="button"
-                data-expense-submit-week
-                onclick={() => {
-                  confirmError = '';
-                  confirmBlock = { week: week.start, block };
-                }}>{c('submitWeek')}</button
+                class="secondary-button xp-bulk-remove"
+                aria-label={`${c('removeRow')} · ${c('rowLabel', { n: index + 1 })}`}
+                onclick={() => (bulkRows = bulkRows.filter((item) => item.key !== row.key))}
+                >{c('removeRow')}</button
               >
-            </div>
-          {/if}
-        </div>
-      {/each}
-    </section>
-  {/each}
-
-  {#if weeks.length > shownWeeks.length}
-    <button type="button" class="secondary-button xp-older" onclick={() => (weekLimit += 6)}
-      >{c('showOlder')}</button
-    >
-  {/if}
-</div>
+            {/if}
+          </li>
+        {/each}
+      </ol>
+      {#if bulkRows.length < 20}
+        <button type="button" class="secondary-button xp-small" onclick={addBulkRow}
+          >+ {c('addRow')}</button
+        >
+      {/if}
+      <p class="xp-muted">{c('policyHint')}</p>
+      <div class="xp-form-actions">
+        <span><strong>{c('total')}: {bulkTotal}</strong></span>
+        <button type="submit" disabled={bulkSaving || bulkFilled.length === 0}
+          >{bulkSaving ? c('saving') : c('saveAll', { n: bulkFilled.length })}</button
+        >
+      </div>
+    </form>
+  {/key}
+</ResponsiveSheet>
 
 <ResponsiveSheet
   open={mode !== null}
@@ -1075,6 +1257,130 @@
     margin: 0.25rem 0 0;
     color: var(--ja-text-secondary);
   }
+  .xp-tabs {
+    display: flex;
+    gap: 0.25rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--ja-border-strong);
+  }
+  .xp-tab {
+    min-height: 2.9rem;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--ja-text-secondary);
+    box-shadow: none;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .xp-tab[aria-selected='true'] {
+    color: var(--ja-text-primary);
+    border-bottom-color: var(--ja-red);
+  }
+  .xp-head-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .xp-several {
+    min-height: 3rem;
+    font-size: 0.9rem;
+  }
+  .xp-bulk {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.6rem;
+  }
+  .xp-bulk-row {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(8.5rem, 1fr) minmax(8rem, 1fr) minmax(6rem, 0.8fr) minmax(
+        7rem,
+        0.9fr
+      );
+    gap: 0.5rem;
+    align-items: end;
+    padding: 0.6rem;
+    border: 1px solid var(--ja-border-subdued);
+    border-radius: 0.7rem;
+    background: var(--ja-canvas);
+  }
+  .xp-bulk-bad {
+    border-color: var(--ja-red);
+    background: #fdecea;
+  }
+  .xp-bulk-n {
+    align-self: center;
+    font-weight: 800;
+    color: var(--ja-text-muted);
+  }
+  .xp-bulk-note {
+    grid-column: 2 / 5;
+  }
+  .xp-bulk-remove {
+    min-height: 2.9rem;
+  }
+  .xp-bulk-file {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.9rem;
+    padding: 0.3rem 0.5rem;
+    border: 2px dashed var(--ja-control-border-strong);
+    border-radius: 0.6rem;
+    background: var(--ja-surface);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    overflow: hidden;
+    overflow-wrap: anywhere;
+  }
+  .xp-bulk-file.has-file {
+    border-style: solid;
+    border-color: var(--ja-status-success);
+  }
+  .xp-bulk-file:focus-within {
+    outline: 3px solid var(--ja-focus-ring);
+    outline-offset: 2px;
+  }
+  .xp-bulk-file input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  @media (max-width: 40rem) {
+    .xp-bulk-row {
+      grid-template-columns: 1.25rem minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .xp-bulk-row > :not(.xp-bulk-n) {
+      grid-column: span 1;
+    }
+    .xp-bulk-row > .xp-bulk-n {
+      grid-row: span 3;
+      align-self: start;
+    }
+    .xp-bulk-note {
+      grid-column: 2 / -1 !important;
+    }
+    .xp-bulk-remove {
+      grid-column: 2 / -1 !important;
+      justify-self: end;
+      min-height: 2.5rem !important;
+    }
+    .xp-head-actions {
+      flex-direction: column-reverse;
+    }
+    .xp-head-actions,
+    .xp-head-actions button {
+      width: 100%;
+    }
+  }
   .xp-add {
     min-height: 3rem;
     padding-inline: 1.25rem;
@@ -1098,32 +1404,7 @@
   .xp-empty p {
     margin: 0 0 0.5rem;
   }
-  .xp-filters {
-    border: 1px solid var(--ja-border-subdued);
-    border-radius: 0.75rem;
-    background: var(--ja-surface);
-    padding: 0.25rem 0.9rem;
-  }
-  .xp-filters summary {
-    cursor: pointer;
-    padding: 0.55rem 0;
-    font-weight: 700;
-  }
-  .xp-dot {
-    display: inline-block;
-    width: 0.5rem;
-    height: 0.5rem;
-    margin-left: 0.4rem;
-    border-radius: 50%;
-    background: var(--ja-red);
-  }
-  .xp-filter-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-    gap: 0.6rem;
-    padding-bottom: 0.6rem;
-  }
-  .xp-filter-grid label,
+
   .xp-field {
     display: grid;
     gap: 0.3rem;
@@ -1132,7 +1413,6 @@
     border: 0;
     padding: 0;
   }
-  .xp-filter-grid span,
   .xp-field > span,
   .xp-field > legend,
   .xp-label {
@@ -1140,13 +1420,7 @@
     font-weight: 700;
     color: var(--ja-text-secondary);
   }
-  .xp-filter-actions {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.4rem 0.9rem;
-    padding-bottom: 0.7rem;
-  }
+
   .xp-muted {
     color: var(--ja-text-muted);
     font-size: 0.85rem;
@@ -1315,9 +1589,7 @@
   }
   .xp-form input:not([type='checkbox']):not([type='file']),
   .xp-form select,
-  .xp-form textarea,
-  .xp-filter-grid input,
-  .xp-filter-grid select {
+  .xp-form textarea {
     width: 100%;
     min-height: 2.9rem;
     font-size: 1rem;

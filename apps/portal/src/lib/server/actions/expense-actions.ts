@@ -1259,6 +1259,201 @@ export const expenseActions = withOperationalActionNames({
     }
   },
 
+  /**
+   * Bulk capture (owner request 2026-11-16): several expenses for one project in
+   * one save, each row with its own date, category, amount, optional note and
+   * receipt. All-or-nothing: rows are validated first, receipts are validated
+   * and stored, then every draft is created in one transaction with a retry
+   * identity so a resubmitted form never duplicates drafts. Payer and
+   * commercial treatment follow the assignment policy, exactly like a single
+   * expense.
+   */
+  createExpenseBatch: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'expenses')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const rowCount = Number(object.rowCount);
+    const requestId = String(object.requestId ?? '');
+    if (!Number.isInteger(rowCount) || rowCount < 1 || rowCount > 20)
+      return expenseWeekFailure(
+        400,
+        'rowsInvalid',
+        'Enter 1 to 20 expenses with a date, category and amount. No drafts were saved.',
+        {},
+      );
+    if (!/^[a-zA-Z0-9_-]{16,200}$/.test(requestId))
+      return expenseWeekFailure(
+        400,
+        'requestInvalid',
+        'The save request expired. Reopen the form before saving.',
+        {},
+        'requestId',
+      );
+    type BatchRow = { index: number; input: Record<string, unknown>; receipt?: File };
+    const rows: BatchRow[] = [];
+    for (let index = 0; index < rowCount; index += 1) {
+      const amount = String(object[`amount_${index}`] ?? '').trim();
+      const receipt = object[`receipt_${index}`];
+      const receiptFile = receipt instanceof File && receipt.size > 0 ? receipt : undefined;
+      // A fully blank row is ignored so people can leave spare rows empty.
+      if (!amount && !receiptFile) continue;
+      const input: Record<string, unknown> = {
+        projectId: object.projectId,
+        spentOn: object[`spentOn_${index}`],
+        category: object[`category_${index}`],
+        currency: object.currency,
+        amountMinor: decimalToMinor(normalizeExpenseAmount(amount)),
+        description: String(object[`note_${index}`] ?? '').trim(),
+        whoPaid: 'worker',
+        receiptRequired: Boolean(receiptFile),
+      };
+      if (!input.description) input.description = defaultExpenseDescription(input);
+      rows.push({ index, input, receipt: receiptFile });
+    }
+    if (!rows.length)
+      return expenseWeekFailure(
+        400,
+        'rowsInvalid',
+        'Enter 1 to 20 expenses with a date, category and amount. No drafts were saved.',
+        {},
+      );
+    for (const row of rows) {
+      const checked = expenseInputSchema.safeParse(row.input);
+      if (checked.success) continue;
+      const failure = expenseSchemaFailure(checked.error, {});
+      return actionFail(failure.status, failure.data.messageKey, {}, failure.data.message, {
+        code: failure.data.code,
+        batchRow: row.index,
+        fieldErrors: Object.fromEntries(
+          Object.entries(failure.data.fieldErrors).map(([field, errors]) => [
+            field === 'projectId' || field === 'currency' ? field : `${field}_${row.index}`,
+            [...errors],
+          ]),
+        ),
+        remedies: failure.data.remedies,
+      });
+    }
+    const context = openPortalRepository(locals);
+    const uploads: Array<Awaited<ReturnType<typeof saveExpenseReceipt>>> = [];
+    const cleanup = async () => {
+      for (const upload of uploads) await upload.cleanup().catch(() => undefined);
+    };
+    try {
+      if (context.principal.role === 'auditor_read_only')
+        throw new AccessDeniedError('Read-only role');
+      const workerId = String(object.workerId || context.principal.userId);
+      if (context.principal.role !== 'owner_admin' && workerId !== context.principal.userId)
+        return expenseWeekFailure(
+          403,
+          'workerForbidden',
+          'Record your own expenses. The owner can record expenses for another worker.',
+          {},
+          'workerId',
+        );
+      const bytes = new Map<number, Uint8Array>();
+      for (const row of rows)
+        if (row.receipt) bytes.set(row.index, await validateExpenseReceipt(row.receipt));
+      for (const row of rows)
+        row.input.whoPaid = defaultExpensePayer(context.sqlite, {
+          projectId: String(row.input.projectId),
+          workerId,
+          spentOn: String(row.input.spentOn),
+          category: String(row.input.category),
+        });
+      const payloadHash = createHash('sha256')
+        .update(
+          JSON.stringify({
+            workerId,
+            rows: rows.map((row) => ({
+              ...row.input,
+              receipt: bytes.has(row.index)
+                ? createHash('sha256').update(bytes.get(row.index)!).digest('hex')
+                : null,
+            })),
+          }),
+        )
+        .digest('hex');
+      const prior = () => {
+        const found = context.sqlite
+          .prepare(
+            "SELECT details_json FROM audit_event WHERE actor_id=? AND action='expense.create' AND json_extract(details_json,'$.expenseBatchRequestId')=? LIMIT 1",
+          )
+          .get(context.principal.userId, requestId) as { details_json: string } | undefined;
+        if (!found) return undefined;
+        const details = JSON.parse(found.details_json) as {
+          expenseBatchPayloadHash: string;
+          expenseBatchCount: number;
+        };
+        if (details.expenseBatchPayloadHash !== payloadHash)
+          throw new ConflictError('Expense week retry has changed');
+        return { created: details.expenseBatchCount, replayed: true };
+      };
+      const replay = prior();
+      if (replay)
+        return actionSuccess(
+          'action.expense.weekDraftsAlreadySaved',
+          { created: replay.created },
+          `${replay.created} expense drafts were already saved. No duplicates were created.`,
+        );
+      for (const row of rows) {
+        const rowBytes = bytes.get(row.index);
+        if (!row.receipt || !rowBytes) continue;
+        const upload = await saveExpenseReceipt(
+          context,
+          String(row.input.projectId),
+          row.receipt,
+          rowBytes,
+        );
+        uploads.push(upload);
+        row.input.receiptDocumentId = upload.id;
+      }
+      const result = expenseWeekTransaction(context, () => {
+        const replayed = prior();
+        if (replayed) return replayed;
+        const created = rows.map((row) => {
+          const parsed = expenseInputSchema.safeParse(row.input);
+          if (!parsed.success) throw new ValidationError('Expense fields are invalid');
+          return context.repository.createExpense(context.principal, parsed.data, workerId);
+        });
+        recordAuditEvent(
+          context.sqlite,
+          context.principal,
+          'expense.create',
+          'expense',
+          created[0]!.id,
+          {
+            projectId: String(object.projectId),
+            expenseBatchRequestId: requestId,
+            expenseBatchPayloadHash: payloadHash,
+            expenseBatchCount: created.length,
+            expenseIds: created.map((row) => row.id),
+          },
+        );
+        return { created: created.length, replayed: false };
+      });
+      if (result.replayed) await cleanup();
+      return actionSuccess(
+        result.replayed
+          ? 'action.expense.weekDraftsAlreadySaved'
+          : 'action.expense.weekDraftsSaved',
+        { created: result.created },
+        `${result.created} expense drafts saved`,
+      );
+    } catch (error) {
+      await cleanup();
+      if (error instanceof ConflictError && error.message === 'Expense week retry has changed')
+        return expenseWeekFailure(
+          409,
+          'retryChanged',
+          'This save request already created drafts with different details. Review the saved expenses before saving again.',
+          {},
+        );
+      return expenseActionFailure(error, {});
+    } finally {
+      context.sqlite.close();
+    }
+  },
+
   createExpense: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');

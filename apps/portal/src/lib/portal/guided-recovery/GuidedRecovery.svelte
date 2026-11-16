@@ -358,13 +358,14 @@
     };
     document.addEventListener('submit', captureSubmit, true);
     document.addEventListener('click', captureClick, true);
-    document.addEventListener('invalid', invalid, true);
+    // Native browser validation (with the field focused) is clearer than a
+    // modal for a missing or malformed field, so invalid events are not intercepted.
+    void invalid;
     return () => {
       unsubscribe();
       window.removeEventListener('keydown', escape, true);
       document.removeEventListener('submit', captureSubmit, true);
       document.removeEventListener('click', captureClick, true);
-      document.removeEventListener('invalid', invalid, true);
     };
   });
 </script>

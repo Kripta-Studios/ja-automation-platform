@@ -10,12 +10,17 @@
   let lastProblem: ProblemData | undefined;
   const recover = () =>
     requestGuidedRecovery({ problem, source, links: visibleRemedies.map((item) => item.link) });
+  // Errors stay inline next to the form the person was using. The step-by-step
+  // recovery dialog only opens when they ask for it (button below); opening it
+  // automatically covered the form and made simple mistakes feel alarming.
   $effect(() => {
     if ((kind === 'error' || kind === 'service') && problem !== lastProblem) {
       lastProblem = problem;
       let active = true;
       void tick().then(() => {
-        if (active && source?.isConnected) recover();
+        if (!active || !source?.isConnected) return;
+        source.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        source.focus({ preventScroll: true });
       });
       return () => {
         active = false;

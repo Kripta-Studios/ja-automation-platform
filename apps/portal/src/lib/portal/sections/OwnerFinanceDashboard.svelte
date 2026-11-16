@@ -51,6 +51,18 @@
       0n,
     ) ?? 0n,
   );
+  const nonZero = (value: string | undefined) => BigInt(value ?? '0') !== 0n;
+  const visibleCards = $derived(current ? cards.filter((key) => nonZero(current[key])) : []);
+  const hasTrend = $derived(
+    Boolean(current?.months.some((month) => nonZero(month.incoming) || nonZero(month.outgoing))),
+  );
+  const donutHasData = (keys: Array<keyof typeof colors>) =>
+    keys.some((key) => nonZero(current?.[key]));
+  const hasAny = $derived(
+    visibleCards.length > 0 ||
+      hasTrend ||
+      donutHasData(['overdue', 'not_due', 'paid', 'payable', 'unconfirmed']),
+  );
   const monthLabel = (from: string) =>
     new Intl.DateTimeFormat(locale, { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(
       new Date(`${from}T00:00:00Z`),
@@ -60,90 +72,99 @@
 <section class="owner-finance" aria-labelledby="owner-finance-title" data-owner-finance>
   <header class="overview-heading">
     <div>
-      <span class="portal-kicker">J&amp;A · {t.finance}</span>
       <h2 id="owner-finance-title">{t.title}</h2>
-      <p>{t.subtitle}</p>
+      {#if hasAny}<p>{t.allTime}</p>{/if}
     </div>
-    {#if current}<label
-        >{t.currency}<select
-          aria-label={t.currency}
-          value={current.currency}
-          onchange={(event) => (selected = event.currentTarget.value)}
-          >{#each summary.currencies as item}<option value={item.currency}>{item.currency}</option
-            >{/each}</select
-        ></label
-      >{/if}
+    <div class="overview-tools">
+      {#if current && summary.currencies.length > 1}<label
+          >{t.currency}<select
+            aria-label={t.currency}
+            value={current.currency}
+            onchange={(event) => (selected = event.currentTarget.value)}
+            >{#each summary.currencies as item}<option value={item.currency}>{item.currency}</option
+              >{/each}</select
+          ></label
+        >{/if}
+      <a class="overview-link" href={`${base}/app/finance/cash?lang=${locale}`}
+        >{t.cash} <DirectionIcon direction="up-right" /></a
+      >
+    </div>
   </header>
-  <nav class="finance-links" aria-label={t.finance}>
-    {#each [['billing', '/billing'], ['expenses', '/expenses'], ['finance', '/finance?view=economic'], ['cash', '/finance/cash']] as [key, route]}<a
-        href={`${base}/app${route}`}
-        >{t[key as 'billing' | 'expenses' | 'finance' | 'cash']}
-        <DirectionIcon direction="up-right" /></a
-      >{/each}
-  </nav>
-  {#if current}
-    <p class="scope">{t.allTime}</p>
-    <div class="overview-cards">
-      {#each cards as key}<a href={href(key)} class="overview-card" data-finance-metric={key}
-          ><span>{t[key]}</span><strong>{money(current?.[key] ?? '0')}</strong><small
-            >{t.view} <DirectionIcon size={14} /></small
-          ></a
-        >{/each}
-    </div>
-    <div class="chart-card trend">
-      <h3>{t.trend}</h3>
-      <p>{t.period}</p>
-      <div class="bar-legend">
-        <span><i data-tone="paid"></i>{t.incoming}</span><span
-          ><i data-tone="payable"></i>{t.outgoing}</span
-        >
+  {#if current && hasAny}
+    {#if visibleCards.length}
+      <div class="overview-cards">
+        {#each visibleCards as key}<a
+            href={href(key)}
+            class="overview-card"
+            data-finance-metric={key}
+            ><span>{t[key]}</span><strong>{money(current?.[key] ?? '0')}</strong><small
+              >{t.view} <DirectionIcon size={14} /></small
+            ></a
+          >{/each}
       </div>
-      <div class="months">
-        {#each current.months as month}<div class="month">
-            <div class="bars">
-              {#each ['incoming', 'outgoing'] as key}<a
-                  class="bar-link"
-                  href={href(key as CashFilter, month.from, month.to)}
-                  aria-label={`${monthLabel(month.from)} · ${t[key as 'incoming' | 'outgoing']}: ${money(month[key as 'incoming' | 'outgoing'])}`}
-                  title={`${t[key as 'incoming' | 'outgoing']}: ${money(month[key as 'incoming' | 'outgoing'])}`}
-                  ><svg
-                    class="bar-graphic"
-                    viewBox="0 0 100 100"
-                    preserveAspectRatio="none"
-                    aria-hidden="true"
-                    ><rect
-                      class="bar"
-                      x="18"
-                      width="64"
-                      y={100 - percent(month[key as 'incoming' | 'outgoing'], maximum)}
-                      height={percent(month[key as 'incoming' | 'outgoing'], maximum)}
-                      rx="3"
-                      fill={key === 'incoming' ? '#0f766e' : '#92400e'}
-                    /></svg
-                  ></a
-                >{/each}
-            </div>
-            <strong>{monthLabel(month.from)}</strong>
-            <div class="month-values">
-              {#each ['incoming', 'outgoing'] as key}<a
-                  href={href(key as CashFilter, month.from, month.to)}
-                  >{t[key as 'incoming' | 'outgoing']}: {money(
-                    month[key as 'incoming' | 'outgoing'],
-                  )}</a
-                >{/each}
-            </div>
-          </div>{/each}
+    {/if}
+    {#if hasTrend}
+      <div class="chart-card trend">
+        <h3>{t.trend}</h3>
+        <p>{t.period}</p>
+        <div class="bar-legend">
+          <span><i data-tone="paid"></i>{t.incoming}</span><span
+            ><i data-tone="payable"></i>{t.outgoing}</span
+          >
+        </div>
+        <div class="months">
+          {#each current.months as month}<div class="month">
+              <div class="bars">
+                {#each ['incoming', 'outgoing'] as key}<a
+                    class="bar-link"
+                    href={href(key as CashFilter, month.from, month.to)}
+                    aria-label={`${monthLabel(month.from)} · ${t[key as 'incoming' | 'outgoing']}: ${money(month[key as 'incoming' | 'outgoing'])}`}
+                    title={`${t[key as 'incoming' | 'outgoing']}: ${money(month[key as 'incoming' | 'outgoing'])}`}
+                    ><svg
+                      class="bar-graphic"
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                      ><rect
+                        class="bar"
+                        x="18"
+                        width="64"
+                        y={100 - percent(month[key as 'incoming' | 'outgoing'], maximum)}
+                        height={percent(month[key as 'incoming' | 'outgoing'], maximum)}
+                        rx="3"
+                        fill={key === 'incoming' ? '#0f766e' : '#92400e'}
+                      /></svg
+                    ></a
+                  >{/each}
+              </div>
+              <strong>{monthLabel(month.from)}</strong>
+              <div class="month-values">
+                {#each ['incoming', 'outgoing'] as key}<a
+                    href={href(key as CashFilter, month.from, month.to)}
+                    >{t[key as 'incoming' | 'outgoing']}: {money(
+                      month[key as 'incoming' | 'outgoing'],
+                    )}</a
+                  >{/each}
+              </div>
+            </div>{/each}
+        </div>
       </div>
-    </div>
-    <div class="donut-grid">
-      {@render donut(t.collections, ['overdue', 'not_due'])}{@render donut(t.payments, [
-        'paid',
-        'payable',
-        'unconfirmed',
-      ])}
-    </div>
+    {/if}
+    {#if donutHasData(['overdue', 'not_due']) || donutHasData(['paid', 'payable', 'unconfirmed'])}
+      <div class="donut-grid">
+        {#if donutHasData(['overdue', 'not_due'])}{@render donut(t.collections, [
+            'overdue',
+            'not_due',
+          ])}{/if}
+        {#if donutHasData(['paid', 'payable', 'unconfirmed'])}{@render donut(t.payments, [
+            'paid',
+            'payable',
+            'unconfirmed',
+          ])}{/if}
+      </div>
+    {/if}
     <p class="scope">{t.note}</p>
-  {:else}<div class="chart-card"><p>{t.empty}</p></div>{/if}
+  {:else}<p class="overview-empty">{t.empty}</p>{/if}
 </section>
 
 {#snippet donut(title: string, keys: Array<keyof typeof colors>)}
@@ -206,9 +227,8 @@
     flex-wrap: wrap;
   }
   h2 {
-    font-size: clamp(1.6rem, 3vw, 2.1rem);
-    margin: 8px 0;
-    letter-spacing: -0.035em;
+    font-size: 1.125rem;
+    margin: 0 0 4px;
   }
   h3 {
     margin: 0 0 8px;
@@ -240,22 +260,22 @@
   a:hover {
     color: var(--ja-primary);
   }
-  .finance-links {
+  .overview-tools {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    align-items: end;
+    gap: 12px;
   }
-  .finance-links a {
-    display: flex;
-    gap: 20px;
+  .overview-link {
+    display: inline-flex;
     align-items: center;
+    gap: 8px;
     min-height: 44px;
-    padding: 8px 14px;
-    border: 1px solid var(--ja-control-border);
-    border-radius: 8px;
-    background: var(--ja-surface);
     font-size: 0.875rem;
     font-weight: 600;
+  }
+  .overview-empty {
+    padding: 12px 0;
   }
   .scope {
     font-size: 0.8125rem;
@@ -446,10 +466,6 @@
     }
     .bars {
       height: 110px;
-    }
-    .finance-links a {
-      flex: 1 1 40%;
-      justify-content: space-between;
     }
     .donut-content {
       gap: 12px;

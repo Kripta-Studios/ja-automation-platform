@@ -109,6 +109,16 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   ['worker', 'project_manager'].includes(String(worker.role)),
               )
           : [],
+      // Presentation only: lets the shell hide "Include archived" when nothing is archived.
+      archivedProjectCount:
+        !restrictedProfile &&
+        ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
+          context.principal.role,
+        )
+          ? context.repository
+              .listAssignedProjects(context.principal)
+              .filter((project) => project.status === 'archived').length
+          : 0,
       user: { ...locals.user, workforceProfile: restrictedProfile?.profile },
       section,
       searchQuery,

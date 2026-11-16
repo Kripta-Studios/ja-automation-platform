@@ -1,4 +1,5 @@
 import type { OwnerFinanceSummary } from './owner-finance';
+import type { HomeInbox, WorkerWeekStatus } from './home-inbox';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -57,6 +58,14 @@ export type PortalData = {
   locale?: 'en' | 'es' | 'pt';
   offlineEnabled?: boolean;
   ownerFinance?: OwnerFinanceSummary;
+  /** Home task inbox (owner / project manager). */
+  homeInbox?: HomeInbox;
+  /** Home week status for the signed-in worker. */
+  workerWeek?: WorkerWeekStatus;
+  /** Archived projects in the account's scope; hides "Include archived" when 0. */
+  archivedProjectCount?: number;
+  /** Pending approvals for the navigation badge (layout data). */
+  approvalPendingCount?: number;
   user: {
     id: string;
     name: string;

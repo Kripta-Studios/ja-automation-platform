@@ -1,9 +1,16 @@
+/** Headings inside the "More" disclosure. Items without a group render in a plain list. */
+export type NavGroup = 'management' | 'finance' | 'account';
+
 export type NavItem = {
   section: string;
   label: string;
   icon: string;
   href?: string;
   financeOnly?: boolean;
+  /** Short label for the phone bar (at most ~10 characters in every locale). */
+  shortLabel?: string;
+  /** Presentation group inside "More"; `account` items live only in the account menu. */
+  group?: NavGroup;
 };
 
 export type PortalRole =
@@ -24,6 +31,11 @@ export type PortalNavigation = {
   secondary: readonly NavItem[];
   admin: readonly NavItem[];
   security: readonly NavItem[];
+  /**
+   * Optional phone bar projection. Always the same objects as `primary` so the
+   * active-item identity still works; never adds a destination.
+   */
+  mobile?: readonly NavItem[];
 };
 
 export type NavSubsection = { label: string; href: string };
@@ -265,12 +277,20 @@ export function portalLandingForRole(base: string, role?: string | null): string
   return `${base}/app/`;
 }
 
-const item = (section: string, label: string, icon: string, href?: string): NavItem => ({
+const item = (
+  section: string,
+  label: string,
+  icon: string,
+  href?: string,
+  extra: Pick<NavItem, 'shortLabel' | 'group'> = {},
+): NavItem => ({
   section,
   label,
   icon,
   ...(href ? { href } : {}),
+  ...extra,
 });
+const grouped = (group: NavGroup, entry: NavItem): NavItem => ({ ...entry, group });
 
 /**
  * Return the allowlisted navigation for a role.  Unknown or missing roles use
@@ -324,26 +344,28 @@ export function portalNavigationForRole(
   };
 
   switch (role) {
-    case 'project_manager':
+    case 'project_manager': {
+      // Daily PM work first; everything else sits under "More".
+      const home = item('today', 'Home', '⌂');
+      const approve = item('approvals', 'Approve', '✓');
+      const time = item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' });
+      const expenses = item('expenses', 'Expenses', '◇');
+      const projects = item('projects', 'Projects', '▦');
       return {
-        primary: [
-          item('today', 'Dashboard', '⌂'),
-          item('time', 'Time', '◷'),
-          item('approvals', 'Approvals', '✓'),
-          item('projects', 'Projects', '▦'),
-        ],
+        primary: [home, approve, time, expenses, projects],
         secondary: [
-          item('expenses', 'Expenses', '◇'),
-          item('reports', 'Reports', '▤'),
-          item('projects', 'Team', '◌', route('projects', 'team')),
-          item('planning', 'Planning', '⌘'),
-          item('documents', 'Documents', '▧'),
-          item('pay', 'My Pay', '$'),
-          item('profile', 'Profile', '◎'),
+          grouped('management', item('projects', 'Team', '◌', route('projects', 'team'))),
+          grouped('management', item('planning', 'Planning', '⌘')),
+          grouped('management', item('reports', 'Reports', '▤')),
+          grouped('management', item('documents', 'Documents', '▧')),
+          grouped('account', item('pay', 'My Pay', '$')),
+          grouped('account', item('profile', 'Profile', '◎')),
         ],
         admin: [],
         security: [],
+        mobile: [home, approve, time, projects],
       };
+    }
     case 'finance_admin':
       return {
         primary: [
@@ -363,36 +385,44 @@ export function portalNavigationForRole(
         admin: [],
         security: [],
       };
-    case 'owner_admin':
+    case 'owner_admin': {
+      // Five daily jobs (Time and Expenses stay separate screens) and one
+      // "More" with two plain headings. Nothing is removed: every former
+      // destination is still in "More", the account menu or the search.
+      const home = item('today', 'Home', '⌂');
+      const approve = item('approvals', 'Approve', '✓');
+      const time = item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' });
+      const expenses = item('expenses', 'Expenses', '◇');
+      const projects = item('projects', 'Projects', '▦');
+      const invoices = item('billing', 'Invoices', '◫');
       return {
-        // Daily owner work first: what people logged, what needs approval,
-        // projects and invoices. Configuration and analysis follow.
-        primary: [
-          item('today', 'Dashboard', '⌂'),
-          item('time', 'Time', '◷'),
-          item('expenses', 'Expenses', '◇'),
-          item('approvals', 'Approvals', '✓'),
-          item('projects', 'Projects', '▦'),
-          item('billing', 'Billing', '◫'),
-        ],
+        primary: [home, approve, time, expenses, projects, invoices],
         secondary: [
-          item('projects', 'Clients', '◉', route('projects', 'clients')),
-          item('projects', 'Team', '◌', route('projects', 'team')),
-          item('planning', 'Planning', '⌘'),
-          item('reports', 'Reports', '▤'),
-          item('supplier', 'Suppliers', '◌'),
-          item('crew', 'Crew hours', '◌'),
-          item('documents', 'Documents', '▧'),
-          item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
-          item('finance', 'Economic Review', '∑', route('finance', 'economic')),
-          item('ledger', 'Collections / Ledger', '▤'),
-          item('accounting', 'Accounting', '▥'),
-          item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),
-          item('profile', 'Profile', '◎'),
+          grouped('management', item('projects', 'Clients', '◉', route('projects', 'clients'))),
+          grouped('management', item('projects', 'Team', '◌', route('projects', 'team'))),
+          grouped('management', item('supplier', 'Suppliers', '◌')),
+          grouped('management', item('planning', 'Planning', '⌘')),
+          grouped('management', item('crew', 'Crew hours', '◌')),
+          grouped('management', item('documents', 'Documents', '▧')),
+          grouped('management', item('reports', 'Reports', '▤')),
+          grouped(
+            'finance',
+            item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
+          ),
+          grouped('finance', item('finance', 'Economic Review', '∑', route('finance', 'economic'))),
+          grouped('finance', item('ledger', 'Collections / Ledger', '▤')),
+          grouped('finance', item('accounting', 'Accounting', '▥')),
+          grouped(
+            'finance',
+            item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),
+          ),
+          grouped('account', item('profile', 'Profile', '◎')),
         ],
-        admin: [item('manage', 'Data management', '⚙')],
-        security: [item('audit', 'Audit', '⌁')],
+        admin: [grouped('finance', item('manage', 'Data management', '⚙'))],
+        security: [grouped('finance', item('audit', 'Audit', '⌁'))],
+        mobile: [home, approve, time, invoices],
       };
+    }
     case 'auditor_read_only':
       return {
         primary: [
@@ -422,7 +452,23 @@ export const navigationForRole = portalNavigationForRole;
  * destinations; this helper only limits presentation and never adds routes.
  */
 export function mobilePrimaryNavigationFor(navigation: PortalNavigation): readonly NavItem[] {
-  return navigation.primary.slice(0, 4);
+  const primary = new Set(navigation.primary);
+  const mobile = navigation.mobile?.filter((entry) => primary.has(entry)) ?? [];
+  return mobile.length ? mobile.slice(0, 4) : navigation.primary.slice(0, 4);
+}
+
+/** Destinations shown inside the sidebar's "More" disclosure, in display order. */
+export function moreNavigationGroups(
+  navigation: Pick<PortalNavigation, 'secondary' | 'admin' | 'security'>,
+): Array<{ group: NavGroup | 'other'; items: NavItem[] }> {
+  const order: Array<NavGroup | 'other'> = ['other', 'management', 'finance'];
+  const all = [...navigation.secondary, ...navigation.admin, ...navigation.security];
+  return order
+    .map((group) => ({
+      group,
+      items: all.filter((entry) => (entry.group ?? 'other') === group),
+    }))
+    .filter((entry) => entry.items.length > 0);
 }
 
 export type PortalNavigationLocation = {
@@ -544,7 +590,7 @@ export const portalTitles: Record<string, string> = {
   profile: 'Profile and security',
   planning: 'Resource planning',
   approvals: 'Approval queue',
-  billing: 'Billing',
+  billing: 'Invoices',
   finance: 'Project finance',
   ledger: 'Collections / Ledger',
   accounting: 'Monthly Accounting Pack',

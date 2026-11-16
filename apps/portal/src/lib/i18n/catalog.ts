@@ -308,6 +308,9 @@ const en = {
   'Reports with committed attachments require a versioned correction.':
     'Reports with committed attachments require a versioned correction.',
   'Data management': 'Data management',
+  Home: 'Home',
+  Management: 'Management',
+  'Finance & control': 'Finance & control',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Manage all company records from your Owner account. Changes apply equally to demo and production records.',
   'Manage record': 'Manage record',
@@ -950,6 +953,9 @@ const esBase: Record<keyof typeof en, string> = {
   'Reports with committed attachments require a versioned correction.':
     'Los informes con adjuntos confirmados requieren una corrección versionada.',
   'Data management': 'Gestión de datos',
+  Home: 'Inicio',
+  Management: 'Gestión',
+  'Finance & control': 'Finanzas y control',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Gestiona los registros de la empresa desde tu cuenta Owner. Las acciones se aplican tanto a datos de ejemplo como a datos reales.',
   'Manage record': 'Gestionar registro',
@@ -1584,6 +1590,9 @@ const ptBase: Record<keyof typeof en, string> = {
   'Reports with committed attachments require a versioned correction.':
     'Relatórios com anexos confirmados exigem uma correção versionada.',
   'Data management': 'Gestão de dados',
+  Home: 'Início',
+  Management: 'Gestão',
+  'Finance & control': 'Finanças e controle',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Gerencie os registros da empresa com sua conta Owner. As ações se aplicam tanto aos dados de exemplo quanto aos reais.',
   'Manage record': 'Gerenciar registro',

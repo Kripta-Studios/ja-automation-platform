@@ -5,6 +5,8 @@
   import { decimalHoursFromMinutes } from '../minute-hours';
   import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
   import OwnerFinanceDashboard from './OwnerFinanceDashboard.svelte';
+  import { homeText, type HomeCopyKey } from './home-copy';
+  import type { CurrencyTotal } from '../home-inbox';
   import type { PortalData, PortalRow } from '../portal-data';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
 
@@ -26,7 +28,10 @@
   }: {
     base: string;
     locale?: 'en' | 'es' | 'pt';
-    data: Pick<PortalData, 'dashboard' | 'records' | 'ownerFinance' | 'locale'>;
+    data: Pick<
+      PortalData,
+      'dashboard' | 'records' | 'ownerFinance' | 'locale' | 'homeInbox' | 'workerWeek'
+    >;
     availableProjects: PortalRow[];
     online: boolean;
     queue: number;
@@ -55,21 +60,174 @@
   const agenda = $derived(planningAgenda(data.records ?? [], agendaDate));
   const upcomingShown = $derived(agenda.upcoming.slice(0, upcomingLimit));
   const dateLocale = $derived(locale === 'pt' ? 'pt-BR' : locale);
-  const todayLabel = $derived(
-    new Intl.DateTimeFormat(dateLocale, {
-      weekday: 'long',
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-      timeZone: 'UTC',
-    }).format(agendaDate),
-  );
   const projectHref = (row: PortalRow): string | null => {
     const projectId = String(row.project_id ?? '');
     return projectId && availableProjects.some((project) => String(project.id) === projectId)
       ? `${base}/app/projects/${encodeURIComponent(projectId)}?lang=${locale}`
       : null;
   };
+  const h = (key: HomeCopyKey, params?: Record<string, string | number>) =>
+    homeText(locale, key, params);
+  const plural = (count: number, one: HomeCopyKey, many: HomeCopyKey) =>
+    count === 1 ? h(one) : h(many, { count });
+  const totalsText = (totals: readonly CurrencyTotal[] | undefined): string =>
+    (totals ?? []).map((total) => money(total.minor, total.currency)).join(' · ');
+  const hoursText = (minutes: number) => `${decimalHoursFromMinutes(minutes)} h`;
+  const link = (path: string, params: Record<string, string> = {}) => {
+    const target = new URL(`${base}/app/${path}`, 'https://portal.invalid');
+    for (const [key, value] of Object.entries(params)) target.searchParams.set(key, value);
+    target.searchParams.set('lang', locale);
+    return `${target.pathname}${target.search}`;
+  };
+
+  type InboxRow = {
+    id: string;
+    label: string;
+    value: string;
+    detail: string;
+    action: string;
+    href: string;
+    active: boolean;
+    tone?: 'danger';
+  };
+  const inbox = $derived(data.homeInbox);
+  const overdueTotals = $derived(
+    (data.ownerFinance?.currencies ?? [])
+      .filter((item) => BigInt(item.overdue) > 0n)
+      .map((item) => ({ currency: item.currency, minor: item.overdue })),
+  );
+  const draftCount = $derived(Number(data.dashboard?.upcomingInvoices ?? 0));
+  const inboxRows = $derived.by((): InboxRow[] => {
+    if (!inbox) return [];
+    const approvals = inbox.approvals;
+    const rows: InboxRow[] = [
+      {
+        id: 'hours',
+        label: h('hoursToApprove'),
+        value: approvals.time.count ? hoursText(approvals.time.minutes) : '0',
+        detail: approvals.time.count
+          ? plural(approvals.time.count, 'entry', 'entries')
+          : h('nothing'),
+        action: h('reviewHours'),
+        href: link('approvals', { tab: 'time' }),
+        active: approvals.time.count > 0,
+      },
+      {
+        id: 'expenses',
+        label: h('expensesToApprove'),
+        // Project managers never receive expense amounts; they see the count only.
+        value: approvals.expenses.count
+          ? totalsText(approvals.expenses.totals) || String(approvals.expenses.count)
+          : '0',
+        detail: !approvals.expenses.count
+          ? h('nothing')
+          : approvals.expenses.totals.length
+            ? plural(approvals.expenses.count, 'expense', 'expenses')
+            : '',
+        action: h('reviewExpenses'),
+        href: link('approvals', { tab: 'expenses' }),
+        active: approvals.expenses.count > 0,
+      },
+    ];
+    if (inbox.readyToInvoice) {
+      const ready = inbox.readyToInvoice;
+      rows.push({
+        id: 'ready',
+        label: h('readyToInvoice'),
+        value: ready.projects ? totalsText(ready.totals) : '—',
+        detail: ready.projects ? plural(ready.projects, 'project', 'projects') : h('noReady'),
+        action: h('createInvoice'),
+        href:
+          ready.topProjectId && canCreateInvoiceDraft
+            ? link('billing', { project: ready.topProjectId, assistantSurface: 'invoice-create' })
+            : (invoiceDraftHref ?? link('billing')),
+        active: ready.projects > 0,
+      });
+    }
+    if (data.ownerFinance) {
+      rows.push({
+        id: 'overdue',
+        label: h('overdueInvoices'),
+        value: overdueTotals.length ? totalsText(overdueTotals) : '—',
+        detail: overdueTotals.length ? '' : h('noOverdue'),
+        action: h('seeOverdue'),
+        href: link('billing', { stage: 'overdue' }),
+        active: overdueTotals.length > 0,
+        tone: 'danger',
+      });
+    }
+    if (approvals.reports > 0)
+      rows.push({
+        id: 'reports',
+        label: h('reportsToApprove'),
+        value: String(approvals.reports),
+        detail: '',
+        action: h('reviewReports'),
+        href: link('approvals', { tab: 'reports' }),
+        active: true,
+      });
+    if (data.ownerFinance && draftCount > 0)
+      rows.push({
+        id: 'drafts',
+        label: h('draftsToIssue'),
+        value: totalsText(data.dashboard?.upcomingInvoiceTotalsByCurrency) || String(draftCount),
+        detail: plural(draftCount, 'draft', 'drafts'),
+        action: h('seeDrafts'),
+        href: link('billing', { stage: 'drafts' }),
+        active: true,
+      });
+    return rows;
+  });
+  const inboxClear = $derived(inboxRows.length > 0 && inboxRows.every((row) => !row.active));
+
+  // Worker week
+  const week = $derived(data.workerWeek);
+  const weekRange = $derived.by(() => {
+    if (!week) return '';
+    const format = new Intl.DateTimeFormat(dateLocale, {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+    return `${format.format(new Date(`${week.weekStart}T00:00:00Z`))} – ${format.format(new Date(`${week.weekEnd}T00:00:00Z`))}`;
+  });
+  const weekMinutes = $derived(
+    week ? week.time.draft + week.time.submitted + week.time.approved + week.time.needsChanges : 0,
+  );
+  const weekExpenseCount = $derived(
+    week
+      ? week.expenses.draft +
+          week.expenses.submitted +
+          week.expenses.approved +
+          week.expenses.needsChanges
+      : 0,
+  );
+  type StateChip = { key: string; text: string; tone: string };
+  const timeChips = $derived.by((): StateChip[] => {
+    if (!week) return [];
+    const chips: StateChip[] = [];
+    const add = (value: number, key: HomeCopyKey, tone: string) => {
+      if (value > 0) chips.push({ key, text: h(key, { value: hoursText(value) }), tone });
+    };
+    add(week.time.needsChanges, 'stateNeedsChanges', 'warn');
+    add(week.time.draft, 'stateDraft', 'draft');
+    add(week.time.submitted, 'stateSubmitted', 'info');
+    add(week.time.approved, 'stateApproved', 'ok');
+    return chips;
+  });
+  const expenseChips = $derived.by((): StateChip[] => {
+    if (!week) return [];
+    const chips: StateChip[] = [];
+    const add = (value: number, key: HomeCopyKey, tone: string) => {
+      if (value > 0) chips.push({ key, text: h(key, { value }), tone });
+    };
+    add(week.expenses.needsChanges, 'stateNeedsChanges', 'warn');
+    add(week.expenses.draft, 'stateDraft', 'draft');
+    add(week.expenses.submitted, 'stateSubmitted', 'info');
+    add(week.expenses.approved, 'stateApproved', 'ok');
+    return chips;
+  });
+
   onMount(() => {
     // A workspace left open overnight must not keep yesterday labelled Today.
     agendaDate = new Date();
@@ -81,34 +239,33 @@
 </script>
 
 {#if data.dashboard}
-  <div id="dashboard-overview" class="dashboard-hero">
-    <div>
-      <span class="portal-kicker">{translate('OPERATIONS CONTROL')}</span>
-      <h2>{translate('Field operations overview')}</h2>
-      <p>{translate('Current projects, field records, and billing readiness in one view.')}</p>
-    </div>
-    <a class="dashboard-project-count" href={`${base}/app/projects`}>
-      <strong>{data.dashboard.activeProjects}</strong>
-      <span>{translate('active projects')} <DirectionIcon direction="up-right" /></span>
-    </a>
-  </div>
-{/if}
-
-{#if data.dashboard}
-  <nav class="quick-actions dashboard-quick-actions" aria-label={translate('Dashboard actions')}>
-    {#if canCreateProject}
-      <a href={`${base}/app/projects?action=new-project#new-project`}>{translate('New project')}</a>
-    {/if}
-    <a href={`${base}/app/time`}>{translate('Log actual time')}</a>
-    <a href={`${base}/app/reports`}>{translate('Write field report')}</a>
-    {#if canCreateInvoiceDraft && invoiceDraftHref}
-      <a href={invoiceDraftHref} data-dashboard-invoice-draft>{translate('Create invoice draft')}</a
-      >
-    {/if}
-    {#if canViewPendingReports}
-      <a href={`${base}/app/approvals`}>{translate('View pending reports')}</a>
-    {/if}
-  </nav>
+  <section id="dashboard-overview" class="home-inbox" aria-labelledby="home-inbox-title">
+    <h2 id="home-inbox-title">{h('inboxTitle')}</h2>
+    {#if inboxClear}<p class="home-inbox-clear">{h('inboxAllClear')}</p>{/if}
+    <ul class="home-inbox-list">
+      {#each inboxRows as row (row.id)}
+        <li
+          class="home-inbox-row"
+          class:home-inbox-row--quiet={!row.active}
+          class:home-inbox-row--danger={row.active && row.tone === 'danger'}
+          data-home-inbox={row.id}
+        >
+          <div class="home-inbox-copy">
+            <span class="home-inbox-label">{row.label}</span>
+            <strong class="home-inbox-value">{row.value}</strong>
+            {#if row.detail}<span class="home-inbox-detail">{row.detail}</span>{/if}
+          </div>
+          <a
+            class="home-inbox-action"
+            class:home-inbox-action--primary={row.active}
+            href={row.href}
+            aria-label={`${row.action} · ${row.label}`}
+            ><span class="home-inbox-action-label">{row.action}</span> <DirectionIcon /></a
+          >
+        </li>
+      {/each}
+    </ul>
+  </section>
 {/if}
 
 {#if data.ownerFinance}
@@ -116,104 +273,75 @@
 {/if}
 
 {#if data.dashboard}
-  <div class="finance-grid dashboard-metrics">
-    <a class="metric" href={`${base}/app/time`}>
-      <span>{translate('RECORDED HOURS')}</span><strong
-        >{decimalHoursFromMinutes(data.dashboard.actualMinutes)} h</strong
-      >
-      <p>{translate('Approved and submitted field time')}</p>
-    </a>
-    <a class="metric attention" href={`${base}/app/approvals`}>
-      <span>{translate('PENDING REPORTS')}</span><strong>{data.dashboard.pendingReports}</strong>
-      <p>{translate('Daily and PLC records awaiting review')}</p>
-    </a>
-    {#if data.dashboard.expenseTotalsByCurrency}
-      <a class="metric" href={`${base}/app/expenses`}>
-        <span>{translate('PROJECT EXPENSES')}</span>
-        <div class="dashboard-currency-totals">
-          {#each data.dashboard.expenseTotalsByCurrency as total (total.currency)}
-            <strong>{money(total.minor, total.currency)} {total.currency}</strong>
-          {:else}
-            <strong>0</strong>
-          {/each}
-        </div>
-        <p>{translate('All-in and reimbursable combined')}</p>
-      </a>
-    {/if}
-    {#if data.dashboard.upcomingInvoiceTotalsByCurrency}
-      <a class="metric" href={`${base}/app/billing`}>
-        <span>{translate('UPCOMING BILLING')}</span>
-        <div class="dashboard-currency-totals">
-          {#each data.dashboard.upcomingInvoiceTotalsByCurrency as total (total.currency)}
-            <strong>{money(total.minor, total.currency)} {total.currency}</strong>
-          {:else}
-            <strong>0</strong>
-          {/each}
-        </div>
-        <p>
-          {data.dashboard.upcomingInvoices ?? 0}
-          {translate(
-            data.dashboard.upcomingInvoices === 1
-              ? 'invoice awaiting issuance'
-              : 'invoices awaiting issuance',
-          )}
-        </p>
-      </a>
-    {/if}
-  </div>
   <section id="dashboard-project-board" class="record-list dashboard-projects">
     <div class="panel-title">
-      <h2>{translate('Active project board')}</h2>
-      <span>{activeProjects.length} {translate('records')}</span>
+      <h2>{h('activeProjects')}</h2>
+      <span>{plural(activeProjects.length, 'project', 'projects')}</span>
     </div>
     {#each activeProjects as project}<a
         class="project-board-row"
         href={`${base}/app/projects/${project.id}`}
         ><span><b>{project.project_number}</b><strong>{project.name}</strong></span><small
           >{controlledValue('status', project.status)} · {project.timezone}</small
-        ><i>{translate('Open project')}</i></a
+        ><i>{h('openProject')}</i></a
       >{/each}
   </section>
 {:else}
   <div class="worker-agenda" data-worker-agenda>
-    <section class="agenda-intro" aria-labelledby="agenda-heading">
-      <div class="agenda-intro-heading">
-        <div>
-          <span class="portal-kicker">{translate('Field workspace')}</span>
-          <h2 id="agenda-heading">{translate('Your workday')}</h2>
-          <p class="agenda-date">{todayLabel} · UTC</p>
-        </div>
-        <span class="agenda-count"
-          >{portalText(locale, '{count} assignments today', { count: agenda.today.length })}</span
+    <section class="worker-home" aria-labelledby="agenda-heading">
+      <h2 id="agenda-heading" class="worker-home-heading">
+        {week ? h('thisWeek', { range: weekRange }) : h('workerTitle')}
+      </h2>
+      <div class="worker-home-actions">
+        <a
+          class="worker-home-card worker-home-card--primary"
+          href={link('time')}
+          data-home-log-hours
         >
+          <span class="worker-home-action">{h('logHours')} <DirectionIcon /></span>
+          <span class="worker-home-status">
+            <strong
+              >{weekMinutes > 0
+                ? h('hoursThisWeek', { hours: decimalHoursFromMinutes(weekMinutes) })
+                : h('noHoursYet')}</strong
+            >
+            {#each timeChips as chip (chip.key)}<span class="worker-chip" data-tone={chip.tone}
+                >{chip.text}</span
+              >{/each}
+          </span>
+        </a>
+        <a class="worker-home-card" href={link('expenses')} data-home-add-expense>
+          <span class="worker-home-action">{h('addExpense')} <DirectionIcon /></span>
+          <span class="worker-home-status">
+            <strong
+              >{weekExpenseCount > 0
+                ? [
+                    plural(weekExpenseCount, 'expense', 'expenses'),
+                    totalsText(week?.expenses.totals),
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')
+                : h('noExpensesYet')}</strong
+            >
+            {#each expenseChips as chip (chip.key)}<span class="worker-chip" data-tone={chip.tone}
+                >{chip.text}</span
+              >{/each}
+          </span>
+        </a>
       </div>
-      <nav class="quick-actions agenda-actions" aria-label={translate('Dashboard actions')}>
-        <a href={`${base}/app/time?lang=${locale}`}>{translate('Log actual time')}</a>
-        <a href={`${base}/app/reports?lang=${locale}`}>{translate('Write field report')}</a>
-        <a href={`${base}/app/expenses?lang=${locale}`}>{translate('Add expense')}</a>
-      </nav>
-      <p class="agenda-note">
-        {translate('Planning is a reference. Record the time you actually worked.')}
-      </p>
+      <a class="worker-home-report" href={link('reports')}>{h('writeReport')}</a>
     </section>
 
-    <div
-      class="agenda-device"
-      class:agenda-offline={!online}
-      aria-label={translate('DEVICE STATUS')}
-    >
-      <span class="agenda-connection-dot" aria-hidden="true"></span>
-      <strong>{online ? translate('Connected to J&A') : translate('Working offline')}</strong>
-      <span
-        >{queue}
-        {translate(
-          queue === 1
-            ? 'local mutation waiting to synchronize.'
-            : 'local mutations waiting to synchronize.',
-        )}</span
-      >
-      {#if syncMessage}<small role="status">{translate(syncMessage)}</small>{/if}
-    </div>
+    {#if !online || queue > 0}
+      <div class="agenda-device" class:agenda-offline={!online} role="status">
+        <span class="agenda-connection-dot" aria-hidden="true"></span>
+        <strong>{online ? translate('Connected to J&A') : h('offline')}</strong>
+        {#if queue > 0}<span
+            >{queue === 1 ? h('pendingSyncOne') : h('pendingSync', { count: queue })}</span
+          >{/if}
+        {#if syncMessage}<small>{translate(syncMessage)}</small>{/if}
+      </div>
+    {/if}
 
     <section
       class="agenda-section"
@@ -307,18 +435,205 @@
 {/snippet}
 
 <style>
+  .home-inbox {
+    display: grid;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+  }
+  .home-inbox h2 {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+  .home-inbox-clear {
+    margin: 0;
+    color: var(--ja-text-secondary);
+  }
+  .home-inbox-list {
+    display: grid;
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border: 1px solid var(--ja-border-strong);
+    border-radius: 0.875rem;
+    background: var(--ja-surface);
+    overflow: hidden;
+  }
+  .home-inbox-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1rem 1.25rem;
+    border-left: 4px solid var(--ja-ink, #24251f);
+  }
+  .home-inbox-row + .home-inbox-row {
+    border-top: 1px solid var(--ja-border-subdued);
+  }
+  .home-inbox-row--quiet {
+    border-left-color: transparent;
+  }
+  .home-inbox-row--danger {
+    border-left-color: var(--ja-red, #b42318);
+  }
+  .home-inbox-copy {
+    display: grid;
+    grid-template-columns: minmax(10rem, 14rem) auto;
+    align-items: baseline;
+    gap: 0.15rem 1.25rem;
+    min-width: 0;
+  }
+  .home-inbox-label {
+    font-weight: 650;
+    color: var(--ja-text-primary);
+  }
+  .home-inbox-value {
+    font-size: 1.375rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
+    overflow-wrap: anywhere;
+  }
+  .home-inbox-detail {
+    grid-column: 2;
+    color: var(--ja-text-secondary);
+    font-size: 0.875rem;
+  }
+  .home-inbox-row--quiet .home-inbox-value,
+  .home-inbox-row--quiet .home-inbox-label {
+    color: var(--ja-text-secondary);
+    font-weight: 500;
+  }
+  .home-inbox-row--quiet .home-inbox-value {
+    font-size: 1.125rem;
+  }
+  .home-inbox-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    border: 1px solid var(--ja-control-border);
+    border-radius: 0.6rem;
+    color: var(--ja-text-primary);
+    background: var(--ja-surface);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+  .home-inbox-action--primary {
+    color: #fff;
+    background: var(--ja-ink, #24251f);
+    border-color: var(--ja-ink, #24251f);
+  }
+  .home-inbox-action:focus-visible,
+  .worker-home a:focus-visible {
+    outline: 3px solid var(--ja-border-focus);
+    outline-offset: 3px;
+  }
+  .worker-home {
+    display: grid;
+    gap: 1rem;
+  }
+  .worker-home-heading {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+  .worker-home-actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+    gap: 0.75rem;
+  }
+  .worker-home-card {
+    display: grid;
+    gap: 0.6rem;
+    min-height: 7rem;
+    padding: 1.1rem 1.25rem;
+    border: 1px solid var(--ja-border-strong);
+    border-radius: 0.875rem;
+    color: var(--ja-text-primary);
+    background: var(--ja-surface);
+    text-decoration: none;
+  }
+  .worker-home-card--primary {
+    color: #fff;
+    background: var(--ja-ink, #24251f);
+    border-color: var(--ja-ink, #24251f);
+  }
+  .worker-home-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 700;
+  }
+  .worker-home-status {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.875rem;
+  }
+  .worker-home-status strong {
+    flex-basis: 100%;
+    font-weight: 600;
+  }
+  .worker-chip {
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--ja-canvas, #f3f3ef);
+    color: var(--ja-text-primary);
+    font-size: 0.8125rem;
+  }
+  .worker-home-card--primary .worker-chip {
+    background: rgb(255 255 255 / 0.16);
+    color: #fff;
+  }
+  .worker-chip[data-tone='warn'] {
+    background: #fdecc8;
+    color: #6b3d00;
+  }
+  .worker-home-report {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    color: var(--ja-text-primary);
+    font-weight: 600;
+  }
+  @media (max-width: 720px) {
+    .home-inbox-row {
+      padding: 0.8rem 0.9rem;
+    }
+    .home-inbox-copy {
+      grid-template-columns: 1fr;
+      gap: 0.1rem;
+    }
+    .home-inbox-detail {
+      grid-column: 1;
+    }
+    .home-inbox-value {
+      font-size: 1.2rem;
+    }
+    /* On phones the whole action is a 48px arrow; its name stays in aria-label. */
+    .home-inbox-action {
+      justify-content: center;
+      width: 48px;
+      min-height: 48px;
+      padding: 0;
+    }
+    .home-inbox-action-label {
+      display: none;
+    }
+  }
   .worker-agenda {
     display: grid;
     gap: 1.25rem;
     min-width: 0;
   }
-  .agenda-intro {
-    padding: clamp(1.25rem, 3vw, 2rem);
-    border: 1px solid var(--ja-border-strong);
-    border-radius: 1rem;
-    background: var(--ja-surface);
-  }
-  .agenda-intro-heading,
   .agenda-section-heading {
     display: flex;
     align-items: center;
@@ -326,57 +641,12 @@
     gap: 1rem;
     flex-wrap: wrap;
   }
-  .agenda-intro h2 {
-    margin: 0.5rem 0;
-    font-size: clamp(1.5rem, 3vw, 2rem);
-    letter-spacing: -0.035em;
-  }
-  .agenda-date,
-  .agenda-note,
   .agenda-scope,
   .agenda-site,
   .agenda-planned {
     color: var(--ja-text-secondary);
     font-size: 0.875rem;
     line-height: 1.6;
-  }
-  .agenda-date {
-    margin: 0;
-  }
-  .agenda-count {
-    padding: 0.5rem 0.75rem;
-    background: var(--ja-canvas);
-    border-radius: 0.5rem;
-    font-size: 0.8125rem;
-    line-height: 1.5;
-  }
-  .agenda-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem;
-    margin: 1.25rem 0 0.75rem;
-  }
-  .agenda-actions a {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 44px;
-    padding: 0.75rem 1rem;
-    border: 1px solid var(--ja-control-border);
-    border-radius: 0.65rem;
-    background: var(--ja-surface);
-    color: var(--ja-text-primary);
-    text-decoration: none;
-    font-size: 0.875rem;
-    font-weight: 600;
-  }
-  .agenda-actions a:first-child {
-    color: var(--ja-surface);
-    background: var(--ja-primary);
-    border-color: var(--ja-primary);
-  }
-  .agenda-note {
-    margin: 0;
   }
   .agenda-device {
     display: flex;
@@ -547,9 +817,6 @@
       align-items: stretch;
       padding: 1rem;
     }
-    .agenda-actions a {
-      flex: 1 1 100%;
-    }
     .agenda-project-link {
       align-self: start;
     }
@@ -558,7 +825,7 @@
     }
   }
   @media print {
-    .agenda-actions,
+    .worker-home-actions,
     .agenda-device,
     .agenda-show-more {
       display: none;

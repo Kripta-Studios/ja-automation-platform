@@ -156,3 +156,31 @@ export function searchSectionDestinations(
     count: actions.length + configurations.length + sections.length,
   };
 }
+
+/** An already-authorized record suggestion offered by the search palette. */
+export type PaletteRecord = Readonly<{
+  id: string;
+  label: string;
+  detail?: string;
+  group?: string;
+  href: string;
+}>;
+
+/**
+ * Whole-word prefix match on records the server already scoped to this user.
+ * "jun ohio" finds "Junkers OHIO"; "iva" never matches "privado".
+ */
+export function searchPaletteRecords(
+  query: string,
+  records: readonly PaletteRecord[],
+  limit = 6,
+): PaletteRecord[] {
+  const queryTokens = sectionSearchTokens(query);
+  if (!queryTokens.length) return [];
+  return records
+    .filter((record) => {
+      const tokens = sectionSearchTokens(`${record.label} ${record.detail ?? ''}`);
+      return queryTokens.every((token) => tokens.some((candidate) => candidate.startsWith(token)));
+    })
+    .slice(0, limit);
+}

@@ -5,6 +5,8 @@ import {
   accountNavigationFor,
   activeNavItem,
   isNavItemActive,
+  mobilePrimaryNavigationFor,
+  moreNavigationGroups,
   navigationShortcutsFor,
   portalGlobalNavigationForRole,
   portalLandingForRole,
@@ -34,7 +36,8 @@ describe('searchable navigation settings', () => {
       const shortcuts = navigationShortcutsFor(flatten(role), itemHref, role);
       const billing = shortcuts.find((item) => item.label === 'Configure billing');
       expect(billing?.href).toBe('/j-aautomation/app/billing?view=setup');
-      expect(billing?.parentLabel).toBe('Billing');
+      // The owner's menu names the billing destination by its daily job: Invoices.
+      expect(billing?.parentLabel).toBe(role === 'owner_admin' ? 'Invoices' : 'Billing');
       const compensation = shortcuts.find((item) => item.label === 'Worker compensation');
       const target = new URL(compensation!.href!, 'https://portal.test');
       expect(target.searchParams.get('view')).toBe('commercial');
@@ -96,19 +99,30 @@ describe('portal role navigation contract', () => {
   });
 
   it('gives PM the project workflow without finance or commercial configuration', () => {
+    // Five daily destinations; the rest sits under "More" or the account menu.
+    expect(
+      portalNavigationForRole('/j-aautomation', 'project_manager').primary.map(
+        (item) => item.label,
+      ),
+    ).toEqual(['Home', 'Approve', 'Time', 'Expenses', 'Projects']);
     expect(labels('project_manager')).toEqual([
-      'Dashboard',
+      'Home',
+      'Approve',
       'Time',
-      'Approvals',
-      'Projects',
       'Expenses',
-      'Reports',
+      'Projects',
       'Team',
       'Planning',
+      'Reports',
       'Documents',
       'My Pay',
       'Profile',
     ]);
+    expect(
+      mobilePrimaryNavigationFor(portalNavigationForRole('/j-aautomation', 'project_manager')).map(
+        (item) => item.label,
+      ),
+    ).toEqual(['Home', 'Approve', 'Time', 'Projects']);
     expect(labels('project_manager')).not.toEqual(
       expect.arrayContaining([
         'Finance Overview',
@@ -148,21 +162,67 @@ describe('portal role navigation contract', () => {
     expect(portalLandingForRole('/j-aautomation', 'worker')).toBe('/j-aautomation/app/');
   });
 
-  it('gives Owner the authorized superset and keeps Audit explicit', () => {
-    expect(labels('owner_admin')).toEqual([
-      'Dashboard',
+  it('gives Owner six daily destinations and keeps everything else under More', () => {
+    const owner = portalNavigationForRole('/j-aautomation', 'owner_admin');
+    expect(owner.primary.map((item) => item.label)).toEqual([
+      'Home',
+      'Approve',
       'Time',
       'Expenses',
-      'Approvals',
       'Projects',
-      'Billing',
+      'Invoices',
+    ]);
+    expect(mobilePrimaryNavigationFor(owner).map((item) => item.label)).toEqual([
+      'Home',
+      'Approve',
+      'Time',
+      'Invoices',
+    ]);
+    expect(
+      mobilePrimaryNavigationFor(owner).find((item) => item.section === 'time')?.shortLabel,
+    ).toBe('Hours');
+    expect(
+      moreNavigationGroups(owner).map((entry) => [
+        entry.group,
+        entry.items.map((item) => item.label),
+      ]),
+    ).toEqual([
+      [
+        'management',
+        ['Clients', 'Team', 'Suppliers', 'Planning', 'Crew hours', 'Documents', 'Reports'],
+      ],
+      [
+        'finance',
+        [
+          'Finance Overview',
+          'Economic Review',
+          'Collections / Ledger',
+          'Accounting',
+          'Commercial Configuration',
+          'Data management',
+          'Audit',
+        ],
+      ],
+    ]);
+    // Profile lives in the account menu only.
+    expect(accountNavigationFor(owner).map((item) => item.label)).toContain('Profile');
+  });
+
+  it('gives Owner the authorized superset and keeps Audit explicit', () => {
+    expect(labels('owner_admin')).toEqual([
+      'Home',
+      'Approve',
+      'Time',
+      'Expenses',
+      'Projects',
+      'Invoices',
       'Clients',
       'Team',
-      'Planning',
-      'Reports',
       'Suppliers',
+      'Planning',
       'Crew hours',
       'Documents',
+      'Reports',
       'Finance Overview',
       'Economic Review',
       'Collections / Ledger',
@@ -338,8 +398,8 @@ describe('active portal navigation destination', () => {
 
   it.each([
     ['worker', 'Today'],
-    ['project_manager', 'Dashboard'],
-    ['owner_admin', 'Dashboard'],
+    ['project_manager', 'Home'],
+    ['owner_admin', 'Home'],
     ['finance_admin', 'Finance Overview'],
     ['auditor_read_only', 'Finance Overview'],
   ])('selects the role landing for %s at the root URL', (role, label) => {

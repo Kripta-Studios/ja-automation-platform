@@ -1,5 +1,117 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  // One-password-per-person and simplified Team access forms (2026-11-16).
+  'Sets a new password. If this person has a Webmail mailbox, the same password is set there too.': [
+    'Pone una contraseña nueva. Si esta persona tiene buzón de Webmail, se pone allí la misma contraseña.',
+    'Define uma nova senha. Se esta pessoa tiver caixa de correio do Webmail, a mesma senha é definida lá também.',
+  ],
+  'Account address': ['Dirección de la cuenta', 'Endereço da conta'],
+  'Type a username like juan.perez and @j-aautomation.com is added for you.': [
+    'Escribe un usuario como juan.perez y se añadirá @j-aautomation.com automáticamente.',
+    'Digite um usuário como juan.perez e @j-aautomation.com será adicionado automaticamente.',
+  ],
+  'What will this person do?': ['¿Qué hará esta persona?', 'O que esta pessoa vai fazer?'],
+  'Records time, expenses and reports on assigned projects.': [
+    'Registra horas, gastos e informes en los proyectos asignados.',
+    'Registra horas, despesas e relatórios nos projetos atribuídos.',
+  ],
+  'Plans projects and reviews the team’s work.': [
+    'Planifica proyectos y revisa el trabajo del equipo.',
+    'Planeja projetos e revisa o trabalho da equipe.',
+  ],
+  'Invoices, payments and accounting.': [
+    'Facturas, pagos y contabilidad.',
+    'Faturas, pagamentos e contabilidade.',
+  ],
+  'Can see records but cannot change anything.': [
+    'Puede ver los registros, pero no puede cambiar nada.',
+    'Pode ver os registros, mas não pode alterar nada.',
+  ],
+  'Supplier staff who record time on assigned projects.': [
+    'Personal de un proveedor que registra horas en los proyectos asignados.',
+    'Equipe de um fornecedor que registra horas nos projetos atribuídos.',
+  ],
+  'Manages a supplier’s people and their work.': [
+    'Gestiona las personas de un proveedor y su trabajo.',
+    'Gerencia as pessoas de um fornecedor e o trabalho delas.',
+  ],
+  'You can assign projects after the account is created.': [
+    'Puedes asignar proyectos después de crear la cuenta.',
+    'Você pode atribuir projetos depois de criar a conta.',
+  ],
+  Generate: ['Generar', 'Gerar'],
+  'At least 12 characters. The same password opens the portal and Webmail.': [
+    'Al menos 12 caracteres. La misma contraseña abre el portal y el Webmail.',
+    'Pelo menos 12 caracteres. A mesma senha abre o portal e o Webmail.',
+  ],
+  'At least 12 characters.': ['Al menos 12 caracteres.', 'Pelo menos 12 caracteres.'],
+  'Also create the Webmail mailbox': [
+    'Crear también el buzón de Webmail',
+    'Criar também a caixa de correio do Webmail',
+  ],
+  'Uncheck only if this person already has a mailbox or must not have one.': [
+    'Desmárcalo solo si esta persona ya tiene buzón o no debe tenerlo.',
+    'Desmarque apenas se esta pessoa já tem caixa de correio ou não deve ter uma.',
+  ],
+  'External address: portal access only, no Webmail mailbox.': [
+    'Dirección externa: solo acceso al portal, sin buzón de Webmail.',
+    'Endereço externo: apenas acesso ao portal, sem caixa de correio do Webmail.',
+  ],
+  'More details (optional)': ['Más datos (opcional)', 'Mais dados (opcional)'],
+  'Send an invitation link instead': [
+    'Enviar un enlace de invitación en su lugar',
+    'Enviar um link de convite em vez disso',
+  ],
+  'Set a password myself instead': [
+    'Prefiero poner yo la contraseña',
+    'Prefiro definir eu mesmo a senha',
+  ],
+  'Add a person with an email or username and a password. Assign projects afterwards.': [
+    'Añade una persona con un correo o usuario y una contraseña. Asigna los proyectos después.',
+    'Adicione uma pessoa com um e-mail ou usuário e uma senha. Atribua os projetos depois.',
+  ],
+  'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.': [
+    'Pone una única contraseña nueva para el portal y el Webmail. Entrégala a la persona de forma segura.',
+    'Define uma única senha nova para o portal e o Webmail. Entregue-a à pessoa de forma segura.',
+  ],
+  'Sets a new portal password. Give it to the person in a safe way.': [
+    'Pone una contraseña nueva para el portal. Entrégala a la persona de forma segura.',
+    'Define uma nova senha do portal. Entregue-a à pessoa de forma segura.',
+  ],
+  'Set this new password? The old one stops working right away and the person is signed out.': [
+    '¿Poner esta contraseña nueva? La anterior deja de funcionar al instante y se cierra la sesión de la persona.',
+    'Definir esta nova senha? A anterior deixa de funcionar na hora e a sessão da pessoa é encerrada.',
+  ],
+  'Reset password': ['Restablecer contraseña', 'Redefinir senha'],
+  'New password': ['Contraseña nueva', 'Nova senha'],
+  'Save new password': ['Guardar contraseña nueva', 'Salvar nova senha'],
+  PASSWORD: ['CONTRASEÑA', 'SENHA'],
+  'Change your password': ['Cambia tu contraseña', 'Altere sua senha'],
+  'You use one password for the portal and Webmail. Changing it here changes both.': [
+    'Usas una sola contraseña para el portal y el Webmail. Si la cambias aquí, cambia en los dos.',
+    'Você usa uma única senha para o portal e o Webmail. Alterá-la aqui altera as duas.',
+  ],
+  'Changing it here signs you out on your other devices.': [
+    'Al cambiarla aquí se cierra tu sesión en tus otros dispositivos.',
+    'Ao alterá-la aqui, sua sessão é encerrada nos outros dispositivos.',
+  ],
+  'Current password': ['Contraseña actual', 'Senha atual'],
+  'Type the new password again': [
+    'Escribe otra vez la contraseña nueva',
+    'Digite a nova senha novamente',
+  ],
+  'The two new passwords do not match.': [
+    'Las dos contraseñas nuevas no coinciden.',
+    'As duas novas senhas não coincidem.',
+  ],
+  'Show passwords': ['Mostrar contraseñas', 'Mostrar senhas'],
+  'Change password': ['Cambiar contraseña', 'Alterar senha'],
+  'Forgot your password?': ['¿Olvidaste tu contraseña?', 'Esqueceu sua senha?'],
+  'Ask the owner to set a new password for you in Team. You use the same password for the portal and Webmail, so the new one works in both.':
+    [
+      'Pide al propietario que te ponga una contraseña nueva en Equipo. Usas la misma contraseña para el portal y el Webmail, así que la nueva funciona en los dos.',
+      'Peça ao proprietário para definir uma nova senha para você em Equipe. Você usa a mesma senha para o portal e o Webmail, então a nova funciona nos dois.',
+    ],
   'Downtime (hours)': ['Tiempo de parada (horas)', 'Tempo de parada (horas)'],
   'Overtime threshold (hours)': ['Umbral de horas extra (horas)', 'Limite de horas extras (horas)'],
   'Daily guarantee (hours)': ['Garantía diaria (horas)', 'Garantia diária (horas)'],

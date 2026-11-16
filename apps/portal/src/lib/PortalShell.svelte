@@ -98,6 +98,7 @@
   import CollectionsLedgerSection from './portal/sections/CollectionsLedgerSection.svelte';
   import AccountingSection from './portal/sections/AccountingSection.svelte';
   import ClientDirectorySection from './portal/sections/ClientDirectorySection.svelte';
+  import ProfilePasswordCard from './portal/sections/ProfilePasswordCard.svelte';
   import TeamDirectorySection, {
     type MailboxDirectoryStatus,
     type MailboxRow,
@@ -8168,6 +8169,7 @@
             </table>
           </TableRegion>
         </section>
+        <ProfilePasswordCard {locale} email={data.user.email} {translate} />
         <section class="entry-panel security-panel">
           <span class="portal-kicker">{translate('ACCOUNT SECURITY')}</span>
           <h2>{data.user.name}</h2>

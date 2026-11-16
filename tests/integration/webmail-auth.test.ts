@@ -20,21 +20,31 @@ process.env.JA_DEPLOYMENT_ID = 'webmail-auth-test';
 process.env.JA_MAIL_AUTH_ENABLED = 'true';
 
 const acceptedPasswords = new Map<string, string>();
-const { liveMailboxes } = vi.hoisted(() => ({
+const { liveMailboxes, mailOutage } = vi.hoisted(() => ({
   liveMailboxes: [] as Array<{ id: string; email: string }>,
+  mailOutage: { imap: false, directory: false },
 }));
-const imapVerify = vi.fn(
-  async (email: string, password: string) => acceptedPasswords.get(email) === password,
+const imapVerify = vi.fn(async (email: string, password: string) =>
+  mailOutage.imap
+    ? 'unavailable'
+    : acceptedPasswords.get(email) === password
+      ? 'accepted'
+      : 'rejected',
 );
 vi.mock('$app/server', () => ({ getRequestEvent: () => undefined }), { virtual: true });
 vi.mock('$app/environment', () => ({ building: false }), { virtual: true });
 vi.mock('../../apps/portal/src/lib/server/imap-auth.js', async (importOriginal) => {
   const original =
     await importOriginal<typeof import('../../apps/portal/src/lib/server/imap-auth.js')>();
-  return { ...original, verifyImapCredentials: imapVerify };
+  return { ...original, checkImapCredentials: imapVerify };
 });
 vi.mock('../../apps/portal/src/lib/server/stalwart-client.js', () => ({
-  createConfiguredStalwartClient: async () => ({ listMailboxes: async () => liveMailboxes }),
+  createConfiguredStalwartClient: async () => ({
+    listMailboxes: async () => {
+      if (mailOutage.directory) throw new Error('STALWART_DIRECTORY_UNAVAILABLE');
+      return liveMailboxes;
+    },
+  }),
 }));
 
 const { auth } = await import('../../apps/portal/src/lib/server/auth.js');
@@ -119,14 +129,37 @@ afterAll(() => {
 });
 
 describe('delegated Webmail authentication through Better Auth', () => {
-  it('preserves Antonny local demo access and also accepts his current Webmail password', async () => {
+  it('accepts only Antonny’s current mailbox password, never a stale local one', async () => {
     acceptedPasswords.set(owner.email, 'owner-webmail-current');
-    const demoResponse = await signIn(owner.email, ownerDemoPassword);
+    const staleLocal = await signIn(owner.email, ownerDemoPassword);
     const webmailResponse = await signIn(owner.email, 'owner-webmail-current');
-    expect(demoResponse.status).toBe(200);
+    expect(staleLocal.status).toBe(401);
     expect(webmailResponse.status).toBe(200);
-    await expect(demoResponse.json()).resolves.toMatchObject({ twoFactorRedirect: true });
     await expect(webmailResponse.json()).resolves.toMatchObject({ twoFactorRedirect: true });
+  });
+
+  it('keeps the Owner fallback hash in sync and uses it only during a mail outage', async () => {
+    acceptedPasswords.set(owner.email, 'owner-webmail-current');
+    // The successful sign-in above refreshed the local fallback hash.
+    mailOutage.imap = true;
+    try {
+      expect((await signIn(owner.email, 'owner-webmail-current')).status).toBe(200);
+      expect((await signIn(owner.email, ownerDemoPassword)).status).toBe(401);
+    } finally {
+      mailOutage.imap = false;
+    }
+    mailOutage.directory = true;
+    try {
+      expect((await signIn(owner.email, 'owner-webmail-current')).status).toBe(200);
+    } finally {
+      mailOutage.directory = false;
+    }
+  });
+
+  it('rejects the Owner’s previous password as soon as Webmail changes it', async () => {
+    acceptedPasswords.set(owner.email, 'owner-webmail-next');
+    expect((await signIn(owner.email, 'owner-webmail-current')).status).toBe(401);
+    expect((await signIn(owner.email, 'owner-webmail-next')).status).toBe(200);
   });
 
   it('authenticates a linked worker and retains Better Auth session cookies', async () => {
@@ -143,6 +176,29 @@ describe('delegated Webmail authentication through Better Auth', () => {
     acceptedPasswords.set(worker.email, 'new-webmail-password');
     expect((await signIn(worker.email, 'old-webmail-password')).status).toBe(401);
     expect((await signIn(worker.email, 'new-webmail-password')).status).toBe(200);
+  });
+
+  it('never accepts a linked worker’s stale local password, even during an outage', async () => {
+    const { sqlite } = createDatabase(databasePath);
+    const initial = 'worker-initial-portal-password';
+    try {
+      // Users created with "Create user" + mailbox keep a real initial hash.
+      sqlite
+        .prepare("UPDATE account SET password=? WHERE user_id=? AND provider_id='credential'")
+        .run(await hashPassword(initial), worker.id);
+    } finally {
+      sqlite.close();
+    }
+    acceptedPasswords.set(worker.email, 'changed-in-webmail');
+    expect((await signIn(worker.email, initial)).status).toBe(401);
+    expect((await signIn(worker.email, 'changed-in-webmail')).status).toBe(200);
+    mailOutage.imap = true;
+    try {
+      expect((await signIn(worker.email, initial)).status).toBe(401);
+      expect((await signIn(worker.email, 'changed-in-webmail')).status).toBe(401);
+    } finally {
+      mailOutage.imap = false;
+    }
   });
 
   it('rejects a deleted and recreated alias whose immutable Stalwart id changed', async () => {

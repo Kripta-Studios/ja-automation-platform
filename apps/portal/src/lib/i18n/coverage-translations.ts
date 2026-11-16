@@ -4358,6 +4358,38 @@ const exact: Record<string, readonly [string, string]> = {
     'Se requiere un nombre y una contraseña de 12 a 128 caracteres.',
     'É necessário um nome e uma senha de 12 a 128 caracteres.',
   ],
+  'problem.access.passwordInvalid': [
+    'Usa una contraseña de 12 a 128 caracteres.',
+    'Use uma senha de 12 a 128 caracteres.',
+  ],
+  'problem.access.passwordUnchanged': [
+    'Elige una contraseña distinta de la actual.',
+    'Escolha uma senha diferente da atual.',
+  ],
+  'problem.access.passwordCurrentInvalid': [
+    'La contraseña actual no es correcta.',
+    'A senha atual não está correta.',
+  ],
+  'problem.access.passwordUserInactive': [
+    'Restaura el acceso de esta persona antes de ponerle una contraseña nueva.',
+    'Restaure o acesso desta pessoa antes de definir uma nova senha.',
+  ],
+  'problem.access.passwordTargetNotAllowed': [
+    'La contraseña de esta cuenta solo se puede cambiar desde su propio perfil.',
+    'A senha desta conta só pode ser alterada no próprio perfil.',
+  ],
+  'problem.access.passwordMailUnavailable': [
+    'El servidor de correo no confirmó el cambio, así que no se cambió nada y la contraseña anterior sigue funcionando. Inténtalo de nuevo en unos minutos.',
+    'O servidor de e-mail não confirmou a alteração, então nada foi alterado e a senha anterior continua funcionando. Tente novamente em alguns minutos.',
+  ],
+  'problem.access.passwordMailboxMismatch': [
+    'El buzón de esta persona ya no coincide con su cuenta del portal. Revisa la pestaña Buzones antes de restablecer la contraseña.',
+    'A caixa de correio desta pessoa não corresponde mais à conta do portal. Revise a aba Caixas de correio antes de redefinir a senha.',
+  ],
+  'problem.access.passwordLocalPending': [
+    'La contraseña del Webmail cambió, pero el portal aún no pudo guardarla. Envía otra vez la misma contraseña nueva.',
+    'A senha do Webmail foi alterada, mas o portal ainda não conseguiu salvá-la. Envie a mesma nova senha novamente.',
+  ],
   'problem.access.localRoleInvalid': [
     'Elige un rol de acceso válido.',
     'Escolha uma função de acesso válida.',
@@ -8344,6 +8376,22 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Contraseña de Webmail actualizada.',
     'Senha do Webmail atualizada.',
   ],
+  'action.access.password.reset': [
+    'Contraseña nueva guardada para el portal y el Webmail. Se cerró la sesión de la persona en todas partes.',
+    'Nova senha salva para o portal e o Webmail. A sessão da pessoa foi encerrada em todos os lugares.',
+  ],
+  'action.access.password.resetPortal': [
+    'Contraseña nueva del portal guardada. Se cerró la sesión de la persona en todas partes.',
+    'Nova senha do portal salva. A sessão da pessoa foi encerrada em todos os lugares.',
+  ],
+  'action.access.password.changed': [
+    'Contraseña cambiada. Usa la nueva contraseña para el portal y el Webmail.',
+    'Senha alterada. Use a nova senha para o portal e o Webmail.',
+  ],
+  'action.access.password.changedPortal': [
+    'Contraseña cambiada. Usa la nueva contraseña la próxima vez que inicies sesión.',
+    'Senha alterada. Use a nova senha na próxima vez que entrar.',
+  ],
   'action.access.mailbox.passwordRejected': [
     'Stalwart rechazó la contraseña. Usa una contraseña única y fuerte de al menos 16 caracteres.',
     'O Stalwart rejeitou a senha. Use uma senha exclusiva e forte com pelo menos 16 caracteres.',
@@ -9172,6 +9220,14 @@ function englishActionMessage(key: string): string {
     'action.access.mailboxes.provisioned': 'Mailbox directory synchronized.',
     'action.access.accountStatus.updated': 'Account status updated.',
     'action.access.mailbox.passwordUpdated': 'Mailbox password updated.',
+    'action.access.password.reset':
+      'New password saved for the portal and Webmail. The person was signed out everywhere.',
+    'action.access.password.resetPortal':
+      'New portal password saved. The person was signed out everywhere.',
+    'action.access.password.changed':
+      'Password changed. Use the new password for both the portal and Webmail.',
+    'action.access.password.changedPortal':
+      'Password changed. Use the new password next time you sign in.',
     'action.access.mailbox.destroyed': 'Mailbox deleted; portal account preserved.',
     'action.validation.approvalDecision': 'Invalid approval decision.',
     'action.approval.decisionRecorded': 'Decision recorded.',
@@ -11203,6 +11259,19 @@ const problemEnglish: Record<string, string> = {
   'problem.access.workforceSupplierCue':
     'A supplier is required for Supplier coordinator and External technician profiles.',
   'problem.access.localCredentialsInvalid': 'Name and a 12–128 character password are required',
+  'problem.access.passwordInvalid': 'Use a password with 12–128 characters.',
+  'problem.access.passwordUnchanged': 'Choose a password that is different from the current one.',
+  'problem.access.passwordCurrentInvalid': 'The current password is not correct.',
+  'problem.access.passwordUserInactive':
+    'Restore this person’s access before setting a new password.',
+  'problem.access.passwordTargetNotAllowed':
+    'This account’s password can only be changed from its own profile.',
+  'problem.access.passwordMailUnavailable':
+    'The mail server did not confirm the change, so nothing was changed and the old password still works. Try again in a few minutes.',
+  'problem.access.passwordMailboxMismatch':
+    'This person’s mailbox no longer matches their portal account. Review the Mailboxes tab before resetting the password.',
+  'problem.access.passwordLocalPending':
+    'The Webmail password changed, but the portal could not save it yet. Submit the same new password again.',
   'problem.access.localRoleInvalid': 'Choose a valid access role.',
   'problem.access.supplierRequired': 'Select a supplier for this access role.',
   'problem.access.statusInvalid': 'Choose a person and a valid account status.',

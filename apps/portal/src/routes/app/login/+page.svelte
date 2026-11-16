@@ -330,6 +330,14 @@
         aria-pressed={passwordVisible}
         onclick={togglePassword}>{t(passwordVisible ? 'Hide password' : 'Show password')}</button
       >
+      <details class="login-forgot" data-login-forgot>
+        <summary>{t('Forgot your password?')}</summary>
+        <p>
+          {t(
+            'Ask the owner to set a new password for you in Team. You use the same password for the portal and Webmail, so the new one works in both.',
+          )}
+        </p>
+      </details>
       <button class="login-submit" disabled={!hydrated || loginState === 'sending' || rateLimited}
         >{loginState === 'sending' ? t('Verifying access…') : t('Continue to workspace')}
         <DirectionIcon /></button
@@ -390,6 +398,27 @@
 </main>
 
 <style>
+  .login-forgot {
+    margin: -0.25rem 0 0.25rem;
+    font-size: 0.9rem;
+  }
+  .login-forgot summary {
+    cursor: pointer;
+    width: fit-content;
+    font-weight: 600;
+    color: var(--login-accent, #0b5cab);
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+  }
+  .login-forgot summary:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+  }
+  .login-forgot p {
+    margin: 0.25rem 0 0;
+    line-height: 1.45;
+  }
   .login-password-toggle {
     justify-self: end;
     min-height: 44px;

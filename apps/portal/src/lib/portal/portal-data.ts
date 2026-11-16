@@ -1,4 +1,5 @@
 import type { OwnerFinanceSummary } from './owner-finance';
+import type { MoneyOverview, RatesOverview } from './money-overview-types';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -57,6 +58,8 @@ export type PortalData = {
   locale?: 'en' | 'es' | 'pt';
   offlineEnabled?: boolean;
   ownerFinance?: OwnerFinanceSummary;
+  moneyOverview?: MoneyOverview;
+  ratesOverview?: RatesOverview;
   user: {
     id: string;
     name: string;

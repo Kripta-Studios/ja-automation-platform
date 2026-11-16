@@ -1,5 +1,10 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  // Owner money screens: Money, Payments, Rates (2026-11-16).
+  Money: ['Dinero', 'Dinheiro'],
+  Payments: ['Cobros', 'Recebimentos'],
+  Rates: ['Tarifas', 'Tarifas'],
+  'Detailed analysis': ['Análisis detallado', 'Análise detalhada'],
   // One-password-per-person and simplified Team access forms (2026-11-16).
   'Sets a new password. If this person has a Webmail mailbox, the same password is set there too.': [
     'Pone una contraseña nueva. Si esta persona tiene buzón de Webmail, se pone allí la misma contraseña.',

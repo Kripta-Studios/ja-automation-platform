@@ -12,6 +12,8 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
+import { buildMoneyOverview } from '$lib/server/money-overview';
+import { buildRatesOverview } from '$lib/server/rates-overview';
 import {
   reviewFinanceReimbursement,
   withFinanceReimbursementSnapshot,
@@ -1058,6 +1060,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'finance': {
+        const requestedFinanceView = (url.searchParams.get('view') ?? '').trim().toLowerCase();
+        const financeView = ['economic', 'commercial'].includes(requestedFinanceView)
+          ? requestedFinanceView
+          : 'overview';
         const scope = projectVisibility(
           context.repository.listFinanceProjects(context.principal),
           includeArchived,
@@ -1325,6 +1331,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           canonicalAuthorityAsOf: canManageCanonicalAuthority
             ? new Date().toISOString().slice(0, 10)
             : undefined,
+          // Owner "Money" and "Rates" views: exact per-currency sums from the same
+          // authorized repository reads; nothing is persisted or combined across currencies.
+          ...(financeView === 'overview'
+            ? {
+                moneyOverview: buildMoneyOverview(
+                  context.v3,
+                  context.principal,
+                  url.searchParams.get('period'),
+                  { includeArchived },
+                ),
+              }
+            : {}),
+          ...(financeView === 'commercial'
+            ? {
+                ratesOverview: buildRatesOverview(
+                  context.sqlite,
+                  context.v3,
+                  context.principal,
+                  projects as Array<Record<string, unknown>>,
+                ),
+              }
+            : {}),
         };
       }
       case 'ledger':

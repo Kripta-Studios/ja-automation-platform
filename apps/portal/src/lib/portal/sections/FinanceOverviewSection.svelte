@@ -21,6 +21,9 @@
   import { expensePolicyIssueLabels } from '../expense-policy-issues';
   import { financeProjectReviewHref, financeReviewProjectId } from '../finance-review-links';
   import FinanceConfigurationSection from './FinanceConfigurationSection.svelte';
+  import MoneyOverview from './MoneyOverview.svelte';
+  import RatesPanel from './RatesPanel.svelte';
+  import { moneyText } from '../money-copy';
   import {
     Field,
     ProblemNotice,
@@ -1815,6 +1818,32 @@
     </p>
   </section>
 {:else}
+  {#if activeView === 'overview' && data.moneyOverview}
+    <MoneyOverview
+      overview={data.moneyOverview}
+      {locale}
+      {money}
+      includeArchived={$page.url.searchParams.get('includeArchived') === '1'}
+    />
+  {:else if activeView === 'commercial' && data.ratesOverview}
+    <RatesPanel
+      rates={data.ratesOverview}
+      {locale}
+      {money}
+      canEdit={canWriteFinance}
+      advanced={legacyFinance}
+    />
+  {:else}
+    {#if activeView === 'economic'}
+      <a class="finance-overview__back" href={`${base}/app/finance?view=overview&lang=${locale}`}
+        >← {moneyText(locale, 'backToMoney')}</a
+      >
+    {/if}
+    {@render legacyFinance()}
+  {/if}
+{/if}
+
+{#snippet legacyFinance()}
   <div class="finance-overview" data-ui="finance-overview" onsubmit={rememberFinanceForm}>
     <header class="finance-overview__context">
       <div>
@@ -3098,7 +3127,7 @@
                       <input type="hidden" name="expectedVersion" value={expenseVersion} />
                       <div class="finance-overview__form-title">
                         <strong>{translate('Expense planning dates')}</strong>
-                        <span>{translate('Planning only; actual states remain authoritative')}</span
+                        <span>{moneyText(locale, 'planningOnly')}</span
                         >
                       </div>
                       <label>
@@ -3867,9 +3896,16 @@
       </SectionCard>
     {/if}
   </div>
-{/if}
+{/snippet}
 
 <style>
+  .finance-overview__back {
+    display: inline-flex;
+    min-height: 44px;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
   .finance-commercial-jumps {
     display: flex;
     flex-wrap: wrap;

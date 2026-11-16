@@ -30,6 +30,12 @@
   import type { ProblemData } from '$lib/problem/contract';
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
+  import {
+    quickInvoiceText,
+    quickInvoiceWarningText,
+    type QuickInvoiceCopyKey,
+  } from '$lib/portal/billing-quick-invoice-copy';
+  import { journeyMoney } from '$lib/portal/project-invoice-journey';
 
   type Row = Record<string, unknown>;
   type InvoiceRow = Row & {
@@ -207,6 +213,51 @@
     `${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/draft-preview?lang=${locale}`,
   );
   const pdfStatus = $derived(invoicePdfStatus(invoice));
+  // Lifecycle panel: one obvious next step (issue → PDF → mark sent → payments).
+  const q = (key: QuickInvoiceCopyKey) => quickInvoiceText(locale, key);
+  const canManageInvoice = $derived(
+    ['owner_admin', 'finance_admin'].includes(String(data.user?.role ?? '')),
+  );
+  const invoiceTotalText = $derived(
+    journeyMoney(String(invoice.total_minor ?? '0'), String(invoice.currency ?? ''), locale),
+  );
+  type IssueCheck =
+    | { ok: true }
+    | { ok: false; reasons: ReadonlyArray<{ code: string }>; message: string }
+    | null;
+  const issueBlockers = $derived.by(() => {
+    const check = (data as { issueCheck?: IssueCheck }).issueCheck;
+    if (!check || check.ok) return [];
+    const codes = [...new Set(check.reasons.map((reason) => reason.code))];
+    return codes.map((code) => {
+      const fix: Record<string, { href: string | null; label: QuickInvoiceCopyKey }> = {
+        canonical_legal_entity_revision_required: {
+          href: `${financeHref}#project-issuing-authority`,
+          label: 'fix_issuer_authority',
+        },
+        missing_accountant_approved_number_policy: {
+          href: String(data.user?.role) === 'owner_admin' ? numberingHref : null,
+          label: 'fix_numbering',
+        },
+        customer_signoff_required: {
+          href: `${base}/app/projects/${encodeURIComponent(String(invoice.project_id ?? ''))}?tab=reports&lang=${locale}#project-reports`,
+          label: 'fix_signoff',
+        },
+      };
+      return {
+        code,
+        text:
+          quickInvoiceWarningText(locale, { code, count: 0, minutes: 0 }) ??
+          (code === 'issue_blocked' ? check.message : t(code)),
+        href: fix[code]?.href ?? null,
+        label: fix[code]?.label ?? ('fix_invoice' as QuickInvoiceCopyKey),
+      };
+    });
+  });
+  let issueDialog = $state<HTMLDialogElement>();
+  let issueSubmitting = $state(false);
+  const sendKey = $derived(`send-${invoiceId}-${String(invoice.version ?? '')}`);
+  const justCreated = $derived($page.url.searchParams.get('created') === '1');
   const pdfUrl = $derived(`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`);
   let securePdfPreviewOpen = $state(false);
   let securePdfPreviewUrl = $state('');
@@ -973,6 +1024,170 @@
       data-invoice-status={invoiceState}
     />
   </nav>
+  {#if canManageInvoice && hasDraftPreview}
+    <section
+      class="invoice-lifecycle no-print"
+      aria-labelledby="invoice-lifecycle-heading"
+      data-invoice-lifecycle="issue"
+    >
+      {#if justCreated && invoiceState === 'draft'}
+        <p class="invoice-lifecycle__notice" role="status">{q('createdNotice')}</p>
+      {/if}
+      <div class="invoice-lifecycle__row">
+        <div class="invoice-lifecycle__summary">
+          <p id="invoice-lifecycle-heading" class="invoice-lifecycle__eyebrow">
+            {issueBlockers.length ? q('cannotIssue') : q('readyToIssue')}
+          </p>
+          <strong data-invoice-lifecycle-total={String(invoice.total_minor ?? '')}
+            >{invoiceTotalText}</strong
+          >
+          <span
+            >{invoice.client_legal_name || invoice.client_name} · {invoice.period_start} → {invoice.period_end}</span
+          >
+        </div>
+        <button
+          type="button"
+          class="primary-button invoice-lifecycle__primary"
+          disabled={issueBlockers.length > 0}
+          onclick={() => issueDialog?.showModal()}
+          data-invoice-issue-open>{q('issueButton')}</button
+        >
+      </div>
+      {#if issueBlockers.length}
+        <ul class="invoice-lifecycle__blockers">
+          {#each issueBlockers as blocker (blocker.code)}
+            <li>
+              <span>{blocker.text}</span>
+              {#if blocker.href}<a class="secondary-button" href={blocker.href}>{q(blocker.label)}</a
+                >{/if}
+            </li>
+          {/each}
+        </ul>
+      {:else}
+        <p class="invoice-lifecycle__help">{q('issueHelp')}</p>
+      {/if}
+      {#if invoiceState === 'draft'}
+        <details class="invoice-lifecycle__more">
+          <summary>{q('moreActions')}</summary>
+          <form
+            method="POST"
+            action="?/deleteInvoice"
+            class="invoice-lifecycle__discard"
+            use:enhance={() =>
+              async ({ result, update }) => {
+                if (result.type === 'success')
+                  await goto(`${base}/app/billing?lang=${encodeURIComponent(locale)}`);
+                else await update();
+              }}
+          >
+            <input type="hidden" name="invoiceId" value={invoiceId} />
+            <input type="hidden" name="version" value={String(invoice.version ?? '')} />
+            <p>{q('discardHelp')}</p>
+            <label>
+              <span>{q('discardReason')}</span>
+              <input name="reason" required minlength="3" maxlength="2000" />
+            </label>
+            <button type="submit" class="secondary-button">{q('discard')}</button>
+          </form>
+        </details>
+      {/if}
+    </section>
+    <dialog
+      bind:this={issueDialog}
+      class="invoice-issue-dialog no-print"
+      aria-labelledby="invoice-issue-dialog-title"
+      data-invoice-issue-dialog
+    >
+      <form
+        method="POST"
+        action="?/issueInvoice"
+        use:enhance={() => {
+          issueSubmitting = true;
+          return async ({ update }) => {
+            await update();
+            issueSubmitting = false;
+            issueDialog?.close();
+          };
+        }}
+      >
+        <h2 id="invoice-issue-dialog-title">{q('confirmTitle')}</h2>
+        <dl>
+          <div>
+            <dt>{q('client')}</dt>
+            <dd>{invoice.client_legal_name || invoice.client_name}</dd>
+          </div>
+          <div>
+            <dt>{q('period')}</dt>
+            <dd>{invoice.period_start} → {invoice.period_end}</dd>
+          </div>
+          {#if numberPreview?.number}
+            <div>
+              <dt>{q('numberOnIssue')}</dt>
+              <dd>{numberPreview.number}</dd>
+            </div>
+          {/if}
+          <div class="invoice-issue-dialog__total">
+            <dt>{q('total')}</dt>
+            <dd data-invoice-issue-confirm-total>{invoiceTotalText}</dd>
+          </div>
+        </dl>
+        <p>{q('confirmBody')}</p>
+        <input type="hidden" name="invoiceId" value={invoiceId} />
+        <input type="hidden" name="expectedTotalMinor" value={String(invoice.total_minor ?? '')} />
+        <input type="hidden" name="reportLocale" value={locale} />
+        <div class="invoice-issue-dialog__actions">
+          <button type="button" class="secondary-button" onclick={() => issueDialog?.close()}
+            >{q('cancel')}</button
+          >
+          <button type="submit" class="primary-button" disabled={issueSubmitting} data-invoice-issue-confirm
+            >{issueSubmitting ? q('issuing') : q('confirmIssue')}</button
+          >
+        </div>
+      </form>
+    </dialog>
+  {:else if canManageInvoice && ['issued', 'sent', 'partially_paid', 'overdue', 'paid'].includes(invoiceState)}
+    <section
+      class="invoice-lifecycle no-print"
+      aria-labelledby="invoice-lifecycle-heading"
+      data-invoice-lifecycle="issued"
+    >
+      <div class="invoice-lifecycle__row">
+        <div class="invoice-lifecycle__summary">
+          <p id="invoice-lifecycle-heading" class="invoice-lifecycle__eyebrow">
+            {q('issuedTitle')} · {invoice.invoice_number}
+          </p>
+          <strong>{invoiceTotalText}</strong>
+          <span
+            >{invoice.client_legal_name || invoice.client_name} · {invoice.period_start} → {invoice.period_end}</span
+          >
+        </div>
+        <div class="invoice-lifecycle__actions">
+          {#if invoiceState === 'issued'}
+            <form method="POST" action="?/sendInvoice" use:enhance>
+              <input type="hidden" name="invoiceId" value={invoiceId} />
+              <input type="hidden" name="idempotencyKey" value={sendKey} />
+              <button
+                type="submit"
+                class="secondary-button"
+                disabled={pdfStatus !== 'ready'}
+                data-invoice-mark-sent>{q('markSent')}</button
+              >
+            </form>
+          {/if}
+          <a
+            class="secondary-button"
+            href={`${base}/app/billing?invoice=${encodeURIComponent(invoiceId)}&lang=${locale}#invoice-collections`}
+            >{q('payments')}</a
+          >
+        </div>
+      </div>
+      {#if invoiceState === 'issued'}
+        <p class="invoice-lifecycle__help">
+          {pdfStatus === 'ready' ? q('issuedHelp') : q('markSentWaiting')}
+        </p>
+      {/if}
+    </section>
+  {/if}
   {#if hasDraftPreview}
     <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
       <div class="invoice-pdf-panel__heading">
@@ -1414,10 +1629,11 @@
     </section>
   {/if}
   {#if canEditDraft}
-    <section
+    <details
       class="detail-panel no-print invoice-source-guidance"
       aria-label={t('Edit invoice sources')}
     >
+      <summary>{q('streamSettings')} · {t('Edit hours, expenses and billing source records')}</summary>
       {#if !invoice.resolved_legal_entity_revision_id || Number(invoice.canonical_assignment_matches) !== 1}
         <p role="status">
           {t('Assign a reviewed project issuing authority before issuing this invoice.')}
@@ -1431,7 +1647,7 @@
       <div class="invoice-source-links">
         <a
           href={`${base}/app/billing?view=streams&project=${encodeURIComponent(String(invoice.project_id ?? ''))}&focus=${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}&lang=${locale}#billing-stream-${encodeURIComponent(String(invoice.billing_rule_id ?? ''))}`}
-          >{t('invoice.sourceStreamLink')}</a
+          >{q('streamSettings')}</a
         >
         <a
           href={`${base}/app/billing?view=setup&issuerSettings=${encodeURIComponent(String(invoice.issuer_legal_entity_id ?? ''))}&lang=${locale}#issuer-document-settings`}
@@ -1470,7 +1686,7 @@
           >{t('Rebuild invoice draft')}</a
         >
       </details>
-    </section>
+    </details>
   {/if}
   <div
     class="invoice-document-shell"
@@ -1483,6 +1699,179 @@
 </main>
 
 <style>
+  .invoice-lifecycle {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 70rem;
+    margin: 1rem auto;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--ja-border-strong, #d1d1c9);
+    border-radius: var(--ja-radius, 1rem);
+    background: var(--ja-surface, #fff);
+    color: var(--ja-text-primary, #20201d);
+    box-shadow: 0 0.6rem 1.6rem rgb(0 0 0 / 0.18);
+  }
+  .invoice-lifecycle__notice {
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.6rem;
+    background: var(--ja-surface-raised, #eeeee9);
+    font-weight: 700;
+  }
+  .invoice-lifecycle__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+  }
+  .invoice-lifecycle__summary {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .invoice-lifecycle__eyebrow {
+    margin: 0;
+    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .invoice-lifecycle__summary strong {
+    font-size: clamp(1.5rem, 5vw, 2rem);
+    font-variant-numeric: tabular-nums;
+  }
+  .invoice-lifecycle__summary span {
+    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.85rem;
+  }
+  .invoice-lifecycle__primary {
+    min-width: 12rem;
+    font-size: 0.95rem;
+  }
+  .invoice-lifecycle__primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .invoice-lifecycle__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .invoice-lifecycle__help {
+    margin: 0;
+    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.85rem;
+  }
+  .invoice-lifecycle__blockers {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.75rem;
+    list-style: none;
+    border-radius: 0.6rem;
+    border: 1px solid color-mix(in srgb, var(--ja-status-warning, #d97706) 45%, white);
+    background: color-mix(in srgb, var(--ja-status-warning, #d97706) 8%, white);
+  }
+  .invoice-lifecycle__blockers li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    font-size: 0.85rem;
+  }
+  .invoice-lifecycle__more summary {
+    cursor: pointer;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .invoice-lifecycle__discard {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 32rem;
+  }
+  .invoice-lifecycle__discard p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+  .invoice-lifecycle__discard label {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+  .invoice-lifecycle__discard input {
+    min-height: 2.75rem;
+  }
+  .invoice-issue-dialog {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    width: min(30rem, calc(100vw - 2rem));
+    padding: 1.25rem;
+    border: 0;
+    border-radius: var(--ja-radius, 1rem);
+    color: var(--ja-text-primary, #20201d);
+    background: var(--ja-surface, #fff);
+  }
+  .invoice-issue-dialog::backdrop {
+    background: rgb(0 0 0 / 0.5);
+  }
+  .invoice-issue-dialog form {
+    display: grid;
+    gap: 0.85rem;
+  }
+  .invoice-issue-dialog h2 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  .invoice-issue-dialog dl {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+  }
+  .invoice-issue-dialog dl div {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+  .invoice-issue-dialog dt {
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .invoice-issue-dialog dd {
+    margin: 0;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .invoice-issue-dialog__total {
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--ja-border-subdued, #e4e4df);
+    font-size: 1.2rem;
+    font-weight: 800;
+  }
+  .invoice-issue-dialog__total dt {
+    color: inherit;
+  }
+  .invoice-issue-dialog p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .invoice-issue-dialog__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
   .invoice-page-heading {
     max-width: 70rem;
     margin: 1rem auto;

@@ -13,9 +13,17 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const preview = context.repository.invoicePreview(context.principal, params.id);
     const requested = url.searchParams.get('lang')?.trim().toLowerCase();
     const locale = requested === 'es' || requested === 'pt' ? requested : 'en';
+    const state = String((preview.invoice as Record<string, unknown>).state ?? '');
+    // Exact issue blockers (real issue path in a rolled-back savepoint) for the Issue button.
+    const issueCheck =
+      ['draft', 'approved'].includes(state) &&
+      ['owner_admin', 'finance_admin'].includes(context.principal.role)
+        ? context.repository.invoiceIssueDryRun(context.principal, params.id)
+        : null;
     return {
       user: locals.user,
       preview,
+      issueCheck,
       documentSnapshot: invoiceDocumentSnapshot(preview, locale),
     };
   } catch {
@@ -25,10 +33,14 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
   }
 };
 
+const asBilling = <T extends { params: Record<string, string> }>(event: T) => ({
+  ...event,
+  params: { ...event.params, section: 'billing' },
+});
+
 export const actions: Actions = {
-  updateInvoiceDraftDetails: (event) =>
-    billingActions.updateInvoiceDraftDetails({
-      ...event,
-      params: { ...event.params, section: 'billing' },
-    }),
+  updateInvoiceDraftDetails: (event) => billingActions.updateInvoiceDraftDetails(asBilling(event)),
+  issueInvoice: (event) => billingActions.issueReviewedInvoice(asBilling(event)),
+  sendInvoice: (event) => billingActions.sendInvoice(asBilling(event)),
+  deleteInvoice: (event) => billingActions.deleteInvoice(asBilling(event)),
 };

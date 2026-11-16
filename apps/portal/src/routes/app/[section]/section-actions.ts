@@ -108,6 +108,7 @@ export const sectionActions: Actions = {
   withdrawCrewExpenseDraft: expenseActions.withdrawCrewExpenseDraft,
   deleteExpense: expenseActions.deleteExpense,
   approveRecord: approvalActions.approveRecord,
+  approveBatch: approvalActions.approveBatch,
   financeApprove: approvalActions.financeApprove,
   classifyExpenseCommercially: financeActions.classifyExpenseCommercially,
   setAssignmentCommercialFallback: financeActions.setAssignmentCommercialFallback,

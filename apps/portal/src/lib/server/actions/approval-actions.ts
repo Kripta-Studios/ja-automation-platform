@@ -133,6 +133,18 @@ export function approvalFailure(
           values,
         },
       );
+    if (error.message === 'Own record review not allowed')
+      return actionFail(
+        403,
+        'problem.approval.ownRecord',
+        {},
+        'You cannot approve your own time or expenses. Another reviewer must decide it.',
+        {
+          code: 'APPROVAL_OWN_RECORD',
+          remedies: [{ id: 'contact_project_reviewer' }],
+          values,
+        },
+      );
     if (error.message === 'Project review required')
       return actionFail(
         403,
@@ -209,6 +221,46 @@ export function approvalFailure(
   return actionFailure(error, { values });
 }
 
+const batchItemPattern =
+  /^(time|expense):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}):(\d{1,9})$/iu;
+export const APPROVAL_BATCH_LIMIT = 200;
+
+type BatchItem = { type: 'time' | 'expense'; id: string; version: number };
+
+/** Parse `type:id:version` tokens; returns undefined when any token is malformed or repeated. */
+export function parseApprovalBatchItems(values: readonly unknown[]): BatchItem[] | undefined {
+  if (values.length === 0 || values.length > APPROVAL_BATCH_LIMIT) return undefined;
+  const seen = new Set<string>();
+  const items: BatchItem[] = [];
+  for (const value of values) {
+    const match = typeof value === 'string' ? batchItemPattern.exec(value.trim()) : null;
+    if (!match) return undefined;
+    const type = match[1]!.toLowerCase() as 'time' | 'expense';
+    const id = match[2]!.toLowerCase();
+    if (seen.has(`${type}:${id}`)) return undefined;
+    seen.add(`${type}:${id}`);
+    items.push({ type, id, version: Number(match[3]) });
+  }
+  return items;
+}
+
+/**
+ * Reviewers other than the Owner never decide their own submitted time or expenses.
+ * Throws the same access error the UI maps to a clear "own record" message.
+ */
+function assertNotOwnRecord(
+  context: ReturnType<typeof openPortalRepository>,
+  type: 'time' | 'expense',
+  id: string,
+): void {
+  if (context.principal.role === 'owner_admin') return;
+  const row = context.sqlite
+    .prepare(`SELECT worker_id FROM ${type === 'time' ? 'time_entry' : 'expense'} WHERE id=?`)
+    .get(id) as { worker_id: string } | undefined;
+  if (row && row.worker_id === context.principal.userId)
+    throw new AccessDeniedError('Own record review not allowed');
+}
+
 export const approvalActions = {
   approveRecord: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'approvals')
@@ -257,6 +309,7 @@ export const approvalActions = {
     let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       context = openPortalRepository(locals);
+      assertNotOwnRecord(context, parsed.data.type, parsed.data.id);
       if (parsed.data.type === 'time')
         context.repository.operationalApproveTime(
           context.principal,
@@ -270,6 +323,18 @@ export const approvalActions = {
           parsed.data.id,
           parsed.data.decision,
           parsed.data.reason,
+        );
+      if (parsed.data.decision === 'needs_changes')
+        return actionSuccess(
+          'action.approval.sentBack',
+          {},
+          'Sent back to the worker with your note.',
+        );
+      if (parsed.data.decision === 'rejected')
+        return actionSuccess(
+          'action.approval.rejected',
+          {},
+          'Rejected. The worker can see your reason.',
         );
       return context.principal.role === 'owner_admin' && parsed.data.decision === 'approved'
         ? actionSuccess(
@@ -287,6 +352,105 @@ export const approvalActions = {
         'operational',
         context && error instanceof ConflictError
           ? currentReviewStatus(context, parsed.data.type, parsed.data.id, 'operational')
+          : undefined,
+      );
+    } finally {
+      context?.sqlite.close();
+    }
+  },
+  /**
+   * Approve a reviewed group (for example one worker's week) in one transaction.
+   * Every item carries the version the reviewer saw; any changed, missing,
+   * unauthorized or no-longer-submitted item rolls the whole batch back and the
+   * failing record is reported, so nothing is half-approved.
+   */
+  approveBatch: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'approvals')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.', {
+        code: 'APPROVAL_SIGN_IN_REQUIRED',
+        actionName: 'approveBatch',
+        remedies: [{ id: 'sign_in_again' }],
+      });
+    const form = await request.formData().catch(() => null);
+    if (!form)
+      return actionFail(400, 'problem.approval.formUnreadable', {}, undefined, {
+        code: 'APPROVAL_FORM_UNREADABLE',
+        actionName: 'approveBatch',
+        remedies: [{ id: 'review_approval_queue' }],
+      });
+    const items = parseApprovalBatchItems(form.getAll('item'));
+    if (!items)
+      return actionFail(
+        400,
+        'problem.approval.decisionFieldsInvalid',
+        {},
+        'Review the decision fields before recording this decision.',
+        {
+          code: 'APPROVAL_DECISION_FIELDS_INVALID',
+          actionName: 'approveBatch',
+          remedies: [{ id: 'review_approval_queue' }],
+        },
+      );
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    let current: BatchItem | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const opened = context;
+      let minutes = 0;
+      withAssignmentFinanceTransaction(opened.sqlite, () => {
+        for (const item of items) {
+          current = item;
+          const row = opened.sqlite
+            .prepare(
+              item.type === 'time'
+                ? 'SELECT version,minutes FROM time_entry WHERE id=?'
+                : 'SELECT version,0 minutes FROM expense WHERE id=?',
+            )
+            .get(item.id) as { version: number; minutes: number } | undefined;
+          if (!row)
+            throw new ValidationError(
+              item.type === 'time' ? 'Time entry not found' : 'Expense not found',
+            );
+          // Optimistic concurrency: approve exactly the version the reviewer saw.
+          if (Number(row.version) !== item.version)
+            throw new ConflictError(
+              item.type === 'time'
+                ? 'Time entry changed or is not submitted'
+                : 'Expense changed before approval',
+            );
+          assertNotOwnRecord(opened, item.type, item.id);
+          if (item.type === 'time') {
+            opened.repository.operationalApproveTime(opened.principal, item.id, 'approved');
+            minutes += Number(row.minutes) || 0;
+          } else opened.repository.operationalApproveExpense(opened.principal, item.id, 'approved');
+        }
+      });
+      const timeOnly = items.every((item) => item.type === 'time');
+      const hours = Math.round((minutes / 60) * 100) / 100;
+      return timeOnly
+        ? actionSuccess(
+            'action.approval.batchTimeApproved',
+            { count: items.length, hours },
+            `Approved ${items.length} time entries (${hours} h).`,
+          )
+        : actionSuccess(
+            'action.approval.batchApproved',
+            { count: items.length },
+            `Approved ${items.length} records.`,
+          );
+    } catch (error) {
+      const failed = current ?? items[0]!;
+      const values = { id: failed.id, type: failed.type, decision: 'approved' };
+      return approvalFailure(
+        error,
+        failed.type,
+        failed.id,
+        values,
+        'operational',
+        context && error instanceof ConflictError
+          ? currentReviewStatus(context, failed.type, failed.id, 'operational')
           : undefined,
       );
     } finally {

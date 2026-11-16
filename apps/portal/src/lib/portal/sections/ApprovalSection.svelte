@@ -1,59 +1,39 @@
 <script lang="ts">
-  import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
-  import { useViewPreferences } from '../ui/view-preferences.svelte';
-  import DirectionIcon from '../ui/DirectionIcon.svelte';
+  /**
+   * Approvals: one queue with Time / Expenses / Reports tabs.
+   * Time and expenses are grouped by worker + week (Mon–Sun). A group is approved
+   * with one `approveBatch` call (one transaction, every item pinned to the
+   * version the reviewer saw). Single entries are sent back with a required note
+   * through the existing `approveRecord` action. Bulk approval shows an in-page
+   * summary (counts, hours, amounts) before anything is recorded.
+   * Approvals cannot be undone; approved-but-unbilled records link to the
+   * existing audited correction path.
+   */
   import { enhance } from '$app/forms';
-  import { goto, replaceState } from '$app/navigation';
+  import { replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { onMount, tick } from 'svelte';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
+  import { documentLanguage, type PortalLocale } from '../../portal-i18n';
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
-  import {
-    ProblemNotice,
-    SectionCard,
-    StatusBadge,
-    formValidation,
-    reportFormFieldErrors,
-  } from '../ui';
-  import {
-    operationalMatches,
-    operationalPage,
-    operationalSort,
-    operationalStatusMatches,
-    readOperationalRegisterState,
-    type OperationalOrder,
-    writeOperationalRegisterState,
-  } from './operational-register';
+  import { ProblemNotice, StatusBadge, formValidation } from '../ui';
+  import { weekStartForDate } from './time-entry-actions';
+  import { approvalQueueText, type ApprovalQueueCopyKey } from './approval-queue-copy';
 
   type Tab = 'time' | 'expenses' | 'reports';
-  type Stage = 'operational' | 'report' | 'correction' | 'owner_override' | 'finance' | '';
+  type Kind = 'time' | 'expense';
   const tabs: readonly Tab[] = ['time', 'expenses', 'reports'];
-  const operationalApprovalWarning: ProblemData = {
-    code: 'WARNING_OPERATIONAL_APPROVAL_FINANCE_SEPARATE',
-    messageKey: 'problem.warning.operationalApprovalFinanceSeparate',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_operational_record' }],
-    correlationId: '',
-  };
-  const operationalReturnWarning: ProblemData = {
-    code: 'WARNING_OPERATIONAL_RETURN_FACTUAL_CORRECTION',
-    messageKey: 'problem.warning.operationalReturnFactualCorrection',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_operational_record' }],
-    correlationId: '',
-  };
 
   let {
     data,
     isAuditor,
     isOwner,
     canSeeFinanceReview = false,
+    locale = 'en',
     translate,
     controlledValue,
   }: {
@@ -62,571 +42,42 @@
     isOwner: boolean;
     /** Explicit capability: finance rows remain out of the PM surface by default. */
     canSeeFinanceReview?: boolean;
+    locale?: PortalLocale;
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
-  const ownerApprovalIncludesFinance = $derived(String(data.user.role) === 'owner_admin');
-  const recordApprovalWarning = $derived(
-    ownerApprovalIncludesFinance
-      ? {
-          ...operationalApprovalWarning,
-          code: 'WARNING_OWNER_APPROVAL_INCLUDES_FINANCE',
-          messageKey: 'problem.warning.ownerApprovalIncludesFinance' as const,
-        }
-      : operationalApprovalWarning,
-  );
-
-  const initialFailureType = String(
-    (($page.form as { values?: Record<string, unknown> } | null)?.values ?? {}).type ?? '',
-  );
-  let activeTab = $state<Tab>(
-    initialFailureType === 'expense'
-      ? 'expenses'
-      : initialFailureType === 'daily' || initialFailureType === 'technical'
-        ? 'reports'
-        : 'time',
-  );
-  let openReviewActions = $state<Record<string, boolean>>({});
-  const approvalProblem = $derived.by(() => {
-    const result = $page.form as (ProblemData & { success?: boolean }) | null | undefined;
-    return result?.success === false &&
-      /^(?:APPROVAL_|FINANCE_REVIEW_|EXPENSE_CLASSIFICATION_|FINANCE_ROLE_)/u.test(result.code)
-      ? result
-      : null;
-  });
-  const failedApprovalValues = $derived(
-    ((approvalProblem as (ProblemData & { values?: Record<string, unknown> }) | null)?.values ??
-      {}) as Record<string, unknown>,
-  );
-  const failedApprovalRowMissing = $derived.by(() => {
-    const id = String(failedApprovalValues.id ?? '');
-    return (
-      Boolean(approvalProblem && id) &&
-      ![...(data.records ?? []), ...(data.milestones ?? [])].some(
-        (row) => String(row.id ?? '') === id,
-      )
-    );
-  });
-  const retainedApprovalInputs = $derived.by(() => {
-    const inputs: Array<{ label: string; value: string }> = [];
-    const reason = String(failedApprovalValues.reason ?? '');
-    if (reason) inputs.push({ label: translate('Review reason'), value: reason });
-    const billable = String(failedApprovalValues.billable ?? '');
-    if (billable === 'yes' || billable === 'no')
-      inputs.push({
-        label: translate('Commercial treatment'),
-        value: translate(billable === 'yes' ? 'Billable' : 'Non-billable'),
-      });
-    return inputs;
-  });
-  const approvalCurrentStatus = $derived.by(() => {
-    const currentStatus = String(approvalProblem?.params.currentStatus ?? '');
-    if (currentStatus)
-      return `${translate('Current status')}: ${controlledValue('status', currentStatus) || currentStatus}`;
-    const id = String(failedApprovalValues.id ?? '');
-    if (!id) return undefined;
-    const row = [...(data.records ?? []), ...(data.milestones ?? [])].find(
-      (candidate) => String(candidate.id ?? '') === id,
-    );
-    const status = String(row?.approval_state ?? row?.state ?? '');
-    return status
-      ? `${translate('Current status')}: ${controlledValue('status', status) || status}`
-      : undefined;
-  });
-  const approvalRemedyLinks = $derived.by(() => {
-    const links: Record<string, { label: string; href?: string }> = {
-      contact_project_owner: { label: translate('Contact a project owner') },
-      contact_project_reviewer: { label: translate('Contact a project reviewer') },
-      contact_finance_owner: { label: translate('Contact Finance or an owner') },
-      sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
-      review_approval_queue: {
-        label: translate('problem.remedy.reviewApprovalQueue'),
-        href: '#approval-queue',
-      },
-      enter_reason: { label: translate('Review reason') },
-      return_for_correction: { label: translate('problem.remedy.returnForCorrection') },
-    };
-    const remedy = approvalProblem?.remedies.find((item) => item.id === 'review_updated_record');
-    if (
-      remedy?.recordId &&
-      ['time', 'expense', 'daily', 'technical'].includes(String(approvalProblem?.params.recordType))
-    ) {
-      links.review_updated_record = {
-        label: translate('Review updated record'),
-        href: recordHref({ id: remedy.recordId, type: String(approvalProblem?.params.recordType) }),
-      };
-    }
-    const classify = approvalProblem?.remedies.find((item) => item.id === 'classify_expense');
-    if (
-      classify?.recordId &&
-      canSeeFinanceReview &&
-      ['owner_admin', 'finance_admin'].includes(String(data.user.role))
-    ) {
-      links.classify_expense = {
-        label: translate('Classify expense in Finance'),
-        href: `${base}/app/finance?view=commercial&expense=${encodeURIComponent(classify.recordId)}#expense-classification`,
-      };
-    }
-    const financeRules = approvalProblem?.remedies.find(
-      (item) => item.id === 'review_finance_rules',
-    );
-    if (
-      financeRules?.projectId &&
-      canSeeFinanceReview &&
-      ['owner_admin', 'finance_admin'].includes(String(data.user.role))
-    ) {
-      links.review_finance_rules = {
-        label: translate('Open finance configuration'),
-        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(financeRules.projectId)}`,
-      };
-    }
-    return links;
-  });
-  let search = $state('');
-  let stageFilter = $state<Stage>('');
-  let projectFilter = $state('');
-  let workerFilter = $state('');
-  let clientFilter = $state('');
-  let fromFilter = $state('');
-  let toFilter = $state('');
-  let statusFilter = $state('');
-  let order = $state<OperationalOrder>('priority');
-  let queuePage = $state(1);
-  let completedPage = $state(1);
-  let milestoneSearch = $state('');
-  let milestonePage = $state(1);
-  let financeSearch = $state('');
-  let financePage = $state(1);
-  let registerStateHydrated = $state(false);
-  // v2 intentionally resets the former "oldest" default to the action-priority ordering.
-  const registerStateKey = (): string => `ja-operational-register:approvals-v2:${data.user.id}`;
-  const approvalScrollKey = (): string => `ja-approval-scroll:${data.user.id}`;
-  let pendingApprovalForm: HTMLFormElement | null = null;
-  let approvalScrollIntent = false;
-  let stopApprovalScrollRestore: (() => void) | null = null;
-
-  function rememberApprovalScroll(form: HTMLFormElement): void {
-    if (!form.closest('.approval-page')) return;
-    if (
-      !/^\?\/(?:approveRecord|financeApprove|reviewReport|reviewMilestone|reviewTechnicalChange)/u.test(
-        form.getAttribute('action') ?? '',
-      )
-    )
-      return;
-    pendingApprovalForm = form;
-    approvalScrollIntent = false;
-    try {
-      sessionStorage.setItem(
-        approvalScrollKey(),
-        JSON.stringify({ path: location.pathname, top: window.scrollY, at: Date.now() }),
-      );
-    } catch {
-      // Storage can be unavailable; the action and visible response still work.
-    }
-  }
-
-  function restoreApprovalScroll(): void {
-    let stored: string | null = null;
-    try {
-      stored = sessionStorage.getItem(approvalScrollKey());
-      sessionStorage.removeItem(approvalScrollKey());
-    } catch {
-      return;
-    }
-    if (!stored) return;
-    try {
-      const snapshot = JSON.parse(stored) as { path?: string; top?: number; at?: number };
-      if (
-        snapshot.path === location.pathname &&
-        typeof snapshot.top === 'number' &&
-        Number.isFinite(snapshot.top) &&
-        typeof snapshot.at === 'number' &&
-        Date.now() - snapshot.at < 300_000
-      ) {
-        stopApprovalScrollRestore?.();
-        let active = true;
-        let observer: ResizeObserver | undefined;
-        const timers: number[] = [];
-        const restore = () => {
-          if (active && !approvalScrollIntent)
-            window.scrollTo({ top: snapshot.top!, behavior: 'instant' });
-        };
-        stopApprovalScrollRestore = () => {
-          active = false;
-          observer?.disconnect();
-          for (const timer of timers) window.clearTimeout(timer);
-        };
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() => {
-            if (!active) return;
-            restore();
-            observer = new ResizeObserver(() => requestAnimationFrame(restore));
-            observer.observe(document.body);
-            for (const delay of [180, 450, 900]) timers.push(window.setTimeout(restore, delay));
-            timers.push(window.setTimeout(() => observer?.disconnect(), 1_500));
-          }),
-        );
-      }
-    } catch {
-      // Ignore a stale or malformed snapshot.
-    }
-  }
-
-  onMount(() => {
-    const hasExplicitSearch = $page.url.searchParams.has('q');
-    const saved = readOperationalRegisterState<{
-      activeTab?: Tab;
-      search?: string;
-      order?: OperationalOrder;
-      queuePage?: number;
-      completedPage?: number;
-      milestoneSearch?: string;
-      milestonePage?: number;
-      financeSearch?: string;
-      financePage?: number;
-    }>(registerStateKey());
-    if (
-      !approvalProblem &&
-      !$page.url.searchParams.has('tab') &&
-      saved?.activeTab &&
-      tabs.includes(saved.activeTab)
-    )
-      activeTab = saved.activeTab;
-    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
-      search = saved.search;
-    if (
-      !$page.url.searchParams.has('order') &&
-      saved?.order &&
-      ['priority', 'newest', 'oldest', 'name', 'status'].includes(saved.order)
-    ) {
-      order = saved.order;
-    }
-    if (typeof saved?.queuePage === 'number') queuePage = saved.queuePage;
-    if (typeof saved?.completedPage === 'number') completedPage = saved.completedPage;
-    if (!hasExplicitSearch) {
-      if (typeof saved?.milestoneSearch === 'string') milestoneSearch = saved.milestoneSearch;
-      if (typeof saved?.milestonePage === 'number') milestonePage = saved.milestonePage;
-      if (typeof saved?.financeSearch === 'string') financeSearch = saved.financeSearch;
-      if (typeof saved?.financePage === 'number') financePage = saved.financePage;
-    }
-    registerStateHydrated = true;
-    if (!approvalProblem) {
-      try {
-        sessionStorage.removeItem(approvalScrollKey());
-      } catch {
-        // Storage can be unavailable.
-      }
-    }
-    const captureSubmit = (event: Event) => {
-      if (event.target instanceof HTMLFormElement) rememberApprovalScroll(event.target);
-    };
-    const captureFormData = (event: Event) => {
-      if (event.target instanceof HTMLFormElement && event.target !== pendingApprovalForm)
-        rememberApprovalScroll(event.target);
-    };
-    const markScrollIntent = () => {
-      approvalScrollIntent = true;
-    };
-    const markKeyScrollIntent = (event: KeyboardEvent) => {
-      if (
-        ['ArrowDown', 'ArrowUp', 'PageDown', 'PageUp', 'Home', 'End', ' ', 'Tab'].includes(
-          event.key,
-        )
-      )
-        markScrollIntent();
-    };
-    document.addEventListener('submit', captureSubmit, true);
-    document.addEventListener('formdata', captureFormData, true);
-    window.addEventListener('wheel', markScrollIntent, { passive: true });
-    window.addEventListener('touchmove', markScrollIntent, { passive: true });
-    window.addEventListener('pointerdown', markScrollIntent, { passive: true });
-    window.addEventListener('keydown', markKeyScrollIntent, true);
-    return () => {
-      document.removeEventListener('submit', captureSubmit, true);
-      document.removeEventListener('formdata', captureFormData, true);
-      window.removeEventListener('wheel', markScrollIntent);
-      window.removeEventListener('touchmove', markScrollIntent);
-      window.removeEventListener('pointerdown', markScrollIntent);
-      window.removeEventListener('keydown', markKeyScrollIntent, true);
-      stopApprovalScrollRestore?.();
-    };
-  });
-  $effect(() => {
-    if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), {
-        activeTab,
-        search,
-        order,
-        queuePage,
-        completedPage,
-        milestoneSearch,
-        milestonePage,
-        financeSearch,
-        financePage,
-      });
-  });
+  const t = (key: ApprovalQueueCopyKey, params: Record<string, string | number> = {}) =>
+    approvalQueueText(locale, key, params);
+  const language = $derived(documentLanguage(locale));
   const componentId = $props.id();
+  const role = $derived(String(data.user.role));
+  const userId = $derived(String(data.user.id));
+  const ownerApprovalIncludesFinance = $derived(role === 'owner_admin');
+  const canDecide = $derived(!isAuditor);
 
-  useViewPreferences({
-    scope: 'approvals',
-    user: () => `${data.user.id}:${data.user.role}`,
-    url: () => $page.url,
-    defaults: {
-      activeTab: 'time',
-      search: '',
-      projectFilter: '',
-      workerFilter: '',
-      clientFilter: '',
-      fromFilter: '',
-      toFilter: '',
-      statusFilter: '',
-      stageFilter: '',
-      order: 'priority',
-      queuePage: 1,
-      completedPage: 1,
-      milestoneSearch: '',
-      milestonePage: 1,
-      financeSearch: '',
-      financePage: 1,
-    },
-    query: {
-      activeTab: 'tab',
-      search: 'q',
-      projectFilter: 'project',
-      workerFilter: 'worker',
-      clientFilter: 'client',
-      fromFilter: 'from',
-      toFilter: 'to',
-      statusFilter: 'status',
-      stageFilter: 'stage',
-      order: 'order',
-    },
-    get: () => ({
-      activeTab,
-      search,
-      projectFilter,
-      workerFilter,
-      clientFilter,
-      fromFilter,
-      toFilter,
-      statusFilter,
-      stageFilter,
-      order,
-      queuePage,
-      completedPage,
-      milestoneSearch,
-      milestonePage,
-      financeSearch,
-      financePage,
-    }),
-    set: (saved) => {
-      if (!approvalProblem)
-        activeTab = tabs.includes(saved.activeTab as Tab) ? (saved.activeTab as Tab) : 'time';
-      search = saved.search;
-      projectFilter = saved.projectFilter;
-      workerFilter = saved.workerFilter;
-      clientFilter = saved.clientFilter;
-      fromFilter = saved.fromFilter;
-      toFilter = saved.toFilter;
-      statusFilter = saved.statusFilter;
-      stageFilter = [
-        '',
-        'operational',
-        'report',
-        'correction',
-        'owner_override',
-        'finance',
-      ].includes(saved.stageFilter)
-        ? (saved.stageFilter as Stage)
-        : '';
-      order = ['priority', 'newest', 'oldest', 'name', 'status'].includes(saved.order)
-        ? (saved.order as OperationalOrder)
-        : 'priority';
-      queuePage = saved.queuePage;
-      completedPage = saved.completedPage;
-      milestoneSearch =
-        $page.url.searchParams.has('q') ||
-        $page.url.searchParams.has('project') ||
-        $page.url.searchParams.has('stage')
-          ? ''
-          : saved.milestoneSearch;
-      financeSearch =
-        $page.url.searchParams.has('q') ||
-        $page.url.searchParams.has('project') ||
-        $page.url.searchParams.has('stage')
-          ? ''
-          : saved.financeSearch;
-      milestonePage = saved.milestonePage;
-      financePage = saved.financePage;
-    },
-    validate: (saved) => ({
-      ...saved,
-      projectFilter: normalizeVisibleProjectSelection(
-        saved.projectFilter,
-        projectVisibility(data.projects ?? [], true).projectIds,
-      ),
-    }),
-  });
-
-  const rows = $derived(data.records ?? []);
-  const milestones = $derived(data.milestones ?? []);
-  const financeReviewVisible = $derived(
-    canSeeFinanceReview &&
-      ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(String(data.user.role)),
-  );
-  const ownerOverrideAllowed = $derived(
-    isOwner && String(data.user.role) === 'owner_admin' && !isAuditor,
-  );
-  const financeRows = $derived(
-    financeReviewVisible ? rows.filter((row) => String(row.review_stage) === 'finance') : [],
-  );
-  const operationalRows = $derived(rows.filter((row) => String(row.review_stage) !== 'finance'));
-  const clientOptions = $derived(
-    Array.from(
-      new Map(
-        [...rows, ...milestones]
-          .filter((row) => value(row, 'client_name'))
-          .map((row) => [value(row, 'client_name'), value(row, 'client_name')]),
-      ).entries(),
-    ),
-  );
-  function matchesTab(row: Row, tab: Tab): boolean {
-    const type = value(row, 'type');
-    return tab === 'time'
-      ? type === 'time'
-      : tab === 'expenses'
-        ? type === 'expense'
-        : type === 'daily' || type === 'technical';
-  }
-
-  // Keep the domain totals and the visible queue on one common filter scope.
-  // Status, stage and tab are facets applied after this scope for each metric.
-  const scopedOperationalRows = $derived(
-    operationalRows.filter((row) => {
-      const recordDate = value(row, 'date');
-      return (
-        operationalMatches(row, search, [
-          'id',
-          'date',
-          'type',
-          'project_id',
-          'project_name',
-          'project_number',
-          'client_name',
-          'worker_id',
-          'worker_name',
-          'report_title',
-        ]) &&
-        (!projectFilter || value(row, 'project_id') === projectFilter) &&
-        (!workerFilter || value(row, 'worker_id') === workerFilter) &&
-        (!clientFilter || value(row, 'client_name') === clientFilter) &&
-        (!fromFilter || recordDate >= fromFilter) &&
-        (!toFilter || recordDate <= toFilter)
-      );
-    }),
-  );
-  const reviewScopedRows = $derived(
-    scopedOperationalRows.filter(
-      (row) =>
-        (!stageFilter || String(row.review_stage) === stageFilter) &&
-        operationalStatusMatches(row.approval_state, statusFilter, ['submitted', 'needs_changes']),
-    ),
-  );
-  const primaryQueueRows = $derived(
-    reviewScopedRows.filter((row) =>
-      statusFilter === 'approved'
-        ? value(row, 'approval_state') === 'approved'
-        : value(row, 'approval_state') !== 'approved',
-    ),
-  );
-  const attentionCount = $derived(
-    scopedOperationalRows.filter(
-      (row) =>
-        matchesTab(row, activeTab) &&
-        ['submitted', 'needs_changes'].includes(String(row.approval_state)),
-    ).length,
-  );
-  const reportCount = $derived(
-    scopedOperationalRows.filter(
-      (row) => matchesTab(row, 'reports') && value(row, 'approval_state') === 'submitted',
-    ).length,
-  );
-  const filteredOperationalRows = $derived(
-    reviewScopedRows.filter((row) => matchesTab(row, activeTab)),
-  );
-  const submittedRows = $derived(
-    operationalSort(
-      filteredOperationalRows.filter((row) => value(row, 'approval_state') !== 'approved'),
-      order,
-      ['date'],
-      ['worker_name', 'project_name', 'project_number'],
-      ['approval_state', 'review_stage'],
-    ),
-  );
-  const completedRows = $derived(
-    operationalSort(
-      filteredOperationalRows.filter((row) => value(row, 'approval_state') === 'approved'),
-      order,
-      ['date'],
-      ['worker_name', 'project_name', 'project_number'],
-      ['approval_state', 'review_stage'],
-    ),
-  );
-  const pagedSubmittedRows = $derived(operationalPage(submittedRows, queuePage));
-  const pagedCompletedRows = $derived(operationalPage(completedRows, completedPage));
-  const filteredMilestones = $derived(
-    operationalSort(
-      milestones.filter(
-        (row) =>
-          (!projectFilter || value(row, 'project_id') === projectFilter) &&
-          (!clientFilter || value(row, 'client_name') === clientFilter) &&
-          (!fromFilter || value(row, 'due_on') >= fromFilter) &&
-          (!toFilter || value(row, 'due_on') <= toFilter) &&
-          operationalMatches(row, milestoneSearch || search, [
-            'id',
-            'project_number',
-            'project_name',
-            'client_name',
-            'name',
-            'due_on',
-          ]),
-      ),
-      order,
-      ['due_on'],
-      ['name', 'project_number'],
-      ['approval_state', 'state'],
-    ),
-  );
-  const pagedMilestones = $derived(operationalPage(filteredMilestones, milestonePage));
-  const filteredFinanceRows = $derived(
-    operationalSort(
-      financeRows.filter(
-        (row) =>
-          (!projectFilter || value(row, 'project_id') === projectFilter) &&
-          (!workerFilter || value(row, 'worker_id') === workerFilter) &&
-          (!clientFilter || value(row, 'client_name') === clientFilter) &&
-          (!fromFilter || value(row, 'date') >= fromFilter) &&
-          (!toFilter || value(row, 'date') <= toFilter) &&
-          operationalMatches(row, financeSearch || search, [
-            'id',
-            'date',
-            'type',
-            'project_id',
-            'project_name',
-            'project_number',
-            'client_name',
-            'worker_id',
-            'worker_name',
-          ]),
-      ),
-      order,
-      ['date'],
-      ['worker_name', 'project_name'],
-      ['approval_state', 'review_stage'],
-    ),
-  );
-  const pagedFinanceRows = $derived(operationalPage(filteredFinanceRows, financePage));
+  type Item = {
+    row: Row;
+    id: string;
+    type: Kind;
+    date: string;
+    minutes: number;
+    version: string;
+    workerId: string;
+    workerName: string;
+    projectName: string;
+    own: boolean;
+  };
+  type Group = {
+    key: string;
+    kind: Kind;
+    workerName: string;
+    weekStart: string;
+    items: Item[];
+    actionable: Item[];
+    minutes: number;
+    projects: string[];
+  };
 
   function value(row: Row, key: string): string {
     const raw = row[key];
@@ -645,41 +96,7 @@
   }
 
   function workerName(row: Row): string {
-    const direct = value(row, 'worker_name');
-    if (direct) return direct;
-    const worker = (data.workers ?? []).find(
-      (candidate) => value(candidate, 'id') === value(row, 'worker_id'),
-    );
-    return worker ? value(worker, 'name') || translate('Worker') : translate('Worker');
-  }
-
-  function reviewActionKey(kind: 'report' | 'record' | 'milestone', row: Row): string {
-    return `${kind}:${value(row, 'type')}:${value(row, 'id')}`;
-  }
-
-  function reviewActionOpen(key: string, failedActionOpen: boolean): boolean {
-    return openReviewActions[key] ?? failedActionOpen;
-  }
-
-  function rememberReviewActionOpen(key: string, event: Event): void {
-    openReviewActions[key] = (event.currentTarget as HTMLDetailsElement).open;
-  }
-
-  function failedDecisionValue(row: Row, decision: string, field: string): string {
-    if (
-      String(failedApprovalValues.id ?? '') !== value(row, 'id') ||
-      String(failedApprovalValues.type ?? '') !== rowType(row) ||
-      String(failedApprovalValues.decision ?? '') !== decision
-    )
-      return '';
-    return String(failedApprovalValues[field] ?? '');
-  }
-
-  function failedFinanceBillable(row: Row): string {
-    return String(failedApprovalValues.id ?? '') === value(row, 'id') &&
-      String(failedApprovalValues.type ?? '') === rowType(row)
-      ? String(failedApprovalValues.billable ?? '')
-      : '';
+    return value(row, 'worker_name') || translate('Worker');
   }
 
   function recordHref(row: Row): string {
@@ -691,177 +108,314 @@
     return `${base}/app/${encodeURIComponent(type)}/${id}`;
   }
 
+  function correctionHref(row: Row): string {
+    const type = value(row, 'type');
+    const anchor = ['daily', 'technical'].includes(type)
+      ? 'report-correction-title'
+      : type === 'expense'
+        ? 'expense-correction-title'
+        : 'time-correction-title';
+    return `${recordHref(row)}#${anchor}`;
+  }
+
+  function receiptHref(row: Row): string {
+    return `${base}/app/api/documents/${encodeURIComponent(value(row, 'receipt_document_id'))}?view=1`;
+  }
+
+  function expenseClassificationHref(row: Row): string {
+    const params = new URLSearchParams({
+      view: 'commercial',
+      project: value(row, 'project_id'),
+      expense: value(row, 'id'),
+    });
+    return `${base}/app/finance?${params.toString()}#expense-classification`;
+  }
+
+  // ---------- formatting ----------
+  const hoursFormat = $derived(new Intl.NumberFormat(language, { maximumFractionDigits: 2 }));
+  function hoursText(minutes: number): string {
+    return t('hours', { hours: hoursFormat.format(minutes / 60) });
+  }
+  function utcDate(iso: string): Date {
+    return new Date(`${iso}T00:00:00.000Z`);
+  }
+  function shiftDays(iso: string, days: number): string {
+    const date = utcDate(iso);
+    date.setUTCDate(date.getUTCDate() + days);
+    return date.toISOString().slice(0, 10);
+  }
+  function weekRange(weekStart: string): string {
+    const start = utcDate(weekStart);
+    const end = utcDate(shiftDays(weekStart, 6));
+    const dayMonth = new Intl.DateTimeFormat(language, {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    });
+    try {
+      return dayMonth.formatRange(start, end);
+    } catch {
+      return `${dayMonth.format(start)} – ${dayMonth.format(end)}`;
+    }
+  }
+  function dayLabel(iso: string): string {
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(iso)) return iso;
+    return new Intl.DateTimeFormat(language, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(utcDate(iso));
+  }
+  function categoryLabel(category: string): string {
+    if (category === 'regular' || category === '') return t('work');
+    if (category === 'travel') return t('travel');
+    if (category === 'overtime') return t('overtime');
+    return controlledValue('timeCategory', category) || category;
+  }
+  function countLabel(kind: Kind, count: number): string {
+    if (kind === 'time') return count === 1 ? t('entry') : t('entries', { count });
+    return count === 1 ? t('expense') : t('expenses', { count });
+  }
+  function moneyTotals(items: readonly Item[]): string {
+    const totals = new Map<string, bigint>();
+    for (const item of items) {
+      const currency = value(item.row, 'expense_currency');
+      const raw = value(item.row, 'expense_amount_minor');
+      if (!currency || !/^-?\d+$/u.test(raw)) continue;
+      totals.set(currency, (totals.get(currency) ?? 0n) + BigInt(raw));
+    }
+    return [...totals]
+      .map(([currency, minor]) => money(minor.toString(), currency, language))
+      .join(' + ');
+  }
+  function groupTitle(group: Group): string {
+    return `${group.workerName} · ${t('week', { range: weekRange(group.weekStart) })}`;
+  }
+  function groupFacts(group: Group, items: readonly Item[] = group.items): string {
+    const amount = group.kind === 'expense' ? moneyTotals(items) : '';
+    return [
+      group.kind === 'time' ? hoursText(sumMinutes(items)) : countLabel('expense', items.length),
+      group.kind === 'time' ? countLabel('time', items.length) : amount,
+      group.projects.length > 2
+        ? t('projects', { count: group.projects.length })
+        : group.projects.join(', '),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  function sumMinutes(items: readonly Item[]): number {
+    return items.reduce((total, item) => total + item.minutes, 0);
+  }
+  function itemSummary(item: Item): string {
+    return [
+      item.workerName,
+      dayLabel(item.date),
+      item.type === 'time' ? hoursText(item.minutes) : expenseLine(item.row),
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  function expenseLine(row: Row): string {
+    const category = value(row, 'expense_category');
+    const currency = value(row, 'expense_currency');
+    return [
+      controlledValue('expenseCategory', category) || category,
+      value(row, 'expense_label'),
+      currency ? money(row.expense_amount_minor, currency, language) : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  function token(item: Item): string {
+    return `${item.type}:${item.id}:${item.version}`;
+  }
+
+  // ---------- queue model ----------
+  const rows = $derived((data.records ?? []) as Row[]);
+  const milestones = $derived((data.milestones ?? []) as Row[]);
+  const operationalRows = $derived(rows.filter((row) => value(row, 'review_stage') !== 'finance'));
+  const pendingRows = $derived(
+    operationalRows.filter(
+      (row) =>
+        value(row, 'approval_state') === 'submitted' &&
+        ['operational', 'report'].includes(value(row, 'review_stage')),
+    ),
+  );
+  const ownerOverrideAllowed = $derived(isOwner && role === 'owner_admin' && !isAuditor);
+
+  function matchesTab(row: Row, tab: Tab): boolean {
+    const type = value(row, 'type');
+    return tab === 'time'
+      ? type === 'time'
+      : tab === 'expenses'
+        ? type === 'expense'
+        : type === 'daily' || type === 'technical';
+  }
+
+  function toItem(row: Row): Item {
+    const type: Kind = value(row, 'type') === 'expense' ? 'expense' : 'time';
+    return {
+      row,
+      id: value(row, 'id'),
+      type,
+      date: value(row, 'date'),
+      minutes: type === 'time' ? Number(value(row, 'amount')) || 0 : 0,
+      version: value(row, 'record_version'),
+      workerId: value(row, 'worker_id'),
+      workerName: workerName(row),
+      projectName: projectName(row),
+      // Only the Owner may decide their own records; everyone else needs another reviewer.
+      own: role !== 'owner_admin' && value(row, 'worker_id') === userId,
+    };
+  }
+
+  function buildGroups(kind: Kind): Group[] {
+    const groups = new Map<string, Group>();
+    for (const row of filteredPending) {
+      if (value(row, 'type') !== kind) continue;
+      const item = toItem(row);
+      const weekStart = weekStartForDate(item.date) ?? item.date;
+      const key = `${kind}:${item.workerId}:${weekStart}`;
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          key,
+          kind,
+          workerName: item.workerName,
+          weekStart,
+          items: [],
+          actionable: [],
+          minutes: 0,
+          projects: [],
+        };
+        groups.set(key, group);
+      }
+      group.items.push(item);
+      group.minutes += item.minutes;
+      if (!item.own && item.version) group.actionable.push(item);
+      if (!group.projects.includes(item.projectName)) group.projects.push(item.projectName);
+    }
+    for (const group of groups.values())
+      group.items.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
+    return [...groups.values()].sort(
+      (a, b) => a.weekStart.localeCompare(b.weekStart) || a.workerName.localeCompare(b.workerName),
+    );
+  }
+
+  // Visible filters: worker, project and week. A project filter narrows the
+  // groups to that project's entries, so "Approve week" never approves hidden work.
+  let workerFilter = $state('');
+  let projectFilter = $state('');
+  let weekFilter = $state('');
+  const rowWeek = (row: Row): string => weekStartForDate(value(row, 'date')) ?? value(row, 'date');
+  const filteredPending = $derived(
+    pendingRows.filter(
+      (row) =>
+        (!workerFilter || value(row, 'worker_id') === workerFilter) &&
+        (!projectFilter || value(row, 'project_id') === projectFilter) &&
+        (!weekFilter || rowWeek(row) === weekFilter),
+    ),
+  );
+  const filterOptions = $derived.by(() => {
+    const tabRows = pendingRows.filter((row) => matchesTab(row, activeTab));
+    const workers = new Map<string, string>();
+    const projects = new Map<string, string>();
+    const weeks = new Set<string>();
+    for (const row of tabRows) {
+      workers.set(value(row, 'worker_id'), workerName(row));
+      projects.set(value(row, 'project_id'), projectName(row));
+      weeks.add(rowWeek(row));
+    }
+    const byLabel = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1]);
+    return {
+      workers: [...workers].sort(byLabel),
+      projects: [...projects].sort(byLabel),
+      weeks: [...weeks].sort().reverse(),
+    };
+  });
+  const filtersActive = $derived(Boolean(workerFilter || projectFilter || weekFilter));
+  function clearFilters(): void {
+    workerFilter = '';
+    projectFilter = '';
+    weekFilter = '';
+  }
+  const timeGroups = $derived(buildGroups('time'));
+  const expenseGroups = $derived(buildGroups('expense'));
+  const reportRows = $derived(
+    filteredPending
+      .filter((row) => matchesTab(row, 'reports'))
+      .sort((a, b) => value(a, 'date').localeCompare(value(b, 'date'))),
+  );
+  const tabCount = (tab: Tab): number => pendingRows.filter((row) => matchesTab(row, tab)).length;
+
+  const visibleGroups = $derived(
+    activeTab === 'time' ? timeGroups : activeTab === 'expenses' ? expenseGroups : [],
+  );
+  const visibleReports = $derived(reportRows);
+  // Filters appear only when the tab has enough work to need them.
+  const showFilters = $derived(
+    filtersActive ||
+      filterOptions.workers.length > 1 ||
+      filterOptions.projects.length > 1 ||
+      filterOptions.weeks.length > 1,
+  );
+  const waitingRows = $derived(
+    operationalRows.filter(
+      (row) => value(row, 'approval_state') === 'needs_changes' && matchesTab(row, activeTab),
+    ),
+  );
+  const approvedRows = $derived(
+    operationalRows
+      .filter(
+        (row) =>
+          value(row, 'approval_state') === 'approved' &&
+          ['correction', 'owner_override'].includes(value(row, 'review_stage')) &&
+          matchesTab(row, activeTab),
+      )
+      .sort((a, b) => value(b, 'date').localeCompare(value(a, 'date'))),
+  );
+
+  // ---------- tabs ----------
+  const initialFailureType = String(
+    (($page.form as { values?: Record<string, unknown> } | null)?.values ?? {}).type ?? '',
+  );
+  const initialTab = $page.url.searchParams.get('tab');
+  let activeTab = $state<Tab>(
+    initialFailureType === 'expense'
+      ? 'expenses'
+      : initialFailureType === 'daily' || initialFailureType === 'technical'
+        ? 'reports'
+        : tabs.includes(initialTab as Tab)
+          ? (initialTab as Tab)
+          : 'time',
+  );
+  onMount(() => {
+    // Open the first tab that has work when the URL does not name one.
+    if (!initialTab && !initialFailureType && tabCount('time') === 0) {
+      const next = tabs.find((tab) => tabCount(tab) > 0);
+      if (next) activeTab = next;
+    }
+  });
+
   function tabId(tab: Tab): string {
     return `approval-tab-${componentId}-${tab}`;
   }
-
   function panelId(): string {
     return 'approval-queue';
   }
-
-  function resetApprovalPages(): void {
-    queuePage = 1;
-    completedPage = 1;
-    milestonePage = 1;
-    financePage = 1;
+  function tabLabel(tab: Tab): string {
+    return tab === 'time' ? t('tabTime') : tab === 'expenses' ? t('tabExpenses') : t('tabReports');
   }
-
   function focusTab(tab: Tab): void {
     activeTab = tab;
+    confirmOpen = false;
     if (typeof document === 'undefined') return;
-    // Keep the visible domain in the current history entry. An earlier explicit
-    // tab must not override a later click after a refresh or action recovery.
     const url = new URL(location.href);
     url.searchParams.set('tab', tab);
     replaceState(url, $page.state);
     void tick().then(() => document.getElementById(tabId(tab))?.focus());
   }
-
-  function failedApprovalForm(
-    problem: ProblemData & { actionName?: string },
-    values: Record<string, unknown>,
-  ): HTMLFormElement | undefined {
-    const forms = Array.from(document.querySelectorAll<HTMLFormElement>('form[action^="?/"]'));
-    return forms.find((candidate) => {
-      const action = candidate.getAttribute('action') ?? '';
-      if (problem.actionName && !action.includes('?/' + problem.actionName)) return false;
-      if (candidate.querySelector<HTMLInputElement>('input[name="id"]')?.value !== values.id)
-        return false;
-      if (
-        values.type &&
-        candidate.querySelector<HTMLInputElement>('input[name="type"]')?.value !== values.type
-      )
-        return false;
-      if (
-        values.decision &&
-        candidate.querySelector<HTMLInputElement>('input[name="decision"]')?.value !==
-          values.decision
-      )
-        return false;
-      return true;
-    });
-  }
-
-  /** Keep the current tab and scroll position while the server refreshes the queue. */
-  const submitApproval: SubmitFunction = ({ formData, cancel }) => {
-    if (
-      ownerApprovalIncludesFinance &&
-      formData.get('decision') === 'approved' &&
-      ['time', 'expense'].includes(String(formData.get('type'))) &&
-      !window.confirm(translate('problem.warning.ownerApprovalIncludesFinance'))
-    ) {
-      cancel();
-      return;
-    }
-    const scrollTop = window.scrollY;
-    return async ({ result, update }) => {
-      await update({ reset: false });
-      pendingApprovalForm = null;
-      if (result.type === 'success') {
-        try {
-          sessionStorage.removeItem(approvalScrollKey());
-        } catch {
-          // Storage can be unavailable.
-        }
-      }
-      if (result.type === 'success' || result.type === 'failure') {
-        await tick();
-        // A stale decision can leave a completed row in the data while removing
-        // its action form. Preserve scroll only when an in-row error is available.
-        const problem = approvalProblem as (ProblemData & { actionName?: string }) | null;
-        const form = problem ? failedApprovalForm(problem, failedApprovalValues) : undefined;
-        if (
-          result.type === 'success' ||
-          !problem ||
-          (form && Object.keys(problem.fieldErrors ?? {}).length > 0)
-        )
-          window.scrollTo({ top: scrollTop, behavior: 'instant' });
-      }
-    };
-  };
-
-  let focusedApprovalProblemId = '';
-  $effect(() => {
-    const problem = approvalProblem;
-    if (!problem?.correlationId || problem.correlationId === focusedApprovalProblemId) return;
-    focusedApprovalProblemId = problem.correlationId;
-    const values = failedApprovalValues;
-    const type = String(values.type ?? '');
-    if (type === 'time') activeTab = 'time';
-    else if (type === 'expense') activeTab = 'expenses';
-    else if (type === 'daily' || type === 'technical') activeTab = 'reports';
-    void tick().then(() => {
-      const target = failedApprovalForm(problem as ProblemData & { actionName?: string }, values);
-      const disclosure = target?.closest('details');
-      if (disclosure) disclosure.open = true;
-      if (target && problem.fieldErrors) reportFormFieldErrors(target, problem.fieldErrors);
-      const summary = target?.querySelector<HTMLElement>('[data-validation-summary]');
-      if (summary) {
-        summary.focus({ preventScroll: true });
-        restoreApprovalScroll();
-        return;
-      }
-      const notice = document.querySelector<HTMLElement>(
-        '[data-approval-problem] [data-ui="problem-notice"]',
-      );
-      if (!notice) return;
-      stopApprovalScrollRestore?.();
-      try {
-        sessionStorage.removeItem(approvalScrollKey());
-      } catch {
-        // The notice remains usable when storage is unavailable.
-      }
-      notice.focus({ preventScroll: true });
-      requestAnimationFrame(() =>
-        notice.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'instant' }),
-      );
-    });
-  });
-
-  function applyFilters(event: SubmitEvent): void {
-    event.preventDefault();
-    const form = event.currentTarget as HTMLFormElement;
-    const params = new URLSearchParams();
-    for (const [name, value] of new FormData(form)) {
-      if (typeof value === 'string' && value) params.set(name, value);
-    }
-    void goto(`${base}/app/approvals?${params.toString()}`, {
-      noScroll: true,
-      keepFocus: true,
-    });
-  }
-
-  function clearFilters(event: MouseEvent): void {
-    event.preventDefault();
-    resetApprovalPages();
-    void goto(`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority&reset=1`, {
-      noScroll: true,
-      keepFocus: true,
-    });
-  }
-
-  function approvalHref(overrides: Record<string, string>): string {
-    const params = new URLSearchParams();
-    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    const tab = overrides.tab ?? activeTab;
-    const project = overrides.project ?? projectFilter;
-    const worker = overrides.worker ?? workerFilter;
-    const client = overrides.client ?? clientFilter;
-    const from = overrides.from ?? fromFilter;
-    const to = overrides.to ?? toFilter;
-    const status = overrides.status ?? statusFilter;
-    const q = overrides.q ?? search;
-    if (tab) params.set('tab', tab);
-    if (project) params.set('project', project);
-    if (worker) params.set('worker', worker);
-    if (client) params.set('client', client);
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
-    if (status) params.set('status', status);
-    if (q) params.set('q', q);
-    return `${base}/app/approvals?${params.toString()}`;
-  }
-
   function handleTabKeydown(event: KeyboardEvent, tab: Tab): void {
     const currentIndex = tabs.indexOf(tab);
     let nextIndex: number | undefined;
@@ -886,110 +440,228 @@
     if (nextTab) focusTab(nextTab);
   }
 
-  function tabLabel(tab: Tab): string {
-    if (tab === 'time') return translate('Time');
-    if (tab === 'expenses') return translate('Expenses');
-    return translate('Reports');
+  // ---------- disclosure / selection state ----------
+  let expanded = $state<Record<string, boolean>>({});
+  let sendBackFor = $state<string | null>(null);
+  let selected = $state<Record<string, boolean>>({});
+  let confirmOpen = $state(false);
+  let busyKey = $state<string | null>(null);
+  let lastAction = $state<{ text: string; tone: 'success' | 'info' } | null>(null);
+
+  const selectableGroups = $derived(visibleGroups.filter((group) => group.actionable.length > 0));
+  const selectedGroups = $derived(selectableGroups.filter((group) => selected[group.key]));
+  const selectedItems = $derived(selectedGroups.flatMap((group) => group.actionable));
+  const allSelected = $derived(
+    selectableGroups.length > 0 && selectedGroups.length === selectableGroups.length,
+  );
+  function toggleAll(event: Event): void {
+    const checked = (event.currentTarget as HTMLInputElement).checked;
+    const next: Record<string, boolean> = {};
+    if (checked) for (const group of selectableGroups) next[group.key] = true;
+    selected = next;
+    if (!checked) confirmOpen = false;
+  }
+  function selectionTotals(): string {
+    const items = selectedItems;
+    if (activeTab === 'time')
+      return `${countLabel('time', items.length)} · ${hoursText(sumMinutes(items))}`;
+    return [countLabel('expense', items.length), moneyTotals(items)].filter(Boolean).join(' · ');
+  }
+  function approveAllVisible(): void {
+    const next: Record<string, boolean> = {};
+    for (const group of selectableGroups) next[group.key] = true;
+    selected = next;
+    void openConfirm();
+  }
+  async function openConfirm(): Promise<void> {
+    confirmOpen = true;
+    await tick();
+    document.getElementById(`approval-confirm-${componentId}`)?.focus();
   }
 
-  function stageLabel(stage: unknown): string {
-    switch (String(stage)) {
-      case 'report':
-        return translate('Report review');
-      case 'correction':
-        return translate('Correction draft');
-      case 'owner_override':
-        return translate('Owner override');
-      case 'finance':
-        return translate('Finance review');
-      default:
-        return translate('Operational review');
-    }
+  // ---------- problems ----------
+  const approvalProblem = $derived.by(() => {
+    const result = $page.form as (ProblemData & { success?: boolean }) | null | undefined;
+    return result?.success === false &&
+      /^(?:APPROVAL_|FINANCE_REVIEW_|EXPENSE_CLASSIFICATION_|FINANCE_ROLE_)/u.test(result.code)
+      ? result
+      : null;
+  });
+  const failedApprovalValues = $derived(
+    ((approvalProblem as (ProblemData & { values?: Record<string, unknown> }) | null)?.values ??
+      {}) as Record<string, unknown>,
+  );
+  const failedRow = $derived.by(() => {
+    const id = String(failedApprovalValues.id ?? '');
+    return id ? rows.find((row) => value(row, 'id') === id) : undefined;
+  });
+  const approvalCurrentStatus = $derived.by(() => {
+    const currentStatus = String(approvalProblem?.params.currentStatus ?? '');
+    const failed = failedRow ? rowSummary(failedRow) : '';
+    const status = currentStatus
+      ? `${translate('Current status')}: ${controlledValue('status', currentStatus) || currentStatus}`
+      : '';
+    return (
+      [failed ? t('problemWith', { summary: failed }) : '', status].filter(Boolean).join(' · ') ||
+      undefined
+    );
+  });
+  const approvalRemedyLinks = $derived.by(() => {
+    const links: Record<string, { label: string; href?: string }> = {
+      contact_project_owner: { label: translate('Contact a project owner') },
+      contact_project_reviewer: { label: translate('Contact a project reviewer') },
+      contact_finance_owner: { label: translate('Contact Finance or an owner') },
+      sign_in_again: { label: translate('Sign in again'), href: `${base}/app/login` },
+      review_approval_queue: {
+        label: translate('problem.remedy.reviewApprovalQueue'),
+        href: '#approval-queue',
+      },
+      enter_reason: { label: translate('Review reason') },
+    };
+    const remedy = approvalProblem?.remedies.find((item) => item.id === 'review_updated_record');
+    if (
+      remedy?.recordId &&
+      ['time', 'expense', 'daily', 'technical'].includes(String(approvalProblem?.params.recordType))
+    )
+      links.review_updated_record = {
+        label: translate('Review updated record'),
+        href: recordHref({ id: remedy.recordId, type: String(approvalProblem?.params.recordType) }),
+      };
+    const classify = approvalProblem?.remedies.find((item) => item.id === 'classify_expense');
+    if (
+      classify?.recordId &&
+      canSeeFinanceReview &&
+      ['owner_admin', 'finance_admin'].includes(role)
+    )
+      links.classify_expense = {
+        label: translate('Classify expense in Finance'),
+        href: `${base}/app/finance?view=commercial&expense=${encodeURIComponent(classify.recordId)}#expense-classification`,
+      };
+    const financeRules = approvalProblem?.remedies.find(
+      (item) => item.id === 'review_finance_rules',
+    );
+    if (
+      financeRules?.projectId &&
+      canSeeFinanceReview &&
+      ['owner_admin', 'finance_admin'].includes(role)
+    )
+      links.review_finance_rules = {
+        label: translate('Open finance configuration'),
+        href: `${base}/app/finance?view=commercial&project=${encodeURIComponent(financeRules.projectId)}`,
+      };
+    return links;
+  });
+  let focusedProblemId = '';
+  $effect(() => {
+    const problem = approvalProblem;
+    if (!problem?.correlationId || problem.correlationId === focusedProblemId) return;
+    focusedProblemId = problem.correlationId;
+    const type = String(failedApprovalValues.type ?? '');
+    if (type === 'time') activeTab = 'time';
+    else if (type === 'expense') activeTab = 'expenses';
+    else if (type === 'daily' || type === 'technical') activeTab = 'reports';
+    void tick().then(() => {
+      const notice = document.querySelector<HTMLElement>('[data-approval-problem]');
+      notice?.focus({ preventScroll: true });
+      notice?.scrollIntoView({ block: 'center', behavior: 'instant' });
+    });
+  });
+
+  // ---------- submissions ----------
+  /** Keep scroll, record what happened, and let the refreshed queue drop the decided rows. */
+  function decide(
+    key: string,
+    summary: string,
+    tone: 'approved' | 'sentBack' | 'report',
+  ): SubmitFunction {
+    return ({ formData }) => {
+      busyKey = key;
+      lastAction = null;
+      const decision = String(formData.get('decision') ?? '');
+      // Batch forms are re-rendered as rows change; describe exactly what is being sent.
+      const tokens = formData.getAll('item').map(String);
+      if (tokens.length) summary = tokensSummary(tokens) || summary;
+      const banner: ApprovalQueueCopyKey =
+        decision === 'rejected'
+          ? 'rejectedBanner'
+          : tone === 'approved'
+            ? 'approvedBanner'
+            : tone === 'report'
+              ? 'reportApprovedBanner'
+              : 'sentBackBanner';
+      return async ({ result, update }) => {
+        await update({ reset: false });
+        busyKey = null;
+        if (result.type === 'success') {
+          lastAction = {
+            text: t(banner, { summary }),
+            tone:
+              banner === 'approvedBanner' || banner === 'reportApprovedBanner' ? 'success' : 'info',
+          };
+          sendBackFor = null;
+          confirmOpen = false;
+          selected = {};
+        }
+      };
+    };
+  }
+  function tokensSummary(tokens: readonly string[]): string {
+    const ids = new Set(tokens.map((entry) => entry.split(':')[1] ?? ''));
+    const sent = [...timeGroups, ...expenseGroups]
+      .map((group) => ({ group, items: group.actionable.filter((item) => ids.has(item.id)) }))
+      .filter((part) => part.items.length > 0);
+    if (sent.length === 0) return '';
+    if (sent.length === 1)
+      return `${groupTitle(sent[0]!.group)} · ${groupFacts(sent[0]!.group, sent[0]!.items)}`;
+    const items = sent.flatMap((part) => part.items);
+    return items.every((item) => item.type === 'time')
+      ? `${countLabel('time', items.length)} · ${hoursText(sumMinutes(items))}`
+      : [countLabel('expense', items.length), moneyTotals(items)].filter(Boolean).join(' · ');
+  }
+  function rowSummary(row: Row): string {
+    const type = value(row, 'type');
+    if (type === 'daily' || type === 'technical')
+      return `${type === 'daily' ? t('daily') : t('technical')} · ${workerName(row)} · ${dayLabel(value(row, 'date'))}`;
+    return itemSummary(toItem(row));
+  }
+  function bulkSummary(groups: readonly Group[]): string {
+    const items = groups.flatMap((group) => group.actionable);
+    return activeTab === 'time'
+      ? `${countLabel('time', items.length)} · ${hoursText(sumMinutes(items))}`
+      : [countLabel('expense', items.length), moneyTotals(items)].filter(Boolean).join(' · ');
   }
 
-  function statusVariant(
-    valueToClass: unknown,
-  ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
-    switch (String(valueToClass ?? '')) {
-      case 'approved':
-        return 'success';
-      case 'rejected':
-        return 'danger';
-      case 'submitted':
-      case 'needs_changes':
-        return 'warning';
-      default:
-        return 'neutral';
-    }
+  function statusVariant(state: unknown): 'success' | 'warning' | 'danger' | 'neutral' {
+    const status = String(state ?? '');
+    return status === 'approved'
+      ? 'success'
+      : status === 'rejected'
+        ? 'danger'
+        : ['submitted', 'needs_changes'].includes(status)
+          ? 'warning'
+          : 'neutral';
   }
 
-  function rowType(row: Row): 'time' | 'expense' {
+  // ---------- milestones & finance (secondary, only when present) ----------
+  const financeReviewVisible = $derived(
+    canSeeFinanceReview && ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(role),
+  );
+  const financeRows = $derived(
+    financeReviewVisible ? rows.filter((row) => value(row, 'review_stage') === 'finance') : [],
+  );
+  function rowType(row: Row): Kind {
     return value(row, 'type') === 'expense' ? 'expense' : 'time';
   }
-
-  function expenseSummary(row: Row): string {
-    const category = value(row, 'expense_category');
-    const label = value(row, 'expense_label');
-    const currency = value(row, 'expense_currency');
-    return [
-      controlledValue('expenseCategory', category) || translate(category || 'Expense'),
-      label,
-      currency ? money(row.expense_amount_minor, currency) : '',
-    ]
-      .filter(Boolean)
-      .join(' · ');
+  function failedFinanceBillable(row: Row): string {
+    return String(failedApprovalValues.id ?? '') === value(row, 'id')
+      ? String(failedApprovalValues.billable ?? '')
+      : '';
   }
-
-  function expenseClassificationHref(row: Row): string {
-    const params = new URLSearchParams({
-      view: 'commercial',
-      project: value(row, 'project_id'),
-      expense: value(row, 'id'),
-    });
-    return `${base}/app/finance?${params.toString()}#expense-classification`;
-  }
+  const queueEmpty = $derived(pendingRows.length === 0);
 </script>
 
-<div class="approval-page">
-  <header class="approval-context">
-    <div>
-      <p class="approval-eyebrow">{translate('Operational control')}</p>
-      <h2>{translate('Approvals')}</h2>
-      <p>{translate('Review submitted operational truth before it moves to the next stage.')}</p>
-    </div>
-    <span
-      class="approval-count"
-      aria-label={translate(
-        statusFilter === 'approved' ? 'Completed review follow-up' : 'Approval queue count',
-      )}>{statusFilter === 'approved' ? completedRows.length : submittedRows.length}</span
-    >
-  </header>
-
-  <div class="approval-attention" aria-label={translate('Approval attention summary')}>
-    <a
-      class="approval-attention-card"
-      href={`${approvalHref({ status: 'attention' })}#approval-queue`}
-    >
-      <span>{translate('Needs attention')}</span>
-      <strong>{attentionCount}</strong>
-      <small>{translate('Submitted or correction-ready records')} · {tabLabel(activeTab)}</small>
-    </a>
-    <a
-      class="approval-attention-card"
-      href={`${approvalHref({ tab: 'reports', status: 'submitted' })}#approval-queue`}
-    >
-      <span>{translate('Reports')}</span>
-      <strong>{reportCount}</strong>
-      <small>{translate('Submitted daily and technical reports matching filters')}</small>
-    </a>
-    {#if financeReviewVisible}
-      <a class="approval-attention-card approval-attention-card-finance" href="#finance-review">
-        <span>{translate('Finance review')}</span>
-        <strong>{filteredFinanceRows.length}</strong>
-        <small>{translate('Separate finance queue')}</small>
-      </a>
-    {/if}
-  </div>
+<div class="aq">
+  <p class="aq-help">{ownerApprovalIncludesFinance ? t('helpOwner') : t('help')}</p>
 
   {#if approvalProblem}
     <div data-approval-problem tabindex="-1">
@@ -997,28 +669,22 @@
         problem={approvalProblem}
         status={approvalCurrentStatus}
         remedyLinks={approvalRemedyLinks}
+        {locale}
       />
-      {#if (failedApprovalRowMissing || approvalProblem.code === 'APPROVAL_RECORD_NOT_SUBMITTED') && retainedApprovalInputs.length}
-        <section
-          class="approval-retained-values"
-          data-approval-retained-values
-          aria-label={translate('Entered values')}
-        >
-          <strong>{translate('Entered values')}</strong>
-          <dl>
-            {#each retainedApprovalInputs as input (input.label)}
-              <div>
-                <dt>{input.label}</dt>
-                <dd>{input.value}</dd>
-              </div>
-            {/each}
-          </dl>
-        </section>
-      {/if}
     </div>
   {/if}
 
-  <div class="approval-tabs" aria-label={translate('Approval domains')} role="tablist">
+  {#if lastAction}
+    <p class="aq-done" data-tone={lastAction.tone} role="status" data-approval-last-action>
+      <span aria-hidden="true">✓</span>
+      {lastAction.text}
+      <button type="button" class="aq-link" onclick={() => (lastAction = null)}
+        >{translate('Dismiss notification')}</button
+      >
+    </p>
+  {/if}
+
+  <div class="approval-tabs" aria-label={t('tabsLabel')} role="tablist">
     {#each tabs as tab}
       <button
         type="button"
@@ -1032,1106 +698,1085 @@
         onkeydown={(event) => handleTabKeydown(event, tab)}
       >
         <span>{tabLabel(tab)}</span>
-        <strong>{primaryQueueRows.filter((row) => matchesTab(row, tab)).length}</strong>
+        <strong class:zero={tabCount(tab) === 0}>{tabCount(tab)}</strong>
       </button>
     {/each}
   </div>
 
-  <form
-    class="approval-filters"
-    aria-label={translate('Filter approvals')}
-    method="GET"
-    action={`${base}/app/approvals`}
-    onsubmit={applyFilters}
-  >
-    {#if $page.url.searchParams.get('includeArchived') === '1'}
-      <input type="hidden" name="includeArchived" value="1" />
-    {/if}
-    <input type="hidden" name="tab" value={activeTab} />
-    <label>
-      <span>{translate('Search queue')}</span>
-      <input
-        name="q"
-        bind:value={search}
-        oninput={resetApprovalPages}
-        type="search"
-        placeholder={translate('Project, worker, date or record')}
-      />
-    </label>
-    <label
-      ><span>{translate('Client')}</span><select
-        name="client"
-        bind:value={clientFilter}
-        onchange={resetApprovalPages}
-        ><option value="">{translate('All clients')}</option
-        >{#each clientOptions as [clientName, label]}<option value={clientName}>{label}</option
-          >{/each}</select
-      ></label
-    >
-    <label>
-      <span>{translate('From')}</span>
-      <input type="date" name="from" bind:value={fromFilter} onchange={resetApprovalPages} />
-    </label>
-    <label>
-      <span>{translate('To')}</span>
-      <input type="date" name="to" bind:value={toFilter} onchange={resetApprovalPages} />
-    </label>
-    <label
-      ><span>{translate('Project')}</span><select
-        name="project"
-        bind:value={projectFilter}
-        onchange={resetApprovalPages}
-        ><option value="">{translate('All projects')}</option
-        >{#each Array.from(new Map(operationalRows
-              .filter((row) => value(row, 'project_id'))
-              .map( (row) => [value(row, 'project_id'), projectName(row)], )).entries()) as [id, label]}<option
-            value={id}>{label}</option
-          >{/each}</select
-      ></label
-    >
-    <label
-      ><span>{translate('Worker')}</span><select
-        name="worker"
-        bind:value={workerFilter}
-        onchange={resetApprovalPages}
-        ><option value="">{translate('All workers')}</option
-        >{#each Array.from(new Map(operationalRows
-              .filter((row) => value(row, 'worker_id'))
-              .map( (row) => [value(row, 'worker_id'), workerName(row)], )).entries()) as [id, label]}<option
-            value={id}>{label}</option
-          >{/each}</select
-      ></label
-    >
-    <label
-      ><span>{translate('Status')}</span><select
-        name="status"
-        bind:value={statusFilter}
-        onchange={resetApprovalPages}
-        ><option value="">{translate('All statuses')}</option><option value="attention"
-          >{translate('Needs attention')}</option
-        ><option value="submitted">{translate('Submitted')}</option><option value="approved"
-          >{translate('Approved')}</option
-        ><option value="needs_changes">{translate('Needs changes')}</option></select
-      ></label
-    >
-    <label>
-      <span>{translate('Sort by')}</span>
-      <select name="order" bind:value={order} onchange={resetApprovalPages}>
-        <option value="priority">{translate('Priority then oldest')}</option>
-        <option value="oldest">{translate('Oldest first')}</option>
-        <option value="newest">{translate('Newest first')}</option>
-        <option value="name">{translate('Name')}</option>
-        <option value="status">{translate('Status')}</option>
-      </select>
-    </label>
-    <label>
-      <span>{translate('Review stage')}</span>
-      <select name="stage" bind:value={stageFilter}>
-        <option value="">{translate('All stages')}</option>
-        <option value="operational">{translate('Operational review')}</option>
-        <option value="report">{translate('Report review')}</option>
-        <option value="correction">{translate('Correction draft')}</option>
-        {#if ownerOverrideAllowed}<option value="owner_override"
-            >{translate('Owner override')}</option
-          >{/if}
-      </select>
-    </label>
-    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <a
-      class="secondary-button"
-      href={`${base}/app/approvals?tab=${activeTab}&q=&stage=&order=priority&reset=1`}
-      onclick={clearFilters}>{translate('Clear filters')}</a
-    >
-  </form>
-
   <div
     id={panelId()}
-    class="approval-tab-panel"
+    class="aq-panel"
     role="tabpanel"
     aria-labelledby={tabId(activeTab)}
-    tabindex="0"
+    tabindex="-1"
   >
-    {#if statusFilter !== 'approved'}
-      <SectionCard
-        title={`${translate('Action queue')} · ${tabLabel(activeTab)}`}
-        class="approval-list-surface"
-      >
-        <p class="approval-purpose">
-          {translate(
-            'Records needing action come first, then explicit priority and oldest date. Approved records remain below for audit and correction follow-up.',
-          )}
-        </p>
-        {#if pagedSubmittedRows.rows.length > 0}
-          <div class="approval-list" aria-live="polite">
-            {#each pagedSubmittedRows.rows as row}
-              <article class="approval-row" data-approval-row={value(row, 'id')}>
-                <div class="approval-row-main">
-                  <a class="approval-record-link" href={recordHref(row)}>
-                    <strong
-                      >{value(row, 'worker_name') || value(row, 'type')} · {value(
-                        row,
-                        'date',
-                      )}</strong
-                    >
-                    {#if ['daily', 'technical'].includes(value(row, 'type'))}
-                      <span class="approval-report-title"
-                        ><strong
-                          >{controlledValue(
-                            'recordType',
-                            value(row, 'type') === 'daily' ? 'daily_report' : 'technical_report',
-                          )}</strong
-                        >
-                        · {value(row, 'report_title') || translate('Untitled report')}</span
-                      >
-                    {/if}
-                    {#if value(row, 'type') === 'expense'}
-                      <span class="approval-expense-summary">{expenseSummary(row)}</span>
-                    {/if}
-                    <small>{stageLabel(row.review_stage)} · {projectName(row)}</small>
-                    <span>{translate('Open record')} <DirectionIcon /></span>
-                  </a>
-                  <div class="approval-row-status">
-                    <StatusBadge
-                      variant={statusVariant(row.approval_state)}
-                      text={controlledValue('status', row.approval_state) ||
-                        value(row, 'approval_state')}
-                    />
-                  </div>
-                </div>
+    {#if showFilters}
+      <div class="aq-filters" role="group" aria-label={t('filters')}>
+        <label>
+          <span>{t('filterWorker')}</span>
+          <select bind:value={workerFilter} onchange={() => (selected = {})}>
+            <option value="">{t('allWorkers')}</option>
+            {#each filterOptions.workers as [id, label] (id)}<option value={id}>{label}</option
+              >{/each}
+          </select>
+        </label>
+        <label>
+          <span>{t('filterProject')}</span>
+          <select bind:value={projectFilter} onchange={() => (selected = {})}>
+            <option value="">{t('allProjects')}</option>
+            {#each filterOptions.projects as [id, label] (id)}<option value={id}>{label}</option
+              >{/each}
+          </select>
+        </label>
+        <label>
+          <span>{t('filterWeek')}</span>
+          <select bind:value={weekFilter} onchange={() => (selected = {})}>
+            <option value="">{t('allWeeks')}</option>
+            {#each filterOptions.weeks as week (week)}<option value={week}>{weekRange(week)}</option
+              >{/each}
+          </select>
+        </label>
+        {#if filtersActive}
+          <button type="button" class="aq-link" onclick={clearFilters}>{t('clearFilters')}</button>
+        {/if}
+      </div>
+    {/if}
 
-                <div class="approval-row-actions">
-                  {#if isAuditor}
-                    <span class="approval-read-only">{translate('Read-only review')}</span>
-                  {:else if value(row, 'approval_state') === 'needs_changes'}
-                    <span class="approval-read-only"
-                      >{translate('Awaiting author resubmission')}</span
-                    >
-                  {:else if value(row, 'review_stage') === 'report'}
-                    <form
-                      method="POST"
-                      action="?/reviewReport"
-                      use:formValidation
-                      use:enhance={submitApproval}
-                    >
-                      <input type="hidden" name="type" value={value(row, 'type')} />
-                      <input type="hidden" name="id" value={value(row, 'id')} />
-                      <input type="hidden" name="decision" value="approved" />
-                      <button type="submit">{translate('Approve report')}</button>
-                    </form>
-                    <details
-                      class="approval-action-menu"
-                      open={reviewActionOpen(
-                        reviewActionKey('report', row),
-                        String(failedApprovalValues.id ?? '') === value(row, 'id') &&
-                          String(failedApprovalValues.decision ?? '') === 'needs_changes',
-                      )}
-                      ontoggle={(event) =>
-                        rememberReviewActionOpen(reviewActionKey('report', row), event)}
-                    >
-                      <summary>{translate('Review actions')}</summary>
-                      <form
-                        method="POST"
-                        action="?/reviewReport"
-                        use:formValidation
-                        use:enhance={submitApproval}
-                      >
-                        <input type="hidden" name="type" value={value(row, 'type')} />
-                        <input type="hidden" name="id" value={value(row, 'id')} />
-                        <input type="hidden" name="decision" value="needs_changes" />
-                        <label>
-                          <span>{translate('Required change')}</span>
-                          <input
-                            name="reason"
-                            minlength="3"
-                            value={String(failedApprovalValues.id ?? '') === value(row, 'id')
-                              ? String(failedApprovalValues.reason ?? '')
-                              : ''}
-                            required
-                          />
-                        </label>
-                        <button type="submit" class="secondary-button">{translate('Return')}</button
-                        >
-                      </form>
-                    </details>
-                  {:else if ['correction', 'owner_override'].includes(value(row, 'review_stage'))}
-                    {#if value(row, 'review_stage') === 'owner_override' && !ownerOverrideAllowed}
-                      <span class="approval-read-only">{translate('Owner review required')}</span>
-                    {:else}
-                      <a
-                        class="secondary-button"
-                        href={`${recordHref(row)}#${['daily', 'technical'].includes(value(row, 'type')) ? 'report-correction-title' : value(row, 'type') === 'expense' ? 'expense-correction-title' : 'time-correction-title'}`}
-                        >{translate(
-                          value(row, 'review_stage') === 'owner_override'
-                            ? 'Create owner override draft'
-                            : 'Create correction draft',
-                        )}
-                        <DirectionIcon /></a
-                      >
-                    {/if}
+    {#if activeTab !== 'reports'}
+      {@const kind = activeTab === 'time' ? 'time' : 'expense'}
+      {#if visibleGroups.length === 0}
+        <p class="aq-empty" role="status">
+          {activeTab === 'time' ? t('emptyTime') : t('emptyExpenses')}
+        </p>
+      {:else}
+        {#if canDecide && selectableGroups.length > 1}
+          <div class="aq-select-row">
+            <label class="aq-select-all">
+              <input type="checkbox" checked={allSelected} onchange={toggleAll} />
+              <span>{t('selectAll')}</span>
+            </label>
+            <button type="button" class="aq-secondary" onclick={approveAllVisible}
+              >{t('approveAllVisible', { count: selectableGroups.length })}</button
+            >
+          </div>
+        {/if}
+        <ul class="aq-groups" aria-live="polite">
+          {#each visibleGroups as group (group.key)}
+            {@const open = expanded[group.key] ?? false}
+            <li
+              class="aq-group"
+              data-approval-group={group.key}
+              class:is-selected={selected[group.key]}
+            >
+              <div class="aq-group-head">
+                {#if canDecide && group.actionable.length > 0}
+                  <input
+                    class="aq-check"
+                    type="checkbox"
+                    aria-label={t('select', { label: groupTitle(group) })}
+                    checked={selected[group.key] ?? false}
+                    onchange={(event) => {
+                      selected = {
+                        ...selected,
+                        [group.key]: (event.currentTarget as HTMLInputElement).checked,
+                      };
+                      confirmOpen = false;
+                    }}
+                  />
+                {/if}
+                <button
+                  type="button"
+                  class="aq-group-toggle"
+                  aria-expanded={open}
+                  aria-controls={`aq-days-${componentId}-${group.key}`}
+                  onclick={() => (expanded = { ...expanded, [group.key]: !open })}
+                >
+                  <strong class="aq-group-title">{groupTitle(group)}</strong>
+                  <span class="aq-group-facts">{groupFacts(group)}</span>
+                  <span class="aq-group-more">{open ? t('hideDays') : t('showDays')}</span>
+                </button>
+                <div class="aq-group-action">
+                  {#if !canDecide}
+                    <span class="aq-muted">{t('readOnly')}</span>
+                  {:else if group.actionable.length === 0}
+                    <span class="aq-muted">{t('ownRecord')}</span>
                   {:else}
                     <form
                       method="POST"
-                      action="?/approveRecord"
-                      use:formValidation
-                      use:enhance={submitApproval}
-                    >
-                      <input type="hidden" name="type" value={rowType(row)} />
-                      <input type="hidden" name="id" value={value(row, 'id')} />
-                      <input type="hidden" name="decision" value="approved" />
-                      <div class="approval-action-warning">
-                        <ProblemNotice
-                          kind="warning"
-                          problem={recordApprovalWarning}
-                          remedyLinks={{
-                            review_operational_record: {
-                              label: translate('problem.remedy.reviewOperationalRecord'),
-                              href: recordHref(row),
-                            },
-                          }}
-                        />
-                      </div>
-                      <button type="submit"
-                        >{translate(
-                          ownerApprovalIncludesFinance ? 'approval.ownerApproveLabel' : 'Approve',
-                        )}</button
-                      >
-                    </form>
-                    <details
-                      class="approval-action-menu"
-                      open={reviewActionOpen(
-                        reviewActionKey('record', row),
-                        String(failedApprovalValues.id ?? '') === value(row, 'id') &&
-                          ['needs_changes', 'rejected'].includes(
-                            String(failedApprovalValues.decision ?? ''),
-                          ),
+                      action="?/approveBatch"
+                      use:enhance={decide(
+                        group.key,
+                        `${groupTitle(group)} · ${groupFacts(group, group.actionable)}`,
+                        'approved',
                       )}
-                      ontoggle={(event) =>
-                        rememberReviewActionOpen(reviewActionKey('record', row), event)}
                     >
-                      <summary>{translate('Review actions')}</summary>
-                      <form
-                        method="POST"
-                        action="?/approveRecord"
-                        use:formValidation
-                        use:enhance={submitApproval}
-                      >
-                        <input type="hidden" name="type" value={rowType(row)} />
-                        <input type="hidden" name="id" value={value(row, 'id')} />
-                        <input type="hidden" name="decision" value="needs_changes" />
-                        <label>
-                          <span>{translate('Required change')}</span>
-                          <input
-                            name="reason"
-                            minlength="3"
-                            value={failedDecisionValue(row, 'needs_changes', 'reason')}
-                            required
-                          />
-                        </label>
-                        <div class="approval-action-warning">
-                          <ProblemNotice
-                            kind="warning"
-                            problem={operationalReturnWarning}
-                            remedyLinks={{
-                              review_operational_record: {
-                                label: translate('problem.remedy.reviewOperationalRecord'),
-                                href: recordHref(row),
-                              },
-                            }}
-                          />
-                        </div>
-                        <button type="submit" class="secondary-button">
-                          {translate('Needs changes')}
-                        </button>
-                      </form>
-                      <form
-                        method="POST"
-                        action="?/approveRecord"
-                        use:formValidation
-                        use:enhance={submitApproval}
-                      >
-                        <input type="hidden" name="type" value={rowType(row)} />
-                        <input type="hidden" name="id" value={value(row, 'id')} />
-                        <input type="hidden" name="decision" value="rejected" />
-                        <label>
-                          <span>{translate('Rejection reason')}</span>
-                          <input
-                            name="reason"
-                            minlength="3"
-                            value={failedDecisionValue(row, 'rejected', 'reason')}
-                            required
-                          />
-                        </label>
-                        <button type="submit" class="danger-button">{translate('Reject')}</button>
-                      </form>
-                    </details>
+                      {#each group.actionable as item (item.id)}
+                        <input type="hidden" name="item" value={token(item)} />
+                      {/each}
+                      <button type="submit" class="aq-primary" disabled={busyKey !== null}>
+                        {busyKey === group.key ? t('approving') : t('approveWeek')}
+                      </button>
+                    </form>
                   {/if}
                 </div>
-              </article>
-            {/each}
-          </div>
-        {:else}
-          <div class="approval-empty" role="status">
-            <strong>{translate('No submitted records match this view.')}</strong>
-            <span>{translate('Completed records, if any, remain available below.')}</span>
-          </div>
-        {/if}
-        {#if pagedSubmittedRows.totalPages > 1}<nav
-            class="operational-pagination"
-            aria-label={translate('Submitted approval pages')}
-          >
-            <button
-              type="button"
-              class="secondary-button"
-              disabled={pagedSubmittedRows.current === 1}
-              onclick={() => (queuePage -= 1)}>{translate('Previous')}</button
-            ><span
-              >{translate('Page')}
-              {pagedSubmittedRows.current}
-              {translate('of')}
-              {pagedSubmittedRows.totalPages}</span
-            ><button
-              type="button"
-              class="secondary-button"
-              disabled={pagedSubmittedRows.current === pagedSubmittedRows.totalPages}
-              onclick={() => (queuePage += 1)}>{translate('Next')}</button
-            >
-          </nav>{/if}
-      </SectionCard>
+              </div>
+
+              {#if open}
+                <ul class="aq-days" id={`aq-days-${componentId}-${group.key}`}>
+                  {#each group.items as item (item.id)}
+                    <li class="aq-day" data-approval-row={item.id}>
+                      <div class="aq-day-main">
+                        <span class="aq-day-date">{dayLabel(item.date)}</span>
+                        {#if kind === 'time'}
+                          <span class="aq-day-amount">{hoursText(item.minutes)}</span>
+                          <span class="aq-day-detail">
+                            {categoryLabel(value(item.row, 'time_category'))}
+                            {#if value(item.row, 'start_time') && value(item.row, 'end_time')}
+                              · {value(item.row, 'start_time')}–{value(item.row, 'end_time')}
+                            {/if}
+                            {#if Number(value(item.row, 'break_minutes')) > 0}
+                              · {t('breakMinutes', { minutes: value(item.row, 'break_minutes') })}
+                            {/if}
+                            · {item.projectName}
+                            {#if value(item.row, 'activity_summary')}
+                              <span class="aq-summary">{value(item.row, 'activity_summary')}</span>
+                            {/if}
+                          </span>
+                        {:else}
+                          {#if value(item.row, 'expense_currency')}
+                            <span class="aq-day-amount"
+                              >{money(
+                                item.row.expense_amount_minor,
+                                value(item.row, 'expense_currency'),
+                                language,
+                              )}</span
+                            >
+                          {/if}
+                          <span class="aq-day-detail">
+                            {controlledValue(
+                              'expenseCategory',
+                              value(item.row, 'expense_category'),
+                            ) || value(item.row, 'expense_category')}
+                            {#if value(item.row, 'expense_label')}· {value(
+                                item.row,
+                                'expense_label',
+                              )}{/if}
+                            · {item.projectName}
+                          </span>
+                          <span class="aq-receipt">
+                            {#if value(item.row, 'receipt_document_id')}
+                              <a href={receiptHref(item.row)} target="_blank" rel="noopener">
+                                {#if value(item.row, 'receipt_media_type').startsWith('image/')}
+                                  <img
+                                    src={receiptHref(item.row)}
+                                    alt={t('receipt')}
+                                    loading="lazy"
+                                    width="56"
+                                    height="56"
+                                    onerror={(event) =>
+                                      ((event.currentTarget as HTMLImageElement).hidden = true)}
+                                  />
+                                  <span>{t('receipt')}</span>
+                                {:else}
+                                  <span>{t('receiptPdf')}</span>
+                                {/if}
+                              </a>
+                            {:else}
+                              <span class="aq-muted">{t('noReceipt')}</span>
+                            {/if}
+                          </span>
+                        {/if}
+                      </div>
+                      <div class="aq-day-actions">
+                        <a class="aq-link" href={recordHref(item.row)}>{t('open')}</a>
+                        {#if canDecide && !item.own}
+                          <button
+                            type="button"
+                            class="aq-secondary"
+                            aria-expanded={sendBackFor === item.id}
+                            onclick={() => (sendBackFor = sendBackFor === item.id ? null : item.id)}
+                            >{t('sendBack')}</button
+                          >
+                        {/if}
+                      </div>
+                      {#if sendBackFor === item.id}
+                        <form
+                          class="aq-sendback"
+                          method="POST"
+                          action="?/approveRecord"
+                          use:formValidation
+                          use:enhance={decide(`back:${item.id}`, itemSummary(item), 'sentBack')}
+                        >
+                          <input type="hidden" name="type" value={item.type} />
+                          <input type="hidden" name="id" value={item.id} />
+                          <label>
+                            <span>{t('sendBackReason')}</span>
+                            <input
+                              name="reason"
+                              minlength="3"
+                              maxlength="1000"
+                              required
+                              autocomplete="off"
+                              value={String(failedApprovalValues.id ?? '') === item.id
+                                ? String(failedApprovalValues.reason ?? '')
+                                : ''}
+                            />
+                            <small>{t('sendBackHint')}</small>
+                          </label>
+                          <div class="aq-sendback-actions">
+                            <button
+                              type="submit"
+                              name="decision"
+                              value="needs_changes"
+                              class="aq-primary"
+                              disabled={busyKey !== null}>{t('sendBackSubmit')}</button
+                            >
+                            <button
+                              type="button"
+                              class="aq-secondary"
+                              onclick={() => (sendBackFor = null)}>{t('cancel')}</button
+                            >
+                            <button
+                              type="submit"
+                              name="decision"
+                              value="rejected"
+                              class="aq-danger-link"
+                              title={t('rejectHint')}
+                              disabled={busyKey !== null}>{t('reject')}</button
+                            >
+                          </div>
+                        </form>
+                      {/if}
+                    </li>
+                  {/each}
+                </ul>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    {:else if visibleReports.length === 0}
+      <p class="aq-empty" role="status">{t('emptyReports')}</p>
+    {:else}
+      <ul class="aq-groups" aria-live="polite">
+        {#each visibleReports as row (value(row, 'id'))}
+          {@const reportSummary = `${value(row, 'type') === 'daily' ? t('daily') : t('technical')} · ${workerName(row)} · ${dayLabel(value(row, 'date'))}`}
+          <li class="aq-group aq-report" data-approval-row={value(row, 'id')}>
+            <div class="aq-group-head">
+              <a class="aq-group-toggle" href={recordHref(row)}>
+                <strong class="aq-group-title">{reportSummary}</strong>
+                <span class="aq-group-facts"
+                  >{value(row, 'report_title') || t('untitled')} · {projectName(row)}</span
+                >
+                <span class="aq-group-more">{t('open')}</span>
+              </a>
+              <div class="aq-group-action">
+                {#if !canDecide}
+                  <span class="aq-muted">{t('readOnly')}</span>
+                {:else}
+                  <form
+                    method="POST"
+                    action="?/reviewReport"
+                    use:enhance={decide(`report:${value(row, 'id')}`, reportSummary, 'report')}
+                  >
+                    <input type="hidden" name="type" value={value(row, 'type')} />
+                    <input type="hidden" name="id" value={value(row, 'id')} />
+                    <input type="hidden" name="decision" value="approved" />
+                    <button type="submit" class="aq-primary" disabled={busyKey !== null}
+                      >{t('approveReport')}</button
+                    >
+                  </form>
+                  <button
+                    type="button"
+                    class="aq-secondary"
+                    aria-expanded={sendBackFor === value(row, 'id')}
+                    onclick={() =>
+                      (sendBackFor = sendBackFor === value(row, 'id') ? null : value(row, 'id'))}
+                    >{t('sendBack')}</button
+                  >
+                {/if}
+              </div>
+            </div>
+            {#if sendBackFor === value(row, 'id')}
+              <form
+                class="aq-sendback"
+                method="POST"
+                action="?/reviewReport"
+                use:formValidation
+                use:enhance={decide(`back:${value(row, 'id')}`, reportSummary, 'sentBack')}
+              >
+                <input type="hidden" name="type" value={value(row, 'type')} />
+                <input type="hidden" name="id" value={value(row, 'id')} />
+                <input type="hidden" name="decision" value="needs_changes" />
+                <label>
+                  <span>{t('sendBackReason')}</span>
+                  <input name="reason" minlength="3" maxlength="2000" required autocomplete="off" />
+                  <small>{t('sendBackHint')}</small>
+                </label>
+                <div class="aq-sendback-actions">
+                  <button type="submit" class="aq-primary" disabled={busyKey !== null}
+                    >{t('sendBackSubmit')}</button
+                  >
+                  <button type="button" class="aq-secondary" onclick={() => (sendBackFor = null)}
+                    >{t('cancel')}</button
+                  >
+                </div>
+              </form>
+            {/if}
+          </li>
+        {/each}
+      </ul>
     {/if}
 
-    {#if completedRows.length > 0 || statusFilter === 'approved'}
-      <SectionCard
-        title={translate('Completed review follow-up')}
-        collapsible
-        expanded={statusFilter === 'approved'}
-        class="approval-list-surface"
-      >
-        <p role="status">{completedRows.length} {translate('approved records')}</p>
-        <p class="approval-purpose">
-          {translate(
-            'These approved records are immutable operational history. Open a record to inspect it or start the audited correction path where permitted.',
-          )}
-        </p>
-        <div class="approval-list">
-          {#each pagedCompletedRows.rows as row}<article class="approval-row">
-              <div class="approval-row-main">
-                <a class="approval-record-link" href={recordHref(row)}
-                  ><strong
-                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
-                      row,
-                      'date',
-                    )}</strong
-                  >{#if ['daily', 'technical'].includes(value(row, 'type'))}<span
-                      class="approval-report-title"
-                      ><strong
-                        >{controlledValue(
-                          'recordType',
-                          value(row, 'type') === 'daily' ? 'daily_report' : 'technical_report',
-                        )}</strong
-                      >
-                      · {value(row, 'report_title') || translate('Untitled report')}</span
-                    >{/if}{#if value(row, 'type') === 'expense'}<span
-                      class="approval-expense-summary">{expenseSummary(row)}</span
-                    >{/if}<small>{projectName(row)}</small><span
-                    >{translate('Open record')} <DirectionIcon /></span
-                  ></a
-                ><StatusBadge
-                  variant={statusVariant(row.approval_state)}
-                  text={controlledValue('status', row.approval_state) ||
-                    value(row, 'approval_state')}
-                />
-              </div>
-            </article>{/each}
-        </div>
-        {#if !completedRows.length}
-          <div class="approval-empty" role="status">
-            <strong>{translate('No approved records match this view.')}</strong>
-          </div>
+    {#if waitingRows.length > 0}
+      <details class="aq-more">
+        <summary>{t('waiting', { count: waitingRows.length })}</summary>
+        <ul class="aq-plain">
+          {#each waitingRows.slice(0, 50) as row (value(row, 'id'))}
+            <li>
+              <a href={recordHref(row)}>{rowSummary(row)}</a>
+              <StatusBadge
+                variant={statusVariant(row.approval_state)}
+                text={controlledValue('status', row.approval_state) || value(row, 'approval_state')}
+              />
+              {#if value(row, 'review_reason')}
+                <small>{t('note')}: {value(row, 'review_reason')}</small>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+      </details>
+    {/if}
+
+    {#if approvedRows.length > 0}
+      <details class="aq-more">
+        <summary>{t('alreadyApproved', { count: approvedRows.length })}</summary>
+        <p class="aq-muted">{t('alreadyApprovedHelp')}</p>
+        <ul class="aq-plain">
+          {#each approvedRows.slice(0, 25) as row (value(row, 'id'))}
+            <li>
+              <a href={recordHref(row)}>{rowSummary(row)} · {projectName(row)}</a>
+              {#if canDecide && (value(row, 'review_stage') === 'correction' || ownerOverrideAllowed)}
+                <a class="aq-link" href={correctionHref(row)}>{t('correct')}</a>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        {#if approvedRows.length > 25}
+          <p class="aq-muted">{t('showing', { shown: 25, count: approvedRows.length })}</p>
         {/if}
-        {#if pagedCompletedRows.totalPages > 1}<nav
-            class="operational-pagination"
-            aria-label={translate('Completed approval pages')}
-          >
-            <button
-              type="button"
-              class="secondary-button"
-              disabled={pagedCompletedRows.current === 1}
-              onclick={() => (completedPage -= 1)}>{translate('Previous')}</button
-            ><span
-              >{translate('Page')}
-              {pagedCompletedRows.current}
-              {translate('of')}
-              {pagedCompletedRows.totalPages}</span
-            ><button
-              type="button"
-              class="secondary-button"
-              disabled={pagedCompletedRows.current === pagedCompletedRows.totalPages}
-              onclick={() => (completedPage += 1)}>{translate('Next')}</button
-            >
-          </nav>{/if}
-      </SectionCard>
+      </details>
     {/if}
   </div>
 
   {#if milestones.length > 0}
-    <SectionCard title={translate('Project approvals')} class="approval-milestone-surface">
-      <p class="approval-purpose">
-        {translate(
-          'A project appears here when a milestone has been submitted for review. Check its evidence, then Approve or Reject with a reason. Time, expenses and reports are reviewed separately.',
-        )}
-      </p>
-      <label class="approval-register-search"
-        ><span>{translate('Search project approvals')}</span><input
-          bind:value={milestoneSearch}
-          oninput={() => (milestonePage = 1)}
-          type="search"
-          placeholder={translate('Project, milestone or due date')}
-        /></label
-      >
-      <div class="approval-list" aria-live="polite">
-        {#each pagedMilestones.rows as milestone}
-          <article class="approval-row" data-approval-milestone={value(milestone, 'id')}>
-            <div class="approval-row-main">
+    <details class="aq-more" open={queueEmpty}>
+      <summary>{t('milestones', { count: milestones.length })}</summary>
+      <ul class="aq-groups">
+        {#each milestones as milestone (value(milestone, 'id'))}
+          <li class="aq-group" data-approval-milestone={value(milestone, 'id')}>
+            <div class="aq-group-head">
               <a
-                class="approval-record-link"
+                class="aq-group-toggle"
                 href={`${base}/app/projects/${encodeURIComponent(value(milestone, 'project_id'))}`}
               >
-                <strong>{value(milestone, 'project_number')} · {value(milestone, 'name')}</strong>
-                <small
-                  >{value(milestone, 'due_on') || translate('No due date')} · {translate(
-                    'Submitted',
-                  )}</small
+                <strong class="aq-group-title"
+                  >{value(milestone, 'project_number')} · {value(milestone, 'name')}</strong
                 >
-                <span>{translate('Open project')} <DirectionIcon /></span>
+                <span class="aq-group-facts">{value(milestone, 'due_on') || t('noDueDate')}</span>
               </a>
-              <StatusBadge variant="warning" text={translate('Submitted')} />
-            </div>
-            {#if isAuditor}
-              <span class="approval-read-only">{translate('Read-only review')}</span>
-            {:else}
-              <div class="approval-row-actions">
-                <form
-                  method="POST"
-                  action="?/reviewMilestone"
-                  use:formValidation
-                  use:enhance={submitApproval}
-                >
-                  <input type="hidden" name="id" value={value(milestone, 'id')} />
-                  <input type="hidden" name="decision" value="approved" />
-                  <button type="submit">{translate('Approve')}</button>
-                </form>
-                <details
-                  class="approval-action-menu"
-                  open={reviewActionOpen(
-                    reviewActionKey('milestone', milestone),
-                    String(failedApprovalValues.id ?? '') === value(milestone, 'id') &&
-                      String(failedApprovalValues.decision ?? '') === 'rejected',
-                  )}
-                  ontoggle={(event) =>
-                    rememberReviewActionOpen(reviewActionKey('milestone', milestone), event)}
-                >
-                  <summary>{translate('Review actions')}</summary>
+              <div class="aq-group-action">
+                {#if !canDecide}
+                  <span class="aq-muted">{t('readOnly')}</span>
+                {:else}
                   <form
                     method="POST"
                     action="?/reviewMilestone"
-                    use:formValidation
-                    use:enhance={submitApproval}
+                    use:enhance={decide(
+                      `milestone:${value(milestone, 'id')}`,
+                      value(milestone, 'name'),
+                      'approved',
+                    )}
                   >
                     <input type="hidden" name="id" value={value(milestone, 'id')} />
-                    <input type="hidden" name="decision" value="rejected" />
-                    <label>
-                      <span>{translate('Rejection reason')}</span>
-                      <input
-                        name="reason"
-                        minlength="3"
-                        value={String(failedApprovalValues.id ?? '') === value(milestone, 'id')
-                          ? String(failedApprovalValues.reason ?? '')
-                          : ''}
-                        required
-                      />
-                    </label>
-                    <button type="submit" class="danger-button">{translate('Reject')}</button>
+                    <input type="hidden" name="decision" value="approved" />
+                    <button type="submit" class="aq-primary" disabled={busyKey !== null}
+                      >{t('approve')}</button
+                    >
                   </form>
-                </details>
-              </div>
-            {/if}
-          </article>
-        {/each}
-      </div>
-      {#if pagedMilestones.totalPages > 1}<nav
-          class="operational-pagination"
-          aria-label={translate('Project approval pages')}
-        >
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={pagedMilestones.current === 1}
-            onclick={() => (milestonePage -= 1)}>{translate('Previous')}</button
-          ><span
-            >{translate('Page')}
-            {pagedMilestones.current}
-            {translate('of')}
-            {pagedMilestones.totalPages}</span
-          ><button
-            type="button"
-            class="secondary-button"
-            disabled={pagedMilestones.current === pagedMilestones.totalPages}
-            onclick={() => (milestonePage += 1)}>{translate('Next')}</button
-          >
-        </nav>{/if}
-    </SectionCard>
-  {/if}
-
-  {#if canSeeFinanceReview && financeReviewVisible}
-    <SectionCard
-      id="finance-review"
-      title={translate('Finance review')}
-      class="approval-finance-surface"
-    >
-      <p class="approval-finance-note">
-        {translate(
-          ownerApprovalIncludesFinance
-            ? 'approval.ownerFinanceQueueHelp'
-            : 'Finance review starts only after operational approval. Finance must confirm billability or expense treatment before a record can move into billing, reimbursement or settlement; it does not rewrite the operational facts.',
-        )}
-      </p>
-      <label class="approval-register-search"
-        ><span>{translate('Search Finance review')}</span><input
-          bind:value={financeSearch}
-          oninput={() => (financePage = 1)}
-          type="search"
-          placeholder={translate('Project, worker, date or record')}
-        /></label
-      >
-      {#if pagedFinanceRows.rows.length > 0}
-        <div class="approval-list" aria-live="polite">
-          {#each pagedFinanceRows.rows as row}
-            <article class="approval-row" data-finance-review-row={value(row, 'id')}>
-              <div class="approval-row-main">
-                <a class="approval-record-link" href={recordHref(row)}>
-                  <strong
-                    >{value(row, 'worker_name') || value(row, 'type')} · {value(
-                      row,
-                      'date',
-                    )}</strong
+                  <button
+                    type="button"
+                    class="aq-secondary"
+                    aria-expanded={sendBackFor === value(milestone, 'id')}
+                    onclick={() =>
+                      (sendBackFor =
+                        sendBackFor === value(milestone, 'id') ? null : value(milestone, 'id'))}
+                    >{t('rejectMilestone')}</button
                   >
-                  {#if value(row, 'type') === 'expense'}
-                    <span class="approval-expense-summary">{expenseSummary(row)}</span>
-                  {/if}
-                  <small>{translate('Finance review')} · {projectName(row)}</small>
-                  <span>{translate('Open record')} <DirectionIcon /></span>
-                </a>
-                <StatusBadge variant="warning" text={translate('Approved operationally')} />
+                {/if}
               </div>
-              {#if rowType(row) === 'expense' && value(row, 'commercial_classification_state') !== 'classified'}
-                <div class="finance-review-form" data-finance-classification-required>
-                  <span>{translate('Classify this expense before Finance review.')}</span>
-                  <a href={expenseClassificationHref(row)}
-                    >{translate('Classify expense in Finance')} <DirectionIcon /></a
+            </div>
+            {#if sendBackFor === value(milestone, 'id')}
+              <form
+                class="aq-sendback"
+                method="POST"
+                action="?/reviewMilestone"
+                use:formValidation
+                use:enhance={decide(
+                  `back:${value(milestone, 'id')}`,
+                  value(milestone, 'name'),
+                  'sentBack',
+                )}
+              >
+                <input type="hidden" name="id" value={value(milestone, 'id')} />
+                <input type="hidden" name="decision" value="rejected" />
+                <label>
+                  <span>{t('rejectReason')}</span>
+                  <input name="reason" minlength="3" required autocomplete="off" />
+                </label>
+                <div class="aq-sendback-actions">
+                  <button type="submit" class="aq-primary" disabled={busyKey !== null}
+                    >{t('rejectMilestone')}</button
+                  >
+                  <button type="button" class="aq-secondary" onclick={() => (sendBackFor = null)}
+                    >{t('cancel')}</button
                   >
                 </div>
-              {:else if isAuditor}
-                <span class="approval-read-only">{translate('Read-only review')}</span>
-              {:else}
-                <form
-                  method="POST"
-                  action="?/financeApprove"
-                  class="finance-review-form"
-                  use:formValidation
-                  use:enhance={submitApproval}
-                >
-                  <input type="hidden" name="type" value={rowType(row)} />
-                  <input type="hidden" name="id" value={value(row, 'id')} />
-                  {#if value(row, 'type') === 'time'}
-                    <label>
-                      <span>{translate('Commercial treatment')}</span>
-                      <select name="billable" value={failedFinanceBillable(row)} required>
-                        <option value="" disabled>{translate('Choose an option')}</option>
-                        <option value="yes">{translate('Billable')}</option>
-                        <option value="no">{translate('Non-billable')}</option>
-                      </select>
-                      <small data-time-billability-help>
-                        {translate(
-                          'Non-billable time is not charged to the customer. Worker compensation follows separate labor terms for approved work.',
-                        )}
-                      </small>
-                    </label>
-                  {/if}
-                  <button type="submit">{translate('Record Finance review')}</button>
-                </form>
-              {/if}
-            </article>
+              </form>
+            {/if}
+          </li>
+        {/each}
+      </ul>
+    </details>
+  {/if}
+
+  {#if canSeeFinanceReview && financeReviewVisible && financeRows.length > 0}
+    <details class="aq-more" id="finance-review" open={queueEmpty}>
+      <summary>{t('financeReview', { count: financeRows.length })}</summary>
+      <p class="aq-muted">
+        {ownerApprovalIncludesFinance ? t('financeOwnerHelp') : t('financeHelp')}
+      </p>
+      <ul class="aq-groups">
+        {#each financeRows as row (value(row, 'id'))}
+          <li class="aq-group" data-finance-review-row={value(row, 'id')}>
+            <div class="aq-group-head">
+              <a class="aq-group-toggle" href={recordHref(row)}>
+                <strong class="aq-group-title">{itemSummary(toItem(row))}</strong>
+                <span class="aq-group-facts">{projectName(row)}</span>
+              </a>
+              <div class="aq-group-action">
+                {#if rowType(row) === 'expense' && value(row, 'commercial_classification_state') !== 'classified'}
+                  <span class="aq-finance-note" data-finance-classification-required>
+                    {t('classifyFirst')}
+                    <a class="aq-link" href={expenseClassificationHref(row)}>{t('classify')}</a>
+                  </span>
+                {:else if isAuditor}
+                  <span class="aq-muted">{t('readOnly')}</span>
+                {:else}
+                  <form
+                    method="POST"
+                    action="?/financeApprove"
+                    class="aq-finance-form"
+                    use:formValidation
+                    use:enhance={decide(
+                      `finance:${value(row, 'id')}`,
+                      itemSummary(toItem(row)),
+                      'approved',
+                    )}
+                  >
+                    <input type="hidden" name="type" value={rowType(row)} />
+                    <input type="hidden" name="id" value={value(row, 'id')} />
+                    {#if rowType(row) === 'time'}
+                      <label>
+                        <span>{t('treatment')}</span>
+                        <select name="billable" value={failedFinanceBillable(row)} required>
+                          <option value="" disabled>{t('chooseOption')}</option>
+                          <option value="yes">{t('billable')}</option>
+                          <option value="no">{t('nonBillable')}</option>
+                        </select>
+                      </label>
+                    {/if}
+                    <button type="submit" class="aq-primary" disabled={busyKey !== null}
+                      >{t('recordFinance')}</button
+                    >
+                  </form>
+                {/if}
+              </div>
+            </div>
+          </li>
+        {/each}
+      </ul>
+    </details>
+  {/if}
+
+  {#if canDecide && activeTab !== 'reports' && selectedGroups.length > 0}
+    <div class="aq-bulk" role="region" aria-label={t('approveSelected')}>
+      {#if confirmOpen}
+        <form
+          class="aq-confirm"
+          id={`approval-confirm-${componentId}`}
+          tabindex="-1"
+          method="POST"
+          action="?/approveBatch"
+          use:enhance={decide('bulk', bulkSummary(selectedGroups), 'approved')}
+        >
+          <strong class="aq-confirm-title">{t('confirmTitle')}</strong>
+          <p>{t('confirmIntro')}</p>
+          <ul>
+            {#each selectedGroups as group (group.key)}
+              <li>{groupTitle(group)} · {groupFacts(group, group.actionable)}</li>
+            {/each}
+          </ul>
+          <p class="aq-confirm-total">
+            <strong>{t('confirmTotal')}:</strong>
+            {selectionTotals()}
+          </p>
+          {#if ownerApprovalIncludesFinance}
+            <p class="aq-muted">{t('confirmOwnerNote')}</p>
+          {/if}
+          {#each selectedItems as item (item.id)}
+            <input type="hidden" name="item" value={token(item)} />
           {/each}
-        </div>
+          <div class="aq-sendback-actions">
+            <button type="submit" class="aq-primary" disabled={busyKey !== null}>
+              {busyKey === 'bulk'
+                ? t('approving')
+                : t('confirmButton', {
+                    count: countLabel(
+                      activeTab === 'time' ? 'time' : 'expense',
+                      selectedItems.length,
+                    ),
+                  })}
+            </button>
+            <button type="button" class="aq-secondary" onclick={() => (confirmOpen = false)}
+              >{t('cancel')}</button
+            >
+          </div>
+        </form>
       {:else}
-        <div class="approval-empty" role="status">
-          <strong>{translate('Finance queue clear.')}</strong>
+        <span class="aq-bulk-text">
+          <strong>{t('selected', { count: selectedGroups.length })}</strong>
+          · {selectionTotals()}
+        </span>
+        <div class="aq-sendback-actions">
+          <button type="button" class="aq-secondary" onclick={() => (selected = {})}
+            >{t('clearSelection')}</button
+          >
+          <button type="button" class="aq-primary" onclick={openConfirm}
+            >{t('approveSelectedCount', { count: selectedGroups.length })}</button
+          >
         </div>
       {/if}
-      {#if pagedFinanceRows.totalPages > 1}<nav
-          class="operational-pagination"
-          aria-label={translate('Finance review pages')}
-        >
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={pagedFinanceRows.current === 1}
-            onclick={() => (financePage -= 1)}>{translate('Previous')}</button
-          ><span
-            >{translate('Page')}
-            {pagedFinanceRows.current}
-            {translate('of')}
-            {pagedFinanceRows.totalPages}</span
-          ><button
-            type="button"
-            class="secondary-button"
-            disabled={pagedFinanceRows.current === pagedFinanceRows.totalPages}
-            onclick={() => (financePage += 1)}>{translate('Next')}</button
-          >
-        </nav>{/if}
-    </SectionCard>
+    </div>
   {/if}
 </div>
 
 <style>
-  .approval-report-title {
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-  .approval-page {
+  .aq {
     display: grid;
-    gap: 1.25rem;
-    overflow-anchor: none;
+    gap: 1rem;
+    padding-bottom: 6rem;
   }
-
-  .approval-tab-panel {
-    display: grid;
-    gap: 1.25rem;
-  }
-
-  .approval-retained-values {
-    padding: 0.8rem 1rem;
-    border: 1px solid var(--border, #dfdedc);
-    border-radius: 0.5rem;
-    overflow-wrap: anywhere;
-  }
-
-  .approval-retained-values dl {
-    margin: 0.5rem 0 0;
-  }
-
-  .approval-retained-values dd {
-    margin: 0.15rem 0 0;
-    white-space: pre-wrap;
-  }
-
-  .approval-context,
-  .approval-row-main,
-  .approval-row-actions,
-  .approval-filters,
-  .finance-review-form {
-    display: flex;
-    align-items: center;
-    gap: 0.9rem;
-  }
-
-  .approval-context {
-    justify-content: space-between;
-    border-bottom: 1px solid var(--border, #dfdedc);
-    padding-bottom: 1rem;
-  }
-
-  .approval-context h2,
-  .approval-context p {
+  .aq-help {
     margin: 0;
+    color: var(--ja-steel, #5b6573);
+    max-width: 70ch;
   }
-
-  .approval-context p:last-child {
-    color: var(--muted, #6b6a62);
-    margin-top: 0.35rem;
+  .aq-muted {
+    color: var(--ja-steel, #5b6573);
+    font-size: 0.875rem;
   }
-
-  .approval-eyebrow {
-    color: var(--accent, #4f4e48);
-    font-size: 0.8125rem;
-    font-weight: 700;
-    letter-spacing: 0.09em;
-    text-transform: uppercase;
-  }
-
-  .approval-count {
-    align-items: center;
-    background: var(--surface-3, #f3f3f2);
-    border: 1px solid var(--border, #dfdedc);
-    border-radius: 999px;
-    display: inline-flex;
-    font-variant-numeric: tabular-nums;
-    font-weight: 700;
-    min-height: 2.75rem;
-    min-width: 2.75rem;
-    justify-content: center;
-  }
-
-  .approval-attention {
-    display: grid;
-    gap: 0.8rem;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .approval-attention-card {
-    background: var(--surface-2, #f9f9f8);
-    border: 1px solid var(--border, #dfdedc);
-    border-left: 3px solid var(--accent, #4f4e48);
-    border-radius: 0.6rem;
-    display: grid;
-    gap: 0.2rem;
-    padding: 0.9rem 1rem;
-    color: inherit;
-    text-decoration: none;
-  }
-
-  .approval-attention-card:hover,
-  .approval-attention-card:focus-visible {
-    border-color: var(--accent, #4f4e48);
-    outline: 3px solid color-mix(in srgb, var(--accent, #4f4e48) 28%, transparent);
-    outline-offset: 2px;
-  }
-
-  .approval-attention-card-finance {
-    border-left-color: var(--warning, #a25b00);
-  }
-
-  .approval-attention-card strong {
-    font-size: 1.5rem;
-    font-variant-numeric: tabular-nums;
-  }
-
-  .approval-attention-card small,
-  .approval-finance-note,
-  .approval-record-link small {
-    color: var(--muted, #6b6a62);
-  }
-
-  .approval-tabs {
-    border-bottom: 1px solid var(--border, #dfdedc);
-    display: flex;
-    gap: 0.4rem;
-    overflow-x: auto;
-  }
-
-  .approval-tabs button {
-    align-items: center;
-    background: transparent;
-    border: 0;
-    border-bottom: 3px solid transparent;
-    color: var(--muted, #6b6a62);
-    display: inline-flex;
-    gap: 0.55rem;
-    min-height: 2.9rem;
-    padding: 0.55rem 0.9rem;
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-
-  .approval-tabs button.active {
-    border-bottom-color: var(--accent, #4f4e48);
-    color: var(--ink, #232320);
-  }
-
-  .approval-tabs button strong {
-    background: var(--surface-3, #f3f3f2);
-    border-radius: 999px;
-    font-size: 0.8125rem;
-    min-width: 1.55rem;
-    padding: 0.15rem 0.35rem;
-    text-align: center;
-  }
-
-  .approval-filters {
-    align-items: end;
-    flex-wrap: wrap;
-  }
-
-  .approval-filters label,
-  .finance-review-form label,
-  .approval-action-menu label {
-    display: grid;
-    gap: 0.3rem;
-  }
-
-  .approval-filters label:first-of-type {
-    flex: 1 1 16rem;
-  }
-
-  .approval-filters label:not(:first-of-type) {
-    flex: 0 1 14rem;
-  }
-
-  .approval-filters span,
-  .finance-review-form span,
-  .approval-action-menu span {
-    font-size: 0.8125rem;
-    font-weight: 700;
-  }
-
-  .finance-review-form small {
-    max-width: 20rem;
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-    line-height: 1.4;
-  }
-
-  .approval-filters input,
-  .approval-filters select,
-  .finance-review-form select,
-  .approval-action-menu input,
-  .approval-row-actions > form input {
-    border: 1px solid var(--border, #d2d1ce);
-    border-radius: 0.4rem;
-    min-height: 2.75rem;
-    padding: 0.55rem 0.7rem;
-  }
-
-  .approval-row {
-    border-bottom: 1px solid var(--border, #dfdedc);
-    display: grid;
-    gap: 0.9rem;
-    padding: 1rem 0;
-  }
-
-  .approval-row:last-child {
-    border-bottom: 0;
-  }
-
-  .approval-row-main {
-    justify-content: space-between;
-    min-width: 0;
-  }
-
-  .approval-record-link {
-    display: grid;
-    gap: 0.22rem;
-    min-width: 0;
-    text-decoration: none;
-  }
-
-  .approval-record-link strong,
-  .approval-record-link small,
-  .approval-record-link span {
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  .approval-record-link span {
-    color: var(--accent, #4f4e48);
-    font-size: 0.8125rem;
-    font-weight: 700;
-  }
-
-  .approval-record-link .approval-expense-summary {
-    color: inherit;
-    font-weight: 600;
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-
-  .approval-row-status {
-    flex: 0 0 auto;
-  }
-
-  .approval-row-actions {
-    align-items: start;
-    flex-wrap: wrap;
-  }
-
-  .approval-row-actions form,
-  .finance-review-form {
-    align-items: end;
-    flex-wrap: wrap;
-  }
-
-  .approval-action-warning {
-    flex: 1 0 100%;
-    min-width: 0;
-  }
-
-  .approval-row-actions button,
-  .finance-review-form button,
-  .approval-tabs button,
-  .approval-filters button,
-  .approval-action-menu summary {
-    cursor: pointer;
-    min-height: 44px;
-  }
-
-  .approval-action-menu {
-    position: relative;
-  }
-
-  .approval-action-menu summary {
-    align-items: center;
-    border: 1px solid var(--border, #d2d1ce);
-    border-radius: 0.4rem;
-    display: inline-flex;
-    list-style: none;
-    padding: 0.55rem 0.7rem;
-  }
-
-  .approval-action-menu summary::-webkit-details-marker {
-    display: none;
-  }
-
-  .approval-action-menu[open] summary {
-    border-color: var(--accent, #4f4e48);
-  }
-
-  .approval-action-menu > form {
-    background: var(--surface, #fff);
-    border: 1px solid var(--border, #d2d1ce);
-    border-radius: 0.5rem;
-    box-shadow: 0 10px 28px rgb(19 34 52 / 14%);
-    display: grid;
-    gap: 0.65rem;
-    margin-top: 0.4rem;
-    min-width: min(21rem, 84vw);
-    padding: 0.8rem;
-  }
-
-  .approval-read-only {
-    color: var(--muted, #6b6a62);
-    font-size: 0.85rem;
-    font-weight: 700;
-  }
-
-  .approval-empty {
-    color: var(--muted, #6b6a62);
-    display: grid;
-    gap: 0.3rem;
-    padding: 1.5rem 0;
-    text-align: center;
-  }
-
-  .approval-finance-note {
-    margin: 0 0 0.5rem;
-  }
-
-  .approval-purpose {
-    color: var(--muted, #6b6a62);
-    margin: 0 0 1rem;
-  }
-
-  .approval-register-search {
-    display: grid;
-    gap: 0.3rem;
-    max-width: 30rem;
-    margin-bottom: 0.75rem;
-  }
-
-  .approval-register-search span {
-    font-size: 0.8125rem;
-    font-weight: 700;
-  }
-
-  .approval-register-search input {
-    border: 1px solid var(--border, #d2d1ce);
-    border-radius: 0.4rem;
-    min-height: 2.75rem;
-    padding: 0.55rem 0.7rem;
-  }
-
-  .operational-pagination {
-    align-items: center;
+  .aq-done {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem;
-    justify-content: flex-end;
-    margin-top: 1rem;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0.75rem 1rem;
+    border-radius: var(--ja-radius, 10px);
+    border: 1px solid #9fd3b0;
+    background: #eef9f1;
+    color: #14532d;
+    font-weight: 600;
+  }
+  .aq-done[data-tone='info'] {
+    border-color: #f1c27d;
+    background: #fff7e8;
+    color: #6b3d00;
+  }
+  .aq-done .aq-link {
+    margin-left: auto;
+    font-weight: 500;
   }
 
-  .operational-pagination span {
-    color: var(--muted, #6b6a62);
-    font-size: 0.85rem;
+  /* Tabs */
+  .approval-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--ja-line, #d5dbe3);
+    overflow-x: auto;
   }
-
-  .approval-filters button:focus-visible,
+  .approval-tabs button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 0;
+    border-bottom: 3px solid transparent;
+    background: none;
+    color: var(--ja-steel, #5b6573);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .approval-tabs button.active {
+    color: var(--ja-ink, #1c2430);
+    border-bottom-color: var(--ja-red, #b3261e);
+  }
+  .approval-tabs strong {
+    min-width: 1.6rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--ja-red, #b3261e);
+    color: #fff;
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+  .approval-tabs strong.zero {
+    background: var(--ja-surface, #eef1f4);
+    color: var(--ja-steel, #5b6573);
+  }
   .approval-tabs button:focus-visible,
-  .approval-row button:focus-visible,
-  .approval-action-menu summary:focus-visible,
-  .approval-record-link:focus-visible,
-  .approval-filters input:focus-visible,
-  .approval-filters select:focus-visible,
-  .approval-row input:focus-visible,
-  .approval-row select:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--accent, #4f4e48) 38%, transparent);
+  .aq button:focus-visible,
+  .aq a:focus-visible,
+  .aq input:focus-visible,
+  .aq select:focus-visible,
+  .aq summary:focus-visible {
+    outline: 3px solid var(--ja-focus-ring, #1f6feb);
     outline-offset: 2px;
+  }
+
+  .aq-panel {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .aq-filters select,
+  .aq-sendback input,
+  .aq-finance-form select {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 0.75rem;
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: var(--ja-control-radius, 8px);
+    background: var(--ja-white, #fff);
+    font: inherit;
+  }
+  .aq-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.75rem;
+  }
+  .aq-filters label {
+    display: grid;
+    gap: 0.25rem;
+    flex: 1 1 11rem;
+    max-width: 18rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+  .aq-select-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+  .aq-empty {
+    margin: 0;
+    padding: 1.5rem 1rem;
+    border: 1px dashed var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    color: var(--ja-steel, #5b6573);
+    text-align: center;
+  }
+  .aq-select-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    font-weight: 600;
+  }
+  .aq-select-all input,
+  .aq-check {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin: 0;
+    flex: none;
+  }
+
+  /* Groups */
+  .aq-groups,
+  .aq-days,
+  .aq-plain {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .aq-group {
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+  }
+  .aq-group.is-selected {
+    border-color: var(--ja-ink, #1c2430);
+    box-shadow: 0 0 0 1px var(--ja-ink, #1c2430);
+  }
+  .aq-group-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  .aq .aq-group-toggle.aq-group-toggle {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 44px;
+    width: auto;
+    display: grid;
+    justify-items: start;
+    justify-content: start;
+    align-content: center;
+    gap: 0.15rem;
+    margin: 0;
+    padding: 0.25rem 0;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 400;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+    transform: none;
+  }
+  .aq-group-title {
+    font-size: 1rem;
+    overflow-wrap: anywhere;
+  }
+  .aq-group-facts {
+    color: var(--ja-steel, #5b6573);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+  }
+  .aq-group-more {
+    color: var(--ja-teal, #0b6b78);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .aq-group-action {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    flex: none;
+  }
+  .aq-group-action form {
+    margin: 0;
+  }
+  .aq-primary,
+  .aq-secondary {
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: var(--ja-control-radius, 8px);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .aq-primary {
+    border: 1px solid var(--ja-red, #b3261e);
+    background: var(--ja-red, #b3261e);
+    color: #fff;
+  }
+  .aq-secondary {
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    background: var(--ja-white, #fff);
+    color: var(--ja-ink, #1c2430);
+  }
+  .aq-primary:disabled,
+  .aq-secondary:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+  .aq-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.25rem;
+    border: 0;
+    background: none;
+    color: var(--ja-teal, #0b6b78);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .aq-danger-link {
+    min-height: 44px;
+    margin-left: auto;
+    border: 0;
+    background: none;
+    color: var(--ja-danger, #c62828);
+    font: inherit;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  /* Days inside a group */
+  .aq-days {
+    gap: 0;
+    border-top: 1px solid var(--ja-line, #eef1f4);
+  }
+  .aq-day {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.25rem 0.75rem;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    border-top: 1px solid var(--ja-line, #eef1f4);
+  }
+  .aq-day:first-child {
+    border-top: 0;
+  }
+  .aq-day-main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+    min-width: 0;
+  }
+  .aq-day-date {
+    font-weight: 600;
+    min-width: 7.5rem;
+  }
+  .aq-day-amount {
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    min-width: 4rem;
+  }
+  .aq-day-detail {
+    color: var(--ja-steel, #5b6573);
+    font-size: 0.9rem;
+    overflow-wrap: anywhere;
+  }
+  .aq-summary {
+    display: block;
+    color: var(--ja-ink, #1c2430);
+  }
+  .aq-day-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .aq-receipt a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    color: var(--ja-teal, #0b6b78);
+    font-weight: 600;
+  }
+  .aq-receipt img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid var(--ja-line, #d5dbe3);
+  }
+  .aq-sendback {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 0.5rem;
+    margin: 0.25rem 0 0.5rem;
+    padding: 0.75rem;
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-surface, #f6f8fa);
+  }
+  .aq-report .aq-sendback {
+    margin: 0 1rem 1rem;
+  }
+  .aq-sendback label {
+    display: grid;
+    gap: 0.25rem;
+    font-weight: 600;
+  }
+  .aq-sendback small {
+    color: var(--ja-steel, #5b6573);
+    font-weight: 400;
+  }
+  .aq-sendback-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Secondary lists */
+  .aq-more {
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    padding: 0 1rem;
+    background: var(--ja-white, #fff);
+  }
+  .aq-more > summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .aq-more[open] {
+    padding-bottom: 1rem;
+  }
+  .aq-more .aq-groups {
+    margin-top: 0.5rem;
+  }
+  .aq-plain li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+  }
+  .aq-plain li small {
+    flex-basis: 100%;
+    color: var(--ja-steel, #5b6573);
+  }
+  .aq-plain a {
+    color: var(--ja-ink, #1c2430);
+  }
+  .aq-finance-note {
+    font-size: 0.9rem;
+  }
+  .aq-finance-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.5rem;
+  }
+  .aq-finance-form label {
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+  }
+
+  /* Sticky bulk bar and in-page confirmation */
+  .aq-bulk {
+    position: sticky;
+    bottom: 0.75rem;
+    z-index: 5;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-ink, #1c2430);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+    box-shadow: 0 8px 24px rgb(0 0 0 / 0.15);
+  }
+  .aq-confirm {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .aq-confirm:focus {
+    outline: none;
+  }
+  .aq-confirm-title {
+    font-size: 1.1rem;
+  }
+  .aq-confirm p,
+  .aq-confirm ul {
+    margin: 0;
+  }
+  .aq-confirm ul {
+    max-height: 30vh;
+    overflow: auto;
+    padding-left: 1.25rem;
   }
 
   @media (max-width: 760px) {
-    .approval-attention {
-      grid-template-columns: 1fr;
+    .aq-group-head {
+      flex-wrap: wrap;
+      padding: 0.75rem;
     }
-
-    .approval-context,
-    .approval-row-main,
-    .approval-filters {
-      align-items: stretch;
-      flex-direction: column;
+    .aq .aq-group-toggle.aq-group-toggle {
+      flex: 1 1 0;
     }
-
-    .approval-count {
-      align-self: flex-start;
+    .aq-group-action {
+      flex-basis: 100%;
+      justify-content: stretch;
     }
-
-    .approval-filters label,
-    .approval-filters label:not(:first-of-type) {
+    .aq-group-action form,
+    .aq-group-action .aq-primary {
       flex: 1 1 auto;
       width: 100%;
     }
-
-    .approval-filters button {
-      width: 100%;
+    .aq-group-action .aq-secondary {
+      flex: 1 1 auto;
     }
-
-    .operational-pagination {
-      justify-content: stretch;
+    .aq-day {
+      grid-template-columns: 1fr;
+      padding: 0.6rem 0.75rem;
     }
-
-    .operational-pagination button {
-      flex: 1 1 7rem;
-    }
-
-    .operational-pagination span {
-      order: -1;
-      text-align: center;
-      width: 100%;
-    }
-
-    .approval-row-actions,
-    .approval-row-actions form,
-    .finance-review-form {
-      align-items: stretch;
-      flex-direction: column;
-      width: 100%;
-    }
-
-    .approval-row-actions > form,
-    .approval-row-actions > form button,
-    .finance-review-form button,
-    .finance-review-form label,
-    .approval-action-menu,
-    .approval-action-menu summary {
-      width: 100%;
-    }
-
-    .approval-action-menu > form {
+    .aq-day-date {
       min-width: 0;
+    }
+    .aq-bulk {
+      bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px));
+    }
+    .aq-bulk .aq-sendback-actions {
+      width: 100%;
+    }
+    .aq-bulk .aq-sendback-actions button {
+      flex: 1 1 auto;
+    }
+  }
+
+  /* The phone bottom navigation is fixed at 4.2rem (responsive.css); keep the bar above it. */
+  @media (max-width: 620px) {
+    .aq {
+      padding-bottom: 10rem;
+    }
+    .aq-bulk {
+      bottom: calc(4.2rem + 0.5rem + env(safe-area-inset-bottom, 0px));
+      max-height: calc(100vh - 9rem);
+      overflow: auto;
     }
   }
 
   @media (prefers-reduced-motion: reduce) {
-    .approval-page,
-    .approval-page * {
+    .aq * {
       scroll-behavior: auto;
-      transition-duration: 0.01ms;
     }
   }
 </style>

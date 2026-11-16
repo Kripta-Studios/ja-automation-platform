@@ -7774,6 +7774,7 @@
     {:else if data.section === 'approvals'}
       <ApprovalSection
         {data}
+        {locale}
         {isAuditor}
         isOwner={data.user.role === 'owner_admin'}
         canSeeFinanceReview={isFinance}

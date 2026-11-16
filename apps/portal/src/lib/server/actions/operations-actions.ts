@@ -2362,6 +2362,9 @@ export const reportActions = withOperationalActionNames({
     const workerId =
       typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
     delete object.workerId;
+    // One-step "Submit": create the draft and send it for review in one request.
+    const submitNow = object.submitNow === 'on';
+    delete object.submitNow;
     object.safetyRelated = object.safetyRelated === 'on';
     const parsed = dailyReportInputSchema.safeParse(object);
     if (!parsed.success)
@@ -2384,8 +2387,25 @@ export const reportActions = withOperationalActionNames({
           values,
           { workerId: ['problem.report.workerRequired'] },
         );
-      context.repository.createDailyReport(context.principal, parsed.data, workerId);
-      return actionSuccess('action.reports.dailyDraftSaved', {}, 'Daily report draft saved');
+      const created = context.repository.createDailyReport(context.principal, parsed.data, workerId);
+      const ids = { reportId: created.id, reportVersion: created.version };
+      if (submitNow) {
+        try {
+          context.repository.submitReport(context.principal, 'daily', created.id, created.version);
+          return {
+            ...actionSuccess('action.reports.submitted', {}, 'Report submitted for review'),
+            ...ids,
+            submitted: true,
+          };
+        } catch {
+          // The draft is saved; the person can send it from the list.
+        }
+      }
+      return {
+        ...actionSuccess('action.reports.dailyDraftSaved', {}, 'Daily report draft saved'),
+        ...ids,
+        submitted: false,
+      };
     } catch (error) {
       return reportActionFailure(error, values);
     } finally {
@@ -2400,6 +2420,8 @@ export const reportActions = withOperationalActionNames({
     const workerId =
       typeof object.workerId === 'string' && object.workerId ? object.workerId : undefined;
     delete object.workerId;
+    const submitNow = object.submitNow === 'on';
+    delete object.submitNow;
     object.safetyRelated = object.safetyRelated === 'on';
     const parsed = technicalReportInputSchema.safeParse(object);
     if (!parsed.success) {
@@ -2429,8 +2451,29 @@ export const reportActions = withOperationalActionNames({
           values,
           { workerId: ['problem.report.workerRequired'] },
         );
-      context.repository.createTechnicalReport(context.principal, parsed.data, workerId);
-      return actionSuccess('action.reports.technicalDraftSaved', {}, 'PLC report draft saved');
+      const created = context.repository.createTechnicalReport(
+        context.principal,
+        parsed.data,
+        workerId,
+      );
+      const ids = { reportId: created.id, reportVersion: created.version };
+      if (submitNow) {
+        try {
+          context.repository.submitReport(context.principal, 'technical', created.id, created.version);
+          return {
+            ...actionSuccess('action.reports.submitted', {}, 'Report submitted for review'),
+            ...ids,
+            submitted: true,
+          };
+        } catch {
+          // The draft is saved; the person can send it from the list.
+        }
+      }
+      return {
+        ...actionSuccess('action.reports.technicalDraftSaved', {}, 'PLC report draft saved'),
+        ...ids,
+        submitted: false,
+      };
     } catch (error) {
       return reportActionFailure(error, values);
     } finally {

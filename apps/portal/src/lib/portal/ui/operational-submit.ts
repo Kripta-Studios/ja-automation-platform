@@ -72,7 +72,7 @@ type OperationalSubmitOptions = {
   setSaving: (value: boolean) => void;
   setError: (value: string) => void;
   setProblem?: (problem: ProblemData | null) => void;
-  onSuccess: () => void;
+  onSuccess: (data?: Record<string, unknown>) => void;
   offlineHandled: () => boolean;
 };
 
@@ -170,7 +170,7 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
           options.setProblem?.(null);
         }
         await update({ reset: false });
-        if (result.type === 'success') options.onSuccess();
+        if (result.type === 'success') options.onSuccess(result.data);
       } catch {
         restoreControls();
         options.setProblem?.(null);

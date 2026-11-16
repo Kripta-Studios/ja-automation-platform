@@ -9,11 +9,11 @@
    * Planned/scheduled hours are never shown as or turned into actual time.
    */
   import { enhance } from '$app/forms';
-  import { goto } from '$app/navigation';
+  import { afterNavigate, goto } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { SubmitFunction } from '@sveltejs/kit';
-  import { tick } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import { StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { documentLanguage, type PortalLocale } from '../../portal-i18n';
@@ -100,8 +100,11 @@
   let extraRows = $state<SheetRow[]>([]);
   let edits = $state<Record<string, string>>({});
   let reason = $state('');
-  let busy = $state<'' | 'save' | 'submit'>('');
-  let intent = $state<'save' | 'submit'>('save');
+  let busy = $state<'' | 'save' | 'submit' | 'submit_day'>('');
+  let intent = $state<'save' | 'submit' | 'submit_day'>('save');
+  /** Inline "done" line for One day mode (kept until the next edit). */
+  let dayDone = $state<{ kind: 'saved' | 'sent'; minutes: number; day: string } | null>(null);
+  let pendingDone: { kind: 'saved' | 'sent'; minutes: number; day: string } | null = null;
   let addingRow = $state(false);
   let newRowProject = $state('');
   let newRowCategory = $state('travel');
@@ -373,6 +376,7 @@
   });
 
   const setCell = (key: string, value: string) => {
+    dayDone = null;
     edits = { ...edits, [key]: value };
   };
 
@@ -421,16 +425,30 @@
 
   const submitSheet: SubmitFunction = () => {
     busy = intent;
+    pendingDone =
+      mode === 'day' && (intent === 'save' || intent === 'submit_day')
+        ? {
+            kind: intent === 'submit_day' ? 'sent' : 'saved',
+            minutes: dayModeTotal,
+            day: selectedDay,
+          }
+        : null;
     return async ({ result: outcome, update }) => {
       busy = '';
       if (outcome.type === 'success') {
         edits = {};
         extraRows = [];
         reason = '';
+        rememberDayChoice();
       }
       await update({ reset: false, invalidateAll: true });
+      dayDone = outcome.type === 'success' ? pendingDone : null;
       intent = 'save';
     };
+  };
+  const saveAndSend = () => {
+    intent = 'submit_day';
+    void tick().then(() => sheetForm?.requestSubmit());
   };
   const save = () => {
     intent = 'save';
@@ -501,9 +519,46 @@
   );
   const chooseDay = (projectId: string, category: string) => {
     edits = {};
+    dayDone = null;
     dayProjectChoice = projectId;
     dayCategory = category;
   };
+  // Remember the last project and type so the next "Log hours" is just hours -> Save.
+  const lastChoiceKey = () => `ja.time.lastDay.${String(data.user.id)}`;
+  const rememberDayChoice = () => {
+    if (mode !== 'day' || delegating) return;
+    try {
+      localStorage.setItem(lastChoiceKey(), JSON.stringify({ projectId: dayProject, category: dayCategory }));
+    } catch {
+      /* Remembering is only a convenience. */
+    }
+  };
+  onMount(() => {
+    if (!delegating) {
+      try {
+        const saved = JSON.parse(localStorage.getItem(lastChoiceKey()) ?? 'null') as {
+          projectId?: unknown;
+          category?: unknown;
+        } | null;
+        if (saved && typeof saved.projectId === 'string') dayProjectChoice = saved.projectId;
+        if (saved && typeof saved.category === 'string' && (quickCategories as readonly string[]).includes(saved.category))
+          dayCategory = saved.category;
+      } catch {
+        /* Ignore unreadable preferences. */
+      }
+    }
+  });
+  // Home "Log hours" opens One day for today with the cursor in Hours (after
+  // navigation, so the router's focus reset does not steal it).
+  afterNavigate(() => {
+    if ($page.url.searchParams.get('focus') !== 'hours') return;
+    void tick().then(() =>
+      setTimeout(
+        () => document.querySelector<HTMLInputElement>('[data-testid="time-day-hours"]')?.focus(),
+        0,
+      ),
+    );
+  });
   const submitCells = $derived(
     mode === 'day'
       ? dayCell?.changed
@@ -522,6 +577,13 @@
       : payloadCells,
   );
   const dirtyNow = $derived(mode === 'day' ? Boolean(dayCell?.changed) : dirty);
+  const dayDraftCount = $derived(
+    dayEntries.filter((entry) => String(entry.approval_state) === 'draft').length,
+  );
+  // "Submit week" reminder only near the end of the week (Fri-Sun) or for past weeks.
+  const weekEndNear = $derived(
+    weekStart < String(weekStartForDate(today) ?? today) || new Date(`${today}T00:00:00Z`).getUTCDay() % 6 === 0 || new Date(`${today}T00:00:00Z`).getUTCDay() === 5,
+  );
   const dayIndex = $derived(days.indexOf(selectedDay));
   const dayModeTotal = $derived(
     dayCell
@@ -739,7 +801,7 @@
 
   {#if returned.length}
     <div class="returned" role="status" data-testid="time-needs-changes">
-      <p><strong>{t('statusNeedsChanges')}.</strong> {t('needsChangesHelp')}</p>
+      <p><strong>{t('statusNeedsChanges')}.</strong> {mode === 'day' && canSubmit ? t('needsChangesHelpDay') : t('needsChangesHelp')}</p>
       <ul>
         {#each returned as entry (entry.id)}
           <li>
@@ -792,7 +854,23 @@
 
       {#if mode === 'day'}
         <div class="day-form" data-testid="time-day-form">
-          {#if dayProjects.length > 1}
+          {#if dayProjects.length > 1 && dayProjects.length <= 4}
+            <fieldset class="day-field segmented segmented-projects" data-testid="time-day-project-choices">
+              <legend>{t('project')}</legend>
+              {#each dayProjects as project (project.id)}
+                <label class:is-selected={dayProject === String(project.id)}>
+                  <input
+                    type="radio"
+                    name="dayProject"
+                    value={String(project.id)}
+                    checked={dayProject === String(project.id)}
+                    onchange={() => chooseDay(String(project.id), dayCategory)}
+                  />
+                  {projectLabel(String(project.id))}
+                </label>
+              {/each}
+            </fieldset>
+          {:else if dayProjects.length > 1}
             <label class="day-field">
               <span>{t('project')}</span>
               <select value={dayProject} onchange={(event) => chooseDay(event.currentTarget.value, dayCategory)} data-testid="time-day-project">
@@ -860,13 +938,40 @@
             </label>
           {/if}
           {#if dayProject && !isAuditor}
-            <button
-              type="button"
-              class="primary wide"
-              disabled={!dirtyNow || Boolean(busy) || invalidNow}
-              onclick={save}
-              data-testid="time-day-save">{busy === 'save' ? t('saving') : t('save')}</button
-            >
+            <input type="hidden" name="day" value={selectedDay} />
+            <div class="day-buttons">
+              {#if canSubmit}
+                <button
+                  type="button"
+                  class="primary wide"
+                  disabled={(!dirtyNow && dayDraftCount === 0) || Boolean(busy) || invalidNow}
+                  onclick={saveAndSend}
+                  data-testid="time-day-send"
+                  >{busy === 'submit_day'
+                    ? t('sendingDay')
+                    : dirtyNow
+                      ? t('saveAndSend')
+                      : t('sendDay')}</button
+                >
+              {/if}
+              <button
+                type="button"
+                class={canSubmit ? 'secondary wide' : 'primary wide'}
+                disabled={!dirtyNow || Boolean(busy) || invalidNow}
+                onclick={save}
+                data-testid="time-day-save"
+                >{busy === 'save' ? t('saving') : canSubmit ? t('saveDraftOnly') : t('save')}</button
+              >
+            </div>
+            {#if dayDone && dayDone.day === selectedDay}
+              <p class="day-done" role="status" data-testid="time-day-done">
+                <span aria-hidden="true">✓</span>
+                {t(dayDone.kind === 'sent' ? 'sentDay' : 'savedDay', {
+                  hours: decimalHoursFromMinutes(dayDone.minutes),
+                  day: dayName(dayDone.day, 'long'),
+                })}
+              </p>
+            {/if}
           {/if}
         </div>
         {#if dayEntries.length}
@@ -1041,13 +1146,22 @@
           <div class="sheet-actions day-actions" data-testid="time-day-actions">
             <p class="week-summary">
               {t('weekSoFar', { hours: decimalHoursFromMinutes(weekTotal) })}
-              {#if weekDraftMinutes}
+              {#if weekDraftMinutes && !weekEndNear}
                 · {t('notSubmittedHours', { hours: decimalHoursFromMinutes(weekDraftMinutes) })}
+              {/if}
+            </p>
+            {#if weekDraftMinutes && weekEndNear && canSubmit}
+              <div class="week-reminder" role="status" data-testid="time-week-reminder">
+                <span>{t('weekEndReminder', { hours: decimalHoursFromMinutes(weekDraftMinutes) })}</span>
                 <a href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
                   >{t('reviewSubmitWeek')} →</a
                 >
-              {/if}
-            </p>
+              </div>
+            {:else if weekDraftMinutes}
+              <a class="week-link" href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
+                >{t('reviewSubmitWeek')} →</a
+              >
+            {/if}
           </div>
         {:else}
         <div class="sheet-actions" data-testid="time-week-actions">
@@ -1257,6 +1371,12 @@
     width: 1px;
     height: 1px;
   }
+  .segmented-projects label {
+    flex: 1 1 100%;
+    border-radius: 0.75rem;
+    padding: 0.5rem 1rem;
+    overflow-wrap: anywhere;
+  }
   .segmented label:focus-within {
     outline: 3px solid var(--ja-focus-ring, #1f6feb);
     outline-offset: 2px;
@@ -1314,6 +1434,34 @@
     flex: 1 1 100%;
     min-height: 3rem;
     font-size: 1.05rem;
+  }
+  .day-buttons {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .day-done {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    border-radius: 0.6rem;
+    background: color-mix(in srgb, #1d7a46 12%, transparent);
+    color: #145a33;
+    font-weight: 600;
+  }
+  .week-reminder {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.6rem;
+    border: 1px solid #d9a441;
+    background: #fff7e6;
+    color: #5c3d00;
+  }
+  .week-reminder a,
+  .week-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    font-weight: 700;
   }
   .week-summary {
     margin: 0;

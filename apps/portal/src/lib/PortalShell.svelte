@@ -2,6 +2,7 @@
   import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import { paySummaryText } from '$lib/portal/pay-summary-copy';
   import {
     assignmentDirectoryView,
     assignmentFormAction,
@@ -4319,6 +4320,63 @@
         <button>{translate('Apply period')}</button>
       </form>
       {#if data.pay && !payPeriodProblem}
+        <section class="pay-summary" aria-labelledby="pay-summary-title" data-pay-summary>
+          <h2 id="pay-summary-title">{paySummaryText(locale, 'title')}</h2>
+          <p class="form-help">
+            {paySummaryText(locale, 'period', { start: data.periodStart ?? '', end: data.periodEnd ?? '' })}
+          </p>
+          {#each data.pay.currencyBreakdown ?? [data.pay] as amount (amount.currency)}
+            {@const owed = (data.payOutstanding ?? []).find((row) => row.currency === amount.currency)}
+            {@const owedTotal = owed
+              ? BigInt(owed.settlementMinor || '0') + BigInt(owed.reimbursementMinor || '0')
+              : 0n}
+            <div class="pay-summary-grid">
+              <a class="pay-summary-tile is-earned" href="{base}/app/time?lang={locale}">
+                <span>{paySummaryText(locale, 'earned')}</span>
+                <strong
+                  >{paymentMoney(amount.estimatedApprovedMinor, amount.currency, documentLanguage(locale))}</strong
+                >
+                {#if (data.pay.currencyBreakdown?.length ?? 1) === 1}<small
+                    >{paySummaryText(locale, 'earnedHint', {
+                      hours: hoursFromMinutes(data.pay.approvedMinutes),
+                    })}</small
+                  >{/if}
+              </a>
+              <a class="pay-summary-tile" href="{base}/app/time?mode=week&lang={locale}">
+                <span>{paySummaryText(locale, 'waiting')}</span>
+                <strong
+                  >{paymentMoney(
+                    String(
+                      BigInt(amount.estimatedPendingMinor || '0') +
+                        BigInt(amount.pendingReimbursementMinor || '0'),
+                    ),
+                    amount.currency,
+                    documentLanguage(locale),
+                  )}</strong
+                >
+                <small>{paySummaryText(locale, 'waitingHint')}</small>
+              </a>
+              <a class="pay-summary-tile" href="{base}/app/expenses?lang={locale}">
+                <span>{paySummaryText(locale, 'toReceive')}</span>
+                <strong>{paymentMoney(String(owedTotal), amount.currency, documentLanguage(locale))}</strong>
+                <small
+                  >{owed && owedTotal > 0n
+                    ? paySummaryText(locale, 'toReceiveHint', {
+                        pay: paymentMoney(owed.settlementMinor, amount.currency, documentLanguage(locale)),
+                        refunds: paymentMoney(
+                          owed.reimbursementMinor,
+                          amount.currency,
+                          documentLanguage(locale),
+                        ),
+                      })
+                    : paySummaryText(locale, 'nothingOwed')}</small
+                >
+              </a>
+            </div>
+          {/each}
+        </section>
+        <details class="pay-more">
+          <summary>{paySummaryText(locale, 'details')}</summary>
         <section class="record-list full pay-export-actions" aria-labelledby="pay-export-title">
           <div class="panel-title">
             <div>
@@ -4917,6 +4975,7 @@
             </table>
           </TableRegion>
         </section>
+        </details>
       {/if}
     {:else if data.section === 'projects' && projectDirectoryView === 'clients'}
       <ClientDirectorySection
@@ -7727,6 +7786,50 @@
 </div>
 
 <style>
+  .pay-summary {
+    display: grid;
+    gap: 0.6rem;
+    margin-bottom: 1rem;
+  }
+  .pay-summary h2 {
+    margin: 0;
+  }
+  .pay-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
+    gap: 0.6rem;
+  }
+  .pay-summary-tile {
+    display: grid;
+    gap: 0.25rem;
+    min-height: 44px;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--ja-border-strong, #b9b9b3);
+    border-radius: 0.875rem;
+    background: var(--ja-surface, #fff);
+    color: var(--ja-text-primary, #24251f);
+    text-decoration: none;
+  }
+  .pay-summary-tile span {
+    font-weight: 700;
+  }
+  .pay-summary-tile strong {
+    font-size: 1.6rem;
+  }
+  .pay-summary-tile small {
+    color: var(--ja-text-secondary, #5b6573);
+  }
+  .pay-summary-tile.is-earned {
+    border-color: var(--ja-ink, #24251f);
+    border-width: 2px;
+  }
+  .pay-more > summary {
+    display: flex;
+    align-items: center;
+    min-height: 48px;
+    font-weight: 700;
+    cursor: pointer;
+  }
   .document-workspace {
     overflow-anchor: none;
   }

@@ -298,6 +298,16 @@
     receiptReading = false;
     if (receiptInput) receiptInput.value = '';
   }
+  /** Camera photo: move it into the named receipt input so the form sends it. */
+  function onCameraChange(event: Event): void {
+    const files = (event.currentTarget as HTMLInputElement).files;
+    if (!files?.length || !receiptInput) return;
+    const transfer = new DataTransfer();
+    transfer.items.add(files[0]!);
+    receiptInput.files = transfer.files;
+    (event.currentTarget as HTMLInputElement).value = '';
+    receiptInput.dispatchEvent(new Event('change', { bubbles: true }));
+  }
   function onReceiptChange(event: Event): void {
     const file = (event.currentTarget as HTMLInputElement).files?.[0];
     if (receiptUrl) URL.revokeObjectURL(receiptUrl);
@@ -1108,6 +1118,19 @@
 
       <div class="xp-field">
         <span class="xp-label">{c('receipt')}</span>
+        <div class="xp-receipt-pick">
+        {#if mode === 'create' && !receiptUrl}
+          <label class="xp-receipt xp-receipt-camera">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              data-expense-camera
+              onchange={onCameraChange}
+            />
+            <span class="xp-receipt-cta">{c('takePhoto')}</span>
+          </label>
+        {/if}
         <label class="xp-receipt">
           <input
             bind:this={receiptInput}
@@ -1125,10 +1148,13 @@
             <span class="xp-receipt-cta"
               >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id')
                 ? c('receiptReplace')
-                : c('receiptFirst')}</span
+                : mode === 'create'
+                  ? c('chooseFile')
+                  : c('receiptFirst')}</span
             >
           {/if}
         </label>
+        </div>
         <small
           >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id') && !receiptUrl
             ? `${c('receiptOnFile')} · `
@@ -1811,6 +1837,18 @@
   }
   .xp-receipt-cta {
     font-weight: 700;
+  }
+  .xp-receipt-pick {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+    gap: 0.6rem;
+  }
+  .xp-receipt-camera {
+    border-style: solid;
+    border-color: var(--ja-ink, #24251f);
+    background: var(--ja-ink, #24251f);
+    color: #fff;
+    min-height: 5.5rem;
   }
   .receipt-preview {
     display: flex;

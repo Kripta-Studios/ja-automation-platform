@@ -903,6 +903,12 @@ export const timeActions = withOperationalActionNames({
         : [],
     );
     const submit = object.intent === 'submit';
+    // One day "Save & send": save the day's cells, then submit that day's drafts.
+    const submitDay =
+      object.intent === 'submit_day' && realIsoDate(object.day) && dates.has(String(object.day))
+        ? String(object.day)
+        : undefined;
+    if (object.intent === 'submit_day' && !submitDay) return invalidBatch();
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.saveTimeWeek(context.principal, {
@@ -911,9 +917,12 @@ export const timeActions = withOperationalActionNames({
         cells,
         expected,
         submit,
+        submitDay,
         correctionReason: typeof object.reason === 'string' ? object.reason : undefined,
       });
       const saved = result.created + result.updated + result.removed + result.corrected;
+      if (submitDay)
+        return actionSuccess('action.time.submitted', {}, 'Time submitted.');
       return submit
         ? actionSuccess(
             'action.time.weekSubmitted',

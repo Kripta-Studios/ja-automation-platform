@@ -994,7 +994,7 @@ export const paymentReversalInputSchema = z.object({
 });
 
 export const dailyReportInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   workDate: isoDateSchema,
   siteShift: optionalText(160),
   summary: requiredText(5000),
@@ -1046,7 +1046,7 @@ export function decodeTechnicalReportChange(value: unknown): TechnicalReportChan
 
 export const technicalReportInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     reportDate: isoDateSchema,
     systemName: requiredText(200),
     plantSite: optionalText(200),
@@ -1114,7 +1114,7 @@ export const technicalReportInputSchema = z
 
 export const technicalChangeInputSchema = z
   .object({
-    projectId: uuidSchema,
+    projectId: projectRecordIdSchema,
     technicalReportId: z.union([z.literal(''), uuidSchema]).optional(),
     component: requiredText(200),
     originalBehavior: optionalText(5000),

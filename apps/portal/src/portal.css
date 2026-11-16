@@ -12,6 +12,7 @@
 @import './styles/portal/responsive.css';
 @import './styles/portal/polish.css';
 @import './styles/portal/density.css';
+@import './styles/portal/projects-simple.css';
 
 .searchable-select-popover {
   position: fixed;

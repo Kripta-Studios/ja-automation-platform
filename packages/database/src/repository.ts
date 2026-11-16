@@ -2,6 +2,11 @@ import {
   projectSiteSettings,
   type ProjectSiteInput,
 } from './domains/projects/project-site-settings.ts';
+import {
+  executePurge,
+  planPurge,
+  type PurgeSummary,
+} from './domains/projects/project-purge.ts';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -122,9 +127,62 @@ export class DuplicateCrewExpenseError extends ConflictError {
   }
 }
 
-function projectNumberForCostCenter(clientNumber: string, costCenterCode: string): string | null {
-  const digits = /(\d+)$/.exec(costCenterCode)?.[1];
-  return digits ? `${clientNumber}-P-${digits.padStart(3, '0')}` : null;
+/**
+ * Owner decision 2026-11-16: cost center codes are free text and may repeat
+ * (many clients use "001"). The user-facing project reference combines the
+ * client code (or the internal client number when no code exists) with the
+ * cost center, e.g. "IMPC-001". A numeric suffix is added only when that exact
+ * reference already exists ("IMPC-001-2"). Existing project numbers are kept.
+ */
+function referencePart(value: string): string {
+  return value
+    .normalize('NFKC')
+    .trim()
+    .replace(/\s*[-–—_/·|,;:]+\s*/gu, '-')
+    .replace(/\s+/gu, '-')
+    .replace(/[^\p{L}\p{N}.\-]/gu, '')
+    .replace(/-{2,}/gu, '-')
+    .replace(/^-+|-+$/gu, '');
+}
+
+export function projectReferenceBase(
+  clientCode: string | null | undefined,
+  clientNumber: string,
+  costCenterCode: string,
+): string {
+  const code = referencePart(clientCode ?? '');
+  if (!code) {
+    // Clients without a short code keep the historical numbering
+    // ("C-0020-P-001") whenever the cost center ends in digits.
+    const digits = /(\d+)$/u.exec(costCenterCode.trim())?.[1];
+    if (digits) return `${clientNumber}-P-${digits.padStart(3, '0')}`;
+  }
+  const prefix = code || referencePart(clientNumber) || 'P';
+  const center = referencePart(costCenterCode) || 'P';
+  return `${prefix}-${center}`.slice(0, 100).replace(/-+$/u, '');
+}
+
+function uniqueProjectNumber(sqlite: DatabaseSync, base: string, excludeProjectId?: string): string {
+  const taken = (candidate: string) =>
+    Boolean(
+      sqlite
+        .prepare('SELECT 1 FROM project WHERE lower(project_number)=lower(?) AND id IS NOT ?')
+        .get(candidate, excludeProjectId ?? null),
+    );
+  if (!taken(base)) return base;
+  for (let suffix = 2; suffix < 10_000; suffix += 1) {
+    const candidate = `${base}-${suffix}`;
+    if (!taken(candidate)) return candidate;
+  }
+  throw new ConflictError('Could not build a unique project reference');
+}
+
+function manualProjectNumber(value: string): string {
+  const normalized = value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
+  if (!normalized) throw new ValidationError('Project reference is required');
+  if (normalized.length > 120) throw new ValidationError('Project reference is too long');
+  if (/[\p{Cc}]/u.test(normalized)) throw new ValidationError('Project reference is invalid');
+  return normalized;
 }
 
 export class ReadinessError extends Error {
@@ -240,6 +298,8 @@ type ProjectInput = ProjectSiteInput &
   Readonly<{
     clientId: string;
     costCenterCode?: string;
+    /** Optional manual project reference; blank builds "<client code>-<cost center>". */
+    projectNumber?: string;
     name: string;
     description?: string;
     projectAlias?: string;
@@ -1039,123 +1099,98 @@ export class PortalRepository {
     return this.clients.listAllClientContacts(principal);
   }
 
-  deleteClient(principal: Principal, clientId: string) {
-    return this.clients.deleteClient(principal, clientId);
+  /**
+   * Owner decision 2026-11-16: an owner_admin may permanently delete a client
+   * or project with all dependent history (time, expenses, reports, invoices,
+   * payments, documents...). Audit rows are kept (detached) and a new
+   * lifecycle audit event records who deleted what.
+   */
+  previewPermanentDeletion(
+    principal: Principal,
+    target: Readonly<{ projectId?: string; clientId?: string }>,
+  ): PurgeSummary & { label: string; confirmationText: string } {
+    this.assertActive(principal);
+    if (principal.role !== 'owner_admin')
+      throw new AccessDeniedError('Only the owner can delete records permanently');
+    const label = this.permanentDeletionLabel(target);
+    const plan = planPurge(this.sqlite, {
+      projectIds: target.projectId ? [target.projectId] : [],
+      clientIds: target.clientId ? [target.clientId] : [],
+    });
+    return { ...plan.summary, ...label };
   }
 
-  deleteProject(principal: Principal, projectId: string) {
+  private permanentDeletionLabel(target: Readonly<{ projectId?: string; clientId?: string }>): {
+    label: string;
+    confirmationText: string;
+  } {
+    if (target.projectId) {
+      const project = this.sqlite
+        .prepare('SELECT project_number,name FROM project WHERE id=?')
+        .get(target.projectId) as { project_number: string; name: string } | undefined;
+      if (!project) throw new ValidationError('Project not found');
+      return {
+        label: `${project.project_number} · ${project.name}`,
+        confirmationText: project.project_number,
+      };
+    }
+    const client = this.sqlite
+      .prepare('SELECT client_number,client_code,display_name FROM client WHERE id=?')
+      .get(target.clientId ?? '') as
+      | { client_number: string; client_code: string | null; display_name: string }
+      | undefined;
+    if (!client) throw new ValidationError('Client not found');
+    const code = client.client_code?.trim() || client.client_number;
+    return { label: `${code} · ${client.display_name}`, confirmationText: code };
+  }
+
+  private permanentlyDelete(
+    principal: Principal,
+    target: Readonly<{ projectId?: string; clientId?: string }>,
+    confirmation: string | undefined,
+  ) {
     this.assertActive(principal);
-    if (!canManageClients(principal))
-      throw new AccessDeniedError('Project administration required');
+    if (principal.role !== 'owner_admin')
+      throw new AccessDeniedError('Only the owner can delete records permanently');
     return this.transaction(() => {
-      const existing = this.sqlite
-        .prepare('SELECT id, project_number, name FROM project WHERE id=?')
-        .get(projectId) as { id: string; project_number: string; name: string } | undefined;
-      if (!existing) throw new ValidationError('Project not found');
-
-      const timeCount = this.sqlite
-        .prepare('SELECT COUNT(*) AS count FROM time_entry WHERE project_id=?')
-        .get(projectId) as { count: number } | undefined;
-      if ((timeCount?.count ?? 0) > 0) {
-        throw new ConflictError(
-          'Project has recorded time entries and cannot be deleted. Please archive the project instead.',
-        );
-      }
-
-      const expenseCount = this.sqlite
-        .prepare('SELECT COUNT(*) AS count FROM expense WHERE project_id=?')
-        .get(projectId) as { count: number } | undefined;
-      if ((expenseCount?.count ?? 0) > 0) {
-        throw new ConflictError(
-          'Project has recorded expenses and cannot be deleted. Please archive the project instead.',
-        );
-      }
-
-      const invoiceCount = this.sqlite
-        .prepare('SELECT COUNT(*) AS count FROM invoice WHERE project_id=?')
-        .get(projectId) as { count: number } | undefined;
-      if ((invoiceCount?.count ?? 0) > 0) {
-        throw new ConflictError(
-          'Project has generated invoices and cannot be deleted. Please archive the project instead.',
-        );
-      }
-
-      const dailyReportCount = this.sqlite
-        .prepare('SELECT COUNT(*) AS count FROM daily_report WHERE project_id=?')
-        .get(projectId) as { count: number } | undefined;
-      if ((dailyReportCount?.count ?? 0) > 0) {
-        throw new ConflictError(
-          'Project has recorded daily field reports and cannot be deleted. Please archive the project instead.',
-        );
-      }
-
-      const techReportCount = this.sqlite
-        .prepare('SELECT COUNT(*) AS count FROM technical_report WHERE project_id=?')
-        .get(projectId) as { count: number } | undefined;
-      if ((techReportCount?.count ?? 0) > 0) {
-        throw new ConflictError(
-          'Project has recorded technical reports and cannot be deleted. Please archive the project instead.',
-        );
-      }
-
-      const authoredPreferences = this.sqlite
-        .prepare(
-          'SELECT 1 FROM reimbursement_preference_revision WHERE project_id=? AND created_by IS NOT NULL LIMIT 1',
-        )
-        .get(projectId);
-      if (authoredPreferences)
-        throw new ConflictError(
-          'Project has recorded commercial agreements and cannot be deleted. Please archive the project instead.',
-        );
-
-      this.sqlite.prepare('UPDATE project SET expected_schedule_id=NULL WHERE id=?').run(projectId);
-      try {
-        this.sqlite
-          .prepare(
-            'DELETE FROM assignment_rate_override WHERE project_member_id IN (SELECT id FROM project_member WHERE project_id=?)',
-          )
-          .run(projectId);
-      } catch {
-        // Compatibility cleanup: older schemas may not contain assignment overrides.
-      }
-      this.sqlite.prepare('DELETE FROM schedule WHERE project_id=?').run(projectId);
-      this.sqlite.prepare('DELETE FROM planning_assignment WHERE project_id=?').run(projectId);
-      this.sqlite.prepare('DELETE FROM project_member WHERE project_id=?').run(projectId);
-      this.sqlite.prepare('DELETE FROM compensation_rule WHERE project_id=?').run(projectId);
-      this.sqlite.prepare('DELETE FROM billing_rule WHERE project_id=?').run(projectId);
-      this.sqlite.prepare('DELETE FROM billing_lock WHERE project_id=?').run(projectId);
-      try {
-        this.sqlite.prepare('DELETE FROM project_milestone WHERE project_id=?').run(projectId);
-      } catch {
-        // Compatibility cleanup: older schemas may not contain project milestones.
-      }
-      try {
-        this.sqlite
-          .prepare('DELETE FROM project_commercial_policy_binding WHERE project_id=?')
-          .run(projectId);
-      } catch {
-        // Compatibility cleanup: the commercial-policy binding is additive.
-      }
-      try {
-        this.sqlite
-          .prepare('UPDATE audit_event SET project_id=NULL WHERE project_id=?')
-          .run(projectId);
-      } catch {
-        // Legacy audit schemas may not expose project_id; audit rows remain immutable.
-      }
-
-      const deleted = this.sqlite.prepare('DELETE FROM project WHERE id=?').run(projectId);
-      if (deleted.changes !== 1) throw new ConflictError('Project changed before deletion');
-
-      this.audit(principal, 'lifecycle.transition', 'project', projectId, {
-        fromState: 'active',
-        toState: 'deleted',
-        reason: 'Hard delete empty project',
-        projectNumber: existing.project_number,
-        name: existing.name,
+      const { label, confirmationText } = this.permanentDeletionLabel(target);
+      if (confirmation !== undefined && confirmation.trim() !== confirmationText)
+        throw new ValidationError('Type the exact reference to confirm permanent deletion');
+      const plan = planPurge(this.sqlite, {
+        projectIds: target.projectId ? [target.projectId] : [],
+        clientIds: target.clientId ? [target.clientId] : [],
       });
-      return { id: projectId, projectNumber: existing.project_number };
+      executePurge(this.sqlite, plan);
+      const entityType = target.projectId ? 'project' : 'client';
+      const entityId = (target.projectId ?? target.clientId)!;
+      // No `projectId` key: the audit row must not reference the deleted row.
+      this.audit(principal, 'lifecycle.transition', entityType, entityId, {
+        fromState: 'any',
+        toState: 'deleted',
+        reason: 'Permanent deletion by owner',
+        operation: 'permanent_delete',
+        reference: confirmationText,
+        label,
+        counts: plan.summary,
+      });
+      return {
+        id: entityId,
+        reference: confirmationText,
+        label,
+        summary: plan.summary,
+        storageKeys: plan.storageKeys,
+      };
     });
+  }
+
+  deleteClient(principal: Principal, clientId: string, confirmation?: string) {
+    const result = this.permanentlyDelete(principal, { clientId }, confirmation);
+    return { ...result, clientNumber: result.reference };
+  }
+
+  deleteProject(principal: Principal, projectId: string, confirmation?: string) {
+    const result = this.permanentlyDelete(principal, { projectId }, confirmation);
+    return { ...result, projectNumber: result.reference };
   }
 
   createProject(principal: Principal, input: ProjectInput) {
@@ -1171,8 +1206,10 @@ export class PortalRepository {
       if (!isValidIanaTimeZone(timezone))
         throw new ValidationError('Project timezone must be a valid IANA time zone');
       const client = this.sqlite
-        .prepare('SELECT client_number,currency FROM client WHERE id=? AND status=?')
-        .get(input.clientId, 'active') as { client_number: string; currency: Currency } | undefined;
+        .prepare('SELECT client_number,client_code,currency FROM client WHERE id=? AND status=?')
+        .get(input.clientId, 'active') as
+        | { client_number: string; client_code: string | null; currency: Currency }
+        | undefined;
       if (!client) throw new ValidationError('Active client not found');
       if (!['USD', 'EUR', 'BRL'].includes(input.currency))
         throw new ValidationError('Invalid project currency');
@@ -1199,10 +1236,14 @@ export class PortalRepository {
           throw new ValidationError(message);
         },
       );
+      // Expected hours are optional: blank/0 means "no expectation" (an all-zero
+      // schedule), never an invented 10 h/day target.
       const expectedMinutes =
         input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
           ? Math.round(Number(input.expectedHoursPerDay) * 60)
-          : (input.expectedMinutesPerDay ?? 600);
+          : input.expectedHoursPerDay === ''
+            ? 0
+            : (input.expectedMinutesPerDay ?? 600);
       if (!Number.isInteger(expectedMinutes) || expectedMinutes < 0 || expectedMinutes > 1440)
         throw new ValidationError('Expected working hours must be between 0 and 24 hours');
       const clientDailyMinimumMinutes =
@@ -1274,15 +1315,19 @@ export class PortalRepository {
         (!Number.isInteger(input.laborBudgetMinutes) || input.laborBudgetMinutes < 0)
       )
         throw new ValidationError('Labor budget minutes are invalid');
-      const projectNumber = projectNumberForCostCenter(client.client_number, costCenterCode);
-      if (!projectNumber)
-        throw new ValidationError('Cost center code must end in digits for the project number');
-      const duplicate = this.sqlite
-        .prepare('SELECT 1 FROM project WHERE project_number=?')
-        .get(projectNumber);
-      if (duplicate)
-        throw new ValidationError(
-          'Cost center code is already used by another project for this client',
+      let projectNumber: string;
+      if (input.projectNumber?.trim()) {
+        projectNumber = manualProjectNumber(input.projectNumber);
+        if (
+          this.sqlite
+            .prepare('SELECT 1 FROM project WHERE lower(project_number)=lower(?)')
+            .get(projectNumber)
+        )
+          throw new ValidationError('Project reference is already used by another project');
+      } else
+        projectNumber = uniqueProjectNumber(
+          this.sqlite,
+          projectReferenceBase(client.client_code, client.client_number, costCenterCode),
         );
       const id = newId();
       const timestamp = now();
@@ -12506,6 +12551,8 @@ export class PortalRepository {
       projectId: string;
       version?: number;
       costCenterCode?: string | null;
+      /** Manual reference; '' rebuilds it from client code + cost center. */
+      projectNumber?: string | null;
       name?: string;
       poNumber?: string | null;
       /** @deprecated Lifecycle status must be changed through transitionProject. */
@@ -12624,6 +12671,7 @@ export class PortalRepository {
           : assertText(input.timezone, 'Timezone', 80);
       if (input.timezone !== undefined && !isValidIanaTimeZone(timezone))
         throw new ValidationError('Project timezone must be a valid IANA time zone');
+      // Blank expected hours mean "no expectation" (stored as 0).
       const expectedMinutesPerDay =
         input.expectedHoursPerDay !== undefined && input.expectedHoursPerDay !== ''
           ? boundedInteger(
@@ -12631,9 +12679,12 @@ export class PortalRepository {
               'Expected hours per day',
               1440,
             )!
-          : input.expectedMinutesPerDay === undefined
-            ? Number(existing.expected_minutes_per_day ?? 600)
-            : boundedInteger(input.expectedMinutesPerDay, 'Expected minutes per day', 1440)!;
+          : input.expectedHoursPerDay === ''
+            ? 0
+            : input.expectedMinutesPerDay === undefined
+              ? Number(existing.expected_minutes_per_day ?? 0)
+              : (boundedInteger(input.expectedMinutesPerDay, 'Expected minutes per day', 1440) ??
+                0);
       const clientDailyMinimumMinutes =
         input.clientDailyMinimumHours !== undefined
           ? input.clientDailyMinimumHours === null || input.clientDailyMinimumHours === ''
@@ -12820,39 +12871,58 @@ export class PortalRepository {
             : textOrNull(input.notes, 'Notes'),
         ],
       ];
-      if (input.costCenterCode !== undefined) {
-        const costCenterCode = updates.find(([field]) => field === 'cost_center_code')?.[1];
-        const costCenterChanged = costCenterCode !== existing.cost_center_code;
-        const client = this.sqlite
-          .prepare('SELECT client_number FROM client WHERE id=?')
-          .get(String(existing.client_id)) as { client_number: string } | undefined;
-        if (!client) throw new ValidationError('Project client not found');
-        const projectNumber = projectNumberForCostCenter(
-          client.client_number,
-          String(costCenterCode),
+      {
+        const costCenterCode = String(
+          updates.find(([field]) => field === 'cost_center_code')?.[1] ?? '',
         );
-        if (!projectNumber && costCenterChanged)
-          throw new ValidationError('Cost center code must end in digits for the project number');
-        if (projectNumber && projectNumber !== existing.project_number) {
-          const hasInvoice = Boolean(
-            this.sqlite
-              .prepare('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1')
-              .get(input.projectId),
-          );
-          if (hasInvoice && costCenterChanged)
-            throw new ConflictError('Project number cannot change after an invoice was created');
-          if (!hasInvoice) {
+        const costCenterChanged =
+          input.costCenterCode !== undefined && costCenterCode !== existing.cost_center_code;
+        let nextNumber: string | null = null;
+        if (input.projectNumber !== undefined && input.projectNumber !== null) {
+          if (input.projectNumber.trim()) {
+            nextNumber = manualProjectNumber(input.projectNumber);
             if (
+              nextNumber.toLowerCase() !== String(existing.project_number).toLowerCase() &&
               this.sqlite
-                .prepare('SELECT 1 FROM project WHERE project_number=? AND id<>?')
-                .get(projectNumber, input.projectId)
+                .prepare('SELECT 1 FROM project WHERE lower(project_number)=lower(?) AND id<>?')
+                .get(nextNumber, input.projectId)
             )
-              throw new ValidationError(
-                'Cost center code is already used by another project for this client',
-              );
-            updates.push(['project_number', projectNumber]);
+              throw new ValidationError('Project reference is already used by another project');
+          } else {
+            const client = this.sqlite
+              .prepare('SELECT client_number,client_code FROM client WHERE id=?')
+              .get(String(existing.client_id)) as
+              | { client_number: string; client_code: string | null }
+              | undefined;
+            if (!client) throw new ValidationError('Project client not found');
+            nextNumber = uniqueProjectNumber(
+              this.sqlite,
+              projectReferenceBase(client.client_code, client.client_number, costCenterCode),
+              input.projectId,
+            );
           }
+        } else if (
+          costCenterChanged &&
+          !this.sqlite.prepare('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(input.projectId)
+        ) {
+          // A new cost center alone rebuilds the reference only before invoicing;
+          // invoiced projects change their reference only when edited explicitly.
+          const client = this.sqlite
+            .prepare('SELECT client_number,client_code FROM client WHERE id=?')
+            .get(String(existing.client_id)) as
+            | { client_number: string; client_code: string | null }
+            | undefined;
+          if (client)
+            nextNumber = uniqueProjectNumber(
+              this.sqlite,
+              projectReferenceBase(client.client_code, client.client_number, costCenterCode),
+              input.projectId,
+            );
         }
+        // Issued invoices keep their frozen snapshot text; the live reference
+        // may change (owner decision 2026-11-16).
+        if (nextNumber && nextNumber !== existing.project_number)
+          updates.push(['project_number', nextNumber]);
       }
       const changed = this.sqlite
         .prepare(
@@ -12865,6 +12935,31 @@ export class PortalRepository {
           ...(input.version !== undefined ? [input.version] : []),
         );
       if (changed.changes !== 1) throw new ConflictError('Project changed before update');
+      if (expectedMinutesPerDay !== Number(existing.expected_minutes_per_day ?? 0)) {
+        // Keep the weekly expectation used by time screens in step with the
+        // project setting. An all-zero schedule means "no expectation".
+        const scheduleId = newId();
+        const effectiveFrom = todayInTimezone(timezone);
+        this.sqlite
+          .prepare(
+            'INSERT INTO schedule(id,project_id,timezone,monday_minutes,tuesday_minutes,wednesday_minutes,thursday_minutes,friday_minutes,saturday_minutes,sunday_minutes,effective_from) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            scheduleId,
+            input.projectId,
+            timezone,
+            ...Array.from({ length: 6 }, () => expectedMinutesPerDay),
+            0,
+            effectiveFrom,
+          );
+        this.sqlite
+          .prepare('UPDATE project SET expected_schedule_id=? WHERE id=?')
+          .run(scheduleId, input.projectId);
+        this.audit(principal, 'schedule.create', 'schedule', scheduleId, {
+          projectId: input.projectId,
+          expectedMinutesPerDay,
+        });
+      }
       if (projectManagerChanged && previousProjectManagerId) {
         const previousMemberships = this.sqlite
           .prepare(

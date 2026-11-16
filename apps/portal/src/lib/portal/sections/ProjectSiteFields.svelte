@@ -5,12 +5,15 @@
     contacts = [],
     values = {},
     allowNew = false,
+    hideLocation = false,
     translate = (s: string) => s,
   }: {
     clientId: string;
     contacts?: Row[];
     values?: Row;
     allowNew?: boolean;
+    /** The simplified create form shows the location as an essential field. */
+    hideLocation?: boolean;
     translate?: (s: string) => string;
   } = $props();
   let createContact = $state(false);
@@ -34,13 +37,13 @@
         value={field('siteName')}
       /></label
     >
-    <label
-      >{translate('Location (optional)')}<input
-        name="siteLocation"
-        maxlength="500"
-        value={field('siteLocation')}
-      /></label
-    >
+    {#if !hideLocation}<label
+        >{translate('Location (optional)')}<input
+          name="siteLocation"
+          maxlength="500"
+          value={field('siteLocation')}
+        /></label
+      >{/if}
     <label
       >{translate('On-site manager (optional)')}<input
         name="onsiteManager"

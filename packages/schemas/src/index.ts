@@ -168,6 +168,7 @@ export const projectInputSchema = z
     clientId: clientRecordIdSchema,
     /** Required for new Essential projects; legacy rows remain nullable in storage. */
     costCenterCode: z.string().trim().min(1).max(120),
+    projectNumber: z.string().trim().max(120).optional(),
     name: z.string().trim().min(2).max(200),
     description: z.string().trim().max(5000).optional(),
     projectAlias: z.string().trim().max(120).optional(),
@@ -192,7 +193,8 @@ export const projectInputSchema = z
     onsiteContactRole: z.string().trim().max(120).optional(),
     country: z.string().trim().max(100).optional(),
     expectedHoursPerDay: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
-    expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(600),
+    // Optional: blank means no expected hours (owner decision 2026-11-16).
+    expectedMinutesPerDay: z.coerce.number().int().min(0).max(1440).default(0),
     clientDailyMinimumHours: z.union([z.literal(''), z.coerce.number().min(0).max(24)]).optional(),
     clientDailyMinimumMinutes: z
       .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])

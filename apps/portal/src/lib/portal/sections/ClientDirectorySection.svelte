@@ -500,8 +500,9 @@
         <div class="client-directory__identity">
           <div>
             <span class="client-directory__number"
-              >{value(client, 'client_number', 'client_code') ||
-                translate('No client number')}</span
+              >{[value(client, 'client_code'), value(client, 'client_number')]
+                .filter(Boolean)
+                .join(' · ') || translate('No client number')}</span
             >
             {#if value(client, 'legal_name') && value(client, 'legal_name') !== clientName(client)}
               <span class="client-directory__legal">{value(client, 'legal_name')}</span>

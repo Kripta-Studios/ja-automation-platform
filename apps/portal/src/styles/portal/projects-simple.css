@@ -1,0 +1,58 @@
+/* Simplified Projects / Clients screens (owner round 2026-11-16). */
+.project-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+.project-toolbar > * {
+  min-height: 2.75rem;
+}
+.project-toolbar .primary-button {
+  min-width: 10rem;
+}
+.project-list-link--simple > a {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.project-list-link--simple small {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+}
+.project-more-tools {
+  margin-top: 0.5rem;
+}
+.project-more-tools > summary {
+  display: grid;
+  gap: 0.15rem;
+  cursor: pointer;
+  min-height: 2.75rem;
+  align-content: center;
+  font-weight: 600;
+}
+.project-more-tools > summary small {
+  font-weight: 400;
+  color: var(--ja-text-muted, #5f5b55);
+}
+.project-more-tools[open] > summary {
+  margin-bottom: 1rem;
+}
+.project-more-tools > * + * {
+  margin-top: 1rem;
+}
+.project-more-tools__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+@media (max-width: 640px) {
+  .project-toolbar > * {
+    flex: 1 1 calc(50% - 0.6rem);
+  }
+  .project-toolbar .primary-button {
+    flex-basis: 100%;
+  }
+}

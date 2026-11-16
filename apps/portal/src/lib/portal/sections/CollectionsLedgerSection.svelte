@@ -2,6 +2,8 @@
   import { round2Text } from '../ux-round2-copy';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import CollectionsWorkbench from './CollectionsWorkbench.svelte';
+  import PaymentsPanel from './PaymentsPanel.svelte';
+  import { moneyText } from '../money-copy';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
   import { base } from '$app/paths';
@@ -561,7 +563,7 @@
             value: `${value(row, 'projectName', 'project_name') || '—'} · ${value(row, 'projectNumber', 'project_number') || '—'}`,
           },
           {
-            label: translate('Stream'),
+            label: moneyText(locale, 'typeCol'),
             value: streamLabel(row),
           },
           {
@@ -793,8 +795,32 @@
   $effect(() => {
     if (visibleRows.length === 0) ledgerPage = [];
   });
+  const ledgerMoney = (minor: unknown, currency?: string) =>
+    paymentMoney(minor, currency, documentLanguage(locale));
+  const canRecordPayments = $derived(
+    ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
+  );
+  // Deep links and filters land in the full ledger, which then starts open.
+  const fullLedgerOpen =
+    Boolean($page.url.hash) ||
+    ['q', 'status', 'client', 'project', 'currency', 'aging', 'invoice'].some((key) =>
+      $page.url.searchParams.has(key),
+    );
 </script>
 
+<PaymentsPanel
+  ledger={(data.ledger ?? []) as Array<Record<string, unknown>>}
+  today={String(data.financeToday ?? new Date().toISOString().slice(0, 10))}
+  {locale}
+  money={ledgerMoney}
+  canRecord={canRecordPayments}
+/>
+
+<details class="collections-ledger__full" open={fullLedgerOpen} data-full-ledger>
+  <summary
+    ><strong>{moneyText(locale, 'fullLedger')}</strong>
+    <small>{moneyText(locale, 'fullLedgerHelp')}</small></summary
+  >
 <div
   class="collections-ledger-section"
   data-ui="collections-ledger-section"
@@ -811,9 +837,7 @@
         </p>
       {/if}
       <p>
-        {translate(
-          'Reconcile issued invoices, direct costs, collections, outstanding balances and contribution from canonical source rows.',
-        )}
+        {moneyText(locale, 'ledgerIntro')}
       </p>
     </div>
     <div
@@ -1249,7 +1273,7 @@
           <tr>
             <th scope="col">{translate('Invoice')}</th>
             <th scope="col">{translate('Client / project')}</th>
-            <th scope="col">{translate('Stream')}</th>
+            <th scope="col">{moneyText(locale, 'typeCol')}</th>
             <th scope="col">{translate('Due on')} / {translate('Receivable aging')}</th>
             <th scope="col">{translate('Invoiced')}</th>
             <th scope="col">{translate('Gross')}</th>
@@ -1419,8 +1443,26 @@
     </TableRegion>
   </SectionCard>
 </div>
+</details>
 
 <style>
+  .collections-ledger__full {
+    border: 1px solid var(--ja-line, #d9dee5);
+    border-radius: 12px;
+    padding: 0.8rem 1rem;
+    background: var(--ja-white, #fff);
+  }
+  .collections-ledger__full > summary {
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.8rem;
+    align-items: center;
+  }
+  .collections-ledger__full > summary small {
+    color: var(--ja-steel, #5b6573);
+  }
   .collections-ledger__export-problem {
     min-width: 0;
   }

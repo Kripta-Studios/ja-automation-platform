@@ -205,12 +205,12 @@ export function subsectionsForNavItem(
       link('Technical changes', undefined, { area: 'technical_change' }),
       link('Milestones', undefined, { area: 'project_milestone' }),
     ];
-  if (item.section === 'finance' && item.label === 'Finance Overview')
+  if (item.section === 'finance' && item.label === 'Money')
     return [
       link('Forecast and budget control', '#finance-alerts'),
       link('Source records', '#finance-source-records', { view: 'economic' }),
     ];
-  if (item.section === 'finance' && item.label === 'Economic Review')
+  if (item.section === 'finance' && item.label === 'Detailed analysis')
     return [
       link('Portfolio views', '#finance-source-records', { source: 'portfolio' }),
       link('Workers', '#finance-source-records', { source: 'workers' }),
@@ -218,7 +218,7 @@ export function subsectionsForNavItem(
       link('Expenses', '#finance-source-records', { source: 'expenses' }),
       link('Compensation settlements', '#worker-payments', { source: 'settlements' }),
     ];
-  if (item.section === 'finance' && item.label === 'Commercial Configuration' && finance)
+  if (item.section === 'finance' && item.label === 'Rates' && finance)
     return [
       link('How labor terms are selected', '#commercial-terms-summary'),
       link('Worker compensation', '#finance-worker-compensation', {
@@ -369,16 +369,15 @@ export function portalNavigationForRole(
     case 'finance_admin':
       return {
         primary: [
-          item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
+          item('finance', 'Money', '↗', route('finance', 'overview')),
           item('projects', 'Projects', '▦'),
-          item('finance', 'Economic Review', '∑', route('finance', 'economic')),
           item('billing', 'Billing', '◫'),
+          item('ledger', 'Payments', '▤'),
         ],
         secondary: [
           item('approvals', 'Approvals', '✓'),
-          item('ledger', 'Collections / Ledger', '▤'),
           item('accounting', 'Accounting', '▥'),
-          item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),
+          item('finance', 'Rates', '⚙', route('finance', 'commercial')),
           item('documents', 'Documents', '▧'),
           item('profile', 'Profile', '◎'),
         ],
@@ -405,17 +404,10 @@ export function portalNavigationForRole(
           grouped('management', item('crew', 'Crew hours', '◌')),
           grouped('management', item('documents', 'Documents', '▧')),
           grouped('management', item('reports', 'Reports', '▤')),
-          grouped(
-            'finance',
-            item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
-          ),
-          grouped('finance', item('finance', 'Economic Review', '∑', route('finance', 'economic'))),
-          grouped('finance', item('ledger', 'Collections / Ledger', '▤')),
+          grouped('finance', item('finance', 'Money', '↗', route('finance', 'overview'))),
+          grouped('finance', item('ledger', 'Payments', '▤')),
+          grouped('finance', item('finance', 'Rates', '⚙', route('finance', 'commercial'))),
           grouped('finance', item('accounting', 'Accounting', '▥')),
-          grouped(
-            'finance',
-            item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),
-          ),
           grouped('account', item('profile', 'Profile', '◎')),
         ],
         admin: [grouped('finance', item('manage', 'Data management', '⚙'))],
@@ -426,11 +418,11 @@ export function portalNavigationForRole(
     case 'auditor_read_only':
       return {
         primary: [
-          item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
-          item('finance', 'Economic Review', '∑', route('finance', 'economic')),
+          item('finance', 'Money', '↗', route('finance', 'overview')),
+          item('ledger', 'Payments', '▤'),
         ],
         secondary: [
-          item('ledger', 'Collections / Ledger', '▤'),
+          item('finance', 'Detailed analysis', '∑', route('finance', 'economic')),
           item('accounting', 'Accounting', '▥'),
           item('profile', 'Profile', '◎'),
         ],
@@ -592,7 +584,7 @@ export const portalTitles: Record<string, string> = {
   approvals: 'Approval queue',
   billing: 'Invoices',
   finance: 'Project finance',
-  ledger: 'Collections / Ledger',
+  ledger: 'Payments',
   accounting: 'Monthly Accounting Pack',
   audit: 'Audit log',
 };
@@ -611,9 +603,9 @@ export const portalViewTitles: Record<string, Record<string, string>> = {
     streams: 'Billing streams',
   },
   finance: {
-    overview: 'Finance Overview',
-    economic: 'Economic Review',
-    commercial: 'Commercial Configuration',
+    overview: 'Money',
+    economic: 'Detailed analysis',
+    commercial: 'Rates',
   },
 };
 

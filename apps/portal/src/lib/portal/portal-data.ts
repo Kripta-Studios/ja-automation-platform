@@ -1,5 +1,6 @@
 import type { OwnerFinanceSummary } from './owner-finance';
 import type { HomeInbox, WorkerWeekStatus } from './home-inbox';
+import type { MoneyOverview, RatesOverview } from './money-overview-types';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -66,6 +67,8 @@ export type PortalData = {
   archivedProjectCount?: number;
   /** Pending approvals for the navigation badge (layout data). */
   approvalPendingCount?: number;
+  moneyOverview?: MoneyOverview;
+  ratesOverview?: RatesOverview;
   user: {
     id: string;
     name: string;

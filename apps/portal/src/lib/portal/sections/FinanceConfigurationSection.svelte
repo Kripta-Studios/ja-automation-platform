@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { moneyText } from '../money-copy';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import TimeCategorySelect from '../ui/TimeCategorySelect.svelte';
   import DecimalHoursInput from '../ui/DecimalHoursInput.svelte';
@@ -2164,7 +2165,7 @@
           <Field
             id="finance-legal-entity-revision"
             label={translate('Issuing legal entity revision')}
-            help={translate('Only reviewed canonical revisions are available for assignment.')}
+            help={moneyText(locale, 'issuerHelp')}
             required
           >
             <select id="finance-legal-entity-revision" name="legalEntityRevisionId" required>

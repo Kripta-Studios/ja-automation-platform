@@ -36,6 +36,10 @@
     type QuickInvoiceCopyKey,
   } from '$lib/portal/billing-quick-invoice-copy';
   import { journeyMoney } from '$lib/portal/project-invoice-journey';
+  import RecordPaymentForm from '$lib/portal/sections/RecordPaymentForm.svelte';
+  import { moneyText } from '$lib/portal/money-copy';
+  import { paymentMoney } from '$lib/portal/payment-money';
+  import { documentLanguage } from '$lib/portal-i18n';
 
   type Row = Record<string, unknown>;
   type InvoiceRow = Row & {
@@ -221,6 +225,14 @@
   const invoiceTotalText = $derived(
     journeyMoney(String(invoice.total_minor ?? '0'), String(invoice.currency ?? ''), locale),
   );
+  const invoiceBalance = $derived(
+    (data as { balance?: { outstandingMinor: string; collectedMinor: string; currency: string } | null })
+      .balance ?? null,
+  );
+  let paymentOpen = $state(false);
+  let paymentNotice = $state('');
+  const paymentFormat = (minor: unknown, currency?: string) =>
+    paymentMoney(minor, currency, documentLanguage(locale));
   type IssueCheck =
     | { ok: true }
     | { ok: false; reasons: ReadonlyArray<{ code: string }>; message: string }
@@ -1174,6 +1186,18 @@
               >
             </form>
           {/if}
+          {#if invoiceBalance && BigInt(invoiceBalance.outstandingMinor) > 0n}
+            <button
+              type="button"
+              class={paymentOpen ? 'secondary-button' : 'primary-button'}
+              aria-expanded={paymentOpen}
+              onclick={() => {
+                paymentOpen = !paymentOpen;
+                paymentNotice = '';
+              }}
+              data-invoice-record-payment>{moneyText(locale, 'recordPayment')}</button
+            >
+          {/if}
           <a
             class="secondary-button"
             href={`${base}/app/billing?invoice=${encodeURIComponent(invoiceId)}&lang=${locale}#invoice-collections`}
@@ -1181,6 +1205,31 @@
           >
         </div>
       </div>
+      {#if invoiceBalance}
+        <p class="invoice-lifecycle__balance" data-invoice-balance>
+          {moneyText(locale, 'balance')}:
+          <strong>{paymentFormat(invoiceBalance.outstandingMinor, invoiceBalance.currency)}</strong>
+          {#if BigInt(invoiceBalance.collectedMinor) > 0n}
+            · {moneyText(locale, 'collected')}: {paymentFormat(invoiceBalance.collectedMinor, invoiceBalance.currency)}
+          {/if}
+        </p>
+      {/if}
+      {#if paymentNotice}<p class="invoice-lifecycle__balance" role="status" data-invoice-payment-notice>{paymentNotice}</p>{/if}
+      {#if paymentOpen && invoiceBalance && BigInt(invoiceBalance.outstandingMinor) > 0n}
+        <RecordPaymentForm
+          {invoiceId}
+          currency={invoiceBalance.currency}
+          outstandingMinor={invoiceBalance.outstandingMinor}
+          action="?/recordPayment"
+          {locale}
+          money={paymentFormat}
+          oncancel={() => (paymentOpen = false)}
+          ondone={(message) => {
+            paymentOpen = false;
+            paymentNotice = message;
+          }}
+        />
+      {/if}
       {#if invoiceState === 'issued'}
         <p class="invoice-lifecycle__help">
           {pdfStatus === 'ready' ? q('issuedHelp') : q('markSentWaiting')}
@@ -1759,6 +1808,10 @@
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
+  }
+  .invoice-lifecycle__balance {
+    margin: 0.6rem 0 0;
+    font-variant-numeric: tabular-nums;
   }
   .invoice-lifecycle__help {
     margin: 0;

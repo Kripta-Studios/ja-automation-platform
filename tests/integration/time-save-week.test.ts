@@ -155,5 +155,55 @@ describe('saveTimeWeek (week timesheet)', () => {
     });
     expect(submitted).toMatchObject({ submitted: 1 });
   });
+  it('Save & send submits only the selected day and keeps the stale-page check', () => {
+    const value = createB5LifecycleSecurityFixture();
+    fixtures.push(value);
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'time-week-day-send');
+    const workerId = value.worker.userId;
+    const projectId = value.project.id;
+    value.repository.saveTimeWeek(owner, {
+      workerId,
+      weekStart: week,
+      cells: [{ projectId, category: 'regular', workDate: '2026-08-17', minutes: 480 }],
+    });
+    const monday = value.sqlite
+      .prepare("SELECT id,version FROM time_entry WHERE work_date='2026-08-17'")
+      .get() as { id: string; version: number };
+    // A Monday draft the page did not show blocks sending Monday again.
+    expect(() =>
+      value.repository.saveTimeWeek(owner, {
+        workerId,
+        weekStart: week,
+        submitDay: '2026-08-17',
+        expected: [],
+        cells: [{ projectId, category: 'travel', workDate: '2026-08-17', minutes: 60 }],
+      }),
+    ).toThrow(/Week changed/u);
+    // Tuesday is saved and sent alone; Monday stays a draft.
+    const sent = value.repository.saveTimeWeek(owner, {
+      workerId,
+      weekStart: week,
+      submitDay: '2026-08-18',
+      expected: [monday],
+      cells: [{ projectId, category: 'regular', workDate: '2026-08-18', minutes: 420 }],
+    });
+    expect(sent).toMatchObject({ created: 1, submitted: 1 });
+    expect(
+      value.sqlite
+        .prepare('SELECT work_date,approval_state FROM time_entry ORDER BY work_date')
+        .all()
+        .map((row) => Object.values(row as Record<string, unknown>)),
+    ).toEqual([
+      ['2026-08-17', 'draft'],
+      ['2026-08-18', 'submitted'],
+    ]);
+    expect(() =>
+      value.repository.saveTimeWeek(owner, {
+        workerId,
+        weekStart: week,
+        submitDay: '2026-08-25',
+        cells: [],
+      }),
+    ).toThrow(/outside the selected week/u);
+  });
 });
-

@@ -377,7 +377,7 @@
       <div class="worker-home-actions">
         <a
           class="worker-home-card worker-home-card--primary"
-          href={link('time')}
+          href={link('time', { focus: 'hours' })}
           data-home-log-hours
         >
           <span class="worker-home-action">{h('logHours')} <DirectionIcon /></span>
@@ -392,7 +392,7 @@
               >{/each}
           </span>
         </a>
-        <a class="worker-home-card" href={link('expenses')} data-home-add-expense>
+        <a class="worker-home-card" href={link('expenses', { action: 'record' })} data-home-add-expense>
           <span class="worker-home-action">{h('addExpense')} <DirectionIcon /></span>
           <span class="worker-home-status">
             <strong
@@ -411,7 +411,7 @@
           </span>
         </a>
       </div>
-      <a class="worker-home-report" href={link('reports')}>{h('writeReport')}</a>
+      <a class="worker-home-report" href={link('reports', { action: 'daily' })} data-home-report>{h('writeReport')} <DirectionIcon /></a>
     </section>
 
     {#if !online || queue > 0}
@@ -773,12 +773,18 @@
     color: #6b3d00;
   }
   .worker-home-report {
-    justify-self: start;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    min-height: 44px;
+    justify-content: space-between;
+    min-height: 3.25rem;
+    padding: 0 1.25rem;
+    border: 1px solid var(--ja-border-strong);
+    border-radius: 0.875rem;
+    background: var(--ja-surface);
     color: var(--ja-text-primary);
-    font-weight: 600;
+    font-weight: 700;
+    font-size: 1.05rem;
+    text-decoration: none;
   }
   @media (max-width: 720px) {
     .home-inbox-row {

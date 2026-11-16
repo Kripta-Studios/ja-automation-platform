@@ -61,6 +61,17 @@ export type PortalData = {
   ownerFinance?: OwnerFinanceSummary;
   /** Home task inbox (owner / project manager). */
   homeInbox?: HomeInbox;
+  /** Daily report prefill for the signed-in person (own rows only). */
+  reportPrefill?: {
+    recentTime: Array<{ projectId: string; workDate: string; minutes: number }>;
+    lastDaily: {
+      projectId: string;
+      workDate: string;
+      siteShift: string;
+      openItems: string;
+      nextDayPlan: string;
+    } | null;
+  };
   /** Home week status for the signed-in worker. */
   workerWeek?: WorkerWeekStatus;
   /** Archived projects in the account's scope; hides "Include archived" when 0. */

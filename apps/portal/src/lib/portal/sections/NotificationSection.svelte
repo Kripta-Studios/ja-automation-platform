@@ -59,6 +59,50 @@
   const filtered = $derived(
     unreadOnly ? visibleRecords.filter((row) => !row.read_at) : visibleRecords,
   );
+  // Plain "what happened + where to fix it" line for the person's own work.
+  const quickWords = {
+    en: { time: 'Your hours', expense: 'Your expense', daily: 'Your daily report', technical: 'Your technical report', report: 'Your report', needsChanges: 'Changes requested: {what} for {date}', missing: 'No hours logged for {date}', fix: 'Fix it', logHours: 'Log hours', open: 'Open' },
+    es: { time: 'Tus horas', expense: 'Tu gasto', daily: 'Tu informe diario', technical: 'Tu informe técnico', report: 'Tu informe', needsChanges: 'Cambios solicitados: {what} del {date}', missing: 'No hay horas registradas el {date}', fix: 'Corregir', logHours: 'Registrar horas', open: 'Abrir' },
+    pt: { time: 'Suas horas', expense: 'Sua despesa', daily: 'Seu relatório diário', technical: 'Seu relatório técnico', report: 'Seu relatório', needsChanges: 'Ajustes solicitados: {what} de {date}', missing: 'Sem horas registradas em {date}', fix: 'Corrigir', logHours: 'Registrar horas', open: 'Abrir' },
+  } as const;
+  const longDate = (iso: string) =>
+    /^\d{4}-\d{2}-\d{2}$/u.test(iso)
+      ? new Date(`${iso}T12:00:00Z`).toLocaleDateString(
+          locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US',
+          { weekday: 'long', month: 'short', day: 'numeric', timeZone: 'UTC' },
+        )
+      : iso;
+  function quickNotice(row: PortalRow): { title: string; cta: string; href: string } | null {
+    const words = quickWords[locale] ?? quickWords.en;
+    const kind = String(row.kind ?? '');
+    const date = String(row.record_date ?? '');
+    if (kind === 'missing_time') {
+      const day = /(\d{4}-\d{2}-\d{2})$/u.exec(String(row.subject_id ?? ''))?.[1] ?? '';
+      if (!day) return null;
+      return {
+        title: words.missing.replace('{date}', longDate(day)),
+        cta: words.logHours,
+        href: `${base}/app/time?day=${day}&focus=hours&lang=${locale}`,
+      };
+    }
+    const returned = /^approval_returned_(time|expense|daily|technical)$/u.exec(kind)?.[1] ??
+      (kind === 'report_needs_changes' ? 'report' : '');
+    if (!returned) return null;
+    const what = words[returned as 'time' | 'expense' | 'daily' | 'technical' | 'report'];
+    const target = notificationTargetPath(row.target);
+    const href =
+      returned === 'time' && date
+        ? `${base}/app/time?day=${date}&lang=${locale}`
+        : target
+          ? base + target
+          : '';
+    if (!href) return null;
+    return {
+      title: words.needsChanges.replace('{what}', what).replace('{date}', longDate(date)),
+      cta: words.fix,
+      href,
+    };
+  }
   let savingId = $state('');
   let feedback = $state('');
   let feedbackElement: HTMLParagraphElement | undefined = $state();
@@ -282,10 +326,14 @@
     {#snippet children(rows)}
       {#each rows as row (row.id)}
         {@const safeTarget = notificationTargetPath(row.target)}
+        {@const quick = quickNotice(row)}
         {@const detailHref = `${base}/app/notifications/${encodeURIComponent(String(row.id))}?lang=${locale}`}
         <article class:unread={!row.read_at} class="notification-row" data-notification-id={row.id}>
-          <a class="record-card-link" href={safeTarget ? base + safeTarget : detailHref}>
-            <strong>{notificationCopy(String(row.kind), locale).subject}</strong>
+          <a
+            class="record-card-link"
+            href={quick ? quick.href : safeTarget ? base + safeTarget : detailHref}
+          >
+            <strong>{quick ? quick.title : notificationCopy(String(row.kind), locale).subject}</strong>
             <small>
               {#if row.record_title}{String(row.record_title)} ·
               {/if}
@@ -303,7 +351,9 @@
                   .join(', ')}</span
               >
             {/if}
-            <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
+            <span class="record-card-open" class:is-fix={Boolean(quick)}
+              >{quick ? quick.cta : translate('Open record')} <DirectionIcon /></span
+            >
           </a>
           <div class="inbox-row-actions">
             <span class="state-tag">{row.read_at ? translate('read') : translate('new')}</span>
@@ -385,6 +435,18 @@
 </section>
 
 <style>
+  .record-card-open.is-fix {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 0.6rem;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-weight: 700;
+    width: fit-content;
+  }
   .inbox-description {
     color: var(--ja-muted, #56574f);
     margin: 0 0 1rem;

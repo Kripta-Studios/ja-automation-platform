@@ -2123,11 +2123,14 @@ export class PortalRepository {
       /** Drafts (id + version) the user saw on screen; required to submit. */
       expected?: readonly Readonly<{ id: string; version: number }>[];
       submit?: boolean;
+      /** Submit only this day's drafts (One day "Save & send"). */
+      submitDay?: string;
       correctionReason?: string;
     }>,
   ) {
     this.assertActive(principal);
     assertDate(input.weekStart, 'Week start');
+    if (input.submitDay !== undefined) assertDate(input.submitDay, 'Work date');
     const start = new Date(`${input.weekStart}T00:00:00.000Z`);
     if (!Number.isFinite(start.getTime()) || start.getUTCDay() !== 1)
       throw new ValidationError('Week start must be a Monday');
@@ -2285,6 +2288,34 @@ export class PortalRepository {
         withCell(cell, () => {
           throw new ConflictError('Only an unlocked never-submitted time draft can change');
         });
+      }
+      if (input.submitDay && !input.submit) {
+        if (input.submitDay < input.weekStart || input.submitDay > weekEnd)
+          throw new ValidationError('A daily entry is outside the selected week');
+        if (workerId !== principal.userId) {
+          if (principal.role !== 'owner_admin')
+            throw new AccessDeniedError('Only the owner can submit another worker’s week');
+          this.assertLiveSession(principal);
+        }
+        const dayDrafts = this.sqlite
+          .prepare(
+            `SELECT t.id,t.version,
+                    EXISTS(SELECT 1 FROM operational_time_expense_request r WHERE r.time_entry_id=t.id) linked_pair
+               FROM time_entry t
+              WHERE t.worker_id=? AND t.work_date=? AND t.approval_state='draft'
+                AND EXISTS (SELECT 1 FROM project p WHERE p.id=t.project_id AND p.status<>'archived')
+              ORDER BY t.id`,
+          )
+          .all(workerId, input.submitDay) as Array<{ id: string; version: number; linked_pair: number }>;
+        // Same stale-page rule as the week: every draft of the day must be one
+        // the person saw (or one this call just wrote).
+        if (dayDrafts.some((row) => versions.get(row.id) !== row.version))
+          throw new ConflictError('Week changed. Refresh and review its drafts before submitting');
+        // Hours with a linked meal travel with that meal in the weekly submit.
+        const sendable = dayDrafts.filter((row) => !Number(row.linked_pair));
+        if (sendable.length === 0) throw new ValidationError('Select a week with 1 to 200 draft entries');
+        for (const row of sendable) this.submitTime(principal, row.id, row.version);
+        return { created, updated, removed, corrected, submitted: sendable.length };
       }
       if (!input.submit) return { created, updated, removed, corrected, submitted: 0 };
       const remaining = this.sqlite

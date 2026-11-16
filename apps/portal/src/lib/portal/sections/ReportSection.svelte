@@ -37,6 +37,11 @@
   } from './operational-register';
   import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
   import DecimalHoursInput from '../ui/DecimalHoursInput.svelte';
+  import LocalDictation from '../local-dictation/LocalDictation.svelte';
+  import { applyAction, deserialize } from '$app/forms';
+  import { invalidateAll } from '$app/navigation';
+  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { reportQuickText, type ReportQuickCopyKey } from './report-quick-copy';
 
   let {
     data,
@@ -263,8 +268,12 @@
     setProblem: (value) => {
       surfaceProblem = value;
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       const createdType = surface;
+      if (fieldWorker && (createdType === 'daily' || createdType === 'technical')) {
+        void finishQuickReport(createdType, result ?? {});
+        return;
+      }
       if (createdType === 'daily' || createdType === 'technical') {
         const href = registerHref({
           view: createdType,
@@ -1004,8 +1013,197 @@
     createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
     createProject = projectFilter;
     createWorker = '';
+    if (fieldWorker) prepareQuickReport(type);
     surface = type;
   }
+
+  /* ---------------- Worker quick report (daily) ---------------- */
+  // Field workers get a one-minute report: prefilled project/date/hours, one
+  // required text, optional dictation and photos, and one "Submit" action.
+  const fieldWorker = $derived(
+    !isAuditor &&
+      !['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
+        String(data.user.role),
+      ),
+  );
+  const q = (key: ReportQuickCopyKey, params?: Record<string, string | number>) =>
+    reportQuickText(reportLocale, key, params);
+  const prefill = $derived(data.reportPrefill ?? { recentTime: [], lastDaily: null });
+  let quickText = $state('');
+  let quickOpenItems = $state('');
+  let quickPlan = $state('');
+  let quickSite = $state('');
+  let quickCarried = $state(false);
+  let quickRestored = $state(false);
+  let quickDateEdit = $state(false);
+  let quickPhotos = $state<File[]>([]);
+  let quickBusy = $state('');
+  let quickWantSend = true;
+  let techSafety = $state(restoredReportValue('safetyRelated') === 'on');
+  let quickReady = false;
+  const quickSummary = $derived(
+    (quickText.trim().split(/\r?\n/u)[0] ?? '').trim().slice(0, 200),
+  );
+  const quickHours = $derived(
+    prefill.recentTime
+      .filter((row) => row.projectId === createProject && row.workDate === createDate)
+      .reduce((sum, row) => sum + Number(row.minutes ?? 0), 0),
+  );
+  const yesterdayPlan = $derived(
+    prefill.lastDaily &&
+      prefill.lastDaily.projectId === createProject &&
+      prefill.lastDaily.workDate < createDate
+      ? prefill.lastDaily.nextDayPlan.trim()
+      : '',
+  );
+  const quickDraftKey = () => `ja.report.quickDraft.${String(data.user.id)}`;
+  const quickProjectKey = () => `ja.report.lastProject.${String(data.user.id)}`;
+  function readJson(key: string): Record<string, unknown> | null {
+    try {
+      const value = JSON.parse(localStorage.getItem(key) ?? 'null') as unknown;
+      return value && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+    } catch {
+      return null;
+    }
+  }
+  function prepareQuickReport(type: 'daily' | 'technical'): void {
+    quickReady = false;
+    const visible = (id: unknown) =>
+      typeof id === 'string' && availableProjects.some((project) => String(project.id) === id)
+        ? id
+        : '';
+    const loggedToday = [...prefill.recentTime]
+      .filter((row) => row.workDate === createDate)
+      .sort((a, b) => b.minutes - a.minutes)[0]?.projectId;
+    let remembered = '';
+    try {
+      remembered = localStorage.getItem(quickProjectKey()) ?? '';
+    } catch {
+      remembered = '';
+    }
+    createProject =
+      visible(projectFilter) ||
+      visible(loggedToday) ||
+      visible(prefill.lastDaily?.projectId) ||
+      visible(remembered) ||
+      (availableProjects.length === 1 ? String(availableProjects[0]!.id) : '');
+    quickDateEdit = false;
+    quickPhotos = [];
+    quickBusy = '';
+    if (type !== 'daily') return;
+    const last = prefill.lastDaily;
+    const carry = Boolean(last && last.projectId === createProject && last.workDate < createDate);
+    quickSite = carry ? last!.siteShift : '';
+    quickOpenItems = carry ? last!.openItems : '';
+    quickCarried = carry && Boolean(last!.openItems.trim());
+    quickPlan = '';
+    quickText = '';
+    quickRestored = false;
+    const saved = readJson(quickDraftKey());
+    if (saved && saved.date === createDate && typeof saved.text === 'string') {
+      if (visible(saved.project)) createProject = String(saved.project);
+      quickText = saved.text;
+      if (typeof saved.openItems === 'string') quickOpenItems = saved.openItems;
+      if (typeof saved.plan === 'string') quickPlan = saved.plan;
+      if (typeof saved.site === 'string') quickSite = saved.site;
+      quickRestored = Boolean(saved.text || saved.openItems || saved.plan);
+    }
+    quickReady = true;
+  }
+  // Drafts autosave on this device while typing (cleared after a successful save).
+  $effect(() => {
+    const snapshot = {
+      date: createDate,
+      project: createProject,
+      text: quickText,
+      openItems: quickOpenItems,
+      plan: quickPlan,
+      site: quickSite,
+    };
+    if (!fieldWorker || surface !== 'daily' || !quickReady) return;
+    try {
+      localStorage.setItem(quickDraftKey(), JSON.stringify(snapshot));
+    } catch {
+      /* Device storage is only a convenience. */
+    }
+  });
+  function addDictation(text: string): void {
+    quickText = quickText.trim() ? `${quickText.trim()} ${text}` : text;
+  }
+  function useYesterdayPlan(): void {
+    quickText = quickText.trim() ? `${quickText.trim()}\n${yesterdayPlan}` : yesterdayPlan;
+  }
+  async function postAction(action: string, body: FormData): Promise<boolean> {
+    const response = await fetch(action, {
+      method: 'POST',
+      body,
+      headers: { 'x-sveltekit-action': 'true', accept: 'application/json' },
+      credentials: 'same-origin',
+    });
+    const result = deserialize(await response.text());
+    // Show the final outcome ("submitted") instead of the intermediate draft save.
+    if (result.type === 'success') await applyAction(result);
+    return result.type === 'success';
+  }
+  async function finishQuickReport(
+    type: 'daily' | 'technical',
+    result: Record<string, unknown>,
+  ): Promise<void> {
+    const id = typeof result.reportId === 'string' ? result.reportId : '';
+    const version = Number(result.reportVersion ?? 1);
+    let submitted = result.submitted === true;
+    let notice = '';
+    try {
+      localStorage.setItem(quickProjectKey(), createProject);
+      if (type === 'daily') localStorage.removeItem(quickDraftKey());
+    } catch {
+      /* Remembering is only a convenience. */
+    }
+    if (id && quickPhotos.length) {
+      for (const [index, file] of quickPhotos.entries()) {
+        quickBusy = q('uploading', { n: index + 1, total: quickPhotos.length });
+        const body = new FormData();
+        body.set('file', file);
+        body.set('attachmentKind', type === 'daily' ? 'daily_attachment' : 'technical_attachment');
+        body.set('version', String(version));
+        const response = await fetch(
+          `${base}/app/api/reports/${encodeURIComponent(id)}/attachments`,
+          { method: 'POST', body, credentials: 'same-origin', headers: { accept: 'application/json' } },
+        ).catch(() => null);
+        if (!response?.ok) notice = q('photoFailed');
+      }
+      if (quickWantSend && !notice) {
+        quickBusy = q('sending');
+        const body = new FormData();
+        body.set('type', type);
+        body.set('id', id);
+        body.set('version', String(version));
+        submitted = await postAction(registerActionHref('submitReport', type), body).catch(
+          () => false,
+        );
+      }
+    }
+    if (!notice && quickWantSend && !submitted) notice = q('sendFailed');
+    quickBusy = '';
+    quickPhotos = [];
+    quickReady = false;
+    savedReportNotice = notice || (submitted ? q('sent') : q('draftSaved'));
+    closeSurface();
+    await invalidateAll();
+  }
+  const myReports = $derived(
+    [...records]
+      .sort((a, b) => {
+        const rank = (row: Row) => (row.approval_state === 'needs_changes' ? 0 : row.approval_state === 'draft' ? 1 : 2);
+        return rank(a) - rank(b) || rowText(b, 'date').localeCompare(rowText(a, 'date'));
+      })
+      .slice(0, 8),
+  );
+  onMount(() => {
+    const action = $page.url.searchParams.get('action');
+    if (!isAuditor && (action === 'daily' || action === 'technical') && !nativeReportSurface)
+      openCreate(action);
+  });
 
   function openGenerator(): void {
     nativeRecoveryActive = false;
@@ -1103,6 +1301,70 @@
       >
     </p>
   {/if}
+  {#if fieldWorker}
+    <header class="quick-head">
+      <p>{q('pageIntro')}</p>
+    </header>
+    {#if savedReportNotice}<p class="action-message success quick-notice" role="status" data-report-notice>
+        {savedReportNotice}
+      </p>{/if}
+    <div class="quick-actions">
+      <button
+        type="button"
+        class="quick-primary"
+        data-report-quick-daily
+        onclick={() => openCreate('daily')}>{q('writeToday')}</button
+      >
+      <button
+        type="button"
+        class="quick-secondary"
+        data-report-quick-technical
+        onclick={() => openCreate('technical')}>{q('writeTechnical')}</button
+      >
+    </div>
+    <section class="quick-list" aria-labelledby="quick-list-title">
+      <h3 id="quick-list-title">{q('myReports')}</h3>
+      {#if myReports.length === 0}
+        <p class="quick-empty">{q('noReports')}</p>
+      {:else}
+        <ul>
+          {#each myReports as row (String(row.type) + String(row.id))}
+            <li class="quick-row" data-status={rowText(row, 'approval_state')}>
+              <a class="quick-row-link" href={reportDetailHref(String(row.id))}>
+                <strong>{rowText(row, 'date')} · {reportTypeLabel(row)}</strong>
+                <span
+                  >{rowText(row, 'project_number')} · {rowText(row, 'title') ||
+                    translate('Daily field report')}</span
+                >
+              </a>
+              <span class="quick-row-side">
+                <StatusBadge
+                  variant={row.approval_state === 'approved'
+                    ? 'success'
+                    : row.approval_state === 'needs_changes'
+                      ? 'danger'
+                      : row.approval_state === 'submitted'
+                        ? 'info'
+                        : 'neutral'}
+                  text={reportStatus(row)}
+                />
+                {#if row.approval_state === 'needs_changes'}
+                  <a class="quick-fix" href={reportDetailHref(String(row.id))}>{q('openToFix')}</a>
+                {:else if canSubmitReport(row)}
+                  <form method="POST" action={registerActionHref('submitReport')} use:enhance>
+                    <input type="hidden" name="type" value={row.type} />
+                    <input type="hidden" name="id" value={row.id} />
+                    <input type="hidden" name="version" value={row.version} />
+                    <button type="submit" class="quick-send">{q('send')}</button>
+                  </form>
+                {/if}
+              </span>
+            </li>
+          {/each}
+        </ul>
+      {/if}
+    </section>
+  {:else}
   <header class="report-page-context">
     <div>
       <p class="report-page-eyebrow">{translate('Operations / reports')}</p>
@@ -1176,7 +1438,9 @@
       <small>{translate('Period confirmations in scope')}</small>
     </a>
   </div>
+  {/if}
 
+  {#snippet registerBlock()}
   <div
     id="report-quick-links"
     class="report-tab-list"
@@ -1705,6 +1969,15 @@
   <a class="report-register-back" href="#report-quick-links">
     {workRound2Text(reportLocale, 'reportBackToShortcuts')}
   </a>
+  {/snippet}
+  {#if fieldWorker}
+    <details class="quick-older">
+      <summary>{q('olderReports')}</summary>
+      {@render registerBlock()}
+    </details>
+  {:else}
+    {@render registerBlock()}
+  {/if}
 
   {#if canGeneratePeriodReports}
     <details class="report-generator">
@@ -1881,10 +2154,14 @@
     ? translate('New technical report')
     : surface === 'generate'
       ? translate('Refresh period reports')
-      : translate('New daily report')}
+      : fieldWorker
+        ? q('formTitle')
+        : translate('New daily report')}
   description={surface === 'generate'
     ? translate('Authorized Finance / Owner action for reviewed period records.')
-    : translate('Operational report entry. Record what happened in the field.')}
+    : fieldWorker && surface === 'daily'
+      ? q('formDescription')
+      : translate('Operational report entry. Record what happened in the field.')}
   closeLabel={translate('Close report form')}
   class="report-entry-sheet"
   onclose={closeSurface}
@@ -1923,7 +2200,196 @@
       {surfaceError}
     </p>
   {/if}
-  {#if surface === 'daily'}
+  {#if surface === 'daily' && fieldWorker}
+    <form
+      method="POST"
+      action={registerActionHref('createDailyReport', 'daily')}
+      class="report-entry-form report-form quick-form"
+      data-report-entry-surface="daily"
+      data-report-quick-form
+      data-assistant-target="report-daily"
+      use:dirtyFormGuard
+      aria-busy={saving || Boolean(quickBusy)}
+      use:operationalFieldValidation
+      use:enhance={submitReport}
+      onsubmit={(event) => {
+        void handleOfflineDraft(event, 'daily_report');
+      }}
+    >
+      {#if emptyProjectProblem}
+        <ProblemNotice
+          problem={emptyProjectProblem}
+          kind="error"
+          remedyLinks={{
+            contact_project_owner: {
+              label: translate('Contact the project owner to review access.'),
+            },
+          }}
+        />
+      {/if}
+      {#if quickRestored}<p class="quick-hint" role="status">{q('restored')}</p>{/if}
+      <div class="quick-facts">
+        {#if availableProjects.length > 1 || !createProject}
+          <label class="quick-field">
+            <span>{q('project')}</span>
+            <select name="projectId" required bind:value={createProject}>
+              <option value="">{translate('Select assignment')}</option>
+              {#each availableProjects as project (project.id)}
+                <option value={String(project.id)}>{project.project_number} — {project.name}</option>
+              {/each}
+            </select>
+          </label>
+        {:else}
+          <input type="hidden" name="projectId" value={createProject} />
+          <p class="quick-fact">
+            <span>{q('project')}</span>
+            <strong>{visibleReportProjectName(createProject)}</strong>
+          </p>
+        {/if}
+        {#if quickDateEdit}
+          <label class="quick-field">
+            <span>{q('date')}</span>
+            <input name="workDate" type="date" required bind:value={createDate} />
+          </label>
+        {:else}
+          <input type="hidden" name="workDate" value={createDate} />
+          <p class="quick-fact">
+            <span>{q('date')}</span>
+            <strong
+              >{new Date(`${createDate}T12:00:00Z`).toLocaleDateString(
+                reportLocale === 'pt' ? 'pt-BR' : reportLocale === 'es' ? 'es-ES' : 'en-US',
+                { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' },
+              )}</strong
+            >
+            <button type="button" class="quick-link" onclick={() => (quickDateEdit = true)}
+              >{q('changeDate')}</button
+            >
+          </p>
+        {/if}
+        <p class="quick-fact quick-hours" data-report-quick-hours>
+          {#if quickHours > 0}
+            {q('loggedHours', { hours: decimalHoursFromMinutes(quickHours) })}
+          {:else}
+            {q('noHours')}
+            <a class="quick-link" href={`${base}/app/time?focus=hours&lang=${reportLocale}`}
+              >{q('logHours')}</a
+            >
+          {/if}
+        </p>
+      </div>
+      <input type="hidden" name="summary" value={quickSummary} />
+      <label class="quick-field">
+        <span>{q('whatDid')}</span>
+        <textarea
+          name="tasksCompleted"
+          required
+          rows="4"
+          maxlength="5000"
+          bind:value={quickText}
+          data-report-quick-text
+        ></textarea>
+        <small>{q('whatDidHint')}</small>
+      </label>
+      <div class="quick-tools">
+        <LocalDictation locale={reportLocale} onText={addDictation} />
+        {#if yesterdayPlan && !quickText.includes(yesterdayPlan)}
+          <button type="button" class="quick-chip" onclick={useYesterdayPlan} data-report-use-plan
+            >{q('useYesterdayPlan')}</button
+          >
+          <small class="quick-hint">{q('yesterdayPlan', { text: yesterdayPlan.slice(0, 140) })}</small>
+        {/if}
+      </div>
+      <label class="quick-field">
+        <span>{q('openItems')} <em>({q('optional')})</em></span>
+        <textarea name="openItems" rows="2" maxlength="3000" bind:value={quickOpenItems}></textarea>
+        {#if quickCarried}<small>{q('carried')}</small>{/if}
+      </label>
+      <label class="quick-field">
+        <span>{q('plan')} <em>({q('optional')})</em></span>
+        <textarea name="nextDayPlan" rows="2" maxlength="3000" bind:value={quickPlan}></textarea>
+      </label>
+      <div class="quick-field">
+        <span>{q('photos')} <em>({q('optional')})</em></span>
+        <label class="quick-photo">
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            data-report-quick-photos
+            onchange={(event) => {
+              quickPhotos = [...quickPhotos, ...Array.from(event.currentTarget.files ?? [])].slice(0, 10);
+              event.currentTarget.value = '';
+            }}
+          />
+          <span>{q('addPhotos')}</span>
+        </label>
+        {#if quickPhotos.length}
+          <small role="status">{q('photoCount', { n: quickPhotos.length })}</small>
+          <button type="button" class="quick-link" onclick={() => (quickPhotos = [])}
+            >{q('removePhotos')}</button
+          >
+        {/if}
+      </div>
+      <details class="quick-more">
+        <summary>{q('more')} <em>({q('optional')})</em></summary>
+        <label class="quick-field"
+          ><span>{translate('Site / shift')}</span><input
+            name="siteShift"
+            maxlength="160"
+            bind:value={quickSite}
+          /></label
+        >
+        <label class="quick-field"
+          ><span>{translate('Problems found')}</span><textarea name="problemsFound" rows="2"
+          ></textarea></label
+        >
+        <label class="quick-field"
+          ><span>{translate('Corrective actions')}</span><textarea
+            name="correctiveActions"
+            rows="2"
+          ></textarea></label
+        >
+        <label class="quick-field"
+          ><span>{translate('Downtime (hours)')}</span><DecimalHoursInput
+            name="downtimeMinutes"
+            value="0"
+            label={translate('Downtime (hours)')}
+            minMinutes={0}
+            maxMinutes={1440}
+            invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+          /></label
+        >
+        <label class="quick-field"
+          ><span>{translate('Standby reason')}</span><input name="standbyReason" /></label
+        >
+        <label class="report-check"
+          ><input name="safetyRelated" type="checkbox" />
+          <span>{translate('Safety-related change')}</span></label
+        >
+      </details>
+      {#if quickBusy}<p class="quick-hint" role="status">{quickBusy}</p>{/if}
+      <div class="quick-submit">
+        <button
+          type="submit"
+          class="quick-primary"
+          name="submitNow"
+          value={quickPhotos.length ? 'after' : 'on'}
+          disabled={saving || Boolean(quickBusy)}
+          data-report-quick-submit
+          onclick={() => (quickWantSend = true)}
+          >{saving || quickBusy ? q('sending') : q('submit')}</button
+        >
+        <button
+          type="submit"
+          class="quick-secondary"
+          disabled={saving || Boolean(quickBusy)}
+          data-report-quick-draft
+          onclick={() => (quickWantSend = false)}>{q('saveDraft')}</button
+        >
+      </div>
+      <small class="quick-hint">{q('autosaved')}</small>
+    </form>
+  {:else if surface === 'daily'}
     <form
       method="POST"
       action={registerActionHref('createDailyReport', 'daily')}
@@ -2164,6 +2630,7 @@
           }}
         />
       {/if}
+      {#if !fieldWorker}
       <div class="report-entry-intro">
         <strong>{translate('Document the technical change')}</strong>
         <span
@@ -2189,6 +2656,7 @@
           >{workRound2Text(reportLocale, 'reportTechnicalHandover')}</a
         >
       </nav>
+      {/if}
       <fieldset class="report-entry-group" id="technical-report-equipment">
         <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupProject')}</legend>
         <label id="technical-report-project" tabindex="-1">
@@ -2269,6 +2737,8 @@
             </p>
           {/if}
         {/if}
+        <details class="quick-more" open={!fieldWorker}>
+        <summary>{q('techMore')} <em>({q('optional')})</em></summary>
         <div
           class="report-entry-grid report-entry-grid-three"
           id="technical-report-controls"
@@ -2335,6 +2805,7 @@
             value={restoredReportValue('programReference')}
           /></label
         >
+        </details>
       </fieldset>
       <fieldset class="report-entry-group" id="technical-report-diagnosis-group">
         <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupDiagnosis')}</legend>
@@ -2362,6 +2833,20 @@
       </fieldset>
       <fieldset class="report-entry-group" id="technical-report-validation-group">
         <legend>{workRound2Text(reportLocale, 'reportTechnicalGroupValidation')}</legend>
+        <label class="report-check report-check-warning">
+          <input
+            name="safetyRelated"
+            type="checkbox"
+            bind:checked={techSafety}
+          />
+          <span
+            >{translate(
+              'Safety impact: technical lead review, validation and rollback detail required',
+            )}</span
+          >
+        </label>
+        <details class="quick-more" open={!fieldWorker || techSafety}>
+        <summary>{q('techValidation')} <small>{q('techValidationHint')}</small></summary>
         <div class="report-entry-grid" id="technical-report-validation" tabindex="-1">
           <label
             ><span>{translate('Validation performed')}</span><textarea name="validation"
@@ -2386,27 +2871,37 @@
             ></label
           >
         </div>
-        <label class="report-check report-check-warning">
-          <input
-            name="safetyRelated"
-            type="checkbox"
-            checked={restoredReportValue('safetyRelated') === 'on'}
-          />
-          <span
-            >{translate(
-              'Safety impact: technical lead review, validation and rollback detail required',
-            )}</span
-          >
-        </label>
+        </details>
       </fieldset>
-      <div class="report-entry-actions">
-        <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
-          >{translate('Cancel')}</button
-        >
-        <button type="submit" disabled={saving}
-          >{translate(saving ? 'Saving…' : 'Save PLC report')}</button
-        >
-      </div>
+      {#if fieldWorker}
+        <div class="quick-submit">
+          <button
+            type="submit"
+            class="quick-primary"
+            name="submitNow"
+            value="on"
+            disabled={saving || Boolean(quickBusy)}
+            data-report-technical-submit
+            onclick={() => (quickWantSend = true)}
+            >{saving || quickBusy ? q('sending') : q('submit')}</button
+          >
+          <button
+            type="submit"
+            class="quick-secondary"
+            disabled={saving || Boolean(quickBusy)}
+            onclick={() => (quickWantSend = false)}>{q('saveDraft')}</button
+          >
+        </div>
+      {:else}
+        <div class="report-entry-actions">
+          <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
+            >{translate('Cancel')}</button
+          >
+          <button type="submit" disabled={saving}
+            >{translate(saving ? 'Saving…' : 'Save PLC report')}</button
+          >
+        </div>
+      {/if}
     </form>
   {:else if surface === 'generate' && canGeneratePeriodReports}
     <form
@@ -2530,6 +3025,219 @@
 </ResponsiveSheet>
 
 <style>
+  /* ---- Worker quick report ---- */
+  .quick-head p {
+    margin: 0;
+    color: var(--ja-text-secondary, #5b6573);
+  }
+  .quick-actions,
+  .quick-submit {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .quick-actions,
+  .quick-head,
+  .quick-list,
+  .quick-older {
+    max-width: 40rem;
+  }
+  .quick-primary,
+  .quick-secondary {
+    min-height: 3.25rem;
+    width: 100%;
+    border-radius: 0.75rem;
+    font-size: 1.05rem;
+    font-weight: 700;
+  }
+  .quick-primary {
+    background: var(--ja-red, #b42318);
+    border: 1px solid var(--ja-red, #b42318);
+    color: #fff;
+  }
+  .quick-secondary {
+    background: var(--ja-surface, #fff);
+    border: 1px solid var(--ja-border-strong, #b9b9b3);
+    color: var(--ja-text-primary, #24251f);
+  }
+  .quick-list h3 {
+    margin: 0.5rem 0;
+    font-size: 1.05rem;
+  }
+  .quick-list ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .quick-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    padding: 0.7rem 0.85rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.75rem;
+    background: var(--ja-surface, #fff);
+  }
+  .quick-row[data-status='needs_changes'] {
+    border-color: var(--ja-red, #b42318);
+  }
+  .quick-row-link {
+    display: grid;
+    gap: 0.15rem;
+    min-height: 44px;
+    flex: 1 1 12rem;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+  }
+  .quick-row-link span {
+    color: var(--ja-text-secondary, #5b6573);
+    font-size: 0.9rem;
+  }
+  .quick-row-side {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .quick-row-side form {
+    margin: 0;
+  }
+  .quick-send,
+  .quick-fix {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 0.6rem;
+    font-weight: 700;
+  }
+  .quick-fix {
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    text-decoration: none;
+  }
+  .quick-empty,
+  .quick-hint {
+    margin: 0;
+    color: var(--ja-text-secondary, #5b6573);
+    font-size: 0.9rem;
+  }
+  .quick-older {
+    margin-top: 0.5rem;
+  }
+  .quick-older > summary,
+  .quick-more > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 44px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+  .quick-more {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.25rem 0.85rem 0.75rem;
+    border: 1px solid var(--ja-border, #e1e1de);
+    border-radius: 0.75rem;
+  }
+  .quick-more em,
+  .quick-field em {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--ja-text-secondary, #5b6573);
+  }
+  .quick-form {
+    display: grid;
+    gap: 1rem;
+  }
+  .quick-facts {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 0.75rem;
+    background: var(--ja-surface-subtle, #f4f4f2);
+  }
+  .quick-fact {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.6rem;
+    margin: 0;
+  }
+  .quick-fact > span {
+    min-width: 4.5rem;
+    color: var(--ja-text-secondary, #5b6573);
+  }
+  .quick-hours {
+    font-weight: 600;
+  }
+  .quick-field {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .quick-field > span {
+    font-weight: 700;
+  }
+  .quick-field textarea,
+  .quick-field input,
+  .quick-field select {
+    min-height: 3rem;
+    font-size: 1rem;
+  }
+  .quick-link,
+  .quick-link:hover {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 0.25rem;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    color: var(--ja-link, #1f5f8b);
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .quick-tools {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .quick-chip {
+    justify-self: start;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 999px;
+    border: 1px solid var(--ja-border-strong, #b9b9b3);
+    background: var(--ja-surface, #fff);
+    font-weight: 700;
+  }
+  .quick-form .quick-photo {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 3.5rem;
+    border: 2px dashed var(--ja-control-border-strong, #8a8a84);
+    border-radius: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .quick-photo input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .quick-photo:focus-within {
+    outline: 3px solid var(--ja-focus-ring, #1f5f8b);
+    outline-offset: 2px;
+  }
   .operational-form-error {
     color: var(--ja-red-dark, #8f1d14);
     padding: 0.75rem 0;

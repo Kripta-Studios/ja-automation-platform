@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import type { DatabaseSync } from 'node:sqlite';
 import {
   AssignmentExpensePolicyRepository,
   CrewLeaderRepository,
@@ -34,6 +35,47 @@ import {
   visibleProjectRecords,
 } from '$lib/portal/project-visibility';
 import { clientCalendarWindow, normalizeCalendarMonth } from '$lib/portal/client-work-calendar';
+
+/** Own recent hours and last daily report, used to prefill a new daily report. */
+function ownReportPrefill(
+  sqlite: DatabaseSync,
+  userId: string,
+  visible: ReadonlySet<string>,
+) {
+  const since = new Date(Date.now() - 8 * 86_400_000).toISOString().slice(0, 10);
+  const recentTime = (
+    sqlite
+      .prepare(
+        `SELECT project_id projectId, work_date workDate, SUM(minutes) minutes
+           FROM time_entry
+          WHERE worker_id=? AND work_date>=? AND approval_state<>'void'
+          GROUP BY project_id, work_date
+          ORDER BY work_date DESC`,
+      )
+      .all(userId, since) as unknown as Array<{ projectId: string; workDate: string; minutes: number }>
+  )
+    .filter((row) => visible.has(String(row.projectId)))
+    .map((row) => ({ ...row, minutes: Number(row.minutes) }));
+  const last = (
+    sqlite
+      .prepare(
+        `SELECT project_id projectId, work_date workDate, COALESCE(site_shift,'') siteShift,
+                COALESCE(open_items,'') openItems, COALESCE(next_day_plan,'') nextDayPlan
+           FROM daily_report
+          WHERE worker_id=? AND approval_state<>'void'
+          ORDER BY work_date DESC, created_at DESC
+          LIMIT 5`,
+      )
+      .all(userId) as unknown as Array<{
+      projectId: string;
+      workDate: string;
+      siteShift: string;
+      openItems: string;
+      nextDayPlan: string;
+    }>
+  ).find((row) => visible.has(String(row.projectId)));
+  return { recentTime, lastDaily: last ?? null };
+}
 
 const sections = [
   'time',
@@ -346,6 +388,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 )
               : [],
           projects: scope.projects,
+          reportPrefill: ownReportPrefill(context.sqlite, context.principal.userId, scope.projectIds),
           records: visibleProjectRecords(
             context.repository.listOwnReports(context.principal),
             scope.projectIds,

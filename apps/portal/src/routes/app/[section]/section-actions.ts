@@ -84,6 +84,7 @@ export const sectionActions: Actions = {
   changeMailboxRole: accessActions.changeMailboxRole,
   deprovisionMailboxUser: accessActions.deprovisionMailboxUser,
   updateMailboxPassword: accessActions.updateMailboxPassword,
+  resetUserPassword: accessActions.resetUserPassword,
   destroyMailboxAccount: accessActions.destroyMailboxAccount,
   updateUserStatus: accessActions.updateUserStatus,
   updateWorkerProfile: accessActions.updateWorkerProfile,

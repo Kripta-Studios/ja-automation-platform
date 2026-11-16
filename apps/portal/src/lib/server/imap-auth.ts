@@ -28,6 +28,19 @@ function enabledFromEnvironment(): boolean {
   return process.env.JA_MAIL_AUTH_ENABLED?.trim().toLowerCase() === 'true';
 }
 
+/** True when the portal must authenticate linked mailbox users against Stalwart. */
+export function isMailAuthEnabled(): boolean {
+  return enabledFromEnvironment();
+}
+
+/**
+ * - `accepted`: Stalwart accepted the credentials.
+ * - `rejected`: Stalwart answered NO/BAD, or the input can never be valid.
+ * - `unavailable`: no definitive answer (TLS/network failure, timeout, BYE).
+ * - `disabled`: delegated mail authentication is switched off.
+ */
+export type ImapCredentialOutcome = 'accepted' | 'rejected' | 'unavailable' | 'disabled';
+
 function validHost(value: string): boolean {
   return value.length > 0 && value.length <= 253 && !/[\s\0\r\n]/u.test(value);
 }
@@ -53,9 +66,18 @@ export async function verifyImapCredentials(
   password: string,
   config: ImapAuthConfig = {},
 ): Promise<boolean> {
-  if (!(config.enabled ?? enabledFromEnvironment())) return false;
+  return (await checkImapCredentials(emailInput, password, config)) === 'accepted';
+}
+
+/** Like verifyImapCredentials, but distinguishes a rejection from an outage. */
+export async function checkImapCredentials(
+  emailInput: string,
+  password: string,
+  config: ImapAuthConfig = {},
+): Promise<ImapCredentialOutcome> {
+  if (!(config.enabled ?? enabledFromEnvironment())) return 'disabled';
   const email = normalizeCorporateEmail(emailInput);
-  if (!email || !password || password.length > 128 || /[\0\r\n]/u.test(password)) return false;
+  if (!email || !password || password.length > 128 || /[\0\r\n]/u.test(password)) return 'rejected';
 
   const host = config.host ?? process.env.JA_IMAP_HOST ?? 'mx1.j-aautomation.com';
   const port = config.port ?? Number(process.env.JA_IMAP_PORT ?? 993);
@@ -74,24 +96,24 @@ export async function verifyImapCredentials(
     timeoutMs > 30_000 ||
     (process.env.NODE_ENV === 'production' && !rejectUnauthorized)
   )
-    return false;
+    return 'unavailable';
 
   let ca: string | Buffer | undefined;
   try {
     ca = await resolveCa(config);
   } catch {
-    return false;
+    return 'unavailable';
   }
 
-  return new Promise<boolean>((resolve) => {
+  return new Promise<ImapCredentialOutcome>((resolve) => {
     let socket: ImapSocket | undefined;
     let settled = false;
     let state: 'greeting' | 'login' = 'greeting';
     let buffer = '';
-    const abort = () => finish(false);
-    const timer = setTimeout(() => finish(false), timeoutMs);
+    const abort = () => finish('unavailable');
+    const timer = setTimeout(() => finish('unavailable'), timeoutMs);
 
-    function finish(result: boolean) {
+    function finish(result: ImapCredentialOutcome) {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
@@ -101,7 +123,7 @@ export async function verifyImapCredentials(
     }
 
     config.signal?.addEventListener('abort', abort, { once: true });
-    if (config.signal?.aborted) return finish(false);
+    if (config.signal?.aborted) return finish('unavailable');
 
     try {
       const connect = config.connect ?? ((options, listener) => tls.connect(options, listener));
@@ -110,21 +132,21 @@ export async function verifyImapCredentials(
         () => {},
       );
       socket.setTimeout(timeoutMs);
-      socket.once('timeout', () => finish(false));
-      socket.once('error', () => finish(false));
-      socket.once('close', () => finish(false));
+      socket.once('timeout', () => finish('unavailable'));
+      socket.once('error', () => finish('unavailable'));
+      socket.once('close', () => finish('unavailable'));
       socket.on('data', (chunk: Buffer | string) => {
         if (settled) return;
         buffer += chunk.toString();
-        if (Buffer.byteLength(buffer, 'utf8') > MAX_RESPONSE_BYTES) return finish(false);
+        if (Buffer.byteLength(buffer, 'utf8') > MAX_RESPONSE_BYTES) return finish('unavailable');
 
         let boundary = buffer.indexOf('\r\n');
         while (boundary >= 0 && !settled) {
           const line = buffer.slice(0, boundary);
           buffer = buffer.slice(boundary + 2);
-          if (/^\* BYE(?:\s|$)/iu.test(line)) return finish(false);
+          if (/^\* BYE(?:\s|$)/iu.test(line)) return finish('unavailable');
           if (state === 'greeting') {
-            if (!/^\* OK(?:\s|$)/iu.test(line)) return finish(false);
+            if (!/^\* OK(?:\s|$)/iu.test(line)) return finish('unavailable');
             state = 'login';
             socket?.write(`${IMAP_TAG} LOGIN ${quoteImap(email)} ${quoteImap(password)}\r\n`);
           } else {
@@ -136,15 +158,15 @@ export async function verifyImapCredentials(
               } catch {
                 // Authentication succeeded; cleanup remains best effort.
               }
-              return finish(true);
+              return finish('accepted');
             }
-            if (tagged) return finish(false);
+            if (tagged) return finish('rejected');
           }
           boundary = buffer.indexOf('\r\n');
         }
       });
     } catch {
-      finish(false);
+      finish('unavailable');
     }
   });
 }

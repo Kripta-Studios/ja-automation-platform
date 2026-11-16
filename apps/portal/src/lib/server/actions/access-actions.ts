@@ -18,7 +18,14 @@ import {
   StalwartOperationRejectedError,
   StalwartUnavailableError,
 } from '$lib/server/stalwart-client';
-import { hashPortalPassword } from '$lib/server/webmail-password';
+import {
+  hashPortalPassword,
+  isAcceptablePortalPassword,
+  passwordChangeProblem,
+  resetUserPassword,
+  type PasswordChangeFailureCode,
+} from '$lib/server/webmail-password';
+import { normalizeAccessEmail } from '$lib/portal/access-email';
 
 const knownAccessRules: Readonly<
   Record<
@@ -739,7 +746,11 @@ function requireOwner(event: PortalActionEvent): ReturnType<typeof actionFail> |
   return null;
 }
 
-type TeamActionName = 'setWorkforceProfile' | 'updateUserStatus' | 'createLocalPortalUser';
+type TeamActionName =
+  | 'setWorkforceProfile'
+  | 'updateUserStatus'
+  | 'createLocalPortalUser'
+  | 'resetUserPassword';
 
 function teamSessionFailure(
   actionName: TeamActionName,
@@ -997,7 +1008,9 @@ export const accessActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const name = typeof object.name === 'string' ? object.name : '';
-    const email = typeof object.email === 'string' ? object.email : '';
+    // "juan.perez" means "juan.perez@j-aautomation.com" (same rule as the live preview).
+    const email = normalizeAccessEmail(object.email);
+    if (typeof object.email === 'string') object.email = email;
     const password = typeof object.password === 'string' ? object.password : '';
     const accessRole = typeof object.role === 'string' ? object.role : '';
     const createMailbox = object.createMailbox === 'on';
@@ -1224,12 +1237,83 @@ export const accessActions = {
       context.sqlite.close();
     }
   },
+  resetUserPassword: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request).catch(() => null);
+    const userId = typeof object?.userId === 'string' ? object.userId.slice(0, 64) : '';
+    // Password bytes are opaque: never trim or normalize them.
+    const password = typeof object?.password === 'string' ? object.password : '';
+    const values = { userId };
+    const denied = teamAuthorizationFailure(event, 'resetUserPassword', values);
+    if (denied) return denied;
+    const fail = (code: PasswordChangeFailureCode) => {
+      const problem = passwordChangeProblem(code);
+      return actionFail(problem.status, problem.key, {}, problem.message, {
+        code: problem.code,
+        actionName: 'resetUserPassword',
+        values,
+        fieldErrors: problem.field ? { [problem.field]: [problem.key] } : {},
+        remedies: [{ id: 'review_user_access' }],
+        correlationId: locals.correlationId,
+      });
+    };
+    if (!uuidSchema.safeParse(userId).success) return fail('USER_NOT_FOUND');
+    if (!isAcceptablePortalPassword(password)) return fail('PASSWORD_INVALID');
+    let context: ReturnType<typeof openPortalRepository>;
+    try {
+      context = openPortalRepository(locals);
+    } catch (error) {
+      return (
+        knownTeamAuthorizationFailure(error, 'resetUserPassword', values, locals.correlationId) ??
+        actionFailure(error, {
+          correlationId: locals.correlationId,
+          actionName: 'resetUserPassword',
+          values,
+        })
+      );
+    }
+    try {
+      if (context.principal.role !== 'owner_admin')
+        return teamOwnerFailure('resetUserPassword', values, locals.correlationId);
+      assertLiveSession(context.sqlite, context.principal, AccessDeniedError);
+      const result = await resetUserPassword(context.sqlite, {
+        actorId: context.principal.userId,
+        targetUserId: userId,
+        newPassword: password,
+        correlationId: locals.correlationId,
+      });
+      if (!result.ok) return fail(result.code);
+      return actionSuccess(
+        result.linkedMailbox
+          ? 'action.access.password.reset'
+          : 'action.access.password.resetPortal',
+        { userId },
+        result.linkedMailbox
+          ? 'New password saved for the portal and Webmail. The person was signed out everywhere.'
+          : 'New portal password saved. The person was signed out everywhere.',
+      );
+    } catch (error) {
+      return (
+        knownTeamAuthorizationFailure(error, 'resetUserPassword', values, locals.correlationId) ??
+        actionFailure(error, {
+          actionName: 'resetUserPassword',
+          values,
+          correlationId: locals.correlationId,
+        })
+      );
+    } finally {
+      context.sqlite.close();
+    }
+  },
   createInvitation: async (event: PortalActionEvent) => {
     const { locals, request, params } = event;
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request).catch(() => null);
     if (!object) return directoryFormFailure('createInvitation', locals.correlationId);
+    if (typeof object.email === 'string') object.email = normalizeAccessEmail(object.email);
     const values = {
       email: String(object.email ?? ''),
       role: String(object.role ?? ''),

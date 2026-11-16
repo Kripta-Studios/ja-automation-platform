@@ -42,7 +42,7 @@ describe('Owner mailbox directory UI contract', () => {
     expect(source).toContain('Type the exact email to confirm');
     expect(source).toContain('Permanent external action.');
     expect(source).toMatch(/mailbox-delete-confirm-[\s\S]*?type="text"/);
-    expect(source).toContain('Stalwart validates and stores this password.');
+    expect(source).toContain('Sets one new password for both the portal and Webmail.');
     expect(source).toContain('formElement.reset()');
     expect(source).toContain('Credentials and password hashes are never sent to the browser.');
     expect(source).not.toMatch(/name=["'](?:hash|passwordHash|credentials)["']/i);

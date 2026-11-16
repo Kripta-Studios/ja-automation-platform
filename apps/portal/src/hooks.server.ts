@@ -13,9 +13,9 @@ import type { Handle } from '@sveltejs/kit';
 import { documentLanguage, portalText, type PortalLocale } from '$lib/portal-i18n';
 import type { ProblemData } from '$lib/problem/contract';
 import {
-  isWebmailOnlyUser,
-  webmailOnlyUserIdForEmail,
-  webmailOnlyUserIdForResetToken,
+  isLinkedMailUser,
+  linkedMailUserIdForEmail,
+  linkedMailUserIdForResetToken,
 } from '$lib/server/webmail-password';
 
 function normalizeBasePath(value: string | undefined, fallback: string): string {
@@ -274,13 +274,13 @@ async function denyWebmailPasswordMutation(
   const suffix = event.url.pathname.slice(`${portalBase}/api/auth`.length);
   if (suffix === '/change-password' || suffix === '/set-password') {
     const session = await auth.api.getSession({ headers: event.request.headers });
-    if (!session?.user?.id || !isWebmailOnlyUser(session.user.id)) return null;
+    if (!session?.user?.id || !isLinkedMailUser(session.user.id)) return null;
   } else if (suffix === '/request-password-reset') {
     const body = (await event.request
       .clone()
       .json()
       .catch(() => null)) as { email?: unknown } | null;
-    if (typeof body?.email !== 'string' || !webmailOnlyUserIdForEmail(body.email)) return null;
+    if (typeof body?.email !== 'string' || !linkedMailUserIdForEmail(body.email)) return null;
   } else if (suffix === '/reset-password') {
     const body = (await event.request
       .clone()
@@ -288,7 +288,7 @@ async function denyWebmailPasswordMutation(
       .catch(() => null)) as { token?: unknown } | null;
     const token =
       typeof body?.token === 'string' ? body.token : event.url.searchParams.get('token');
-    if (!token || !webmailOnlyUserIdForResetToken(token)) return null;
+    if (!token || !linkedMailUserIdForResetToken(token)) return null;
   } else return null;
 
   return new Response(
@@ -299,7 +299,7 @@ async function denyWebmailPasswordMutation(
         })
       : JSON.stringify({
           code: 'WEBMAIL_PASSWORD_MANAGED_EXTERNALLY',
-          message: 'Password changes for this account are managed by Webmail.',
+          message: 'Change this password from your portal profile; it updates Webmail too.',
         }),
     {
       status: suffix === '/request-password-reset' ? 200 : 403,
@@ -324,6 +324,9 @@ export const handle: Handle = async ({ event, resolve }) => {
   const isAuth = path.startsWith(`${portalBase}/api/auth/`);
   if (!building && isPortal) revokeExpiredTemporaryOwnerSessions();
   const isInvitationAccept = path === `${portalBase}/api/invitations/accept`;
+  // The profile password form verifies the current password, so it shares the
+  // authentication rate limit.
+  const isPasswordChange = path === `${portalBase}/profile/password`;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
       new Response(JSON.stringify({ error: 'A valid single-use invitation is required.' }), {
@@ -361,7 +364,7 @@ export const handle: Handle = async ({ event, resolve }) => {
     }
   }
   if (
-    (isAuth || isInvitationAccept) &&
+    (isAuth || isInvitationAccept || isPasswordChange) &&
     event.request.method !== 'GET' &&
     event.request.method !== 'HEAD'
   ) {

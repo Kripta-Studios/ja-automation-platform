@@ -26,6 +26,7 @@
     reportFormFieldErrors,
   } from '../ui';
   import type { PortalActionResult, PortalRow } from '../portal-data';
+  import { generateAccessPassword, isCompanyEmail, normalizeAccessEmail } from '../access-email';
 
   const CORPORATE_DOMAIN = '@j-aautomation.com';
   const OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
@@ -163,6 +164,70 @@
   let localNotes = $state('');
   let localSupplierId = $state('');
   let revealPassword = $state(false);
+  let localPassword = $state('');
+  let inviteEmail = $state('');
+  const normalizedLocalEmail = $derived(normalizeAccessEmail(localEmail));
+  const normalizedInviteEmail = $derived(normalizeAccessEmail(inviteEmail));
+  const localEmailIsCompany = $derived(
+    Boolean(normalizedLocalEmail) && isCompanyEmail(normalizedLocalEmail),
+  );
+  const localCreatesMailbox = $derived(localEmailIsCompany && localCreateMailbox);
+  const accessRoleChoices = [
+    {
+      value: 'worker',
+      label: 'Worker',
+      help: 'Records time, expenses and reports on assigned projects.',
+    },
+    {
+      value: 'project_manager',
+      label: 'Project Manager',
+      help: 'Plans projects and reviews the team’s work.',
+    },
+    {
+      value: 'finance_admin',
+      label: 'Finance Admin',
+      help: 'Invoices, payments and accounting.',
+    },
+    {
+      value: 'auditor_read_only',
+      label: 'Auditor (Read Only)',
+      help: 'Can see records but cannot change anything.',
+    },
+    {
+      value: 'external_technician',
+      label: 'External technician',
+      help: 'Supplier staff who record time on assigned projects.',
+    },
+    {
+      value: 'supplier_coordinator',
+      label: 'Supplier coordinator',
+      help: 'Manages a supplier’s people and their work.',
+    },
+  ] as const;
+  function generateLocalPassword(): void {
+    localPassword = generateAccessPassword();
+    revealPassword = true;
+  }
+  // Owner password reset inside "Edit team member".
+  let resetPasswordValue = $state<Record<string, string>>({});
+  let resetPasswordReveal = $state<Record<string, boolean>>({});
+  const resetPasswordSuccess = $derived.by(() => {
+    const candidate = form as unknown as Record<string, unknown> | null | undefined;
+    const payload = (
+      candidate?.data && typeof candidate.data === 'object' ? candidate.data : candidate
+    ) as Record<string, unknown> | null | undefined;
+    const key = typeof payload?.messageKey === 'string' ? payload.messageKey : '';
+    const params = payload?.messageParams as Record<string, unknown> | undefined;
+    return payload?.success === true && key.startsWith('action.access.password.reset')
+      ? { key, userId: typeof params?.userId === 'string' ? params.userId : '' }
+      : null;
+  });
+  const resetPasswordDoneFor = $derived(resetPasswordSuccess?.userId ?? '');
+  const resetPasswordDoneKey = $derived(resetPasswordSuccess?.key ?? '');
+  $effect(() => {
+    const done = resetPasswordSuccess?.userId;
+    if (done) untrack(() => (resetPasswordValue[done] = ''));
+  });
   let showAll = $state(false);
   let editingWorkerId = $derived<string | null>($page.url.searchParams.get('worker'));
   let selectedWorkforceProfiles = $state<Record<string, string>>({});
@@ -1034,7 +1099,7 @@
               <h2 id="team-create-user-title">{translate('Create user access')}</h2>
               <p>
                 {translate(
-                  'Choose an invitation or set local credentials yourself. Assign project access after creating the account.',
+                  'Add a person with an email or username and a password. Assign projects afterwards.',
                 )}
               </p>
             </div>
@@ -1048,13 +1113,6 @@
             >
           </div>
           {#if creatingUser}
-            <label
-              ><span>{translate('Access method')}</span><select bind:value={createLocal}
-                ><option value={true}>{translate('Set email and password')}</option><option
-                  value={false}>{translate('Invitation link')}</option
-                ></select
-              ></label
-            >
             {#if createLocal}
               <form
                 method="POST"
@@ -1067,95 +1125,53 @@
                 use:formValidation
               >
                 <label
-                  >{translate('Existing person (optional)')}<select
-                    name="existingUserId"
-                    value={existingUserId}
-                    onchange={(event) =>
-                      selectExistingPerson((event.currentTarget as HTMLSelectElement).value)}
-                  >
-                    <option value="">{translate('Create a new person')}</option>
-                    {#each existingUserCandidates as worker}<option value={workerId(worker)}
-                        >{workerName(worker)} · {value(worker, 'email') ||
-                          translate('email required')}</option
-                      >{/each}
-                  </select></label
-                >
-                <p>
-                  {translate(
-                    'Choose an existing supplier person or team member to add credentials without duplicating their directory record.',
-                  )}
-                </p>
-                <label
-                  >{translate('Name')}<input
+                  >{translate('Full name')}<input
                     name="name"
                     bind:value={localName}
                     minlength="2"
                     maxlength="160"
+                    autocomplete="off"
                     required
                   /></label
                 >
                 <label
-                  >{translate('Email')}<input
+                  >{translate('Email or username')}<input
                     name="email"
-                    type="email"
+                    type="text"
+                    inputmode="email"
+                    autocapitalize="none"
+                    spellcheck="false"
                     bind:value={localEmail}
+                    placeholder="juan.perez"
+                    aria-describedby="local-email-preview"
                     required
-                  /></label
-                >
-                <label class="team-directory__mailbox-choice">
-                  <input
-                    type="checkbox"
-                    name="createMailbox"
-                    bind:checked={localCreateMailbox}
-                    aria-describedby="local-mailbox-help"
-                  />
-                  <span>{translate('Create a mailbox for this user')}</span>
-                </label>
-                <p id="local-mailbox-help">
-                  {translate(
-                    'Creates a linked @j-aautomation.com mailbox with the email and initial password entered here. Uncheck for an external email address or portal access only.',
-                  )}
-                </p>
-                <label
-                  >{translate('Phone')}<input
-                    name="phone"
-                    bind:value={localPhone}
-                    maxlength="80"
-                  /></label
-                >
-                <label
-                  >{translate('Company')}<input
-                    name="company"
-                    bind:value={localCompany}
-                    maxlength="200"
-                  /></label
-                >
-                <label
-                  >{translate('Contact name')}<input
-                    name="contactName"
-                    bind:value={localContactName}
-                    maxlength="160"
-                  /></label
-                >
-                <label
-                  >{translate('Notes')}<textarea
-                    name="notes"
-                    bind:value={localNotes}
-                    maxlength="5000"
-                  ></textarea></label
-                >
-                <label
-                  >{translate('Access role')}<select name="role" bind:value={localRole}
-                    ><option value="worker">{translate('Worker')}</option><option
-                      value="project_manager">{translate('Project Manager')}</option
-                    ><option value="finance_admin">{translate('Finance Admin')}</option><option
-                      value="auditor_read_only">{translate('Auditor (Read Only)')}</option
-                    ><option value="external_technician">{translate('External technician')}</option
-                    ><option value="supplier_coordinator"
-                      >{translate('Supplier coordinator')}</option
-                    ></select
+                  /><small id="local-email-preview" class="team-directory__email-preview"
+                    >{#if normalizedLocalEmail}{translate('Account address')}:
+                      <strong data-email-preview>{normalizedLocalEmail}</strong>{:else}{translate(
+                        'Type a username like juan.perez and @j-aautomation.com is added for you.',
+                      )}{/if}</small
                   ></label
                 >
+                <fieldset class="team-directory__roles" aria-describedby="local-role-help">
+                  <legend>{translate('What will this person do?')}</legend>
+                  {#each accessRoleChoices as choice (choice.value)}
+                    <label class="team-directory__role-choice"
+                      ><input
+                        type="radio"
+                        name="role"
+                        value={choice.value}
+                        bind:group={localRole}
+                      /><span
+                        ><strong>{translate(choice.label)}</strong><small
+                          >{translate(choice.help)}</small
+                        ></span
+                      ></label
+                    >
+                  {/each}
+                  <p id="local-role-help" class="team-directory__form-help">
+                    {translate('You can assign projects after the account is created.')}
+                  </p>
+                </fieldset>
                 {#if ['external_technician', 'supplier_coordinator'].includes(localRole)}<label
                     >{translate('Supplier')}<select
                       name="supplierId"
@@ -1167,27 +1183,117 @@
                         >{/each}</select
                     ></label
                   >{/if}
-                <label
-                  >{translate('Initial password')}<input
-                    name="password"
-                    type={revealPassword ? 'text' : 'password'}
-                    minlength="12"
-                    maxlength="128"
-                    autocomplete="new-password"
-                    required
-                  /></label
-                >
-                <label
-                  ><input type="checkbox" bind:checked={revealPassword} />{translate(
-                    'Show password to copy',
-                  )}</label
-                >
-                <p>
-                  {translate(
-                    'Copy the chosen credentials before saving. This creates portal access without sending an email; assign the person to their authorized projects next.',
-                  )}
-                </p>
-                <button type="submit">{translate('Create user access')}</button>
+                <div class="team-directory__password-field">
+                  <label for="local-initial-password">{translate('Password')}</label>
+                  <div class="team-directory__password-row">
+                    <input
+                      id="local-initial-password"
+                      name="password"
+                      type={revealPassword ? 'text' : 'password'}
+                      bind:value={localPassword}
+                      minlength="12"
+                      maxlength="128"
+                      autocomplete="new-password"
+                      aria-describedby="local-password-help"
+                      required
+                    /><button
+                      type="button"
+                      class="team-directory__action team-directory__action--quiet"
+                      onclick={generateLocalPassword}>{translate('Generate')}</button
+                    >
+                  </div>
+                  <small id="local-password-help"
+                    >{localCreatesMailbox
+                      ? translate(
+                          'At least 12 characters. The same password opens the portal and Webmail.',
+                        )
+                      : translate('At least 12 characters.')}</small
+                  >
+                  <label class="team-directory__inline-check"
+                    ><input type="checkbox" bind:checked={revealPassword} />{translate(
+                      'Show password to copy',
+                    )}</label
+                  >
+                </div>
+                {#if localEmailIsCompany}
+                  <label class="team-directory__mailbox-choice">
+                    <input
+                      type="checkbox"
+                      name="createMailbox"
+                      bind:checked={localCreateMailbox}
+                      aria-describedby="local-mailbox-help"
+                    />
+                    <span
+                      >{translate('Also create the Webmail mailbox')}<small id="local-mailbox-help"
+                        >{translate(
+                          'Uncheck only if this person already has a mailbox or must not have one.',
+                        )}</small
+                      ></span
+                    >
+                  </label>
+                {:else if normalizedLocalEmail}
+                  <p class="team-directory__form-help team-directory__create-wide">
+                    {translate('External address: portal access only, no Webmail mailbox.')}
+                  </p>
+                {/if}
+                <details class="team-directory__create-more team-directory__create-wide">
+                  <summary>{translate('More details (optional)')}</summary>
+                  <div class="team-directory__create-more-fields">
+                    <label
+                      >{translate('Existing person (optional)')}<select
+                        name="existingUserId"
+                        value={existingUserId}
+                        onchange={(event) =>
+                          selectExistingPerson((event.currentTarget as HTMLSelectElement).value)}
+                      >
+                        <option value="">{translate('Create a new person')}</option>
+                        {#each existingUserCandidates as worker}<option value={workerId(worker)}
+                            >{workerName(worker)} · {value(worker, 'email') ||
+                              translate('email required')}</option
+                          >{/each}
+                      </select></label
+                    >
+                    <label
+                      >{translate('Phone')}<input
+                        name="phone"
+                        bind:value={localPhone}
+                        maxlength="80"
+                      /></label
+                    >
+                    <label
+                      >{translate('Company')}<input
+                        name="company"
+                        bind:value={localCompany}
+                        maxlength="200"
+                      /></label
+                    >
+                    <label
+                      >{translate('Contact name')}<input
+                        name="contactName"
+                        bind:value={localContactName}
+                        maxlength="160"
+                      /></label
+                    >
+                    <label class="team-directory__create-wide"
+                      >{translate('Notes')}<textarea
+                        name="notes"
+                        bind:value={localNotes}
+                        maxlength="5000"
+                      ></textarea></label
+                    >
+                  </div>
+                </details>
+                <div class="team-directory__create-actions team-directory__create-wide">
+                  <button type="submit" class="team-directory__action team-directory__create-submit"
+                    >{translate('Create user')}</button
+                  >
+                  <button
+                    type="button"
+                    class="team-directory__link-button"
+                    onclick={() => (createLocal = false)}
+                    >{translate('Send an invitation link instead')}</button
+                  >
+                </div>
               </form>
             {:else}
               <form
@@ -1199,13 +1305,24 @@
                 class="team-directory__create-form"
                 use:formValidation
               >
-                <label for="team-invite-email">{translate('Email / company alias')}</label><input
+                <label for="team-invite-email">{translate('Email or username')}</label><input
                   id="team-invite-email"
                   name="email"
-                  type="email"
+                  type="text"
+                  inputmode="email"
+                  autocapitalize="none"
+                  spellcheck="false"
                   autocomplete="email"
+                  placeholder="juan.perez"
+                  bind:value={inviteEmail}
+                  aria-describedby="team-invite-email-preview"
                   required
-                />
+                /><small id="team-invite-email-preview" class="team-directory__email-preview"
+                  >{#if normalizedInviteEmail}{translate('Account address')}:
+                    <strong data-email-preview>{normalizedInviteEmail}</strong>{:else}{translate(
+                      'Type a username like juan.perez and @j-aautomation.com is added for you.',
+                    )}{/if}</small
+                >
                 <label for="team-invite-role">{translate('Access role')}</label><select
                   id="team-invite-role"
                   name="role"
@@ -1250,6 +1367,12 @@
                 >
                 <button type="submit" class="team-directory__action team-directory__create-submit"
                   >{translate('Create invitation')}</button
+                >
+                <button
+                  type="button"
+                  class="team-directory__link-button team-directory__create-wide"
+                  onclick={() => (createLocal = true)}
+                  >{translate('Set a password myself instead')}</button
                 >
               </form>
             {/if}
@@ -1552,6 +1675,93 @@
                       >
                     </div>
                   </form>
+                  {#if value(worker, 'has_portal_access') === '1' && value(worker, 'status') === 'active' && workerId(worker) !== currentUserId}
+                    {@const resetId = workerId(worker)}
+                    <form
+                      method="POST"
+                      action={teamActionHref('resetUserPassword', resetId)}
+                      class="team-directory__form team-directory__reset-password"
+                      data-reset-password-form
+                      use:formValidation
+                      onsubmit={(event) => {
+                        if (
+                          !confirm(
+                            translate(
+                              'Set this new password? The old one stops working right away and the person is signed out.',
+                            ),
+                          )
+                        )
+                          event.preventDefault();
+                      }}
+                    >
+                      <h3>{translate('Reset password')}</h3>
+                      <p class="team-directory__form-help">
+                        {(mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
+                          ? translate(
+                              'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.',
+                            )
+                          : mailboxDirectoryStatus === 'ready' ||
+                              !isCompanyEmail(value(worker, 'email'))
+                            ? translate(
+                                'Sets a new portal password. Give it to the person in a safe way.',
+                              )
+                            : translate(
+                                'Sets a new password. If this person has a Webmail mailbox, the same password is set there too.',
+                              )}
+                      </p>
+                      <input type="hidden" name="userId" value={resetId} />
+                      <label for={`reset-password-${resetId}`}>{translate('New password')}</label>
+                      <div class="team-directory__password-row">
+                        <input
+                          id={`reset-password-${resetId}`}
+                          name="password"
+                          type={resetPasswordReveal[resetId] ? 'text' : 'password'}
+                          autocomplete="new-password"
+                          minlength="12"
+                          maxlength="128"
+                          value={resetPasswordValue[resetId] ?? ''}
+                          oninput={(event) =>
+                            (resetPasswordValue[resetId] = event.currentTarget.value)}
+                          aria-describedby={`reset-password-help-${resetId}`}
+                          required
+                        /><button
+                          type="button"
+                          class="team-directory__action team-directory__action--quiet"
+                          onclick={() => {
+                            resetPasswordValue[resetId] = generateAccessPassword();
+                            resetPasswordReveal[resetId] = true;
+                          }}>{translate('Generate')}</button
+                        >
+                      </div>
+                      <small id={`reset-password-help-${resetId}`}
+                        >{translate('At least 12 characters.')}</small
+                      >
+                      <label class="team-directory__inline-check"
+                        ><input
+                          type="checkbox"
+                          checked={resetPasswordReveal[resetId] ?? false}
+                          onchange={(event) =>
+                            (resetPasswordReveal[resetId] = event.currentTarget.checked)}
+                        />{translate('Show password to copy')}</label
+                      >
+                      {#if problemPayload?.actionName === 'resetUserPassword' && problemPayload.values?.userId === resetId}
+                        <div data-reset-password-problem>
+                          <ProblemNotice problem={problemPayload} locale={problemLocale} />
+                        </div>
+                      {:else if resetPasswordDoneFor === resetId}
+                        <p
+                          class="team-directory__reset-done"
+                          role="status"
+                          data-reset-password-done
+                        >
+                          {portalText(problemLocale, resetPasswordDoneKey)}
+                        </p>
+                      {/if}
+                      <button type="submit" class="team-directory__action"
+                        >{translate('Save new password')}</button
+                      >
+                    </form>
+                  {/if}
                   {#if role === 'worker'}
                     {#if workforceSupplierInactiveProblem && failedWorkforceProfileId === workerId(worker) && problemPayload}
                       <div data-workforce-supplier-problem>
@@ -2071,7 +2281,7 @@
                         <h3>{translate('Change Webmail password')}</h3>
                         <p class="team-directory__form-help">
                           {translate(
-                            'Stalwart validates and stores this password. The portal never stores or displays it.',
+                            'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.',
                           )}
                         </p>
                         <input type="hidden" name="stalwartAccountId" value={accountId} /><input
@@ -2399,6 +2609,161 @@
 </div>
 
 <style>
+  .team-directory__email-preview {
+    display: block;
+    margin-top: 0.35rem;
+    font-weight: 400;
+    color: var(--portal-muted, #63625b);
+    overflow-wrap: anywhere;
+  }
+  .team-directory__email-preview strong {
+    color: var(--portal-ink, #20201d);
+  }
+  .team-directory__create-form .team-directory__roles,
+  .team-directory__create-form .team-directory__password-field,
+  .team-directory__create-form .team-directory__mailbox-choice,
+  .team-directory__create-wide {
+    grid-column: 1 / -1;
+  }
+  .team-directory__roles {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .team-directory__roles legend {
+    margin-bottom: 0.4rem;
+    padding: 0;
+    color: var(--portal-muted, #63625b);
+    font-size: 0.8125rem;
+    font-weight: 800;
+  }
+  .team-directory__roles > p {
+    grid-column: 1 / -1;
+    margin: 0;
+  }
+  .team-directory__create-form .team-directory__role-choice {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: 44px;
+    padding: 0.6rem 0.7rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.55rem;
+    background: var(--portal-surface, #fff);
+    color: var(--portal-ink, #20201d);
+    font-weight: 400;
+    cursor: pointer;
+  }
+  .team-directory__create-form .team-directory__role-choice:has(input:checked) {
+    border-color: var(--portal-accent, #53524c);
+    box-shadow: inset 0 0 0 1px var(--portal-accent, #53524c);
+  }
+  .team-directory__create-form .team-directory__role-choice input {
+    width: 1.1rem;
+    min-height: 0;
+    height: 1.1rem;
+    margin: 0.15rem 0 0;
+    flex: 0 0 1.1rem;
+  }
+  .team-directory__role-choice span {
+    display: grid;
+    gap: 0.15rem;
+  }
+  .team-directory__role-choice small,
+  .team-directory__mailbox-choice small {
+    display: block;
+    color: var(--portal-muted, #63625b);
+    font-weight: 400;
+    font-size: 0.8125rem;
+  }
+  .team-directory__password-field {
+    display: grid;
+    gap: 0.3rem;
+  }
+  .team-directory__password-field > small,
+  .team-directory__reset-password > small {
+    color: var(--portal-muted, #63625b);
+  }
+  .team-directory__password-row {
+    display: flex;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  .team-directory__password-row input {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin-top: 0 !important;
+  }
+  .team-directory__password-row button {
+    flex: 0 0 auto;
+  }
+  .team-directory__create-form .team-directory__inline-check,
+  .team-directory__inline-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    color: var(--portal-ink, #20201d);
+    font-weight: 400;
+  }
+  .team-directory__inline-check input {
+    width: 1.1rem !important;
+    min-height: 0 !important;
+    height: 1.1rem;
+    margin: 0 !important;
+  }
+  .team-directory__create-more summary {
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-weight: 700;
+  }
+  .team-directory__create-more-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.65rem 0.8rem;
+  }
+  .team-directory__create-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+  }
+  .team-directory__link-button {
+    min-height: 44px;
+    padding: 0.4rem 0;
+    border: 0;
+    background: none;
+    color: var(--portal-accent, #53524c);
+    font: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+    justify-self: start;
+  }
+  .team-directory__form.team-directory__reset-password {
+    grid-template-columns: minmax(0, 1fr);
+    max-width: 34rem;
+    margin-top: 1rem;
+    align-content: start;
+  }
+  .team-directory__reset-password h3,
+  .team-directory__reset-password p {
+    margin: 0;
+  }
+  .team-directory__reset-done {
+    margin: 0;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #a6d8b8;
+    border-radius: 0.5rem;
+    background: #ecf8f0;
+    color: #14532d;
+  }
   .team-directory__mailbox-recovery-notice {
     grid-column: 1 / -1;
   }

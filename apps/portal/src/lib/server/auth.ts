@@ -11,9 +11,9 @@ import { resolveAuthOriginConfig } from './auth-origins';
 import { temporaryOwnerSessionData } from './temporary-owner-login';
 import {
   hashPortalPassword,
-  isWebmailOnlyUser,
+  isLinkedMailUser,
+  linkedMailUserIdForResetToken,
   verifyPortalPassword,
-  webmailOnlyUserIdForResetToken,
 } from './webmail-password';
 
 const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
@@ -38,7 +38,10 @@ const invalidCredentialsError = () =>
 const webmailPasswordManagedError = () =>
   APIError.from('FORBIDDEN', {
     code: 'WEBMAIL_PASSWORD_MANAGED_EXTERNALLY',
-    message: 'Password changes for this account are managed by Webmail.',
+    // Linked users have one password for the portal and Webmail. It is changed
+    // through the portal profile (or an Owner reset), which writes Stalwart and
+    // the portal together; Better Auth alone would update only the portal.
+    message: 'Change this password from your portal profile; it updates Webmail too.',
   });
 
 const authBefore: AuthMiddleware = async (context) => {
@@ -53,7 +56,7 @@ const authBefore: AuthMiddleware = async (context) => {
     : policyContext.path;
   if (path === '/change-password' || path === '/set-password') {
     const userId = policyContext.context.session?.user?.id;
-    if (userId && isWebmailOnlyUser(userId)) throw webmailPasswordManagedError();
+    if (userId && isLinkedMailUser(userId)) throw webmailPasswordManagedError();
   } else if (path === '/reset-password') {
     const body = policyContext.body as { token?: unknown } | undefined;
     let token = typeof body?.token === 'string' ? body.token : null;
@@ -64,7 +67,7 @@ const authBefore: AuthMiddleware = async (context) => {
         token = null;
       }
     }
-    if (token && webmailOnlyUserIdForResetToken(token)) throw webmailPasswordManagedError();
+    if (token && linkedMailUserIdForResetToken(token)) throw webmailPasswordManagedError();
   }
   return authAuditBefore(context);
 };

@@ -10,6 +10,7 @@ import {
   type StalwartClient,
   type StalwartMailbox,
 } from './stalwart-client.ts';
+import { refreshLinkedPortalHash } from './webmail-password.ts';
 
 export type MailboxAccount = Readonly<{
   id: string;
@@ -352,6 +353,9 @@ export async function updateMailboxPassword(
     markExternalDone(sqlite, replay.commandKey);
   }
   try {
+    // One password per person: the linked portal login takes the same new
+    // password, and finalizePasswordUpdate signs the person out everywhere.
+    await refreshLinkedPortalHash(sqlite, input.stalwartAccountId, input.password);
     repository.finalizePasswordUpdate(principal, input.stalwartAccountId, input.reason.trim());
   } catch {
     throw new MailboxSagaPartialFailureError('password_updated', input.stalwartAccountId);

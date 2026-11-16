@@ -39,9 +39,16 @@ vi.mock('@ja/database', async (importOriginal) => {
     },
   };
 });
-vi.mock('$lib/server/webmail-password', () => ({
-  hashPortalPassword: vi.fn(async () => 'test-hash'),
-}));
+const resetUserPassword = vi.fn();
+vi.mock('$lib/server/webmail-password', async (importOriginal) => {
+  const original = await importOriginal<typeof import('$lib/server/webmail-password')>();
+  return {
+    hashPortalPassword: vi.fn(async () => 'test-hash'),
+    isAcceptablePortalPassword: original.isAcceptablePortalPassword,
+    passwordChangeProblem: original.passwordChangeProblem,
+    resetUserPassword,
+  };
+});
 
 const { accessActions } =
   await import('../../apps/portal/src/lib/server/actions/access-actions.ts');
@@ -359,5 +366,73 @@ describe('owner team access action problems', () => {
     expect(JSON.stringify(result)).not.toContain('temporary-passphrase-123');
     expect(hashPortalPassword).not.toHaveBeenCalled();
     expect(provisionLocalPortalAccount).not.toHaveBeenCalled();
+  });
+});
+
+describe('owner password reset action', () => {
+  function event(fields: Record<string, string>, role = 'owner_admin') {
+    const built = ownerEvent('resetUserPassword', fields) as unknown as {
+      locals: { user: { role: string; email: string } };
+    };
+    built.locals.user.role = role;
+    if (role !== 'owner_admin') built.locals.user.email = 'worker@j-aautomation.com';
+    return built as never;
+  }
+
+  it('denies a non-owner before reading or writing any password', async () => {
+    const result = await accessActions.resetUserPassword(
+      event({ userId: workerId, password: 'long-enough-password' }, 'project_manager'),
+    );
+    expect(result).toMatchObject({ status: 403, data: { code: 'ACCESS_TEAM_OWNER_REQUIRED' } });
+    expect(resetUserPassword).not.toHaveBeenCalled();
+  });
+
+  it('rejects a short password with a field error and no external write', async () => {
+    const result = await accessActions.resetUserPassword(
+      event({ userId: workerId, password: 'short' }),
+    );
+    expect(result).toMatchObject({
+      status: 400,
+      data: {
+        code: 'ACCESS_PASSWORD_PASSWORD_INVALID',
+        messageKey: 'problem.access.passwordInvalid',
+        fieldErrors: { password: ['problem.access.passwordInvalid'] },
+        actionName: 'resetUserPassword',
+        values: { userId: workerId },
+      },
+    });
+    expect(JSON.stringify(result)).not.toContain('short');
+    expect(resetUserPassword).not.toHaveBeenCalled();
+  });
+
+  it('reports a mail outage without claiming success', async () => {
+    resetUserPassword.mockResolvedValue({ ok: false, code: 'MAIL_UNAVAILABLE' });
+    const result = await accessActions.resetUserPassword(
+      event({ userId: workerId, password: 'long-enough-password' }),
+    );
+    expect(result).toMatchObject({
+      status: 503,
+      data: { messageKey: 'problem.access.passwordMailUnavailable' },
+    });
+  });
+
+  it('passes the opaque password to the one-password service', async () => {
+    resetUserPassword.mockResolvedValue({ ok: true, linkedMailbox: true, sessionsRevoked: 2 });
+    const result = await accessActions.resetUserPassword(
+      event({ userId: workerId, password: ' spaced password ' }),
+    );
+    expect(resetUserPassword).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        actorId: 'owner-1',
+        targetUserId: workerId,
+        newPassword: ' spaced password ',
+      }),
+    );
+    expect(result).toMatchObject({
+      success: true,
+      messageKey: 'action.access.password.reset',
+      messageParams: { userId: workerId },
+    });
   });
 });

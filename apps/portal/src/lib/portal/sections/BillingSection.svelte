@@ -3283,19 +3283,18 @@
   }
 
   function invoiceDue(invoice: Row): string {
-    return dateValue(
-      rowValue(
-        invoice,
-        'due_at',
-        'dueAt',
-        'due_on',
-        'dueOn',
-        'due_date',
-        'dueDate',
-        'expected_collection_on',
-        'expectedCollectionOn',
-      ),
+    const raw = rowValue(
+      invoice,
+      'due_at',
+      'dueAt',
+      'due_on',
+      'dueOn',
+      'due_date',
+      'dueDate',
+      'expected_collection_on',
+      'expectedCollectionOn',
     );
+    return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '—';
   }
 
   function invoiceIssueDue(invoice: Row): string {
@@ -10033,6 +10032,14 @@
   .billing-section__invoice-register td:nth-child(3),
   .billing-section__invoice-register td:nth-child(6),
   .billing-section__invoice-register td:last-child {
+    white-space: nowrap;
+  }
+  .billing-section__invoice-register td:nth-child(2),
+  .billing-section__invoice-register th:nth-child(2) {
+    min-width: 16rem;
+    width: 34%;
+  }
+  .billing-section__invoice-register td:first-child {
     white-space: nowrap;
   }
   .billing-section__client {

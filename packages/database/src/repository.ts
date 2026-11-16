@@ -6980,7 +6980,7 @@ export class PortalRepository {
         totals,
         lines,
         preview,
-        issue: ['draft', 'approved'].includes(String(preview.invoice.state))
+        issue: ['draft', 'approved'].includes(String((preview.invoice as Record<string, unknown>).state))
           ? this.issueDryRunCore(principal, draft.id)
           : { ok: true as const },
       };

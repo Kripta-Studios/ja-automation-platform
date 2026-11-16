@@ -54,6 +54,11 @@ const scheduleMinutesForDay = (
     : null;
 };
 
+export const scheduleHasNoExpectation = (schedule: WeeklyProjectSchedule): boolean =>
+  Array.from({ length: 7 }, (_, day) => scheduleMinutesForDay(schedule, day)).every(
+    (minutes) => !minutes,
+  );
+
 const scheduleForDate = (
   schedules: readonly WeeklyProjectSchedule[],
   projectId: string,
@@ -134,9 +139,12 @@ export const weeklyView = (
     const expectedSchedule = onlyProjectId
       ? scheduleForDate(schedules, onlyProjectId, dateValue)
       : null;
-    const expectedMinutes = expectedSchedule
-      ? scheduleMinutesForDay(expectedSchedule, index)
-      : null;
+    // An all-zero weekly schedule is how a project records "no expected hours";
+    // show no expectation instead of a misleading 0 h target and difference.
+    const expectedMinutes =
+      expectedSchedule && !scheduleHasNoExpectation(expectedSchedule)
+        ? scheduleMinutesForDay(expectedSchedule, index)
+        : null;
     const status =
       dayRows.length === 0
         ? '—'

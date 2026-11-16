@@ -787,10 +787,10 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     ).toThrow(ConflictError);
   });
 
-  it('allows owner to hard-delete empty projects and clients while blocking deletion of entities with activity', () => {
+  it('lets only the owner permanently delete projects and clients with all their records', () => {
+    // Owner decision 2026-11-16: permanent deletion is always allowed for owner_admin.
     const value = fixture();
 
-    // 1. Create client and empty project
     const client = value.repository.createClient(value.owner, {
       legalName: 'Temporary Client S.L.',
       displayName: 'Temporary Client',
@@ -799,7 +799,6 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
       billingEmail: 'temp@example.test',
       billingAddress: 'Calle de Prueba 123, Madrid',
     });
-
     const emptyProject = value.repository.createProject(value.owner, {
       costCenterCode: 'QA-CLIENT-PROJECT-ESSENTIAL-TEST-2',
       clientId: client.id,
@@ -809,27 +808,75 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
       billingModel: 'tm',
     });
 
-    // 2. Non-owner cannot delete project or client
+    // Non-owners cannot preview or delete.
     expect(() => value.repository.deleteProject(value.worker, emptyProject.id)).toThrow(
       AccessDeniedError,
     );
     expect(() => value.repository.deleteClient(value.worker, client.id)).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.previewPermanentDeletion(value.worker, { projectId: emptyProject.id }),
+    ).toThrow(AccessDeniedError);
 
-    // 3. Client cannot be deleted while it has a project
-    expect(() => value.repository.deleteClient(value.owner, client.id)).toThrow(ConflictError);
-
-    // 4. Existing active project with time entries cannot be deleted
-    expect(() => value.repository.deleteProject(value.owner, value.project.id)).toThrow(
-      ConflictError,
+    // A wrong typed confirmation is rejected and nothing changes.
+    expect(() => value.repository.deleteProject(value.owner, value.project.id, 'WRONG')).toThrow(
+      ValidationError,
     );
 
-    // 5. Empty project CAN be deleted by owner
-    const deletedProject = value.repository.deleteProject(value.owner, emptyProject.id);
-    expect(deletedProject.id).toBe(emptyProject.id);
+    // A project with recorded activity is deleted completely.
+    const projectId = value.project.id;
+    const preview = value.repository.previewPermanentDeletion(value.owner, { projectId });
+    expect(preview.projects).toBe(1);
+    const auditBefore = (
+      value.sqlite
+        .prepare('SELECT COUNT(*) n FROM audit_event WHERE project_id=?')
+        .get(projectId) as { n: number }
+    ).n;
+    const triggersBefore = value.sqlite
+      .prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
+      .all();
+    const deletedProject = value.repository.deleteProject(
+      value.owner,
+      projectId,
+      preview.confirmationText,
+    );
+    expect(deletedProject.summary.totalRows).toBeGreaterThan(1);
+    for (const table of ['project', 'time_entry', 'expense', 'project_member', 'schedule'])
+      expect(
+        value.sqlite.prepare(`SELECT COUNT(*) n FROM ${table} WHERE ${table === 'project' ? 'id' : 'project_id'}=?`).get(projectId),
+      ).toEqual({ n: 0 });
+    // Audit history is kept (detached) and the deletion itself is audited.
+    expect(
+      (value.sqlite.prepare('SELECT COUNT(*) n FROM audit_event WHERE project_id=?').get(projectId) as { n: number }).n,
+    ).toBe(0);
+    expect(auditBefore).toBeGreaterThan(0);
+    const deletion = value.sqlite
+      .prepare(
+        "SELECT actor_id,details_json FROM audit_event WHERE entity_type='project' AND entity_id=? AND action='lifecycle.transition' ORDER BY occurred_at DESC LIMIT 1",
+      )
+      .get(projectId) as { actor_id: string; details_json: string };
+    expect(deletion.actor_id).toBe(value.owner.userId);
+    expect(JSON.parse(deletion.details_json)).toMatchObject({
+      toState: 'deleted',
+      operation: 'permanent_delete',
+    });
+    // Guard triggers are restored exactly.
+    expect(
+      value.sqlite
+        .prepare("SELECT name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name")
+        .all(),
+    ).toEqual(triggersBefore);
+    expect(() => value.sqlite.prepare('DELETE FROM audit_event').run()).toThrow(/immutable/);
+    expect(value.sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
 
-    // 6. Now that the project is deleted, the empty client CAN be deleted by owner
+    // A client is deleted together with its projects.
     const deletedClient = value.repository.deleteClient(value.owner, client.id);
-    expect(deletedClient.id).toBe(client.id);
+    expect(deletedClient.summary.projects).toBe(1);
+    expect(value.sqlite.prepare('SELECT COUNT(*) n FROM client WHERE id=?').get(client.id)).toEqual({
+      n: 0,
+    });
+    expect(
+      value.sqlite.prepare('SELECT COUNT(*) n FROM project WHERE id=?').get(emptyProject.id),
+    ).toEqual({ n: 0 });
   });
 
   it('accepts decimal hours for expectedHoursPerDay and clientDailyMinimumHours and stores exact minutes in DB', () => {

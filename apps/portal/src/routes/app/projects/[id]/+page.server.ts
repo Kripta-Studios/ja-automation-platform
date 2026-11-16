@@ -21,8 +21,21 @@ import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/ac
 import { createInvoiceDraftResolvingPeriod } from '$lib/server/invoice-draft';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { removePurgedFiles } from '$lib/server/permanent-deletion';
 import type { ProblemData } from '$lib/problem/contract';
 import type { PageServerLoad, Actions } from './$types';
+
+function projectHasInvoices(
+  sqlite: { prepare?: (sql: string) => { get: (projectId: string) => unknown } },
+  projectId: string,
+): boolean {
+  try {
+    return Boolean(sqlite.prepare?.('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(projectId));
+  } catch {
+    // The hint is advisory; never fail the project page because of it.
+    return false;
+  }
+}
 
 function currentPeriod(): { periodStart: string; periodEnd: string } {
   return defaultLookbackPeriod();
@@ -165,6 +178,9 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       periodValues,
       periodProblem,
       invalidProjectTimezone: !validProjectTimezone,
+      // Owner-only hint for the reference editor: issued invoices keep their snapshot text.
+      projectHasInvoices:
+        locals.user.role === 'owner_admin' ? projectHasInvoices(context.sqlite, params.id) : false,
       invoiceDraftStart: invoiceDraftPeriod.periodStart,
       invoiceDraftEnd: invoiceDraftPeriod.periodEnd,
       workers:
@@ -402,6 +418,24 @@ function localizedSchemaFields(
 }
 
 const detailRules: readonly DetailRule[] = [
+  [
+    'Type the exact reference to confirm permanent deletion',
+    'PERMANENT_DELETE_CONFIRMATION_MISMATCH',
+    'problem.project.deleteConfirmationMismatch',
+    'Type the exact reference shown in the dialog to confirm the permanent deletion.',
+    400,
+    ['confirmation'],
+    'correct_field',
+  ],
+  [
+    'Project reference is already used by another project',
+    'PROJECT_REFERENCE_ALREADY_USED',
+    'problem.project.referenceAlreadyUsed',
+    'This project reference is already used. Enter a different reference or leave it blank to build one automatically.',
+    409,
+    ['projectNumber'],
+    'correct_field',
+  ],
   [
     'Project has recorded commercial agreements and cannot be deleted. Please archive the project instead.',
     'PROJECT_DELETE_HAS_COMMERCIAL_AGREEMENTS',
@@ -1038,6 +1072,15 @@ function detailFailure(
         'PROJECT_MILESTONE_ROLE_REQUIRED',
         'problem.milestone.roleRequired',
         'You cannot submit this milestone. Contact the project owner or an authorized manager.',
+        [],
+        'contact_owner',
+      );
+    if (cause.message === 'Only the owner can delete records permanently')
+      return make(
+        403,
+        'PERMANENT_DELETE_OWNER_ONLY',
+        'problem.project.ownerDeleteOnly',
+        'Only the owner can delete projects and clients permanently.',
         [],
         'contact_owner',
       );
@@ -1792,6 +1835,7 @@ export const actions: Actions = {
       projectId,
       version,
       costCenterCode: text('costCenterCode'),
+      projectNumber: text('projectNumber'),
       name: text('name') ?? undefined,
       poNumber: text('poNumber'),
       description: text('description'),
@@ -1804,6 +1848,8 @@ export const actions: Actions = {
       onsiteContactId: text('onsiteContactId'),
       country: text('country'),
       projectManagerId: text('projectManagerId') || null,
+      // Blank expected hours = no expectation.
+      expectedHoursPerDay: text('expectedHoursPerDay')?.trim() === '' ? '' : undefined,
       expectedMinutesPerDay:
         hoursToMinutes('expectedHoursPerDay', 'expectedMinutesPerDay') ?? undefined,
       clientDailyMinimumMinutes: hoursToMinutes(
@@ -1901,12 +1947,19 @@ export const actions: Actions = {
     let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       context = openPortalRepository(locals);
-      context.repository.deleteProject(context.principal, projectId);
+      const deleted = context.repository.deleteProject(
+        context.principal,
+        projectId,
+        data.get('confirmation')?.toString() ?? '',
+      );
+      context.sqlite.close();
+      context = undefined;
+      await removePurgedFiles(deleted.storageKeys);
     } catch (e) {
       return detailFailure(e, 'deleteProject', values, projectId);
     } finally {
       context?.sqlite.close();
     }
-    redirect(303, '/j-aautomation/app/projects');
+    redirect(303, '/j-aautomation/app/projects?deleted=project');
   },
 };

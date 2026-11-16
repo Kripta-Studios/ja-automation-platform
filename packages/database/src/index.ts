@@ -1235,3 +1235,4 @@ export {
 
 export * from './domains/field-capture/index.ts';
 export * from './domains/digital-workers/index.ts';
+export type { PurgeSummary } from './domains/projects/project-purge.ts';

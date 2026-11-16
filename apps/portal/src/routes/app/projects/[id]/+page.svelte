@@ -4,6 +4,9 @@
   import { projectUxText } from '$lib/portal/project-ux-copy';
   import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
   import ProjectSiteFields from '$lib/portal/sections/ProjectSiteFields.svelte';
+  import TimezoneSelect from '$lib/portal/ui/TimezoneSelect.svelte';
+  import PermanentDeleteDialog from '$lib/portal/ui/PermanentDeleteDialog.svelte';
+  import { projectCopy, type ProjectCopyKey } from '$lib/portal/project-ux-round3-copy';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
@@ -214,6 +217,8 @@
       : (localeOverride ?? data.locale ?? resolveStandaloneLocale()),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  const pc = (key: ProjectCopyKey, params: Record<string, string | number> = {}): string =>
+    projectCopy(locale, key, params);
   const projectUx = (
     key: Parameters<typeof projectUxText>[1],
     params?: Record<string, string | number>,
@@ -1760,9 +1765,13 @@
                 <div>
                   <dt>{t('Weekday hours')}</dt>
                   <dd class="schedule-weekday-list">
-                    {#each scheduleWeekdays as day}
-                      <span><strong>{day.label}</strong> {hours(day.minutes)}</span>
-                    {/each}
+                    {#if scheduleWeekdays.every((day) => !Number(day.minutes))}
+                      <span data-no-expected-hours>{pc('noExpectation')}</span>
+                    {:else}
+                      {#each scheduleWeekdays as day}
+                        <span><strong>{day.label}</strong> {hours(day.minutes)}</span>
+                      {/each}
+                    {/if}
                   </dd>
                 </div>
               </dl>
@@ -2016,9 +2025,8 @@
               <div>
                 <dt>{t('Reference hours / day')}</dt>
                 <dd>
-                  {project.expected_minutes_per_day === null ||
-                  project.expected_minutes_per_day === undefined
-                    ? '—'
+                  {!project.expected_minutes_per_day
+                    ? pc('noExpectation')
                     : hours(project.expected_minutes_per_day)}
                 </dd>
               </div>
@@ -2466,7 +2474,7 @@
         value={projectValue('version', Number(project.version ?? 1))}
       />
       <div class="form-notice">
-        <strong>{t('Protected project identity')}</strong><span
+        <strong>{pc('referenceLabel')}</strong><span
           >{display(project.project_number)} · {display(project.client_name)} · {display(
             project.currency,
           )}</span
@@ -2488,12 +2496,22 @@
             /></label
           >
           <label
-            >{t('Cost center code')}<input
+            >{pc('costCenter')}<input
               name="costCenterCode"
               value={projectValue('costCenterCode', display(project.cost_center_code, ''))}
               required
               maxlength="120"
-            /><small>{t('project.costCenter.numberChangeHelp')}</small></label
+            /><small>{pc('costCenterHint')}</small></label
+          >
+          <label
+            >{pc('referenceLabel')}<input
+              name="projectNumber"
+              value={projectValue('projectNumber', display(project.project_number, ''))}
+              maxlength="120"
+            /><small>{pc('referenceHint')}</small>{#if data.projectHasInvoices}<small
+                class="edit-field-warning"
+                data-project-invoiced-warning>{pc('invoicedReferenceWarning')}</small
+              >{/if}</label
           >
           <label
             >{t('Project alias')}<input
@@ -2503,11 +2521,11 @@
             /></label
           >
           <label
-            >{t('PO / reference')}<input
+            >{pc('poLabel')}<input
               name="poNumber"
               value={projectValue('poNumber', display(project.po_number, ''))}
               maxlength="200"
-            /></label
+            /><small>{pc('poHint')}</small></label
           >
           <label
             >{t('Contract number')}<input
@@ -2525,14 +2543,12 @@
           <p>{t('Set the operating site, dates and planning assumptions.')}</p>
         </div>
         <div class="edit-field-grid">
-          <label
-            >{t('Timezone')}<input
-              name="timezone"
-              value={projectValue('timezone', display(project.timezone, ''))}
-              required
-              maxlength="80"
-            /></label
-          >
+          <TimezoneSelect
+            name="timezone"
+            label={pc('timezone')}
+            value={projectValue('timezone', display(project.timezone, ''))}
+            {locale}
+          />
           <ProjectSiteFields
             clientId={String(project.client_id)}
             contacts={data.siteContacts ?? []}
@@ -2569,20 +2585,20 @@
             /></label
           >
           <label
-            >{t('Expected hours / day')}<input
+            >{pc('expectedHours')}<input
               name="expectedHoursPerDay"
               type="number"
               step="0.0001"
               min="0"
               max="24"
+              inputmode="decimal"
               value={projectValue(
                 'expectedHoursPerDay',
-                project.expected_minutes_per_day != null
+                project.expected_minutes_per_day
                   ? decimalHoursFromMinutes(project.expected_minutes_per_day)
                   : '',
               )}
-              required
-            /></label
+            /><small>{pc('expectedHint')}</small></label
           >
           <label
             >{t('Client minimum hours')}<input
@@ -2800,11 +2816,7 @@
           >
         </div>
       </details>
-      <p class="form-help">
-        {t(
-          'Project number, client, currency, lifecycle status and actual close date remain read-only to protect historical references.',
-        )}
-      </p>
+      <p class="form-help">{pc('editIdentityNote')}</p>
       <div class="sheet-form-actions">
         <button
           type="button"
@@ -2816,6 +2828,17 @@
         >
       </div>
     </form>
+    {#if isOwner}
+      <div class="project-edit-danger">
+        <PermanentDeleteDialog
+          kind="project"
+          recordId={String(project.id)}
+          action="?/deleteProject"
+          {base}
+          {locale}
+        />
+      </div>
+    {/if}
   </ResponsiveSheet>
 {/if}
 
@@ -3627,6 +3650,15 @@
     color: var(--project-ink);
     font-size: 0.85rem;
     font-weight: 750;
+  }
+  .project-edit-danger {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 2px dashed var(--ja-status-danger, #a40f18);
+  }
+  .edit-field-warning {
+    color: var(--ja-status-danger, #a40f18);
+    font-weight: 600;
   }
   .edit-field-grid__help {
     grid-column: 1 / -1;

@@ -34,12 +34,14 @@ function projectInput(value: B5LifecycleSecurityFixture, name: string) {
 }
 
 describe('people selected during project creation', () => {
-  it('matches project number suffixes to numeric cost centers and rejects duplicates', () => {
+  it('builds project references from cost centers, allowing repeated and free-text centers', () => {
+    // Owner decision 2026-11-16: cost centers are free text and may repeat.
     const value = fixture();
     const numeric = value.repository.createProject(value.owner, {
       ...projectInput(value, 'Numeric center'),
       costCenterCode: '004',
     });
+    // Clients without a short code keep the historical numbering.
     expect(numeric.projectNumber).toBe(`${value.client.clientNumber}-P-004`);
 
     const prefixed = value.repository.createProject(value.owner, {
@@ -62,45 +64,55 @@ describe('people selected during project creation', () => {
       value.sqlite.prepare('SELECT project_number FROM project WHERE id=?').get(numeric.id),
     ).toEqual({ project_number: `${value.client.clientNumber}-P-005` });
 
-    expect(() =>
-      value.repository.createProject(value.owner, {
-        ...projectInput(value, 'Duplicate center'),
-        costCenterCode: 'QA-9876',
-      }),
-    ).toThrow(/Cost center code is already used/);
+    // Repeated cost centers get an automatic suffix instead of an error.
+    const duplicate = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Duplicate center'),
+      costCenterCode: 'QA-9876',
+    });
+    expect(duplicate.projectNumber).toBe(`${value.client.clientNumber}-P-9876-2`);
 
-    expect(() =>
-      value.repository.createProject(value.owner, {
-        ...projectInput(value, 'Equivalent padded center'),
-        costCenterCode: 'QA-007',
-      }),
-    ).toThrow(/Cost center code is already used/);
+    // Free-text cost centers are allowed.
+    const text = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Text center'),
+      costCenterCode: 'QA CENTER',
+    });
+    expect(text.projectNumber).toBe(`${value.client.clientNumber}-QA-CENTER`);
 
-    for (const costCenterCode of ['QA-CENTER', 'QA-123-SITE']) {
-      expect(() =>
-        value.repository.createProject(value.owner, {
-          ...projectInput(value, 'No trailing digits'),
-          costCenterCode,
-        }),
-      ).toThrow(/Cost center code must end in digits/);
-    }
+    // A client code prefixes the reference: "IMPC-001", then "IMPC-001-2".
+    value.sqlite.prepare("UPDATE client SET client_code='IMPC' WHERE id=?").run(value.client.id);
+    const coded = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Coded client'),
+      costCenterCode: '001',
+    });
+    expect(coded.projectNumber).toBe('IMPC-001');
+    const codedAgain = value.repository.createProject(value.owner, {
+      ...projectInput(value, 'Coded client again'),
+      costCenterCode: '001',
+    });
+    expect(codedAgain.projectNumber).toBe('IMPC-001-2');
+
+    // The owner may edit the reference directly; collisions are rejected.
     expect(() =>
       value.repository.updateProject(value.owner, {
-        projectId: shortSuffix.id,
-        costCenterCode: 'QA-CENTER',
+        projectId: codedAgain.id,
+        projectNumber: 'impc-001',
       }),
-    ).toThrow(/Cost center code must end in digits/);
-    expect(
-      value.sqlite
-        .prepare('SELECT project_number,cost_center_code FROM project WHERE id=?')
-        .get(shortSuffix.id),
-    ).toEqual({
-      project_number: `${value.client.clientNumber}-P-007`,
-      cost_center_code: 'QA-7',
+    ).toThrow(/Project reference is already used/);
+    value.repository.updateProject(value.owner, {
+      projectId: codedAgain.id,
+      projectNumber: 'IMPC-001 Plant B',
     });
+    expect(
+      value.sqlite.prepare('SELECT project_number FROM project WHERE id=?').get(codedAgain.id),
+    ).toEqual({ project_number: 'IMPC-001 Plant B' });
+    // Blank rebuilds it from client code and cost center.
+    value.repository.updateProject(value.owner, { projectId: codedAgain.id, projectNumber: '' });
+    expect(
+      value.sqlite.prepare('SELECT project_number FROM project WHERE id=?').get(codedAgain.id),
+    ).toEqual({ project_number: 'IMPC-001-2' });
   });
 
-  it('keeps an invoiced project number fixed when its cost center suffix would change', () => {
+  it('keeps an invoiced project reference unless the owner renames it explicitly', () => {
     const value = fixture();
     const project = value.repository.createProject(value.owner, {
       ...projectInput(value, 'Invoiced center'),
@@ -126,17 +138,24 @@ describe('people selected during project creation', () => {
         1,
       );
 
-    expect(() =>
-      value.repository.updateProject(value.owner, {
-        projectId: project.id,
-        costCenterCode: 'CC-043',
-      }),
-    ).toThrow(/Project number cannot change after an invoice was created/);
+    // Changing only the cost center keeps the invoiced reference.
+    value.repository.updateProject(value.owner, {
+      projectId: project.id,
+      costCenterCode: 'CC-043',
+    });
     expect(
       value.sqlite
         .prepare('SELECT project_number,cost_center_code FROM project WHERE id=?')
         .get(project.id),
-    ).toEqual({ project_number: `${value.client.clientNumber}-P-042`, cost_center_code: 'CC-042' });
+    ).toEqual({ project_number: `${value.client.clientNumber}-P-042`, cost_center_code: 'CC-043' });
+    // The owner may still rename it explicitly (issued invoices keep their snapshot).
+    value.repository.updateProject(value.owner, {
+      projectId: project.id,
+      projectNumber: 'CC-043-RENAMED',
+    });
+    expect(
+      value.sqlite.prepare('SELECT project_number FROM project WHERE id=?').get(project.id),
+    ).toEqual({ project_number: 'CC-043-RENAMED' });
   });
 
   it('requires a cost center for every new project, including direct repository writes', () => {

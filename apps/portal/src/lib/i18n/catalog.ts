@@ -118,6 +118,13 @@ const en = {
   'action.finance.unusedIssuerReplaced': 'Unused issuing authority replaced',
   'problem.project.deleteHasCommercialAgreements':
     'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
+  'problem.project.deleteConfirmationMismatch':
+    'Type the exact reference shown in the dialog to confirm the permanent deletion.',
+  'problem.project.ownerDeleteOnly': 'Only the owner can delete projects and clients permanently.',
+  'problem.project.referenceAlreadyUsed':
+    'This project reference is already used. Enter a different reference or leave it blank to build one automatically.',
+  'action.projects.projectDeletedPermanently': 'Project {reference} and all its records were deleted permanently.',
+  'action.projects.clientDeletedPermanently': 'Client {reference}, its projects and all their records were deleted permanently.',
   'action.projects.personDefaultsSaved':
     'Project defaults saved. Existing person agreements are unchanged.',
   'problem.project.creationDefaultsDateConflict':
@@ -747,6 +754,14 @@ const esBase: Record<keyof typeof en, string> = {
   'action.finance.unusedIssuerReplaced': 'Entidad emisora sin uso financiero reemplazada',
   'problem.project.deleteHasCommercialAgreements':
     'Este proyecto tiene acuerdos comerciales registrados y no se puede eliminar. Archiva el proyecto.',
+  'problem.project.deleteConfirmationMismatch':
+    'Escribe exactamente la referencia que aparece en el cuadro para confirmar la eliminación definitiva.',
+  'problem.project.ownerDeleteOnly':
+    'Solo el propietario puede eliminar proyectos y clientes de forma definitiva.',
+  'problem.project.referenceAlreadyUsed':
+    'Esta referencia de proyecto ya está en uso. Escribe otra o déjala vacía para generarla automáticamente.',
+  'action.projects.projectDeletedPermanently': 'El proyecto {reference} y todos sus registros se eliminaron definitivamente.',
+  'action.projects.clientDeletedPermanently': 'El cliente {reference}, sus proyectos y todos sus registros se eliminaron definitivamente.',
   'action.projects.personDefaultsSaved':
     'Valores predeterminados del proyecto guardados. Los acuerdos individuales existentes no cambian.',
   'problem.project.creationDefaultsDateConflict':
@@ -1375,6 +1390,14 @@ const ptBase: Record<keyof typeof en, string> = {
   'action.finance.unusedIssuerReplaced': 'Entidade emissora sem uso financeiro substituída',
   'problem.project.deleteHasCommercialAgreements':
     'Este projeto tem acordos comerciais registrados e não pode ser excluído. Arquive o projeto.',
+  'problem.project.deleteConfirmationMismatch':
+    'Digite exatamente a referência mostrada na janela para confirmar a exclusão definitiva.',
+  'problem.project.ownerDeleteOnly':
+    'Somente o proprietário pode excluir projetos e clientes definitivamente.',
+  'problem.project.referenceAlreadyUsed':
+    'Esta referência de projeto já está em uso. Digite outra ou deixe em branco para gerá-la automaticamente.',
+  'action.projects.projectDeletedPermanently': 'O projeto {reference} e todos os seus registros foram excluídos definitivamente.',
+  'action.projects.clientDeletedPermanently': 'O cliente {reference}, seus projetos e todos os seus registros foram excluídos definitivamente.',
   'action.projects.personDefaultsSaved':
     'Padrões do projeto salvos. Os acordos individuais existentes permanecem inalterados.',
   'problem.project.creationDefaultsDateConflict':

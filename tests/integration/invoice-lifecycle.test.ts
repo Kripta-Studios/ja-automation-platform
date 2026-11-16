@@ -705,6 +705,19 @@ describe('invoice lifecycle coverage', () => {
       display_issuer_name: 'Historical Legacy Issuer',
       display_issuer_address: 'Historical issued address',
     });
+    // Owner decision 2026-11-16: the owner may delete the project completely,
+    // including issued invoices, credit notes and payments.
+    expect(() => repository.deleteProject(finance, project.id)).toThrow();
+    const preview = repository.previewPermanentDeletion(owner, { projectId: project.id });
+    expect(preview.invoices).toBeGreaterThan(1);
+    expect(preview.payments).toBeGreaterThan(0);
+    const purged = repository.deleteProject(owner, project.id, preview.confirmationText);
+    expect(purged.summary.invoices).toBe(preview.invoices);
+    for (const table of ['invoice', 'time_entry', 'project_milestone'])
+      expect(
+        sqlite.prepare(`SELECT COUNT(*) n FROM ${table} WHERE project_id=?`).get(project.id),
+      ).toEqual({ n: 0 });
+    expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     sqlite.close();
   });
 });

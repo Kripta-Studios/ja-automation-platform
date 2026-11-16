@@ -75,19 +75,13 @@ describe('Client Essential client and team directory surfaces', () => {
   });
 
   it('styles project workflow actions as visible buttons, not text links', () => {
-    const css = read('apps/portal/src/styles/portal/forms-management.css');
+    // 2026-11-16: the workflow panel became a compact toolbar of real buttons.
+    const css = read('apps/portal/src/styles/portal/projects-simple.css');
     const shell = read('apps/portal/src/lib/PortalShell.svelte');
-    expect(shell).toContain('class="project-workflow-actions"');
-    expect(shell).toContain('class="primary-button"');
-    expect(css).toMatch(
-      /\.project-workflow-actions button\s*\{[\s\S]*?border:\s*1px solid var\(--ja-primary/,
-    );
-    expect(css).toMatch(
-      /\.project-workflow-actions button\s*\{[\s\S]*?background:\s*var\(--ja-primary/,
-    );
-    expect(css).toMatch(
-      /\.project-workflow-actions button\.active\s*\{[\s\S]*?background:\s*var\(--ja-primary-hover/,
-    );
+    expect(shell).toContain('class="project-toolbar"');
+    expect(shell).toMatch(/class="project-toolbar"[\s\S]*?class="primary-button"/);
+    expect(shell).toMatch(/class="project-toolbar"[\s\S]*?class="secondary-button"/);
+    expect(css).toMatch(/\.project-toolbar > \*\s*\{[\s\S]*?min-height:\s*2\.75rem/);
   });
 
   it('styles client directory contact actions as filled buttons', () => {

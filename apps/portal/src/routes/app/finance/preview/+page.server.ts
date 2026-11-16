@@ -74,7 +74,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
             pricing: overview.project.billing_model,
             fixedPriceMinor: overview.project.fixed_price_minor,
             currency: overview.project.currency,
-            referenceMinutes: overview.project.expected_minutes_per_day,
+            // 0 = no expected hours configured for the project.
+            referenceMinutes: overview.project.expected_minutes_per_day || null,
             minimumMinutes: overview.project.client_daily_minimum_minutes,
           }
         : null,

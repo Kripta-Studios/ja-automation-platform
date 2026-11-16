@@ -1,6 +1,8 @@
 <script lang="ts">
   import { round2Text } from '../ux-round2-copy';
   import ProjectInvoiceComposer from './ProjectInvoiceComposer.svelte';
+  import InvoiceQuickCreate, { type AdvancedScope } from './InvoiceQuickCreate.svelte';
+  import { quickInvoiceText } from '../billing-quick-invoice-copy';
   import { journeyText } from '../project-invoice-journey';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
@@ -2462,7 +2464,6 @@
   const invoiceCardRows = $derived.by((): TableCardRow[] =>
     invoicePage.map((invoice) => {
       const id = rowValue(invoice, 'id');
-      const ledger = ledgerForInvoice(id);
       const secondaryActions: TableCardAction[] = [];
       const projectHref = invoiceProjectHref(invoice);
       if (projectHref) {
@@ -2491,41 +2492,27 @@
           },
           {
             label: translate('Client'),
-            value: invoiceClientIdentity(invoice),
+            value: invoiceClientName(invoice),
           },
           {
             label: translate('Project'),
-            value: invoiceProjectIdentity(invoice) || '—',
-          },
-          {
-            label: translate('Amount'),
-            value: invoiceTotal(invoice),
+            value: invoiceProjectLine(invoice),
           },
           {
             label: journeyText(locale, 'servicePeriod'),
             value: invoiceServicePeriod(invoice),
           },
           {
-            label: journeyText(locale, 'issueAndDue'),
-            value: invoiceIssueDue(invoice),
+            label: translate('Total'),
+            value: invoiceTotal(invoice),
           },
           {
             label: translate('Status'),
             value: invoiceStatusText(invoice),
           },
           {
-            label: translate('PDF'),
-            value: hasDraftPreview(invoice)
-              ? translate('Preview')
-              : translate(
-                  invoicePdfStatus(invoice) === 'unavailable'
-                    ? 'Unavailable'
-                    : invoicePdfStatus(invoice),
-                ),
-          },
-          {
-            label: balanceLabel(invoice),
-            value: balanceDisplay(invoice, ledger),
+            label: quickInvoiceText(locale, 'due'),
+            value: invoiceDue(invoice),
           },
         ],
         secondaryActions,
@@ -2722,17 +2709,32 @@
     url: () => $page.url,
     surfaces: ['invoice-create'],
     activate: () => {
-      if (!canManageBilling || invoiceWizardOpen || selectedInvoiceIntent || billingProblem) return;
-      // beforeNavigate already confirmed departure from any dirty directory form.
-      startInvoiceWizard(true);
+      if (
+        !canManageBilling ||
+        invoiceWizardOpen ||
+        quickInvoiceOpen ||
+        selectedInvoiceIntent ||
+        billingProblem
+      )
+        return;
+      openQuickInvoice();
     },
     deactivate: () => {
       if (!billingProblem) invoiceWizardOpen = false;
+      quickInvoiceOpen = false;
     },
   });
 
-  function openInvoiceWizard(): void {
-    startInvoiceWizard();
+  /** The default path: one screen with project, dates and the exact amount. */
+  let quickInvoiceOpen = $state(false);
+  function openQuickInvoice(): void {
+    clearInvoiceSetupWarning();
+    quickInvoiceOpen = true;
+  }
+  /** Advanced: the record-by-record composer, pre-set to the quick screen's scope. */
+  function openAdvancedComposer(scope: AdvancedScope): void {
+    quickInvoiceOpen = false;
+    startInvoiceWizard(false, scope);
   }
 
   function adoptRecordComposerScope(scope: InvoiceComposerScope): void {
@@ -3071,11 +3073,12 @@
     void showSetupAction('stream');
   }
 
-  function startInvoiceWizard(departureConfirmed = false): void {
-    invoiceScopeProjectId = projectFilter;
-    const eligibleRules = projectFilter
+  function startInvoiceWizard(departureConfirmed = false, scope?: AdvancedScope): void {
+    const scopeProjectId = scope?.projectId ?? projectFilter;
+    invoiceScopeProjectId = scopeProjectId;
+    const eligibleRules = scopeProjectId
       ? activeWizardRules.filter(
-          (rule) => rowValue(rule, 'project_id', 'projectId') === projectFilter,
+          (rule) => rowValue(rule, 'project_id', 'projectId') === scopeProjectId,
         )
       : activeWizardRules;
     if (eligibleRules.length === 0) {
@@ -3090,7 +3093,7 @@
       return;
     }
     clearInvoiceSetupWarning();
-    const requestedRule = $page.url.searchParams.get('billingRuleId');
+    const requestedRule = scope?.billingRuleId ?? $page.url.searchParams.get('billingRuleId');
     const requestedRuleIsEligible = eligibleRules.some(
       (rule) => rowValue(rule, 'id') === requestedRule,
     );
@@ -3102,12 +3105,12 @@
     const selectedRuleSupportsRecords = ['labor', 'expense'].includes(
       rowValue(selectedRule, 'stream_type', 'streamType'),
     );
-    const requestedMode = $page.url.searchParams.get('mode') === 'whole-period';
+    const requestedMode = !scope && $page.url.searchParams.get('mode') === 'whole-period';
     invoiceCreationMode =
       requestedMode || !selectedRuleSupportsRecords ? 'whole_period' : 'records';
     invoiceWizardStep = 1;
-    const requestedStart = $page.url.searchParams.get('periodStart');
-    const requestedEnd = $page.url.searchParams.get('periodEnd');
+    const requestedStart = scope?.periodStart ?? $page.url.searchParams.get('periodStart');
+    const requestedEnd = scope?.periodEnd ?? $page.url.searchParams.get('periodEnd');
     if (
       requestedStart &&
       requestedEnd &&
@@ -3250,6 +3253,49 @@
     const end = dateValue(rowValue(invoice, 'period_end', 'periodEnd'));
     if (start === '—' && end === '—') return '—';
     return start === end ? start : `${start} → ${end}`;
+  }
+
+  const filterProjectLabel = $derived.by(() => {
+    const project = availableProjects.find((row) => rowValue(row, 'id') === projectFilter);
+    return project ? projectLabel(project) : '';
+  });
+
+  function invoiceProjectLine(invoice: Row): string {
+    const projectId = rowValue(invoice, 'project_id', 'projectId');
+    const project = (data.projects ?? []).find((row) => rowValue(row, 'id') === projectId);
+    return (
+      [
+        rowValue(invoice, 'project_number', 'projectNumber'),
+        rowValue(invoice, 'project_name', 'projectName') ||
+          rowValue(project, 'name', 'project_name', 'projectName'),
+      ]
+        .filter(Boolean)
+        .join(' · ') || '—'
+    );
+  }
+
+  function invoiceClientName(invoice: Row): string {
+    return (
+      rowValue(invoice, 'client_name', 'clientName') ||
+      rowValue(invoice, 'client_code', 'clientCode') ||
+      '—'
+    );
+  }
+
+  function invoiceDue(invoice: Row): string {
+    return dateValue(
+      rowValue(
+        invoice,
+        'due_at',
+        'dueAt',
+        'due_on',
+        'dueOn',
+        'due_date',
+        'dueDate',
+        'expected_collection_on',
+        'expectedCollectionOn',
+      ),
+    );
   }
 
   function invoiceIssueDue(invoice: Row): string {
@@ -3419,16 +3465,17 @@
       <p class="billing-section__eyebrow">{translate('Finance operations')}</p>
       <h2>{translate('Billing')}</h2>
       <p>
-        {translate(
-          'Invoices are the bill: draft, approve, issue, collect. Billing streams only set cadence and template for a project.',
-        )}
+        {quickInvoiceText(locale, 'landingIntro')}
       </p>
     </div>
     {#if isAuditor}
       <span class="billing-section__read-only" role="status">{translate('Read-only review')}</span>
     {:else if canManageBilling}
-      <button type="button" class="primary-button" onclick={openInvoiceWizard}
-        >{translate('Create invoice')}</button
+      <button
+        type="button"
+        class="primary-button"
+        onclick={openQuickInvoice}
+        data-assistant-target="invoice-create">{quickInvoiceText(locale, 'newInvoice')}</button
       >
     {/if}
   </header>
@@ -3460,6 +3507,24 @@
         >{translate('Open existing invoice')} <DirectionIcon /></a
       >
     </p>
+  {/if}
+
+  {#if quickInvoiceOpen && canManageBilling && !invoiceWizardOpen && !streamEditorRuleId}
+    <ResponsiveSheet
+      open={true}
+      title={quickInvoiceText(locale, 'newInvoice')}
+      closeLabel={translate('Close')}
+      size="wide"
+      onclose={() => (quickInvoiceOpen = false)}
+    >
+      <InvoiceQuickCreate
+        {locale}
+        {translate}
+        role={String(data.user?.role ?? '')}
+        initialProjectId={projectFilter}
+        onAdvancedRecords={openAdvancedComposer}
+      />
+    </ResponsiveSheet>
   {/if}
 
   {#if (invoiceWizardOpen || streamEditorRuleId) && canManageBilling}
@@ -5206,7 +5271,7 @@
       onclick={() => {
         clearInvoiceSetupWarning();
         selectBillingWorkspace('invoices');
-      }}>{translate('Invoices')}</button
+      }}>{quickInvoiceText(locale, 'tabInvoices')}</button
     >
     <button
       type="button"
@@ -5217,7 +5282,7 @@
       onclick={() => {
         clearInvoiceSetupWarning();
         selectBillingWorkspace('streams');
-      }}>{translate('Billing streams')}</button
+      }}>{quickInvoiceText(locale, 'tabStreams')}</button
     >
     {#if canManageBilling}
       <button
@@ -5229,31 +5294,12 @@
         onclick={() => {
           clearInvoiceSetupWarning();
           selectBillingWorkspace('setup');
-        }}>{translate('Configure billing')}</button
+        }}>{quickInvoiceText(locale, 'tabSetup')}</button
       >
     {/if}
   </div>
 
   {#if workspace === 'invoices'}
-    <div class="billing-section__summary" aria-label={translate('Billing stage summary')}>
-      {#each [['all', 'All invoices', summaryInvoices.length], ['wip', 'WIP / Ready', stageCounts.wip], ['drafts', 'Drafts / awaiting issue', stageCounts.drafts], ['outstanding', 'Outstanding', stageCounts.outstanding], ['overdue', 'Overdue', stageCounts.overdue], ['credits', 'Credit balances', stageCounts.credits], ['paid', 'Paid', stageCounts.paid]] as summary}
-        <button
-          type="button"
-          class:billing-section__summary-card--active={stageFilter === summary[0]}
-          class:billing-section__summary-card--danger={summary[0] === 'overdue'}
-          class="billing-section__summary-card"
-          aria-pressed={stageFilter === summary[0]}
-          onclick={() => (stageFilter = summary[0] as BillingStage)}
-        >
-          <span
-            >{summary[0] === 'drafts'
-              ? journeyText(locale, 'draftsAwaitingIssue')
-              : translate(String(summary[1]))}</span
-          >
-          <strong>{summary[2]}</strong>
-        </button>
-      {/each}
-    </div>
 
     <form
       class="billing-section__filters"
@@ -5269,16 +5315,7 @@
         />
       </label>
       <label>
-        <span>{translate('Project')}</span>
-        <select bind:value={projectFilter}>
-          <option value="">{translate('All projects')}</option>
-          {#each availableProjects as project}
-            <option value={rowValue(project, 'id')}>{projectLabel(project)}</option>
-          {/each}
-        </select>
-      </label>
-      <label>
-        <span>{translate('Stage')}</span>
+        <span>{translate('Status')}</span>
         <select bind:value={stageFilter}>
           <option value="all">{translate('All invoices')}</option>
           <option value="wip">{translate('WIP / Ready')}</option>
@@ -5289,9 +5326,15 @@
           <option value="paid">{translate('Paid')}</option>
         </select>
       </label>
+      {#if projectFilter}
+        <span class="billing-section__filter-chip"
+          >{translate('Project')}: {filterProjectLabel || projectFilter}</span
+        >
+      {/if}
       <button
         type="button"
         class="secondary-button"
+        hidden={!search && !projectFilter && stageFilter === 'all'}
         onclick={() => {
           search = '';
           projectFilter = '';
@@ -6863,15 +6906,14 @@
   {/if}
 
   {#if workspace === 'invoices'}
-    <SectionCard title={translate('Invoice register')} class="billing-section__invoices">
+    <SectionCard
+      title={quickInvoiceText(locale, 'tabInvoices')}
+      class="billing-section__invoices"
+    >
       <div class="billing-section__section-intro">
         <p>
           {stageFilter === 'all'
-            ? translate(
-                canManageBilling
-                  ? 'Each row is one bill. Open Manage to approve, issue, collect, or correct. Adjustment is a new draft, never an edit of the issued bill.'
-                  : 'billing.invoiceRegister.readOnlyHelp',
-              )
+            ? translate('All invoices')
             : `${stageLabel(stageFilter)} · ${translate('filtered')}`}
         </p>
         <span>{visibleInvoices.length}</span>
@@ -6906,14 +6948,12 @@
               <thead>
                 <tr>
                   <th scope="col">{translate('Invoice')}</th>
-                  <th scope="col">{translate('Client')}</th>
-                  <th scope="col">{translate('Project')}</th>
-                  <th scope="col">{translate('Dates')}</th>
-                  <th scope="col">{translate('Amount')}</th>
-                  <th scope="col">{translate('Balance (receivable / credit)')}</th>
+                  <th scope="col">{translate('Client')} / {translate('Project')}</th>
+                  <th scope="col">{journeyText(locale, 'servicePeriod')}</th>
+                  <th scope="col" class="billing-section__num">{translate('Total')}</th>
                   <th scope="col">{translate('Status')}</th>
-                  <th scope="col">{translate('PDF')}</th>
-                  <th scope="col">{translate('Actions')}</th>
+                  <th scope="col">{quickInvoiceText(locale, 'due')}</th>
+                  <th scope="col"><span class="sr-only">{translate('Actions')}</span></th>
                 </tr>
               </thead>
               <tbody>
@@ -6936,26 +6976,14 @@
                         <strong>{invoiceTitle(invoice)}</strong>
                       </a>
                     </td>
-                    <td>{invoiceClientIdentity(invoice)}</td>
                     <td>
-                      {#if invoiceProjectHref(invoice)}
-                        <a href={invoiceProjectHref(invoice)}
-                          >{invoiceProjectIdentity(invoice) || '—'}</a
-                        >
-                      {:else}{invoiceProjectIdentity(invoice) || '—'}{/if}
+                      <span class="billing-section__client">{invoiceClientName(invoice)}</span>
+                      <small class="billing-section__project-line"
+>{invoiceProjectLine(invoice)}</small
+                      >
                     </td>
-                    <td>
-                      <span class="billing-section__invoice-date-line">
-                        <small>{journeyText(locale, 'servicePeriod')}</small>
-                        {invoiceServicePeriod(invoice)}
-                      </span>
-                      <span class="billing-section__invoice-date-line">
-                        <small>{journeyText(locale, 'issueAndDue')}</small>
-                        {invoiceIssueDue(invoice)}
-                      </span>
-                    </td>
-                    <td>{invoiceTotal(invoice)}</td>
-                    <td>{balanceDisplay(invoice, ledger)}</td>
+                    <td>{invoiceServicePeriod(invoice)}</td>
+                    <td class="billing-section__num">{invoiceTotal(invoice)}</td>
                     <td>
                       <StatusBadge
                         variant={statusVariant(invoiceStateValue)}
@@ -6963,51 +6991,20 @@
                         data-invoice-status={invoiceStateValue}
                         aria-label={invoiceStatus(invoice)}
                       />
-                    </td>
-                    <td>
-                      <span
-                        data-invoice-pdf-status={pdfStatus}
-                        data-invoice-pdf-preview={draftPreview ? 'preview' : undefined}
-                      >
-                        {translate('PDF')} · {translate(
-                          draftPreview
-                            ? 'Preview'
-                            : pdfStatus === 'unavailable'
-                              ? 'Unavailable'
-                              : pdfStatus,
-                        )}
-                      </span>
-                      {#if !draftPreview && pdfStatus === 'ready'}
-                        <a
-                          href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf`}
-                          download
-                          aria-label={`${translate('Download PDF')}: ${invoiceTitle(invoice)}`}
-                          aria-disabled={Boolean(invoicePdfBusyId)}
-                          onclick={(event) =>
-                            onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
-                          onauxclick={(event) =>
-                            onInvoicePdfLinkClick(event, invoiceId, 'download', 'table')}
-                          >{translate('Download PDF')}</a
+                      {#if ['issued', 'sent', 'partially_paid', 'overdue'].includes(invoiceStateValue) && ledger}
+                        <small class="billing-section__project-line"
+                          >{balanceDisplay(invoice, ledger)}</small
                         >
-                        {#if invoicePdfFailure?.id === invoiceId && invoicePdfFailure.surface === 'table'}
-                          <div
-                            data-invoice-pdf-problem="table"
-                            onclick={(event) => onInvoicePdfRemedyClick(event, invoiceId, 'table')}
-                            role="presentation"
-                          >
-                            <ProblemNotice
-                              problem={invoicePdfFailure.problem}
-                              kind="error"
-                              remedyLinks={invoicePdfRemedyLinks}
-                              {locale}
-                            />
-                          </div>
-                        {/if}
                       {/if}
+                      <span hidden data-invoice-pdf-status={pdfStatus}
+                        data-invoice-pdf-preview={draftPreview ? 'preview' : undefined}></span>
                     </td>
+                    <td>{invoiceDue(invoice)}</td>
                     <td>
-                      <button type="button" onclick={() => openInvoice(invoice)}
-                        >{translate('Manage')}</button
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        onclick={() => openInvoice(invoice)}>{translate('Manage')}</button
                       >
                     </td>
                   </tr>
@@ -8311,9 +8308,6 @@
   .billing-section__invoice-register th:nth-child(9) {
     width: 10%;
   }
-  .billing-section__invoice-register .billing-section__invoice-date-line {
-    min-width: 0;
-  }
   .billing-section__invoice-register td {
     font-size: 0.8125rem;
   }
@@ -8344,11 +8338,6 @@
     font-size: 0.8125rem;
   }
 
-  .billing-section__invoice-date-line {
-    display: grid;
-    gap: 0.15rem;
-    min-width: 8rem;
-  }
 
   .billing-section__table td .billing-section__period-form {
     margin-bottom: 0.5rem;
@@ -8824,53 +8813,12 @@
     white-space: nowrap;
   }
 
-  .billing-section__summary {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-    gap: 0.75rem;
-  }
 
-  .billing-section__summary-card {
-    display: grid;
-    gap: 0.22rem;
-    min-height: 6.25rem;
-    padding: 0.9rem 1rem;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 0.75rem;
-    background: var(--portal-surface, #fff);
-    color: var(--portal-ink, #20201d);
-    text-align: left;
-    cursor: pointer;
-    font: inherit;
-  }
 
-  .billing-section__summary-card:hover,
-  .billing-section__summary-card--active {
-    border-color: var(--portal-accent, #53524c);
-    background: color-mix(in srgb, var(--portal-accent, #53524c) 7%, var(--portal-surface, #fff));
-  }
 
-  .billing-section__summary-card--danger {
-    border-color: color-mix(
-      in srgb,
-      var(--portal-danger, #b42318) 40%,
-      var(--portal-border, #dfdedc)
-    );
-  }
 
-  .billing-section__summary-card span {
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-  }
 
-  .billing-section__summary-card--active span {
-    color: var(--portal-ink, #20201d);
-  }
 
-  .billing-section__summary-card strong {
-    font-size: 1.45rem;
-    font-variant-numeric: tabular-nums;
-  }
 
   .billing-section__filters {
     display: grid;
@@ -9913,9 +9861,6 @@
       width: 100%;
     }
 
-    .billing-section__summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
 
     .billing-section__filters,
     .billing-section__config-form,
@@ -10076,5 +10021,39 @@
     .billing-section * {
       scroll-behavior: auto;
     }
+  }
+  .billing-section__invoice-register .billing-section__num {
+    text-align: right;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+  }
+  .billing-section__invoice-register td {
+    vertical-align: top;
+  }
+  .billing-section__invoice-register td:nth-child(3),
+  .billing-section__invoice-register td:nth-child(6),
+  .billing-section__invoice-register td:last-child {
+    white-space: nowrap;
+  }
+  .billing-section__client {
+    display: block;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .billing-section__project-line {
+    display: block;
+    color: var(--ja-text-secondary, #57574f);
+    overflow-wrap: anywhere;
+  }
+  .billing-section__filter-chip {
+    align-self: end;
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0 0.75rem;
+    border-radius: 999px;
+    background: var(--ja-surface-raised, #eeeee9);
+    font-size: 0.8rem;
+    font-weight: 700;
   }
 </style>

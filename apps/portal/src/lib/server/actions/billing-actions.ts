@@ -2153,6 +2153,49 @@ export const billingActions = {
       context?.sqlite.close();
     }
   },
+  /** Invoice page: approve (if needed) and issue the confirmed total in one transaction. */
+  issueReviewedInvoice: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'billing')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    if (!locals.user) return billingSignInFailure('issueInvoice', locals.correlationId);
+    const object = await formObject(request).catch(() => null);
+    if (!object) return billingInvalidFormFailure('issueInvoice');
+    const parsed = invoiceIdSchema.safeParse(object);
+    const expectedTotalMinor = String(object.expectedTotalMinor ?? '');
+    if (!parsed.success || !/^\d{1,18}$/u.test(expectedTotalMinor))
+      return billingInputFailure(
+        'invoiceId',
+        'issueInvoice',
+        object,
+        parsed.success ? {} : parsed.error.flatten().fieldErrors,
+      );
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const result = context.repository.issueReviewedInvoice(
+        context.principal,
+        parsed.data.invoiceId,
+        expectedTotalMinor,
+        parsed.data.reportLocale,
+      );
+      return actionSuccess(
+        result.issued ? 'action.billing.invoiceIssued' : 'action.billing.invoiceAlreadyIssued',
+        { invoiceNumber: result.invoiceNumber },
+        result.issued
+          ? `Issued ${result.invoiceNumber}`
+          : `Invoice ${result.invoiceNumber} was already issued`,
+      );
+    } catch (error) {
+      return billingActionFailure(
+        error,
+        'issueInvoice',
+        context?.principal.role,
+        safeBillingInputValues(object),
+      );
+    } finally {
+      context?.sqlite.close();
+    }
+  },
   recordPayment: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'billing')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');

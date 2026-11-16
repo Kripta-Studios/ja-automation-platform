@@ -9,18 +9,20 @@ const source = (): string =>
   );
 
 describe('Billing section lifecycle surface', () => {
-  it('uses a context, stage summaries, filters and a list-first invoice register', () => {
+  it('uses a context, one New invoice action, a status filter and a list-first invoice register', () => {
     const value = source();
 
     expect(value).toContain('Finance operations');
-    expect(value).toContain('Billing stage summary');
+    // Owner decision 2026-11-16: the seven KPI cards were replaced by one status filter.
+    expect(value).not.toContain('Billing stage summary');
+    expect(value).toContain("quickInvoiceText(locale, 'newInvoice')");
+    expect(value).toContain('<InvoiceQuickCreate');
     expect(value).toContain('WIP / Ready');
-    expect(value).toContain('Drafts');
     expect(value).toContain('Outstanding');
     expect(value).toContain('Overdue');
     expect(value).toContain('Filter billing');
     expect(value).toContain('data-billing-invoice-list');
-    expect(value).toContain('Configure billing');
+    expect(value).toContain("quickInvoiceText(locale, 'tabSetup')");
     expect(value).toContain('role="tablist"');
     expect(value).toContain("workspace = $state<BillingWorkspace>('invoices')");
     expect(value.indexOf('billing-section__filters')).toBeLessThan(

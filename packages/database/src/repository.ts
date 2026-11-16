@@ -6897,6 +6897,104 @@ export class PortalRepository {
     return this.createInvoiceDraftCore(billingRuleId, periodStart, periodEnd, principal);
   }
 
+  /**
+   * Read-only invoice estimate. Runs the canonical draft engine (the exact code path
+   * `createInvoiceDraft` / `createSelectedInvoiceDraft` use) inside a savepoint that is
+   * always rolled back, so the shown amount is the amount the draft will carry and no
+   * invoice, reservation or audit row survives.
+   */
+  invoiceDraftDryRun(
+    principal: Principal,
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    selection?: readonly InvoiceCompositionSourceRef[],
+  ):
+    | {
+        ok: true;
+        invoiceId: string;
+        created: boolean;
+        existingState: string | null;
+        totals: { currency: string; subtotalMinor: string; taxMinor: string; totalMinor: string };
+        lines: Array<{
+          description: string;
+          quantityNumerator: number;
+          quantityDenominator: number;
+          unitPriceMinor: string;
+          subtotalMinor: string;
+          sourceType: string;
+          sourceId: string;
+          snapshotJson: string | null;
+        }>;
+        preview: ReturnType<PortalRepository['invoicePreview']>;
+        issue: { ok: true } | { ok: false; reasons: readonly ReadinessReason[]; message: string };
+      }
+    | { ok: false; reasons: readonly ReadinessReason[] } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    assertDate(periodStart, 'Period start');
+    assertDate(periodEnd, 'Period end');
+    if (periodEnd < periodStart) throw new ValidationError('Billing period end must follow start');
+    this.sqlite.exec('SAVEPOINT invoice_draft_dry_run');
+    try {
+      const draft = this.createInvoiceDraftCore(
+        billingRuleId,
+        periodStart,
+        periodEnd,
+        principal,
+        undefined,
+        undefined,
+        selection,
+      );
+      // Exact money is read as text so bigint conversion never passes through a JS number.
+      const totals = this.sqlite
+        .prepare(
+          `SELECT currency,CAST(subtotal_minor AS TEXT) subtotalMinor,CAST(tax_minor AS TEXT) taxMinor,
+                  CAST(total_minor AS TEXT) totalMinor FROM invoice WHERE id=?`,
+        )
+        .get(draft.id) as { currency: string; subtotalMinor: string; taxMinor: string; totalMinor: string };
+      const lines = this.sqlite
+        .prepare(
+          `SELECT description,quantity_numerator quantityNumerator,quantity_denominator quantityDenominator,
+                  CAST(unit_price_minor AS TEXT) unitPriceMinor,CAST(subtotal_minor AS TEXT) subtotalMinor,
+                  source_type sourceType,source_id sourceId,snapshot_json snapshotJson
+             FROM invoice_line WHERE invoice_id=? ORDER BY rowid`,
+        )
+        .all(draft.id) as Array<{
+        description: string;
+        quantityNumerator: number;
+        quantityDenominator: number;
+        unitPriceMinor: string;
+        subtotalMinor: string;
+        sourceType: string;
+        sourceId: string;
+        snapshotJson: string | null;
+      }>;
+      const preview = this.invoicePreview(principal, draft.id);
+      return {
+        ok: true,
+        invoiceId: draft.id,
+        created: draft.created || draft.refreshed,
+        existingState: draft.existingState ?? null,
+        totals,
+        lines,
+        preview,
+        issue: ['draft', 'approved'].includes(String(preview.invoice.state))
+          ? this.issueDryRunCore(principal, draft.id)
+          : { ok: true as const },
+      };
+    } catch (error) {
+      if (error instanceof ReadinessError) return { ok: false, reasons: error.reasons };
+      if (error instanceof ValidationError && /configured cadence/i.test(error.message))
+        return { ok: false, reasons: [{ code: 'period_cutoff_mismatch' }] };
+      throw error;
+    } finally {
+      this.sqlite.exec('ROLLBACK TO invoice_draft_dry_run');
+      this.sqlite.exec('RELEASE invoice_draft_dry_run');
+    }
+  }
+
   createInvoiceDraftFromJob(
     billingRuleId: string,
     periodStart: string,
@@ -8654,6 +8752,75 @@ export class PortalRepository {
           : `/app/reports?view=signoff&projectId=${encodeURIComponent(invoice.project_id)}&periodStart=${encodeURIComponent(invoice.period_start)}&periodEnd=${encodeURIComponent(invoice.period_end)}`,
       },
     ]);
+  }
+
+  /**
+   * One-step issue from the invoice page: approve a reviewed draft and issue it in a single
+   * transaction, but only when the invoice still carries the total the user confirmed.
+   * Approval and issuance keep their own checks; a failure leaves the draft unchanged.
+   */
+  issueReviewedInvoice(
+    principal: Principal,
+    invoiceId: string,
+    expectedTotalMinor: string,
+    reportLocale: ReportLocale = 'en',
+  ) {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    if (!/^\d{1,18}$/u.test(expectedTotalMinor))
+      throw new ValidationError('Confirmed invoice total is required');
+    return this.transaction(() => {
+      const current = this.sqlite
+        .prepare('SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?')
+        .get(invoiceId) as { state: string; total: string } | undefined;
+      if (!current) throw new ValidationError('Invoice not found');
+      if (['draft', 'approved'].includes(current.state) && current.total !== expectedTotalMinor)
+        throw new ConflictError('Invoice total changed before issue');
+      if (current.state === 'draft') this.approveInvoiceDraft(principal, invoiceId);
+      return this.issueInvoice(principal, invoiceId, reportLocale);
+    });
+  }
+
+  /**
+   * Would issuing this unissued invoice succeed right now? Runs the real approve + issue
+   * path inside a savepoint that is always rolled back (no number is consumed), so the
+   * invoice page can show every blocker with its fix before the user presses Issue.
+   */
+  invoiceIssueDryRun(
+    principal: Principal,
+    invoiceId: string,
+  ): { ok: true } | { ok: false; reasons: readonly ReadinessReason[]; message: string } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    return this.issueDryRunCore(principal, invoiceId);
+  }
+
+  private issueDryRunCore(
+    principal: Principal,
+    invoiceId: string,
+  ): { ok: true } | { ok: false; reasons: readonly ReadinessReason[]; message: string } {
+    this.sqlite.exec('SAVEPOINT invoice_issue_dry_run');
+    try {
+      const state = this.sqlite.prepare('SELECT state FROM invoice WHERE id=?').get(invoiceId)
+        ?.state;
+      if (state === 'draft') this.approveInvoiceDraft(principal, invoiceId);
+      this.issueInvoice(principal, invoiceId);
+      return { ok: true };
+    } catch (error) {
+      if (error instanceof ReadinessError)
+        return { ok: false, reasons: error.reasons, message: error.message };
+      if (error instanceof AccessDeniedError) throw error;
+      return {
+        ok: false,
+        reasons: [{ code: 'issue_blocked' }],
+        message: error instanceof Error ? error.message : 'Invoice cannot be issued',
+      };
+    } finally {
+      this.sqlite.exec('ROLLBACK TO invoice_issue_dry_run');
+      this.sqlite.exec('RELEASE invoice_issue_dry_run');
+    }
   }
 
   issueInvoice(principal: Principal, invoiceId: string, reportLocale: ReportLocale = 'en') {

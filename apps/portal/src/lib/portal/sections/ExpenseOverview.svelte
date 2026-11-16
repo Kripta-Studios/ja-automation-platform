@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cssWidth } from '../ui/css-width';
   /*
    * Review view for owner / finance / PM (owner request 2026-11-16): one period,
    * totals by worker or project with per-currency sums and status breakdown,
@@ -465,7 +466,7 @@
                   >
                 </span>
                 <span class="ov-bar" aria-hidden="true"
-                  ><span style:width={`${item.share}%`}></span></span
+                  ><span use:cssWidth={item.share}></span></span
                 >
               </button>
             </li>

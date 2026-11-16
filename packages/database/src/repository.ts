@@ -11125,7 +11125,7 @@ export class PortalRepository {
       .all(pattern, pattern, pattern, ...projectValues);
     const clients = this.sqlite
       .prepare(
-        `SELECT c.id,'client' type,c.display_name label,c.client_number || ' · Client' detail FROM client c
+        `SELECT DISTINCT c.id,'client' type,c.display_name label,c.client_number || ' · Client' detail FROM client c
                JOIN project p ON p.client_id=c.id
                WHERE (c.client_number LIKE ? ESCAPE '\\' OR c.display_name LIKE ? ESCAPE '\\')${operationalRestriction} LIMIT 50`,
       )

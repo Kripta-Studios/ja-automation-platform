@@ -315,11 +315,6 @@
   }
   async function openProjectWorkflow(workflow: ProjectWorkflow): Promise<void> {
     projectWorkflow = workflow;
-    if (workflow === 'new-project') {
-      newProjectClientId = '';
-      newProjectCurrencyOverride = null;
-      newProjectTimezoneOverride = null;
-    }
     await rememberProjectWorkflow(workflow);
     await focusProjectDestination(`[data-project-workflow="${workflow}"]`);
   }

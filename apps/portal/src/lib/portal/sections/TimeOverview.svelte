@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { cssWidth } from '../ui/css-width';
   /**
    * Hours overview (review): registered hours by worker x project for a period,
    * with totals per row/column, status breakdown, drill-down to entries and a
@@ -302,7 +303,7 @@
 {#snippet statusBar(bucket: Bucket)}
   <span class="mini-bar" aria-hidden="true">
     {#each bar(bucket) as part (part.status)}
-      <span data-status={part.status} style:width={`${part.share}%`}></span>
+      <span data-status={part.status} use:cssWidth={part.share}></span>
     {/each}
   </span>
 {/snippet}

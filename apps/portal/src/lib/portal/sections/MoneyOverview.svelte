@@ -445,7 +445,7 @@
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
-  @media (max-width: 760px) {
+  @media (max-width: 900px) {
     .money__card strong {
       font-size: 1.3rem;
     }

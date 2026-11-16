@@ -48,4 +48,18 @@ describe('Worker time UI vertical slice', () => {
     expect(source).toContain('data-testid="time-week-days"');
     expect(source).toMatch(/@media \(max-width: 760px\)[\s\S]*\.sheet-table-wrap \{\s*display: none;/u);
   });
+
+  it('separates capture (one day / whole week) from the review overview', () => {
+    const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
+    const overview = readSource('apps/portal/src/lib/portal/sections/TimeOverview.svelte');
+    const load = readSource('apps/portal/src/routes/app/[section]/section-load.ts');
+    expect(source).toContain('data-testid="time-mode-day"');
+    expect(source).toContain('data-testid="time-mode-week"');
+    expect(source).toContain('{#if data.canReviewTime}');
+    expect(source).not.toContain('time-history');
+    expect(overview).toContain('data-testid="ov-matrix"');
+    // Review rows are operational only: no money or rate fields reach the overview.
+    expect(load).toMatch(/const canReview = \['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'\]/u);
+    expect(overview).not.toMatch(/rate|amount_minor|compensation|cost/iu);
+  });
 });

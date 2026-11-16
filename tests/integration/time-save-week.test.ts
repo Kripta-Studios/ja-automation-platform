@@ -127,4 +127,22 @@ describe('saveTimeWeek (week timesheet)', () => {
     ).toEqual({ n: 0 });
     expect(value.sqlite.prepare('SELECT COUNT(*) n FROM time_entry').get()).toEqual({ n: 1 });
   });
+
+  it('rejects hours on a future day, even from a forged request', () => {
+    const value = createB5LifecycleSecurityFixture();
+    fixtures.push(value);
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'time-week-future');
+    const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+    const monday = new Date(`${tomorrow}T00:00:00.000Z`);
+    monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
+    expect(() =>
+      value.repository.saveTimeWeek(owner, {
+        workerId: value.worker.userId,
+        weekStart: monday.toISOString().slice(0, 10),
+        cells: [{ projectId: value.project.id, category: 'regular', workDate: tomorrow, minutes: 480 }],
+      }),
+    ).toThrow('Hours cannot be entered for a future day');
+    expect(value.sqlite.prepare('SELECT COUNT(*) n FROM time_entry').get()).toEqual({ n: 0 });
+  });
 });
+

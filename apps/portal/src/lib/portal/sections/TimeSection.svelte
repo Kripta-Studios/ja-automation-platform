@@ -22,6 +22,14 @@
   import { localToday } from '../ui/time-entry-clock';
   import { weekDates, weekStartForDate } from './time-entry-actions';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
+  import {
+    DAY_MAX_MINUTES,
+    DAY_WARN_MINUTES,
+    hoursAndMinutesText,
+    parseHoursText,
+    personName,
+  } from './time-hours';
+  import TimeOverview from './TimeOverview.svelte';
 
   let {
     locale = 'en',
@@ -43,7 +51,7 @@
     timeWeekText(locale, key, params);
 
   type CellStatus = 'draft' | 'submitted' | 'approved' | 'needs_changes';
-  type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned';
+  type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned' | 'future';
   type SheetRow = { key: string; projectId: string; category: string };
 
   const quickCategories = ['regular', 'travel', 'overtime'] as const;
@@ -153,15 +161,7 @@
     changed: boolean;
   };
 
-  const parseHours = (value: string): number | null | undefined => {
-    const raw = value.trim().replace(',', '.');
-    if (!raw) return null;
-    const match = /^(\d{1,2})(?:\.(\d{1,2}))?$/u.exec(raw);
-    if (!match) return undefined;
-    const hundredths = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
-    if (hundredths > 2400) return undefined;
-    return Math.round((hundredths * 3) / 5);
-  };
+  const parseHours = (value: string) => parseHoursText(value);
   const hoursText = (minutes: number) => (minutes ? decimalHoursFromMinutes(minutes) : '');
 
   const cellFor = (row: SheetRow, date: string): Cell => {
@@ -169,12 +169,14 @@
     const list = cellEntries(row, date);
     const originalMinutes = list.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
     let kind: CellKind;
-    if (list.length === 0) kind = assigned(row.projectId, date) ? 'new' : 'unassigned';
+    if (list.length === 0)
+      kind = date > today ? 'future' : assigned(row.projectId, date) ? 'new' : 'unassigned';
     else if (list.length > 1) kind = 'multi';
     else if (editableDraft(list[0]!)) kind = 'draft';
     else if (String(list[0]!.approval_state) === 'needs_changes') kind = 'fix';
     else kind = 'locked';
-    if (isAuditor && kind !== 'unassigned') kind = list.length ? 'locked' : 'unassigned';
+    if (isAuditor && kind !== 'unassigned' && kind !== 'future')
+      kind = list.length ? 'locked' : 'unassigned';
     const editable = kind === 'new' || kind === 'draft' || kind === 'fix';
     const value = editable && key in edits ? edits[key]! : hoursText(originalMinutes);
     const minutes = parseHours(value);
@@ -200,6 +202,12 @@
     days.map((_, index) => grid.reduce((sum, line) => sum + cellMinutes(line.cells[index]!), 0)),
   );
   const weekTotal = $derived(dayTotals.reduce((sum, value) => sum + value, 0));
+  /** Day totals across every row: warn above 12 h, block above 24 h. */
+  const dayOver = (index: number) => (dayTotals[index] ?? 0) > DAY_MAX_MINUTES;
+  const dayLong = (index: number) =>
+    !dayOver(index) && (dayTotals[index] ?? 0) > DAY_WARN_MINUTES;
+  const overDays = $derived(days.filter((_, index) => dayOver(index)));
+  const longDays = $derived(days.filter((_, index) => dayLong(index)));
   const changedCells = $derived(grid.flatMap((line) => line.cells.filter((cell) => cell.changed)));
   const invalidCells = $derived(
     grid.flatMap((line) => line.cells.filter((cell) => cell.minutes === undefined)),
@@ -245,17 +253,40 @@
           : status === 'needs_changes'
             ? t('statusNeedsChanges')
             : '';
-  const weekStatusLabel = $derived(
-    weekStatus === 'needs_changes'
-      ? t('weekStatusNeedsChanges')
-      : weekStatus === 'draft'
-        ? t('weekStatusDraft')
-        : weekStatus === 'submitted'
-          ? t('weekStatusSubmitted')
-          : weekStatus === 'approved'
+  /** Truthful week summary: one label only when every past day agrees. */
+  const weekSummary = $derived.by(() => {
+    const counts = { approved: 0, submitted: 0, needs_changes: 0, draft: 0, empty: 0 };
+    for (const date of days) {
+      if (date > today) continue;
+      const status = dayStatus(date);
+      // Weekends without hours are normal and not counted as missing.
+      if (status === 'empty' && [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay()))
+        continue;
+      counts[status === 'empty' ? 'empty' : status] += 1;
+    }
+    const parts: string[] = [];
+    if (counts.needs_changes) parts.push(t('countNeedsChanges', { n: counts.needs_changes }));
+    if (counts.draft) parts.push(t('countDraft', { n: counts.draft }));
+    if (counts.submitted) parts.push(t('countSubmitted', { n: counts.submitted }));
+    if (counts.approved) parts.push(t('countApproved', { n: counts.approved }));
+    if (counts.empty) parts.push(t('countEmpty', { n: counts.empty }));
+    const used = Object.entries(counts).filter(([key, value]) => key !== 'empty' && value > 0);
+    if (used.length === 0) return { label: t('weekStatusEmpty'), status: 'empty' as const };
+    if (used.length === 1 && counts.empty === 0)
+      return {
+        label:
+          used[0]![0] === 'approved'
             ? t('weekStatusApproved')
-            : t('weekStatusEmpty'),
-  );
+            : used[0]![0] === 'submitted'
+              ? t('weekStatusSubmitted')
+              : used[0]![0] === 'needs_changes'
+                ? t('weekStatusNeedsChanges')
+                : t('weekStatusDraft'),
+        status: used[0]![0] as CellStatus,
+      };
+    return { label: `${t('daysLabel')}: ${parts.join(' · ')}`, status: weekStatus === 'approved' ? ('submitted' as const) : weekStatus };
+  });
+  const weekStatusLabel = $derived(weekSummary.label);
   const variant = (status: CellStatus | 'empty' | undefined) =>
     status === 'approved'
       ? 'success'
@@ -275,7 +306,7 @@
         month: 'long',
         timeZone: 'UTC',
       }).format(value);
-      return text.charAt(0).toUpperCase() + text.slice(1);
+      return text;
     }
     const weekday = new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' }).format(value);
     return `${weekday} ${value.getUTCDate()}`;
@@ -306,11 +337,11 @@
     return `${base}/app/time?${query.toString()}`;
   };
   const leaveGuard = (event: MouseEvent) => {
-    if (dirty && !confirm(translate('Discard unsaved changes?'))) event.preventDefault();
+    if (dirtyNow && !confirm(translate('Discard unsaved changes?'))) event.preventDefault();
   };
   const pickWorker = (event: Event) => {
     const value = (event.currentTarget as HTMLSelectElement).value;
-    if (dirty && !confirm(translate('Discard unsaved changes?'))) {
+    if (dirtyNow && !confirm(translate('Discard unsaved changes?'))) {
       (event.currentTarget as HTMLSelectElement).value = workerId;
       return;
     }
@@ -320,7 +351,7 @@
   };
 
   $effect(() => {
-    if (!dirty) return;
+    if (!dirtyNow) return;
     const warn = (event: BeforeUnloadEvent) => {
       event.preventDefault();
     };
@@ -424,20 +455,117 @@
     addingRow = false;
   };
 
-  const allHistoryRows = $derived((data.records ?? []) as Row[]);
-  let historyLimit = $state(20);
-  const historyRows = $derived(allHistoryRows.slice(0, historyLimit));
-  const historyTotal = $derived(Number(data.recordsTotal ?? historyRows.length));
-  const historyFiltered = $derived(
-    Boolean(data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.status),
+  const workerName = (id: string) => personName(workers.find((worker) => worker.id === id)?.name ?? '');
+
+  // ---- Capture modes: "One day" (fast) and "Whole week" (grid) ----
+  const mode = $derived<'day' | 'week'>(
+    $page.url.searchParams.get('mode') === 'week' ? 'week' : 'day',
   );
-  const workerName = (id: string) =>
-    workers.find((worker) => worker.id === id)?.name ??
-    String(historyRows.find((row) => String(row.worker_id) === id)?.worker_name ?? '');
+  const selectedDay = $derived(
+    data.timeDay && days.includes(data.timeDay)
+      ? data.timeDay
+      : days.includes(today)
+        ? today
+        : (days[0] ?? today),
+  );
+  const shiftDay = (offset: number) => {
+    const date = new Date(`${selectedDay}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + offset);
+    return date.toISOString().slice(0, 10);
+  };
+  const dayProjects = $derived(
+    projects.filter((project) => assigned(String(project.id), selectedDay)),
+  );
+  let dayProjectChoice = $state('');
+  let dayCategory = $state<string>('regular');
+  const dayProject = $derived(
+    dayProjects.some((project) => String(project.id) === dayProjectChoice)
+      ? dayProjectChoice
+      : String(dayProjects[0]?.id ?? ''),
+  );
+  const dayRow = $derived<SheetRow>({
+    key: `${dayProject}|${dayCategory}`,
+    projectId: dayProject,
+    category: dayCategory,
+  });
+  const dayCell = $derived(dayProject ? cellFor(dayRow, selectedDay) : null);
+  const dayEntries = $derived(entries.filter((entry) => String(entry.work_date) === selectedDay));
+  const dayTotal = $derived(
+    dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0),
+  );
+  const weekDraftMinutes = $derived(
+    entries
+      .filter((entry) => String(entry.approval_state) === 'draft')
+      .reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0),
+  );
+  const chooseDay = (projectId: string, category: string) => {
+    edits = {};
+    dayProjectChoice = projectId;
+    dayCategory = category;
+  };
+  const submitCells = $derived(
+    mode === 'day'
+      ? dayCell?.changed
+        ? [
+            {
+              projectId: dayRow.projectId,
+              category: dayRow.category,
+              workDate: selectedDay,
+              hours: dayCell.value,
+              ...(dayCell.entry
+                ? { id: String(dayCell.entry.id), version: Number(dayCell.entry.version) }
+                : {}),
+            },
+          ]
+        : []
+      : payloadCells,
+  );
+  const dirtyNow = $derived(mode === 'day' ? Boolean(dayCell?.changed) : dirty);
+  const dayIndex = $derived(days.indexOf(selectedDay));
+  const dayModeTotal = $derived(
+    dayCell
+      ? dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0) -
+          dayCell.originalMinutes +
+          (dayCell.minutes ?? 0)
+      : 0,
+  );
+  const invalidNow = $derived(
+    mode === 'day'
+      ? Boolean(dayCell) && (dayCell!.minutes === undefined || dayModeTotal > DAY_MAX_MINUTES)
+      : invalidCells.length > 0 || overDays.length > 0,
+  );
+  const blockReason = $derived(
+    invalidNow
+      ? (mode === 'day' ? dayModeTotal > DAY_MAX_MINUTES : overDays.length > 0)
+        ? t('dayOver24')
+        : t('invalidHours')
+      : '',
+  );
+  /** On leaving a cell, show the normalized value ("7:30" -> "7.5"). */
+  const normalizeCell = (key: string) => {
+    const raw = edits[key];
+    if (raw === undefined) return;
+    const minutes = parseHoursText(raw);
+    if (typeof minutes === 'number' && /[:h]/iu.test(raw))
+      edits = { ...edits, [key]: hoursText(minutes) || '0' };
+  };
+  const minutesHint = (minutes: number | null | undefined) =>
+    typeof minutes === 'number' && minutes % 30 !== 0
+      ? `= ${hoursAndMinutesText(minutes)}`
+      : '';
+  const fixingNow = $derived(
+    mode === 'day' ? Boolean(dayCell?.changed && dayCell.kind === 'fix') : fixingCells.length > 0,
+  );
+  let pickerOpen = $state(false);
+  const showPicker = $derived(
+    delegating && (pickerOpen || workerId !== data.user.id || dayProjects.length + rows.length === 0),
+  );
   const cellTitle = (cell: Cell): string =>
     cell.kind === 'unassigned'
       ? t('noAssignment')
-      : cell.kind === 'multi'
+      : cell.kind === 'future'
+        ? t('futureDay')
+        : cell.kind === 'multi'
         ? t('multiple')
         : cell.kind === 'locked'
           ? t('readOnly', { status: statusLabel(cell.status ?? 'submitted') })
@@ -451,7 +579,7 @@
     <input
       class="hours-input"
       class:is-changed={cell.changed}
-      class:is-invalid={cell.minutes === undefined || problemKey === cell.key}
+      class:is-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
       data-status={cell.kind === 'new' ? 'empty' : cell.status}
       type="text"
       inputmode="decimal"
@@ -459,18 +587,24 @@
       maxlength="5"
       placeholder="–"
       aria-label={label}
-      aria-invalid={cell.minutes === undefined || problemKey === cell.key}
+      aria-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
+      aria-describedby={cell.minutes === undefined ? `${cell.key}-error` : undefined}
+      title={minutesHint(cell.minutes)}
       value={cell.value}
       oninput={(event) => setCell(cell.key, event.currentTarget.value)}
+      onblur={() => normalizeCell(cell.key)}
     />
+    {#if cell.minutes === undefined}
+      <small class="cell-error" id={`${cell.key}-error`}>{t('invalidHoursShort')}</small>
+    {/if}
   {:else}
     <span
       class="hours-locked"
-      data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
+      data-status={cell.kind === 'unassigned' || cell.kind === 'future' ? 'unassigned' : cell.status}
       title={cellTitle(cell)}
-      aria-label={`${label}: ${cell.kind === 'unassigned' ? t('noAssignment') : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
+      aria-label={`${label}: ${cell.kind === 'unassigned' || cell.kind === 'future' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
-      {#if cell.kind === 'unassigned'}
+      {#if cell.kind === 'unassigned' || cell.kind === 'future'}
         ·
       {:else}
         {hoursText(cell.originalMinutes) || '0'}
@@ -483,53 +617,130 @@
   {/if}
 {/snippet}
 
-<section class="time-week" aria-labelledby="time-week-title" data-testid="time-week">
-  <header class="time-week-head">
-    <div>
-      <h2 id="time-week-title" class="sr-only">{t('title')}</h2>
-      <p class="muted">{delegating && workerId !== data.user.id ? t('workerHint') : t('intro')}</p>
-    </div>
-    {#if delegating}
-      <label class="worker-pick">
-        <span>{t('worker')}</span>
-        {#if workers.length}
-          <select value={workerId} onchange={pickWorker} data-testid="time-worker-select">
-            {#each workers as worker (worker.id)}
-              <option value={worker.id}>{worker.name || worker.id}</option>
-            {/each}
-          </select>
-        {:else}
-          <span class="muted">{t('noWorkers')}</span>
-        {/if}
-      </label>
-    {/if}
-  </header>
+{#if data.canReviewTime}
+  <nav class="view-tabs" aria-label={t('title')}>
+    <a
+      href={sheetHref({ view: null })}
+      aria-current={data.timeView !== 'overview' ? 'page' : undefined}
+      onclick={leaveGuard}
+      data-testid="time-tab-capture">{t('tabCapture')}</a
+    >
+    <a
+      href={sheetHref({ view: 'overview' })}
+      aria-current={data.timeView === 'overview' ? 'page' : undefined}
+      onclick={leaveGuard}
+      data-testid="time-tab-overview">{t('tabOverview')}</a
+    >
+  </nav>
+{/if}
 
+{#if data.timeView === 'overview' && data.overview}
+  <TimeOverview {locale} {data} {controlledValue} />
+{:else}
+<section class="time-week" aria-labelledby="time-week-title" data-testid="time-week">
+  <h2 id="time-week-title" class="sr-only">{t('title')}</h2>
+  <div class="mode-tabs" role="group" aria-label={t('title')}>
+    <a
+      href={sheetHref({ mode: null, day: mode === 'week' ? null : selectedDay, week: null })}
+      aria-current={mode === 'day' ? 'page' : undefined}
+      onclick={leaveGuard}
+      data-sveltekit-noscroll
+      data-testid="time-mode-day">{t('modeDay')}</a
+    >
+    <a
+      href={sheetHref({ mode: 'week', day: null, week: weekStart })}
+      aria-current={mode === 'week' ? 'page' : undefined}
+      onclick={leaveGuard}
+      data-sveltekit-noscroll
+      data-testid="time-mode-week">{t('modeWeek')}</a
+    >
+  </div>
+
+  {#if delegating}
+    <div class="worker-line">
+      {#if showPicker}
+        <label class="worker-pick">
+          <span>{t('loggingFor')}</span>
+          {#if workers.length}
+            <select value={workerId} onchange={pickWorker} data-testid="time-worker-select">
+              {#if !workers.some((worker) => worker.id === data.user.id)}
+                <option value={data.user.id}>{t('myself')}</option>
+              {/if}
+              {#each workers as worker (worker.id)}
+                <option value={worker.id}>{worker.id === data.user.id ? t('myself') : personName(worker.name) || worker.id}</option>
+              {/each}
+            </select>
+          {:else}
+            <span class="muted">{t('noWorkers')}</span>
+          {/if}
+        </label>
+      {:else}
+        <button type="button" class="link small" onclick={() => (pickerOpen = true)} data-testid="time-log-for-other"
+          >{t('logForSomeoneElse')}</button
+        >
+      {/if}
+    </div>
+  {/if}
+
+  {#if mode === 'week'}
   <nav class="week-nav" aria-label={t('week')}>
     <a
       class="week-arrow"
-      href={sheetHref({ week: shiftWeek(-1) })}
+      href={sheetHref({ mode: 'week', week: shiftWeek(-1), day: null })}
       onclick={leaveGuard}
       aria-label={t('previousWeek')}
       data-sveltekit-noscroll>‹</a
     >
     <div class="week-label">
       <strong>{rangeLabel}</strong>
-      <StatusBadge variant={variant(weekStatus)} text={weekStatusLabel} data-testid="week-status" />
+      <StatusBadge variant={variant(weekSummary.status)} text={weekStatusLabel} data-testid="week-status" />
     </div>
     <a
       class="week-arrow"
-      href={sheetHref({ week: shiftWeek(1) })}
+      href={sheetHref({ mode: 'week', week: shiftWeek(1), day: null })}
       onclick={leaveGuard}
       aria-label={t('nextWeek')}
       data-sveltekit-noscroll>›</a
     >
     {#if weekStart !== currentWeek}
-      <a class="this-week" href={sheetHref({ week: null })} onclick={leaveGuard} data-sveltekit-noscroll
+      <a class="this-week" href={sheetHref({ mode: 'week', week: null, day: null })} onclick={leaveGuard} data-sveltekit-noscroll
         >{t('thisWeek')}</a
       >
     {/if}
   </nav>
+  {:else}
+  <nav class="week-nav" aria-label={t('day')}>
+    <a
+      class="week-arrow"
+      href={sheetHref({ day: shiftDay(-1), week: null })}
+      onclick={leaveGuard}
+      aria-label={t('previousDay')}
+      data-sveltekit-noscroll>‹</a
+    >
+    <div class="week-label">
+      <strong data-testid="time-day-label">{dayName(selectedDay, 'long')}</strong>
+      {#if dayStatus(selectedDay) !== 'empty'}
+        <StatusBadge variant={variant(dayStatus(selectedDay))} text={statusLabel(dayStatus(selectedDay))} />
+      {/if}
+    </div>
+    {#if selectedDay < today}
+      <a
+        class="week-arrow"
+        href={sheetHref({ day: shiftDay(1), week: null })}
+        onclick={leaveGuard}
+        aria-label={t('nextDay')}
+        data-sveltekit-noscroll>›</a
+      >
+    {:else}
+      <span class="week-arrow is-disabled" aria-hidden="true">›</span>
+    {/if}
+    {#if selectedDay !== today}
+      <a class="this-week" href={sheetHref({ day: null, week: null })} onclick={leaveGuard} data-sveltekit-noscroll
+        >{t('today')}</a
+      >
+    {/if}
+  </nav>
+  {/if}
 
   {#if returned.length}
     <div class="returned" role="status" data-testid="time-needs-changes">
@@ -561,8 +772,14 @@
     </div>
   {/if}
 
-  {#if rows.length === 0}
-    <p class="empty" data-testid="time-no-projects">{delegating && !workers.length ? t('noWorkers') : t('noProjects')}</p>
+  {#if (mode === 'week' ? rows.length : dayProjects.length + dayEntries.length) === 0}
+    <p class="sheet-empty" data-testid="time-no-projects">
+      {delegating && !workers.length
+        ? t('noWorkers')
+        : delegating && workerId === data.user.id
+          ? t('noProjectsPickWorker')
+          : t('noProjects')}
+    </p>
   {:else}
     <form
       method="POST"
@@ -573,11 +790,113 @@
     >
       <input type="hidden" name="weekStart" value={weekStart} />
       <input type="hidden" name="workerId" value={workerId} />
-      <input type="hidden" name="cells" value={JSON.stringify(payloadCells)} />
+      <input type="hidden" name="cells" value={JSON.stringify(submitCells)} />
       <input type="hidden" name="expected" value={JSON.stringify(expectedDrafts)} />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="reason" value={reason} />
 
+      {#if mode === 'day' && selectedDay > today}
+        <p class="sheet-empty" data-testid="time-day-future">{t('futureDay')}</p>
+      {:else if mode === 'day'}
+        <div class="day-form" data-testid="time-day-form">
+          {#if dayProjects.length > 1}
+            <label class="day-field">
+              <span>{t('project')}</span>
+              <select value={dayProject} onchange={(event) => chooseDay(event.currentTarget.value, dayCategory)} data-testid="time-day-project">
+                {#each dayProjects as project (project.id)}
+                  <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
+                {/each}
+              </select>
+            </label>
+          {:else if dayProject}
+            <div class="day-field">
+              <span>{t('project')}</span>
+              <strong>{projectLabel(dayProject)}</strong>
+            </div>
+          {/if}
+          {#if dayProject}
+            <fieldset class="day-field segmented">
+              <legend>{t('type')}</legend>
+              {#each quickCategories as category (category)}
+                <label class:is-selected={dayCategory === category}>
+                  <input
+                    type="radio"
+                    name="dayCategory"
+                    value={category}
+                    checked={dayCategory === category}
+                    onchange={() => chooseDay(dayProject, category)}
+                  />
+                  {categoryLabel(category)}
+                </label>
+              {/each}
+            </fieldset>
+            <label class="day-field day-hours">
+              <span>{t('hours')}</span>
+              {#if dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix')}
+                <input
+                  class="hours-input big"
+                  class:is-invalid={dayCell.minutes === undefined || problemKey === dayCell.key}
+                  data-status={dayCell.kind === 'new' ? 'empty' : dayCell.status}
+                  type="text"
+                  inputmode="decimal"
+                  autocomplete="off"
+                  maxlength="5"
+                  placeholder="8"
+                  value={dayCell.value}
+                  oninput={(event) => setCell(dayCell.key, event.currentTarget.value)}
+                  onblur={() => normalizeCell(dayCell.key)}
+                  aria-invalid={dayCell.minutes === undefined || dayModeTotal > DAY_MAX_MINUTES}
+                  data-testid="time-day-hours"
+                />
+                {#if dayCell.minutes === undefined}
+                  <small class="cell-error" role="alert">{t('invalidHours')}</small>
+                {:else if dayModeTotal > DAY_MAX_MINUTES}
+                  <small class="cell-error" role="alert">{t('dayOver24')}</small>
+                {:else if dayModeTotal > DAY_WARN_MINUTES}
+                  <small class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayModeTotal), day: dayName(selectedDay) })}</small>
+                {:else if minutesHint(dayCell.minutes)}
+                  <small class="muted">{minutesHint(dayCell.minutes)}</small>
+                {/if}
+                {#if dayCell.kind === 'draft'}<small class="muted">{t('dayDraftHint')}</small>{/if}
+              {:else if dayCell}
+                <span class="hours-locked big" data-status={dayCell.status}
+                  >{hoursText(dayCell.originalMinutes) || '0'} {t('hoursUnit')}</span
+                >
+                <small class="muted">{cellTitle(dayCell)}</small>
+              {/if}
+            </label>
+          {/if}
+          {#if dayProject && !isAuditor}
+            <button
+              type="button"
+              class="primary wide"
+              disabled={!dirtyNow || Boolean(busy) || invalidNow || selectedDay > today}
+              onclick={save}
+              data-testid="time-day-save">{busy === 'save' ? t('saving') : t('save')}</button
+            >
+          {/if}
+        </div>
+        {#if dayEntries.length}
+          <div class="day-logged">
+            <h3>{t('loggedThisDay')} · {decimalHoursFromMinutes(dayTotal)} {t('hoursUnit')}</h3>
+            <ul>
+              {#each dayEntries as entry (entry.id)}
+                <li>
+                  <button
+                    type="button"
+                    class="link plain"
+                    onclick={() => chooseDay(String(entry.project_id), String(entry.category))}
+                  >
+                    <span>{projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))}</span>
+                    <strong>{decimalHoursFromMinutes(entry.minutes)} {t('hoursUnit')}</strong>
+                  </button>
+                  <StatusBadge variant={variant(entryStatus(entry))} text={statusLabel(entryStatus(entry))} />
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+      {:else}
       <!-- Desktop/tablet: projects x days table -->
       <div class="sheet-table-wrap">
         <table class="sheet-table" data-testid="time-week-table">
@@ -616,7 +935,11 @@
             <tr>
               <th scope="row" class="col-project">{t('dayTotal')}</th>
               {#each dayTotals as total, index (days[index])}
-                <td>{decimalHoursFromMinutes(total)}</td>
+                <td class:day-over={dayOver(index)} class:day-long={dayLong(index)}>
+                  {decimalHoursFromMinutes(total)}
+                  {#if dayOver(index)}<small class="cell-error">{t('over24Short')}</small>
+                  {:else if dayLong(index)}<small class="cell-warn">{t('over12Short')}</small>{/if}
+                </td>
               {/each}
               <td class="col-total week-total" data-testid="week-total">{decimalHoursFromMinutes(weekTotal)}</td>
             </tr>
@@ -628,17 +951,20 @@
       <ol class="sheet-days" data-testid="time-week-days">
         {#each days as date, index (date)}
           <li class="day-card" class:is-today={date === today}>
-            <div class="day-card-head">
+            <details open={date === today || dayOver(index) || (!days.includes(today) && index === 0) || grid.some((line) => line.cells[index]?.minutes === undefined || line.cells[index]?.kind === 'fix')}>
+            <summary class="day-card-head">
               <strong>{dayName(date, 'long')}</strong>
               {#if dayStatus(date) !== 'empty'}
                 <StatusBadge variant={variant(dayStatus(date))} text={statusLabel(dayStatus(date))} />
               {/if}
-              <span class="day-card-total">{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</span>
-            </div>
+              <span class="day-card-total" class:day-over={dayOver(index)}>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</span>
+            </summary>
+            {#if dayOver(index)}<p class="cell-error">{t('dayOver24')}</p>
+            {:else if dayLong(index)}<p class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[index]) })}</p>{/if}
             <ul>
               {#each grid as line (line.row.key)}
                 {@const cell = line.cells[index]!}
-                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
+                {#if ((cell.kind !== 'unassigned' && cell.kind !== 'future') || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
                   <li class="day-line">
                     <span class="day-line-label">
                       <span class="project-name">{projectLabel(line.row.projectId)}</span>
@@ -649,6 +975,7 @@
                 {/if}
               {/each}
             </ul>
+            </details>
           </li>
         {/each}
       </ol>
@@ -696,7 +1023,9 @@
         </p>
       </div>
 
-      {#if fixingCells.length}
+      {/if}
+
+      {#if fixingNow}
         <label class="fix-reason">
           <span>{t('correctionReason')}</span>
           <input type="text" maxlength="500" bind:value={reason} />
@@ -704,11 +1033,30 @@
         </label>
       {/if}
 
-      {#if invalidCells.length}
-        <p class="invalid-hint" role="alert">{t('invalidHours')}</p>
+      {#if invalidNow}
+        <p class="invalid-hint" role="alert">{blockReason}</p>
+      {:else if mode === 'week' && longDays.length}
+        <p class="cell-warn" role="status">
+          {longDays
+            .map((date) => t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[days.indexOf(date)]), day: dayName(date) }))
+            .join(' ')}
+        </p>
       {/if}
 
       {#if !isAuditor}
+        {#if mode === 'day'}
+          <div class="sheet-actions day-actions" data-testid="time-day-actions">
+            <p class="week-summary">
+              {t('weekSoFar', { hours: decimalHoursFromMinutes(weekTotal) })}
+              {#if weekDraftMinutes}
+                · {t('notSubmittedHours', { hours: decimalHoursFromMinutes(weekDraftMinutes) })}
+                <a href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
+                  >{t('reviewSubmitWeek')} →</a
+                >
+              {/if}
+            </p>
+          </div>
+        {:else}
         <div class="sheet-actions" data-testid="time-week-actions">
           <div class="sheet-actions-total">
             <span>{t('weekTotal')}</span>
@@ -719,7 +1067,7 @@
             <button
               type="button"
               class="secondary"
-              disabled={!dirty || Boolean(busy) || invalidCells.length > 0}
+              disabled={!dirtyNow || Boolean(busy) || invalidNow}
               onclick={save}>{busy === 'save' ? t('saving') : t('save')}</button
             >
             {#if canSubmit}
@@ -736,8 +1084,11 @@
           </div>
           {#if !canSubmit}
             <p class="muted small">{t('delegatedSubmitHint')}</p>
+          {:else if submitCount === 0 && !invalidNow}
+            <p class="muted small" data-testid="time-submit-reason">{t('nothingToSubmit')}</p>
           {/if}
         </div>
+              {/if}
       {/if}
     </form>
 
@@ -757,6 +1108,9 @@
         </tfoot>
       </table>
       <p>{t('confirmEntries', { count: submitCount })}</p>
+      {#each longDays as date (date)}
+        <p class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[days.indexOf(date)]), day: dayName(date, 'long') })}</p>
+      {/each}
       <p class="muted">{t('confirmBody')}</p>
       <div class="confirm-actions">
         <button type="button" class="secondary" onclick={() => confirmDialog?.close()}>{t('cancel')}</button>
@@ -767,88 +1121,218 @@
     </dialog>
   {/if}
 
-  <details class="time-history" data-testid="time-history" open={historyFiltered}>
-    <summary
-      ><span>{t('history')}</span>
-      <span class="muted history-count">{t('historyCount', { count: historyTotal })}</span></summary
-    >
-    <form method="GET" action={`${base}/app/time`} class="history-filters" data-sveltekit-noscroll>
-      <input type="hidden" name="week" value={weekStart} />
-      {#if delegating}<input type="hidden" name="worker" value={workerId} />{/if}
-      {#if $page.url.searchParams.get('lang')}
-        <input type="hidden" name="lang" value={$page.url.searchParams.get('lang')} />
-      {/if}
-      <label
-        ><span class="sr-only">{t('project')}</span>
-        <select name="project" value={data.timeFilter?.projectId ?? ''}>
-          <option value="">{t('allProjects')}</option>
-          {#each projects as project (project.id)}
-            <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
-          {/each}
-        </select>
-      </label>
-      {#if delegating}
-        <label
-          ><span class="sr-only">{t('worker')}</span>
-          <select name="rworker" value={data.timeFilter?.workerId ?? ''}>
-            <option value="">{t('allWorkers')}</option>
-            {#each workers as worker (worker.id)}
-              <option value={worker.id}>{worker.name}</option>
-            {/each}
-          </select>
-        </label>
-      {/if}
-      <label
-        ><span class="sr-only">{t('status')}</span>
-        <select name="status" value={data.timeFilter?.status ?? ''}>
-          <option value="">{t('allStatuses')}</option>
-          <option value="draft">{t('statusDraft')}</option>
-          <option value="submitted">{t('statusSubmitted')}</option>
-          <option value="needs_changes">{t('statusNeedsChanges')}</option>
-          <option value="approved">{t('statusApproved')}</option>
-        </select>
-      </label>
-      <button type="submit" class="secondary">{t('apply')}</button>
-      {#if historyFiltered}
-        <a href={sheetHref({ project: null, rworker: null, status: null })}>{t('clear')}</a>
-      {/if}
-    </form>
-    {#if historyRows.length === 0}
-      <p class="muted">{t('noHistory')}</p>
-    {:else}
-      <ul class="history-list">
-        {#each historyRows as row (row.id)}
-          {@const status = entryStatus(row)}
-          <li>
-            <a href={`${base}/app/time/${String(row.id)}`}>
-              <span class="history-date">{String(row.work_date)}</span>
-              <span class="history-main">
-                <span>{projectLabel(String(row.project_id))}</span>
-                <span class="muted"
-                  >{delegating ? `${String(row.worker_name ?? '')} · ` : ''}{categoryLabel(String(row.category))}</span
-                >
-              </span>
-              <span class="history-hours">{decimalHoursFromMinutes(row.minutes)} {t('hoursUnit')}</span>
-              <StatusBadge
-                variant={String(row.approval_state) === 'rejected' ? 'danger' : variant(status)}
-                text={String(row.approval_state) === 'rejected'
-                  ? controlledValue('status', 'rejected')
-                  : statusLabel(status)}
-              />
-            </a>
-          </li>
-        {/each}
-      </ul>
-      {#if allHistoryRows.length > historyRows.length}
-        <button type="button" class="link" onclick={() => (historyLimit += 40)}>{t('showMore')}</button>
-      {:else if historyTotal > historyRows.length}
-        <p class="muted small">{t('historyShowing', { shown: historyRows.length, count: historyTotal })}</p>
-      {/if}
-    {/if}
-  </details>
 </section>
+{/if}
 
 <style>
+  .cell-error,
+  .cell-warn {
+    display: block;
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+  }
+  .cell-error {
+    color: var(--ja-danger, #c62828);
+  }
+  .cell-warn {
+    color: #8a5300;
+  }
+  td.day-over,
+  .day-card-total.day-over {
+    color: var(--ja-danger, #c62828);
+  }
+  td.day-long {
+    color: #8a5300;
+  }
+  .week-arrow.is-disabled {
+    opacity: 0.35;
+  }
+  .day-card details > summary {
+    list-style: none;
+    cursor: pointer;
+  }
+  .day-card details > summary::-webkit-details-marker {
+    display: none;
+  }
+  .time-week button.primary:disabled {
+    background: #c9ced6;
+    border-color: #c9ced6;
+    color: #fff;
+    opacity: 1;
+  }
+  .view-tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--ja-line, #d5dbe3);
+    margin-bottom: 1rem;
+    overflow-x: auto;
+  }
+  .view-tabs a {
+    padding: 0.7rem 1rem;
+    min-height: var(--ja-target-min, 44px);
+    box-sizing: border-box;
+    color: var(--ja-steel, #5b6573);
+    text-decoration: none;
+    font-weight: 700;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .view-tabs a[aria-current='page'] {
+    color: var(--ja-ink, #1c2430);
+    border-bottom-color: var(--ja-red, #b3261e);
+  }
+  .mode-tabs {
+    display: inline-flex;
+    padding: 0.25rem;
+    gap: 0.25rem;
+    border-radius: 999px;
+    background: var(--ja-surface, #eef1f4);
+    border: 1px solid var(--ja-line, #d5dbe3);
+    justify-self: start;
+  }
+  .mode-tabs a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 1.1rem;
+    border-radius: 999px;
+    text-decoration: none;
+    color: var(--ja-ink, #1c2430);
+    font-weight: 700;
+  }
+  .mode-tabs a[aria-current='page'] {
+    background: var(--ja-white, #fff);
+    box-shadow: 0 1px 4px rgb(0 0 0 / 12%);
+  }
+  .worker-line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .day-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 32rem;
+    padding: 1rem;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+  }
+  .day-field {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+    margin: 0;
+    border: 0;
+    padding: 0;
+  }
+  .day-field select {
+    min-height: var(--ja-target-min, 44px);
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: var(--ja-control-radius, 8px);
+    padding: 0 0.6rem;
+    background: var(--ja-white, #fff);
+    font: inherit;
+  }
+  .segmented {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .segmented legend {
+    margin-bottom: 0.35rem;
+  }
+  .segmented label {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--ja-target-min, 44px);
+    padding: 0 1rem;
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 600;
+    background: var(--ja-white, #fff);
+  }
+  .segmented label.is-selected {
+    border-color: var(--ja-ink, #1c2430);
+    background: var(--ja-ink, #1c2430);
+    color: #fff;
+  }
+  .segmented input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+  }
+  .segmented label:focus-within {
+    outline: 3px solid var(--ja-focus-ring, #1f6feb);
+    outline-offset: 2px;
+  }
+  .time-week .hours-input.big,
+  .hours-locked.big {
+    width: 8rem;
+    min-height: 3.25rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+  .day-logged {
+    max-width: 32rem;
+  }
+  .day-logged h3 {
+    font-size: 1rem;
+    margin: 0 0 0.25rem;
+  }
+  .day-logged ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .day-logged li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    border-top: 1px solid var(--ja-line, #eef1f4);
+  }
+  button.link.plain {
+    flex: 1 1 auto;
+    border: 0;
+    box-shadow: none;
+    background: none;
+    border-radius: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: inherit;
+    font-weight: 400;
+    text-align: left;
+  }
+  .time-week .day-actions {
+    position: static;
+    max-width: 32rem;
+    box-sizing: border-box;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
+    background: none;
+    margin: 0;
+  }
+  button.wide {
+    flex: 1 1 100%;
+    min-height: 3rem;
+    font-size: 1.05rem;
+  }
+  .week-summary {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--ja-steel, #5b6573);
+  }
+  button.link.small {
+    font-size: 0.9rem;
+  }
   .time-week {
     display: grid;
     gap: 1rem;
@@ -880,16 +1364,6 @@
     min-width: min(100%, 16rem);
   }
   .worker-pick select,
-  .history-filters select,
-  .add-row select,
-  .fix-reason input {
-    min-height: var(--ja-target-min, 44px);
-    border: 1px solid var(--ja-control-border, #b8c0cc);
-    border-radius: var(--ja-control-radius, 8px);
-    padding: 0 0.6rem;
-    background: var(--ja-white, #fff);
-    font: inherit;
-  }
   .week-nav {
     display: flex;
     align-items: center;
@@ -948,7 +1422,8 @@
     background: #fdecec;
     border: 1px solid var(--ja-danger, #c62828);
   }
-  .empty {
+  .sheet-empty {
+    margin: 0;
     padding: 1rem;
     border: 1px dashed var(--ja-line, #d5dbe3);
     border-radius: var(--ja-radius, 10px);
@@ -1300,62 +1775,6 @@
     gap: 0.5rem;
     flex-wrap: wrap;
   }
-  .time-history {
-    border: 1px solid var(--ja-line, #d5dbe3);
-    border-radius: var(--ja-radius, 10px);
-    background: var(--ja-white, #fff);
-    padding: 0 1rem;
-  }
-  .time-history summary {
-    cursor: pointer;
-    min-height: var(--ja-target-min, 44px);
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-    font-weight: 700;
-  }
-  .history-count {
-    font-weight: 400;
-    margin-right: auto;
-  }
-  .history-filters {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    padding: 0.25rem 0 0.75rem;
-  }
-  .history-filters label {
-    flex: 1 1 10rem;
-    display: grid;
-  }
-  .history-list {
-    list-style: none;
-    margin: 0 0 1rem;
-    padding: 0;
-  }
-  .history-list a {
-    display: grid;
-    grid-template-columns: 6.5rem minmax(0, 1fr) auto auto;
-    gap: 0.75rem;
-    align-items: center;
-    padding: 0.55rem 0;
-    border-top: 1px solid var(--ja-line, #eef1f4);
-    color: inherit;
-    text-decoration: none;
-  }
-  .history-list a:hover .history-main > span:first-child {
-    text-decoration: underline;
-  }
-  .history-main {
-    display: grid;
-    min-width: 0;
-    overflow-wrap: anywhere;
-  }
-  .history-hours {
-    font-variant-numeric: tabular-nums;
-    font-weight: 600;
-  }
   .sr-only {
     position: absolute;
     width: 1px;
@@ -1420,13 +1839,5 @@
       flex: 1 1 0;
       min-width: 0;
     }
-    .history-list a {
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-    .history-date {
-      grid-column: 1 / -1;
-      font-size: 0.85rem;
-      color: var(--ja-steel, #5b6573);
-    }
-  }
+      }
 </style>

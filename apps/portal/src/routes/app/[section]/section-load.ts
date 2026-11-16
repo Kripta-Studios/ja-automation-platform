@@ -174,13 +174,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ? context.principal.userId
           : timeWorkers.some((worker) => worker.id === requestedWorker)
             ? requestedWorker
-            : assignedWorkerIds.has(context.principal.userId)
-              ? context.principal.userId
-              : (timeWorkers[0]?.id ?? context.principal.userId);
+            : context.principal.userId;
         const timeAssignments = allAssignments.filter(
           (assignment) => String(assignment.worker_id) === timeWorkerId,
         );
-        const weekStart = mondayOf(url.searchParams.get('week'));
+        // "One day" mode selects a day; the sheet loads that day's ISO week.
+        const requestedDay = url.searchParams.get('day');
+        const timeDay = requestedDay && isRealIsoDate(requestedDay) ? requestedDay : '';
+        const weekStart = mondayOf(timeDay || url.searchParams.get('week'));
         const weekEnd = context.repository.listOwnTimeWeek(context.principal, weekStart).weekEnd;
         const weekEntries = visibleProjectRecords(
           context.repository.listTimeForScope(context.principal, {
@@ -204,37 +205,112 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               return row;
             }
           });
-        const registerWorker = delegating ? url.searchParams.get('rworker')?.trim() || '' : '';
-        const registerStatus = url.searchParams.get('status')?.trim() || '';
-        const registerRows = visibleProjectRecords(
-          context.repository.listTimeForScope(context.principal, {
-            projectId: selectedProject || undefined,
-          }),
-          timeScope.projectIds,
-        ).filter(
-          (row) =>
-            String(row.approval_state) !== 'void' &&
-            // A returned entry superseded by its correction is shown once, as the correction.
-            !row.active_correction_id &&
-            (!registerWorker || String(row.worker_id) === registerWorker) &&
-            (!registerStatus || String(row.approval_state) === registerStatus),
+        // Hours overview (review): owner, PM (own projects via repository scope),
+        // finance and auditor read-only. Operational fields only, no money.
+        const canReview = ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
+          context.principal.role,
         );
+        const timeView = canReview && url.searchParams.get('view') === 'overview' ? 'overview' : 'capture';
+        let overview:
+          | {
+              period: string;
+              from: string;
+              to: string;
+              workerId: string;
+              status: string;
+              rows: Array<Record<string, unknown>>;
+            }
+          | undefined;
+        if (timeView === 'overview') {
+          const today = new Date().toISOString().slice(0, 10);
+          const thisMonday = mondayOf(today);
+          const shift = (date: string, days: number) => {
+            const value = new Date(`${date}T00:00:00.000Z`);
+            value.setUTCDate(value.getUTCDate() + days);
+            return value.toISOString().slice(0, 10);
+          };
+          const period = url.searchParams.get('period') ?? 'this_week';
+          let from = thisMonday;
+          let to = shift(thisMonday, 6);
+          if (period === 'last_week') {
+            from = shift(thisMonday, -7);
+            to = shift(thisMonday, -1);
+          } else if (period === 'this_month') {
+            from = `${today.slice(0, 7)}-01`;
+            to = shift(`${shift(`${today.slice(0, 7)}-28`, 4).slice(0, 7)}-01`, -1);
+          } else if (period === 'last_month') {
+            const lastMonthEnd = shift(`${today.slice(0, 7)}-01`, -1);
+            from = `${lastMonthEnd.slice(0, 7)}-01`;
+            to = lastMonthEnd;
+          } else if (period === 'custom') {
+            const f = url.searchParams.get('from') ?? '';
+            const tt = url.searchParams.get('to') ?? '';
+            if (isRealIsoDate(f)) from = f;
+            if (isRealIsoDate(tt) && tt >= from) to = tt;
+            else to = from > to ? from : to;
+          }
+          const overviewWorker = url.searchParams.get('rworker')?.trim() || '';
+          const overviewStatus = url.searchParams.get('status')?.trim() || '';
+          const rows = visibleProjectRecords(
+            context.repository.listTimeForScope(context.principal, {
+              projectId: selectedProject || undefined,
+              from,
+              to,
+            }),
+            timeScope.projectIds,
+          )
+            .filter(
+              (row) =>
+                !['void', 'rejected'].includes(String(row.approval_state)) &&
+                // A returned entry superseded by its correction counts once, as the correction.
+                !row.active_correction_id &&
+                (!overviewWorker || String(row.worker_id) === overviewWorker) &&
+                (!overviewStatus ||
+                  String(row.approval_state) === overviewStatus ||
+                  (overviewStatus === 'approved' && String(row.approval_state) === 'locked')),
+            )
+            .slice(0, 5000)
+            .map((row) => ({
+              id: row.id,
+              worker_id: row.worker_id,
+              worker_name: row.worker_name,
+              project_id: row.project_id,
+              project_number: row.project_number,
+              project_name: row.project_name,
+              work_date: row.work_date,
+              category: row.category,
+              minutes: row.minutes,
+              approval_state: row.approval_state,
+            }));
+          overview = {
+            period: ['this_week', 'last_week', 'this_month', 'last_month', 'custom'].includes(period)
+              ? period
+              : 'this_week',
+            from,
+            to,
+            workerId: overviewWorker,
+            status: overviewStatus,
+            rows,
+          };
+        }
         return {
           ...common,
           projects: timeProjects,
           timeAssignments,
           timeWorkers,
           timeWorkerId,
+          timeDay,
+          timeView,
+          canReviewTime: canReview,
           weekEntries,
-          records: registerRows.slice(0, 100),
-          recordsTotal: registerRows.length,
+          overview,
           timeFilter: {
             category: '',
             projectId: selectedProject ?? '',
-            workerId: registerWorker,
-            status: registerStatus,
-            from: '',
-            to: '',
+            workerId: overview?.workerId ?? '',
+            status: overview?.status ?? '',
+            from: overview?.from ?? '',
+            to: overview?.to ?? '',
           },
           weekStart,
           weekEnd,

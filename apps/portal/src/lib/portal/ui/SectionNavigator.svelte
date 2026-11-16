@@ -4,15 +4,26 @@
   import type { NavItem, NavShortcut } from '../../portal-navigation';
   import type { PortalLocale } from '../../portal-i18n';
   import { navigationUxText } from '../navigation-ux-copy';
-  import { assistantCopy } from '../assistant/copy';
-  import { searchSectionDestinations, type SectionSearchEntry } from './section-search';
-  import type { AssistantContext } from '../assistant/types';
+  import { paletteCopy, paletteSuggestedTaskIds } from '../assistant/copy';
+  import { tasksForContext } from '../assistant/catalog';
+  import {
+    searchPaletteRecords,
+    searchSectionDestinations,
+    type PaletteRecord,
+    type SectionSearchEntry,
+  } from './section-search';
+  import type { AssistantContext, AssistantTask } from '../assistant/types';
+  /**
+   * The portal's one search (Ctrl/⌘ K): sections, actions (the role-gated task
+   * catalogue) and records the server already scoped to this account.
+   */
   let {
     items,
     shortcuts = [],
     context,
     itemHref,
     recordSearchHref,
+    recordSuggestions = [],
     canSearchRecords = false,
     translate,
     currentSection = '',
@@ -23,16 +34,19 @@
     context: AssistantContext;
     itemHref: (item: NavItem) => string;
     recordSearchHref?: (query: string) => string;
+    recordSuggestions?: readonly PaletteRecord[];
     canSearchRecords?: boolean;
     translate: (key: string) => string;
     currentSection?: string;
     locale?: PortalLocale;
   } = $props();
   const id = $props.id();
+  const copy = $derived(paletteCopy[locale] ?? paletteCopy.en);
   let dialog: HTMLDialogElement;
   let input: HTMLInputElement;
   let trigger: HTMLButtonElement;
   let query = $state('');
+  let mac = $state(false);
   const results = $derived(
     searchSectionDestinations(query, {
       items,
@@ -43,27 +57,24 @@
       itemHref,
     }),
   );
-  const frequentSettings = $derived(
-    shortcuts.filter((item) =>
-      [
-        'Configure billing',
-        'Project commercial and time policy',
-        'Worker compensation',
-        'Profile & security',
-      ].includes(item.label),
-    ),
-  );
+  const records = $derived(canSearchRecords ? searchPaletteRecords(query, recordSuggestions) : []);
+  const suggestedTasks = $derived.by((): AssistantTask[] => {
+    const permitted = tasksForContext(context);
+    return paletteSuggestedTaskIds
+      .map((taskId) => permitted.find((task) => task.id === taskId))
+      .filter((task): task is AssistantTask => Boolean(task))
+      .slice(0, 4);
+  });
   const resultCount = $derived(
     navigationUxText(locale, 'sectionNavigator', 'resultCount', {
-      count: query.trim() ? results.count : items.length + frequentSettings.length,
+      count: query.trim() ? results.count + records.length : items.length + suggestedTasks.length,
     }),
   );
-  const triggerLabel = $derived(
-    currentSection
-      ? `${translate('Go to section')} · ${navigationUxText(locale, 'sectionNavigator', 'currentSection', { section: currentSection })}`
-      : translate('Go to section'),
-  );
   async function open() {
+    if (dialog.open) {
+      input.focus();
+      return;
+    }
     if (
       document.querySelector(
         'dialog[open], [aria-modal="true"]:not([aria-hidden="true"]):not([inert])',
@@ -75,14 +86,9 @@
     await tick();
     input.focus();
   }
-  async function openTaskAssistant() {
-    dialog.close();
-    await tick();
-    requestAnimationFrame(() => window.dispatchEvent(new Event('ja:open-task-assistant')));
-  }
-  function selectTask(entry: SectionSearchEntry) {
-    if (!entry.task) return;
-    const taskId = entry.task.id;
+  function selectTask(task: AssistantTask | undefined) {
+    if (!task) return;
+    const taskId = task.id;
     dialog.close();
     requestAnimationFrame(() =>
       window.dispatchEvent(new CustomEvent('ja:select-task-assistant', { detail: { taskId } })),
@@ -130,11 +136,11 @@
     else links[next]?.focus();
   }
   onMount(() => {
+    mac = /Mac|iPhone|iPad/u.test(navigator.platform || navigator.userAgent);
     const shortcut = (event: KeyboardEvent) => {
       if (
         (event.ctrlKey || event.metaKey) &&
         event.key.toLowerCase() === 'k' &&
-        event.shiftKey &&
         !event.defaultPrevented &&
         !event.altKey &&
         !event.isComposing
@@ -143,8 +149,13 @@
         void open();
       }
     };
+    const openFromEvent = () => void open();
     document.addEventListener('keydown', shortcut);
-    return () => document.removeEventListener('keydown', shortcut);
+    window.addEventListener('ja:open-search', openFromEvent);
+    return () => {
+      document.removeEventListener('keydown', shortcut);
+      window.removeEventListener('ja:open-search', openFromEvent);
+    };
   });
 </script>
 
@@ -153,10 +164,11 @@
   class="section-trigger"
   type="button"
   onclick={open}
-  aria-label={triggerLabel}
+  aria-label={copy.label}
   aria-haspopup="dialog"
-  aria-keyshortcuts="Control+Shift+k Meta+Shift+k"
-  title={`${triggerLabel} (Ctrl/⌘ Shift K)`}
+  aria-keyshortcuts="Control+k Meta+k"
+  title={`${copy.label} (${mac ? '⌘' : 'Ctrl'} K)`}
+  data-search-trigger
 >
   <svg
     aria-hidden="true"
@@ -165,24 +177,11 @@
     height="18"
     fill="none"
     stroke="currentColor"
-    stroke-width="1.8"
-    ><rect x="3" y="3" width="7" height="7" rx="1" /><rect
-      x="14"
-      y="3"
-      width="7"
-      height="7"
-      rx="1"
-    /><rect x="3" y="14" width="7" height="7" rx="1" /><rect
-      x="14"
-      y="14"
-      width="7"
-      height="7"
-      rx="1"
-    /></svg
+    stroke-width="1.9"
+    stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
   >
-  <span class="section-trigger-label">{translate('Go to section')}</span>
-  {#if currentSection}<small class="section-trigger-context">{currentSection}</small>{/if}
-  <kbd>⌘/Ctrl Shift K</kbd>
+  <span class="section-trigger-label">{copy.trigger}</span>
+  <kbd>{mac ? '⌘' : 'Ctrl'} K</kbd>
 </button>
 <dialog
   bind:this={dialog}
@@ -193,7 +192,7 @@
   onclose={() => trigger?.focus({ preventScroll: true })}
 >
   <div class="section-dialog-heading">
-    <h2 id={`${id}-title`}>{translate('Go to section')}</h2>
+    <h2 id={`${id}-title`}>{copy.title}</h2>
     <button
       type="button"
       class="section-close"
@@ -201,153 +200,133 @@
       aria-label={translate('Close')}>×</button
     >
   </div>
-  <p id={`${id}-description`}>
-    {navigationUxText(locale, 'sectionNavigator', 'searchHint')}
-    {#if currentSection}
-      {navigationUxText(locale, 'sectionNavigator', 'currentSection', { section: currentSection })}
-    {/if}
-  </p>
-  <button type="button" class="section-task-action" onclick={openTaskAssistant}>
-    {assistantCopy[locale].launcher}<DirectionIcon />
-  </button>
-  <label for={`${id}-search`}>{translate('Find a section')}</label>
+  <p id={`${id}-description`}>{copy.hint}</p>
+  <label class="visually-hidden" for={`${id}-search`}>{copy.label}</label>
   <input
     id={`${id}-search`}
     data-section-search-input
     bind:this={input}
     type="search"
     bind:value={query}
+    placeholder={copy.label}
     autocomplete="off"
+    spellcheck="false"
+    enterkeyhint="search"
   />
-  <p class="section-result-count" role="status" aria-live="polite">{resultCount}</p>
-  {#if !query.trim() && frequentSettings.length}
-    <div class="section-settings" aria-labelledby={`${id}-settings`}>
-      <h3 id={`${id}-settings`}>
-        {navigationUxText(locale, 'sectionNavigator', 'frequentSettings')}
-      </h3>
-      <div class="section-settings-links">
-        {#each frequentSettings as item}
-          <a
-            class="section-result section-setting"
-            href={itemHref(item)}
-            onclick={() => dialog.close()}
-          >
-            <span>{translate(item.label)}</span><DirectionIcon />
-          </a>
-        {/each}
-      </div>
-    </div>
-  {/if}
-  <nav aria-label={translate('Go to section')}>
+  <p class="section-result-count visually-hidden" role="status" aria-live="polite">
+    {resultCount}
+  </p>
+  <nav aria-label={copy.title}>
     {#if query.trim()}
       {#each resultGroups as group (group.kind)}
         {#if group.entries.length}
           <section class="section-result-group" aria-label={group.label}>
             <h3>{group.label}</h3>
             {#each group.entries as entry (entry.id)}
-              {#if entry.task}
-                <button
-                  class="section-result section-result-action"
-                  type="button"
-                  data-section-result-kind={entry.kind}
-                  data-assistant-task={entry.task.id}
-                  aria-label={`${group.label}: ${entry.label}`}
-                  onclick={() => selectTask(entry)}
-                >
-                  <span>{entry.label}</span><DirectionIcon />
-                </button>
-              {:else if entry.href}
-                <a
-                  class="section-result"
-                  class:section-result-current={entry.kind === 'section' &&
-                    entry.label === currentSection}
-                  data-section-result-kind={entry.kind}
-                  aria-current={entry.kind === 'section' && entry.label === currentSection
-                    ? 'page'
-                    : undefined}
-                  href={entry.href}
-                  aria-label={`${group.label}: ${entry.label}`}
-                  onclick={() => dialog.close()}
-                >
-                  <span
-                    >{entry.label}{#if entry.parentLabel}<small>{entry.parentLabel}</small
-                      >{/if}</span
-                  ><DirectionIcon />
-                </a>
-              {/if}
+              {@render entryRow(entry, group.label)}
             {/each}
           </section>
         {/if}
       {/each}
-      {#if !results.count}
-        <p class="section-no-matches" role="status">
-          {navigationUxText(locale, 'sectionNavigator', 'noMatches')}
-        </p>
+      {#if records.length}
+        <section class="section-result-group" aria-label={copy.records}>
+          <h3>{copy.records}</h3>
+          {#each records as record (record.id)}
+            <a
+              class="section-result"
+              data-section-result-kind="record"
+              href={record.href}
+              onclick={() => dialog.close()}
+            >
+              <span
+                >{record.label}{#if record.detail || record.group}<small
+                    >{[record.group, record.detail].filter(Boolean).join(' · ')}</small
+                  >{/if}</span
+              ><DirectionIcon />
+            </a>
+          {/each}
+        </section>
+      {/if}
+      {#if !results.count && !records.length}
+        <p class="section-no-matches" role="status">{copy.noMatches}</p>
       {/if}
       {#if canSearchRecords && recordSearchHref && query.trim().length >= 2}
-        <section
-          class="section-result-group section-record-search"
-          aria-label={navigationUxText(locale, 'sectionNavigator', 'records')}
-        >
-          <h3>{navigationUxText(locale, 'sectionNavigator', 'records')}</h3>
+        <section class="section-result-group section-record-search" aria-label={copy.records}>
           <a
             class="section-result"
             data-section-result-kind="record-search"
             href={recordSearchHref(query.trim())}
-            aria-label={navigationUxText(locale, 'sectionNavigator', 'recordSearch', {
-              query: query.trim(),
-            })}
             onclick={() => dialog.close()}
           >
-            <span>
-              {navigationUxText(locale, 'sectionNavigator', 'recordSearch', {
-                query: query.trim(),
-              })}
-              <small>{navigationUxText(locale, 'sectionNavigator', 'recordSearchHint')}</small>
-            </span>
+            <span>{copy.allRecords.replace('{query}', query.trim())}</span>
             <DirectionIcon />
           </a>
         </section>
       {/if}
     {:else}
-      {#each items as item}
-        <a
-          class="section-result"
-          class:section-result-current={translate(item.label) === currentSection}
-          aria-current={translate(item.label) === currentSection ? 'page' : undefined}
-          href={itemHref(item)}
-          aria-label={`${translate('Open section')}: ${translate(item.label)}`}
-          onclick={() => dialog.close()}><span>{translate(item.label)}</span><DirectionIcon /></a
-        >
-      {/each}
+      {#if suggestedTasks.length}
+        <section class="section-result-group" aria-label={copy.suggested}>
+          <h3>{copy.suggested}</h3>
+          {#each suggestedTasks as task (task.id)}
+            <button
+              class="section-result section-result-action"
+              type="button"
+              data-section-result-kind="action"
+              data-assistant-task={task.id}
+              onclick={() => selectTask(task)}
+            >
+              <span>{task.title[locale]}</span><DirectionIcon />
+            </button>
+          {/each}
+        </section>
+      {/if}
+      <section class="section-result-group" aria-label={copy.sections}>
+        <h3>{copy.sections}</h3>
+        {#each items as item}
+          <a
+            class="section-result"
+            class:section-result-current={translate(item.label) === currentSection}
+            aria-current={translate(item.label) === currentSection ? 'page' : undefined}
+            href={itemHref(item)}
+            aria-label={`${translate('Open section')}: ${translate(item.label)}`}
+            onclick={() => dialog.close()}><span>{translate(item.label)}</span><DirectionIcon /></a
+          >
+        {/each}
+      </section>
     {/if}
   </nav>
-  {#if !query.trim() && canSearchRecords}
-    <p class="section-record-note">
-      {navigationUxText(locale, 'sectionNavigator', 'recordSearchHint')}
-    </p>
-  {/if}
 </dialog>
 
+{#snippet entryRow(entry: SectionSearchEntry, label: string)}
+  {#if entry.task}
+    <button
+      class="section-result section-result-action"
+      type="button"
+      data-section-result-kind={entry.kind}
+      data-assistant-task={entry.task.id}
+      aria-label={`${label}: ${entry.label}`}
+      onclick={() => selectTask(entry.task)}
+    >
+      <span>{entry.label}</span><DirectionIcon />
+    </button>
+  {:else if entry.href}
+    <a
+      class="section-result"
+      class:section-result-current={entry.kind === 'section' && entry.label === currentSection}
+      data-section-result-kind={entry.kind}
+      aria-current={entry.kind === 'section' && entry.label === currentSection ? 'page' : undefined}
+      href={entry.href}
+      aria-label={`${label}: ${entry.label}`}
+      onclick={() => dialog.close()}
+    >
+      <span
+        >{entry.label}{#if entry.parentLabel}<small>{entry.parentLabel}</small>{/if}</span
+      ><DirectionIcon />
+    </a>
+  {/if}
+{/snippet}
+
 <style>
-  .section-settings {
-    margin-top: 1rem;
-    padding-bottom: 0.75rem;
-    border-bottom: 1px solid var(--ja-line, #d6d5d2);
-  }
-  .section-settings h3 {
-    margin: 0 0 0.5rem;
-    font-size: 0.8125rem;
-  }
-  .section-settings-links {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-  .section-setting {
-    background: #edf5fc;
-    border: 1px solid #d3e2ee;
-  }
   .section-result span {
     min-width: 0;
     overflow-wrap: anywhere;
@@ -361,8 +340,7 @@
     margin: 0.2rem 0;
     font-size: 0.8125rem;
   }
-  .section-no-matches,
-  .section-record-note {
+  .section-no-matches {
     margin: 0.65rem 0 0;
     color: #626359;
     font-size: 0.8125rem;
@@ -380,22 +358,6 @@
   }
   .section-result :global(svg) {
     flex-shrink: 0;
-  }
-  .section-task-action {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
-    min-height: 44px;
-    margin: 0 0 1rem;
-    padding: 0.7rem;
-    border: 1px solid var(--ja-line, #d6d5d2);
-    border-radius: 0.65rem;
-    background: #edf5fc;
-    color: #145b91;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
   }
   .section-result.section-result-current {
     background: var(--ja-canvas, #f3f3ef);
@@ -420,15 +382,6 @@
     box-shadow: none;
   }
   .section-trigger-label {
-    white-space: nowrap;
-  }
-  .section-trigger-context {
-    max-width: 10rem;
-    overflow: hidden;
-    color: #626359;
-    font-size: 0.6875rem;
-    font-weight: 600;
-    text-overflow: ellipsis;
     white-space: nowrap;
   }
   kbd {
@@ -533,27 +486,43 @@
     outline: 2px solid var(--ja-accent, #2349b5);
     outline-offset: -2px;
   }
+  .section-trigger {
+    width: min(26rem, 100%);
+    min-width: 13rem;
+    justify-content: flex-start;
+    color: #56574f;
+  }
+  .section-trigger kbd {
+    margin-left: auto;
+    padding: 0.1rem 0.35rem;
+    border: 1px solid var(--ja-line, #d6d5d2);
+    border-radius: 0.35rem;
+    font-family: inherit;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
   @media (max-width: 900px) {
-    .section-trigger-context,
     kbd {
       display: none;
     }
     .section-trigger {
+      width: auto;
       gap: 0.3rem;
-      min-width: 7rem;
-      padding: 0.45rem 0.55rem;
-      font-size: 0.75rem;
+      min-width: 0;
+      padding: 0.45rem 0.65rem;
+      font-size: 0.8125rem;
     }
   }
   @media print {
     .section-trigger,
     dialog {
       display: none;
-    }
-  }
-  @media (max-width: 480px) {
-    .section-settings-links {
-      grid-template-columns: 1fr;
     }
   }
 </style>

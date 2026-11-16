@@ -8,6 +8,7 @@
   import {
     accountNavigationFor,
     activeNavItem,
+    moreNavigationGroups,
     navigationShortcutsFor,
     portalGlobalNavigationForRole,
     subsectionsForNavItem,
@@ -16,6 +17,8 @@
   import SectionNavigator from './portal/ui/SectionNavigator.svelte';
   import { workspaceRecordSearchHref } from './portal/ui/section-search';
   import PortalNavIcon from './PortalNavIcon.svelte';
+  import { personDisplayName } from './portal/display-name';
+  import type { PaletteRecord } from './portal/ui/section-search';
 
   type ChromeData = {
     section: string;
@@ -51,6 +54,8 @@
     changeLocale,
     onMenuToggle,
     onCloseMenu,
+    badges = {},
+    recordSuggestions = [],
   }: {
     base: string;
     data: ChromeData;
@@ -74,10 +79,16 @@
     changeLocale: (event: Event) => void;
     onMenuToggle: () => void;
     onCloseMenu: () => void;
+    /** Real pending counts keyed by section, e.g. `{ approvals: 12 }`. */
+    badges?: Readonly<Record<string, number>>;
+    /** Already-authorized record suggestions offered by the search palette. */
+    recordSuggestions?: readonly PaletteRecord[];
   } = $props();
 
   let accountOpen = $state(false);
-  let expandedSubsections = $state('');
+  let moreOpen = $state(false);
+  const moreOpenKey = 'ja-portal-nav-more-open';
+  const displayName = $derived(personDisplayName(data.user.name));
   let drawer: HTMLElement | null = null;
   let menuToggle: HTMLButtonElement | null = null;
   let mobileDrawer = $state(false);
@@ -88,7 +99,6 @@
   let bodyHadScrollLockClass = false;
 
   const drawerScrollLockClass = 'portal-drawer-open';
-  const pendingSubsectionsKey = 'ja-portal-pending-subsections';
   const languageNames = { en: 'English', es: 'Español', pt: 'Português (Brasil)' };
 
   const navIconPaths: Record<string, string> = {
@@ -103,7 +113,9 @@
     Team: 'M16 20v-1.5a3.5 3.5 0 0 0-7 0V20M12.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM17 8a2.5 2.5 0 1 1 0 5',
     Planning: 'M5 4h14v16H5zM8 2v4M16 2v4M5 9h14M9 13h2M13 13h2M9 17h2',
     'PLC / Technical': 'M3 13h4l2-7 4 12 2-6h6',
+    Home: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
     Approvals: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-4-9 2.5 2.5L16.5 8',
+    Approve: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-4-9 2.5 2.5L16.5 8',
     Billing: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
     Invoices: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
     Finance: 'M4 18 9 12l4 3 7-9M15 6h5v5',
@@ -114,6 +126,21 @@
       'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.5 6.5 0 0 0-.15-1.4l1.45-1.12-2-3.46-1.72.68a7 7 0 0 0-2.4-1.4L15.45 3h-4l-.26 2.3a7 7 0 0 0-2.4 1.4l-1.72-.68-2 3.46 1.45 1.12a6.5 6.5 0 0 0 0 2.8l-1.45 1.12 2 3.46 1.72-.68a7 7 0 0 0 2.4 1.4l.26 2.3h4l.26-2.3a7 7 0 0 0 2.4-1.4l1.72.68 2-3.46-1.45-1.12c.1-.45.15-.92.15-1.4Z',
     Audit: 'M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Zm-3 9 2 2 4-4',
     'My Pay': 'M4 7h16v10H4zM4 10h16M8 14h2',
+    'Finance Overview': 'M4 18 9 12l4 3 7-9M15 6h5v5',
+    'Economic Review': 'M4 18 9 12l4 3 7-9M15 6h5v5',
+    'Collections / Ledger': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
+    Accounting: 'M5 3.5h14v17H5zM8 8h8M8 12h8M8 16h5',
+    'Commercial Configuration':
+      'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.5 6.5 0 0 0-.15-1.4l1.45-1.12-2-3.46-1.72.68a7 7 0 0 0-2.4-1.4L15.45 3h-4l-.26 2.3a7 7 0 0 0-2.4 1.4l-1.72-.68-2 3.46 1.45 1.12a6.5 6.5 0 0 0 0 2.8l-1.45 1.12 2 3.46 1.72.68a7 7 0 0 0 2.4 1.4l.26 2.3h4l.26-2.3a7 7 0 0 0 2.4-1.4l1.72.68 2-3.46-1.45-1.12c.1-.45.15-.92.15-1.4Z',
+    'Data management':
+      'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Zm0 0v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
+    Suppliers:
+      'M3 7h11v10H3zM14 10h4l3 3v4h-7M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+    'Crew hours': 'M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
+  };
+  const groupHeadings: Record<string, string> = {
+    management: 'Management',
+    finance: 'Finance & control',
   };
 
   const helpCopy = {
@@ -140,6 +167,14 @@
       globalNavigation,
     ),
   );
+  const moreGroups = $derived(
+    moreNavigationGroups({
+      secondary: secondaryNavigation,
+      admin: showAdmin && (isManager || isFinance) ? visibleAdmin : [],
+      security: showAdmin && canAudit ? securityAdmin : [],
+    }).filter((entry) => entry.group !== 'account'),
+  );
+  const moreItems = $derived(moreGroups.flatMap((entry) => entry.items));
   const sectionDestinations = $derived.by(() => {
     const visible = [
       ...navigation,
@@ -270,33 +305,22 @@
     }),
   );
   const itemIsCurrent = (item: NavItem): boolean => currentNavItem === item;
-  const subsectionId = (item: NavItem): string =>
-    `nav-subsections-${item.section}-${item.label.toLowerCase().replace(/[^a-z0-9]+/gu, '-')}`;
-  const subsectionKey = (item: NavItem): string => `${item.section}:${item.label}`;
+  const currentInMore = $derived(Boolean(currentNavItem && moreItems.includes(currentNavItem)));
+  const moreExpanded = $derived(moreOpen || currentInMore || (mobileDrawer && menuOpen));
 
-  function toggleSubsections(item: NavItem): void {
-    const key = subsectionKey(item);
-    expandedSubsections = expandedSubsections === key ? '' : key;
-  }
-
-  function navigateSection(item: NavItem): void {
-    if (subsectionsForNavItem(item, itemHref(item), data.user.role).length > 1) {
-      expandedSubsections = subsectionKey(item);
-      try {
-        sessionStorage.setItem(pendingSubsectionsKey, subsectionKey(item));
-      } catch {
-        // A restricted browser can still follow the page link normally.
-      }
+  function toggleMore(event: Event): void {
+    const open = (event.currentTarget as HTMLDetailsElement).open;
+    if (open === moreExpanded) return;
+    moreOpen = open;
+    try {
+      localStorage.setItem(moreOpenKey, open ? '1' : '0');
+    } catch {
+      // The disclosure still works without storage.
     }
-    closeDrawer(true);
   }
 
-  function handleSubsectionKeydown(event: KeyboardEvent, item: NavItem): void {
-    if (event.key !== 'Escape') return;
-    event.preventDefault();
-    event.stopPropagation();
-    expandedSubsections = '';
-    document.getElementById(`${subsectionId(item)}-toggle`)?.focus();
+  function navigateSection(): void {
+    closeDrawer(true);
   }
 
   $effect(() => {
@@ -329,12 +353,9 @@
 
   onMount(() => {
     try {
-      const pending = sessionStorage.getItem(pendingSubsectionsKey);
-      if (pending && currentNavItem && pending === subsectionKey(currentNavItem))
-        expandedSubsections = pending;
-      sessionStorage.removeItem(pendingSubsectionsKey);
+      moreOpen = localStorage.getItem(moreOpenKey) === '1';
     } catch {
-      // Navigation stays available when session storage is blocked.
+      // Navigation stays available when storage is blocked.
     }
     const media = window.matchMedia('(max-width: 63.99rem)');
     const updateMobileDrawer = (): void => {
@@ -390,11 +411,16 @@
         href={itemHref(item)}
         title={translate(item.label)}
         aria-current={itemIsCurrent(item) ? 'page' : undefined}
-        onclick={() => navigateSection(item)}
+        onclick={navigateSection}
       >
         <span class="nav-icon" aria-hidden="true"
           ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
-        ><span class="nav-label">{translate(item.label)}</span>
+        ><span class="nav-label">{translate(item.label)}</span
+        >{#if (badges[item.section] ?? 0) > 0}<span
+            class="nav-badge"
+            aria-label={`${badges[item.section]} ${translate('pending')}`}
+            >{badges[item.section]}</span
+          >{/if}
       </a>
     </div>
   </div>
@@ -427,28 +453,27 @@
     {#each navigation as item}
       {@render navigationRow(item)}
     {/each}
-    <small class="nav-heading">{translate('SECONDARY')}</small>
-    {#each secondaryNavigation as item}
-      {@render navigationRow(item)}
-    {/each}
+    {#if moreItems.length}
+      <details class="nav-more" open={moreExpanded} ontoggle={toggleMore}>
+        <summary class="nav-more-toggle">
+          <span class="nav-icon" aria-hidden="true"
+            ><PortalNavIcon path="M5 12h.01M12 12h.01M19 12h.01" /></span
+          ><span class="nav-label">{translate('More')}</span>
+          <svg class="nav-more-chevron" viewBox="0 0 16 16" aria-hidden="true" focusable="false"
+            ><path d="m4 6 4 4 4-4" /></svg
+          >
+        </summary>
+        {#each moreGroups as entry (entry.group)}
+          {#if groupHeadings[entry.group]}
+            <small class="nav-heading">{translate(groupHeadings[entry.group] ?? '')}</small>
+          {/if}
+          {#each entry.items as item}
+            {@render navigationRow(item)}
+          {/each}
+        {/each}
+      </details>
+    {/if}
   </nav>
-  {#if showAdmin && (visibleAdmin.length > 0 || (canAudit && securityAdmin.length > 0))}
-    <div class="admin-nav">
-      {#if isManager || isFinance}
-        {#if visibleAdmin.length > 0}<small class="nav-heading">{translate('ADMINISTRATION')}</small
-          >{/if}
-        {#each visibleAdmin as item}
-          {@render navigationRow(item)}
-        {/each}
-      {/if}
-      {#if canAudit && securityAdmin.length > 0}
-        <small class="nav-heading">{translate('SECURITY')}</small>
-        {#each securityAdmin as item}
-          {@render navigationRow(item)}
-        {/each}
-      {/if}
-    </div>
-  {/if}
   <a
     href="https://webmail.j-aautomation.com/"
     target="_blank"
@@ -497,9 +522,9 @@
     >
       <span></span><span></span>
     </button>
-    <span class:offline={!online} class="connection"
-      ><i></i>{online ? translate('Online') : translate('Offline')}</span
-    >
+    {#if !online}
+      <span class="connection offline" role="status"><i></i>{translate('Offline')}</span>
+    {/if}
     {#if queue > 0}<span class="queue">{queue} {translate('queued')}</span>{/if}
     {#if syncMessage}<span class="sync-message" role="status">{translate(syncMessage)}</span>{/if}
   </div>
@@ -517,6 +542,7 @@
       data.user.workforceProfile ?? '',
     )}
     recordSearchHref={(query) => workspaceRecordSearchHref(base, data.user.role, query, locale)}
+    {recordSuggestions}
     itemHref={(item) => {
       const target = new URL(itemHref(item), $page.url);
       target.searchParams.set('lang', locale);
@@ -546,30 +572,6 @@
       >
     </a>
   {/if}
-  <a
-    href="https://webmail.j-aautomation.com/"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="portal-webmail-link"
-    title={translate('Company Webmail')}
-    aria-label={translate('Company Webmail')}
-  >
-    <svg
-      viewBox="0 0 24 24"
-      width="15"
-      height="15"
-      fill="none"
-      stroke="currentColor"
-      stroke-width="2"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-      aria-hidden="true"
-    >
-      <rect width="20" height="16" x="2" y="4" rx="2"></rect>
-      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
-    </svg>
-    <span class="webmail-text">{translate('Webmail')}</span>
-  </a>
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
     <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
@@ -593,10 +595,8 @@
         if (event.key === 'Escape') accountOpen = false;
       }}
     >
-      <span class="user-avatar" aria-hidden="true">{initials(data.user.name)}</span>
-      <span class="user-copy"
-        ><b>{data.user.name}</b><small>{roleLabel(data.user.role)}</small></span
-      >
+      <span class="user-avatar" aria-hidden="true">{initials(displayName)}</span>
+      <span class="user-copy"><b>{displayName}</b><small>{roleLabel(data.user.role)}</small></span>
       <span class="account-chevron" aria-hidden="true">
         <svg viewBox="0 0 16 16" focusable="false">
           <path d={accountOpen ? 'm3.5 9.5 4.5-4 4.5 4' : 'm3.5 6.5 4.5 4 4.5-4'} />
@@ -612,7 +612,7 @@
       >
         <div class="account-menu-summary" role="presentation">
           <span class="portal-kicker">{translate('SIGNED IN')}</span>
-          <strong>{data.user.name}</strong>
+          <strong>{displayName}</strong>
           <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
         </div>
         {#each accountNavigation as item}
@@ -702,6 +702,88 @@
 </header>
 
 <style>
+  /* One search on the left, personal controls on the right. */
+  :global(.portal-layout > header) {
+    justify-content: flex-start;
+    gap: 0.75rem;
+  }
+  :global(.portal-layout > header .header-status) {
+    flex: 0 0 auto;
+  }
+  :global(.portal-layout > header .section-trigger) {
+    margin-right: auto;
+  }
+  .nav-more {
+    display: grid;
+    gap: 0.28rem;
+  }
+  .nav-more-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-height: var(--ja-target-min, 44px);
+    padding: 0.6rem 0.72rem;
+    border: 1px solid transparent;
+    border-radius: 0.65rem;
+    color: var(--ja-text-secondary);
+    font-size: 0.84rem;
+    font-weight: 500;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .nav-more-toggle::-webkit-details-marker {
+    display: none;
+  }
+  /* The shared details chevron would duplicate this row's own chevron. */
+  details.nav-more > summary.nav-more-toggle::after {
+    content: none;
+    display: none;
+  }
+  .nav-more-chevron {
+    width: 1rem;
+    height: 1rem;
+    margin-left: auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: transform 160ms ease;
+  }
+  .nav-more[open] > .nav-more-toggle .nav-more-chevron {
+    transform: rotate(180deg);
+  }
+  .nav-more-toggle:hover {
+    color: var(--ja-ink);
+    background: #eaeae5;
+  }
+  .nav-more-toggle:focus-visible {
+    outline: 2px solid var(--ja-border-focus);
+    outline-offset: 2px;
+  }
+  .nav-more :global(.nav-heading) {
+    padding-top: 0.7rem;
+    font-family: inherit;
+    font-size: 0.72rem;
+    font-weight: 650;
+    letter-spacing: 0.02em;
+    text-transform: none;
+  }
+  .nav-badge {
+    margin-left: auto;
+    min-width: 1.5rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 999px;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 700;
+    line-height: 1.35;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+
   .portal-notifications-link {
     box-sizing: border-box;
     display: inline-grid;

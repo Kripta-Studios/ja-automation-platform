@@ -111,28 +111,13 @@
       event.stopImmediatePropagation();
       close();
     };
-    const shortcut = (event: KeyboardEvent) => {
-      if (
-        (event.ctrlKey || event.metaKey) &&
-        !event.altKey &&
-        !event.shiftKey &&
-        event.key.toLowerCase() === 'k'
-      ) {
-        if (blockingSurfaceOpen && !open) return;
-        if (event.defaultPrevented) return;
-        event.preventDefault();
-        show();
-      }
-    };
     // The native dialog supplies a focus trap and makes the underlying page inert.
     // Existing form sheets stay mounted, retaining entered values and navigation guards.
-    window.addEventListener('keydown', shortcut);
     window.addEventListener('ja:open-task-assistant', show);
     window.addEventListener('ja:select-task-assistant', selectTaskFromNavigation);
     document.addEventListener('keydown', escape, true);
     return () => {
       surfaceObserver.disconnect();
-      window.removeEventListener('keydown', shortcut);
       window.removeEventListener('ja:open-task-assistant', show);
       window.removeEventListener('ja:select-task-assistant', selectTaskFromNavigation);
       document.removeEventListener('keydown', escape, true);
@@ -249,24 +234,7 @@
   data-navigation-assistant
   data-blocking-surface-open={blockingSurfaceOpen ? 'true' : undefined}
 >
-  <button
-    type="button"
-    class="assistant-launcher"
-    data-assistant-launcher
-    aria-haspopup="dialog"
-    aria-label={t.launcher}
-    aria-keyshortcuts="Control+k Meta+k"
-    aria-expanded={open}
-    disabled={busy}
-    hidden={blockingSurfaceOpen}
-    onclick={show}
-  >
-    <svg aria-hidden="true" viewBox="0 0 24 24"
-      ><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg
-    >
-    <span>{t.launcher}</span>
-    <kbd>Ctrl / ⌘ K</kbd>
-  </button>
+  <!-- Opened from the single Ctrl/⌘ K search when a task needs a record choice. -->
   {#if !open && (notice || busy)}
     <div class="assistant-notice" role="status" aria-live="polite" hidden={blockingSurfaceOpen}>
       <span>{busy ? t.opening : notice}</span>
@@ -389,37 +357,6 @@
 </div>
 
 <style>
-  .assistant-launcher {
-    position: fixed;
-    right: max(1rem, env(safe-area-inset-right));
-    bottom: max(1rem, env(safe-area-inset-bottom));
-    /* The launcher sits below shared sheets and their backdrops. */
-    z-index: 40;
-    display: flex;
-    gap: 0.55rem;
-    align-items: center;
-    min-height: 44px;
-    padding: 0.65rem 0.9rem;
-    color: #fff;
-    background: #145b91;
-    border: 1px solid #104c79;
-    border-radius: 999px;
-    box-shadow: 0 4px 16px #0f24382b;
-    font-weight: 600;
-  }
-  .assistant-launcher svg {
-    width: 19px;
-    height: 19px;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2;
-    flex-shrink: 0;
-  }
-  kbd {
-    font-size: 0.7rem;
-    padding-left: 0.35rem;
-    opacity: 0.9;
-  }
   .assistant-dialog {
     width: min(640px, calc(100vw - 2rem));
     max-height: min(780px, calc(100dvh - 2rem));
@@ -589,7 +526,6 @@
   button {
     cursor: pointer;
   }
-  .assistant-launcher[hidden],
   .assistant-notice[hidden] {
     display: none !important;
   }
@@ -599,12 +535,6 @@
     outline-offset: 2px;
   }
   @media (max-width: 767px) {
-    .assistant-launcher {
-      display: none;
-    }
-    kbd {
-      display: none;
-    }
     .assistant-dialog {
       width: calc(100vw - 1rem);
       max-height: calc(100dvh - 1rem);

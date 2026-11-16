@@ -58,27 +58,34 @@ describe('UI_PLAN shell integration', () => {
     expect(shell).not.toContain('history.replaceState');
   });
 
-  it('keeps global search grouped, keyboard reachable and access-scoped', () => {
-    expect(shell).toContain('groupedSearchSuggestions');
+  it('offers one search (Ctrl/⌘ K) for sections, actions and access-scoped records', () => {
+    // The full results page stays grouped for ?q= searches.
     expect(shell).toContain('groupedSearchResults');
-    expect(shell).toContain('role="listbox"');
-    expect(shell).toContain('role="option"');
     expect(shell).toContain('role="group"');
+    // The old inline header search and its popover are gone: one search only.
+    expect(shell).not.toContain('aria-controls="portal-search-popover"');
+    expect(shell).not.toContain('handleGlobalKeydown');
+    expect(shell).toContain('recordSuggestions={canUseGlobalSearch ? paletteRecords : []}');
     const navigator = read('apps/portal/src/lib/portal/ui/SectionNavigator.svelte');
     expect(navigator).toContain('event.ctrlKey || event.metaKey');
     expect(navigator).toContain("event.key.toLowerCase() === 'k'");
     expect(navigator).toContain("document.addEventListener('keydown', shortcut)");
-    expect(shell).not.toContain('handleGlobalKeydown');
-    expect(shell).toContain('aria-controls="portal-search-popover"');
-    expect(shell).toContain('Only records in your access scope');
+    expect(navigator).toContain('searchPaletteRecords(query, recordSuggestions)');
+    expect(navigator).toContain('canSearchRecords ?');
+    // The floating "Find a task" launcher no longer competes with the search.
+    const assistant = read('apps/portal/src/lib/portal/assistant/NavigationAssistant.svelte');
+    expect(assistant).not.toContain('assistant-launcher');
+    expect(assistant).not.toContain("window.addEventListener('keydown', shortcut)");
   });
 
-  it('exposes only truthful dashboard actions and feedback state', () => {
-    expect(today).toContain('dashboard-quick-actions');
-    expect(today).toContain('canCreateProject');
-    expect(today).toContain('canCreateInvoiceDraft && invoiceDraftHref');
-    expect(today).toContain('canViewPendingReports');
-    expect(today).toContain('href={`${base}/app/projects#new-project`}');
+  it('shows the owner a task inbox instead of decorative dashboard actions', () => {
+    expect(today).not.toContain('dashboard-quick-actions');
+    expect(today).not.toContain('Field operations overview');
+    expect(today).toContain('data-home-inbox={row.id}');
+    expect(today).toContain("link('approvals', { tab: 'time' })");
+    expect(today).toContain("link('approvals', { tab: 'expenses' })");
+    expect(today).toContain("link('billing', { stage: 'overdue' })");
+    expect(today).toContain('canCreateInvoiceDraft');
     expect(shell).toContain('<ToastRegion');
     expect(shell).toContain('toasts={toastItems}');
     expect(shell).toContain('ondismiss={dismissToast}');

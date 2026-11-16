@@ -31,10 +31,11 @@ describe('authenticated shell i18n coverage', () => {
     expect(shell).toContain('data-portal-live-text');
   });
 
-  it('uses localized titles instead of route codes in breadcrumbs and print headings', () => {
+  it('uses localized titles instead of route codes in the page heading and print headings', () => {
     const shell = source('lib/PortalShell.svelte');
     expect(shell).not.toContain('data.section.toUpperCase()');
-    expect(shell).toContain('J&A / {translate(currentTitle)}');
+    // The duplicate "J&A / Title" breadcrumb was removed; the h1 carries the title.
+    expect(shell).toContain('<h1 data-portal-live-text>{translate(currentTitle)}</h1>');
     expect(shell).toContain(
       "portalText(locale, 'Report: {title}', { title: translate(currentTitle) })",
     );

@@ -82,3 +82,51 @@ export const assistantCopy = {
     dismiss: 'Fechar mensagem',
   },
 } satisfies Record<AssistantLocale, Record<string, string>>;
+
+/** The single ⌘K / Ctrl+K search: sections, actions and records. */
+export const paletteCopy = {
+  en: {
+    trigger: 'Search',
+    title: 'Search',
+    label: 'Search sections, actions and records',
+    hint: 'Type a section, a task such as “create invoice”, or a project, person or invoice.',
+    suggested: 'Suggested actions',
+    sections: 'Sections',
+    records: 'Records',
+    allRecords: 'Search all records for “{query}”',
+    noMatches: 'Nothing matches. Try a shorter word.',
+  },
+  es: {
+    trigger: 'Buscar',
+    title: 'Buscar',
+    label: 'Buscar secciones, acciones y registros',
+    hint: 'Escribe una sección, una tarea como «crear factura» o un proyecto, persona o factura.',
+    suggested: 'Acciones sugeridas',
+    sections: 'Secciones',
+    records: 'Registros',
+    allRecords: 'Buscar en todos los registros «{query}»',
+    noMatches: 'No hay coincidencias. Prueba con una palabra más corta.',
+  },
+  pt: {
+    trigger: 'Buscar',
+    title: 'Buscar',
+    label: 'Buscar seções, ações e registros',
+    hint: 'Digite uma seção, uma tarefa como “criar fatura” ou um projeto, pessoa ou fatura.',
+    suggested: 'Ações sugeridas',
+    sections: 'Seções',
+    records: 'Registros',
+    allRecords: 'Buscar em todos os registros “{query}”',
+    noMatches: 'Nada corresponde. Tente uma palavra mais curta.',
+  },
+} as const satisfies Record<AssistantLocale, Record<string, string>>;
+
+/** Curated first actions per role; only tasks the role already holds are shown. */
+export const paletteSuggestedTaskIds: readonly string[] = [
+  'time-create',
+  'expense-create',
+  'approval-time',
+  'approval-expenses',
+  'invoice-create',
+  'project-create',
+  'report-daily',
+];

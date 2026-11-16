@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { uxText } from './portal/ux-refresh-copy';
   import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -205,9 +204,6 @@
     }>
   >([]);
   let menuOpen = $state(false);
-  let searchOpen = $state(false);
-  let searchInput = $state<HTMLInputElement | null>(null);
-  let searchValue = $derived(data.searchQuery ?? '');
   let offlineProjects = $state<Row[]>([]);
   let locale = $state<PortalLocale>(untrack(() => normalizePortalLocale(data.locale)));
   let securityMessage = $state('');
@@ -2375,17 +2371,6 @@
       itemHref,
     }),
   );
-  const searchTerm = $derived(searchValue.trim().toLowerCase());
-  const visibleSearchSuggestions = $derived(
-    (data.searchSuggestions ?? [])
-      .filter((row) => {
-        if (!searchTerm) return true;
-        return `${String(row.label ?? '')} ${String(row.detail ?? '')} ${String(row.type ?? '')}`
-          .toLowerCase()
-          .includes(searchTerm);
-      })
-      .slice(0, 8),
-  );
   const searchGroupKey = (row: Row): SearchGroupKey => {
     switch (
       String(row.type ?? '')
@@ -2439,7 +2424,6 @@
       .filter((key) => (grouped.get(key)?.length ?? 0) > 0)
       .map((key) => ({ key, label: searchGroupLabel(key), rows: grouped.get(key) ?? [] }));
   };
-  const groupedSearchSuggestions = $derived(groupSearchRows(visibleSearchSuggestions));
   const groupedSearchResults = $derived(groupSearchRows(data.searchResults ?? []));
   const searchHref = (row: Row) => {
     const id = String(row.id ?? '');
@@ -2479,6 +2463,46 @@
     isExpenseSearchRow(row)
       ? `${String(row.label ?? translate('Record'))} · ${searchResultDescription(row, groupLabel, true)}`
       : undefined;
+  // Records the server already scoped to this account, offered by the one search.
+  const paletteRecords = $derived(
+    (data.searchSuggestions ?? []).map((row, index) => {
+      const group = searchGroupLabel(searchGroupKey(row));
+      return {
+        id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
+        label: String(row.label ?? translate('Record')),
+        detail: isExpenseSearchRow(row)
+          ? searchResultDescription(row, group).replace(`${group} · `, '')
+          : String(row.detail ?? ''),
+        group,
+        href: searchHref(row),
+      };
+    }),
+  );
+  const navigationBadges = $derived({
+    approvals: Number(($page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
+  });
+  const printableSection = $derived(['reports', 'finance'].includes(data.section));
+  // "Include archived" is a list filter: only on list sections, only for review
+  // roles, and only when something is archived (or the filter is already on).
+  const showArchivedFilter = $derived(
+    [
+      'time',
+      'expenses',
+      'reports',
+      'planning',
+      'approvals',
+      'projects',
+      'documents',
+      'finance',
+      'billing',
+    ].includes(data.section) &&
+      ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
+        String(data.user.role),
+      ) &&
+      !data.user.workforceProfile &&
+      (Number(data.archivedProjectCount ?? 0) > 0 ||
+        $page.url.searchParams.get('includeArchived') === '1'),
+  );
   const toastItems = $derived.by(() => {
     const items: ToastItem[] = [];
     const add = (
@@ -2523,69 +2547,6 @@
 
   function dismissToast(id: string): void {
     if (!dismissedToastIds.includes(id)) dismissedToastIds = [...dismissedToastIds, id];
-  }
-
-  function searchOptionElements(): HTMLElement[] {
-    if (typeof document === 'undefined') return [];
-    return Array.from(
-      document.querySelectorAll<HTMLElement>('#portal-search-popover a[role="option"]'),
-    );
-  }
-
-  function submitGlobalSearch(event: SubmitEvent): void {
-    searchOpen = false;
-    const formElement = event.currentTarget;
-    if (!(formElement instanceof HTMLFormElement)) return;
-    // Some tabs update browser history without navigating the Svelte page.
-    // Read that current URL before the native GET serializes its controls.
-    const currentUrl = new URL(window.location.href);
-    formElement.action = currentUrl.pathname;
-    for (const input of formElement.querySelectorAll('[data-search-context]')) input.remove();
-    for (const [queryName, queryValue] of currentUrl.searchParams) {
-      if (queryName === 'q' || queryName.startsWith('/')) continue;
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = queryName;
-      input.value = queryValue;
-      input.dataset.searchContext = '';
-      formElement.append(input);
-    }
-  }
-
-  function handleSearchKeydown(event: KeyboardEvent): void {
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      searchOpen = false;
-      return;
-    }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      searchOpen = true;
-      void tick().then(() => {
-        const options = searchOptionElements();
-        (event.key === 'ArrowUp' ? options.at(-1) : options[0])?.focus();
-      });
-    }
-  }
-
-  function handleSearchOptionKeydown(event: KeyboardEvent, index: number): void {
-    const options = searchOptionElements();
-    if (event.key === 'Escape') {
-      event.preventDefault();
-      searchOpen = false;
-      searchInput?.focus();
-      return;
-    }
-    if (event.key === 'Home' || event.key === 'End') {
-      event.preventDefault();
-      (event.key === 'Home' ? options[0] : options.at(-1))?.focus();
-      return;
-    }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault();
-      const delta = event.key === 'ArrowDown' ? 1 : -1;
-      options[(index + delta + options.length) % options.length]?.focus();
-    }
   }
 
   const offlineController = createOfflineController(base, {
@@ -3798,6 +3759,8 @@
     {changeLocale}
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
+    badges={navigationBadges}
+    recordSuggestions={canUseGlobalSearch ? paletteRecords : []}
   />
   <main id="portal-main" data-portal-section={data.section}>
     <header class="print-only-header" aria-hidden="true">
@@ -3814,140 +3777,30 @@
     </header>
     <div class="portal-title">
       <div>
-        <p class="portal-kicker" data-portal-live-text>
-          <a
-            class="portal-home-link"
-            href={`${base}/app/?lang=${encodeURIComponent(locale)}`}
-            aria-label={uxText(locale, 'home')}>J&A</a
-          >
-          / {translate(currentTitle)}
-        </p>
         <h1 data-portal-live-text>{translate(currentTitle)}</h1>
       </div>
-      <div class="portal-heading-tools">
-        <button type="button" class="no-print print-trigger" onclick={printReport}>
-          <PrintIcon />
-          {translate('Print report')}
-        </button>
-        {#if canUseGlobalSearch}
-          <form
-            class="global-search"
-            method="GET"
-            action={$page.url.pathname}
-            role="search"
-            onsubmit={submitGlobalSearch}
-          >
-            {#each Array.from($page.url.searchParams.entries()).filter(([queryName]) => queryName !== 'q' && !queryName.startsWith('/')) as [queryName, queryValue]}
-              <input type="hidden" name={queryName} value={queryValue} data-search-context />
-            {/each}
-            <label class="visually-hidden" for="portal-global-search"
-              >{translate('Search workspace')}</label
-            >
-            <input
-              bind:this={searchInput}
-              id="portal-global-search"
-              name="q"
-              bind:value={searchValue}
-              role="combobox"
-              aria-autocomplete="list"
-              aria-controls="portal-search-popover"
-              aria-expanded={searchOpen}
-              placeholder={['worker', 'project_manager'].includes(data.user.role)
-                ? translate('Search projects and people…')
-                : translate('Search projects, people, invoices…')}
-              autocomplete="off"
-              enterkeyhint="search"
-              onfocus={() => (searchOpen = true)}
-              oninput={() => (searchOpen = true)}
-              onkeydown={handleSearchKeydown}
-              onblur={() =>
-                setTimeout(() => {
-                  if (!document.activeElement?.closest('.global-search')) searchOpen = false;
-                }, 0)}
+      {#if printableSection || showArchivedFilter}
+        <div class="portal-heading-tools">
+          {#if showArchivedFilter}
+            <ArchivedProjectHistory
+              url={$page.url}
+              {locale}
+              archivedCount={Number(data.archivedProjectCount ?? 0)}
+              context={data.section === 'projects' && projectDirectoryView === 'clients'
+                ? 'client'
+                : data.section === 'projects' && projectDirectoryView === 'team'
+                  ? 'team'
+                  : undefined}
             />
-            {#if searchValue}
-              <button
-                type="button"
-                class="global-search-clear"
-                aria-label={uxText(locale, 'clearSearch')}
-                title={uxText(locale, 'clearSearch')}
-                onclick={() => {
-                  searchValue = '';
-                  searchOpen = true;
-                  searchInput?.focus();
-                }}><span aria-hidden="true">×</span></button
-              >
-            {/if}
-            <button type="submit">{translate('Search')}</button>
-            {#if searchOpen}
-              <div
-                id="portal-search-popover"
-                class="search-popover"
-                role="listbox"
-                aria-label={translate('Search recommendations')}
-              >
-                <div class="search-popover-heading">
-                  <span
-                    >{searchTerm
-                      ? translate('Matching records')
-                      : translate('Recommended records')}</span
-                  >
-                  <small>{translate('Only records in your access scope')}</small>
-                  <small
-                    role="status"
-                    aria-live="polite"
-                    aria-atomic="true"
-                    data-search-result-count
-                  >
-                    {visibleSearchSuggestions.length}
-                    {translate('matches')}
-                  </small>
-                </div>
-                {#each groupedSearchSuggestions as group}
-                  <div
-                    class="search-popover-group"
-                    role="group"
-                    aria-labelledby={`search-group-${group.key}`}
-                  >
-                    <h3 id={`search-group-${group.key}`} class="search-popover-group-label">
-                      {group.label}
-                    </h3>
-                    {#each group.rows as suggestion, suggestionIndex}
-                      {@const optionIndex =
-                        groupedSearchSuggestions
-                          .slice(0, groupedSearchSuggestions.indexOf(group))
-                          .reduce((count, item) => count + item.rows.length, 0) + suggestionIndex}
-                      <a
-                        id={`search-option-${optionIndex}`}
-                        class="search-popover-item"
-                        href={searchHref(suggestion)}
-                        aria-label={expenseSearchAccessibleLabel(suggestion, group.label)}
-                        role="option"
-                        tabindex="-1"
-                        aria-selected="false"
-                        onclick={() => setTimeout(() => (searchOpen = false), 0)}
-                        onkeydown={(event) => handleSearchOptionKeydown(event, optionIndex)}
-                      >
-                        <span>
-                          <strong>{String(suggestion.label ?? translate('Record'))}</strong>
-                          <small>{searchResultDescription(suggestion, group.label)}</small>
-                        </span>
-                        <DirectionIcon direction="up-right" class="search-popover-arrow" />
-                      </a>
-                    {/each}
-                  </div>
-                {:else}
-                  <p class="search-popover-empty" role="status">
-                    {translate(
-                      'No recommendation matches. Press Enter to search all authorized records.',
-                    )}
-                  </p>
-                {/each}
-              </div>
-            {/if}
-          </form>
-        {/if}
-      </div>
+          {/if}
+          {#if printableSection}
+            <button type="button" class="no-print print-trigger" onclick={printReport}>
+              <PrintIcon />
+              {translate('Print report')}
+            </button>
+          {/if}
+        </div>
+      {/if}
     </div>
     {#if assignmentCacheMessage}
       <p class="alert warn no-print" role="alert" data-assignment-cache-warning>
@@ -4040,18 +3893,6 @@
           <div class="empty">{translate('No records match that search in your access scope.')}</div>
         {/each}
       </section>
-    {/if}
-
-    {#if ['time', 'expenses', 'reports', 'planning', 'approvals', 'projects', 'documents', 'finance', 'billing'].includes(data.section) && ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(String(data.user.role)) && !data.user.workforceProfile}
-      <ArchivedProjectHistory
-        url={$page.url}
-        {locale}
-        context={data.section === 'projects' && projectDirectoryView === 'clients'
-          ? 'client'
-          : data.section === 'projects' && projectDirectoryView === 'team'
-            ? 'team'
-            : undefined}
-      />
     {/if}
 
     {#if data.section === 'today'}
@@ -7860,10 +7701,16 @@
   <ToastRegion toasts={toastItems} label={translate('Notifications')} ondismiss={dismissToast} />
   <nav class="bottom-nav" aria-label={translate('Mobile navigation')}>
     {#each mobileNavigation as item}
+      {@const pending = navigationBadges[item.section as 'approvals'] ?? 0}
       <a
         class:active={activeDestination === item}
         href={itemHref(item)}
-        aria-current={activeDestination === item ? 'page' : undefined}>{translate(item.label)}</a
+        aria-current={activeDestination === item ? 'page' : undefined}
+        aria-label={pending > 0
+          ? `${translate(item.label)} · ${pending} ${translate('pending')}`
+          : undefined}
+        ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span
+        >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true">{pending}</span>{/if}</a
       >
     {/each}
     <button
@@ -7872,8 +7719,9 @@
       aria-controls="portal-navigation"
       aria-expanded={menuOpen}
       onclick={() => (menuOpen = true)}
+      class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
     >
-      {translate('More')}
+      <span class="bottom-nav-label">{translate('More')}</span>
     </button>
   </nav>
 </div>
@@ -7881,6 +7729,67 @@
 <style>
   .document-workspace {
     overflow-anchor: none;
+  }
+  .bottom-nav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bottom-nav a,
+  .bottom-nav-more {
+    position: relative;
+  }
+  .bottom-nav-badge {
+    position: absolute;
+    top: 0.35rem;
+    left: calc(50% + 0.9rem);
+    min-width: 1.25rem;
+    padding: 0.05rem 0.3rem;
+    border-radius: 999px;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+  }
+  .bottom-nav-more {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.7rem;
+  }
+  .bottom-nav-more.active {
+    color: var(--ja-ink);
+    border-top-color: var(--ja-red);
+    background: var(--ja-canvas);
+  }
+  @media (max-width: 620px) {
+    /* Compact page heading on phones so the first field sits high on the screen. */
+    #portal-main > .portal-title {
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.5rem 1rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0;
+      border-bottom: 0;
+    }
+    #portal-main > .portal-title h1 {
+      margin: 0;
+      font-size: 1.625rem;
+      line-height: 1.2;
+    }
+    #portal-main > .portal-title > .portal-heading-tools {
+      width: auto;
+      margin-left: auto;
+    }
+    /* Printing is a desk task; phones keep the browser's own print/share. */
+    #portal-main > .portal-title .print-trigger {
+      display: none;
+    }
   }
   .document-entry {
     flex-wrap: wrap;

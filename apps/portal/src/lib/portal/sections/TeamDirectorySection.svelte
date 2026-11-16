@@ -27,6 +27,11 @@
   } from '../ui';
   import type { PortalActionResult, PortalRow } from '../portal-data';
   import { generateAccessPassword, isCompanyEmail, normalizeAccessEmail } from '../access-email';
+  import { personDisplayName, personInitials, proposedPersonName } from '../person-name';
+  import { teamCopy, type TeamCopyKey } from '../team-ux-copy';
+  import PersonProjectsPanel from './PersonProjectsPanel.svelte';
+  import PersonPayPanel from './PersonPayPanel.svelte';
+  import FixNamesPanel from './FixNamesPanel.svelte';
 
   const CORPORATE_DOMAIN = '@j-aautomation.com';
   const OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
@@ -66,6 +71,17 @@
     translate: (value: string) => string;
     controlledValue?: (domain: 'status' | 'availability' | 'role', value: unknown) => string;
     form?: ActionResult | PortalActionResult;
+    /** People directory projections (server-scoped, see team-directory-load.ts). */
+    projects?: PortalRow[];
+    teamStats?: PortalRow[];
+    teamWeekStart?: string;
+    mailboxLinkedIds?: string[];
+    personPayRules?: PortalRow[];
+    personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
+    skills?: PortalRow[];
+    workerSkills?: PortalRow[];
+    viewerRole?: string;
+    locale?: string;
   };
 
   let {
@@ -83,6 +99,15 @@
     translate,
     controlledValue,
     form,
+    projects = [],
+    teamStats = [],
+    mailboxLinkedIds = [],
+    personPayRules = [],
+    personAssignModes = {},
+    skills = [],
+    workerSkills = [],
+    viewerRole = '',
+    locale = 'en',
   }: TeamDirectoryProps = $props();
 
   const problemPayload = $derived.by(() => {
@@ -119,7 +144,10 @@
     const params = new URLSearchParams({ view: 'team' });
     const lang = $page.url.searchParams.get('lang');
     if (lang) params.set('lang', lang);
-    if (workerId) params.set('worker', workerId);
+    if (workerId) {
+      params.set('worker', workerId);
+      params.set('tab', 'access');
+    }
     return `?${params.toString()}&/${actionName}`;
   }
   let activeTab = $derived<'specialists' | 'mailboxes'>(
@@ -963,16 +991,182 @@
         : 'all';
     },
   });
+
+  /* ------------------------------------------------ People directory */
+  const tc = (key: TeamCopyKey, params: Record<string, string | number> = {}) =>
+    teamCopy(locale, key, params);
+  const todayIso = new Date().toISOString().slice(0, 10);
+  let fixingNames = $state(false);
+  let roleFilter = $state('');
+  let statusFilter = $state<'active' | 'inactive' | 'all'>('active');
+  let peopleLimit = $state(50);
+  function personName(row: PortalRow): string {
+    return personDisplayName(row.name ?? row.worker_name, row.email) || translate('Unnamed specialist');
+  }
+  function roleLabel(role: string): string {
+    const choice = accessRoleChoices.find((candidate) => candidate.value === role);
+    if (choice) return translate(choice.label);
+    if (role === 'owner_admin') return translate('Owner');
+    return controlledValue?.('role', role) || translate(role);
+  }
+  const statsById = $derived(new Map(teamStats.map((row) => [String(row.worker_id), row])));
+  function statsFor(row: PortalRow) {
+    const stats = statsById.get(workerId(row));
+    const n = (key: string) => Number(stats?.[key] ?? 0) || 0;
+    return {
+      week_approved_minutes: n('week_approved_minutes'),
+      week_submitted_minutes: n('week_submitted_minutes'),
+      week_draft_minutes: n('week_draft_minutes'),
+      pending_time: n('pending_time'),
+      pending_expenses: n('pending_expenses'),
+    };
+  }
+  const linkedIds = $derived(new Set(mailboxLinkedIds));
+  function mailboxLinked(row: PortalRow): boolean {
+    const id = workerId(row);
+    return linkedIds.has(id) || (mailboxes ?? []).some((mailbox) => mailbox.portalUserId === id);
+  }
+  function personAssignments(row: PortalRow): PortalRow[] {
+    const id = workerId(row);
+    return assignments.filter((assignment) => value(assignment, 'worker_id', 'user_id') === id);
+  }
+  function currentAssignments(row: PortalRow): PortalRow[] {
+    return personAssignments(row).filter(
+      (assignment) =>
+        value(assignment, 'status') === 'active' &&
+        (!value(assignment, 'ends_on') || value(assignment, 'ends_on') >= todayIso) &&
+        (!directoryProjectId || value(assignment, 'project_id') === directoryProjectId),
+    );
+  }
+  const skillNames = $derived(new Map(skills.map((skill) => [String(skill.id), String(skill.name ?? '')])));
+  function personSkills(row: PortalRow): string[] {
+    const id = workerId(row);
+    return workerSkills
+      .filter((entry) => String(entry.worker_id) === id)
+      .map((entry) => skillNames.get(String(entry.skill_id)) ?? '')
+      .filter(Boolean);
+  }
+  function hoursText(minutes: number): string {
+    if (!(minutes > 0)) return '0';
+    const hundredths = Math.round((minutes * 100) / 60);
+    const whole = Math.floor(hundredths / 100);
+    const fraction = hundredths % 100;
+    const sep = locale.startsWith('en') ? '.' : ',';
+    return fraction ? `${whole}${sep}${String(fraction).padStart(2, '0').replace(/0$/u, '')}` : String(whole);
+  }
+  function linkParams(): URLSearchParams {
+    const params = new URLSearchParams({ view: 'team' });
+    const lang = $page.url.searchParams.get('lang');
+    if (lang) params.set('lang', lang);
+    return params;
+  }
+  function personHref(id: string, tab = 'overview'): string {
+    const params = linkParams();
+    params.set('person', id);
+    if (tab !== 'overview') params.set('tab', tab);
+    return `?${params.toString()}`;
+  }
+  function directoryHref(): string {
+    const params = linkParams();
+    const project = $page.url.searchParams.get('project');
+    if (project) params.set('project', project);
+    return `?${params.toString()}`;
+  }
+  function clearPeopleFilters(): void {
+    search = '';
+    roleFilter = '';
+    statusFilter = 'active';
+    setDirectoryProject('');
+  }
+  const personParam = $derived(
+    $page.url.searchParams.get('person') ??
+      failedWorkerProfileId ??
+      failedWorkforceProfileId ??
+      failedStatusUserId ??
+      $page.url.searchParams.get('worker'),
+  );
+  const selectedPerson = $derived(
+    personParam ? (workers.find((worker) => workerId(worker) === personParam) ?? null) : null,
+  );
+  type PersonTab = 'overview' | 'projects' | 'hours' | 'expenses' | 'pay' | 'access';
+  const tabLabel: Record<PersonTab, TeamCopyKey> = {
+    overview: 'tabOverview',
+    projects: 'tabProjects',
+    hours: 'tabHours',
+    expenses: 'tabExpenses',
+    pay: 'tabPay',
+    access: 'tabAccess',
+  };
+  const personTabs = $derived<PersonTab[]>(
+    canManageTeam
+      ? ['overview', 'projects', 'hours', 'expenses', 'pay', 'access']
+      : ['overview', 'projects', 'hours', 'expenses'],
+  );
+  const personTab = $derived.by<PersonTab>(() => {
+    const requested = $page.url.searchParams.get('tab') as PersonTab | null;
+    if (failedWorkerProfileId || failedWorkforceProfileId || failedStatusUserId || resetPasswordDoneFor)
+      return canManageTeam ? 'access' : 'overview';
+    return requested && personTabs.includes(requested) ? requested : 'overview';
+  });
+  const profileSaved = $derived.by(() => {
+    const candidate = form as unknown as Record<string, unknown> | null | undefined;
+    const payload = (candidate?.data && typeof candidate.data === 'object' ? candidate.data : candidate) as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    return payload?.success === true && payload.messageKey === 'action.access.workerProfile.updated';
+  });
+  const hoursPeriods: Array<{ value: string; label: TeamCopyKey }> = [
+    { value: 'this_week', label: 'hoursThisWeek' },
+    { value: 'last_week', label: 'hoursLastWeek' },
+    { value: 'this_month', label: 'hoursThisMonth' },
+    { value: 'last_month', label: 'hoursLastMonth' },
+  ];
+  const nameFixCount = $derived(
+    workers.filter(
+      (worker) =>
+        value(worker, 'status') === 'active' &&
+        !workerIsProtectedOwner(worker) &&
+        proposedPersonName(worker.name, worker.email),
+    ).length,
+  );
+  const roleOptions = $derived(
+    [...new Set(workers.map((worker) => accessRoleForWorker(worker)))].sort(),
+  );
+  const peopleRows = $derived(
+    relationFilteredWorkers
+      .filter((worker) => {
+        const status = value(worker, 'status') || 'active';
+        if (statusFilter === 'active' && status !== 'active') return false;
+        if (statusFilter === 'inactive' && status === 'active') return false;
+        if (roleFilter && accessRoleForWorker(worker) !== roleFilter) return false;
+        if (!normalizedSearch) return true;
+        return [
+          personName(worker),
+          workerName(worker),
+          value(worker, 'email'),
+          ...personAssignments(worker).map((assignment) =>
+            [value(assignment, 'project_number'), value(assignment, 'project_name')].join(' '),
+          ),
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(normalizedSearch);
+      })
+      .sort((a, b) => personName(a).localeCompare(personName(b))),
+  );
+  const shownPeople = $derived(peopleRows.slice(0, peopleLimit));
+  $effect(() => {
+    teamPage = selectedPerson ? [selectedPerson] : shownPeople;
+  });
 </script>
 
 <div class="team-directory" data-team-directory>
   <header class="team-directory__header">
     <div>
-      <p class="team-directory__eyebrow">{translate('OPERATIONAL DIRECTORY')}</p>
-      <h2>{translate('Team')}</h2>
-      <p>{translate('Active specialists, availability and project assignments.')}</p>
+      <h2>{tc('title')}</h2>
+      <p>{canManageTeam ? tc('intro') : `${tc('introPm')}`}</p>
     </div>
-    <span class="team-directory__count" aria-live="polite">{visibleWorkers.length}</span>
   </header>
 
   {#if problemPayload && !workforceSupplierProblemInForm && !(failedStatusUserId && canManageTeam && workers.some((worker) => workerId(worker) === failedStatusUserId))}
@@ -1041,8 +1235,8 @@
         onclick={() => (activeTab = 'specialists')}
         onkeydown={handleDirectoryTabKeydown}
       >
-        <span>{translate('Specialists')}</span><span class="team-directory__tab-count"
-          >{visibleWorkers.length}</span
+        <span>{tc('title')}</span><span class="team-directory__tab-count"
+          >{workers.filter((worker) => value(worker, 'status') === 'active').length}</span
         >
       </a>
       <a
@@ -1091,27 +1285,582 @@
       aria-labelledby={canManageMailboxDirectory ? 'team-tab-specialists' : undefined}
       class="team-directory__specialists"
     >
-      {#if canManageTeam}
-        <section class="team-directory__provisioning" aria-labelledby="team-create-user-title">
-          <div class="team-directory__provisioning-heading">
-            <div>
-              <p class="team-directory__eyebrow">{translate('SECURE USER PROVISIONING')}</p>
-              <h2 id="team-create-user-title">{translate('Create user access')}</h2>
-              <p>
-                {translate(
-                  'Add a person with an email or username and a password. Assign projects afterwards.',
-                )}
-              </p>
-            </div>
+      {#if selectedPerson}
+        {#each [selectedPerson] as worker (workerId(worker))}
+          {@const role = value(worker, 'role') || 'worker'}
+          {@const profileRole = failedWorkerProfileValue(worker, 'role') ?? role}
+          {@const protectedOwner = workerIsProtectedOwner(worker)}
+          {@const stats = statsFor(worker)}
+          {@const linked = mailboxLinked(worker)}
+          <article class="person" data-person-page={workerId(worker)}>
+            <a class="person__back" href={directoryHref()}>← {tc('back')}</a>
+            <header class="person__header">
+              <div class="person__avatar" aria-hidden="true">{personInitials(worker.name, worker.email)}</div>
+              <div class="person__identity">
+                <h3 data-person-name>{personName(worker)}</h3>
+                <p>
+                  <strong
+                    >{protectedOwner
+                      ? translate('Unique Owner')
+                      : roleLabel(accessRoleForWorker(worker))}</strong
+                  >
+                  {#if value(worker, 'email')}
+                    · <a href={`mailto:${value(worker, 'email')}`}>{value(worker, 'email')}</a>
+                  {/if}
+                  {#if value(worker, 'phone')}
+                    · <a href={`tel:${value(worker, 'phone')}`}>{value(worker, 'phone')}</a>
+                  {/if}
+                </p>
+              </div>
+              <div class="person__badges">
+                <StatusBadge
+                  variant={protectedOwner ? 'info' : statusVariant(worker)}
+                  text={protectedOwner
+                    ? translate('Owner — protected')
+                    : statusLabel(value(worker, 'status') || 'active')}
+                />
+                {#if canManageTeam}
+                  <StatusBadge
+                    variant={linked ? 'success' : 'neutral'}
+                    text={linked ? tc('mailboxLinked') : tc('mailboxNone')}
+                  />
+                {/if}
+              </div>
+            </header>
+
+            <nav class="person__tabs" aria-label={personName(worker)}>
+              {#each personTabs as tab (tab)}
+                <a
+                  href={personHref(workerId(worker), tab)}
+                  class="person__tab"
+                  class:person__tab--active={personTab === tab}
+                  aria-current={personTab === tab ? 'page' : undefined}
+                  data-person-tab={tab}
+                  data-sveltekit-noscroll
+                  data-sveltekit-replacestate>{tc(tabLabel[tab])}</a
+                >
+              {/each}
+            </nav>
+
+            {#if personTab === 'overview'}
+              <div class="person__panel" data-person-panel="overview">
+                <dl class="person__stats">
+                  <div>
+                    <dt>{tc('weekApproved')}</dt>
+                    <dd>{tc('hours', { value: hoursText(stats.week_approved_minutes) })}</dd>
+                  </div>
+                  <div>
+                    <dt>{tc('weekSubmitted')}</dt>
+                    <dd>{tc('hours', { value: hoursText(stats.week_submitted_minutes) })}</dd>
+                  </div>
+                  <div>
+                    <dt>{tc('weekDraft')}</dt>
+                    <dd>{tc('hours', { value: hoursText(stats.week_draft_minutes) })}</dd>
+                  </div>
+                  <div class:person__stat--attention={stats.pending_time + stats.pending_expenses > 0}>
+                    <dt>{tc('pendingApprovals')}</dt>
+                    <dd>
+                      {stats.pending_time + stats.pending_expenses}
+                      <small
+                        >{tc('pendingDetail', {
+                          time: stats.pending_time,
+                          expenses: stats.pending_expenses,
+                        })}</small
+                      >
+                      {#if stats.pending_time + stats.pending_expenses > 0 && viewerRole !== 'auditor_read_only'}
+                        <a href={`${base}/app/approvals`}>{tc('reviewApprovals')}</a>
+                      {/if}
+                    </dd>
+                  </div>
+                </dl>
+                <PersonProjectsPanel
+                  personId={workerId(worker)}
+                  assignments={personAssignments(worker)}
+                  {projects}
+                  modes={personAssignModes}
+                  canManage={canManageTeam && value(worker, 'status') === 'active' && ['worker', 'project_manager'].includes(role)}
+                  isOwner={canManageTeam}
+                  {locale}
+                  today={todayIso}
+                />
+              </div>
+            {:else if personTab === 'projects'}
+              <div class="person__panel" data-person-panel="projects">
+                <PersonProjectsPanel
+                  personId={workerId(worker)}
+                  assignments={personAssignments(worker)}
+                  {projects}
+                  modes={personAssignModes}
+                  canManage={canManageTeam && value(worker, 'status') === 'active' && ['worker', 'project_manager'].includes(role)}
+                  isOwner={canManageTeam}
+                  {locale}
+                  today={todayIso}
+                />
+                <details class="team-directory__assignment-details" use:disclosure>
+                  <summary
+                    >{translate('Planned vs actual')}
+                    <span class="disclosure-count">{personAssignments(worker).length}</span></summary
+                  >
+                  <ul class="person__plain-list">
+                    {#each personAssignments(worker) as assignment (value(assignment, 'id'))}
+                      <li>
+                        {[value(assignment, 'project_number'), value(assignment, 'project_name')]
+                          .filter(Boolean)
+                          .join(' · ')}:
+                        {translate('Planned hours')}
+                        {formatHours(Number(value(assignment, 'planned_minutes')) || 0)} ·
+                        {translate('Actual hours')}
+                        {formatHours(Number(value(assignment, 'actual_minutes')) || 0)}
+                      </li>
+                    {/each}
+                  </ul>
+                </details>
+              </div>
+            {:else if personTab === 'hours'}
+              <div class="person__panel" data-person-panel="hours">
+                <p class="person__muted">{tc('hoursIntro')}</p>
+                <div class="person__link-grid">
+                  {#each hoursPeriods as period (period.value)}
+                    <a
+                      class="person__link-card"
+                      href={`${base}/app/time?view=overview&rworker=${encodeURIComponent(workerId(worker))}&period=${period.value}`}
+                      ><strong>{tc(period.label)}</strong>
+                      {#if period.value === 'this_week'}<small
+                          >{tc('weekHours', {
+                            approved: hoursText(stats.week_approved_minutes),
+                            submitted: hoursText(stats.week_submitted_minutes),
+                          })}</small
+                        >{/if}</a
+                    >
+                  {/each}
+                </div>
+              </div>
+            {:else if personTab === 'expenses'}
+              <div class="person__panel" data-person-panel="expenses">
+                <p class="person__muted">{tc('expensesIntro')}</p>
+                <a
+                  class="primary-button person__cta"
+                  href={`${base}/app/expenses?view=overview&worker=${encodeURIComponent(workerId(worker))}`}
+                  >{tc('openExpenses', { name: personName(worker) })}</a
+                >
+              </div>
+            {:else if personTab === 'pay' && canManageTeam}
+              <div class="person__panel" data-person-panel="pay">
+                <PersonPayPanel
+                  personId={workerId(worker)}
+                  rules={personPayRules}
+                  {locale}
+                  today={todayIso}
+                />
+              </div>
+            {:else if personTab === 'access' && canManageTeam}
+              <div class="person__panel" data-person-panel="access" data-team-actions>
+                <p class="person__muted">{tc('accessIntro')}</p>
+                {#if failedStatusUserId === workerId(worker) && problemPayload}
+                  <div data-status-problem>
+                    <ProblemNotice
+                      problem={problemPayload}
+                      status={personName(worker)}
+                      remedyLinks={{
+                        review_user_access: {
+                          label: portalText(problemLocale, 'problem.remedy.reviewUserAccess'),
+                          href: `${base}/app/projects?view=team`,
+                        },
+                        review_owner_access: {
+                          label: portalText(problemLocale, 'problem.remedy.reviewOwnerAccess'),
+                          href: `${base}/app/projects?view=team`,
+                        },
+                        contact_owner: {
+                          label: portalText(problemLocale, 'problem.remedy.contactOwner'),
+                        },
+                      }}
+                    />
+                  </div>
+                {/if}
+                {#if protectedOwner}
+                  <p class="team-directory__owner-lock" role="status">
+                    {translate(
+                      'This is the unique Owner account. Role changes and portal offboarding are unavailable.',
+                    )}
+                  </p>
+                {:else}
+                  <div class="team-directory__editor" id={`team-editor-${workerId(worker)}`}>
+                    <form
+                      method="POST"
+                      action={teamActionHref('updateWorkerProfile', workerId(worker))}
+                      class="team-directory__form"
+                      use:formValidation
+                      data-person-profile-form
+                    >
+                      <h3>{translate('Edit profile')}</h3>
+                      <input type="hidden" name="workerId" value={workerId(worker)} /><label
+                        for={`worker-name-${workerId(worker)}`}>{translate('Name')}</label
+                      ><input
+                        id={`worker-name-${workerId(worker)}`}
+                        name="name"
+                        value={failedWorkerProfileValue(worker, 'name') ?? workerName(worker)}
+                        required
+                        maxlength="160"
+                      /><label for={`worker-email-${workerId(worker)}`}>{translate('Email')}</label
+                      ><input
+                        id={`worker-email-${workerId(worker)}`}
+                        name="email"
+                        type="email"
+                        value={failedWorkerProfileValue(worker, 'email') ?? value(worker, 'email')}
+                        required
+                      /><label for={`worker-role-${workerId(worker)}`}>{translate('Role')}</label
+                      ><select id={`worker-role-${workerId(worker)}`} name="role" required data-person-role
+                        >{#if !['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(profileRole)}<option
+                            value={profileRole}
+                            selected
+                            disabled
+                            >{portalText(problemLocale, 'problem.access.workerRoleInvalid')}</option
+                          >{/if}<option value="worker" selected={profileRole === 'worker'}
+                          >{translate('Worker')}</option
+                        ><option value="project_manager" selected={profileRole === 'project_manager'}
+                          >{translate('Project Manager')}</option
+                        ><option value="finance_admin" selected={profileRole === 'finance_admin'}
+                          >{translate('Finance Admin')}</option
+                        ><option
+                          value="auditor_read_only"
+                          selected={profileRole === 'auditor_read_only'}
+                          >{translate('Auditor (Read Only)')}</option
+                        ></select
+                      ><input
+                        type="hidden"
+                        name="joinedAt"
+                        value={value(worker, 'created_at').slice(0, 10)}
+                      />
+                      {#if profileSaved}
+                        <p class="team-directory__reset-done" role="status" data-profile-saved>
+                          {portalText(problemLocale, 'action.access.workerProfile.updated')}
+                        </p>
+                      {/if}
+                      <div class="team-directory__form-actions">
+                        <button type="submit" class="team-directory__action"
+                          >{translate('Save profile')}</button
+                        >
+                      </div>
+                    </form>
+                    <section class="person__mailbox" aria-label={tc('mailbox')}>
+                      <h3>{tc('mailbox')}</h3>
+                      <p>
+                        <StatusBadge
+                          variant={linked ? 'success' : 'neutral'}
+                          text={linked ? tc('mailboxLinked') : tc('mailboxNone')}
+                        />
+                        {linked ? tc('mailboxLinkedHelp') : tc('mailboxNoneHelp')}
+                      </p>
+                      {#if mailboxDirectoryStatus === 'unavailable' || mailboxDirectoryStatus === 'error'}
+                        <p class="person__notice" role="status" data-mail-unavailable>
+                          {tc('mailServerUnavailable')}
+                        </p>
+                      {/if}
+                    </section>
+                  {#if value(worker, 'has_portal_access') === '1' && value(worker, 'status') === 'active' && workerId(worker) !== currentUserId}
+                    {@const resetId = workerId(worker)}
+                    <form
+                      method="POST"
+                      action={teamActionHref('resetUserPassword', resetId)}
+                      class="team-directory__form team-directory__reset-password"
+                      data-reset-password-form
+                      use:formValidation
+                      onsubmit={(event) => {
+                        if (
+                          !confirm(
+                            translate(
+                              'Set this new password? The old one stops working right away and the person is signed out.',
+                            ),
+                          )
+                        )
+                          event.preventDefault();
+                      }}
+                    >
+                      <h3>{translate('Reset password')}</h3>
+                      <p class="team-directory__form-help">
+                        {(mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
+                          ? translate(
+                              'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.',
+                            )
+                          : mailboxDirectoryStatus === 'ready' ||
+                              !isCompanyEmail(value(worker, 'email'))
+                            ? translate(
+                                'Sets a new portal password. Give it to the person in a safe way.',
+                              )
+                            : translate(
+                                'Sets a new password. If this person has a Webmail mailbox, the same password is set there too.',
+                              )}
+                      </p>
+                      <input type="hidden" name="userId" value={resetId} />
+                      <label for={`reset-password-${resetId}`}>{translate('New password')}</label>
+                      <div class="team-directory__password-row">
+                        <input
+                          id={`reset-password-${resetId}`}
+                          name="password"
+                          type={resetPasswordReveal[resetId] ? 'text' : 'password'}
+                          autocomplete="new-password"
+                          minlength="12"
+                          maxlength="128"
+                          value={resetPasswordValue[resetId] ?? ''}
+                          oninput={(event) =>
+                            (resetPasswordValue[resetId] = event.currentTarget.value)}
+                          aria-describedby={`reset-password-help-${resetId}`}
+                          required
+                        /><button
+                          type="button"
+                          class="team-directory__action team-directory__action--quiet"
+                          onclick={() => {
+                            resetPasswordValue[resetId] = generateAccessPassword();
+                            resetPasswordReveal[resetId] = true;
+                          }}>{translate('Generate')}</button
+                        >
+                      </div>
+                      <small id={`reset-password-help-${resetId}`}
+                        >{translate('At least 12 characters.')}</small
+                      >
+                      <label class="team-directory__inline-check"
+                        ><input
+                          type="checkbox"
+                          checked={resetPasswordReveal[resetId] ?? false}
+                          onchange={(event) =>
+                            (resetPasswordReveal[resetId] = event.currentTarget.checked)}
+                        />{translate('Show password to copy')}</label
+                      >
+                      {#if problemPayload?.actionName === 'resetUserPassword' && problemPayload.values?.userId === resetId}
+                        <div data-reset-password-problem>
+                          <ProblemNotice problem={problemPayload} locale={problemLocale} />
+                        </div>
+                      {:else if resetPasswordDoneFor === resetId}
+                        <p
+                          class="team-directory__reset-done"
+                          role="status"
+                          data-reset-password-done
+                        >
+                          {portalText(problemLocale, resetPasswordDoneKey)}
+                        </p>
+                      {/if}
+                      <button type="submit" class="team-directory__action"
+                        >{translate('Save new password')}</button
+                      >
+                    </form>
+                  {/if}
+                    <section class="person__danger" aria-labelledby={`person-danger-${workerId(worker)}`}>
+                      <h3 id={`person-danger-${workerId(worker)}`}>{tc('dangerTitle')}</h3>
+                      {#if workerId(worker) === currentUserId}
+                        <p class="person__muted">—</p>
+                      {:else if value(worker, 'status') === 'active'}
+                        <p class="person__muted">{tc('suspendHelp')}</p>
+                        <p class="person__muted">{tc('offboardHelp')}</p>
+                        <div class="person__danger-actions">
+                          <form
+                            method="POST"
+                            action={teamActionHref('updateUserStatus', workerId(worker))}
+                            use:formValidation
+                            onsubmit={(event) => {
+                              if (!confirm(tc('confirmSuspend'))) event.preventDefault();
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={workerId(worker)} /><input
+                              type="hidden"
+                              name="status"
+                              value="suspended"
+                            /><button type="submit" class="team-directory__action team-directory__action--quiet"
+                              >{tc('suspend')}</button
+                            >
+                          </form>
+                          <form
+                            method="POST"
+                            action={teamActionHref('updateUserStatus', workerId(worker))}
+                            use:formValidation
+                            onsubmit={(event) => {
+                              if (!confirm(translate('Remove this team member access?')))
+                                event.preventDefault();
+                            }}
+                          >
+                            <input type="hidden" name="userId" value={workerId(worker)} /><input
+                              type="hidden"
+                              name="status"
+                              value="offboarded"
+                            /><button
+                              type="submit"
+                              class="team-directory__action team-directory__action--danger-outline"
+                              >{translate('Remove access')}</button
+                            >
+                          </form>
+                        </div>
+                      {:else}
+                        <form
+                          method="POST"
+                          action={teamActionHref('updateUserStatus', workerId(worker))}
+                          use:formValidation
+                          onsubmit={(event) => {
+                            if (!confirm(translate('Restore this team member access?')))
+                              event.preventDefault();
+                          }}
+                        >
+                          <input type="hidden" name="userId" value={workerId(worker)} /><input
+                            type="hidden"
+                            name="status"
+                            value="active"
+                          /><button type="submit" class="team-directory__action"
+                            >{translate('Restore access')}</button
+                          >
+                        </form>
+                      {/if}
+                    </section>
+                  </div>
+                {/if}
+                <details class="person__more">
+                  <summary>{tc('moreSettings')}</summary>
+                  <div class="person__more-body">
+                    <h3>{tc('skillsAvailability')}</h3>
+                    <p>
+                      {translate('Availability')}: <strong>{availability(worker)}</strong>
+                    </p>
+                    {#if personSkills(worker).length}
+                      <ul class="person__chips">
+                        {#each personSkills(worker) as skill (skill)}<li>{skill}</li>{/each}
+                      </ul>
+                    {:else}
+                      <p class="person__muted">{tc('skillsNone')}</p>
+                    {/if}
+                    <p class="person__inline-links">
+                      <a href={`${base}/app/profile?worker=${workerId(worker)}`}>{tc('editSkills')}</a>
+                      <a href={`${base}/app/planning?worker=${workerId(worker)}`}>{tc('planning')}</a>
+                    </p>
+                    {#if !protectedOwner}
+                  {#if role === 'worker'}
+                    {#if workforceSupplierInactiveProblem && failedWorkforceProfileId === workerId(worker) && problemPayload}
+                      <div data-workforce-supplier-problem>
+                        <ProblemNotice
+                          problem={problemPayload}
+                          locale={problemLocale}
+                          status={workforceProblemContext(worker)}
+                          remedyLinks={canonicalOwner
+                            ? {
+                                review_supplier_status: {
+                                  label: portalText(
+                                    problemLocale,
+                                    'problem.remedy.reviewSupplierStatus',
+                                  ),
+                                  href: supplierStatusHref,
+                                },
+                              }
+                            : {}}
+                        />
+                      </div>
+                    {/if}
+                    <form
+                      method="POST"
+                      action={teamActionHref('setWorkforceProfile', workerId(worker))}
+                      class="team-directory__form"
+                      use:formValidation
+                    >
+                      <input type="hidden" name="workerId" value={workerId(worker)} />
+                      <label for={`workforce-profile-${workerId(worker)}`}
+                        >{translate('Access profile')}</label
+                      ><select
+                        id={`workforce-profile-${workerId(worker)}`}
+                        name="profile"
+                        value={workforceProfileValue(worker)}
+                        required
+                        onchange={(event) =>
+                          (selectedWorkforceProfiles[workerId(worker)] = event.currentTarget.value)}
+                      >
+                        <option value="standard">{translate('Worker')}</option>
+                        <option value="supplier_coordinator"
+                          >{translate('Supplier coordinator')}</option
+                        >
+                        <option value="external_technician"
+                          >{translate('External technician')}</option
+                        >
+                      </select>
+                      <label for={`workforce-supplier-${workerId(worker)}`}
+                        >{translate('Supplier')}</label
+                      ><select
+                        id={`workforce-supplier-${workerId(worker)}`}
+                        name="supplierId"
+                        value={workforceSupplierValue(worker)}
+                        onchange={(event) =>
+                          (selectedWorkforceSuppliers[workerId(worker)] =
+                            event.currentTarget.value)}
+                        required={workforceProfileValue(worker) !== 'standard'}
+                        aria-describedby={workforceProfileValue(worker) !== 'standard'
+                          ? `workforce-supplier-cue-${workerId(worker)}`
+                          : undefined}
+                      >
+                        <option value="">{translate('Select supplier')}</option>
+                        {#if unavailableWorkforceSupplier(worker)}
+                          <option value={unavailableWorkforceSupplier(worker)} disabled
+                            >{portalText(
+                              problemLocale,
+                              'problem.access.workforceSupplierUnavailableOption',
+                            )}</option
+                          >
+                        {/if}
+                        {#each suppliers as supplier}<option value={String(supplier.id)}
+                            >{supplier.name}</option
+                          >{/each}
+                      </select>
+                      {#if workforceProfileValue(worker) !== 'standard'}
+                        <p
+                          class="team-directory__form-help"
+                          id={`workforce-supplier-cue-${workerId(worker)}`}
+                        >
+                          {portalText(problemLocale, 'problem.access.workforceSupplierCue')}
+                        </p>
+                      {/if}
+                      <button type="submit" class="team-directory__action"
+                        >{translate('Save profile')}</button
+                      >
+                    </form>
+                  {/if}
+                    {/if}
+                  </div>
+                </details>
+              </div>
+            {/if}
+          </article>
+        {/each}
+      {:else if personParam}
+        <p class="team-directory__empty team-directory__empty--large" role="status">
+          {tc('personNotFound')} <a href={directoryHref()}>{tc('back')}</a>
+        </p>
+      {:else}
+        <div class="people__toolbar">
+          {#if canManageTeam}
             <button
               type="button"
-              class="team-directory__action"
+              class="primary-button"
               aria-expanded={creatingUser}
-              aria-controls={createLocal ? 'assistant-team-create' : 'team-create-user-form'}
-              onclick={() => (creatingUser = !creatingUser)}
-              >{creatingUser ? translate('Close') : translate('Create user')}</button
+              aria-controls="team-create-panel"
+              data-add-person
+              onclick={() => {
+                creatingUser = !creatingUser;
+                fixingNames = false;
+              }}>{creatingUser ? tc('closeAdd') : tc('addPerson')}</button
             >
-          </div>
+            {#if nameFixCount > 0}
+              <button
+                type="button"
+                class="secondary-button"
+                aria-expanded={fixingNames}
+                data-fix-names-open
+                onclick={() => {
+                  fixingNames = !fixingNames;
+                  creatingUser = false;
+                }}>{tc('fixNames', { count: nameFixCount })}</button
+              >
+            {/if}
+          {/if}
+        </div>
+        {#if canManageTeam && (creatingUser || invitationPath)}
+          <section
+            class="team-directory__provisioning"
+            id="team-create-panel"
+            aria-labelledby="team-create-user-title"
+          >
+            <h2 id="team-create-user-title" class="visually-hidden">{translate('Create user access')}</h2>
           {#if creatingUser}
             {#if createLocal}
               <form
@@ -1395,506 +2144,124 @@
               >
             </div>
           {/if}
-        </section>
-      {/if}
-
-      <div class="team-directory__controls">
-        <div class="team-directory__field">
-          <label for="team-search">{translate('Search team')}</label><input
-            id="team-search"
-            bind:value={search}
-            type="search"
-            placeholder={translate('Name, role or project')}
-          />
-        </div>
-        <div class="team-directory__field">
-          <label for="team-project-filter">{translate('Project')}</label>
-          <select
-            id="team-project-filter"
-            value={directoryProjectId}
-            onchange={(event) => setDirectoryProject(event.currentTarget.value)}
-          >
-            <option value="">{translate('All projects')}</option>
-            {#each projectFilterOptions as project}
-              <option value={project.id}>{project.name}</option>
-            {/each}
-          </select>
-        </div>
-        {#if supplierFilterOptions.length}
-          <div class="team-directory__field">
-            <label for="team-supplier-filter">{translate('Suppliers')}</label>
-            <select id="team-supplier-filter" bind:value={directorySupplierId}>
-              <option value="">{translate('All suppliers')}</option>
-              {#each supplierFilterOptions as supplier}
-                <option value={value(supplier, 'id')}>{value(supplier, 'name')}</option>
-              {/each}
-            </select>
-          </div>
+          </section>
         {/if}
-        <div class="team-directory__field">
-          <label for="team-worker-filter">{translate('Worker')}</label>
-          <select id="team-worker-filter" bind:value={directoryTechnicianId}>
-            <option value="">{translate('All workers')}</option>
-            {#each workers as worker}
-              {@const supplierName = value(
-                suppliers.find(
-                  (supplier) =>
-                    value(supplier, 'id') === value(worker, 'supplier_id', 'supplierId'),
-                ) ?? {},
-                'name',
-              )}
-              <option value={workerId(worker)}
-                >{workerName(worker)}{supplierName ? ` · ${supplierName}` : ''}</option
-              >
-            {/each}
-          </select>
-        </div>
-        <button
-          type="button"
-          class="team-directory__action"
-          onclick={clearDirectoryFilters}
-          aria-label={translate('Clear filters')}>{translate('Clear filters')}</button
-        >
-        <label class="team-directory__toggle" for="team-show-inactive"
-          ><input id="team-show-inactive" bind:checked={showAll} type="checkbox" /><span
-            >{translate('Include inactive specialists')}</span
-          ></label
-        >
-      </div>
+        {#if canManageTeam && fixingNames}
+          <FixNamesPanel {workers} {locale} onclose={() => (fixingNames = false)} />
+        {/if}
 
-      <div class="team-directory__list">
-        <RecordBrowser
-          rows={visibleWorkers}
-          bind:visible={teamPage}
-          {translate}
-          label="TeamDirectory"
-          focusId={failedWorkerProfileId ?? $page.url.searchParams.get('worker') ?? ''}
-          showEmpty={(workers ?? []).length > 0}
-        />
-        {#each teamPage as worker}
-          {@const assignmentsForWorker = workerAssignments(worker)}
-          {@const role = value(worker, 'role') || 'worker'}
-          {@const profileRole = failedWorkerProfileValue(worker, 'role') ?? role}
-          {@const protectedOwner = workerIsProtectedOwner(worker)}
-          <SectionCard
-            title={workerName(worker)}
-            class="team-directory__card"
-            data-worker-id={workerId(worker) || undefined}
+        <div class="people__filters" role="search">
+          <label class="people__search"
+            >{tc('search')}<input
+              id="team-search"
+              bind:value={search}
+              type="search"
+              placeholder={tc('searchPlaceholder')}
+              data-people-search
+            /></label
           >
-            <div class="team-directory__identity">
-              <div class="team-directory__avatar" aria-hidden="true">
-                {workerName(worker)
-                  .split(' ')
-                  .map((part) => part[0] ?? '')
-                  .join('')
-                  .slice(0, 2)
-                  .toUpperCase()}
-              </div>
-              <div class="team-directory__identity-copy">
-                <strong
-                  >{protectedOwner
-                    ? translate('Unique Owner')
-                    : controlledValue?.('role', role) || translate(role)}</strong
-                >{#if value(worker, 'email')}<a href={`mailto:${value(worker, 'email')}`}
-                    >{value(worker, 'email')}</a
-                  >{/if}
-              </div>
-              <StatusBadge
-                variant={protectedOwner ? 'info' : statusVariant(worker)}
-                text={protectedOwner
-                  ? translate('Owner — protected')
-                  : statusLabel(value(worker, 'status') || 'active')}
-              />
-            </div>
-            <dl class="team-directory__facts">
-              <div>
-                <dt>{translate('Availability')}</dt>
-                <dd>
-                  <a href={`${base}/app/profile?worker=${workerId(worker)}`}
-                    >{availability(worker)}</a
-                  >
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Assignments')}</dt>
-                <dd>
-                  <a
-                    href={assignmentWorkflowHref(assignmentPage.url, 'updateAssignment', {
-                      worker: workerId(worker),
-                    })}
-                    >{assignmentsForWorker.filter(
-                      (assignment) => value(assignment, 'status') === 'active',
-                    ).length}</a
-                  >
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Planned hours')}</dt>
-                <dd>
-                  <a href={`${base}/app/planning?worker=${workerId(worker)}`}
-                    >{formatHours(minutesFor(assignmentsForWorker, 'planned_minutes'))}</a
-                  >
-                </dd>
-              </div>
-              <div>
-                <dt>{translate('Actual hours')}</dt>
-                <dd>
-                  <a href={`${base}/app/time?worker=${workerId(worker)}`}
-                    >{formatHours(minutesFor(assignmentsForWorker, 'actual_minutes'))}</a
-                  >
-                </dd>
-              </div>
-            </dl>
-            {#if canManageTeam}<div class="team-directory__actions" data-team-actions>
-                {#if failedStatusUserId === workerId(worker) && problemPayload}
-                  <div data-status-problem>
-                    <ProblemNotice
-                      problem={problemPayload}
-                      status={workerName(worker)}
-                      remedyLinks={{
-                        review_user_access: {
-                          label: portalText(problemLocale, 'problem.remedy.reviewUserAccess'),
-                          href: `${base}/app/projects?view=team`,
-                        },
-                        review_owner_access: {
-                          label: portalText(problemLocale, 'problem.remedy.reviewOwnerAccess'),
-                          href: `${base}/app/projects?view=team`,
-                        },
-                        contact_owner: {
-                          label: portalText(problemLocale, 'problem.remedy.contactOwner'),
-                        },
-                      }}
-                    />
-                  </div>
-                {/if}
-                {#if protectedOwner}<p class="team-directory__owner-lock" role="status">
-                    {translate(
-                      'This is the unique Owner account. Role changes and portal offboarding are unavailable.',
-                    )}
-                  </p>{:else}<button
-                    type="button"
-                    class="team-directory__action"
-                    aria-expanded={editingWorkerId === workerId(worker)}
-                    aria-controls={`team-editor-${workerId(worker)}`}
-                    onclick={() =>
-                      (editingWorkerId =
-                        editingWorkerId === workerId(worker) ? null : workerId(worker))}
-                    >{translate('Edit team member')}</button
-                  >{#if workerId(worker) !== currentUserId && value(worker, 'status') === 'active'}<form
-                      method="POST"
-                      action={teamActionHref('updateUserStatus')}
-                      use:formValidation
-                      onsubmit={(event) => {
-                        if (!confirm(translate('Remove this team member access?')))
-                          event.preventDefault();
-                      }}
-                    >
-                      <input type="hidden" name="userId" value={workerId(worker)} /><input
-                        type="hidden"
-                        name="status"
-                        value="offboarded"
-                      /><button
-                        type="submit"
-                        class="team-directory__action team-directory__action--danger"
-                        >{translate('Remove access')}</button
-                      >
-                    </form>{:else if workerId(worker) !== currentUserId}<form
-                      method="POST"
-                      action={teamActionHref('updateUserStatus')}
-                      use:formValidation
-                      onsubmit={(event) => {
-                        if (!confirm(translate('Restore this team member access?')))
-                          event.preventDefault();
-                      }}
-                    >
-                      <input type="hidden" name="userId" value={workerId(worker)} /><input
-                        type="hidden"
-                        name="status"
-                        value="active"
-                      /><button type="submit" class="team-directory__action"
-                        >{translate('Restore access')}</button
-                      >
-                    </form>{/if}{/if}
-              </div>
-              {#if editingWorkerId === workerId(worker) && !protectedOwner}<div
-                  class="team-directory__editor"
-                  id={`team-editor-${workerId(worker)}`}
-                >
-                  <form
-                    method="POST"
-                    action="?view=team&/updateWorkerProfile"
-                    class="team-directory__form"
-                    use:formValidation
-                  >
-                    <h3>{translate('Edit profile')}</h3>
-                    <input type="hidden" name="workerId" value={workerId(worker)} /><label
-                      for={`worker-name-${workerId(worker)}`}>{translate('Name')}</label
-                    ><input
-                      id={`worker-name-${workerId(worker)}`}
-                      name="name"
-                      value={failedWorkerProfileValue(worker, 'name') ?? workerName(worker)}
-                      required
-                      maxlength="160"
-                    /><label for={`worker-email-${workerId(worker)}`}>{translate('Email')}</label
-                    ><input
-                      id={`worker-email-${workerId(worker)}`}
-                      name="email"
-                      type="email"
-                      value={failedWorkerProfileValue(worker, 'email') ?? value(worker, 'email')}
-                      required
-                    /><label for={`worker-role-${workerId(worker)}`}>{translate('Role')}</label
-                    ><select id={`worker-role-${workerId(worker)}`} name="role" required
-                      >{#if !['worker', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(profileRole)}<option
-                          value={profileRole}
-                          selected
-                          disabled
-                          >{portalText(problemLocale, 'problem.access.workerRoleInvalid')}</option
-                        >{/if}<option value="worker" selected={profileRole === 'worker'}
-                        >{translate('Worker')}</option
-                      ><option value="project_manager" selected={profileRole === 'project_manager'}
-                        >{translate('Project Manager')}</option
-                      ><option value="finance_admin" selected={profileRole === 'finance_admin'}
-                        >{translate('Finance Admin')}</option
-                      ><option
-                        value="auditor_read_only"
-                        selected={profileRole === 'auditor_read_only'}
-                        >{translate('Auditor (Read Only)')}</option
-                      ></select
-                    ><input
-                      type="hidden"
-                      name="joinedAt"
-                      value={value(worker, 'created_at').slice(0, 10)}
-                    />
-                    <div class="team-directory__form-actions">
-                      <button type="submit" class="team-directory__action"
-                        >{translate('Save profile')}</button
-                      ><button
-                        type="button"
-                        class="team-directory__action team-directory__action--quiet"
-                        onclick={() => (editingWorkerId = null)}>{translate('Cancel')}</button
-                      >
-                    </div>
-                  </form>
-                  {#if value(worker, 'has_portal_access') === '1' && value(worker, 'status') === 'active' && workerId(worker) !== currentUserId}
-                    {@const resetId = workerId(worker)}
-                    <form
-                      method="POST"
-                      action={teamActionHref('resetUserPassword', resetId)}
-                      class="team-directory__form team-directory__reset-password"
-                      data-reset-password-form
-                      use:formValidation
-                      onsubmit={(event) => {
-                        if (
-                          !confirm(
-                            translate(
-                              'Set this new password? The old one stops working right away and the person is signed out.',
-                            ),
-                          )
-                        )
-                          event.preventDefault();
-                      }}
-                    >
-                      <h3>{translate('Reset password')}</h3>
-                      <p class="team-directory__form-help">
-                        {(mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
-                          ? translate(
-                              'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.',
-                            )
-                          : mailboxDirectoryStatus === 'ready' ||
-                              !isCompanyEmail(value(worker, 'email'))
-                            ? translate(
-                                'Sets a new portal password. Give it to the person in a safe way.',
-                              )
-                            : translate(
-                                'Sets a new password. If this person has a Webmail mailbox, the same password is set there too.',
-                              )}
-                      </p>
-                      <input type="hidden" name="userId" value={resetId} />
-                      <label for={`reset-password-${resetId}`}>{translate('New password')}</label>
-                      <div class="team-directory__password-row">
-                        <input
-                          id={`reset-password-${resetId}`}
-                          name="password"
-                          type={resetPasswordReveal[resetId] ? 'text' : 'password'}
-                          autocomplete="new-password"
-                          minlength="12"
-                          maxlength="128"
-                          value={resetPasswordValue[resetId] ?? ''}
-                          oninput={(event) =>
-                            (resetPasswordValue[resetId] = event.currentTarget.value)}
-                          aria-describedby={`reset-password-help-${resetId}`}
-                          required
-                        /><button
-                          type="button"
-                          class="team-directory__action team-directory__action--quiet"
-                          onclick={() => {
-                            resetPasswordValue[resetId] = generateAccessPassword();
-                            resetPasswordReveal[resetId] = true;
-                          }}>{translate('Generate')}</button
-                        >
-                      </div>
-                      <small id={`reset-password-help-${resetId}`}
-                        >{translate('At least 12 characters.')}</small
-                      >
-                      <label class="team-directory__inline-check"
-                        ><input
-                          type="checkbox"
-                          checked={resetPasswordReveal[resetId] ?? false}
-                          onchange={(event) =>
-                            (resetPasswordReveal[resetId] = event.currentTarget.checked)}
-                        />{translate('Show password to copy')}</label
-                      >
-                      {#if problemPayload?.actionName === 'resetUserPassword' && problemPayload.values?.userId === resetId}
-                        <div data-reset-password-problem>
-                          <ProblemNotice problem={problemPayload} locale={problemLocale} />
-                        </div>
-                      {:else if resetPasswordDoneFor === resetId}
-                        <p
-                          class="team-directory__reset-done"
-                          role="status"
-                          data-reset-password-done
-                        >
-                          {portalText(problemLocale, resetPasswordDoneKey)}
-                        </p>
-                      {/if}
-                      <button type="submit" class="team-directory__action"
-                        >{translate('Save new password')}</button
-                      >
-                    </form>
-                  {/if}
-                  {#if role === 'worker'}
-                    {#if workforceSupplierInactiveProblem && failedWorkforceProfileId === workerId(worker) && problemPayload}
-                      <div data-workforce-supplier-problem>
-                        <ProblemNotice
-                          problem={problemPayload}
-                          locale={problemLocale}
-                          status={workforceProblemContext(worker)}
-                          remedyLinks={canonicalOwner
-                            ? {
-                                review_supplier_status: {
-                                  label: portalText(
-                                    problemLocale,
-                                    'problem.remedy.reviewSupplierStatus',
-                                  ),
-                                  href: supplierStatusHref,
-                                },
-                              }
-                            : {}}
-                        />
-                      </div>
-                    {/if}
-                    <form
-                      method="POST"
-                      action={teamActionHref('setWorkforceProfile', workerId(worker))}
-                      class="team-directory__form"
-                      use:formValidation
-                    >
-                      <input type="hidden" name="workerId" value={workerId(worker)} />
-                      <label for={`workforce-profile-${workerId(worker)}`}
-                        >{translate('Access profile')}</label
-                      ><select
-                        id={`workforce-profile-${workerId(worker)}`}
-                        name="profile"
-                        value={workforceProfileValue(worker)}
-                        required
-                        onchange={(event) =>
-                          (selectedWorkforceProfiles[workerId(worker)] = event.currentTarget.value)}
-                      >
-                        <option value="standard">{translate('Worker')}</option>
-                        <option value="supplier_coordinator"
-                          >{translate('Supplier coordinator')}</option
-                        >
-                        <option value="external_technician"
-                          >{translate('External technician')}</option
-                        >
-                      </select>
-                      <label for={`workforce-supplier-${workerId(worker)}`}
-                        >{translate('Supplier')}</label
-                      ><select
-                        id={`workforce-supplier-${workerId(worker)}`}
-                        name="supplierId"
-                        value={workforceSupplierValue(worker)}
-                        onchange={(event) =>
-                          (selectedWorkforceSuppliers[workerId(worker)] =
-                            event.currentTarget.value)}
-                        required={workforceProfileValue(worker) !== 'standard'}
-                        aria-describedby={workforceProfileValue(worker) !== 'standard'
-                          ? `workforce-supplier-cue-${workerId(worker)}`
-                          : undefined}
-                      >
-                        <option value="">{translate('Select supplier')}</option>
-                        {#if unavailableWorkforceSupplier(worker)}
-                          <option value={unavailableWorkforceSupplier(worker)} disabled
-                            >{portalText(
-                              problemLocale,
-                              'problem.access.workforceSupplierUnavailableOption',
-                            )}</option
-                          >
-                        {/if}
-                        {#each suppliers as supplier}<option value={String(supplier.id)}
-                            >{supplier.name}</option
-                          >{/each}
-                      </select>
-                      {#if workforceProfileValue(worker) !== 'standard'}
-                        <p
-                          class="team-directory__form-help"
-                          id={`workforce-supplier-cue-${workerId(worker)}`}
-                        >
-                          {portalText(problemLocale, 'problem.access.workforceSupplierCue')}
-                        </p>
-                      {/if}
-                      <button type="submit" class="team-directory__action"
-                        >{translate('Save profile')}</button
-                      >
-                    </form>
-                  {/if}
-                </div>{/if}
-            {/if}
-            <details class="team-directory__assignment-details" use:disclosure>
-              <summary
-                >{translate('Project assignments')}
-                <span class="disclosure-count">{assignmentsForWorker.length}</span></summary
-              >
-              <div class="team-directory__assignment-list">
-                {#each assignmentsForWorker as assignment}<article
-                    class="team-directory__assignment"
-                  >
-                    <strong
-                      ><a href={`${base}/app/projects/${value(assignment, 'project_id')}`}
-                        >{[value(assignment, 'project_number'), value(assignment, 'project_name')]
-                          .filter(Boolean)
-                          .join(' · ') || translate('Authorized project')}</a
-                      ></strong
-                    ><span
-                      >{controlledValue?.('role', value(assignment, 'assignment_role')) ||
-                        value(assignment, 'assignment_role') ||
-                        translate('Assignment')}</span
-                    ><small
-                      >{value(assignment, 'starts_on') || '—'} → {value(assignment, 'ends_on') ||
-                        '—'} · {statusLabel(value(assignment, 'status'))}</small
-                    ><small
-                      >{translate('Planned vs actual')}: {formatHours(
-                        Number(value(assignment, 'planned_minutes')) || 0,
-                      )} → {formatHours(Number(value(assignment, 'actual_minutes')) || 0)}</small
-                    >
-                  </article>{:else}<p class="team-directory__empty">
-                    {translate('No project assignments recorded.')}
-                  </p>{/each}
-              </div>
-            </details>
-          </SectionCard>
-        {:else}
-          {#if activeWorkers.length === 0}
-            <p class="team-directory__empty team-directory__empty--large">
-              {translate(
-                showAll
-                  ? 'No specialists are available in your access scope.'
-                  : 'No active specialists found.',
-              )}
-            </p>
+          <label
+            >{tc('role')}<select bind:value={roleFilter} data-people-role>
+              <option value="">{tc('allRoles')}</option>
+              {#each roleOptions as option (option)}
+                <option value={option}>{roleLabel(option)}</option>
+              {/each}
+            </select></label
+          >
+          <label
+            >{tc('status')}<select bind:value={statusFilter} data-people-status>
+              <option value="active">{tc('statusActive')}</option>
+              <option value="inactive">{tc('statusInactive')}</option>
+              <option value="all">{tc('statusAll')}</option>
+            </select></label
+          >
+          <label
+            >{tc('project')}<select
+              id="team-project-filter"
+              value={directoryProjectId}
+              onchange={(event) => setDirectoryProject(event.currentTarget.value)}
+            >
+              <option value="">{tc('allProjects')}</option>
+              {#each projectFilterOptions as project (project.id)}
+                <option value={project.id}>{project.name}</option>
+              {/each}
+            </select></label
+          >
+          {#if search || roleFilter || statusFilter !== 'active' || directoryProjectId}
+            <button type="button" class="secondary-button people__clear" onclick={clearPeopleFilters}
+              >{tc('clear')}</button
+            >
           {/if}
-        {/each}
-      </div>
+        </div>
+
+        <p class="people__count" aria-live="polite">{tc('shown', { count: peopleRows.length })}</p>
+        {#if peopleRows.length === 0}
+          <p class="team-directory__empty team-directory__empty--large">{tc('empty')}</p>
+        {:else}
+          <div class="people__table" role="table" aria-label={tc('title')}>
+            <div class="people__row people__row--head" role="row">
+              <span role="columnheader">{tc('colPerson')}</span>
+              <span role="columnheader">{tc('role')}</span>
+              <span role="columnheader">{tc('colProjects')}</span>
+              <span role="columnheader">{tc('colWeek')}</span>
+              {#if canManageTeam}<span role="columnheader">{tc('mailbox')}</span>{/if}
+            </div>
+            {#each shownPeople as worker (workerId(worker))}
+              {@const current = currentAssignments(worker)}
+              {@const stats = statsFor(worker)}
+              <div class="people__row" role="row" data-worker-id={workerId(worker)}>
+                <span class="people__person" role="cell">
+                  <span class="people__avatar" aria-hidden="true">{personInitials(worker.name, worker.email)}</span>
+                  <span class="people__name">
+                    <a href={personHref(workerId(worker))} data-person-link>{personName(worker)}</a>
+                    <small>{value(worker, 'email')}</small>
+                  </span>
+                </span>
+                <span role="cell" class="people__role">
+                  {workerIsProtectedOwner(worker)
+                    ? translate('Unique Owner')
+                    : roleLabel(accessRoleForWorker(worker))}
+                  {#if value(worker, 'status') !== 'active'}
+                    <StatusBadge variant={statusVariant(worker)} text={statusLabel(value(worker, 'status'))} />
+                  {/if}
+                </span>
+                <span role="cell" class="people__projects">
+                  {#if current.length === 0}
+                    <small class="person__muted">{tc('noProjects')}</small>
+                  {:else}
+                    {#each current.slice(0, 2) as assignment (value(assignment, 'id'))}
+                      <span class="people__chip">{value(assignment, 'project_name') || value(assignment, 'project_number')}</span>
+                    {/each}
+                    {#if current.length > 2}<small>{tc('moreProjects', { count: current.length - 2 })}</small>{/if}
+                  {/if}
+                </span>
+                <span role="cell" class="people__week">
+                  {#if stats.week_approved_minutes + stats.week_submitted_minutes > 0}
+                    {tc('weekHours', {
+                      approved: hoursText(stats.week_approved_minutes),
+                      submitted: hoursText(stats.week_submitted_minutes),
+                    })}
+                  {:else}
+                    <small class="person__muted">{tc('weekNone')}</small>
+                  {/if}
+                </span>
+                {#if canManageTeam}
+                  <span role="cell" class="people__mailbox" data-mailbox-linked={mailboxLinked(worker) ? '1' : '0'}>
+                    {#if mailboxLinked(worker)}<span class="people__mail-ok" title={tc('mailboxLinked')}
+                        ><span aria-hidden="true">✓</span> {tc('mailbox')}</span
+                      >{:else}<small class="person__muted">{tc('mailboxNone')}</small>{/if}
+                  </span>
+                {/if}
+              </div>
+            {/each}
+          </div>
+          {#if peopleRows.length > shownPeople.length}
+            <button type="button" class="secondary-button people__more" onclick={() => (peopleLimit += 50)}
+              >{tc('showMore', { count: Math.min(50, peopleRows.length - shownPeople.length) })}</button
+            >
+          {/if}
+        {/if}
+      {/if}
     </section>
   {:else if canManageMailboxDirectory}
     <div
@@ -3564,6 +3931,435 @@
   @media (max-width: 640px) {
     .team-directory__mailbox-card-facts {
       grid-template-columns: 1fr;
+    }
+  }
+
+  /* ---------------------------------------------- People directory */
+  .person .team-directory__form {
+    grid-template-columns: minmax(0, 32rem);
+    gap: 0.35rem;
+  }
+  .person .team-directory__form label {
+    margin-top: 0.4rem;
+  }
+  .people__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-bottom: 0.75rem;
+  }
+  .people__filters {
+    display: grid;
+    grid-template-columns: minmax(14rem, 2fr) repeat(3, minmax(9rem, 1fr)) auto;
+    gap: 0.75rem;
+    align-items: end;
+    margin: 0.5rem 0 0.75rem;
+  }
+  .people__filters label {
+    display: grid;
+    gap: 0.3rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--portal-muted, #5b6670);
+  }
+  .people__filters input,
+  .people__filters select {
+    min-height: var(--ja-target-min, 2.75rem);
+    width: 100%;
+    box-sizing: border-box;
+    font-weight: 400;
+    color: var(--portal-ink, #1f2328);
+  }
+  .people__clear {
+    min-height: var(--ja-target-min, 2.75rem);
+  }
+  .people__count {
+    margin: 0 0 0.5rem;
+    color: var(--portal-muted, #5b6670);
+    font-size: 0.85rem;
+  }
+  .people__table {
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--portal-surface, #fff);
+  }
+  .people__row {
+    display: grid;
+    grid-template-columns: minmax(15rem, 2.2fr) minmax(8rem, 1fr) minmax(10rem, 1.6fr) minmax(9rem, 1.2fr) minmax(6rem, 0.7fr);
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 1rem;
+    border-top: 1px solid var(--portal-border, #eceae6);
+    font-size: 0.9rem;
+  }
+  .people__row:hover {
+    background: var(--portal-wash, #f8f8f7);
+  }
+  .people__row--head {
+    border-top: 0;
+    background: var(--portal-wash, #f8f8f7);
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--portal-muted, #5b6670);
+  }
+  .people__person {
+    display: flex;
+    gap: 0.65rem;
+    align-items: center;
+    min-width: 0;
+  }
+  .people__avatar,
+  .person__avatar {
+    flex: none;
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 999px;
+    background: var(--portal-wash, #efeeea);
+    color: var(--portal-ink, #1f2328);
+    font-size: 0.8rem;
+    font-weight: 800;
+  }
+  .people__name {
+    display: grid;
+    min-width: 0;
+  }
+  .people__name a {
+    font-weight: 750;
+    color: var(--portal-ink, #1f2328);
+    text-decoration: none;
+    min-height: 1.75rem;
+    display: inline-flex;
+    align-items: center;
+  }
+  .people__name a::after {
+    /* whole row opens the person */
+    content: '';
+    position: absolute;
+    inset: 0;
+  }
+  .people__row {
+    position: relative;
+  }
+  .people__name a:hover,
+  .people__name a:focus-visible {
+    text-decoration: underline;
+  }
+  .people__name small {
+    color: var(--portal-muted, #5b6670);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .people__role {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .people__projects {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    align-items: center;
+  }
+  .people__chip {
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    background: var(--portal-wash, #efeeea);
+    font-size: 0.8rem;
+  }
+  .people__mail-ok {
+    color: #1d6b3a;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .people__more {
+    margin-top: 0.75rem;
+  }
+  .person__muted {
+    margin: 0;
+    color: var(--portal-muted, #5b6670);
+  }
+  .person {
+    display: grid;
+    gap: 1rem;
+  }
+  .person__back {
+    justify-self: start;
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
+    font-weight: 700;
+  }
+  .person__header {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .person__avatar {
+    width: 3.25rem;
+    height: 3.25rem;
+    font-size: 1.05rem;
+  }
+  .person__identity {
+    flex: 1 1 16rem;
+    min-width: 0;
+  }
+  .person__identity h3 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+  .person__identity p {
+    margin: 0.2rem 0 0;
+    color: var(--portal-muted, #5b6670);
+    overflow-wrap: anywhere;
+  }
+  .person__badges {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+  .person__tabs {
+    display: flex;
+    gap: 0.25rem;
+    border-bottom: 1px solid var(--portal-border, #dfdedc);
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+  .person__tab {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.9rem;
+    color: var(--portal-muted, #5b6670);
+    font-weight: 700;
+    text-decoration: none;
+    border-bottom: 3px solid transparent;
+    white-space: nowrap;
+  }
+  .person__tab--active {
+    color: var(--portal-ink, #1f2328);
+    border-bottom-color: var(--portal-ink, #1f2328);
+  }
+  .person__panel {
+    display: grid;
+    gap: 1.25rem;
+  }
+  .person__stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+    gap: 0.75rem;
+    margin: 0;
+  }
+  .person__stats > div {
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.7rem;
+    padding: 0.75rem 0.9rem;
+    background: var(--portal-surface, #fff);
+  }
+  .person__stats dt {
+    font-size: 0.8rem;
+    color: var(--portal-muted, #5b6670);
+    font-weight: 700;
+  }
+  .person__stats dd {
+    margin: 0.2rem 0 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    display: grid;
+    gap: 0.2rem;
+  }
+  .person__stats dd small {
+    font-size: 0.8rem;
+    font-weight: 400;
+    color: var(--portal-muted, #5b6670);
+  }
+  .person__stats dd a {
+    font-size: 0.85rem;
+  }
+  .person__stat--attention {
+    border-color: #d9a520 !important;
+    background: #fff9e8 !important;
+  }
+  .person__link-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem;
+  }
+  .person__link-card {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.9rem;
+    min-height: var(--ja-target-min, 2.75rem);
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.7rem;
+    text-decoration: none;
+    color: var(--portal-ink, #1f2328);
+    background: var(--portal-surface, #fff);
+  }
+  .person__link-card small {
+    color: var(--portal-muted, #5b6670);
+  }
+  .person__cta {
+    justify-self: start;
+  }
+  .person__plain-list {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .person__mailbox h3,
+  .person__danger h3,
+  .person__more-body h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1rem;
+  }
+  .person__mailbox p {
+    margin: 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .person__notice {
+    margin-top: 0.5rem !important;
+    padding: 0.55rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #fff4d6;
+    color: #6b4b00;
+  }
+  .person__danger {
+    border-top: 1px solid var(--portal-border, #dfdedc);
+    padding-top: 0.9rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .person__danger-actions {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .person__danger-actions form {
+    margin: 0;
+  }
+  .team-directory__action--danger-outline {
+    background: transparent;
+    border-color: #b42318;
+    color: #b42318;
+  }
+  .person__more {
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.7rem;
+  }
+  .team-directory .person__more > summary {
+    display: flex;
+    justify-content: flex-start;
+    width: 100%;
+    box-sizing: border-box;
+    background: transparent;
+    color: var(--portal-ink, #1f2328);
+    border: 0;
+  }
+  .person__more-body {
+    padding: 0 1rem 1rem;
+    display: grid;
+    gap: 0.6rem;
+  }
+  .person__more-body p {
+    margin: 0;
+  }
+  .person__chips {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  .person__chips li {
+    border-radius: 999px;
+    padding: 0.15rem 0.6rem;
+    background: var(--portal-wash, #efeeea);
+    font-size: 0.85rem;
+  }
+  .person__inline-links {
+    display: flex !important;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .person__inline-links a {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
+  }
+  @media (max-width: 900px) {
+    .people__filters {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .people__search {
+      grid-column: 1 / -1;
+    }
+  }
+  @media (max-width: 760px) {
+    .people__row.people__row--head {
+      display: none;
+    }
+    .people__row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.15rem 0.6rem;
+      padding: 0.6rem 0.85rem;
+      font-size: 0.82rem;
+    }
+    .people__person {
+      flex: 1 1 100%;
+    }
+    .people__role,
+    .people__projects,
+    .people__week,
+    .people__mailbox {
+      flex: 0 1 auto;
+    }
+    .people__role {
+      margin-left: 2.9rem;
+    }
+    .people__role::after,
+    .people__projects::after {
+      content: '·';
+      margin-left: 0.6rem;
+      color: var(--portal-muted, #5b6670);
+    }
+    .people__mailbox[data-mailbox-linked='1'] {
+      display: none;
+    }
+    .people__name small {
+      display: none;
+    }
+  }
+  @media (max-width: 640px) {
+    .person__stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+    .person__stats dd {
+      font-size: 1.15rem;
+    }
+    .people__toolbar > * {
+      flex: 1 1 auto;
+    }
+    .person__identity h3 {
+      font-size: 1.25rem;
+    }
+    .person__danger-actions form,
+    .person__danger-actions button {
+      width: 100%;
     }
   }
 </style>

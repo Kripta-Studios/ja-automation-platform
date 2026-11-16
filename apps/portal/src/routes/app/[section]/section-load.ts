@@ -24,6 +24,7 @@ import {
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
 import { listMailboxAccounts } from '$lib/server/mail-directory';
+import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
 import {
   includesArchivedProjectHistory,
   normalizeVisibleProjectSelection,
@@ -711,6 +712,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .filter(
                   (worker) =>
                     includeArchived ||
+                    // The People directory filters status on the page itself.
+                    url.searchParams.get('view') === 'team' ||
                     url.searchParams.get('includeInactive') === '1' ||
                     url.searchParams.get('status') === 'inactive' ||
                     worker.status === 'active',
@@ -737,8 +740,21 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               )
               .all(...eligibleWorkerIds)
           : [];
+        // People directory: week hours, pending counts, mailbox link and (Owner
+        // only) the viewed person's pay terms. Scoped to visible projects.
+        const teamExtras =
+          url.searchParams.get('view') === 'team' && context.principal.role !== 'worker'
+            ? loadTeamDirectoryExtras(context.sqlite, {
+                role: context.principal.role,
+                canonicalOwner,
+                projectIds: [...directoryScope.projectIds],
+                personId: url.searchParams.get('person'),
+                projects: directoryProjects as Array<Record<string, unknown>>,
+              })
+            : null;
         return {
           ...common,
+          ...(teamExtras ?? {}),
           projects: directoryProjects,
           clients:
             context.principal.role === 'owner_admin' ||

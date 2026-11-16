@@ -9,6 +9,7 @@ import { notificationActions } from '$lib/server/actions/notification-actions';
 import { projectActions } from '$lib/server/actions/project-actions';
 import { reportActions } from '$lib/server/actions/operations-actions';
 import { timeActions } from '$lib/server/actions/time-actions';
+import { teamActions } from '$lib/server/actions/team-actions';
 
 const reportAutosaveAction = reportActions.autosaveReport;
 
@@ -88,6 +89,8 @@ export const sectionActions: Actions = {
   destroyMailboxAccount: accessActions.destroyMailboxAccount,
   updateUserStatus: accessActions.updateUserStatus,
   updateWorkerProfile: accessActions.updateWorkerProfile,
+  fixPersonNames: teamActions.fixPersonNames,
+  setPersonDefaultRates: teamActions.setPersonDefaultRates,
   updateSkill: reportActions.updateSkill,
   deleteSkill: reportActions.deleteSkill,
   deleteWorkerSkill: reportActions.deleteWorkerSkill,

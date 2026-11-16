@@ -104,7 +104,7 @@
     return dates;
   });
   const isWeekend = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay());
-  /** Per worker-day anomalies: >12 h, weekend work, future-dated hours, missing past weekdays. */
+  /** Per worker-day anomalies: >12 h, weekend work, missing past weekdays (future days are allowed). */
   const anomalies = $derived.by(() => {
     const perDay = new Map<string, number>();
     const workers = new Set<string>();
@@ -115,25 +115,22 @@
     }
     let over12 = 0;
     let weekend = 0;
-    let future = 0;
     let missing = 0;
     for (const [key, minutes] of perDay) {
       const date = key.split('|')[1]!;
       if (minutes > DAY_WARN_MINUTES) over12 += 1;
       if (minutes > 0 && isWeekend(date)) weekend += 1;
-      if (minutes > 0 && date > today) future += 1;
     }
     for (const worker of workers)
       for (const date of periodDates)
         if (date <= today && !isWeekend(date) && !perDay.get(`${worker}|${date}`)) missing += 1;
-    return { perDay, over12, weekend, future, missing };
+    return { perDay, over12, weekend, missing };
   });
   const cellFlags = (worker: string, date: string) => {
     const minutes = anomalies.perDay.get(`${worker}|${date}`) ?? 0;
     return {
       over12: minutes > DAY_WARN_MINUTES,
       weekend: minutes > 0 && isWeekend(date),
-      future: minutes > 0 && date > today,
       missing: minutes === 0 && date <= today && !isWeekend(date),
     };
   };
@@ -404,11 +401,10 @@
     </div>
   </div>
 
-  {#if anomalies.over12 || anomalies.future || anomalies.weekend || anomalies.missing}
+  {#if anomalies.over12 || anomalies.weekend || anomalies.missing}
     <div class="ov-anomalies" role="status" data-testid="ov-anomalies">
       <strong>{t('ovCheck')}</strong>
       {#if anomalies.over12}<button type="button" class="chip" data-flag="over12" onclick={() => (groupBy = 'day')}>{t('ovOver12', { n: anomalies.over12 })}</button>{/if}
-      {#if anomalies.future}<button type="button" class="chip" data-flag="future" onclick={() => (groupBy = 'day')}>{t('ovFuture', { n: anomalies.future })}</button>{/if}
       {#if anomalies.weekend}<button type="button" class="chip" data-flag="weekend" onclick={() => (groupBy = 'day')}>{t('ovWeekend', { n: anomalies.weekend })}</button>{/if}
       {#if anomalies.missing}<button type="button" class="chip" data-flag="missing" onclick={() => (groupBy = 'day')}>{t('ovMissing', { n: anomalies.missing })}</button>{/if}
     </div>
@@ -441,10 +437,9 @@
                 <td
                   class:is-weekend={groupBy === 'day' && isWeekend(b.key)}
                   class:flag-over12={flags?.over12}
-                  class:flag-future={flags?.future}
                   class:flag-missing={flags?.missing}
                   title={flags
-                    ? [flags.over12 ? t('over12Short') : '', flags.future ? t('futureDay') : '', flags.missing ? t('ovMissingDay') : '']
+                    ? [flags.over12 ? t('over12Short') : '', flags.missing ? t('ovMissingDay') : '']
                         .filter(Boolean)
                         .join(' · ')
                     : undefined}
@@ -881,10 +876,6 @@
   .ov-matrix td.flag-over12 {
     background: #fdecec;
     box-shadow: inset 0 0 0 2px #e57373;
-  }
-  .ov-matrix td.flag-future {
-    background: #fff3d6;
-    box-shadow: inset 0 0 0 2px #e09b00;
   }
   .ov-missing {
     color: #c62828;

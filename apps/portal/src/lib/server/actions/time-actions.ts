@@ -525,13 +525,6 @@ const timeProblems: Record<string, TimeProblem> = {
     field: 'entries',
     remedy: 'review_week',
   },
-  'Hours cannot be entered for a future day': {
-    status: 400,
-    code: 'TIME_FUTURE_DAY',
-    key: 'problem.time.workDateInvalid',
-    message: 'Hours cannot be entered for a day that has not happened yet.',
-    remedy: 'review_week',
-  },
   'Week start must be a Monday': {
     status: 400,
     code: 'TIME_WEEK_START_INVALID',

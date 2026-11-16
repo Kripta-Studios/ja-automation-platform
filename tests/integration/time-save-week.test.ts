@@ -128,21 +128,32 @@ describe('saveTimeWeek (week timesheet)', () => {
     expect(value.sqlite.prepare('SELECT COUNT(*) n FROM time_entry').get()).toEqual({ n: 1 });
   });
 
-  it('rejects hours on a future day, even from a forged request', () => {
+  it('accepts hours on a future day (owner decision: planned-ahead entry is allowed)', () => {
     const value = createB5LifecycleSecurityFixture();
     fixtures.push(value);
     const owner = stepUpB5Principal(value.sqlite, value.owner, 'time-week-future');
-    const tomorrow = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
-    const monday = new Date(`${tomorrow}T00:00:00.000Z`);
+    const future = new Date(Date.now() + 2 * 86_400_000).toISOString().slice(0, 10);
+    const monday = new Date(`${future}T00:00:00.000Z`);
     monday.setUTCDate(monday.getUTCDate() - ((monday.getUTCDay() + 6) % 7));
-    expect(() =>
-      value.repository.saveTimeWeek(owner, {
-        workerId: value.worker.userId,
-        weekStart: monday.toISOString().slice(0, 10),
-        cells: [{ projectId: value.project.id, category: 'regular', workDate: tomorrow, minutes: 480 }],
-      }),
-    ).toThrow('Hours cannot be entered for a future day');
-    expect(value.sqlite.prepare('SELECT COUNT(*) n FROM time_entry').get()).toEqual({ n: 0 });
+    const weekStart = monday.toISOString().slice(0, 10);
+    const saved = value.repository.saveTimeWeek(owner, {
+      workerId: value.worker.userId,
+      weekStart,
+      cells: [{ projectId: value.project.id, category: 'regular', workDate: future, minutes: 480 }],
+    });
+    expect(saved).toMatchObject({ created: 1 });
+    const draft = value.sqlite
+      .prepare('SELECT id,version,work_date FROM time_entry')
+      .get() as { id: string; version: number; work_date: string };
+    expect(draft.work_date).toBe(future);
+    const submitted = value.repository.saveTimeWeek(owner, {
+      workerId: value.worker.userId,
+      weekStart,
+      submit: true,
+      expected: [{ id: draft.id, version: draft.version }],
+      cells: [],
+    });
+    expect(submitted).toMatchObject({ submitted: 1 });
   });
 });
 

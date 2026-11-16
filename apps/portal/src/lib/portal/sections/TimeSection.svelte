@@ -51,7 +51,7 @@
     timeWeekText(locale, key, params);
 
   type CellStatus = 'draft' | 'submitted' | 'approved' | 'needs_changes';
-  type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned' | 'future';
+  type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned';
   type SheetRow = { key: string; projectId: string; category: string };
 
   const quickCategories = ['regular', 'travel', 'overtime'] as const;
@@ -170,12 +170,12 @@
     const originalMinutes = list.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
     let kind: CellKind;
     if (list.length === 0)
-      kind = date > today ? 'future' : assigned(row.projectId, date) ? 'new' : 'unassigned';
+      kind = assigned(row.projectId, date) ? 'new' : 'unassigned';
     else if (list.length > 1) kind = 'multi';
     else if (editableDraft(list[0]!)) kind = 'draft';
     else if (String(list[0]!.approval_state) === 'needs_changes') kind = 'fix';
     else kind = 'locked';
-    if (isAuditor && kind !== 'unassigned' && kind !== 'future')
+    if (isAuditor && kind !== 'unassigned')
       kind = list.length ? 'locked' : 'unassigned';
     const editable = kind === 'new' || kind === 'draft' || kind === 'fix';
     const value = editable && key in edits ? edits[key]! : hoursText(originalMinutes);
@@ -257,8 +257,9 @@
   const weekSummary = $derived.by(() => {
     const counts = { approved: 0, submitted: 0, needs_changes: 0, draft: 0, empty: 0 };
     for (const date of days) {
-      if (date > today) continue;
       const status = dayStatus(date);
+      // Future days count only when they already have hours (never as missing).
+      if (date > today && status === 'empty') continue;
       // Weekends without hours are normal and not counted as missing.
       if (status === 'empty' && [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay()))
         continue;
@@ -563,9 +564,7 @@
   const cellTitle = (cell: Cell): string =>
     cell.kind === 'unassigned'
       ? t('noAssignment')
-      : cell.kind === 'future'
-        ? t('futureDay')
-        : cell.kind === 'multi'
+      : cell.kind === 'multi'
         ? t('multiple')
         : cell.kind === 'locked'
           ? t('readOnly', { status: statusLabel(cell.status ?? 'submitted') })
@@ -600,11 +599,11 @@
   {:else}
     <span
       class="hours-locked"
-      data-status={cell.kind === 'unassigned' || cell.kind === 'future' ? 'unassigned' : cell.status}
+      data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
       title={cellTitle(cell)}
-      aria-label={`${label}: ${cell.kind === 'unassigned' || cell.kind === 'future' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
+      aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
-      {#if cell.kind === 'unassigned' || cell.kind === 'future'}
+      {#if cell.kind === 'unassigned'}
         ·
       {:else}
         {hoursText(cell.originalMinutes) || '0'}
@@ -723,17 +722,13 @@
         <StatusBadge variant={variant(dayStatus(selectedDay))} text={statusLabel(dayStatus(selectedDay))} />
       {/if}
     </div>
-    {#if selectedDay < today}
-      <a
-        class="week-arrow"
-        href={sheetHref({ day: shiftDay(1), week: null })}
-        onclick={leaveGuard}
-        aria-label={t('nextDay')}
-        data-sveltekit-noscroll>›</a
-      >
-    {:else}
-      <span class="week-arrow is-disabled" aria-hidden="true">›</span>
-    {/if}
+    <a
+      class="week-arrow"
+      href={sheetHref({ day: shiftDay(1), week: null })}
+      onclick={leaveGuard}
+      aria-label={t('nextDay')}
+      data-sveltekit-noscroll>›</a
+    >
     {#if selectedDay !== today}
       <a class="this-week" href={sheetHref({ day: null, week: null })} onclick={leaveGuard} data-sveltekit-noscroll
         >{t('today')}</a
@@ -795,9 +790,7 @@
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="reason" value={reason} />
 
-      {#if mode === 'day' && selectedDay > today}
-        <p class="sheet-empty" data-testid="time-day-future">{t('futureDay')}</p>
-      {:else if mode === 'day'}
+      {#if mode === 'day'}
         <div class="day-form" data-testid="time-day-form">
           {#if dayProjects.length > 1}
             <label class="day-field">
@@ -870,7 +863,7 @@
             <button
               type="button"
               class="primary wide"
-              disabled={!dirtyNow || Boolean(busy) || invalidNow || selectedDay > today}
+              disabled={!dirtyNow || Boolean(busy) || invalidNow}
               onclick={save}
               data-testid="time-day-save">{busy === 'save' ? t('saving') : t('save')}</button
             >
@@ -964,7 +957,7 @@
             <ul>
               {#each grid as line (line.row.key)}
                 {@const cell = line.cells[index]!}
-                {#if ((cell.kind !== 'unassigned' && cell.kind !== 'future') || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
+                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
                   <li class="day-line">
                     <span class="day-line-label">
                       <span class="project-name">{projectLabel(line.row.projectId)}</span>
@@ -1145,9 +1138,6 @@
   }
   td.day-long {
     color: #8a5300;
-  }
-  .week-arrow.is-disabled {
-    opacity: 0.35;
   }
   .day-card details > summary {
     list-style: none;

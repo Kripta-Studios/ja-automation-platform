@@ -16,3 +16,17 @@ export const expenseCategories = [
   ['visa_permit', 'Visa / permit'],
   ['other', 'Other'],
 ] as const;
+
+/**
+ * The short list workers see first (phone-friendly chips). Every other
+ * canonical category stays available behind "More…". `copy` is the key in
+ * sections/expense-copy.ts.
+ */
+export const primaryExpenseCategories = [
+  { value: 'meals', copy: 'catMeals' },
+  { value: 'hotel', copy: 'catHotel' },
+  { value: 'fuel', copy: 'catFuel' },
+  { value: 'ground_transport', copy: 'catTransport' },
+  { value: 'materials', copy: 'catMaterials' },
+  { value: 'other', copy: 'catOther' },
+] as const;

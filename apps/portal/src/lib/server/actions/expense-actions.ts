@@ -32,6 +32,8 @@ import {
   type ActionMessageParams,
 } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
+import { expenseCategories } from '$lib/portal/expense-categories';
+import type { DatabaseSync } from 'node:sqlite';
 
 const expenseCategorySchema = z.enum([
   'hotel',
@@ -225,7 +227,7 @@ const expenseUpdateSchema = versionedRecordSchema
 /** Normalize the browser's decimal controls into the exact minor-unit update contract. */
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   const payload = { ...object };
-  const amountMinor = decimalToMinor(payload.amount);
+  const amountMinor = decimalToMinor(normalizeExpenseAmount(payload.amount));
   payload.amountMinor = amountMinor ?? payload.amount;
   delete payload.amount;
 
@@ -704,6 +706,64 @@ function expenseWeekFailure(
     fieldErrors: { [field]: [message] },
     remedies: [{ id: remedy }],
   });
+}
+
+/** Phone keyboards in ES/PT locales type "12,50"; accept one decimal comma as the separator. */
+export function normalizeExpenseAmount(value: unknown): unknown {
+  return typeof value === 'string' && /^\s*\d+,\d{1,2}\s*$/u.test(value)
+    ? value.trim().replace(',', '.')
+    : typeof value === 'string'
+      ? value.trim()
+      : value;
+}
+
+/**
+ * Workers record facts only. When the simplified form omits the note, keep the
+ * repository's description contract with a neutral operational default.
+ */
+export function defaultExpenseDescription(object: Record<string, unknown>): string {
+  const vendor = typeof object.vendor === 'string' ? object.vendor.trim() : '';
+  if (vendor.length >= 3) return vendor;
+  const category = expenseCategories.find(([value]) => value === object.category)?.[1];
+  return category ? `${category} expense` : 'Expense';
+}
+
+/**
+ * The payer is configuration, not worker data entry: derive it from the
+ * assignment expense policy effective on the expense date. A worker-paid policy
+ * wins when several payers are configured (it is the only one that can be
+ * reimbursed); otherwise the single configured payer is used. With no policy
+ * the historical default (worker paid) applies and Finance sees the
+ * missing-policy issue during classification as before.
+ */
+export function defaultExpensePayer(
+  sqlite: DatabaseSync,
+  input: Readonly<{ projectId: string; workerId: string; spentOn: string; category: string }>,
+): 'worker' | 'company_card' | 'company_direct' | 'client' | 'third_party' {
+  const member = sqlite
+    .prepare(
+      `SELECT id FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+         AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC LIMIT 2`,
+    )
+    .all(input.projectId, input.workerId, input.spentOn, input.spentOn) as Array<{ id: string }>;
+  if (member.length !== 1) return 'worker';
+  const payers = sqlite
+    .prepare(
+      `SELECT payer FROM assignment_expense_policy
+        WHERE project_member_id=? AND (category=? OR category IS NULL)
+          AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
+        ORDER BY CASE WHEN category=? THEN 1 ELSE 0 END DESC, effective_from DESC, version DESC`,
+    )
+    .all(member[0]!.id, input.category, input.spentOn, input.spentOn, input.category) as Array<{
+    payer: string;
+  }>;
+  if (!payers.length || payers.some((row) => row.payer === 'worker')) return 'worker';
+  const first = payers[0]!.payer;
+  return (
+    (['company_card', 'company_direct', 'client', 'third_party'] as const).find(
+      (value) => value === first,
+    ) ?? 'worker'
+  );
 }
 
 function validWeekStart(value: string): boolean {
@@ -1216,18 +1276,33 @@ export const expenseActions = withOperationalActionNames({
     delete object.receipt;
     object.receiptRequired =
       object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
-    object.amountMinor = decimalToMinor(object.amount);
+    object.amountMinor = decimalToMinor(normalizeExpenseAmount(object.amount));
     delete object.amount;
-    for (const key of ['paymentMethod', 'receiptDocumentId']) {
+    for (const key of ['paymentMethod', 'receiptDocumentId', 'vendor']) {
       if (object[key] === '') object[key] = undefined;
     }
-    const preflight = expenseInputSchema.safeParse(object);
+    if (typeof object.description !== 'string' || !object.description.trim())
+      object.description = defaultExpenseDescription(object);
+    const payerFromPolicy = typeof object.whoPaid !== 'string' || !object.whoPaid;
+    if (payerFromPolicy) object.whoPaid = 'worker';
+    let preflight = expenseInputSchema.safeParse(object);
     if (!preflight.success) return expenseSchemaFailure(preflight.error, { ...object, ...values });
     const context = openPortalRepository(locals);
     let uploaded: Awaited<ReturnType<typeof saveExpenseReceipt>> | undefined;
     try {
       if (context.principal.role === 'auditor_read_only')
         throw new AccessDeniedError('Read-only role');
+      if (payerFromPolicy) {
+        object.whoPaid = defaultExpensePayer(context.sqlite, {
+          projectId: preflight.data.projectId,
+          workerId: workerId || context.principal.userId,
+          spentOn: preflight.data.spentOn,
+          category: preflight.data.category,
+        });
+        preflight = expenseInputSchema.safeParse(object);
+        if (!preflight.success)
+          return expenseSchemaFailure(preflight.error, { ...object, ...values });
+      }
       const bytes =
         receiptFile && receiptFile.size > 0 ? await validateExpenseReceipt(receiptFile) : undefined;
       const receiptHash = bytes

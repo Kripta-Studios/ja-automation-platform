@@ -7,23 +7,27 @@ const sourceRoot = resolve(process.cwd(), 'apps/portal/src');
 const read = (path: string): string => readFileSync(resolve(sourceRoot, path), 'utf8');
 
 describe('worker expense slice', () => {
-  it('keeps the primary expense action above the recent register', () => {
+  it('keeps one primary "Add expense" action above the weekly list', () => {
     const source = read('lib/portal/sections/ExpenseSection.svelte');
-    expect(source.indexOf('Recent expenses')).toBeGreaterThanOrEqual(0);
-    expect(source.indexOf('Record expense')).toBeLessThan(source.indexOf('Recent expenses'));
     expect(source).toMatch(/data-expense-primary-cta/);
+    expect(source.indexOf('data-expense-primary-cta')).toBeLessThan(
+      source.indexOf('{#each shownWeeks as week'),
+    );
+    // The duplicated week table / calendar panel was removed (owner 2026-11-16).
+    expect(source).not.toContain('ExpenseWeekPanel');
   });
 
-  it('maps summary cards to the complete attention and reimbursement sets', () => {
+  it('submits one week per person with exact bigint totals and no worker payer choice', () => {
     const source = read('lib/portal/sections/ExpenseSection.svelte');
-
-    expect(source).toContain("let order = $state<OperationalOrder>('newest')");
-    expect(source).toContain('operationalStatusMatches(');
-    expect(source).toContain("status: 'attention', reimbursement: ''");
-    expect(source).toContain("status: '', reimbursement: 'pending'");
-    expect(source).toContain("['pending', 'scheduled'].includes");
-    expect(source).toContain('bind:value={order}');
-    expect(source).toContain('reimbursementFilter');
+    expect(source).toContain('action="?/submitExpenseWeek"');
+    expect(source).toContain('data-expense-submit-week');
+    expect(source).toContain('BigInt(minor)');
+    expect(source).not.toMatch(/parseFloat|Number\(text\(row, 'amount_minor'\)\)/);
+    // Payer override exists only inside the finance-only Advanced area.
+    const advanced = source.indexOf('{#if canOverridePayer}');
+    expect(advanced).toBeGreaterThan(0);
+    expect(source.indexOf('name="whoPaid"')).toBeGreaterThan(advanced);
+    expect(source).toContain("['owner_admin', 'finance_admin'].includes(role)");
   });
 
   it('does not expose commercial classification controls or values to workers', () => {

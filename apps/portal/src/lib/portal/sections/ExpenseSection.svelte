@@ -1,44 +1,30 @@
 <script lang="ts">
-  import ProjectContextNav from '../ui/ProjectContextNav.svelte';
+  /*
+   * Simplified expense screen (owner request 2026-11-16: "simple as possible").
+   * One "Add expense" form, one list grouped by week, one "Submit for approval"
+   * action per week. Commercial treatment (who pays, reimbursement, client
+   * recovery) comes from project/assignment policy on the server; only
+   * owner/finance may override the payer in the collapsed Advanced area.
+   */
+  import { page } from '$app/stores';
+  import { base } from '$app/paths';
+  import { enhance } from '$app/forms';
+  import { onMount, tick } from 'svelte';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
-  import { useViewPreferences } from '../ui/view-preferences.svelte';
-  import ExpenseWeekPanel from './ExpenseWeekPanel.svelte';
-  import { normalizeVisibleProjectSelection, projectVisibility } from '../project-visibility';
-  import DirectionIcon from '../ui/DirectionIcon.svelte';
-  import { page } from '$app/stores';
-  import { beforeNavigate, replaceState } from '$app/navigation';
-  import { enhance } from '$app/forms';
-  import { normalizePortalLocale, portalText } from '../../portal-i18n';
+  import { normalizePortalLocale } from '../../portal-i18n';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
-  import { onDestroy, onMount, tick, untrack } from 'svelte';
-  import { base } from '$app/paths';
+  import { ResponsiveSheet, StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
-  import { ResponsiveSheet, SectionCard, StatusBadge } from '../ui';
-  import FilterSummary from '../ui/FilterSummary.svelte';
-  import ProblemNotice from '../ui/ProblemNotice.svelte';
   import type { ProblemData } from '../../problem/contract';
-  import { reportFormFieldErrors } from '../ui/form-validation';
-  import { workRound2Text } from '../work-ux-round2-copy';
-  import DatePresets from '../ui/DatePresets.svelte';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
-  import { expenseCategories } from '../expense-categories';
-  import {
-    expenseReceiptState,
-    expenseSearchMatches,
-    receiptStateLabels,
-  } from '../expense-evidence';
-  import {
-    operationalPage,
-    operationalSort,
-    operationalStatusMatches,
-    readOperationalRegisterState,
-    type OperationalOrder,
-    writeOperationalRegisterState,
-  } from './operational-register';
-  import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
+  import { expenseCategories, primaryExpenseCategories } from '../expense-categories';
+  import { expenseReceiptState, expenseSearchMatches } from '../expense-evidence';
+  import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
+  import { expenseCopy, expenseLocaleTag, type ExpenseCopyKey } from './expense-copy';
 
   let {
     data,
@@ -46,7 +32,6 @@
     availableProjects,
     saveOfflineDraft,
     translate,
-    controlledValue,
   }: {
     data: PortalData;
     isAuditor: boolean;
@@ -58,838 +43,359 @@
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
-  const warningLocale = $derived(
-    normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-  );
 
-  type Surface = 'create' | 'edit';
+  const locale = $derived(normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale));
+  const tag = $derived(expenseLocaleTag[locale]);
+  const c = (key: ExpenseCopyKey, params: Record<string, string | number> = {}): string =>
+    expenseCopy(locale, key, params);
 
-  const nativeExpenseForm = $page.form as
-    | (ProblemData & { values?: Record<string, unknown> })
-    | null;
-  const withdrawForm = $derived(
-    $page.form as (ProblemData & { actionName?: string; values?: Record<string, unknown> }) | null,
-  );
-  const linkedWithdrawProblem = $derived(
-    withdrawForm?.actionName === 'withdrawLinkedDrafts' ||
-      withdrawForm?.actionName === 'withdrawCrewExpenseDraft'
-      ? withdrawForm
-      : null,
-  );
-  const nativeExpenseValues =
-    nativeExpenseForm?.code &&
-    nativeExpenseForm.values &&
-    typeof nativeExpenseForm.values === 'object'
-      ? nativeExpenseForm.values
-      : {};
-  const nativeExpenseValue = (field: string): string =>
-    typeof nativeExpenseValues[field] === 'string' ? String(nativeExpenseValues[field]) : '';
-  const nativeExpenseSurface: Surface | null =
-    nativeExpenseForm?.code &&
-    nativeExpenseValue('batchForm') !== 'expense_week_table' &&
-    (nativeExpenseValue('spentOn') ||
-      nativeExpenseValue('projectId') ||
-      nativeExpenseValue('amount') ||
-      nativeExpenseForm.messageKey === 'action.validation.expenseFields')
-      ? nativeExpenseValue('id')
-        ? 'edit'
-        : 'create'
-      : null;
-  let nativeRecoveryActive = $state(Boolean(nativeExpenseSurface));
-  const restoredExpenseValue = (field: string): string =>
-    nativeRecoveryActive ? nativeExpenseValue(field) : '';
+  const role = $derived(String(data.user.role));
+  const me = $derived(String(data.user.id));
+  const isOwner = $derived(role === 'owner_admin');
+  const canOverridePayer = $derived(['owner_admin', 'finance_admin'].includes(role));
+  const reviewerView = $derived(role !== 'worker');
+  const canRecord = $derived(!isAuditor);
+  const text = (row: Row | undefined, key: string): string => {
+    const value = row?.[key];
+    return value === null || value === undefined ? '' : String(value);
+  };
 
-  let surface = $state<Surface | null>(nativeExpenseSurface);
-  let surfaceError = $state('');
-  let surfaceProblem = $state<ProblemData | null>(nativeExpenseSurface ? nativeExpenseForm : null);
-  const problemExpenseId = $derived.by(() => {
-    if (surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE')
-      return (
-        surfaceProblem.remedies.find((remedy) => remedy.id === 'review_expense')?.recordId ?? ''
-      );
-    const values = (surfaceProblem as (ProblemData & { values?: Record<string, unknown> }) | null)
-      ?.values;
-    return typeof values?.id === 'string' ? values.id : '';
-  });
-  let saving = $state(false);
-  let createAnotherAfterSave = $state(false);
-  let expenseSavedAnother = $state(false);
-  let expenseOptionalOpen = $state(Boolean(nativeExpenseValue('timeEntryId')));
-  let createExpenseForm = $state<HTMLFormElement>();
-  let createReceiptInput = $state<HTMLInputElement>();
-  let createDate = $state(nativeExpenseValue('spentOn'));
-  let createProject = $state(nativeExpenseValue('projectId'));
-  let createWhoPaid = $state(nativeExpenseValue('whoPaid') || 'worker');
-  const payerTreatmentWarning: ProblemData = {
-    code: 'WARNING_EXPENSE_PAYER_FACTS',
-    messageKey: 'problem.warning.expensePayerFacts',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_expense_payer' }],
-    correlationId: '',
-  };
-  const missingDraftReceiptWarning: ProblemData = {
-    code: 'WARNING_EXPENSE_DRAFT_RECEIPT_MISSING',
-    messageKey: 'problem.warning.expenseDraftReceiptMissing',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'attach_receipt_or_save_draft' }],
-    correlationId: '',
-  };
-  const selectedTimeLinkWarning: ProblemData = {
-    code: 'WARNING_EXPENSE_TIME_LINK_REVIEW',
-    messageKey: 'problem.warning.expenseTimeLinkReview',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_selected_time_entry' }],
-    correlationId: '',
-  };
-  const emptyWorkerProblem = $derived<ProblemData | null>(
-    ['owner_admin', 'project_manager'].includes(String(data.user.role)) &&
-      (data.workers ?? []).length === 0
-      ? {
-          code: 'OPERATIONAL_WORKER_OPTIONS_EMPTY',
-          messageKey: 'problem.operational.workerOptionsEmpty',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_workers' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  const emptyProjectProblem = $derived<ProblemData | null>(
-    availableProjects.length === 0
-      ? {
-          code: 'OPERATIONAL_PROJECT_OPTIONS_EMPTY',
-          messageKey: 'problem.operational.projectOptionsEmpty',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_projects' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  const projectSelectionUnavailable = $derived(
-    Boolean(createProject) &&
-      !availableProjects.some((project) => String(project.id) === createProject),
-  );
-  const selectedProjectUnavailableProblem = $derived<ProblemData | null>(
-    availableProjects.length > 0 && projectSelectionUnavailable
-      ? {
-          code: 'OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE',
-          messageKey: 'problem.operational.selectedProjectUnavailable',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_projects' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  let createCurrency = $state(nativeExpenseValue('currency') || 'USD');
-  let createDescription = $state(nativeExpenseValue('description'));
-  let createDescriptionEdited = $state(Boolean(nativeExpenseValue('description')));
-  let suggestedDescriptionScope = '';
-  const createProjectCurrency = $derived(
-    String(
-      availableProjects.find((project) => String(project.id) === createProject)?.currency ?? 'USD',
+  /* ---------------------------------------------------------------- data */
+  const projects = $derived(availableProjects.filter((p) => text(p, 'status') !== 'archived'));
+  const archivedProjectIds = $derived(
+    new Set(
+      availableProjects.filter((p) => text(p, 'status') === 'archived').map((p) => text(p, 'id')),
     ),
   );
-  let createWorker = $state(nativeExpenseValue('workerId'));
-  let createRequestId = $state(nativeExpenseValue('requestId'));
-  let allowSeparateExpense = $state(false);
-  let crewWorkerOptions = $state<Array<{ id: string; name: string }>>([]);
-  let crewWorkersLoading = $state(false);
-  let crewLookupProblem = $state<ProblemData | null>(null);
-  let crewLookupRetry = $state(0);
-  let crewLookupScope = '';
-  const crewSelectionUnavailable = $derived(
-    data.user.role === 'worker' &&
-      Boolean(createWorker) &&
-      createWorker !== data.user.id &&
-      !crewWorkersLoading &&
-      !crewLookupProblem &&
-      !crewWorkerOptions.some((worker) => worker.id === createWorker),
+  const records = $derived((data.records ?? []).filter((row) => row.approval_state !== 'void'));
+  const people = $derived(
+    [...(data.workers ?? [])]
+      .map((w) => ({ id: text(w, 'id'), name: text(w, 'name') }))
+      .filter((w) => w.id && w.name)
+      .sort((a, b) => a.name.localeCompare(b.name)),
   );
-  let createTimeEntryId = $state(nativeExpenseValue('timeEntryId'));
-  let handledTimeLink = $state('');
-  let editDate = $state(nativeExpenseValue('spentOn'));
-  let editTimeEntryId = $state(
-    nativeExpenseSurface === 'edit' ? nativeExpenseValue('timeEntryId') : '',
+
+  /* ------------------------------------------------------------- filters */
+  const params = $page.url.searchParams;
+  let personFilter = $state(params.get('worker') ?? '');
+  let projectFilter = $state(params.get('project') ?? '');
+  let statusFilter = $state(params.get('status') ?? '');
+  let search = $state(params.get('q') ?? '');
+  let fromFilter = $state(params.get('from') ?? '');
+  let toFilter = $state(params.get('to') ?? '');
+  const filtersActive = $derived(
+    Boolean(personFilter || projectFilter || statusFilter || search || fromFilter || toFilter),
   );
-  let linkedTimeOptions = $state<
-    Array<{
-      id: string;
-      workerId: string;
-      workerName: string;
-      minutes: number;
-      category: string;
-      summary: string;
-      approvalState: string;
-      correctionLinked: number;
-    }>
-  >([]);
-  let linkedTimeLoading = $state(false);
-  let linkedTimeLookupSucceeded = $state(false);
-  let editOriginalLinkValid = $state<boolean | null>(null);
-  let timeLookupProblem = $state<ProblemData | null>(null);
-  let timeLookupRetry = $state(0);
-  let timeLookupScope = '';
-  const editRow = $derived.by(
-    () =>
-      (data.calendarRecords ?? records).find((row) => String(row.id) === editExpenseId) as
-        | Row
-        | undefined,
-  );
-  const timeSelectionUnavailable = $derived(
-    surface === 'create' &&
-      Boolean(createTimeEntryId) &&
-      !linkedTimeLoading &&
-      !timeLookupProblem &&
-      !linkedTimeOptions.some((time) => time.id === createTimeEntryId),
-  );
-  const editOriginalLinkDateMismatch = $derived(
-    surface === 'edit' &&
-      Boolean(editTimeEntryId) &&
-      editTimeEntryId === rowText(editRow, 'time_entry_id') &&
-      editDate !== rowText(editRow, 'spent_on'),
-  );
-  const editOriginalLinkUnverified = $derived(
-    surface === 'edit' &&
-      Boolean(editTimeEntryId) &&
-      editTimeEntryId === rowText(editRow, 'time_entry_id') &&
-      editDate === rowText(editRow, 'spent_on') &&
-      editOriginalLinkValid === null &&
-      !timeLookupProblem,
-  );
-  const editTimeSelectionUnavailable = $derived(
-    editOriginalLinkDateMismatch ||
-      (surface === 'edit' &&
-        Boolean(editTimeEntryId) &&
-        linkedTimeLookupSucceeded &&
-        !linkedTimeLoading &&
-        !timeLookupProblem &&
-        !linkedTimeOptions.some((time) => time.id === editTimeEntryId) &&
-        !(
-          editTimeEntryId === rowText(editRow, 'time_entry_id') &&
-          editDate === rowText(editRow, 'spent_on') &&
-          editOriginalLinkValid === true
-        )),
-  );
-  let descriptionLookupProblem = $state<ProblemData | null>(null);
-  let descriptionLookupRetry = $state(0);
-  const lookupUnavailable = (): ProblemData => ({
-    code: 'EXPENSE_LOOKUP_UNAVAILABLE',
-    messageKey: 'problem.expenseLookup.unavailable',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'retry_expense_options' }],
-    correlationId: '',
-  });
-  const lookupProblem = (payload: unknown): ProblemData => {
-    if (!payload || typeof payload !== 'object') return lookupUnavailable();
-    const candidate = payload as Partial<ProblemData>;
-    if (typeof candidate.code !== 'string' || typeof candidate.messageKey !== 'string')
-      return lookupUnavailable();
-    return {
-      code: candidate.code,
-      messageKey: candidate.messageKey as ProblemData['messageKey'],
-      params: candidate.params ?? {},
-      fieldErrors: candidate.fieldErrors ?? {},
-      remedies: Array.isArray(candidate.remedies) ? candidate.remedies : [],
-      correlationId: candidate.correlationId ?? '',
-    };
-  };
-  const caughtLookupProblem = (caught: unknown): ProblemData =>
-    caught &&
-    typeof caught === 'object' &&
-    typeof (caught as Partial<ProblemData>).code === 'string' &&
-    typeof (caught as Partial<ProblemData>).messageKey === 'string'
-      ? (caught as ProblemData)
-      : lookupUnavailable();
-  function focusLookupNotice(kind: 'crew' | 'time' | 'description'): void {
-    void tick().then(() => {
-      const notice = document.querySelector<HTMLElement>(`.expense-${kind}-lookup-notice`);
-      notice?.focus({ preventScroll: true });
-      // On phones the form actions stick to the sheet bottom. Align the notice
-      // with the scrollable body's top so its cause and remedy clear that bar.
-      notice?.scrollIntoView({ block: 'start' });
-    });
+  function clearFilters(): void {
+    personFilter = projectFilter = statusFilter = search = fromFilter = toFilter = '';
   }
-  const canRetryLookup = (problem: ProblemData | null): boolean =>
-    Boolean(problem?.remedies.some((remedy) => remedy.id === 'retry_expense_options'));
-  const lookupRemedyLinks = $derived({
-    sign_in_again: {
-      label: portalText(warningLocale, 'problem.remedy.signInAgain'),
-      href: `${base}/app/login`,
-    },
-    contact_owner: { label: portalText(warningLocale, 'problem.remedy.contactAccessOwner') },
-    review_expense_form: {
-      label: portalText(warningLocale, 'problem.expenseLookup.reviewExpenseForm'),
-    },
-  });
-  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
-  const submitExpense = createOperationalSubmit({
-    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-    translate: (value) => translate(value),
-    setSaving: (value) => {
-      saving = value;
-    },
-    setError: (value) => {
-      surfaceError = value;
-    },
-    setProblem: (value) => {
-      surfaceProblem = value;
-    },
-    onSuccess: () => {
-      if (surface === 'create' && createAnotherAfterSave && createExpenseForm?.isConnected) {
-        const clearField = (selector: string, value = ''): void => {
-          const field = createExpenseForm?.querySelector<
-            HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
-          >(selector);
-          if (field) field.value = value;
-        };
-        clearField('[name="amount"]');
-        clearField('[name="category"]', 'hotel');
-        clearField('[name="occurredTimeLocal"]');
-        clearField('[name="timeEntryId"]');
-        clearField('[name="vendor"]');
-        clearField('[name="paymentMethod"]');
-        createTimeEntryId = '';
-        createDescription = '';
-        createDescriptionEdited = false;
-        suggestedDescriptionScope = '';
-        createRequestId = crypto.randomUUID();
-        expenseOptionalOpen = false;
-        allowSeparateExpense = false;
-        surfaceProblem = null;
-        surfaceError = '';
-        expenseSavedAnother = true;
-        clearReceiptPreview();
-        void tick().then(() => {
-          createExpenseForm?.querySelector<HTMLElement>('[data-expense-another-status]')?.focus();
-        });
-        return;
-      }
-      closeSurface();
-    },
-    offlineHandled: () => surface === 'create' && data.offlineEnabled !== false,
-  });
-  let editExpenseId = $state<string | null>(
-    nativeExpenseSurface === 'edit' ? nativeExpenseValue('id') : null,
-  );
-  $effect(() => {
-    const timeEntryId = $page.url.searchParams.get('timeEntry')?.trim() ?? '';
-    if (!nativeRecoveryActive && timeEntryId && timeEntryId !== handledTimeLink) {
-      handledTimeLink = timeEntryId;
-      openCreate();
-    }
-  });
-  $effect(() => {
-    const id = $page.url.searchParams.get('edit');
-    const row = (data.calendarRecords ?? records).find(
-      (item) =>
-        String(item.id) === id &&
-        item.approval_state === 'draft' &&
-        !item.shared_receipt_allocated &&
-        Number(item.correction_linked ?? 0) !== 1,
-    );
-    if (!nativeRecoveryActive && id && row) {
-      editExpenseId = id;
-      editDate = String(row.spent_on ?? '');
-      editTimeEntryId = String(row.time_entry_id ?? '');
-      surface = 'edit';
-    }
-  });
-  let search = $state('');
-  let projectFilter = $state('');
-  let workerFilter = $state('');
-  let clientFilter = $state('');
-  let categoryFilter = $state('');
-  let currencyFilter = $state('');
-  let fromFilter = $state('');
-  let toFilter = $state('');
-  const registerDateRangeInvalid = $derived(
-    Boolean(fromFilter && toFilter && fromFilter > toFilter),
-  );
-  function validateRegisterDateRange(event: SubmitEvent): void {
-    if (!registerDateRangeInvalid) return;
-    event.preventDefault();
-    (event.currentTarget as HTMLFormElement)
-      .querySelector<HTMLInputElement>('[name="to"]')
-      ?.focus();
-  }
-  let statusFilter = $state('');
-  let reimbursementFilter = $state('');
-  let receiptFilter = $state('');
-  let order = $state<OperationalOrder>('newest');
-  let receiptPreviewUrl = $state<string | null>(null);
-  let receiptPreviewName = $state('');
-  let receiptPreviewMime = $state('');
-  let receiptPreviewSize = $state(0);
-  let registerPage = $state(1);
-  let registerStateHydrated = $state(false);
-  let exportFrom = $state(`${new Date().toISOString().slice(0, 8)}01`);
-  let exportTo = $state(new Date().toISOString().slice(0, 10));
-  let exportProject = $state('');
-  let exportWorker = $state('');
-  let exportClient = $state('');
-  let exportCategory = $state('');
-  let exportCurrency = $state('');
-  let exportStatus = $state('');
-  let exportReimbursement = $state('');
-  type ExportScope = 'filtered' | 'custom';
-  type ExportFormat = 'csv' | 'xlsx' | 'pdf';
-  let exportProblem = $state<ProblemData | null>(null);
-  let exportProblemScope = $state<ExportScope | null>(null);
-  let exportBusy = $state(false);
-  let lastExport = $state<{ scope: ExportScope; format: ExportFormat } | null>(null);
-  let exportController: AbortController | null = null;
-  let exportDisposed = false;
-  let exportObjectUrls: Array<{ url: string; timer: number }> = [];
-  function releaseExportObjectUrls(): void {
-    for (const { url, timer } of exportObjectUrls) {
-      clearTimeout(timer);
-      URL.revokeObjectURL(url);
-    }
-    exportObjectUrls = [];
-  }
-  function cancelExpenseExport(): void {
-    exportController?.abort();
-    exportController = null;
-    exportBusy = false;
-    releaseExportObjectUrls();
-  }
-  beforeNavigate(cancelExpenseExport);
-  onDestroy(() => {
-    exportDisposed = true;
-    cancelExpenseExport();
-  });
-  const filteredExportProblem = $derived(exportProblemScope === 'filtered' ? exportProblem : null);
-  const customExportProblem = $derived(exportProblemScope === 'custom' ? exportProblem : null);
-  const exportRemedyLinks = $derived({
-    sign_in_again: {
-      label: portalText(warningLocale, 'problem.remedy.signInAgain'),
-      href: `${base}/app/login`,
-    },
-    contact_owner: { label: portalText(warningLocale, 'problem.remedy.contactAccessOwner') },
-    review_own_expenses: {
-      label: portalText(warningLocale, 'problem.expenseExport.reviewOwnExpenses'),
-      href: '#expense-register-filters',
-    },
-    review_expense_filters: {
-      label: portalText(warningLocale, 'problem.expenseExport.reviewFilters'),
-      href:
-        exportProblemScope === 'custom' ? '#expense-export-fields' : '#expense-register-filters',
-    },
-  });
-  const exportFieldNames: Readonly<Record<string, string>> = {
-    from: 'From',
-    to: 'To',
-    project: 'Project',
-    worker: 'Worker',
-    client: 'Client',
-    category: 'Category',
-    currency: 'Currency',
-    status: 'Status',
-    reimbursement: 'Reimbursement status',
-    receipt: 'Receipt evidence',
-    q: 'Search expenses',
-  };
-  function exportFieldTarget(scope: ExportScope, field: string): string | null {
-    if (scope === 'custom' && ['receipt', 'q'].includes(field)) return null;
+
+  type Status =
+    | 'draft'
+    | 'submitted'
+    | 'approved'
+    | 'needs_changes'
+    | 'rejected'
+    | 'reimbursed'
+    | 'withdrawn';
+  function statusOf(row: Row): Status {
+    const state = text(row, 'approval_state');
     if (
-      field === 'worker' &&
-      !['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))
+      ['approved', 'locked'].includes(state) &&
+      (text(row, 'reimbursement_state') === 'reimbursed' || text(row, 'reimbursed_at'))
     )
-      return null;
-    if (field === 'reimbursement' && !canViewReimbursement) return null;
-    const target = scope === 'custom' ? 'expense-export-field-' : 'expense-register-field-';
-    return exportFieldNames[field] ? `${target}${field}` : null;
+      return 'reimbursed';
+    if (state === 'locked') return 'approved';
+    if (['draft', 'submitted', 'approved', 'needs_changes', 'rejected'].includes(state))
+      return state as Status;
+    return 'withdrawn';
   }
-  function exportFieldIssues(
-    problem: ProblemData | null,
-  ): Array<{ field: string; target: string }> {
-    if (!problem) return [];
-    return Object.keys(problem.fieldErrors)
-      .map((field) => ({ field, target: exportFieldTarget(exportProblemScope ?? 'custom', field) }))
-      .filter((item): item is { field: string; target: string } => Boolean(item.target));
-  }
-  function focusExportField(event: MouseEvent, target: string): void {
-    event.preventDefault();
-    const control = document.getElementById(target);
-    const details = control?.closest('details');
-    if (details) details.open = true;
-    control?.focus({ preventScroll: true });
-    control?.scrollIntoView({ block: 'nearest' });
-  }
-  const exportNetworkProblem = (): ProblemData => ({
-    code: 'EXPENSE_EXPORT_NETWORK_UNAVAILABLE',
-    messageKey: 'problem.expenseExport.networkUnavailable',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'retry_expense_export' }],
-    correlationId: '',
-  });
-  const exportSignInProblem = (): ProblemData => ({
-    code: 'EXPENSE_EXPORT_SIGN_IN_REQUIRED',
-    messageKey: 'problem.expenseExport.signInRequired',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'sign_in_again' }],
-    correlationId: '',
-  });
-  function exportRedirectedToSignIn(response: Response): boolean {
-    if (!response.redirected) return false;
-    const destination = new URL(response.url);
-    return destination.origin === location.origin && destination.pathname.endsWith('/app/login');
-  }
-  function responseExportProblem(payload: unknown): ProblemData {
-    if (!payload || typeof payload !== 'object') return exportNetworkProblem();
-    const candidate = payload as Partial<ProblemData>;
-    if (
-      typeof candidate.code !== 'string' ||
-      !candidate.code.startsWith('EXPENSE_EXPORT_') ||
-      typeof candidate.messageKey !== 'string' ||
-      !candidate.messageKey.startsWith('problem.expenseExport.')
-    )
-      return exportNetworkProblem();
-    return {
-      code: candidate.code,
-      messageKey: candidate.messageKey as ProblemData['messageKey'],
-      message: typeof candidate.message === 'string' ? candidate.message : undefined,
-      params: candidate.params && typeof candidate.params === 'object' ? candidate.params : {},
-      fieldErrors:
-        candidate.fieldErrors && typeof candidate.fieldErrors === 'object'
-          ? candidate.fieldErrors
-          : {},
-      remedies: Array.isArray(candidate.remedies) ? candidate.remedies : [],
-      correlationId: typeof candidate.correlationId === 'string' ? candidate.correlationId : '',
-    };
-  }
-  function exportFilename(disposition: string | null, format: ExportFormat): string {
-    const match = disposition?.match(/filename=(?:"([^"]+)"|([^;]+))/iu);
-    const suggested = (match?.[1] ?? match?.[2] ?? '').trim();
-    const safe = suggested
-      .replace(/[<>:"/\\|?*]/gu, '_')
-      .replace(/\p{Cc}/gu, '_')
-      .slice(0, 160);
-    return safe && safe.toLowerCase().endsWith(`.${format}`) ? safe : `Expenses.${format}`;
-  }
-  function showExportProblem(problem: ProblemData, scope: ExportScope): void {
-    if (exportDisposed) return;
-    exportProblem = problem;
-    exportProblemScope = scope;
-    void tick().then(() => {
-      if (exportDisposed) return;
-      const notice = document.querySelector<HTMLElement>(
-        scope === 'custom' ? '.expense-custom-export-problem' : '.expense-filtered-export-problem',
+  const statusLabel: Record<Status, ExpenseCopyKey> = {
+    draft: 'statusDraft',
+    submitted: 'statusSubmitted',
+    approved: 'statusApproved',
+    needs_changes: 'statusNeedsChanges',
+    rejected: 'statusRejected',
+    reimbursed: 'statusReimbursed',
+    withdrawn: 'statusWithdrawn',
+  };
+  const statusVariant: Record<Status, 'success' | 'warning' | 'danger' | 'info' | 'neutral'> = {
+    draft: 'neutral',
+    submitted: 'info',
+    approved: 'success',
+    needs_changes: 'warning',
+    rejected: 'danger',
+    reimbursed: 'success',
+    withdrawn: 'neutral',
+  };
+
+  const visible = $derived(
+    records.filter((row) => {
+      const spentOn = text(row, 'spent_on');
+      return (
+        (!personFilter || text(row, 'worker_id') === personFilter) &&
+        (!projectFilter || text(row, 'project_id') === projectFilter) &&
+        (!statusFilter || statusOf(row) === statusFilter) &&
+        (!fromFilter || spentOn >= fromFilter) &&
+        (!toFilter || spentOn <= toFilter) &&
+        expenseSearchMatches(row, search)
       );
-      const details = notice?.closest('details');
-      if (details) details.open = true;
-      notice?.focus({ preventScroll: true });
-      if (!notice) return;
-      const bounds = notice.getBoundingClientRect();
-      const clearOfHeader = 88;
-      if (bounds.top < clearOfHeader) {
-        window.scrollBy(0, bounds.top - clearOfHeader);
-      } else if (bounds.bottom > window.innerHeight - 24) {
-        window.scrollBy(
-          0,
-          Math.min(bounds.bottom - (window.innerHeight - 24), bounds.top - clearOfHeader),
-        );
-      }
-    });
-  }
-  async function downloadExpenseExport(
-    scope: ExportScope,
-    format: ExportFormat,
-    href: string,
-  ): Promise<void> {
-    if (exportBusy || exportDisposed || href === '#') return;
-    const controller = new AbortController();
-    exportController = controller;
-    const stillCurrent = (): boolean =>
-      !exportDisposed && exportController === controller && !controller.signal.aborted;
-    exportBusy = true;
-    exportProblem = null;
-    exportProblemScope = null;
-    lastExport = { scope, format };
-    try {
-      const response = await fetch(href, {
-        credentials: 'same-origin',
-        cache: 'no-store',
-        signal: controller.signal,
-      });
-      if (!stillCurrent()) return;
-      const contentType = response.headers.get('content-type')?.toLowerCase() ?? '';
-      if (exportRedirectedToSignIn(response)) {
-        showExportProblem(exportSignInProblem(), scope);
-        return;
-      }
-      if (!response.ok) {
-        const payload = contentType.includes('json')
-          ? await response.json().catch(() => null)
-          : null;
-        if (!stillCurrent()) return;
-        showExportProblem(responseExportProblem(payload), scope);
-        return;
-      }
-      const expectedType = {
-        csv: 'text/csv',
-        xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        pdf: 'application/pdf',
-      }[format];
-      if (!contentType.startsWith(expectedType)) {
-        showExportProblem(exportNetworkProblem(), scope);
-        return;
-      }
-      const file = await response.blob();
-      if (!stillCurrent()) return;
-      if (file.size === 0) {
-        showExportProblem(exportNetworkProblem(), scope);
-        return;
-      }
-      const objectUrl = URL.createObjectURL(file);
-      try {
-        const link = document.createElement('a');
-        link.href = objectUrl;
-        link.download = exportFilename(response.headers.get('content-disposition'), format);
-        link.hidden = true;
-        document.body.append(link);
-        link.click();
-        link.remove();
-      } finally {
-        const timer = window.setTimeout(() => {
-          URL.revokeObjectURL(objectUrl);
-          exportObjectUrls = exportObjectUrls.filter((item) => item.url !== objectUrl);
-        }, 60_000);
-        exportObjectUrls.push({ url: objectUrl, timer });
-      }
-    } catch {
-      if (stillCurrent()) showExportProblem(exportNetworkProblem(), scope);
-    } finally {
-      if (exportController === controller) {
-        exportController = null;
-        exportBusy = false;
-      }
-    }
-  }
-  function handleExportClick(event: MouseEvent, scope: ExportScope, format: ExportFormat): void {
-    event.preventDefault();
-    const link = event.currentTarget as HTMLAnchorElement;
-    void downloadExpenseExport(scope, format, link.href);
-  }
-  function retryExpenseExport(): void {
-    if (!lastExport) return;
-    const { scope, format } = lastExport;
-    void downloadExpenseExport(
-      scope,
-      format,
-      scope === 'custom' ? exportHref(format) : filteredExportHref(format),
-    );
-  }
-  const registerStateKey = (): string => `ja-operational-register:expenses:${data.user.id}`;
-
-  onMount(() => {
-    const saved = readOperationalRegisterState<{
-      search?: string;
-      order?: OperationalOrder;
-      page?: number;
-    }>(registerStateKey());
-    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
-      search = saved.search;
-    if (saved?.order && ['newest', 'oldest', 'name', 'status'].includes(saved.order)) {
-      order = saved.order;
-    }
-    if (typeof saved?.page === 'number') registerPage = saved.page;
-    registerStateHydrated = true;
-    if (
-      !nativeRecoveryActive &&
-      !isAuditor &&
-      $page.url.searchParams.get('action') === 'record-expense'
-    )
-      openCreate();
-    if (nativeExpenseSurface)
-      void tick().then(() => {
-        const form = document.querySelector<HTMLFormElement>('[data-expense-entry-surface]');
-        if (form && nativeExpenseForm?.fieldErrors)
-          reportFormFieldErrors(form, nativeExpenseForm.fieldErrors);
-        document
-          .querySelector<HTMLElement>('[data-operational-form-error]')
-          ?.focus({ preventScroll: true });
-      });
-  });
-  $effect(() => {
-    if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), {
-        search,
-        order,
-        page: registerPage,
-      });
-  });
-
-  const records = $derived(data.records ?? []);
-  const registerWorkerOptions = $derived(
-    recordWorkerOptions(records, projectFilter, ['worker_name']),
-  );
-  const restrictedOperational = $derived(Boolean(data.user.workforceProfile));
-  const operationalOnly = $derived(['worker', 'project_manager'].includes(String(data.user.role)));
-  const canViewReimbursement = $derived(
-    !restrictedOperational && data.user.role !== 'project_manager',
-  );
-  const missingReceiptCount = $derived(
-    records.filter((row) => expenseReceiptState(row) === 'missing').length,
-  );
-  const clientOptions = $derived(
-    [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
-  );
-  useViewPreferences({
-    scope: 'expense',
-    user: () => `${data.user.id}:${data.user.role}`,
-    url: () => $page.url,
-    defaults: {
-      search: '',
-      projectFilter: '',
-      workerFilter: '',
-      clientFilter: '',
-      categoryFilter: '',
-      currencyFilter: '',
-      fromFilter: '',
-      toFilter: '',
-      statusFilter: '',
-      reimbursementFilter: '',
-      receiptFilter: '',
-      order: 'newest',
-      registerPage: 1,
-    },
-    query: {
-      search: 'q',
-      projectFilter: 'project',
-      workerFilter: 'worker',
-      clientFilter: 'client',
-      categoryFilter: 'category',
-      currencyFilter: 'currency',
-      fromFilter: 'from',
-      toFilter: 'to',
-      statusFilter: 'status',
-      reimbursementFilter: 'reimbursement',
-      receiptFilter: 'receipt',
-      order: 'order',
-    },
-    get: () => ({
-      search,
-      projectFilter,
-      workerFilter,
-      clientFilter,
-      categoryFilter,
-      currencyFilter,
-      fromFilter,
-      toFilter,
-      statusFilter,
-      reimbursementFilter,
-      receiptFilter,
-      order,
-      registerPage,
     }),
-    set: (saved) => {
-      search = saved.search;
-      projectFilter = saved.projectFilter;
-      workerFilter = saved.workerFilter;
-      clientFilter = saved.clientFilter;
-      categoryFilter = saved.categoryFilter;
-      currencyFilter = saved.currencyFilter;
-      fromFilter = saved.fromFilter;
-      toFilter = saved.toFilter;
-      statusFilter = saved.statusFilter;
-      reimbursementFilter = saved.reimbursementFilter;
-      receiptFilter = saved.receiptFilter;
-      order = saved.order as OperationalOrder;
-      registerPage = saved.registerPage;
-    },
-    validate: (saved) => {
-      const selectedProject = normalizeVisibleProjectSelection(
-        saved.projectFilter,
-        projectVisibility(availableProjects, true).projectIds,
-      );
-      return {
-        ...saved,
-        projectFilter: selectedProject,
-        workerFilter: availableWorkerSelection(
-          saved.workerFilter,
-          recordWorkerOptions(records, selectedProject, ['worker_name']),
-        ),
-        order: ['newest', 'oldest', 'name', 'status'].includes(saved.order)
-          ? saved.order
-          : 'newest',
-        reimbursementFilter: canViewReimbursement ? saved.reimbursementFilter : '',
-      };
-    },
+  );
+
+  /* --------------------------------------------------------------- weeks */
+  function mondayOf(date: string): string {
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (!Number.isFinite(parsed.valueOf())) return date;
+    parsed.setUTCDate(parsed.getUTCDate() - ((parsed.getUTCDay() + 6) % 7));
+    return parsed.toISOString().slice(0, 10);
+  }
+  function addDays(date: string, days: number): string {
+    const parsed = new Date(`${date}T00:00:00Z`);
+    parsed.setUTCDate(parsed.getUTCDate() + days);
+    return parsed.toISOString().slice(0, 10);
+  }
+  function weekRange(start: string): string {
+    const format = new Intl.DateTimeFormat(tag, {
+      month: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    });
+    const from = new Date(`${start}T00:00:00Z`);
+    const to = new Date(`${addDays(start, 6)}T00:00:00Z`);
+    return typeof format.formatRange === 'function'
+      ? format.formatRange(from, to)
+      : `${format.format(from)} – ${format.format(to)}`;
+  }
+  function dayLabel(date: string): string {
+    const parsed = new Date(`${date}T00:00:00Z`);
+    if (!Number.isFinite(parsed.valueOf())) return date;
+    return new Intl.DateTimeFormat(tag, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(parsed);
+  }
+  /** Exact per-currency totals using bigint minor units (never floats). */
+  function totals(rows: Row[]): string {
+    const sums = new Map<string, bigint>();
+    for (const row of rows) {
+      // A returned original that has a correction is replaced by it; rejected
+      // claims are not owed. Neither counts toward the week total.
+      if (text(row, 'active_correction_id') || row.approval_state === 'rejected') continue;
+      const minor = text(row, 'amount_minor');
+      if (!/^-?\d+$/u.test(minor)) continue;
+      const currency = text(row, 'currency') || 'USD';
+      sums.set(currency, (sums.get(currency) ?? 0n) + BigInt(minor));
+    }
+    return (
+      [...sums.entries()]
+        .map(([currency, minor]) => money(minor.toString(), currency, tag))
+        .join(' + ') || '—'
+    );
+  }
+
+  type PersonBlock = { workerId: string; workerName: string; rows: Row[]; drafts: Row[] };
+  type Week = { start: string; rows: Row[]; people: PersonBlock[] };
+  const weeks = $derived.by((): Week[] => {
+    const byWeek = new Map<string, Row[]>();
+    for (const row of visible) {
+      const start = mondayOf(text(row, 'spent_on'));
+      byWeek.set(start, [...(byWeek.get(start) ?? []), row]);
+    }
+    return [...byWeek.entries()]
+      .sort(([a], [b]) => b.localeCompare(a))
+      .map(([start, rows]) => {
+        const byPerson = new Map<string, Row[]>();
+        for (const row of rows) {
+          const id = text(row, 'worker_id');
+          byPerson.set(id, [...(byPerson.get(id) ?? []), row]);
+        }
+        const blocks = [...byPerson.entries()]
+          .map(([workerId, personRows]) => ({
+            workerId,
+            workerName: text(personRows[0], 'worker_name'),
+            rows: [...personRows].sort((a, b) =>
+              text(b, 'spent_on').localeCompare(text(a, 'spent_on')),
+            ),
+            drafts: personRows.filter(
+              (row) =>
+                row.approval_state === 'draft' && !archivedProjectIds.has(text(row, 'project_id')),
+            ),
+          }))
+          .sort((a, b) =>
+            a.workerId === me
+              ? -1
+              : b.workerId === me
+                ? 1
+                : a.workerName.localeCompare(b.workerName),
+          );
+        return { start, rows, people: blocks };
+      });
   });
-  const expenseProblemContext = $derived.by(() => {
-    const row = surface === 'edit' ? editRow : undefined;
-    const projectId = String(row?.project_id ?? createProject);
-    const project = availableProjects.find((item) => String(item.id) === projectId);
-    const workerId = String(row?.worker_id ?? createWorker ?? data.user.id);
-    const worker = data.workers?.find((item) => String(item.id) === workerId);
-    return [
-      project
-        ? [project.project_number, project.name].filter(Boolean).join(' · ')
-        : String(row?.project_name ?? row?.project_number ?? ''),
-      String(
-        worker?.name ??
-          (workerId === String(data.user.id) ? data.user.name : (row?.worker_name ?? '')),
-      ),
-      String(row?.spent_on ?? createDate),
-    ]
-      .filter(Boolean)
-      .join(' · ');
-  });
-  let registerCrewCaption = $state<{ scope: string; name: string } | null>(null);
-  let registerCrewCaptionLoadingScope = $state('');
-  const registerCrewCaptionLookup = $derived.by(() => {
-    if (
-      surface !== null ||
-      data.user.role !== 'worker' ||
-      !workerFilter ||
-      workerFilter === data.user.id ||
-      !projectFilter ||
-      !availableProjects.some((project) => String(project.id) === projectFilter) ||
-      data.workers?.some((worker) => String(worker.id) === workerFilter && worker.name) ||
-      records.some((record) => String(record.worker_id) === workerFilter && record.worker_name)
-    )
-      return null;
-    // Use the same day as an expense handoff/create default. The server still
-    // requires live membership and delegation on today AND this requested day.
-    const date = $page.url.searchParams.get('date')?.trim() || localToday();
-    if (!/^\d{4}-\d{2}-\d{2}$/u.test(date)) return null;
-    const parsedDate = new Date(`${date}T00:00:00.000Z`);
-    if (!Number.isFinite(parsedDate.valueOf()) || parsedDate.toISOString().slice(0, 10) !== date)
-      return null;
-    return {
-      projectId: projectFilter,
-      workerId: workerFilter,
-      date,
-      scope: `${data.user.id}:${projectFilter}:${workerFilter}:${date}`,
-    };
-  });
+  let weekLimit = $state(6);
+  const shownWeeks = $derived(weeks.slice(0, weekLimit));
+  const showPersonHeaders = $derived(
+    reviewerView || records.some((row) => text(row, 'worker_id') !== me),
+  );
+  const canSubmitBlock = (block: PersonBlock): boolean =>
+    !isAuditor && block.drafts.length > 0 && (block.workerId === me || isOwner);
+
+  function canEdit(row: Row): boolean {
+    return (
+      !isAuditor &&
+      row.approval_state === 'draft' &&
+      !row.shared_receipt_allocated &&
+      !row.linked_pair_time_id &&
+      Number(row.correction_linked ?? 0) !== 1 &&
+      (text(row, 'worker_id') === me || text(row, 'crew_recorded_by_user_id') === me || isOwner)
+    );
+  }
+  function categoryLabel(value: string): string {
+    const primary = primaryExpenseCategories.find((item) => item.value === value);
+    if (primary) return c(primary.copy as ExpenseCopyKey);
+    return translate(expenseCategories.find(([key]) => key === value)?.[1] ?? value);
+  }
+  const detailHref = (row: Row): string =>
+    `${base}/app/expenses/${encodeURIComponent(text(row, 'id'))}`;
+
+  /* ---------------------------------------------------------- the form */
+  type Mode = 'create' | 'edit';
+  let mode = $state<Mode | null>(null);
+  let formKey = $state(0);
+  let editing = $state<Row | null>(null);
+  let fDate = $state('');
+  let fProject = $state('');
+  let fWorker = $state('');
+  let fCategory = $state('meals');
+  let moreCategories = $state(false);
+  let fAmount = $state('');
+  let fCurrency = $state('USD');
+  let fNote = $state('');
+  let fVendor = $state('');
+  let fWhoPaid = $state('');
+  let fPaymentMethod = $state('');
+  let fTimeEntryId = $state('');
+  let requestId = $state('');
+  let allowSeparate = $state(false);
+  let addAnother = $state(false);
+  let savedAnother = $state(false);
+  let saving = $state(false);
+  let formError = $state('');
+  let formProblem = $state<ProblemData | null>(null);
+  let receiptInput = $state<HTMLInputElement>();
+  let receiptUrl = $state<string | null>(null);
+  let receiptName = $state('');
+  let receiptIsImage = $state(false);
+  let crewOptions = $state<Array<{ id: string; name: string }>>([]);
+
+  const projectCurrency = (id: string): string =>
+    text(
+      projects.find((p) => text(p, 'id') === id),
+      'currency',
+    ) || 'USD';
+  const lastProjectKey = (): string => `ja-expense-last-project:${me}`;
+  function rememberedProject(): string {
+    try {
+      const saved = localStorage.getItem(lastProjectKey()) ?? '';
+      return projects.some((p) => text(p, 'id') === saved) ? saved : '';
+    } catch {
+      return '';
+    }
+  }
+
+  function clearReceipt(): void {
+    if (receiptUrl) URL.revokeObjectURL(receiptUrl);
+    receiptUrl = null;
+    receiptName = '';
+    receiptIsImage = false;
+    if (receiptInput) receiptInput.value = '';
+  }
+  function onReceiptChange(event: Event): void {
+    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    if (receiptUrl) URL.revokeObjectURL(receiptUrl);
+    receiptName = file?.name ?? '';
+    receiptIsImage = Boolean(file?.type.startsWith('image/'));
+    receiptUrl = file ? URL.createObjectURL(file) : null;
+  }
+
+  function openCreate(): void {
+    if (!canRecord) return;
+    const url = typeof window === 'undefined' ? $page.url : new URL(window.location.href);
+    const requestedDate = url.searchParams.get('date') ?? '';
+    const requestedProject = url.searchParams.get('project') ?? '';
+    const requestedWorker = url.searchParams.get('worker') ?? '';
+    fDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
+    fProject = projects.some((p) => text(p, 'id') === requestedProject)
+      ? requestedProject
+      : projects.length === 1
+        ? text(projects[0], 'id')
+        : rememberedProject();
+    fWorker = isOwner
+      ? people.some((p) => p.id === requestedWorker)
+        ? requestedWorker
+        : personFilter
+      : '';
+    fCategory = 'meals';
+    moreCategories = false;
+    fAmount = '';
+    fCurrency = projectCurrency(fProject);
+    fNote = fVendor = fWhoPaid = fPaymentMethod = '';
+    fTimeEntryId = url.searchParams.get('timeEntry') ?? '';
+    requestId = crypto.randomUUID();
+    allowSeparate = false;
+    savedAnother = false;
+    formError = '';
+    formProblem = null;
+    editing = null;
+    clearReceipt();
+    formKey += 1;
+    mode = 'create';
+  }
+  function openEdit(row: Row): void {
+    if (!canEdit(row)) return;
+    editing = row;
+    fDate = text(row, 'spent_on');
+    fProject = text(row, 'project_id');
+    fCategory = text(row, 'category') || 'other';
+    moreCategories = !primaryExpenseCategories.some((item) => item.value === fCategory);
+    const minor = text(row, 'amount_minor');
+    fAmount = /^\d+$/u.test(minor)
+      ? `${minor.padStart(3, '0').slice(0, -2)}.${minor.padStart(3, '0').slice(-2)}`
+      : '';
+    fCurrency = text(row, 'currency');
+    // The server fills "<Category> expense" when no note was typed; show it as empty.
+    const englishLabel = expenseCategories.find(([key]) => key === fCategory)?.[1] ?? '';
+    fNote = text(row, 'description') === `${englishLabel} expense` ? '' : text(row, 'description');
+    fVendor = text(row, 'vendor');
+    fPaymentMethod = text(row, 'payment_method');
+    formError = '';
+    formProblem = null;
+    clearReceipt();
+    formKey += 1;
+    mode = 'edit';
+  }
+  function closeForm(): void {
+    mode = null;
+    editing = null;
+    clearReceipt();
+  }
+  function selectProject(id: string): void {
+    fProject = id;
+    fCurrency = projectCurrency(id);
+  }
+
+  // A crew chief may record for delegated workers on a project/day; show the
+  // picker only when the server says such workers exist.
   $effect(() => {
-    const lookup = registerCrewCaptionLookup;
-    registerCrewCaption = null;
-    registerCrewCaptionLoadingScope = '';
-    if (!lookup) return;
+    if (mode !== 'create' || role !== 'worker' || !fProject || !fDate) {
+      crewOptions = [];
+      return;
+    }
     const controller = new AbortController();
-    registerCrewCaptionLoadingScope = lookup.scope;
-    const params = new URLSearchParams({ projectId: lookup.projectId, date: lookup.date });
-    void fetch(`${base}/app/api/expenses/crew-workers?${params}`, {
+    const query = new URLSearchParams({ projectId: fProject, date: fDate });
+    void fetch(`${base}/app/api/expenses/crew-workers?${query}`, {
       signal: controller.signal,
       credentials: 'same-origin',
     })
@@ -898,2519 +404,1138 @@
         const payload = (await response.json()) as {
           workers?: Array<{ id: string; name: string }>;
         };
-        const worker = Array.isArray(payload.workers)
-          ? payload.workers.find((candidate) => candidate.id === lookup.workerId)
-          : undefined;
-        if (!controller.signal.aborted && worker && typeof worker.name === 'string')
-          registerCrewCaption = { scope: lookup.scope, name: worker.name };
+        if (!controller.signal.aborted)
+          crewOptions = (payload.workers ?? []).filter((worker) => worker.id !== me);
       })
       .catch(() => {
-        // Failed or denied lookups must not supply a name or disturb intake.
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) registerCrewCaptionLoadingScope = '';
+        /* Lookup failures leave the expense recorded for the signed-in worker. */
       });
     return () => controller.abort();
   });
-  const selectedTimeLinkVerified = $derived.by(() => {
-    if (!linkedTimeLookupSucceeded || linkedTimeLoading || timeLookupProblem) return false;
-    if (surface === 'create')
-      return Boolean(
-        createTimeEntryId &&
-        !timeSelectionUnavailable &&
-        linkedTimeOptions.some((time) => time.id === createTimeEntryId),
-      );
-    if (surface !== 'edit' || !editRow || !editTimeEntryId || editTimeSelectionUnavailable)
-      return false;
-    return (
-      linkedTimeOptions.some((time) => time.id === editTimeEntryId) ||
-      (editTimeEntryId === rowText(editRow, 'time_entry_id') &&
-        editDate === rowText(editRow, 'spent_on') &&
-        editOriginalLinkValid === true)
-    );
-  });
-  $effect(() => {
-    crewLookupRetry;
-    if (
-      surface !== 'create' ||
-      data.user.role !== 'worker' ||
-      !createProject ||
-      !createDate ||
-      projectSelectionUnavailable
-    ) {
-      crewWorkerOptions = [];
-      crewWorkersLoading = false;
-      crewLookupProblem = null;
-      crewLookupScope = '';
-      return;
-    }
-    const controller = new AbortController();
-    crewWorkersLoading = true;
-    crewLookupProblem = null;
-    const params = new URLSearchParams({ projectId: createProject, date: createDate });
-    const scope = params.toString();
-    if (scope !== crewLookupScope) {
-      crewLookupScope = scope;
-      crewWorkerOptions = [];
-    }
-    void fetch(`${base}/app/api/expenses/crew-workers?${params}`, {
-      signal: controller.signal,
-      credentials: 'same-origin',
-    })
-      .then(async (response) => {
-        if (!response.ok) throw lookupProblem(await response.json().catch(() => null));
-        const payload = (await response.json()) as { workers?: typeof crewWorkerOptions };
-        if (!controller.signal.aborted) crewWorkerOptions = payload.workers ?? [];
-      })
-      .catch((caught: unknown) => {
-        if (!controller.signal.aborted) {
-          crewLookupProblem = caughtLookupProblem(caught);
-          focusLookupNotice('crew');
+
+  const submitForm = createOperationalSubmit({
+    locale: () => locale,
+    translate: (value) => translate(value),
+    setSaving: (value) => {
+      saving = value;
+    },
+    setError: (value) => {
+      formError = value;
+    },
+    setProblem: (value) => {
+      formProblem = value;
+    },
+    onSuccess: () => {
+      if (mode === 'create') {
+        try {
+          localStorage.setItem(lastProjectKey(), fProject);
+        } catch {
+          /* Remembering the project is only a convenience. */
         }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) crewWorkersLoading = false;
-      });
-    return () => controller.abort();
-  });
-  $effect(() => {
-    timeLookupRetry;
-    const projectId = surface === 'edit' ? String(editRow?.project_id ?? '') : createProject;
-    const date = surface === 'edit' ? editDate : createDate;
-    const workerId =
-      surface === 'edit' ? String(editRow?.worker_id ?? '') : createWorker || String(data.user.id);
-    if (
-      !surface ||
-      !projectId ||
-      !date ||
-      !workerId ||
-      (surface === 'create' && projectSelectionUnavailable)
-    ) {
-      linkedTimeOptions = [];
-      linkedTimeLookupSucceeded = false;
-      editOriginalLinkValid = null;
-      timeLookupProblem = null;
-      timeLookupScope = '';
-      return;
-    }
-    const controller = new AbortController();
-    linkedTimeLoading = true;
-    linkedTimeLookupSucceeded = false;
-    timeLookupProblem = null;
-    editOriginalLinkValid = null;
-    const params = new URLSearchParams({ projectId, date, workerId });
-    if (surface === 'edit' && editExpenseId) params.set('originalExpenseId', editExpenseId);
-    const scope = params.toString();
-    if (scope !== timeLookupScope) {
-      timeLookupScope = scope;
-      linkedTimeOptions = [];
-    }
-    void fetch(`${base}/app/api/expenses/time-options?${params}`, {
-      signal: controller.signal,
-      credentials: 'same-origin',
-    })
-      .then(async (response) => {
-        if (!response.ok) throw lookupProblem(await response.json().catch(() => null));
-        const payload = (await response.json()) as {
-          rows?: typeof linkedTimeOptions;
-          originalLinkValid?: boolean;
-        };
-        if (!controller.signal.aborted) {
-          linkedTimeOptions = payload.rows ?? [];
-          editOriginalLinkValid = payload.originalLinkValid === true;
-          linkedTimeLookupSucceeded = true;
-        }
-      })
-      .catch((caught: unknown) => {
-        if (!controller.signal.aborted) {
-          timeLookupProblem = caughtLookupProblem(caught);
-          focusLookupNotice('time');
-        }
-      })
-      .finally(() => {
-        if (!controller.signal.aborted) linkedTimeLoading = false;
-      });
-    return () => controller.abort();
-  });
-  $effect(() => {
-    descriptionLookupRetry;
-    // A failed native POST restores the user's text. A late suggestion must not
-    // replace it while the recovery form is open.
-    if (
-      nativeRecoveryActive ||
-      surface !== 'create' ||
-      !createProject ||
-      !createDate ||
-      !createWorker
-    ) {
-      descriptionLookupProblem = null;
-      return;
-    }
-    if (projectSelectionUnavailable) {
-      descriptionLookupProblem = null;
-      suggestedDescriptionScope = '';
-      if (!untrack(() => createDescriptionEdited)) createDescription = '';
-      return;
-    }
-    const controller = new AbortController();
-    const params = new URLSearchParams({
-      projectId: createProject,
-      workerId: createWorker,
-      date: createDate,
-    });
-    const scope = params.toString();
-    if (scope !== suggestedDescriptionScope) {
-      suggestedDescriptionScope = scope;
-      if (!untrack(() => createDescriptionEdited)) createDescription = '';
-    }
-    descriptionLookupProblem = null;
-    void fetch(`${base}/app/api/expenses/description-default?${params}`, {
-      signal: controller.signal,
-      credentials: 'same-origin',
-    })
-      .then(async (response) => {
-        if (!response.ok) throw lookupProblem(await response.json().catch(() => null));
-        return (await response.json()) as { description?: string };
-      })
-      .then((payload) => {
-        if (!controller.signal.aborted && !createDescriptionEdited && !createDescription.trim())
-          createDescription = translate(payload.description ?? '');
-      })
-      .catch((caught: unknown) => {
-        if (!controller.signal.aborted) {
-          descriptionLookupProblem = caughtLookupProblem(caught);
-          focusLookupNotice('description');
-        }
-      });
-    return () => controller.abort();
-  });
-  const visibleRecords = $derived.by(() => {
-    return operationalSort(
-      records.filter((row) => {
-        const matchesSearch = expenseSearchMatches(row, search);
-        const matchesProject = !projectFilter || String(row.project_id ?? '') === projectFilter;
-        const matchesWorker = !workerFilter || String(row.worker_id ?? '') === workerFilter;
-        const matchesClient = !clientFilter || String(row.client_name ?? '') === clientFilter;
-        const matchesCategory = !categoryFilter || String(row.category ?? '') === categoryFilter;
-        const matchesCurrency = !currencyFilter || String(row.currency ?? '') === currencyFilter;
-        const spentOn = String(row.spent_on ?? '');
-        const matchesDate =
-          (!fromFilter || spentOn >= fromFilter) && (!toFilter || spentOn <= toFilter);
-        const matchesStatus = operationalStatusMatches(row.approval_state, statusFilter, [
-          'draft',
-          'submitted',
-          'needs_changes',
-        ]);
-        const reimbursementState = String(row.reimbursement_state ?? '');
-        const matchesReimbursement =
-          !canViewReimbursement ||
-          !reimbursementFilter ||
-          (reimbursementFilter === 'pending'
-            ? ['approved', 'locked'].includes(String(row.approval_state)) &&
-              ['pending', 'scheduled'].includes(reimbursementState)
-            : reimbursementState === reimbursementFilter);
-        return (
-          matchesSearch &&
-          matchesProject &&
-          matchesWorker &&
-          matchesClient &&
-          matchesCategory &&
-          matchesCurrency &&
-          matchesDate &&
-          matchesStatus &&
-          (!receiptFilter || expenseReceiptState(row) === receiptFilter) &&
-          matchesReimbursement
+      }
+      if (mode === 'create' && addAnother) {
+        fAmount = '';
+        fNote = '';
+        fVendor = '';
+        fTimeEntryId = '';
+        requestId = crypto.randomUUID();
+        allowSeparate = false;
+        formError = '';
+        formProblem = null;
+        clearReceipt();
+        savedAnother = true;
+        formKey += 1;
+        void tick().then(() =>
+          document.querySelector<HTMLInputElement>('[data-expense-amount]')?.focus(),
         );
-      }),
-      order,
-      ['spent_on'],
-      ['worker_name', 'project_name', 'vendor', 'description'],
-      ['approval_state', 'reimbursement_state'],
-    );
+        return;
+      }
+      closeForm();
+    },
+    offlineHandled: () => mode === 'create' && data.offlineEnabled !== false,
   });
-  const pagedRecords = $derived(operationalPage(visibleRecords, registerPage));
-  const advancedFilters = $derived.by(() =>
-    [
-      {
-        removeHref: registerHref({ worker: '' }),
-        label: translate('Worker'),
-        value: workerFilter
-          ? String(
-              data.workers?.find((row) => String(row.id) === workerFilter)?.name ??
-                crewWorkerOptions.find((worker) => worker.id === workerFilter)?.name ??
-                records.find((row) => String(row.worker_id) === workerFilter)?.worker_name ??
-                (registerCrewCaption?.scope === registerCrewCaptionLookup?.scope
-                  ? registerCrewCaption?.name
-                  : undefined) ??
-                (workerFilter === data.user.id
-                  ? data.user.name
-                  : translate(
-                      registerCrewCaptionLoadingScope &&
-                        registerCrewCaptionLoadingScope === registerCrewCaptionLookup?.scope
-                        ? 'Loading'
-                        : 'Unavailable',
-                    )),
-            )
-          : '',
-      },
-      { removeHref: registerHref({ client: '' }), label: translate('Client'), value: clientFilter },
-      { removeHref: registerHref({ from: '' }), label: translate('From'), value: fromFilter },
-      { removeHref: registerHref({ to: '' }), label: translate('To'), value: toFilter },
-      {
-        removeHref: registerHref({ category: '' }),
-        label: translate('Category'),
-        value: categoryFilter
-          ? translate(
-              expenseCategories.find(([value]) => value === categoryFilter)?.[1] ?? categoryFilter,
-            )
-          : '',
-      },
-      {
-        removeHref: registerHref({ currency: '' }),
-        label: translate('Currency'),
-        value: currencyFilter,
-      },
-      {
-        removeHref: registerHref({ receipt: '' }),
-        label: translate('Receipt evidence'),
-        value: receiptFilter
-          ? translate(
-              receiptStateLabels[receiptFilter as keyof typeof receiptStateLabels] ?? receiptFilter,
-            )
-          : '',
-      },
-      {
-        removeHref: registerHref({ reimbursement: '' }),
-        label: translate('Reimbursement status'),
-        value:
-          reimbursementFilter === 'pending'
-            ? translate('Pending or scheduled')
-            : reimbursementFilter
-              ? controlledValue('status', reimbursementFilter)
-              : '',
-      },
-    ].filter((item) => item.value),
-  );
-  const activeFilters = $derived.by(() => {
-    const project = availableProjects.find((row) => String(row.id) === projectFilter);
-    return [
-      { removeHref: registerHref({ q: '' }), label: translate('Search'), value: search.trim() },
-      {
-        removeHref: registerHref({ project: '' }),
-        label: translate('Project'),
-        value: projectFilter
-          ? project
-            ? `${project.project_number} — ${project.name}`
-            : String(
-                records.find((row) => String(row.project_id) === projectFilter)?.project_name ??
-                  records.find((row) => String(row.project_id) === projectFilter)?.project_number ??
-                  translate('Unavailable'),
-              )
-          : '',
-      },
-      {
-        removeHref: registerHref({ status: '' }),
-        label: translate('Status'),
-        value:
-          statusFilter === 'attention'
-            ? translate('Needs attention')
-            : statusFilter
-              ? controlledValue('status', statusFilter)
-              : '',
-      },
-      ...advancedFilters,
-    ].filter((item) => item.value);
-  });
-  const clearFiltersHref = `${base}/app/expenses?q=&reset=1`;
-
-  function clearFilters(): void {
-    search = '';
-    projectFilter = '';
-    workerFilter = '';
-    clientFilter = '';
-    categoryFilter = '';
-    currencyFilter = '';
-    fromFilter = '';
-    toFilter = '';
-    statusFilter = '';
-    reimbursementFilter = '';
-    receiptFilter = '';
-    order = 'newest';
-    registerPage = 1;
-    writeOperationalRegisterState(registerStateKey(), { search: '', order: 'newest', page: 1 });
+  async function handleOffline(event: SubmitEvent): Promise<void> {
+    const result = await saveOfflineDraft(event, 'expense');
+    if (result.saved) closeForm();
+    else if (result.error) formError = translate(result.error);
   }
+  const possibleDuplicate = $derived(formProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE');
 
-  const pendingReviewCount = $derived(
-    records.filter((row) =>
-      ['draft', 'needs_changes', 'submitted'].includes(String(row.approval_state)),
-    ).length,
-  );
-  const reimbursementCount = $derived(
-    records.filter(
-      (row) =>
-        ['approved', 'locked'].includes(String(row.approval_state)) &&
-        ['pending', 'scheduled'].includes(String(row.reimbursement_state)),
-    ).length,
-  );
+  /* ------------------------------------------------------ week submit */
+  let confirmBlock = $state<{ week: string; block: PersonBlock } | null>(null);
+  let confirmError = $state('');
+  let confirmBusy = $state(false);
+  const submitWeek: SubmitFunction = () => {
+    confirmBusy = true;
+    confirmError = '';
+    return async ({ result, update }) => {
+      await update({ reset: false });
+      confirmBusy = false;
+      if (result.type === 'success') confirmBlock = null;
+      else
+        confirmError =
+          (result.type === 'failure' &&
+            standaloneActionMessage(locale, result.data as Record<string, unknown>)) ||
+          translate('We could not confirm the save. Check the register before submitting again.');
+    };
+  };
 
-  function rowText(row: Row | undefined, key: string): string {
-    const value = row?.[key];
-    return value === null || value === undefined ? '' : String(value);
-  }
-
-  // Keep minor-unit formatting string based so edit forms never round through
-  // binary floating point.
-  function minorToDecimal(value: unknown): string {
-    const raw = String(value ?? '');
-    if (!/^\d+$/.test(raw)) return '';
-    const padded = raw.padStart(3, '0');
-    return `${padded.slice(0, -2)}.${padded.slice(-2)}`;
-  }
-
-  function statusVariant(value: unknown): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
-    switch (String(value ?? '')) {
-      case 'approved':
-      case 'paid':
-        return 'success';
-      case 'rejected':
-      case 'void':
-        return 'danger';
-      case 'submitted':
-      case 'needs_changes':
-      case 'pending':
-      case 'scheduled':
-        return 'warning';
-      default:
-        return 'neutral';
-    }
-  }
-  function expenseApprovalLabel(row: Row): string {
-    if (
-      row.approval_state === 'void' &&
-      (row.linked_pair_time_id || Number(row.crew_recorded ?? 0) === 1)
-    )
-      return translate('Withdrawn');
-    return (
-      controlledValue('status', row.approval_state) || translate(String(row.approval_state ?? ''))
-    );
-  }
-
-  function correctionBlocker(row: Row): 'shared_receipt' | 'reimbursed' | 'finalized' | null {
-    if (row.shared_receipt_allocated) return 'shared_receipt';
-    if (['paid', 'reimbursed'].includes(String(row.reimbursement_state ?? '')) || row.reimbursed_at)
-      return 'reimbursed';
-    if (operationalOnly) return row.correction_locked ? 'finalized' : null;
-    if (
-      row.correction_financially_finalized ||
-      row.invoice_id ||
-      row.billing_lock_id ||
-      ['locked', 'invoiced'].includes(String(row.billing_state ?? ''))
-    )
-      return 'finalized';
-    return null;
-  }
-
+  /* ----------------------------------------------------- entry points */
   useAssistantSurfaceRequest({
     url: () => $page.url,
     surfaces: ['expense-create'],
     activate: () => {
-      if (isAuditor || nativeRecoveryActive || surface === 'create') return;
-      openCreate();
+      if (mode !== 'create') openCreate();
     },
     deactivate: () => {
-      if (surface === 'create' && !nativeRecoveryActive) closeSurface();
+      if (mode === 'create') closeForm();
     },
   });
-
-  function openCreate(): void {
-    surfaceError = '';
-    surfaceProblem = null;
-    createAnotherAfterSave = false;
-    expenseSavedAnother = false;
-    nativeRecoveryActive = false;
-    const intakeUrl = typeof window === 'undefined' ? $page.url : new URL(window.location.href);
-    const requestedDate = intakeUrl.searchParams.get('date')?.trim() ?? '';
-    const requestedProject = intakeUrl.searchParams.get('project')?.trim() || projectFilter;
-    const requestedWorker = intakeUrl.searchParams.get('worker')?.trim() ?? '';
-    createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
-    createProject = requestedProject;
-    createWorker =
-      data.user.role === 'worker'
-        ? requestedWorker || data.user.id
-        : (data.workers ?? []).some((worker) => String(worker.id) === requestedWorker)
-          ? requestedWorker
-          : '';
-    createRequestId = crypto.randomUUID();
-    allowSeparateExpense = false;
-    createCurrency = String(
-      availableProjects.find((project) => String(project.id) === requestedProject)?.currency ??
-        'USD',
-    );
-    createWhoPaid = 'worker';
-    createDescription = '';
-    createDescriptionEdited = false;
-    suggestedDescriptionScope = '';
-    createTimeEntryId = intakeUrl.searchParams.get('timeEntry')?.trim() ?? '';
-    expenseOptionalOpen = Boolean(createTimeEntryId);
-    surface = 'create';
-    editExpenseId = null;
-  }
-
-  function handleReceiptChange(event: Event): void {
-    const input = event.currentTarget as HTMLInputElement;
-    if (receiptPreviewUrl && typeof URL !== 'undefined') URL.revokeObjectURL(receiptPreviewUrl);
-    const file = input.files?.[0];
-    receiptPreviewName = file?.name ?? '';
-    receiptPreviewMime = file?.type ?? '';
-    receiptPreviewSize = file?.size ?? 0;
-    receiptPreviewUrl = file && typeof URL !== 'undefined' ? URL.createObjectURL(file) : null;
-  }
-
-  function formatReceiptSize(bytes: number): string {
-    if (bytes < 1024) return `${bytes} B`;
-    const divisor = bytes < 1024 * 1024 ? 1024 : 1024 * 1024;
-    const unit = bytes < 1024 * 1024 ? 'KB' : 'MB';
-    return `${(bytes / divisor).toLocaleString(warningLocale, { maximumFractionDigits: 1 })} ${unit}`;
-  }
-
-  function removeSelectedReceipt(): void {
-    if (createReceiptInput) createReceiptInput.value = '';
-    clearReceiptPreview();
-  }
-
-  function clearReceiptPreview(): void {
-    if (receiptPreviewUrl && typeof URL !== 'undefined') URL.revokeObjectURL(receiptPreviewUrl);
-    receiptPreviewUrl = null;
-    receiptPreviewName = '';
-    receiptPreviewMime = '';
-    receiptPreviewSize = 0;
-  }
-
-  function openEdit(row: Row): void {
-    if (row.shared_receipt_allocated || Number(row.correction_linked ?? 0) === 1) return;
-    surfaceError = '';
-    surfaceProblem = null;
-    nativeRecoveryActive = false;
-    editDate = String(row.spent_on ?? '');
-    editTimeEntryId = String(row.time_entry_id ?? '');
-    surface = 'edit';
-    editExpenseId = String(row.id);
-  }
-
-  function closeSurface(): void {
-    surface = null;
-    surfaceProblem = null;
-    createAnotherAfterSave = false;
-    expenseSavedAnother = false;
-    expenseOptionalOpen = false;
-    allowSeparateExpense = false;
-    nativeRecoveryActive = false;
-    editExpenseId = null;
-    createTimeEntryId = '';
-    if (typeof window !== 'undefined' && $page.url.searchParams.has('timeEntry')) {
-      const cleaned = new URL(window.location.href);
-      cleaned.searchParams.delete('timeEntry');
-      cleaned.searchParams.delete('date');
-      replaceState(cleaned, $page.state);
-    }
-    clearReceiptPreview();
-  }
-
-  async function handleOfflineDraft(event: SubmitEvent): Promise<void> {
-    const form = event.currentTarget as HTMLFormElement;
-    const result = await saveOfflineDraft(event, 'expense');
-    if (!form.isConnected) return;
-    if (result.saved) {
-      closeSurface();
-      return;
-    }
-    if (!result.error) return;
-    surfaceProblem = null;
-    surfaceError = translate(result.error);
-    await tick();
-    const notice = form
-      .closest('[data-ui="responsive-sheet"]')
-      ?.querySelector<HTMLElement>('[data-operational-form-error]');
-    notice?.focus({ preventScroll: true });
-    notice?.scrollIntoView({ block: 'start' });
-  }
-
-  function registerHref(overrides: Record<string, string>): string {
-    const params = new URLSearchParams();
-    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    const project = overrides.project ?? projectFilter;
-    const status = overrides.status ?? statusFilter;
-    const reimbursement = overrides.reimbursement ?? reimbursementFilter;
-    const receipt = overrides.receipt ?? receiptFilter;
-    const worker = overrides.worker ?? workerFilter;
-    const client = overrides.client ?? clientFilter;
-    const category = overrides.category ?? categoryFilter;
-    const currency = overrides.currency ?? currencyFilter;
-    const from = overrides.from ?? fromFilter;
-    const to = overrides.to ?? toFilter;
-    const queryText = overrides.q ?? search;
-    if (project) params.set('project', project);
-    if (worker) params.set('worker', worker);
-    if (client) params.set('client', client);
-    if (category) params.set('category', category);
-    if (currency) params.set('currency', currency);
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
-    params.set('q', queryText);
-    if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
-    if (status) params.set('status', status);
-    if (reimbursement && canViewReimbursement) params.set('reimbursement', reimbursement);
-    if (receipt) params.set('receipt', receipt);
-    const query = params.toString();
-    return `${base}/app/expenses${query ? `?${query}` : ''}`;
-  }
-
-  function exportHref(format: 'csv' | 'xlsx' | 'pdf'): string {
-    const params = new URLSearchParams({ from: exportFrom, to: exportTo, format });
-    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    if (exportProject) params.set('project', exportProject);
-    if (exportWorker) params.set('worker', exportWorker);
-    if (exportClient) params.set('client', exportClient);
-    if (exportCategory) params.set('category', exportCategory);
-    if (exportCurrency) params.set('currency', exportCurrency);
-    if (exportStatus) params.set('status', exportStatus);
-    if (exportReimbursement && canViewReimbursement)
-      params.set('reimbursement', exportReimbursement);
-    return `${base}/app/expenses/export?${params.toString()}`;
-  }
-
-  const filteredExportPeriod = $derived.by(() => {
-    const dates = visibleRecords
-      .map((row) => String(row.spent_on ?? ''))
-      .filter(Boolean)
-      .sort();
-    return dates.length ? { from: dates[0]!, to: dates[dates.length - 1]! } : null;
+  onMount(() => {
+    const url = $page.url.searchParams;
+    const editId = url.get('edit');
+    const editRow = editId ? records.find((row) => text(row, 'id') === editId) : undefined;
+    if (editRow && canEdit(editRow)) openEdit(editRow);
+    else if (/^record/u.test(url.get('action') ?? '') || url.get('timeEntry')) openCreate();
   });
 
-  function filteredExportHref(format: 'csv' | 'xlsx' | 'pdf'): string {
-    if (!filteredExportPeriod) return '#';
-    const params = new URLSearchParams({
-      from: filteredExportPeriod.from,
-      to: filteredExportPeriod.to,
-      format,
-    });
-    if (search) params.set('q', search);
-    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    if (projectFilter) params.set('project', projectFilter);
-    if (workerFilter) params.set('worker', workerFilter);
-    if (clientFilter) params.set('client', clientFilter);
-    if (categoryFilter) params.set('category', categoryFilter);
-    if (currencyFilter) params.set('currency', currencyFilter);
-    if (statusFilter) params.set('status', statusFilter);
-    if (reimbursementFilter && canViewReimbursement)
-      params.set('reimbursement', reimbursementFilter);
-    if (receiptFilter) params.set('receipt', receiptFilter);
-    return `${base}/app/expenses/export?${params.toString()}`;
-  }
-
-  function approvalStatusHref(row: Row): string {
-    if (
-      ['owner_admin', 'project_manager'].includes(String(data.user.role)) &&
-      String(row.approval_state) === 'submitted'
-    )
-      return `${base}/app/approvals?tab=expenses&project=${encodeURIComponent(String(row.project_id))}&worker=${encodeURIComponent(String(row.worker_id))}&status=submitted`;
-    if (
-      String(row.approval_state) === 'draft' &&
-      (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')
-    )
-      return `${base}/app/expenses?edit=${encodeURIComponent(String(row.id))}`;
-    return `${base}/app/expenses/${encodeURIComponent(String(row.id))}`;
-  }
-
-  function reimbursementStatusHref(row: Row): string {
-    return ['owner_admin', 'finance_admin'].includes(String(data.user.role))
-      ? `${base}/app/finance?view=economic&project=${encodeURIComponent(String(row.project_id))}&source=settlements#finance-reimbursements`
-      : `${base}/app/expenses/${encodeURIComponent(String(row.id))}`;
-  }
+  /* ------------------------------------------------------------ export */
+  const exportHref = (format: 'csv' | 'xlsx' | 'pdf'): string | null => {
+    const dates = visible.map((row) => text(row, 'spent_on')).sort();
+    if (!dates.length) return null;
+    const query = new URLSearchParams({ from: dates[0]!, to: dates.at(-1)!, format });
+    if (projectFilter) query.set('project', projectFilter);
+    if (personFilter) query.set('worker', personFilter);
+    if (statusFilter && !['reimbursed', 'withdrawn'].includes(statusFilter))
+      query.set('status', statusFilter);
+    if (search) query.set('q', search);
+    if ($page.url.searchParams.get('includeArchived') === '1') query.set('includeArchived', '1');
+    return `${base}/app/expenses/export?${query}`;
+  };
 </script>
 
-<div class="expense-page">
-  <header class="expense-page-context">
-    <div>
-      <p class="expense-eyebrow">{translate('Worker operations')}</p>
-      <h2>
-        {canViewReimbursement ? translate('Expenses and reimbursements') : translate('Expenses')}
-      </h2>
-      <p>
-        {operationalOnly
-          ? translate('Record the amount, currency, payer and receipt for this expense.')
-          : translate(
-              'Record the receipt and operational facts. Finance handles later classification.',
-            )}
-      </p>
-    </div>
-    <span class="expense-record-count" aria-label={translate('Expense count')}
-      >{records.length}</span
-    >
-  </header>
-  <ProjectContextNav
-    project={availableProjects.find((project) => String(project.id) === projectFilter)}
-    current="expenses"
-    locale={warningLocale}
-  />
-
-  <nav
-    id="expense-quick-links"
-    class="expense-quick-links"
-    aria-label={workRound2Text(warningLocale, 'expenseLinks')}
-  >
-    <a href="#expense-week-view">{workRound2Text(warningLocale, 'expenseWeekView')}</a>
-    <a href="#expense-register-filters">{translate('Filters')}</a>
-    <a href="#expense-records">{workRound2Text(warningLocale, 'expenseRegister')}</a>
-    {#if data.weekStart && data.weekEnd}
-      <a
-        class="expense-current-week-link"
-        href={`${registerHref({ from: data.weekStart, to: data.weekEnd })}#expense-records`}
-        >{workRound2Text(warningLocale, 'expenseWeekView')} · {data.weekStart} → {data.weekEnd}</a
-      >
+{#snippet categoryIcon(value: string)}
+  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+    {#if value === 'meals'}
+      <path d="M7 3v8a2 2 0 0 0 2 2v8M11 3v8M5 3v8a2 2 0 0 0 2 2M17 3c-2 2-2 6 0 8v10" />
+    {:else if value === 'hotel'}
+      <path d="M3 20V6M3 14h18v6M3 11h7V9a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v5" />
+    {:else if value === 'fuel'}
+      <path
+        d="M4 21V5a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16M3 21h12M4 10h10M14 8l4 3v7a1.5 1.5 0 0 0 3 0V9l-3-3"
+      />
+    {:else if value === 'ground_transport'}
+      <path d="M5 16V7a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v9M5 12h14M5 16h14v2H5zM7 18v2M17 18v2" />
+    {:else if value === 'materials'}
+      <path d="M3 7l9-4 9 4-9 4-9-4zM3 7v10l9 4 9-4V7M12 11v10" />
+    {:else}
+      <path d="M12 3v18M17 7H9.5a2.5 2.5 0 0 0 0 5h5a2.5 2.5 0 0 1 0 5H7" />
     {/if}
-  </nav>
+  </svg>
+{/snippet}
 
-  {#if !isAuditor}
-    <div class="expense-primary-action expense-primary-action-top">
-      <button type="button" data-expense-primary-cta onclick={openCreate}>
-        <span aria-hidden="true">＋</span>
-        {translate('Record expense')}
+<div class="xp">
+  <header class="xp-head">
+    <div>
+      <h2>{reviewerView ? c('all') : c('mine')}</h2>
+      <p>{reviewerView ? c('ownerIntro') : c('intro')}</p>
+    </div>
+    {#if canRecord && projects.length > 0}
+      <button
+        type="button"
+        class="xp-add"
+        data-expense-primary-cta
+        data-assistant-target="expense-create-open"
+        onclick={openCreate}
+      >
+        <span aria-hidden="true">+</span>
+        {c('add')}
       </button>
+    {/if}
+  </header>
+
+  {#if canRecord && projects.length === 0}
+    <p class="xp-notice" role="status">{c('noProjects')}</p>
+  {/if}
+
+  {#if reviewerView}
+    <details class="xp-filters" open={filtersActive}>
+      <summary>
+        {c('filters')}{#if filtersActive}<span class="xp-dot" aria-hidden="true"></span>{/if}
+      </summary>
+      <div class="xp-filter-grid">
+        <label>
+          <span>{c('person')}</span>
+          <select bind:value={personFilter}>
+            <option value="">{c('allPeople')}</option>
+            {#each people as person (person.id)}
+              <option value={person.id}>{person.name}</option>
+            {/each}
+          </select>
+        </label>
+        <label>
+          <span>{c('project')}</span>
+          <select bind:value={projectFilter}>
+            <option value="">{c('allProjects')}</option>
+            {#each availableProjects as project (text(project, 'id'))}
+              <option value={text(project, 'id')}
+                >{text(project, 'project_number')} · {text(project, 'name')}</option
+              >
+            {/each}
+          </select>
+        </label>
+        <label>
+          <span>{translate('Status')}</span>
+          <select bind:value={statusFilter}>
+            <option value="">{c('allStatuses')}</option>
+            {#each ['draft', 'submitted', 'needs_changes', 'approved', 'reimbursed', 'rejected'] as const as status (status)}
+              <option value={status}>{c(statusLabel[status])}</option>
+            {/each}
+          </select>
+        </label>
+        <label>
+          <span>{c('search')}</span>
+          <input type="search" bind:value={search} autocomplete="off" />
+        </label>
+      </div>
+      <div class="xp-filter-actions">
+        {#if filtersActive}
+          <button type="button" class="secondary-button" onclick={clearFilters}>{c('clear')}</button
+          >
+        {/if}
+        {#if exportHref('csv')}
+          <span class="xp-muted">{c('download')}:</span>
+          <a href={exportHref('csv')} download>CSV</a>
+          <a href={exportHref('xlsx')} download>Excel</a>
+          <a href={exportHref('pdf')} download>PDF</a>
+        {/if}
+      </div>
+    </details>
+  {/if}
+
+  {#if shownWeeks.length === 0}
+    <div class="xp-empty" role="status">
+      <p>{filtersActive ? c('emptyFiltered') : c('empty')}</p>
+      {#if filtersActive}
+        <button type="button" class="secondary-button" onclick={clearFilters}>{c('clear')}</button>
+      {/if}
     </div>
   {/if}
 
-  <div id="expense-week-view" class="expense-week-view">
-    <ExpenseWeekPanel
-      {data}
-      {isAuditor}
-      {availableProjects}
-      {translate}
-      {controlledValue}
-      onCreate={(date, workerId) => {
-        openCreate();
-        createDate = date;
-        createWorker = workerId;
+  {#each shownWeeks as week (week.start)}
+    <section class="xp-week" aria-labelledby={`xp-week-${week.start}`}>
+      <header class="xp-week-head">
+        <h3 id={`xp-week-${week.start}`}>{c('week', { range: weekRange(week.start) })}</h3>
+        <strong class="xp-total">{totals(week.rows)}</strong>
+      </header>
+      {#each week.people as block (block.workerId)}
+        <div class="xp-person">
+          {#if showPersonHeaders}
+            <p class="xp-person-name">
+              {block.workerId === me ? c('me') : block.workerName}
+              {#if week.people.length > 1}<span class="xp-muted">· {totals(block.rows)}</span>{/if}
+            </p>
+          {/if}
+          <ul class="xp-rows">
+            {#each block.rows as row (text(row, 'id'))}
+              {@const status = statusOf(row)}
+              <li class="xp-row" data-status={status}>
+                <span class="xp-icon">{@render categoryIcon(text(row, 'category'))}</span>
+                <div class="xp-row-main">
+                  <p class="xp-row-title">
+                    <a class="xp-open" href={detailHref(row)}
+                      >{categoryLabel(text(row, 'category'))}</a
+                    >
+                    {#if text(row, 'vendor')}<span class="xp-muted">· {text(row, 'vendor')}</span
+                      >{/if}
+                  </p>
+                  <p class="xp-row-meta">
+                    {dayLabel(text(row, 'spent_on'))} · {text(row, 'project_number')}
+                    {#if row.approval_state === 'draft' && expenseReceiptState(row) !== 'attached'}
+                      · <span class="xp-warn">{c('noReceipt')}</span>
+                    {/if}
+                  </p>
+                </div>
+                <div class="xp-row-side">
+                  <strong class="xp-amount"
+                    >{money(text(row, 'amount_minor'), text(row, 'currency') || 'USD', tag)}</strong
+                  >
+                  <StatusBadge variant={statusVariant[status]} text={c(statusLabel[status])} />
+                </div>
+                {#if (status === 'needs_changes' || status === 'rejected') && text(row, 'review_note')}
+                  <p class="xp-note">
+                    <strong>{c('reviewerNote')}:</strong>
+                    {text(row, 'review_note')}
+                  </p>
+                {/if}
+                <div class="xp-row-actions">
+                  {#if canEdit(row)}
+                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}
+                      >{c('edit')}</button
+                    >
+                  {:else if row.approval_state === 'draft' && row.linked_pair_time_id}
+                    <span class="xp-muted">{c('withTime')}</span>
+                  {:else if row.approval_state === 'needs_changes' && (text(row, 'worker_id') === me || isOwner)}
+                    {#if row.active_correction_id}
+                      <a
+                        class="secondary-button"
+                        href={`${base}/app/expenses/${encodeURIComponent(text(row, 'active_correction_id'))}`}
+                        >{c('openCorrection')}</a
+                      >
+                    {:else}
+                      <a class="xp-fix" href={`${detailHref(row)}#expense-correction-title`}
+                        >{c('fix')}</a
+                      >
+                    {/if}
+                  {/if}
+                  {#if row.approval_state === 'draft' && !isAuditor && text(row, 'worker_id') !== me && !isOwner && !row.linked_pair_time_id}
+                    <form method="POST" action="?/submitExpense" use:enhance>
+                      <input type="hidden" name="id" value={text(row, 'id')} />
+                      <input type="hidden" name="version" value={text(row, 'version')} />
+                      <button type="submit">{c('submit')}</button>
+                    </form>
+                  {/if}
+                </div>
+              </li>
+            {/each}
+          </ul>
+          {#if canSubmitBlock(block)}
+            <div class="xp-submit-bar">
+              <span>{c('drafts', { n: block.drafts.length })} · {totals(block.drafts)}</span>
+              <button
+                type="button"
+                data-expense-submit-week
+                onclick={() => {
+                  confirmError = '';
+                  confirmBlock = { week: week.start, block };
+                }}>{c('submitWeek')}</button
+              >
+            </div>
+          {/if}
+        </div>
+      {/each}
+    </section>
+  {/each}
+
+  {#if weeks.length > shownWeeks.length}
+    <button type="button" class="secondary-button xp-older" onclick={() => (weekLimit += 6)}
+      >{c('showOlder')}</button
+    >
+  {/if}
+</div>
+
+<ResponsiveSheet
+  open={mode !== null}
+  title={mode === 'edit' ? c('editTitle') : c('add')}
+  closeLabel={c('cancel')}
+  protectChanges
+  class="expense-entry-sheet"
+  onclose={closeForm}
+>
+  {#key formKey}
+    <form
+      method="POST"
+      action={mode === 'edit' ? '?/updateExpense' : '?/createExpense'}
+      enctype="multipart/form-data"
+      class="xp-form"
+      data-expense-entry-surface
+      data-assistant-target="expense-create"
+      aria-busy={saving}
+      use:dirtyFormGuard
+      use:operationalFieldValidation
+      use:enhance={submitForm}
+      onsubmit={(event) => {
+        if (mode === 'create') void handleOffline(event);
       }}
-      onEdit={openEdit}
-    />
-  </div>
-
-  <div class="expense-status-strip" aria-label={translate('Expense attention summary')}>
-    <a
-      class="expense-status-card"
-      href={`${registerHref({ status: 'attention', reimbursement: '' })}#expense-records`}
     >
-      <span>{translate('Needs attention')}</span>
-      <strong>{pendingReviewCount}</strong>
-      <small>{translate('Draft or review state')}</small>
-    </a>
-    {#if canViewReimbursement}
-      <a
-        class="expense-status-card"
-        href={`${registerHref({ status: '', reimbursement: 'pending' })}#expense-records`}
-      >
-        <span>{translate('Reimbursement')}</span>
-        <strong>{reimbursementCount}</strong>
-        <small>{translate('Pending or scheduled')}</small>
-      </a>
-    {/if}
-    <a
-      class="expense-status-card"
-      href={`${registerHref({ status: '', reimbursement: '', receipt: 'missing' })}#expense-records`}
-    >
-      <span>{translate('Required receipt missing')}</span>
-      <strong>{missingReceiptCount}</strong>
-      <small>{translate('Review supporting evidence before approval')}</small>
-    </a>
-  </div>
+      {#if formError}
+        <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>{formError}</p>
+      {/if}
+      {#if savedAnother && !formError}
+        <p class="xp-ok" role="status">{c('savedAnother')}</p>
+      {/if}
 
-  <form
-    id="expense-register-filters"
-    class="expense-filters"
-    method="GET"
-    action={`${base}/app/expenses`}
-    aria-label={translate('Filter expenses')}
-    onsubmit={validateRegisterDateRange}
-  >
-    {#if $page.url.searchParams.get('includeArchived') === '1'}
-      <input type="hidden" name="includeArchived" value="1" />
-    {/if}
-    <label>
-      <span>{translate('Search expenses')}</span>
-      <input
-        id="expense-register-field-q"
-        name="q"
-        bind:value={search}
-        oninput={() => (registerPage = 1)}
-        type="search"
-        placeholder={translate('Vendor, project or date')}
-      />
-    </label>
-    <label>
-      <span>{translate('Project')}</span>
-      <select
-        id="expense-register-field-project"
-        name="project"
-        bind:value={projectFilter}
-        onchange={() => {
-          workerFilter = availableWorkerSelection(
-            workerFilter,
-            recordWorkerOptions(records, projectFilter, ['worker_name']),
-          );
-          registerPage = 1;
-        }}
-      >
-        <option value="">{translate('All projects')}</option>
-        {#each availableProjects as project}
-          <option value={String(project.id)}>{project.project_number} — {project.name}</option>
-        {/each}
-      </select>
-    </label>
-    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-      <label>
-        <span>{translate('Worker')}</span>
-        <select
-          id="expense-register-field-worker"
-          name="worker"
-          bind:value={workerFilter}
-          onchange={() => (registerPage = 1)}
-        >
-          <option value="">{translate('All workers')}</option>
-          {#each registerWorkerOptions as [id, name]}
-            <option value={id}>{name}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-    <label>
-      <span>{translate('Status')}</span>
-      <select
-        id="expense-register-field-status"
-        name="status"
-        bind:value={statusFilter}
-        onchange={() => (registerPage = 1)}
-      >
-        <option value="">{translate('All statuses')}</option>
-        <option value="attention">{translate('Needs attention')}</option>
-        <option value="draft">{translate('Draft')}</option>
-        <option value="submitted">{translate('Submitted')}</option>
-        <option value="approved">{translate('Approved')}</option>
-        <option value="needs_changes">{translate('Needs changes')}</option>
-      </select>
-    </label>
-    <SectionCard
-      title={translate('Filter expenses')}
-      description={advancedFilters.length
-        ? `${translate('Active filters')}: ${advancedFilters.length}`
-        : undefined}
-      collapsible
-      expanded={Boolean(
-        clientFilter ||
-        fromFilter ||
-        toFilter ||
-        categoryFilter ||
-        currencyFilter ||
-        receiptFilter ||
-        reimbursementFilter ||
-        order !== 'newest',
-      )}
-      class="register-filter-disclosure"
-    >
-      <div class="expense-filter-fields">
-        <label>
-          <span>{translate('Client')}</span>
-          <select
-            id="expense-register-field-client"
-            name="client"
-            bind:value={clientFilter}
-            onchange={() => (registerPage = 1)}
-          >
-            <option value="">{translate('All clients')}</option>
-            {#each clientOptions as client}<option value={client}>{client}</option>{/each}
-          </select>
-        </label>
-        <label>
-          <span>{translate('From')}</span>
-          <input
-            id="expense-register-field-from"
-            name="from"
-            type="date"
-            bind:value={fromFilter}
-            onchange={() => (registerPage = 1)}
-            aria-invalid={registerDateRangeInvalid}
-            aria-describedby={registerDateRangeInvalid ? 'expense-register-date-error' : undefined}
-          />
-        </label>
-        <label>
-          <span>{translate('To')}</span>
-          <input
-            id="expense-register-field-to"
-            name="to"
-            type="date"
-            bind:value={toFilter}
-            onchange={() => (registerPage = 1)}
-            aria-invalid={registerDateRangeInvalid}
-            aria-describedby={registerDateRangeInvalid ? 'expense-register-date-error' : undefined}
-          />
-        </label>
-
-        <label>
-          <span>{translate('Category')}</span>
-          <select
-            id="expense-register-field-category"
-            name="category"
-            bind:value={categoryFilter}
-            onchange={() => (registerPage = 1)}
-          >
-            <option value="">{translate('All categories')}</option>
-            {#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
-              >{/each}
-          </select>
-        </label>
-        <label>
-          <span>{translate('Currency')}</span>
-          <select
-            id="expense-register-field-currency"
-            name="currency"
-            bind:value={currencyFilter}
-            onchange={() => (registerPage = 1)}
-          >
-            <option value="">{translate('All currencies')}</option>
-            <option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
-              >BRL</option
-            >
-          </select>
-        </label>
-
-        <label>
-          <span>{translate('Receipt evidence')}</span>
-          <select
-            id="expense-register-field-receipt"
-            name="receipt"
-            bind:value={receiptFilter}
-            onchange={() => (registerPage = 1)}
-          >
-            <option value="">{translate('All receipts')}</option>
-            <option value="missing">{translate('Required receipt missing')}</option>
-            <option value="attached">{translate('Receipt attached')}</option>
-            <option value="not_required">{translate('Receipt not required')}</option>
-          </select>
-        </label>
-        {#if canViewReimbursement}
-          <label>
-            <span>{translate('Reimbursement status')}</span>
-            <select
-              id="expense-register-field-reimbursement"
-              name="reimbursement"
-              bind:value={reimbursementFilter}
-              onchange={() => (registerPage = 1)}
-            >
-              <option value="">{translate('All statuses')}</option>
-              <option value="pending">{translate('Pending or scheduled')}</option>
-              <option value="reimbursed">{translate('Reimbursed')}</option>
+      {#if mode === 'edit' && editing}
+        <input type="hidden" name="id" value={text(editing, 'id')} />
+        <input type="hidden" name="version" value={text(editing, 'version')} />
+        <p class="xp-fixed">
+          <span>{c('project')}</span>
+          <strong>{text(editing, 'project_number')} · {text(editing, 'project_name')}</strong>
+        </p>
+      {:else}
+        <input type="hidden" name="requestId" value={requestId} />
+        {#if fTimeEntryId}
+          <input type="hidden" name="timeEntryId" value={fTimeEntryId} />
+          <p class="xp-muted">{c('linkedTime')}</p>
+        {/if}
+        {#if isOwner}
+          <label class="xp-field">
+            <span>{c('person')}</span>
+            <select name="workerId" bind:value={fWorker}>
+              <option value="">{c('me')} ({data.user.name})</option>
+              {#each people as person (person.id)}
+                <option value={person.id}>{person.name}</option>
+              {/each}
+            </select>
+          </label>
+        {:else if crewOptions.length > 0}
+          <label class="xp-field">
+            <span>{c('person')}</span>
+            <select name="workerId" bind:value={fWorker}>
+              <option value={me}>{c('me')}</option>
+              {#each crewOptions as person (person.id)}
+                <option value={person.id}>{person.name}</option>
+              {/each}
             </select>
           </label>
         {/if}
-        <label>
-          <span>{translate('Sort by')}</span>
-          <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
-            <option value="newest">{translate('Newest first')}</option>
-            <option value="oldest">{translate('Oldest first')}</option>
-            <option value="name">{translate('Name')}</option>
-            <option value="status">{translate('Status')}</option>
-          </select>
-        </label>
-      </div>
-    </SectionCard>
-    {#if registerDateRangeInvalid}
-      <p id="expense-register-date-error" class="form-help" role="alert">
-        {translate('Choose an end date on or after the start date.')}
-      </p>
-    {/if}
-    <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    <DatePresets
-      from={fromFilter}
-      to={toFilter}
-      href={(range) => registerHref(range)}
-      {translate}
-    />
-    <FilterSummary
-      items={activeFilters}
-      resultCount={visibleRecords.length}
-      clearHref={clearFiltersHref}
-      onclear={clearFilters}
-      {translate}
-    />
-  </form>
-
-  {#snippet customExportFieldError(field: string)}
-    {#if customExportProblem?.fieldErrors[field]?.[0]}
-      <small id={`expense-export-error-${field}`} class="expense-export-field-error">
-        {portalText(warningLocale, customExportProblem.fieldErrors[field][0])}
-      </small>
-    {/if}
-  {/snippet}
-
-  {#if !restrictedOperational}
-    <section class="expense-export-panel" aria-labelledby="expense-filtered-export-title">
-      <div>
-        <h3 id="expense-filtered-export-title">{translate('Export filtered results')}</h3>
-        <p>
-          {translate('Download exactly the expenses currently selected by the register filters.')}
-        </p>
-      </div>
-      {#if filteredExportProblem}
-        <ProblemNotice
-          problem={filteredExportProblem}
-          remedyLinks={exportRemedyLinks}
-          class="expense-filtered-export-problem"
-        />
-        {#if exportFieldIssues(filteredExportProblem).length}
-          <ul class="expense-export-field-summary">
-            {#each exportFieldIssues(filteredExportProblem) as { field, target }}
-              <li>
-                <a href={`#${target}`} onclick={(event) => focusExportField(event, target)}
-                  >{translate(exportFieldNames[field] ?? field)}: {portalText(
-                    warningLocale,
-                    filteredExportProblem.fieldErrors[field]?.[0] ?? '',
-                  )}</a
-                >
-              </li>
-            {/each}
-          </ul>
-        {/if}
-        {#if filteredExportProblem.remedies.some((remedy) => remedy.id === 'retry_expense_export')}
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={exportBusy}
-            onclick={retryExpenseExport}
-            >{portalText(warningLocale, 'problem.expenseExport.retryDownload')}</button
-          >
-        {/if}
-      {/if}
-      <div class="expense-export-actions">
-        {#if filteredExportPeriod}
-          <a
-            class="secondary-button"
-            href={filteredExportHref('pdf')}
-            data-sveltekit-reload
-            aria-disabled={exportBusy}
-            onclick={(event) => handleExportClick(event, 'filtered', 'pdf')}
-            >{translate('Download PDF')}</a
-          >
-          <a
-            class="secondary-button"
-            href={filteredExportHref('xlsx')}
-            data-sveltekit-reload
-            aria-disabled={exportBusy}
-            onclick={(event) => handleExportClick(event, 'filtered', 'xlsx')}
-            >{translate('Download Excel')}</a
-          >
-          <a
-            class="secondary-button"
-            href={filteredExportHref('csv')}
-            data-sveltekit-reload
-            aria-disabled={exportBusy}
-            onclick={(event) => handleExportClick(event, 'filtered', 'csv')}
-            >{translate('Download CSV')}</a
-          >
+        {#if projects.length === 1}
+          <input type="hidden" name="projectId" value={fProject} />
+          <p class="xp-fixed">
+            <span>{c('project')}</span>
+            <strong>{text(projects[0], 'project_number')} · {text(projects[0], 'name')}</strong>
+          </p>
         {:else}
-          <span>{translate('No matching records.')}</span>
-        {/if}
-      </div>
-    </section>
-
-    <SectionCard
-      title={translate('Create report with another scope')}
-      collapsible
-      class="expense-export-disclosure"
-    >
-      <div>
-        <p>
-          {translate('Choose a separate period and scope without changing the register above.')}
-        </p>
-      </div>
-      {#if customExportProblem}
-        <ProblemNotice
-          problem={customExportProblem}
-          remedyLinks={exportRemedyLinks}
-          class="expense-custom-export-problem"
-        />
-        {#if exportFieldIssues(customExportProblem).length}
-          <ul class="expense-export-field-summary">
-            {#each exportFieldIssues(customExportProblem) as { field, target }}
-              <li>
-                <a href={`#${target}`} onclick={(event) => focusExportField(event, target)}
-                  >{translate(exportFieldNames[field] ?? field)}: {portalText(
-                    warningLocale,
-                    customExportProblem.fieldErrors[field]?.[0] ?? '',
-                  )}</a
-                >
-              </li>
-            {/each}
-          </ul>
-        {/if}
-        {#if customExportProblem.remedies.some((remedy) => remedy.id === 'retry_expense_export')}
-          <button
-            type="button"
-            class="secondary-button"
-            disabled={exportBusy}
-            onclick={retryExpenseExport}
-            >{portalText(warningLocale, 'problem.expenseExport.retryDownload')}</button
-          >
-        {/if}
-      {/if}
-      <div id="expense-export-fields" class="expense-export-fields">
-        <label
-          ><span>{translate('From')}</span><input
-            id="expense-export-field-from"
-            type="date"
-            bind:value={exportFrom}
-            aria-invalid={customExportProblem?.fieldErrors.from?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.from?.length
-              ? 'expense-export-error-from'
-              : undefined}
-          />{@render customExportFieldError('from')}</label
-        >
-        <label
-          ><span>{translate('To')}</span><input
-            id="expense-export-field-to"
-            type="date"
-            bind:value={exportTo}
-            aria-invalid={customExportProblem?.fieldErrors.to?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.to?.length
-              ? 'expense-export-error-to'
-              : undefined}
-          />{@render customExportFieldError('to')}</label
-        >
-        <label
-          ><span>{translate('Project')}</span><select
-            id="expense-export-field-project"
-            bind:value={exportProject}
-            aria-invalid={customExportProblem?.fieldErrors.project?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.project?.length
-              ? 'expense-export-error-project'
-              : undefined}
-            ><option value="">{translate('All projects')}</option
-            >{#each availableProjects as project}<option value={String(project.id)}
-                >{project.project_number} — {project.name}</option
-              >{/each}</select
-          >{@render customExportFieldError('project')}</label
-        >
-        {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-          <label
-            ><span>{translate('Worker')}</span><select
-              id="expense-export-field-worker"
-              bind:value={exportWorker}
-              aria-invalid={customExportProblem?.fieldErrors.worker?.length ? 'true' : undefined}
-              aria-describedby={customExportProblem?.fieldErrors.worker?.length
-                ? 'expense-export-error-worker'
-                : undefined}
-              ><option value="">{translate('All workers')}</option
-              >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                  >{worker.name}</option
-                >{/each}</select
-            >{@render customExportFieldError('worker')}</label
-          >
-        {/if}
-        <label
-          ><span>{translate('Client')}</span><select
-            id="expense-export-field-client"
-            bind:value={exportClient}
-            aria-invalid={customExportProblem?.fieldErrors.client?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.client?.length
-              ? 'expense-export-error-client'
-              : undefined}
-            ><option value="">{translate('All clients')}</option
-            >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
-          >{@render customExportFieldError('client')}</label
-        >
-        <label
-          ><span>{translate('Category')}</span><select
-            id="expense-export-field-category"
-            bind:value={exportCategory}
-            aria-invalid={customExportProblem?.fieldErrors.category?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.category?.length
-              ? 'expense-export-error-category'
-              : undefined}
-            ><option value="">{translate('All categories')}</option
-            >{#each expenseCategories as [value, label]}<option {value}>{translate(label)}</option
-              >{/each}</select
-          >{@render customExportFieldError('category')}</label
-        >
-        <label
-          ><span>{translate('Currency')}</span><select
-            id="expense-export-field-currency"
-            bind:value={exportCurrency}
-            aria-invalid={customExportProblem?.fieldErrors.currency?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.currency?.length
-              ? 'expense-export-error-currency'
-              : undefined}
-            ><option value="">{translate('All currencies')}</option><option value="USD">USD</option
-            ><option value="EUR">EUR</option><option value="BRL">BRL</option></select
-          >{@render customExportFieldError('currency')}</label
-        >
-        <label
-          ><span>{translate('Status')}</span><select
-            id="expense-export-field-status"
-            bind:value={exportStatus}
-            aria-invalid={customExportProblem?.fieldErrors.status?.length ? 'true' : undefined}
-            aria-describedby={customExportProblem?.fieldErrors.status?.length
-              ? 'expense-export-error-status'
-              : undefined}
-            ><option value="">{translate('All statuses')}</option><option value="draft"
-              >{translate('Draft')}</option
-            ><option value="submitted">{translate('Submitted')}</option><option value="approved"
-              >{translate('Approved')}</option
-            ><option value="needs_changes">{translate('Needs changes')}</option></select
-          >{@render customExportFieldError('status')}</label
-        >
-        {#if canViewReimbursement}<label
-            ><span>{translate('Reimbursement status')}</span><select
-              id="expense-export-field-reimbursement"
-              aria-invalid={customExportProblem?.fieldErrors.reimbursement?.length
-                ? 'true'
-                : undefined}
-              aria-describedby={customExportProblem?.fieldErrors.reimbursement?.length
-                ? 'expense-export-error-reimbursement'
-                : undefined}
-              bind:value={exportReimbursement}
-              ><option value="">{translate('All statuses')}</option><option value="pending"
-                >{translate('Pending or scheduled')}</option
-              ><option value="reimbursed">{translate('Reimbursed')}</option></select
-            >{@render customExportFieldError('reimbursement')}</label
-          >{/if}
-      </div>
-      <div class="expense-export-actions">
-        <a
-          class="secondary-button"
-          href={exportHref('pdf')}
-          data-sveltekit-reload
-          aria-disabled={exportBusy}
-          onclick={(event) => handleExportClick(event, 'custom', 'pdf')}
-          >{translate('Download PDF')}</a
-        >
-        <a
-          class="secondary-button"
-          href={exportHref('xlsx')}
-          data-sveltekit-reload
-          aria-disabled={exportBusy}
-          onclick={(event) => handleExportClick(event, 'custom', 'xlsx')}
-          >{translate('Download Excel')}</a
-        >
-        <a
-          class="secondary-button"
-          href={exportHref('csv')}
-          data-sveltekit-reload
-          aria-disabled={exportBusy}
-          onclick={(event) => handleExportClick(event, 'custom', 'csv')}
-          >{translate('Download CSV')}</a
-        >
-      </div>
-    </SectionCard>
-  {/if}
-
-  <SectionCard
-    id="expense-records"
-    title={translate('Recent expenses')}
-    class="expense-list-surface"
-  >
-    {#if linkedWithdrawProblem}
-      <ProblemNotice problem={linkedWithdrawProblem} kind="error" />
-    {/if}
-    {#if visibleRecords.length > 0}
-      <div class="expense-list" aria-live="polite">
-        {#each pagedRecords.rows as row}
-          <article class="expense-record" data-expense-record={String(row.id)}>
-            <a class="record-card-link" href={`${base}/app/expenses/${String(row.id)}`}>
-              <div class="expense-record-main">
-                <strong>{row.vendor || row.description || translate('Expense')}</strong>
-                <span class="expense-record-amount"
-                  >{money(row.amount_minor, String(row.currency))}</span
-                >
-              </div>
-              <small>
-                {row.spent_on} · {row.project_number} · {controlledValue(
-                  'expenseCategory',
-                  row.category,
-                ) || translate(String(row.category ?? ''))}
-              </small>
-              <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
-            </a>
-            <div class="expense-record-statuses">
-              <StatusBadge
-                variant={expenseReceiptState(row) === 'missing' ? 'warning' : 'neutral'}
-                text={translate(receiptStateLabels[expenseReceiptState(row)])}
-              />
-              <a
-                href={approvalStatusHref(row)}
-                aria-label={`${translate('Open record')}: ${expenseApprovalLabel(row)}`}
-              >
-                <StatusBadge
-                  variant={statusVariant(row.approval_state)}
-                  text={expenseApprovalLabel(row)}
-                />
-              </a>
-              {#if canViewReimbursement && row.reimbursement_state && ['approved', 'locked'].includes(String(row.approval_state))}
-                <a
-                  href={reimbursementStatusHref(row)}
-                  aria-label={`${translate('Reimbursement')}: ${controlledValue('status', row.reimbursement_state) || translate(String(row.reimbursement_state))}`}
-                >
-                  <StatusBadge
-                    variant={statusVariant(row.reimbursement_state)}
-                    text={`${translate('Reimbursement')}: ${controlledValue('status', row.reimbursement_state) || translate(String(row.reimbursement_state))}`}
-                  />
-                </a>
-              {/if}
-              {#if row.shared_receipt_allocated}
-                <StatusBadge variant="neutral" text="Shared crew receipt · allocation locked" />
-              {/if}
-              {#if row.linked_pair_time_id}
-                <a href={`${base}/app/time/${encodeURIComponent(String(row.linked_pair_time_id))}`}>
-                  {translate('Linked time and meal entry')}
-                  <DirectionIcon />
-                </a>
-              {/if}
-            </div>
-            {#if data.user.role === 'worker' || data.user.role === 'owner_admin'}
-              <div class="expense-record-actions">
-                {#if row.approval_state === 'draft'}
-                  {#if !row.shared_receipt_allocated && !row.linked_pair_time_id && Number(row.correction_linked ?? 0) !== 1}
-                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
-                      {translate('Edit')}
-                    </button>
-                  {/if}
-                  {#if !row.linked_pair_time_id}
-                    <form method="POST" action="?/submitExpense">
-                      <input type="hidden" name="id" value={row.id} />
-                      <input type="hidden" name="version" value={row.version} />
-                      <button type="submit">{translate('Submit')}</button>
-                    </form>
-                  {:else}
-                    <p class="expense-record-actions__note">
-                      {translate('Submit this pair with the weekly time entries.')}
-                    </p>
-                  {/if}
-                {/if}
-                {#if row.approval_state === 'draft' && row.linked_pair_time_id && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-                  <form
-                    method="POST"
-                    action="?/withdrawLinkedDrafts"
-                    data-action="withdrawLinkedDrafts"
-                    data-record-type="linked-time-meal"
-                    data-record-id={String(row.id)}
-                  >
-                    <input type="hidden" name="expenseId" value={row.id} />
-                    <input type="hidden" name="expenseVersion" value={row.version} />
-                    <input type="hidden" name="timeVersion" value={row.linked_pair_time_version} />
-                    <label
-                      ><span>{translate('Why withdraw both drafts?')}</span>
-                      <input name="reason" required minlength="3" maxlength="2000" />
-                    </label>
-                    <button type="submit" class="destructive-button"
-                      >{translate('Withdraw time and meal drafts')}</button
-                    >
-                  </form>
-                {:else if row.approval_state === 'draft' && Number(row.crew_recorded ?? 0) === 1 && (String(row.worker_id) === data.user.id || String(row.crew_recorded_by_user_id) === data.user.id || data.user.role === 'owner_admin')}
-                  <form
-                    method="POST"
-                    action="?/withdrawCrewExpenseDraft"
-                    data-action="withdrawCrewExpenseDraft"
-                    data-record-type="crew-expense"
-                    data-record-id={String(row.id)}
-                  >
-                    <input type="hidden" name="expenseId" value={row.id} />
-                    <input type="hidden" name="version" value={row.version} />
-                    <label>
-                      <span>{translate('Why withdraw this draft?')}</span>
-                      <input
-                        name="reason"
-                        required
-                        minlength="3"
-                        maxlength="2000"
-                        value={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
-                        withdrawForm.values?.expenseId === String(row.id)
-                          ? String(withdrawForm.values?.reason ?? '')
-                          : ''}
-                        aria-invalid={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
-                          withdrawForm.values?.expenseId === String(row.id) &&
-                          Boolean(withdrawForm.fieldErrors?.reason?.length)}
-                        aria-describedby={withdrawForm?.actionName === 'withdrawCrewExpenseDraft' &&
-                        withdrawForm.values?.expenseId === String(row.id) &&
-                        withdrawForm.fieldErrors?.reason?.length
-                          ? `crew-expense-withdraw-reason-${String(row.id)}`
-                          : undefined}
-                      />
-                      {#if withdrawForm?.actionName === 'withdrawCrewExpenseDraft' && withdrawForm.values?.expenseId === String(row.id) && withdrawForm.fieldErrors?.reason?.length}
-                        <small
-                          id={`crew-expense-withdraw-reason-${String(row.id)}`}
-                          class="field-error"
-                        >
-                          {translate('problem.expense.crewWithdrawalInvalid')}
-                        </small>
-                      {/if}
-                    </label>
-                    <button type="submit" class="destructive-button">
-                      {translate('Withdraw crew expense draft')}
-                    </button>
-                  </form>
-                {:else if row.approval_state === 'draft' && !row.shared_receipt_allocated && Number(row.correction_linked ?? 0) !== 1 && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-                  <form
-                    method="POST"
-                    action="?/deleteDraft"
-                    data-action="deleteDraft"
-                    data-record-type="expense"
-                    data-record-id={String(row.id)}
-                  >
-                    <input type="hidden" name="recordType" value="expense" />
-                    <input type="hidden" name="recordId" value={row.id} />
-                    <input type="hidden" name="version" value={row.version} />
-                    <button type="submit" class="destructive-button">{translate('Delete')}</button>
-                  </form>
-                {/if}
-                {#if row.active_correction_id && (row.approval_state === 'needs_changes' || row.approval_state === 'approved')}
-                  <a
-                    class="secondary-button"
-                    href={`${base}/app/expenses/${String(row.active_correction_id)}`}
-                    >{translate('Open existing correction')} <DirectionIcon /></a
-                  >
-                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'shared_receipt'}
-                  <p class="expense-record-actions__note">
-                    {translate('Shared crew receipt · allocation locked')}
-                  </p>
-                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'reimbursed'}
-                  <p class="expense-record-actions__note">
-                    {operationalOnly
-                      ? translate(
-                          'This expense has a reimbursement. Ask the project owner or designated administrator to review changes.',
-                        )
-                      : translate(
-                          'This expense has a reimbursement. Reverse or adjust the payment first.',
-                        )}
-                  </p>
-                  {#if data.user.role === 'owner_admin'}
-                    <a class="secondary-button" href={reimbursementStatusHref(row)}
-                      >{translate('Reimbursement')} <DirectionIcon /></a
-                    >
-                  {/if}
-                {:else if (row.approval_state === 'approved' || row.approval_state === 'needs_changes') && correctionBlocker(row) === 'finalized'}
-                  <p class="expense-record-actions__note">
-                    {operationalOnly
-                      ? translate(
-                          'This record cannot be changed here. Contact the project owner or designated administrator.',
-                        )
-                      : translate('This record has financial history. Use a financial correction.')}
-                  </p>
-                {:else if (row.approval_state === 'needs_changes' || row.approval_state === 'approved') && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-                  <a
-                    class="secondary-button"
-                    href={`${base}/app/expenses/${String(row.id)}#expense-correction-title`}
-                    >{translate('Create corrected draft')} <DirectionIcon /></a
-                  >
-                {/if}
-              </div>
-            {/if}
-            {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-              <a href={`${base}/app/manage?type=expense#${String(row.id)}`}
-                >{translate('Manage record')} <DirectionIcon /></a
-              >
-            {/if}
-          </article>
-        {/each}
-      </div>
-    {:else}
-      <div class="expense-empty" role="status">
-        {#if activeFilters.length || records.length}
-          <strong>{translate('No matching records.')}</strong>
-          <span>{translate('Clear filters to see more records.')}</span>
-          <button type="button" class="secondary-button" onclick={clearFilters}
-            >{translate('Clear filters')}</button
-          >
-        {:else}
-          <strong>{translate('No expenses recorded.')}</strong>
-          <span>{translate('Your submitted expenses will appear here.')}</span>
-          {#if !isAuditor}<button type="button" class="primary-button" onclick={() => openCreate()}
-              >{translate('Record expense')}</button
-            >{/if}
-        {/if}
-      </div>
-    {/if}
-    {#if pagedRecords.totalPages > 1}
-      <nav class="operational-pagination" aria-label={translate('Expense register pages')}>
-        <button
-          type="button"
-          class="secondary-button"
-          disabled={pagedRecords.current === 1}
-          onclick={() => (registerPage -= 1)}>{translate('Previous')}</button
-        >
-        <span
-          >{translate('Page')}
-          {pagedRecords.current}
-          {translate('of')}
-          {pagedRecords.totalPages}</span
-        >
-        <button
-          type="button"
-          class="secondary-button"
-          disabled={pagedRecords.current === pagedRecords.totalPages}
-          onclick={() => (registerPage += 1)}>{translate('Next')}</button
-        >
-      </nav>
-    {/if}
-    <a class="register-back-to-shortcuts" href="#expense-quick-links">
-      {workRound2Text(warningLocale, 'expenseBackToShortcuts')}
-    </a>
-  </SectionCard>
-
-  <ResponsiveSheet
-    open={surface !== null}
-    title={surface === 'edit' ? translate('Edit expense') : translate('Record expense')}
-    description={operationalOnly
-      ? translate('Enter the amount, currency, payer and receipt details.')
-      : translate('Operational entry only. Commercial treatment is handled separately.')}
-    closeLabel={translate('Close expense form')}
-    class="expense-entry-sheet"
-    onclose={closeSurface}
-    protectChanges
-  >
-    {#if surfaceProblem}
-      <div class="operational-form-error" tabindex="-1" data-operational-form-error>
-        <ProblemNotice
-          problem={surfaceProblem}
-          kind={surfaceProblem.code === 'UNEXPECTED_ERROR'
-            ? 'service'
-            : surfaceProblem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'
-              ? 'warning'
-              : 'error'}
-          status={expenseProblemContext || undefined}
-          remedyLinks={{
-            correct_field: {
-              label: portalText(warningLocale, 'problem.remedy.correctField'),
-            },
-            correct_fields: {
-              label: portalText(warningLocale, 'problem.remedy.correctFields'),
-            },
-            review_expense: {
-              label: translate(
-                surfaceProblem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'
-                  ? 'Review saved expense'
-                  : 'Review updated record',
-              ),
-              href: problemExpenseId
-                ? `${base}/app/expenses/${encodeURIComponent(problemExpenseId)}`
-                : `${base}/app/expenses#expense-records`,
-            },
-            review_expenses: {
-              label: translate('problem.remedy.reviewExpenses'),
-              href: `${base}/app/expenses#expense-records`,
-            },
-            review_time: {
-              label: translate('Review logged hours'),
-              href: `${base}/app/time`,
-            },
-            attach_receipt: {
-              label: translate('Reattach the receipt before saving again.'),
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-            contact_owner: {
-              label: portalText(warningLocale, 'problem.remedy.contactAccessOwner'),
-            },
-            sign_in_again: {
-              label: portalText(warningLocale, 'problem.remedy.signInAgain'),
-              href: `${base}/app/login?lang=${warningLocale}`,
-            },
-            contact_finance: {
-              label: operationalOnly
-                ? translate('Contact the project owner or designated administrator.')
-                : translate('Contact Finance or an owner'),
-            },
-          }}
-        />
-        {#if (surfaceProblem as ProblemData & { values?: Record<string, unknown> }).values?.receiptNeedsReattach === true}
-          <p>{translate('Reattach the receipt before saving again.')}</p>
-        {/if}
-      </div>
-    {:else if surfaceError}
-      <p class="operational-form-error" role="alert" tabindex="-1" data-operational-form-error>
-        {surfaceError}
-      </p>
-    {/if}
-    {#if surface === 'create'}
-      {#key createRequestId}
-        <form
-          method="POST"
-          action="?/createExpense"
-          data-assistant-target="expense-create"
-          enctype="multipart/form-data"
-          class="expense-entry-form"
-          bind:this={createExpenseForm}
-          data-expense-entry-surface
-          use:dirtyFormGuard
-          aria-busy={saving}
-          use:operationalFieldValidation
-          use:enhance={submitExpense}
-          onsubmit={(event) => {
-            void handleOfflineDraft(event);
-          }}
-        >
-          {#if emptyProjectProblem}
-            <ProblemNotice
-              problem={emptyProjectProblem}
-              kind="error"
-              remedyLinks={{
-                review_projects: {
-                  label: translate('Review available projects'),
-                  href: `${base}/app/projects`,
-                },
-                contact_project_owner: {
-                  label: translate('Contact the project owner to review access.'),
-                },
-              }}
-            />
-          {/if}
-          {#if emptyWorkerProblem}
-            <ProblemNotice
-              problem={emptyWorkerProblem}
-              kind="error"
-              remedyLinks={{
-                review_workers: {
-                  label: translate('Review available workers'),
-                  href: `${base}/app/projects?view=team&lang=${encodeURIComponent(warningLocale)}#team-panel-specialists`,
-                },
-                contact_project_owner: {
-                  label: translate('Contact the project owner to review access.'),
-                },
-              }}
-            />
-          {/if}
-          <input type="hidden" name="requestId" value={createRequestId} />
-          {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-            <label
-              ><span>{translate('Worker')}</span><select
-                name="workerId"
-                required
-                bind:value={createWorker}
-                ><option value="">{translate('Select worker')}</option
-                >{#each data.workers ?? [] as worker}<option value={String(worker.id)}
-                    >{worker.name} — {worker.email}</option
-                  >{/each}</select
-              ></label
+          <label class="xp-field">
+            <span>{c('project')}</span>
+            <select
+              name="projectId"
+              required
+              value={fProject}
+              onchange={(event) => selectProject(event.currentTarget.value)}
             >
-          {/if}
-          {#if data.user.role === 'worker' && (crewWorkerOptions.length > 0 || (createWorker && createWorker !== data.user.id))}
-            <label>
-              <span>{translate('Record expense for')}</span>
-              <select
-                name="workerId"
-                required
-                bind:value={createWorker}
-                disabled={crewWorkersLoading}
-              >
-                <option value={data.user.id}
-                  >{data.user.name} — {translate('my own expense')}</option
-                >
-                {#if createWorker !== data.user.id && !crewWorkerOptions.some((worker) => worker.id === createWorker)}
-                  <option value={createWorker} disabled={!crewLookupProblem}
-                    >{translate(
-                      crewWorkersLoading
-                        ? 'Loading crew member…'
-                        : crewLookupProblem
-                          ? portalText(
-                              warningLocale,
-                              'problem.expenseLookup.selectedCrewUnverified',
-                            )
-                          : 'Crew member unavailable',
-                    )}</option
-                  >
-                {/if}
-                {#each crewWorkerOptions as worker (worker.id)}
-                  <option value={worker.id}>{worker.name}</option>
-                {/each}
-              </select>
-              <small>{translate('A separate expense is recorded for the selected person.')}</small>
-            </label>
-            {#if crewSelectionUnavailable}
-              <p class="operational-form-error" role="alert">
-                {translate(
-                  'This crew member is no longer available for this project and date. Review the selection before saving.',
-                )}
-              </p>
-            {/if}
-          {/if}
-          {#if crewLookupProblem}
-            <ProblemNotice
-              problem={crewLookupProblem}
-              kind="error"
-              remedyLinks={lookupRemedyLinks}
-              class="expense-crew-lookup-notice"
-            />
-            {#if crewLookupProblem.correlationId}
-              <small
-                >{portalText(warningLocale, 'problem.error.reference', {
-                  correlationId: crewLookupProblem.correlationId,
-                })}</small
-              >
-            {/if}
-            {#if canRetryLookup(crewLookupProblem)}
-              <button type="button" class="secondary-button" onclick={() => (crewLookupRetry += 1)}
-                >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-              >
-            {/if}
-          {/if}
-
-          <div class="expense-entry-intro">
-            <strong>{translate('Capture what happened')}</strong>
-            <span>{translate('Use the receipt and operational details you know on site.')}</span>
-          </div>
-          <nav
-            class="expense-form-steps"
-            aria-label={workRound2Text(warningLocale, 'expenseFormSteps')}
-          >
-            <a href="#expense-entry-project"
-              >{workRound2Text(warningLocale, 'expenseProjectStep')}</a
-            >
-            <a href="#expense-entry-amount">{workRound2Text(warningLocale, 'expenseAmountStep')}</a>
-            <a href="#expense-entry-receipt"
-              >{workRound2Text(warningLocale, 'expenseEvidenceStep')}</a
-            >
-            <a href="#expense-entry-payer">{workRound2Text(warningLocale, 'expensePayerStep')}</a>
-            <a href="#expense-entry-description"
-              >{workRound2Text(warningLocale, 'expenseDescriptionStep')}</a
-            >
-          </nav>
-          <label id="expense-entry-project" tabindex="-1">
-            <span>{translate('Project')}</span>
-            <select name="projectId" required bind:value={createProject}>
-              <option value="">{translate('Select assignment')}</option>
-              {#if projectSelectionUnavailable}
-                <option value={createProject} disabled
-                  >{translate('Project no longer available')}</option
-                >
-              {/if}
-              {#each availableProjects as project}
-                <option value={String(project.id)}>{project.project_number} — {project.name}</option
+              <option value="" disabled>{c('chooseProject')}</option>
+              {#each projects as project (text(project, 'id'))}
+                <option value={text(project, 'id')}
+                  >{text(project, 'project_number')} · {text(project, 'name')}</option
                 >
               {/each}
             </select>
           </label>
-          {#if selectedProjectUnavailableProblem}
-            <ProblemNotice
-              problem={selectedProjectUnavailableProblem}
-              kind="error"
-              remedyLinks={{
-                review_projects: {
-                  label: translate('Review available projects'),
-                  href: `${base}/app/projects`,
-                },
-                contact_project_owner: {
-                  label: translate('Contact the project owner to review access.'),
-                },
-              }}
-            />
-          {/if}
-          <div class="expense-form-grid" id="expense-entry-date" tabindex="-1">
-            <label>
-              <span>{translate('Date')}</span>
-              <input name="spentOn" type="date" required bind:value={createDate} />
-            </label>
-            <label>
-              <span>{translate('Category')}</span>
-              <select name="category" value={restoredExpenseValue('category') || 'hotel'} required>
-                {#each expenseCategories as [value, label]}
-                  <option {value}>{translate(label)}</option>
-                {/each}
-              </select>
-            </label>
-          </div>
-          <details
-            class="expense-optional-details"
-            id="expense-entry-related"
-            bind:open={expenseOptionalOpen}
-          >
-            <summary>{workRound2Text(warningLocale, 'expenseOtherDetails')}</summary>
-            <div class="expense-form-grid">
-              <label>
-                <span>{translate('Time expense occurred (optional)')}</span>
-                <input
-                  name="occurredTimeLocal"
-                  type="time"
-                  step="60"
-                  value={restoredExpenseValue('occurredTimeLocal')}
-                />
-                <small>{translate('Local time at the project site; leave blank if unknown.')}</small
-                >
-              </label>
-              <label>
-                <span>{translate('Related logged hours (optional)')}</span>
-                <select name="timeEntryId" bind:value={createTimeEntryId}>
-                  <option value="">{translate('Expense only / no linked hours')}</option>
-                  {#if createTimeEntryId && !linkedTimeOptions.some((time) => time.id === createTimeEntryId)}
-                    <option value={createTimeEntryId} disabled={!timeLookupProblem}
-                      >{translate(
-                        linkedTimeLoading
-                          ? 'Loading linked hours…'
-                          : timeLookupProblem
-                            ? 'Current linked hours'
-                            : 'Linked hours unavailable',
-                      )}</option
-                    >
-                  {/if}
-                  {#each linkedTimeOptions as time (time.id)}
-                    <option value={time.id}>
-                      {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
-                        'status',
-                        time.approvalState,
-                      )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
-                    </option>
-                  {/each}
-                </select>
-                <small
-                  >{linkedTimeLoading
-                    ? translate('Loading logged hours…')
-                    : translate('Only hours for this worker, project and date are shown.')}</small
-                >
-              </label>
-              {#if timeSelectionUnavailable}
-                <p class="operational-form-error" role="alert">
-                  {translate(
-                    'The selected logged hours are no longer available. Review the link before saving.',
-                  )}
-                </p>
-              {/if}
-            </div>
-            {#if timeLookupProblem}
-              <ProblemNotice
-                problem={timeLookupProblem}
-                kind="error"
-                remedyLinks={lookupRemedyLinks}
-                class="expense-time-lookup-notice"
-              />
-              {#if timeLookupProblem.correlationId}
-                <small
-                  >{portalText(warningLocale, 'problem.error.reference', {
-                    correlationId: timeLookupProblem.correlationId,
-                  })}</small
-                >
-              {/if}
-              {#if canRetryLookup(timeLookupProblem)}
-                <button
-                  type="button"
-                  class="secondary-button"
-                  onclick={() => (timeLookupRetry += 1)}
-                  >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-                >
-              {/if}
-            {/if}
-            {#if selectedTimeLinkVerified}
-              <ProblemNotice
-                problem={selectedTimeLinkWarning}
-                kind="warning"
-                remedyLinks={{
-                  review_selected_time_entry: {
-                    label: portalText(warningLocale, 'problem.remedy.reviewSelectedTimeEntry'),
-                  },
-                }}
-              />
-            {/if}
-            <label>
-              <span>{translate('Vendor (optional)')}</span>
-              <input name="vendor" maxlength="200" value={restoredExpenseValue('vendor')} />
-            </label>
-            <label>
-              <span>{translate('Payment method')}</span>
-              <input
-                name="paymentMethod"
-                maxlength="80"
-                placeholder={translate('Card, transfer or cash')}
-                value={restoredExpenseValue('paymentMethod')}
-              />
-            </label>
-          </details>
-          <div class="expense-form-grid" id="expense-entry-amount" tabindex="-1">
-            <label>
-              <span>{translate('Amount')}</span>
-              <input
-                name="amount"
-                inputmode="decimal"
-                pattern="[0-9]+([.][0-9][0-9]?)?"
-                data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
-                value={restoredExpenseValue('amount')}
-                required
-              />
-              <small class="expense-currency-context"
-                >{workRound2Text(warningLocale, 'expenseCurrencySelected')}: {createCurrency}</small
-              >
-            </label>
-            <label>
-              <span>{translate('Currency')}</span>
-              <select name="currency" bind:value={createCurrency} required>
-                {#if !['USD', 'BRL', 'EUR'].includes(createProjectCurrency)}
-                  <option value={createProjectCurrency}>{createProjectCurrency}</option>
-                {/if}
-                <option value="USD">USD</option>
-                <option value="BRL">BRL</option>
-                <option value="EUR">EUR</option>
-              </select>
-            </label>
-          </div>
-          <div class="expense-receipt-field" id="expense-entry-receipt" tabindex="-1">
-            <label>
-              <span>{translate('Receipt image or PDF')}</span>
-              <input
-                bind:this={createReceiptInput}
-                name="receipt"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
-                onchange={handleReceiptChange}
-              />
-              <small>{translate('JPG, PNG, HEIC or PDF up to 10 MB')}</small>
-            </label>
-            {#if receiptPreviewName}
-              <div class="expense-receipt-preview" aria-live="polite">
-                <strong>{workRound2Text(warningLocale, 'expenseReceiptSelected')}</strong>
-                <span class="expense-receipt-preview-name">{receiptPreviewName}</span>
-                <small class="expense-receipt-preview-metadata">
-                  {workRound2Text(warningLocale, 'expenseReceiptTypeAndSize')}: {receiptPreviewMime ||
-                    translate('Unknown file type')} · {formatReceiptSize(receiptPreviewSize)}
-                </small>
-                {#if receiptPreviewUrl && receiptPreviewMime.startsWith('image/')}
-                  <img src={receiptPreviewUrl} alt={receiptPreviewName} />
-                {:else if receiptPreviewUrl && receiptPreviewMime === 'application/pdf'}
-                  <a href={receiptPreviewUrl} download={receiptPreviewName}
-                    >{translate('Download PDF')}: {receiptPreviewName}</a
-                  >
-                {:else}
-                  <span>{receiptPreviewName}</span>
-                {/if}
-                <button type="button" class="text-button" onclick={removeSelectedReceipt}
-                  >{workRound2Text(warningLocale, 'expenseReceiptRemove')}</button
-                >
-              </div>
-            {/if}
-          </div>
-          <label id="expense-entry-payer" tabindex="-1">
-            <span>{translate('Who paid')}</span>
-            <select
-              name="whoPaid"
-              bind:value={createWhoPaid}
-              required
-              aria-describedby="expense-payer-guidance"
-            >
-              <option value="worker">{translate('Worker')}</option>
-              <option value="company_card">{translate('Company card')}</option>
-              <option value="company_direct">{translate('Company direct')}</option>
-              <option value="client">{translate('Client paid directly')}</option>
-              <option value="third_party">{translate('Third party')}</option>
-            </select>
-          </label>
-          <div id="expense-payer-guidance">
-            <ProblemNotice
-              problem={payerTreatmentWarning}
-              kind="warning"
-              remedyLinks={{
-                review_expense_payer: {
-                  label: portalText(warningLocale, 'problem.remedy.reviewExpensePayer'),
-                },
-              }}
-            />
-          </div>
-          <label id="expense-entry-description" tabindex="-1">
-            <span>{translate('Description')}</span>
-            <textarea
-              name="description"
-              minlength="3"
-              maxlength="5000"
-              required
-              bind:value={createDescription}
-              oninput={() => (createDescriptionEdited = true)}
-            ></textarea>
-          </label>
-          {#if descriptionLookupProblem}
-            <ProblemNotice
-              problem={descriptionLookupProblem}
-              kind="error"
-              remedyLinks={lookupRemedyLinks}
-              class="expense-description-lookup-notice"
-            />
-            {#if descriptionLookupProblem.correlationId}
-              <small
-                >{portalText(warningLocale, 'problem.error.reference', {
-                  correlationId: descriptionLookupProblem.correlationId,
-                })}</small
-              >
-            {/if}
-            {#if descriptionLookupProblem.code === 'EXPENSE_LOOKUP_UNAVAILABLE'}
-              <p>{portalText(warningLocale, 'problem.expenseLookup.enterDescriptionManually')}</p>
-            {/if}
-            {#if canRetryLookup(descriptionLookupProblem)}
-              <button
-                type="button"
-                class="secondary-button"
-                onclick={() => (descriptionLookupRetry += 1)}
-                >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-              >
-            {/if}
-          {/if}
-          {#if !receiptPreviewName}
-            <ProblemNotice
-              problem={missingDraftReceiptWarning}
-              kind="warning"
-              remedyLinks={{
-                attach_receipt_or_save_draft: {
-                  label: portalText(warningLocale, 'problem.remedy.attachReceiptOrSaveDraft'),
-                },
-              }}
-            />
-          {/if}
-          {#if surfaceProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE'}
-            <label class="expense-separate-confirm">
-              <input
-                type="checkbox"
-                name="allowSeparateExpense"
-                bind:checked={allowSeparateExpense}
-              />
-              <span>{translate('This is a separate expense')}</span>
-            </label>
-          {/if}
-          {#if expenseSavedAnother}
-            <p
-              class="expense-another-status"
-              data-expense-another-status
-              tabindex="-1"
-              role="status"
-              aria-live="polite"
-            >
-              {workRound2Text(warningLocale, 'expenseSavedAnother')}
-            </p>
-          {/if}
-          <label class="expense-save-another-option">
-            <input type="checkbox" bind:checked={createAnotherAfterSave} />
-            <span>{workRound2Text(warningLocale, 'expenseSaveAnotherOption')}</span>
-          </label>
-          <p class="expense-save-another-help">
-            {workRound2Text(warningLocale, 'expenseSaveAnother')}
-          </p>
-          <div class="expense-entry-actions">
-            <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
-              >{translate('Cancel')}</button
-            >
+        {/if}
+      {/if}
+
+      <label class="xp-field">
+        <span>{c('date')}</span>
+        <input type="date" name="spentOn" required bind:value={fDate} />
+      </label>
+
+      <fieldset class="xp-field">
+        <legend>{c('category')}</legend>
+        <input type="hidden" name="category" value={fCategory} />
+        <div class="xp-chips">
+          {#each primaryExpenseCategories as item (item.value)}
             <button
-              type="submit"
-              disabled={saving ||
-                crewWorkersLoading ||
-                crewSelectionUnavailable ||
-                projectSelectionUnavailable ||
-                timeSelectionUnavailable ||
-                (Boolean(createTimeEntryId) && linkedTimeLoading)}
-              >{translate(
-                saving
-                  ? 'Saving…'
-                  : allowSeparateExpense
-                    ? 'Save as a separate expense'
-                    : 'Save draft',
-              )}</button
+              type="button"
+              class="xp-chip"
+              aria-pressed={!moreCategories && fCategory === item.value}
+              onclick={() => {
+                moreCategories = false;
+                fCategory = item.value;
+              }}
             >
-          </div>
-        </form>
-      {/key}
-    {:else if surface === 'edit' && editRow}
-      <form
-        method="POST"
-        action="?/updateExpense"
-        enctype="multipart/form-data"
-        class="expense-entry-form"
-        data-expense-entry-surface
-        use:dirtyFormGuard
-        aria-busy={saving}
-        use:operationalFieldValidation
-        use:enhance={submitExpense}
-      >
-        <input type="hidden" name="id" value={editRow.id} />
-        <input type="hidden" name="version" value={editRow.version} />
-        <div class="expense-entry-intro">
-          <strong>{translate('Update operational details')}</strong>
-          <span
-            >{translate(
-              'Submitted or approved values stay protected by the record lifecycle.',
-            )}</span
+              {@render categoryIcon(item.value)}
+              <span>{c(item.copy as ExpenseCopyKey)}</span>
+            </button>
+          {/each}
+          <button
+            type="button"
+            class="xp-chip"
+            aria-pressed={moreCategories}
+            onclick={() => {
+              moreCategories = true;
+              if (primaryExpenseCategories.some((item) => item.value === fCategory))
+                fCategory = 'parking';
+            }}><span>{c('more')}</span></button
           >
         </div>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Date')}</span>
-            <input name="spentOn" type="date" bind:value={editDate} required />
-          </label>
-          <label>
-            <span>{translate('Category')}</span>
-            <select
-              name="category"
-              value={nativeRecoveryActive
-                ? nativeExpenseValue('category')
-                : rowText(editRow, 'category')}
-              required
-            >
-              {#each expenseCategories as [value, label]}
+        {#if moreCategories}
+          <label class="xp-field xp-sub">
+            <span>{c('moreCategories')}</span>
+            <select bind:value={fCategory}>
+              {#each expenseCategories.filter(([value]) => !primaryExpenseCategories.some((item) => item.value === value)) as [value, label] (value)}
                 <option {value}>{translate(label)}</option>
               {/each}
             </select>
           </label>
-        </div>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Time expense occurred (optional)')}</span>
-            <input
-              name="occurredTimeLocal"
-              type="time"
-              step="60"
-              value={nativeRecoveryActive
-                ? nativeExpenseValue('occurredTimeLocal')
-                : rowText(editRow, 'occurred_time_local')}
-            />
-          </label>
-          <label>
-            <span>{translate('Related logged hours (optional)')}</span>
-            <select
-              name="timeEntryId"
-              bind:value={editTimeEntryId}
-              aria-invalid={editTimeSelectionUnavailable}
-            >
-              <option value="">{translate('Expense only / no linked hours')}</option>
-              {#if editTimeEntryId && !linkedTimeOptions.some((time) => time.id === editTimeEntryId)}
-                <option value={editTimeEntryId}>
-                  {translate(
-                    editTimeEntryId === rowText(editRow, 'time_entry_id') &&
-                      editDate === rowText(editRow, 'spent_on') &&
-                      editOriginalLinkValid === true
-                      ? 'Current linked hours'
-                      : linkedTimeLoading
-                        ? 'Loading linked hours…'
-                        : timeLookupProblem
-                          ? 'problem.expenseLookup.selectedTimeUnverified'
-                          : 'Linked hours unavailable',
-                  )}
-                </option>
-              {/if}
-              {#each linkedTimeOptions as time (time.id)}
-                <option value={time.id}>
-                  {time.workerName} · {decimalHours(time.minutes)} h · {controlledValue(
-                    'status',
-                    time.approvalState,
-                  )}{time.correctionLinked ? ` · ${translate('Correction')}` : ''} · {time.summary}
-                </option>
+        {/if}
+      </fieldset>
+
+      <div class="xp-amount-row">
+        <label class="xp-field">
+          <span>{c('amount')}</span>
+          <input
+            name="amount"
+            required
+            inputmode="decimal"
+            autocomplete="off"
+            pattern={'^\\d+([.,]\\d{1,2})?$'}
+            placeholder="0.00"
+            data-expense-amount
+            bind:value={fAmount}
+          />
+        </label>
+        <label class="xp-field xp-currency">
+          <span>{c('currency')}</span>
+          {#if mode === 'edit'}
+            <input value={fCurrency} readonly aria-readonly="true" />
+          {:else}
+            <select name="currency" bind:value={fCurrency} required>
+              {#each ['USD', 'EUR', 'BRL'] as code (code)}
+                <option value={code}>{code}</option>
               {/each}
             </select>
-            <small
-              >{linkedTimeLoading || editOriginalLinkUnverified
-                ? translate('Loading logged hours…')
-                : translate('Only hours for this worker, project and date are shown.')}</small
-            >
-          </label>
-          {#if editTimeSelectionUnavailable}
-            <p class="operational-form-error" role="alert">
-              {translate(
-                editOriginalLinkDateMismatch
-                  ? 'problem.expenseLookup.originalTimeDateMismatch'
-                  : 'The selected logged hours are no longer available. Review the link before saving.',
-              )}
-            </p>
           {/if}
-          {#if timeLookupProblem}
-            <ProblemNotice
-              problem={timeLookupProblem}
-              kind="error"
-              remedyLinks={lookupRemedyLinks}
-              class="expense-time-lookup-notice"
-            />
-            {#if timeLookupProblem.correlationId}
-              <small
-                >{portalText(warningLocale, 'problem.error.reference', {
-                  correlationId: timeLookupProblem.correlationId,
-                })}</small
-              >
-            {/if}
-            {#if canRetryLookup(timeLookupProblem)}
-              <button type="button" class="secondary-button" onclick={() => (timeLookupRetry += 1)}
-                >{portalText(warningLocale, 'problem.expenseLookup.retryOptions')}</button
-              >
-            {/if}
-          {/if}
-        </div>
-        {#if selectedTimeLinkVerified}
-          <ProblemNotice
-            problem={selectedTimeLinkWarning}
-            kind="warning"
-            remedyLinks={{
-              review_selected_time_entry: {
-                label: portalText(warningLocale, 'problem.remedy.reviewSelectedTimeEntry'),
-              },
-            }}
-          />
-        {/if}
-        <label>
-          <span>{translate('Vendor (optional)')}</span>
-          <input
-            name="vendor"
-            value={nativeRecoveryActive ? nativeExpenseValue('vendor') : rowText(editRow, 'vendor')}
-            maxlength="200"
-          />
         </label>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Amount')}</span>
-            <input
-              name="amount"
-              inputmode="decimal"
-              pattern="[0-9]+([.][0-9][0-9]?)?"
-              data-pattern-message="Amount: enter a number such as 12.34, with no more than two decimal places."
-              value={nativeRecoveryActive
-                ? nativeExpenseValue('amount')
-                : minorToDecimal(editRow.amount_minor)}
-              required
-            />
-          </label>
-          <label>
-            <span>{translate('Payment method')}</span>
-            <input
-              name="paymentMethod"
-              value={nativeRecoveryActive
-                ? nativeExpenseValue('paymentMethod')
-                : rowText(editRow, 'payment_method')}
-              maxlength="80"
-            />
-          </label>
-        </div>
-        <label>
-          <span>{translate('Description')}</span>
-          <textarea name="description" minlength="3" maxlength="5000"
-            >{nativeRecoveryActive
-              ? nativeExpenseValue('description')
-              : rowText(editRow, 'description')}</textarea
-          >
-        </label>
-        <label>
-          <span
-            >{translate(
-              editRow.receipt_document_id
-                ? 'Replace receipt (optional)'
-                : 'Attach receipt (optional)',
-            )}</span
-          >
+      </div>
+
+      <div class="xp-field">
+        <span class="xp-label">{c('receipt')}</span>
+        <label class="xp-receipt">
           <input
-            name="receipt"
+            bind:this={receiptInput}
             type="file"
-            accept="image/jpeg,image/png,image/webp,image/heic,image/heif,application/pdf"
+            name="receipt"
+            accept="image/*,.heic,.heif,application/pdf"
+            onchange={onReceiptChange}
           />
-          <small
-            >{translate(
-              'Choose a JPG, PNG, WebP, HEIC, HEIF, or PDF receipt under 10 MB. The current receipt stays attached until valid changes are saved.',
-            )}</small
-          >
+          {#if receiptUrl}
+            <span class="receipt-preview">
+              {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
+              <span>{receiptName}</span>
+            </span>
+          {:else}
+            <span class="xp-receipt-cta"
+              >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id')
+                ? c('receiptReplace')
+                : c('receiptAction')}</span
+            >
+          {/if}
         </label>
-        <div class="expense-entry-actions">
-          <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
-            >{translate('Cancel')}</button
+        <small
+          >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id') && !receiptUrl
+            ? `${c('receiptOnFile')} · `
+            : ''}{c('receiptHint')}</small
+        >
+        {#if receiptUrl}
+          <button type="button" class="secondary-button xp-small" onclick={clearReceipt}
+            >{c('receiptRemove')}</button
           >
-          <button
-            type="submit"
-            disabled={saving ||
-              linkedTimeLoading ||
-              editOriginalLinkUnverified ||
-              editTimeSelectionUnavailable}>{translate(saving ? 'Saving…' : 'Save changes')}</button
-          >
-        </div>
-      </form>
+        {/if}
+      </div>
+
+      <label class="xp-field">
+        <span>{c('note')}</span>
+        <textarea name="description" rows="2" maxlength="5000" bind:value={fNote}></textarea>
+        <small>{c('noteHint')}</small>
+      </label>
+
+      {#if canOverridePayer}
+        <details class="xp-advanced">
+          <summary>{c('advanced')}</summary>
+          <p class="xp-muted">{c('advancedHint')}</p>
+          {#if mode === 'create'}
+            <label class="xp-field">
+              <span>{c('whoPaid')}</span>
+              <select name="whoPaid" bind:value={fWhoPaid}>
+                <option value="">{c('policyDefault')}</option>
+                <option value="worker">{c('payerWorker')}</option>
+                <option value="company_card">{c('payerCompanyCard')}</option>
+                <option value="company_direct">{c('payerCompanyDirect')}</option>
+                <option value="client">{c('payerClient')}</option>
+                <option value="third_party">{c('payerThirdParty')}</option>
+              </select>
+            </label>
+          {/if}
+          <label class="xp-field">
+            <span>{c('vendor')}</span>
+            <input name="vendor" maxlength="200" bind:value={fVendor} />
+          </label>
+          <label class="xp-field">
+            <span>{c('paymentMethod')}</span>
+            <input name="paymentMethod" maxlength="80" bind:value={fPaymentMethod} />
+          </label>
+        </details>
+      {:else}
+        <p class="xp-muted">{c('policyHint')}</p>
+      {/if}
+
+      {#if possibleDuplicate}
+        <label class="xp-check">
+          <input type="checkbox" name="allowSeparateExpense" bind:checked={allowSeparate} />
+          <span>{c('separateExpense')}</span>
+        </label>
+      {/if}
+
+      <div class="xp-form-actions">
+        {#if mode === 'create'}
+          <label class="xp-check">
+            <input type="checkbox" bind:checked={addAnother} />
+            <span>{c('addAnother')}</span>
+          </label>
+        {/if}
+        <button type="submit" disabled={saving}
+          >{saving ? c('saving') : mode === 'edit' ? c('saveChanges') : c('save')}</button
+        >
+      </div>
+    </form>
+  {/key}
+  {#if mode === 'edit' && editing}
+    <form
+      method="POST"
+      action="?/deleteDraft"
+      class="xp-delete"
+      data-action="deleteDraft"
+      data-record-type="expense"
+      data-record-id={text(editing, 'id')}
+      use:enhance={() =>
+        async ({ result, update }) => {
+          await update();
+          if (result.type === 'success') closeForm();
+        }}
+    >
+      <input type="hidden" name="recordType" value="expense" />
+      <input type="hidden" name="recordId" value={text(editing, 'id')} />
+      <input type="hidden" name="version" value={text(editing, 'version')} />
+      <button type="submit" class="destructive-button">{c('deleteDraft')}</button>
+    </form>
+  {/if}
+</ResponsiveSheet>
+
+<ResponsiveSheet
+  open={confirmBlock !== null}
+  title={c('confirmTitle')}
+  closeLabel={c('cancel')}
+  onclose={() => (confirmBlock = null)}
+>
+  {#if confirmBlock}
+    {@const block = confirmBlock.block}
+    <p>{c('confirmBody', { n: block.drafts.length })}</p>
+    {#if showPersonHeaders}
+      <p><strong>{block.workerId === me ? c('me') : block.workerName}</strong></p>
     {/if}
-  </ResponsiveSheet>
-</div>
+    <ul class="xp-confirm-list">
+      {#each block.drafts as row (text(row, 'id'))}
+        <li>
+          <span>{dayLabel(text(row, 'spent_on'))} · {categoryLabel(text(row, 'category'))}</span>
+          <strong>{money(text(row, 'amount_minor'), text(row, 'currency') || 'USD', tag)}</strong>
+        </li>
+      {/each}
+    </ul>
+    <p class="xp-confirm-total">
+      <span>{c('total')}</span><strong>{totals(block.drafts)}</strong>
+    </p>
+    {#if block.drafts.some((row) => expenseReceiptState(row) !== 'attached')}
+      <p class="xp-warn">
+        {c('noReceipt')}: {block.drafts.filter((row) => expenseReceiptState(row) !== 'attached')
+          .length}
+      </p>
+    {/if}
+    {#if confirmError}
+      <p class="xp-error" role="alert">{confirmError}</p>
+    {/if}
+    <form method="POST" action="?/submitExpenseWeek" use:enhance={submitWeek} class="xp-confirm">
+      <input type="hidden" name="weekStart" value={confirmBlock.week} />
+      <input type="hidden" name="workerId" value={block.workerId} />
+      <input
+        type="hidden"
+        name="entries"
+        value={JSON.stringify(
+          block.drafts.map((row) => ({ id: text(row, 'id'), version: Number(row.version) })),
+        )}
+      />
+      <button type="button" class="secondary-button" onclick={() => (confirmBlock = null)}
+        >{c('cancel')}</button
+      >
+      <button type="submit" disabled={confirmBusy}
+        >{c('confirmSubmit', { n: block.drafts.length })}</button
+      >
+    </form>
+  {/if}
+</ResponsiveSheet>
 
 <style>
-  .operational-form-error {
-    color: var(--ja-red-dark, #8f1d14);
-    padding: 0.75rem 0;
-  }
-  .expense-primary-action-top {
-    justify-content: flex-start;
-  }
-  .expense-quick-links {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.5rem;
-    margin: 0.8rem 0 1rem;
-  }
-  .expense-quick-links a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    padding: 0.35rem 0.75rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 999px;
-    background: var(--ja-white, #fff);
-    color: var(--ja-text, #252520);
-    font-size: 0.875rem;
-    font-weight: 650;
-    text-decoration: none;
-  }
-  .expense-quick-links a:hover,
-  .expense-quick-links a:focus-visible {
-    border-color: var(--ja-teal, #706e66);
-    outline: 2px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
-    outline-offset: 2px;
-  }
-  .expense-quick-links .expense-current-week-link {
-    border-color: color-mix(in srgb, var(--ja-teal, #706e66) 48%, white);
-    background: color-mix(in srgb, var(--ja-teal, #706e66) 8%, white);
-  }
-  .expense-currency-context {
-    display: block;
-    color: var(--ja-steel, #77756d);
-    font-weight: 600;
-  }
-  .expense-form-steps {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.4rem;
-    margin: 0 0 0.8rem;
-    padding: 0.55rem;
-    border: 1px solid var(--ja-border, #e1e1de);
-    border-radius: 0.65rem;
-    background: var(--ja-surface-subtle, #f8f8f7);
-  }
-  .expense-form-steps a {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    padding: 0.35rem 0.7rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 999px;
-    background: var(--ja-white, #fff);
-    color: inherit;
-    font-size: 0.82rem;
-    font-weight: 650;
-    text-decoration: none;
-  }
-  .expense-form-steps a:focus-visible,
-  .expense-form-steps a:hover {
-    border-color: var(--ja-teal, #706e66);
-    outline: 2px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
-    outline-offset: 2px;
-  }
-  .expense-optional-details {
+  .xp {
     display: grid;
-    gap: 0.8rem;
-    padding: 0.75rem;
-    border: 1px solid var(--ja-border, #e1e1de);
-    border-radius: 0.65rem;
-    background: var(--ja-surface-subtle, #f8f8f7);
+    gap: 1rem;
+    max-width: 60rem;
   }
-  .expense-optional-details > summary {
-    cursor: pointer;
-    min-height: 2.75rem;
+  .xp-head {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1rem;
+  }
+  .xp-head h2 {
+    margin: 0;
+    font-size: 1.35rem;
+  }
+  .xp-head p {
+    margin: 0.25rem 0 0;
+    color: var(--ja-text-secondary);
+  }
+  .xp-add {
+    min-height: 3rem;
+    padding-inline: 1.25rem;
+    font-size: 0.95rem;
+    background: var(--ja-red, #b42318);
+    border-color: var(--ja-red, #b42318);
+  }
+  .xp-add:hover:not(:disabled) {
+    background: var(--ja-red-dark, #8f1d14);
+    border-color: var(--ja-red-dark, #8f1d14);
+  }
+  .xp-notice,
+  .xp-empty {
+    margin: 0;
+    padding: 1rem;
+    border: 1px dashed var(--ja-border-strong);
+    border-radius: var(--ja-radius);
+    background: var(--ja-surface);
+    color: var(--ja-text-secondary);
+  }
+  .xp-empty p {
+    margin: 0 0 0.5rem;
+  }
+  .xp-filters {
+    border: 1px solid var(--ja-border-subdued);
+    border-radius: 0.75rem;
+    background: var(--ja-surface);
+    padding: 0.25rem 0.9rem;
+  }
+  .xp-filters summary {
+    cursor: pointer;
+    padding: 0.55rem 0;
     font-weight: 700;
   }
-  .expense-optional-details > summary:focus-visible {
-    outline: 2px solid var(--ja-border-focus, #727068);
-    outline-offset: 3px;
+  .xp-dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    margin-left: 0.4rem;
+    border-radius: 50%;
+    background: var(--ja-red);
   }
-  #expense-entry-project,
-  #expense-entry-date,
-  #expense-entry-related,
-  #expense-entry-amount,
-  #expense-entry-receipt,
-  #expense-entry-payer,
-  #expense-entry-description {
-    scroll-margin-block-start: 0.75rem;
-  }
-  .expense-receipt-field {
+  .xp-filter-grid {
     display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
     gap: 0.6rem;
-    min-width: 0;
+    padding-bottom: 0.6rem;
   }
-  .expense-save-another-option {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    width: fit-content;
-    min-height: 2.75rem;
-    font-weight: 650;
-  }
-  .expense-save-another-option input {
-    margin-top: 0.2rem;
-  }
-  .expense-save-another-help {
-    margin: -0.45rem 0 0;
-    max-width: 70ch;
-    color: var(--ja-steel, #77756d);
-    font-size: 0.82rem;
-  }
-  .expense-another-status {
-    margin: 0;
-    padding: 0.65rem 0.8rem;
-    border-inline-start: 3px solid var(--ja-teal, #706e66);
-    background: color-mix(in srgb, var(--ja-teal, #706e66) 8%, white);
-  }
-  .expense-status-card {
-    color: inherit;
-    text-decoration: none;
-  }
-  .expense-status-card:hover,
-  .expense-status-card:focus-visible {
-    border-color: var(--ja-teal, #706e66);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
-    outline-offset: 2px;
-  }
-  .expense-record-statuses a {
-    display: inline-flex;
-    align-items: center;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    color: inherit;
-    text-decoration: none;
-  }
-  .expense-record-statuses a:focus-visible {
-    border-radius: 999px;
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 30%, transparent);
-    outline-offset: 2px;
-  }
-  .expense-export-panel {
-    display: grid;
-    gap: 0.9rem;
-    margin: 1rem 0;
-    padding: 1rem;
-    border: 1px solid var(--portal-border, #e2e1df);
-    border-radius: 0.75rem;
-    background: var(--portal-surface-soft, #fbfbfa);
-  }
-  .expense-export-panel h3,
-  .expense-export-panel p {
-    margin: 0;
-  }
-  .expense-export-panel p {
-    color: var(--portal-muted, #67675f);
-    font-size: 0.86rem;
-  }
-  .expense-export-fields {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
-  }
-  .expense-export-fields label {
+  .xp-filter-grid label,
+  .xp-field {
     display: grid;
     gap: 0.3rem;
+    min-width: 0;
+    margin: 0;
+    border: 0;
+    padding: 0;
   }
-  .expense-export-fields span {
-    font-size: 0.8125rem;
-    font-weight: 600;
-  }
-  .expense-export-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-  }
-  .expense-export-actions a {
-    text-decoration: none;
-  }
-  .expense-export-actions a[aria-disabled='true'] {
-    cursor: progress;
-    opacity: 0.65;
-  }
-  .expense-export-field-summary {
-    display: grid;
-    gap: 0.35rem;
-    margin: 0 0 0.75rem;
-    padding-left: 1.25rem;
-  }
-  .expense-export-field-summary a {
-    color: var(--ja-status-danger, #a40f18);
-    text-decoration: underline;
-    text-underline-offset: 0.15em;
-  }
-  .expense-export-field-summary a:focus-visible {
-    outline: 2px solid var(--ja-border-focus, #727068);
-    outline-offset: 2px;
-  }
-  .expense-export-field-error {
-    color: var(--ja-status-danger, #a40f18);
-    font-size: 0.8125rem;
-    line-height: 1.35;
-  }
-  .expense-receipt-preview-name {
-    overflow-wrap: anywhere;
-    font-weight: 650;
-  }
-  .expense-receipt-preview-metadata {
-    color: var(--portal-muted, #67675f);
+  .xp-filter-grid span,
+  .xp-field > span,
+  .xp-field > legend,
+  .xp-label {
     font-size: 0.8rem;
-    overflow-wrap: anywhere;
+    font-weight: 700;
+    color: var(--ja-text-secondary);
   }
-  @media (max-width: 52rem) {
-    .expense-export-fields {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-  }
-  @media (max-width: 34rem) {
-    .expense-export-fields {
-      grid-template-columns: 1fr;
-    }
-    .expense-export-actions a {
-      flex: 1 1 100%;
-      text-align: center;
-    }
-    .expense-quick-links {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .expense-quick-links a {
-      justify-content: center;
-      text-align: center;
-    }
-    .expense-form-steps {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .expense-form-steps a {
-      justify-content: center;
-      text-align: center;
-    }
-  }
-  .operational-pagination {
-    align-items: center;
+  .xp-filter-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem;
-    justify-content: flex-end;
-    margin-top: 1rem;
+    align-items: center;
+    gap: 0.4rem 0.9rem;
+    padding-bottom: 0.7rem;
   }
-  .operational-pagination span {
-    color: var(--ja-steel, #77756d);
+  .xp-muted {
+    color: var(--ja-text-muted);
     font-size: 0.85rem;
   }
-  .register-back-to-shortcuts {
-    display: inline-flex;
-    align-items: center;
-    min-height: 2.75rem;
-    margin-top: 0.65rem;
-    color: var(--ja-teal, #706e66);
-    font-weight: 650;
-    text-underline-offset: 0.15em;
+  .xp-warn {
+    color: var(--ja-status-warning-foreground);
+    font-weight: 600;
   }
-  @media (max-width: 480px) {
-    .operational-pagination {
-      justify-content: stretch;
+  .xp-week {
+    border: 1px solid var(--ja-border-subdued);
+    border-radius: var(--ja-radius);
+    background: var(--ja-surface);
+    overflow: hidden;
+  }
+  .xp-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.25rem 1rem;
+    padding: 0.8rem 1rem;
+    background: var(--ja-surface-raised);
+  }
+  .xp-week-head h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .xp-total {
+    font-variant-numeric: tabular-nums;
+  }
+  .xp-person + .xp-person {
+    border-top: 1px solid var(--ja-border-strong);
+  }
+  .xp-person-name {
+    margin: 0;
+    padding: 0.6rem 1rem 0;
+    font-weight: 700;
+  }
+  .xp-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+  }
+  .xp-row {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    gap: 0.25rem 0.75rem;
+    align-items: start;
+    padding: 0.75rem 1rem;
+  }
+  .xp-row + .xp-row {
+    border-top: 1px solid var(--ja-border-subdued);
+  }
+  .xp-icon {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.6rem;
+    background: var(--ja-surface-raised);
+  }
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .xp-row-main p {
+    margin: 0;
+  }
+  .xp-row-title {
+    font-weight: 700;
+    overflow-wrap: anywhere;
+  }
+  .xp-row-meta {
+    font-size: 0.85rem;
+    color: var(--ja-text-secondary);
+  }
+  .xp-note {
+    grid-column: 2 / -1;
+    margin: 0.2rem 0 0;
+    padding: 0.45rem 0.6rem;
+    border-left: 3px solid var(--ja-status-warning);
+    background: #fff7e6;
+    font-size: 0.85rem;
+  }
+  .xp-row-side {
+    display: flex;
+    flex-wrap: wrap-reverse;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.3rem 0.6rem;
+  }
+  .xp-row-title a {
+    color: inherit;
+    text-decoration: none;
+  }
+  .xp-row-title a:hover,
+  .xp-row-title a:focus-visible {
+    text-decoration: underline;
+  }
+  .xp-amount {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  @media (min-width: 40.01rem) {
+    .xp-row {
+      grid-template-columns: 2.25rem minmax(0, 1fr) auto auto;
+      align-items: center;
     }
-    .operational-pagination button {
-      flex: 1 1 7rem;
+    .xp-row-actions {
+      grid-column: auto !important;
+      min-width: 0;
     }
-    .operational-pagination span {
-      order: -1;
+  }
+  .xp-row-actions {
+    grid-column: 2 / -1;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+  .xp-row-actions:empty {
+    display: none;
+  }
+  .xp-row-actions form {
+    margin: 0;
+  }
+  .xp-row-actions a {
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .xp-row-actions .secondary-button {
+    min-height: 2.5rem;
+  }
+  .xp-fix {
+    color: var(--ja-status-warning-foreground);
+  }
+  .xp-submit-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    border-top: 1px solid var(--ja-border-subdued);
+    background: #fbfbf9;
+    font-size: 0.9rem;
+  }
+  .xp-submit-bar button {
+    min-height: 2.9rem;
+    font-size: 0.85rem;
+  }
+  .xp-older {
+    justify-self: center;
+  }
+
+  /* form */
+  .xp-form {
+    display: grid;
+    gap: 1rem;
+  }
+  .xp-form input:not([type='checkbox']):not([type='file']),
+  .xp-form select,
+  .xp-form textarea,
+  .xp-filter-grid input,
+  .xp-filter-grid select {
+    width: 100%;
+    min-height: 2.9rem;
+    font-size: 1rem;
+  }
+  .xp-field small {
+    color: var(--ja-text-muted);
+    font-size: 0.8rem;
+  }
+  .xp-fixed {
+    display: grid;
+    gap: 0.15rem;
+    margin: 0;
+  }
+  .xp-fixed span {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ja-text-secondary);
+  }
+  .xp-chips {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(6.5rem, 1fr));
+    gap: 0.5rem;
+  }
+  .xp-chip {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.45rem;
+    min-height: 3rem;
+    padding: 0.5rem 0.65rem;
+    border: 1px solid var(--ja-control-border-strong);
+    border-radius: 0.7rem;
+    background: var(--ja-surface);
+    color: var(--ja-text-primary);
+    box-shadow: none;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: left;
+  }
+  .xp-chip:hover:not(:disabled) {
+    background: var(--ja-surface-raised);
+    color: var(--ja-text-primary);
+    border-color: var(--ja-primary);
+  }
+  .xp-chip[aria-pressed='true'],
+  .xp-chip[aria-pressed='true']:hover:not(:disabled) {
+    border-color: var(--ja-primary);
+    background: var(--ja-primary);
+    color: #fff;
+  }
+  .xp-sub {
+    margin-top: 0.5rem;
+  }
+  .xp-amount-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 6.5rem;
+    gap: 0.6rem;
+  }
+  .xp-amount-row input[name='amount'] {
+    font-size: 1.25rem !important;
+    font-variant-numeric: tabular-nums;
+  }
+  .xp-receipt {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 4.5rem;
+    padding: 0.75rem;
+    border: 2px dashed var(--ja-control-border-strong);
+    border-radius: 0.8rem;
+    background: var(--ja-canvas);
+    cursor: pointer;
+    text-align: center;
+  }
+  .xp-receipt:focus-within {
+    outline: 3px solid var(--ja-focus-ring);
+    outline-offset: 2px;
+  }
+  .xp-receipt input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .xp-receipt-cta {
+    font-weight: 700;
+  }
+  .receipt-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    overflow-wrap: anywhere;
+  }
+  .receipt-preview img {
+    width: 4rem;
+    height: 4rem;
+    object-fit: cover;
+    border-radius: 0.4rem;
+  }
+  .xp-small {
+    justify-self: start;
+    min-height: 2.4rem;
+  }
+  .xp-advanced {
+    border: 1px solid var(--ja-border-subdued);
+    border-radius: 0.7rem;
+    padding: 0.3rem 0.8rem 0.8rem;
+    display: grid;
+    gap: 0.6rem;
+  }
+  .xp-advanced summary {
+    cursor: pointer;
+    padding: 0.4rem 0;
+    font-weight: 700;
+  }
+  .xp-advanced[open] {
+    gap: 0.8rem;
+  }
+  .xp-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .xp-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    position: sticky;
+    bottom: 0;
+    padding: 0.75rem 0;
+    background: var(--ja-surface);
+    border-top: 1px solid var(--ja-border-subdued);
+  }
+  .xp-form-actions button {
+    min-height: 3rem;
+    padding-inline: 1.4rem;
+    font-size: 0.95rem;
+    margin-left: auto;
+  }
+  .xp-delete {
+    margin-top: 0.5rem;
+  }
+  .xp-delete button {
+    border-color: var(--ja-red);
+    background: var(--ja-surface);
+    color: var(--ja-red-dark);
+    box-shadow: none;
+  }
+  .xp-delete button:hover:not(:disabled) {
+    background: #fdecea;
+    color: var(--ja-red-dark);
+    border-color: var(--ja-red-dark);
+  }
+  .xp-error {
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.6rem;
+    background: #fdecea;
+    color: var(--ja-red-dark);
+    font-weight: 600;
+  }
+  .xp-ok {
+    margin: 0;
+    padding: 0.6rem 0.8rem;
+    border-radius: 0.6rem;
+    background: #eaf6ec;
+    font-weight: 600;
+  }
+  .xp-confirm-list {
+    list-style: none;
+    margin: 0.5rem 0;
+    padding: 0;
+  }
+  .xp-confirm-list li,
+  .xp-confirm-total {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--ja-border-subdued);
+  }
+  .xp-confirm-total {
+    margin: 0 0 0.75rem;
+    border-bottom: 0;
+    font-size: 1.05rem;
+  }
+  .xp-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.6rem;
+    margin-top: 0.75rem;
+  }
+  .xp-confirm button {
+    min-height: 3rem;
+  }
+
+  @media (max-width: 40rem) {
+    .xp-head {
+      align-items: stretch;
+    }
+    .xp-add {
       width: 100%;
-      text-align: center;
+    }
+    .xp-row {
+      padding-inline: 0.8rem;
+    }
+    .xp-row-side {
+      flex-direction: column;
+      align-items: flex-end;
+    }
+    .xp-submit-bar button,
+    .xp-confirm button {
+      width: 100%;
     }
   }
 </style>

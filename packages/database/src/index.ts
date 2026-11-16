@@ -1051,8 +1051,11 @@ const INTEGER_BYTES_PATTERN = /^(?:0|[1-9]\d*)$/u;
 export function readinessCheck(
   sqlite: DatabaseSync,
   documentRoot = process.env.JA_DOCUMENT_ROOT ?? process.env.JA_FILES_ROOT ?? 'data/documents',
+  options: Readonly<{ integrity?: (sqlite: DatabaseSync) => string }> = {},
 ): DatabaseReadiness {
-  const integrity = integrityCheck(sqlite);
+  // PRAGMA integrity_check reads the whole database file. Callers that probe
+  // often (container health checks) may supply a cached result instead.
+  const integrity = (options.integrity ?? integrityCheck)(sqlite);
   const hasMigrationTable = Boolean(
     sqlite
       .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='schema_migration'")

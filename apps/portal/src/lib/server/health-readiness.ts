@@ -98,9 +98,10 @@ export type OperationalReadiness = DatabaseReadiness &
 export function operationalReadiness(
   sqlite: Parameters<typeof readinessCheck>[0],
   documentRoot = process.env.JA_DOCUMENT_ROOT ?? process.env.JA_FILES_ROOT ?? 'data/documents',
+  integrity?: (sqlite: Parameters<typeof readinessCheck>[0]) => string,
 ): OperationalReadiness {
   const migrationContract = validateReviewedMigrationContract();
-  const base = readinessCheck(sqlite, documentRoot);
+  const base = readinessCheck(sqlite, documentRoot, integrity ? { integrity } : {});
   const minimum = parseMinimumFreeBytes();
   const resolvedDocumentRoot = resolve(documentRoot);
   const storagePathReady = isRealDirectoryPath(resolvedDocumentRoot);
@@ -190,12 +191,37 @@ export function createReadinessGate<T>(ttlMs = READINESS_CACHE_TTL_MS): Readines
 
 export const readinessGate = createReadinessGate<OperationalReadiness>();
 
+/**
+ * A full integrity_check scans the entire SQLite file (hundreds of MB in
+ * production). Running it on every 30-second container probe competes with
+ * user traffic for disk I/O and can push the probe past its timeout. Only an
+ * "ok" result is cached; any failure is re-checked on the next probe.
+ */
+export const INTEGRITY_CACHE_TTL_MS = 15 * 60_000;
+let integrityCache: { value: string; expiresAt: number } | undefined;
+
+export function cachedIntegrityCheck(
+  sqlite: Parameters<typeof readinessCheck>[0],
+  ttlMs = INTEGRITY_CACHE_TTL_MS,
+): string {
+  const now = Date.now();
+  if (integrityCache && integrityCache.expiresAt > now) return integrityCache.value;
+  const result = sqlite.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
+  const value = result.integrity_check;
+  integrityCache = value === 'ok' ? { value, expiresAt: now + ttlMs } : undefined;
+  return value;
+}
+
+export function clearIntegrityCache(): void {
+  integrityCache = undefined;
+}
+
 export function cachedOperationalReadiness(): Promise<OperationalReadiness> {
   return readinessGate.get(() => {
     let db: ReturnType<typeof openDatabase> | undefined;
     try {
       db = openDatabase();
-      return operationalReadiness(db);
+      return operationalReadiness(db, undefined, cachedIntegrityCheck);
     } catch {
       return unavailableReadiness();
     } finally {

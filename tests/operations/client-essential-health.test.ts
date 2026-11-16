@@ -16,7 +16,9 @@ vi.mock('@ja/database', () => ({
 
 import { openDatabase, readinessCheck, validateReviewedMigrationContract } from '@ja/database';
 import {
+  cachedIntegrityCheck,
   cachedOperationalReadiness,
+  clearIntegrityCache,
   createReadinessGate,
   isRealDirectoryPath,
   operationalReadiness,
@@ -204,6 +206,30 @@ describe('Client Essential readiness policy', () => {
     expect(responses).toHaveLength(12);
     expect(mockedOpenDatabase).toHaveBeenCalledTimes(1);
     expect(mockedReadinessCheck).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('readiness integrity cache', () => {
+  const fakeDb = (results: string[]) => {
+    const get = vi.fn(() => ({ integrity_check: results.shift() ?? 'ok' }));
+    return { db: { prepare: vi.fn(() => ({ get })) } as never, get };
+  };
+
+  it('caches only a successful integrity_check and re-checks failures', () => {
+    clearIntegrityCache();
+    const failing = fakeDb(['*** corruption', 'ok']);
+    expect(cachedIntegrityCheck(failing.db)).toBe('*** corruption');
+    expect(cachedIntegrityCheck(failing.db)).toBe('ok');
+    expect(cachedIntegrityCheck(failing.db)).toBe('ok');
+    expect(failing.get).toHaveBeenCalledTimes(2);
+  });
+
+  it('expires the cached ok result after the TTL', () => {
+    clearIntegrityCache();
+    const probe = fakeDb(['ok', 'ok']);
+    expect(cachedIntegrityCheck(probe.db, 0)).toBe('ok');
+    expect(cachedIntegrityCheck(probe.db, 0)).toBe('ok');
+    expect(probe.get).toHaveBeenCalledTimes(2);
   });
 });
 

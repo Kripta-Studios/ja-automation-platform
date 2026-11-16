@@ -383,7 +383,6 @@
 </script>
 
 {#snippet navigationRow(item: NavItem)}
-  {@const subsections = subsectionsForNavItem(item, itemHref(item), data.user.role)}
   <div class="nav-entry">
     <div class="nav-entry-main">
       <a
@@ -397,39 +396,7 @@
           ><PortalNavIcon path={iconPath(item)} centered={item.label === 'Settings'} /></span
         ><span class="nav-label">{translate(item.label)}</span>
       </a>
-      {#if subsections.length > 1}
-        <button
-          id={`${subsectionId(item)}-toggle`}
-          type="button"
-          class="nav-subsection-toggle"
-          aria-label={`${translate('Sections')}: ${translate(item.label)}`}
-          aria-controls={subsectionId(item)}
-          aria-expanded={expandedSubsections === subsectionKey(item)}
-          onclick={() => toggleSubsections(item)}
-          ><span aria-hidden="true"><DirectionIcon direction="down" kind="chevron" /></span></button
-        >
-      {/if}
     </div>
-    {#if subsections.length > 1}
-      <div
-        id={subsectionId(item)}
-        class="nav-subsections"
-        role="group"
-        aria-label={`${translate('Sections')}: ${translate(item.label)}`}
-        hidden={expandedSubsections !== subsectionKey(item)}
-      >
-        {#if expandedSubsections === subsectionKey(item)}
-          {#each subsections as subsection}
-            <a
-              href={subsection.href}
-              onclick={() => closeDrawer(true)}
-              onkeydown={(event) => handleSubsectionKeydown(event, item)}
-              >{translate(subsection.label)}</a
-            >
-          {/each}
-        {/if}
-      </div>
-    {/if}
   </div>
 {/snippet}
 

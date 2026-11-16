@@ -98,15 +98,15 @@ describe('portal role navigation contract', () => {
   it('gives PM the project workflow without finance or commercial configuration', () => {
     expect(labels('project_manager')).toEqual([
       'Dashboard',
-      'Projects',
-      'Approvals',
-      'Reports',
       'Time',
+      'Approvals',
+      'Projects',
       'Expenses',
-      'My Pay',
+      'Reports',
       'Team',
       'Planning',
       'Documents',
+      'My Pay',
       'Profile',
     ]);
     expect(labels('project_manager')).not.toEqual(
@@ -151,20 +151,20 @@ describe('portal role navigation contract', () => {
   it('gives Owner the authorized superset and keeps Audit explicit', () => {
     expect(labels('owner_admin')).toEqual([
       'Dashboard',
-      'Projects',
-      'Approvals',
-      'Reports',
-      'Clients',
-      'Team',
-      'Suppliers',
-      'Crew hours',
       'Time',
       'Expenses',
+      'Approvals',
+      'Projects',
+      'Billing',
+      'Clients',
+      'Team',
       'Planning',
+      'Reports',
+      'Suppliers',
+      'Crew hours',
       'Documents',
       'Finance Overview',
       'Economic Review',
-      'Billing',
       'Collections / Ledger',
       'Accounting',
       'Commercial Configuration',
@@ -217,8 +217,8 @@ describe('portal role navigation contract', () => {
 
     expect(accountLabels('worker')).toEqual(['My Pay', 'Profile', 'Notifications']);
     expect(accountLabels('project_manager')).toEqual([
-      'My Pay',
       'Documents',
+      'My Pay',
       'Profile',
       'Notifications',
     ]);

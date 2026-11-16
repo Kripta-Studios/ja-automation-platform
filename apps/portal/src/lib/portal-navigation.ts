@@ -328,17 +328,17 @@ export function portalNavigationForRole(
       return {
         primary: [
           item('today', 'Dashboard', '⌂'),
-          item('projects', 'Projects', '▦'),
+          item('time', 'Time', '◷'),
           item('approvals', 'Approvals', '✓'),
-          item('reports', 'Reports', '▤'),
+          item('projects', 'Projects', '▦'),
         ],
         secondary: [
-          item('time', 'Time', '◷'),
           item('expenses', 'Expenses', '◇'),
-          item('pay', 'My Pay', '$'),
+          item('reports', 'Reports', '▤'),
           item('projects', 'Team', '◌', route('projects', 'team')),
           item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),
+          item('pay', 'My Pay', '$'),
           item('profile', 'Profile', '◎'),
         ],
         admin: [],
@@ -365,24 +365,26 @@ export function portalNavigationForRole(
       };
     case 'owner_admin':
       return {
+        // Daily owner work first: what people logged, what needs approval,
+        // projects and invoices. Configuration and analysis follow.
         primary: [
           item('today', 'Dashboard', '⌂'),
-          item('projects', 'Projects', '▦'),
+          item('time', 'Time', '◷'),
+          item('expenses', 'Expenses', '◇'),
           item('approvals', 'Approvals', '✓'),
-          item('reports', 'Reports', '▤'),
+          item('projects', 'Projects', '▦'),
+          item('billing', 'Billing', '◫'),
         ],
         secondary: [
           item('projects', 'Clients', '◉', route('projects', 'clients')),
           item('projects', 'Team', '◌', route('projects', 'team')),
+          item('planning', 'Planning', '⌘'),
+          item('reports', 'Reports', '▤'),
           item('supplier', 'Suppliers', '◌'),
           item('crew', 'Crew hours', '◌'),
-          item('time', 'Time', '◷'),
-          item('expenses', 'Expenses', '◇'),
-          item('planning', 'Planning', '⌘'),
           item('documents', 'Documents', '▧'),
           item('finance', 'Finance Overview', '↗', route('finance', 'overview')),
           item('finance', 'Economic Review', '∑', route('finance', 'economic')),
-          item('billing', 'Billing', '◫'),
           item('ledger', 'Collections / Ledger', '▤'),
           item('accounting', 'Accounting', '▥'),
           item('finance', 'Commercial Configuration', '⚙', route('finance', 'commercial')),

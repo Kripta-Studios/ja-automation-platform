@@ -2031,6 +2031,219 @@ export class PortalRepository {
     });
   }
 
+  /**
+   * Save one worker's week timesheet (rows = project + category, columns =
+   * days) as one atomic unit, optionally submitting every draft of that week
+   * for approval in the same transaction.  Every cell reuses the canonical
+   * single-entry commands, so assignment, delegation, overlap, lock,
+   * version and audit rules stay identical:
+   * - empty cell + hours      -> createTimeEntry (actual time only; planned
+   *                              hours are never copied)
+   * - own unsubmitted draft   -> updateTimeEntry, or deleteTime when cleared
+   * - reviewer-returned entry -> append-only correction draft
+   * - submitted/approved/locked/linked entries are read-only.
+   * A failing cell rolls the whole week back and is reported with its
+   * project and date (`weekCell` on the thrown error).
+   */
+  saveTimeWeek(
+    principal: Principal,
+    input: Readonly<{
+      workerId: string;
+      weekStart: string;
+      cells: readonly Readonly<{
+        projectId: string;
+        category: string;
+        workDate: string;
+        minutes: number | null;
+        id?: string;
+        version?: number;
+      }>[];
+      /** Drafts (id + version) the user saw on screen; required to submit. */
+      expected?: readonly Readonly<{ id: string; version: number }>[];
+      submit?: boolean;
+      correctionReason?: string;
+    }>,
+  ) {
+    this.assertActive(principal);
+    assertDate(input.weekStart, 'Week start');
+    const start = new Date(`${input.weekStart}T00:00:00.000Z`);
+    if (!Number.isFinite(start.getTime()) || start.getUTCDay() !== 1)
+      throw new ValidationError('Week start must be a Monday');
+    if (input.cells.length > 300) throw new ValidationError('Too many timesheet cells');
+    const weekEnd = shiftIsoDate(input.weekStart, 6);
+    const workerId = input.workerId || principal.userId;
+    const reason =
+      input.correctionReason?.trim() && input.correctionReason.trim().length >= 3
+        ? input.correctionReason.trim().slice(0, 2000)
+        : 'Hours corrected after reviewer request';
+    const withCell = <T>(
+      cell: Readonly<{ projectId: string; workDate: string; category: string }>,
+      work: () => T,
+    ): T => {
+      try {
+        return work();
+      } catch (error) {
+        if (error && typeof error === 'object')
+          Object.assign(error, {
+            weekCell: {
+              projectId: cell.projectId,
+              workDate: cell.workDate,
+              category: cell.category,
+            },
+          });
+        throw error;
+      }
+    };
+    return this.transaction(() => {
+      const versions = new Map((input.expected ?? []).map((row) => [row.id, row.version]));
+      let created = 0;
+      let updated = 0;
+      let removed = 0;
+      let corrected = 0;
+      for (const cell of input.cells) {
+        if (cell.workDate < input.weekStart || cell.workDate > weekEnd)
+          withCell(cell, () => {
+            throw new ValidationError('A daily entry is outside the selected week');
+          });
+        if (
+          cell.minutes !== null &&
+          (!Number.isInteger(cell.minutes) || cell.minutes < 0 || cell.minutes > 1440)
+        )
+          withCell(cell, () => {
+            throw new ValidationError('Minutes must be an integer from 0 to 1440');
+          });
+        if (!cell.id) {
+          if (!cell.minutes) continue;
+          const result = withCell(cell, () =>
+            this.createTimeEntry(
+              principal,
+              {
+                projectId: cell.projectId,
+                workDate: cell.workDate,
+                category: cell.category,
+                minutes: cell.minutes as number,
+                summary: '',
+              },
+              workerId,
+            ),
+          );
+          versions.set(result.id, result.version);
+          created += 1;
+          continue;
+        }
+        const current = this.sqlite
+          .prepare(
+            `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.minutes,t.start_time,
+                    t.approval_state,t.submitted_at,t.version,
+                    EXISTS(SELECT 1 FROM operational_time_expense_request r WHERE r.time_entry_id=t.id) linked_pair,
+                    EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=t.id) correction_linked
+               FROM time_entry t WHERE t.id=?`,
+          )
+          .get(cell.id) as
+          | {
+              id: string;
+              project_id: string;
+              worker_id: string;
+              work_date: string;
+              category: string;
+              minutes: number;
+              start_time: string | null;
+              approval_state: string;
+              submitted_at: string | null;
+              version: number;
+              linked_pair: number;
+              correction_linked: number;
+            }
+          | undefined;
+        if (
+          !current ||
+          current.worker_id !== workerId ||
+          current.project_id !== cell.projectId ||
+          current.work_date !== cell.workDate
+        )
+          withCell(cell, () => {
+            throw new ValidationError('Time entry not found');
+          });
+        const row = current!;
+        if (row.version !== cell.version)
+          withCell(cell, () => {
+            throw new ConflictError('Week changed. Refresh and review its drafts before submitting');
+          });
+        const minutes = cell.minutes ?? 0;
+        if (minutes === row.minutes) continue;
+        const interval = row.start_time !== null;
+        if (
+          row.approval_state === 'draft' &&
+          !row.submitted_at &&
+          !Number(row.linked_pair) &&
+          !Number(row.correction_linked)
+        ) {
+          if (minutes === 0) {
+            withCell(cell, () => this.deleteTime(principal, row.id, row.version));
+            versions.delete(row.id);
+            removed += 1;
+          } else {
+            const result = withCell(cell, () =>
+              this.updateTimeEntry(principal, {
+                id: row.id,
+                version: row.version,
+                minutes,
+                ...(interval
+                  ? ({ startTime: null, endTime: null, breakMinutes: null } as unknown as {
+                      startTime?: string;
+                    })
+                  : {}),
+              }),
+            );
+            versions.set(row.id, result.version);
+            updated += 1;
+          }
+          continue;
+        }
+        if (row.approval_state === 'needs_changes') {
+          const correctionInput = {
+            recordType: 'time_entry' as const,
+            originalId: row.id,
+            requestId: `week-fix-${row.id}-v${row.version}-m${minutes}`,
+            reason,
+            patch: {
+              minutes,
+              ...(interval ? { startTime: null, endTime: null, breakMinutes: null } : {}),
+            },
+          };
+          const result = withCell(cell, () =>
+            principal.role === 'owner_admin'
+              ? this.ownerOverrideCorrectionDraft(principal, correctionInput)
+              : this.createCorrectionDraft(principal, correctionInput),
+          );
+          versions.set(result.correctionId, 1);
+          corrected += 1;
+          continue;
+        }
+        withCell(cell, () => {
+          throw new ConflictError('Only an unlocked never-submitted time draft can change');
+        });
+      }
+      if (!input.submit) return { created, updated, removed, corrected, submitted: 0 };
+      const remaining = this.sqlite
+        .prepare(
+          `SELECT id,version FROM time_entry
+            WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='draft'
+              AND EXISTS (SELECT 1 FROM project p WHERE p.id=time_entry.project_id AND p.status<>'archived')`,
+        )
+        .all(workerId, input.weekStart, weekEnd) as Array<{ id: string; version: number }>;
+      // Fresh versions for rows this call changed; every other draft must be
+      // one the user saw, so submitTimeWeek detects a stale page.
+      const expected = remaining.map((row) => ({
+        id: row.id,
+        version: versions.get(row.id) ?? -1,
+      }));
+      if (expected.length === 0) throw new ValidationError('Select a week with 1 to 200 draft entries');
+      const result = this.submitTimeWeek(principal, workerId, input.weekStart, expected);
+      return { created, updated, removed, corrected, submitted: result.timeSubmitted };
+    });
+  }
+
   updateTimeEntry(
     principal: Principal,
     input: Readonly<{

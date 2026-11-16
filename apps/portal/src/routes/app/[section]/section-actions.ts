@@ -91,6 +91,7 @@ export const sectionActions: Actions = {
   deleteSkill: reportActions.deleteSkill,
   deleteWorkerSkill: reportActions.deleteWorkerSkill,
   createTime: timeActions.createTime,
+  saveTimeWeek: timeActions.saveTimeWeek,
   createTimeBatch: timeActions.createTimeBatch,
   copyTimeLayout: timeActions.copyTimeLayout,
   updateTime: timeActions.updateTime,

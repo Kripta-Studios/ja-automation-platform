@@ -1,2779 +1,1432 @@
 <script lang="ts">
-  import ProjectContextNav from '../ui/ProjectContextNav.svelte';
-  import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
-  import { dirtyFormGuard } from '../dirty-form-guard';
-  import { useViewPreferences } from '../ui/view-preferences.svelte';
-  import DirectionIcon from '../ui/DirectionIcon.svelte';
-  import { SectionCard } from '../ui';
-  import { page } from '$app/stores';
+  /**
+   * Log hours: one week timesheet.
+   * Rows = assigned projects (Work by default, optional Travel/Overtime rows),
+   * columns = Mon–Sun of the selected week, cells = decimal hours.
+   * Save keeps drafts; one "Submit week for approval" sends every draft of the
+   * week after a confirmation that shows the totals. Submitted/approved cells
+   * are read-only; reviewer-returned cells show the note and can be fixed.
+   * Planned/scheduled hours are never shown as or turned into actual time.
+   */
   import { enhance } from '$app/forms';
-  import type { SubmitFunction } from '@sveltejs/kit';
+  import { goto } from '$app/navigation';
   import { base } from '$app/paths';
-  import { onMount, tick } from 'svelte';
-  import { ResponsiveSheet } from '../ui';
+  import { page } from '$app/stores';
+  import type { SubmitFunction } from '@sveltejs/kit';
+  import { tick } from 'svelte';
+  import { StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
+  import { documentLanguage, type PortalLocale } from '../../portal-i18n';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import TimesheetPanel from './TimesheetPanel.svelte';
-  import TimeIntervalFields from '../ui/TimeIntervalFields.svelte';
-  import ProblemNotice from '../ui/ProblemNotice.svelte';
-  import type { ProblemData } from '../../problem/contract';
-  import FilterSummary from '../ui/FilterSummary.svelte';
-  import DatePresets from '../ui/DatePresets.svelte';
+  import { decimalHoursFromMinutes } from '../minute-hours';
   import { localToday } from '../ui/time-entry-clock';
-  import { normalizePortalLocale, portalText } from '../../portal-i18n';
-  import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
-  import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
-  import { reportFormFieldErrors } from '../ui/form-validation';
-  import { workRound2Text } from '../work-ux-round2-copy';
-  import { requestGuidedRecovery } from '../guided-recovery/events';
-  import { canDeleteTimeDraft } from './time-entry-actions';
-  import {
-    decimalHoursToMinutes,
-    formatDecimalHours,
-    monthCalendarDates,
-    nextIsoDate,
-    weekDates,
-    weekStartForDate,
-  } from './time-entry-actions';
-  import {
-    operationalMatches,
-    operationalPage,
-    operationalSort,
-    operationalStatusMatches,
-    readOperationalRegisterState,
-    type OperationalOrder,
-    writeOperationalRegisterState,
-  } from './operational-register';
-  import {
-    assignedTimeProjectsForDate,
-    assignedTimeWorkersForProjectDate,
-  } from './time-worker-options';
+  import { weekDates, weekStartForDate } from './time-entry-actions';
+  import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
 
   let {
     locale = 'en',
     data,
     isAuditor,
-    availableProjects,
-    saveOfflineDraft,
     translate,
     controlledValue,
   }: {
-    locale?: import('../../portal-i18n').PortalLocale;
+    locale?: PortalLocale;
     data: PortalData;
     isAuditor: boolean;
-    availableProjects: Row[];
-    saveOfflineDraft: (
-      event: SubmitEvent,
-      entityType: 'time' | 'daily_report' | 'technical_report' | 'expense',
-    ) => Promise<{ saved: boolean; error?: string }>;
+    availableProjects?: Row[];
+    saveOfflineDraft?: unknown;
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
-  const warningLocale = $derived(
-    normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-  );
-  const operationalOnly = $derived(['worker', 'project_manager'].includes(String(data.user.role)));
 
-  function timeRegisterAction(actionName: string): string {
-    const query = new URLSearchParams($page.url.searchParams);
-    for (const key of [...query.keys()]) {
-      if (key.startsWith('/')) query.delete(key);
-    }
-    query.set('lang', warningLocale);
-    return `?/${actionName}&${query.toString()}`;
-  }
+  const t = (key: TimeWeekCopyKey, params: Record<string, string | number> = {}) =>
+    timeWeekText(locale, key, params);
 
-  const nativeTimeForm = $page.form as (ProblemData & { values?: Record<string, unknown> }) | null;
-  const nativeTimeValues =
-    nativeTimeForm?.code && nativeTimeForm.values && typeof nativeTimeForm.values === 'object'
-      ? nativeTimeForm.values
-      : {};
-  const nativeTimeValue = (field: string): string =>
-    typeof nativeTimeValues[field] === 'string' ? String(nativeTimeValues[field]) : '';
-  const nativeBatchFailure = Boolean(
-    nativeTimeForm?.code && nativeTimeValue('batchForm') === 'week_table',
-  );
-  const nativeTimeSurface: 'create' | 'edit' | null =
-    nativeTimeForm?.code &&
-    !nativeBatchFailure &&
-    !nativeTimeValue('recordType') &&
-    !nativeTimeValue('originalId') &&
-    !nativeTimeValue('entries')
-      ? nativeTimeValue('id') && nativeTimeValue('workDate')
-        ? 'edit'
-        : nativeTimeValue('workDate') ||
-            nativeTimeForm.messageKey === 'action.validation.timeFields' ||
-            (nativeTimeForm.messageKey === 'action.validation.expenseFields' &&
-              nativeTimeValue('withExpense') === 'on')
-          ? 'create'
-          : null
-      : null;
-  let nativeRecoveryActive = $state(Boolean(nativeTimeSurface));
-  const restoredTimeValue = (field: string): string =>
-    nativeRecoveryActive ? nativeTimeValue(field) : '';
+  type CellStatus = 'draft' | 'submitted' | 'approved' | 'needs_changes';
+  type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned';
+  type SheetRow = { key: string; projectId: string; category: string };
 
-  type Surface = 'create' | 'edit';
-  type CategoryOption = Readonly<{ value: string; label: string }>;
+  const quickCategories = ['regular', 'travel', 'overtime'] as const;
+  const categoryOrder = (category: string) => {
+    const index = (quickCategories as readonly string[]).indexOf(category);
+    return index < 0 ? 9 : index;
+  };
 
-  const primaryCategories: readonly CategoryOption[] = [
-    { value: 'regular', label: 'Work' },
-    { value: 'overtime', label: 'Overtime' },
-    { value: 'travel', label: 'Travel' },
-    { value: 'standby', label: 'Standby' },
-    { value: 'commissioning', label: 'Commissioning' },
-  ];
-  const moreCategories: readonly CategoryOption[] = [
-    { value: 'weekend_holiday', label: 'Weekend / holiday' },
-    { value: 'remote_support', label: 'Remote support' },
-    { value: 'training', label: 'Training' },
-    { value: 'internal', label: 'Internal' },
-  ];
-  const filterCategories = [...primaryCategories, ...moreCategories];
+  const today = localToday();
+  const weekStart = $derived(String(data.weekStart ?? weekStartForDate(today) ?? today));
+  const days = $derived(weekDates(weekStart));
+  const workerId = $derived(String(data.timeWorkerId ?? data.user.id));
+  const delegating = $derived(['owner_admin', 'project_manager'].includes(String(data.user.role)));
+  const workers = $derived(data.timeWorkers ?? []);
+  const canSubmit = $derived(
+    !isAuditor && !(data.user.role === 'project_manager' && workerId !== data.user.id),
+  );
+  const entries = $derived((data.weekEntries ?? []) as Row[]);
+  const assignments = $derived((data.timeAssignments ?? []) as Row[]);
+  const projects = $derived((data.projects ?? []) as Row[]);
 
-  let surface = $state<Surface | null>(nativeTimeSurface);
-  let surfaceError = $state('');
-  let surfaceProblem = $state<ProblemData | null>(nativeTimeSurface ? nativeTimeForm : null);
-  let weekProblem = $state<ProblemData | null>(
-    nativeTimeForm?.code && nativeTimeValue('weekStart') && !nativeBatchFailure
-      ? nativeTimeForm
-      : null,
-  );
-  let batchProblem = $state<ProblemData | null>(
-    nativeBatchFailure ||
-      (nativeTimeForm?.code && nativeTimeValue('entries') && !nativeTimeValue('weekStart'))
-      ? nativeTimeForm
-      : null,
-  );
-  let deleteProblem = $state<ProblemData | null>(null);
-  let saving = $state(false);
-  const submitTime = createOperationalSubmit({
-    locale: () => normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-    translate: (value) => translate(value),
-    setSaving: (value) => {
-      saving = value;
-    },
-    setError: (value) => {
-      surfaceError = value;
-    },
-    setProblem: (value) => {
-      surfaceProblem = value;
-    },
-    onSuccess: () => {
-      if (surface === 'create' && createDate) {
-        try {
-          localStorage.setItem(
-            `ja-time-next-day:${data.user.id}`,
-            JSON.stringify({ date: nextIsoDate(createDate), workerId: selectedCreateWorker }),
-          );
-        } catch {
-          // A private browser may disable storage; the saved record remains authoritative.
-        }
-      }
-      closeSurface();
-    },
-    offlineHandled: () => data.offlineEnabled !== false,
-  });
-  let editTimeId = $state<string | null>(
-    nativeTimeSurface === 'edit' ? nativeTimeValue('id') : null,
-  );
-  let createCategory = $state(nativeTimeValue('category') || 'regular');
-  let createDate = $state(nativeTimeValue('workDate'));
-  let createProject = $state(nativeTimeValue('projectId'));
-  let createWorker = $state(nativeTimeValue('workerId'));
-  let createExpenseEnabled = $state(nativeTimeValue('withExpense') === 'on');
-  let createRequestId = $state(nativeTimeValue('requestId'));
-  let batchWorker = $state(nativeBatchFailure ? nativeTimeValue('workerId') : '');
-  let batchProject = $state(nativeBatchFailure ? nativeTimeValue('projectId') : '');
-  let selectedBatchWeekStart = $state('');
-  const batchWeekStart = $derived(
-    selectedBatchWeekStart ||
-      (nativeBatchFailure ? nativeTimeValue('weekStart') : '') ||
-      data.weekStart ||
-      '',
-  );
-  type BatchDayInput = { hours: string; category: string; summary: string };
-  let batchInputs = $state<Record<string, BatchDayInput>>({});
-  let batchError = $state('');
-  let batchSaving = $state(false);
-  let batchDetailsOpen = $state(nativeBatchFailure || $page.url.searchParams.get('batch') === '1');
-  let weekDetailsOpen = $state(true);
-  let weekSubmitWorker = $state(nativeTimeValue('workerId'));
-  let weekSubmitError = $state('');
-  let weekSubmitting = $state(false);
-  let deleteError = $state('');
-  let calendarWorker = $state('');
-  let calendarMonth = $state('');
-  let calendarDay = $state('');
-  let dateDeepLinkConsumed = false;
-  let editCategory = $state(nativeTimeValue('category') || 'regular');
-  let search = $state($page.url.searchParams.get('q')?.trim() ?? '');
-  let projectFilter = $state(
-    $page.url.searchParams.get('project')?.trim() ?? String(data.timeFilter?.projectId ?? ''),
-  );
-  let workerFilter = $state(
-    $page.url.searchParams.get('worker')?.trim() ?? String(data.timeFilter?.workerId ?? ''),
-  );
-  let clientFilter = $state($page.url.searchParams.get('client')?.trim() ?? '');
-  let statusFilter = $state($page.url.searchParams.get('status')?.trim() ?? '');
-  let registerFrom = $state(String(data.timeFilter?.from ?? ''));
-  let registerTo = $state(String(data.timeFilter?.to ?? ''));
-  const registerDateRangeInvalid = $derived(
-    Boolean(registerFrom && registerTo && registerFrom > registerTo),
-  );
-  $effect(() => {
-    registerFrom = String(data.timeFilter?.from ?? '');
-    registerTo = String(data.timeFilter?.to ?? '');
-    projectFilter = String(data.timeFilter?.projectId ?? '');
-    workerFilter = String(data.timeFilter?.workerId ?? '');
-  });
-  function validateRegisterDateRange(event: SubmitEvent): void {
-    if (!registerDateRangeInvalid) return;
-    event.preventDefault();
-    (event.currentTarget as HTMLFormElement)
-      .querySelector<HTMLInputElement>('[name="to"]')
-      ?.focus();
-  }
-  const requestedInitialOrder = $page.url.searchParams.get('order');
-  let order = $state<OperationalOrder>(
-    requestedInitialOrder && ['newest', 'oldest', 'name', 'status'].includes(requestedInitialOrder)
-      ? (requestedInitialOrder as OperationalOrder)
-      : 'newest',
-  );
-  let registerPage = $state(1);
-  let registerStateHydrated = $state(false);
-  let registerFilterContext = $state('');
-  const registerFilterSignature = $derived(
-    JSON.stringify({
-      search: search.trim(),
-      project: projectFilter,
-      worker: workerFilter,
-      status: statusFilter,
-      client: clientFilter,
-      from: registerFrom,
-      to: registerTo,
-      category: String(data.timeFilter?.category ?? ''),
-    }),
-  );
-  $effect(() => {
-    const next = registerFilterSignature;
-    if (registerFilterContext && registerFilterContext !== next) registerPage = 1;
-    registerFilterContext = next;
-  });
-  const registerStateKey = (): string => `ja-operational-register:time:${data.user.id}`;
+  const projectLabel = (projectId: string): string => {
+    const project = projects.find((row) => String(row.id) === projectId);
+    const entry = entries.find((row) => String(row.project_id) === projectId);
+    const number = String(project?.project_number ?? entry?.project_number ?? '');
+    const name = String(project?.name ?? entry?.project_name ?? '');
+    return [number, name].filter(Boolean).join(' · ') || projectId.slice(0, 8);
+  };
+  const categoryLabel = (category: string): string =>
+    category === 'regular'
+      ? t('work')
+      : category === 'travel'
+        ? t('travel')
+        : category === 'overtime'
+          ? t('overtime')
+          : controlledValue('timeCategory', category);
 
-  onMount(() => {
-    createRequestId ||= crypto.randomUUID();
-    calendarMonth = localToday().slice(0, 7);
-    calendarDay = localToday();
-    const smallViewport = window.matchMedia('(max-width: 650px)').matches;
-    weekDetailsOpen = !smallViewport || window.location.hash === '#weekly-timesheet-title';
-    const saved = readOperationalRegisterState<{
-      search?: string;
-      order?: OperationalOrder;
-      page?: number;
-      filterSignature?: string;
-    }>(registerStateKey());
-    if (!$page.url.searchParams.has('q') && typeof saved?.search === 'string')
-      search = saved.search;
-    if (
-      !$page.url.searchParams.has('order') &&
-      saved?.order &&
-      ['newest', 'oldest', 'name', 'status'].includes(saved.order)
-    ) {
-      order = saved.order;
-    }
-    if (typeof saved?.page === 'number' && saved.filterSignature === registerFilterSignature)
-      registerPage = saved.page;
-    registerStateHydrated = true;
-    if (!nativeRecoveryActive && !isAuditor && $page.url.searchParams.get('action') === 'log-time')
-      openCreate();
-    if (nativeBatchFailure && nativeTimeForm)
-      void tick().then(() => {
-        const form = document.querySelector<HTMLFormElement>('form[action="?/createTimeBatch"]');
-        if (!form) return;
-        reportFormFieldErrors(form, nativeTimeForm.fieldErrors);
-        requestGuidedRecovery({ problem: nativeTimeForm, form, source: form });
-      });
-    if (nativeTimeSurface && nativeTimeForm?.fieldErrors)
-      void tick().then(() => {
-        const form = document.querySelector<HTMLFormElement>('[data-time-entry-surface]');
-        if (!form) return;
-        const fields = Object.fromEntries(
-          Object.entries(nativeTimeForm.fieldErrors).map(([field, errors]) => [
-            field === 'minutes'
-              ? form.querySelector('[name="durationHours"]')
-                ? 'durationHours'
-                : 'endTime'
-              : field === 'breakMinutes'
-                ? 'breakHours'
-                : field,
-            errors,
-          ]),
-        );
-        reportFormFieldErrors(form, fields);
-        document
-          .querySelector<HTMLElement>('[data-operational-form-error]')
-          ?.focus({ preventScroll: true });
-      });
-  });
-  $effect(() => {
-    if (registerStateHydrated)
-      writeOperationalRegisterState(registerStateKey(), {
-        search,
-        order,
-        page: registerPage,
-        filterSignature: registerFilterSignature,
-      });
-  });
-  $effect(() => {
-    if (nativeBatchFailure || $page.url.searchParams.get('batch') === '1') batchDetailsOpen = true;
-  });
-
-  useViewPreferences({
-    scope: 'time-calendar',
-    user: () => `${data.user.id}:${data.user.role}`,
-    url: () => $page.url,
-    defaults: {
-      calendarWorker: '',
-      calendarMonth: localToday().slice(0, 7),
-      calendarDay: localToday(),
-    },
-    get: () => ({ calendarWorker, calendarMonth, calendarDay }),
-    set: (saved) => {
-      calendarWorker = (data.workers ?? []).some((worker) => worker.id === saved.calendarWorker)
-        ? saved.calendarWorker
-        : '';
-      if (/^\d{4}-(0[1-9]|1[0-2])$/.test(saved.calendarMonth)) calendarMonth = saved.calendarMonth;
-      if (/^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/.test(saved.calendarDay))
-        calendarDay = saved.calendarDay;
-    },
-  });
-  const records = $derived(data.records ?? []);
-  const calendarRecords = $derived(data.calendarRecords ?? records);
-  const ownerMode = $derived(data.user.role === 'owner_admin');
-  const batchDates = $derived(weekDates(batchWeekStart));
-  const calendarDates = $derived(monthCalendarDates(calendarMonth));
-  const calendarDayRecords = $derived(
-    calendarRecords.filter(
+  const assigned = (projectId: string, date: string): boolean =>
+    assignments.some(
       (row) =>
-        String(row.work_date) === calendarDay &&
-        String(row.worker_id) === calendarWorker &&
-        !['rejected', 'void'].includes(String(row.approval_state)),
-    ),
-  );
-  const batchProjects = $derived(
-    !batchWorker
-      ? availableProjects
-      : availableProjects.filter((project) =>
-          (data.timeAssignments ?? []).some(
-            (assignment) =>
-              String(assignment.project_id) === String(project.id) &&
-              String(assignment.worker_id) === batchWorker &&
-              batchDates.some(
-                (date) =>
-                  String(assignment.starts_on ?? '') <= date &&
-                  (!assignment.ends_on || String(assignment.ends_on) >= date),
-              ),
-          ),
-        ),
-  );
-  const batchProjectUnavailable = $derived(
-    Boolean(batchProject) && !batchProjects.some((project) => String(project.id) === batchProject),
-  );
-  function updateBatchDay(
-    date: string,
-    index: number,
-    field: keyof BatchDayInput,
-    value: string,
-  ): void {
-    batchInputs[date] = {
-      ...(batchInputs[date] ?? {
-        hours: restoredBatchDayValue(date, index, 'hours'),
-        category: restoredBatchDayValue(date, index, 'category') || 'regular',
-        summary: restoredBatchDayValue(date, index, 'summary'),
-      }),
-      [field]: value,
+        String(row.project_id) === projectId &&
+        String(row.starts_on ?? '') <= date &&
+        (!row.ends_on || String(row.ends_on) >= date),
+    );
+
+  let extraRows = $state<SheetRow[]>([]);
+  let edits = $state<Record<string, string>>({});
+  let reason = $state('');
+  let busy = $state<'' | 'save' | 'submit'>('');
+  let intent = $state<'save' | 'submit'>('save');
+  let addingRow = $state(false);
+  let newRowProject = $state('');
+  let newRowCategory = $state('travel');
+  let confirmDialog = $state<HTMLDialogElement | null>(null);
+  let sheetForm = $state<HTMLFormElement | null>(null);
+
+  const rows = $derived.by((): SheetRow[] => {
+    const map = new Map<string, SheetRow>();
+    const add = (projectId: string, category: string) => {
+      const key = `${projectId}|${category}`;
+      if (!map.has(key)) map.set(key, { key, projectId, category });
     };
-  }
-  function restoredBatchDayValue(date: string, index: number, field: keyof BatchDayInput): string {
-    if (!nativeBatchFailure || nativeTimeValue(`workDate_${index}`) !== date) return '';
-    return nativeTimeValue(`${field}_${index}`) || (field === 'category' ? 'regular' : '');
-  }
-  function setBatchWeek(value: string): string | null {
-    const monday = weekStartForDate(value);
-    if (monday) selectedBatchWeekStart = monday;
-    return monday;
-  }
-  function selectBatchWeek(event: Event): void {
-    const input = event.currentTarget as HTMLInputElement;
-    const monday = setBatchWeek(input.value);
-    if (!monday) {
-      input.value = batchWeekStart;
-      return;
+    for (const project of projects) {
+      const id = String(project.id);
+      if (days.some((date) => assigned(id, date))) add(id, 'regular');
     }
-    input.value = monday;
-  }
-  function submitBatchWeekPicker(event: SubmitEvent): void {
-    event.preventDefault();
-    const form = event.currentTarget as HTMLFormElement;
-    const input = form.elements.namedItem('week') as HTMLInputElement | null;
-    if (input) selectBatchWeek({ currentTarget: input } as unknown as Event);
-  }
-  const weekWorkerId = $derived(ownerMode ? weekSubmitWorker : String(data.user.id));
-  const weekDrafts = $derived(
-    (data.weekDraftRecords ?? records)
-      .filter(
-        (row) =>
-          String(row.worker_id) === weekWorkerId &&
-          String(row.approval_state) === 'draft' &&
-          String(row.work_date) >= String(data.weekStart ?? '') &&
-          String(row.work_date) <= String(data.weekEnd ?? ''),
-      )
-      .map((row) => ({ id: String(row.id), version: Number(row.version) })),
+    for (const entry of entries) add(String(entry.project_id), String(entry.category));
+    for (const row of extraRows) add(row.projectId, row.category);
+    return [...map.values()].sort(
+      (a, b) =>
+        projectLabel(a.projectId).localeCompare(projectLabel(b.projectId)) ||
+        categoryOrder(a.category) - categoryOrder(b.category),
+    );
+  });
+  const rowProjects = $derived(
+    projects.filter((project) => days.some((date) => assigned(String(project.id), date))),
   );
-  const weekActualMinutes = $derived(
-    (data.timesheet?.days ?? []).reduce((total, day) => total + Number(day.actualMinutes ?? 0), 0),
-  );
-  const weekSubmitWarning = $derived<ProblemData | null>(
-    weekDrafts.length > 0 && Boolean(weekWorkerId)
-      ? {
-          code: 'WARNING_TIME_WEEK_SUBMIT_ALL_DRAFTS',
-          messageKey: 'problem.warning.timeWeekSubmitAllDrafts',
-          params: {
-            count: weekDrafts.length,
-            weekStart: String(data.weekStart ?? ''),
-            weekEnd: String(data.weekEnd ?? ''),
-          },
-          fieldErrors: {},
-          remedies: [{ id: 'review_week' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  function timeSubmitWarning(row: Row): ProblemData {
+
+  const cellKey = (row: SheetRow, date: string) => `${row.key}|${date}`;
+  const cellEntries = (row: SheetRow, date: string) =>
+    entries.filter(
+      (entry) =>
+        String(entry.project_id) === row.projectId &&
+        String(entry.category) === row.category &&
+        String(entry.work_date) === date,
+    );
+  const entryStatus = (entry: Row): CellStatus => {
+    const state = String(entry.approval_state);
+    if (state === 'needs_changes') return 'needs_changes';
+    if (state === 'submitted') return 'submitted';
+    if (state === 'approved' || state === 'locked') return 'approved';
+    return 'draft';
+  };
+  const editableDraft = (entry: Row) =>
+    String(entry.approval_state) === 'draft' &&
+    Number(entry.correction_linked ?? 0) !== 1 &&
+    !entry.linked_pair_expense_id;
+
+  type Cell = {
+    key: string;
+    kind: CellKind;
+    entry?: Row;
+    status?: CellStatus;
+    originalMinutes: number;
+    value: string;
+    minutes: number | null | undefined;
+    changed: boolean;
+  };
+
+  const parseHours = (value: string): number | null | undefined => {
+    const raw = value.trim().replace(',', '.');
+    if (!raw) return null;
+    const match = /^(\d{1,2})(?:\.(\d{1,2}))?$/u.exec(raw);
+    if (!match) return undefined;
+    const hundredths = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+    if (hundredths > 2400) return undefined;
+    return Math.round((hundredths * 3) / 5);
+  };
+  const hoursText = (minutes: number) => (minutes ? decimalHoursFromMinutes(minutes) : '');
+
+  const cellFor = (row: SheetRow, date: string): Cell => {
+    const key = cellKey(row, date);
+    const list = cellEntries(row, date);
+    const originalMinutes = list.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
+    let kind: CellKind;
+    if (list.length === 0) kind = assigned(row.projectId, date) ? 'new' : 'unassigned';
+    else if (list.length > 1) kind = 'multi';
+    else if (editableDraft(list[0]!)) kind = 'draft';
+    else if (String(list[0]!.approval_state) === 'needs_changes') kind = 'fix';
+    else kind = 'locked';
+    if (isAuditor && kind !== 'unassigned') kind = list.length ? 'locked' : 'unassigned';
+    const editable = kind === 'new' || kind === 'draft' || kind === 'fix';
+    const value = editable && key in edits ? edits[key]! : hoursText(originalMinutes);
+    const minutes = parseHours(value);
+    const statuses = [...new Set(list.map(entryStatus))];
     return {
-      code: 'WARNING_TIME_SUBMIT_REVIEW',
-      messageKey: 'problem.warning.timeSubmitReview',
-      params: {},
-      fieldErrors: {},
-      remedies: [{ id: 'review_time', recordId: String(row.id) }],
-      correlationId: '',
+      key,
+      kind,
+      entry: list.length === 1 ? list[0] : undefined,
+      status: statuses.length === 1 ? statuses[0] : statuses.length ? 'submitted' : undefined,
+      originalMinutes,
+      value,
+      minutes,
+      changed: editable && minutes !== undefined && (minutes ?? 0) !== originalMinutes,
     };
-  }
-  const selectedCreateWorker = $derived(
-    ['owner_admin', 'project_manager'].includes(String(data.user.role))
-      ? createWorker
-      : String(data.user.id),
+  };
+
+  const grid = $derived(
+    rows.map((row) => ({ row, cells: days.map((date) => cellFor(row, date)) })),
   );
-  const assignedCreateProjects = $derived(
-    assignedTimeProjectsForDate(availableProjects, data.timeAssignments ?? [], createDate),
+  const cellMinutes = (cell: Cell) =>
+    cell.minutes === undefined ? cell.originalMinutes : (cell.minutes ?? 0);
+  const dayTotals = $derived(
+    days.map((_, index) => grid.reduce((sum, line) => sum + cellMinutes(line.cells[index]!), 0)),
   );
-  const assignedCreateWorkers = $derived(
-    assignedTimeWorkersForProjectDate(
-      data.workers ?? [],
-      data.timeAssignments ?? [],
-      createProject,
-      createDate,
-    ),
+  const weekTotal = $derived(dayTotals.reduce((sum, value) => sum + value, 0));
+  const changedCells = $derived(grid.flatMap((line) => line.cells.filter((cell) => cell.changed)));
+  const invalidCells = $derived(
+    grid.flatMap((line) => line.cells.filter((cell) => cell.minutes === undefined)),
   );
-  const selectedCreateProject = $derived(
-    availableProjects.find((project) => String(project.id) === createProject),
+  const fixingCells = $derived(changedCells.filter((cell) => cell.kind === 'fix'));
+  const dirty = $derived(changedCells.length > 0);
+
+  const statusOf = (list: Row[]): CellStatus | 'empty' => {
+    const states = list.map(entryStatus);
+    if (states.includes('needs_changes')) return 'needs_changes';
+    if (states.includes('draft')) return 'draft';
+    if (states.includes('submitted')) return 'submitted';
+    if (states.includes('approved')) return 'approved';
+    return 'empty';
+  };
+  const weekStatus = $derived(statusOf(entries));
+  const dayStatus = (date: string) =>
+    statusOf(entries.filter((entry) => String(entry.work_date) === date));
+  const returned = $derived(entries.filter((entry) => entryStatus(entry) === 'needs_changes'));
+
+  /** Drafts that will be submitted: saved drafts not cleared, plus new hours and fixes. */
+  const submitCount = $derived.by(() => {
+    let count = 0;
+    for (const line of grid)
+      for (const cell of line.cells) {
+        const list = cellEntries(line.row, days[line.cells.indexOf(cell)]!);
+        const drafts = list.filter((entry) => String(entry.approval_state) === 'draft').length;
+        if (cell.kind === 'draft' || cell.kind === 'multi' || cell.kind === 'locked')
+          count += cell.kind === 'draft' && cell.changed && !cell.minutes ? 0 : drafts;
+        else if (cell.kind === 'new' && cell.minutes) count += 1;
+        else if (cell.kind === 'fix' && cell.changed) count += 1;
+      }
+    return count;
+  });
+
+  const statusLabel = (status: CellStatus | 'empty'): string =>
+    status === 'draft'
+      ? t('statusDraft')
+      : status === 'submitted'
+        ? t('statusSubmitted')
+        : status === 'approved'
+          ? t('statusApproved')
+          : status === 'needs_changes'
+            ? t('statusNeedsChanges')
+            : '';
+  const weekStatusLabel = $derived(
+    weekStatus === 'needs_changes'
+      ? t('weekStatusNeedsChanges')
+      : weekStatus === 'draft'
+        ? t('weekStatusDraft')
+        : weekStatus === 'submitted'
+          ? t('weekStatusSubmitted')
+          : weekStatus === 'approved'
+            ? t('weekStatusApproved')
+            : t('weekStatusEmpty'),
   );
-  const assignmentReviewHref = $derived.by(() => {
-    if (!selectedCreateProject)
-      return `${base}/app/projects?action=update-assignment&lang=${encodeURIComponent(warningLocale)}#project-assignment-list`;
-    if (!selectedCreateWorker) {
-      const params = new URLSearchParams({
-        action: 'update-assignment',
-        project: createProject,
-        lang: warningLocale,
-      });
-      return `${base}/app/projects?${params}#project-assignment-list`;
+  const variant = (status: CellStatus | 'empty' | undefined) =>
+    status === 'approved'
+      ? 'success'
+      : status === 'submitted'
+        ? 'info'
+        : status === 'needs_changes'
+          ? 'warning'
+          : 'neutral';
+
+  const language = $derived(documentLanguage(locale));
+  const dayName = (date: string, style: 'short' | 'long' = 'short') => {
+    const value = new Date(`${date}T00:00:00.000Z`);
+    if (style === 'long') {
+      const text = new Intl.DateTimeFormat(language, {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+      }).format(value);
+      return text.charAt(0).toUpperCase() + text.slice(1);
     }
-    const hasExistingAssignment = (data.timeAssignments ?? []).some(
-      (assignment) =>
-        String(assignment.project_id) === createProject &&
-        String(assignment.worker_id) === selectedCreateWorker,
-    );
-    const action = hasExistingAssignment ? 'update-assignment' : 'assign-worker';
-    const params = new URLSearchParams({
-      action,
-      project: createProject,
-      worker: selectedCreateWorker,
-      lang: warningLocale,
+    const weekday = new Intl.DateTimeFormat(language, { weekday: 'short', timeZone: 'UTC' }).format(value);
+    return `${weekday} ${value.getUTCDate()}`;
+  };
+  const rangeLabel = $derived.by(() => {
+    if (days.length !== 7) return weekStart;
+    const format = new Intl.DateTimeFormat(language, {
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
     });
-    return `${base}/app/projects?${params}#${hasExistingAssignment ? 'project-assignment-list' : 'project-assignment'}`;
+    const year = days[6]!.slice(0, 4);
+    return `${format.format(new Date(`${days[0]}T00:00:00Z`))} – ${format.format(new Date(`${days[6]}T00:00:00Z`))} ${year}`;
   });
-  const emptyWorkerProblem = $derived<ProblemData | null>(
-    ['owner_admin', 'project_manager'].includes(String(data.user.role)) &&
-      (data.workers ?? []).length === 0
-      ? {
-          code: 'OPERATIONAL_WORKER_OPTIONS_EMPTY',
-          messageKey: 'problem.operational.workerOptionsEmpty',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_workers' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  const emptyProjectProblem = $derived<ProblemData | null>(
-    availableProjects.length === 0
-      ? {
-          code: 'OPERATIONAL_PROJECT_OPTIONS_EMPTY',
-          messageKey: 'problem.operational.projectOptionsEmpty',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_projects' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  const missingAssignmentProblem = $derived<ProblemData | null>(
-    availableProjects.length > 0 &&
-      !createProject &&
-      (data.workers ?? []).length > 0 &&
-      Boolean(createDate) &&
-      assignedCreateProjects.length === 0
-      ? {
-          code: 'OPERATIONAL_ASSIGNMENT_UNAVAILABLE_FOR_DATE',
-          messageKey: 'problem.operational.assignmentUnavailableForDate',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_assignments' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  const selectedProjectUnavailableProblem = $derived<ProblemData | null>(
-    availableProjects.length > 0 &&
-      Boolean(createDate) &&
-      Boolean(createProject) &&
-      !assignedCreateProjects.some((project) => String(project.id) === createProject)
-      ? {
-          code: 'OPERATIONAL_SELECTED_PROJECT_UNAVAILABLE',
-          messageKey: 'problem.operational.selectedProjectUnavailable',
-          params: {},
-          fieldErrors: {},
-          remedies:
-            data.user.role === 'owner_admin'
-              ? [{ id: 'review_assignments' }]
-              : [{ id: 'contact_project_owner' }],
-          correlationId: '',
-        }
-      : null,
-  );
-  $effect(() => {
-    if (
-      !createWorker ||
-      !createProject ||
-      !createDate ||
-      assignedCreateWorkers.some((worker) => String(worker.id) === createWorker)
-    )
+  const shiftWeek = (offset: number) => {
+    const date = new Date(`${weekStart}T00:00:00.000Z`);
+    date.setUTCDate(date.getUTCDate() + offset * 7);
+    return date.toISOString().slice(0, 10);
+  };
+  const currentWeek = weekStartForDate(today) ?? today;
+
+  const sheetHref = (changes: Record<string, string | null>) => {
+    const query = new URLSearchParams($page.url.searchParams);
+    for (const key of [...query.keys()]) if (key.startsWith('/')) query.delete(key);
+    for (const [key, value] of Object.entries(changes))
+      if (value === null) query.delete(key);
+      else query.set(key, value);
+    return `${base}/app/time?${query.toString()}`;
+  };
+  const leaveGuard = (event: MouseEvent) => {
+    if (dirty && !confirm(translate('Discard unsaved changes?'))) event.preventDefault();
+  };
+  const pickWorker = (event: Event) => {
+    const value = (event.currentTarget as HTMLSelectElement).value;
+    if (dirty && !confirm(translate('Discard unsaved changes?'))) {
+      (event.currentTarget as HTMLSelectElement).value = workerId;
       return;
-    createWorker = '';
-  });
-  const clientOptions = $derived(
-    [...new Set(records.map((row) => String(row.client_name ?? '')).filter(Boolean))].sort(),
-  );
-  useViewPreferences({
-    scope: 'time',
-    user: () => `${data.user.id}:${data.user.role}`,
-    url: () => $page.url,
-    defaults: {
-      search: '',
-      projectFilter: '',
-      workerFilter: '',
-      clientFilter: '',
-      statusFilter: '',
-      order: 'newest',
-      registerPage: 1,
-    },
-    query: {
-      search: 'q',
-      projectFilter: 'project',
-      workerFilter: 'worker',
-      clientFilter: 'client',
-      statusFilter: 'status',
-      order: 'order',
-    },
-    get: () => ({
-      search,
-      projectFilter,
-      workerFilter,
-      clientFilter,
-      statusFilter,
-      order,
-      registerPage,
-    }),
-    set: (saved) => {
-      search = saved.search;
-      projectFilter = saved.projectFilter;
-      workerFilter = saved.workerFilter;
-      clientFilter = saved.clientFilter;
-      statusFilter = saved.statusFilter;
-      order = saved.order as OperationalOrder;
-      registerPage = saved.registerPage;
-    },
-    validate: (saved) => ({
-      ...saved,
-      order: ['newest', 'oldest', 'name', 'status'].includes(saved.order) ? saved.order : 'newest',
-      projectFilter: availableProjects.some((project) => String(project.id) === saved.projectFilter)
-        ? saved.projectFilter
-        : '',
-      workerFilter: (data.workers ?? []).some((worker) => String(worker.id) === saved.workerFilter)
-        ? saved.workerFilter
-        : '',
-    }),
-  });
+    }
+    edits = {};
+    extraRows = [];
+    void goto(sheetHref({ worker: value }), { noScroll: true, keepFocus: true });
+  };
+
   $effect(() => {
-    if (nativeRecoveryActive) return;
-    const id = $page.url.searchParams.get('edit');
-    const row = records.find(
-      (row) =>
-        String(row.id) === id &&
-        row.approval_state === 'draft' &&
-        Number(row.correction_linked ?? 0) !== 1,
-    );
-    if (row) openEdit(row);
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
   });
-  const editRow = $derived.by(
-    () => records.find((row) => String(row.id) === editTimeId) as Row | undefined,
-  );
-  function visibleWorkerName(id: string): string {
-    if (!id) return '';
-    return String(
-      data.workers?.find((worker) => String(worker.id) === id)?.name ??
-        records.find((row) => String(row.worker_id) === id)?.worker_name ??
-        (id === String(data.user.id) ? data.user.name : ''),
-    );
-  }
-  function visibleProjectName(id: string): string {
-    if (!id) return '';
-    const project = availableProjects.find((row) => String(row.id) === id);
-    if (project) return [project.project_number, project.name].filter(Boolean).join(' · ');
-    const row = records.find((item) => String(item.project_id) === id);
-    return row ? [row.project_number, row.project_name].filter(Boolean).join(' · ') : '';
-  }
-  const timeProblemContext = $derived.by(() => {
-    const row = surface === 'edit' ? editRow : undefined;
-    const projectId = String(row?.project_id ?? createProject);
-    const workerId = String(row?.worker_id ?? selectedCreateWorker);
-    return [
-      visibleProjectName(projectId) || String(row?.project_name ?? row?.project_number ?? ''),
-      visibleWorkerName(workerId) || String(row?.worker_name ?? ''),
-      String(row?.work_date ?? createDate),
-    ]
-      .filter(Boolean)
-      .join(' · ');
+
+  // Reset local edits when the sheet subject changes (week or worker).
+  let sheetIdentity = '';
+  $effect(() => {
+    const identity = `${weekStart}|${workerId}`;
+    if (sheetIdentity && sheetIdentity !== identity) {
+      edits = {};
+      extraRows = [];
+      reason = '';
+    }
+    sheetIdentity = identity;
   });
-  const batchProblemContext = $derived(
-    [visibleProjectName(batchProject), visibleWorkerName(batchWorker), batchDates[0], batchDates[6]]
-      .filter(Boolean)
-      .join(' · '),
-  );
-  const totalActualMinutes = $derived(
-    records
-      .filter(
-        (row) =>
-          !row.active_correction_id && !['rejected', 'void'].includes(String(row.approval_state)),
-      )
-      .reduce((total, row) => total + Number(row.minutes ?? 0), 0),
-  );
-  const pendingCount = $derived(
-    records.filter(
-      (row) =>
-        !row.active_correction_id &&
-        ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
-    ).length,
-  );
-  const approvedCount = $derived(
-    records.filter((row) => !row.active_correction_id && String(row.approval_state) === 'approved')
-      .length,
-  );
-  const activeCategory = $derived(surface === 'edit' ? editCategory : createCategory);
-  const showOperationalDetail = $derived(
-    activeCategory === 'travel' || activeCategory === 'standby',
-  );
-  const operationalDetailLabel = $derived(
-    activeCategory === 'travel' ? 'Travel operational detail' : 'Standby reason',
-  );
-  const filteredRecords = $derived.by(() =>
-    operationalSort(
-      records.filter(
-        (row) =>
-          operationalStatusMatches(row.approval_state, statusFilter, [
-            'draft',
-            'submitted',
-            'needs_changes',
-          ]) &&
-          (!clientFilter || String(row.client_name ?? '') === clientFilter) &&
-          (!projectFilter || String(row.project_id ?? '') === projectFilter) &&
-          (!workerFilter || String(row.worker_id ?? '') === workerFilter) &&
-          operationalMatches(row, search, [
-            'project_number',
-            'project_name',
-            'client_name',
-            'worker_name',
-            'activity_summary',
-            'category',
-            'work_date',
-          ]),
+
+  const setCell = (key: string, value: string) => {
+    edits = { ...edits, [key]: value };
+  };
+
+  const payloadCells = $derived(
+    grid.flatMap((line) =>
+      line.cells.flatMap((cell, index) =>
+        cell.changed
+          ? [
+              {
+                projectId: line.row.projectId,
+                category: line.row.category,
+                workDate: days[index],
+                hours: cell.value,
+                ...(cell.entry ? { id: String(cell.entry.id), version: Number(cell.entry.version) } : {}),
+              },
+            ]
+          : [],
       ),
-      order,
-      ['work_date'],
-      ['worker_name', 'project_name', 'activity_summary'],
-      ['approval_state'],
     ),
   );
-  const pagedRecords = $derived(operationalPage(filteredRecords, registerPage));
-  const advancedFilters = $derived.by(() => {
-    const category = String(data.timeFilter?.category ?? '');
-    return [
-      { removeHref: filterHref({ client: '' }), label: translate('Client'), value: clientFilter },
-      {
-        removeHref: filterHref({ from: '' }),
-        label: translate('From'),
-        value: String(data.timeFilter?.from ?? ''),
-      },
-      {
-        removeHref: filterHref({ to: '' }),
-        label: translate('To'),
-        value: String(data.timeFilter?.to ?? ''),
-      },
-      {
-        removeHref: filterHref({ category: '' }),
-        label: translate('Category'),
-        value: category
-          ? translate(filterCategories.find((item) => item.value === category)?.label ?? category)
-          : '',
-      },
-    ].filter((item) => item.value);
-  });
-  const activeFilters = $derived.by(() => {
-    const projectId = projectFilter;
-    const workerId = workerFilter;
-    const project = availableProjects.find((row) => String(row.id) === projectId);
-    return [
-      { removeHref: filterHref({ q: '' }), label: translate('Search'), value: search.trim() },
-      {
-        removeHref: filterHref({ project: '' }),
-        label: translate('Project'),
-        value: projectId
-          ? project
-            ? `${project.project_number} — ${project.name}`
-            : visibleProjectName(projectId) || translate('Unavailable')
-          : '',
-      },
-      {
-        removeHref: filterHref({ worker: '' }),
-        label: translate('Worker'),
-        value: workerId ? visibleWorkerName(workerId) || translate('Unavailable') : '',
-      },
-      {
-        removeHref: filterHref({ status: '' }),
-        label: translate('Status'),
-        value:
-          statusFilter === 'attention'
-            ? translate('Needs attention')
-            : statusFilter
-              ? controlledValue('status', statusFilter)
-              : '',
-      },
-      ...advancedFilters,
-    ].filter((item) => item.value);
-  });
-  const clearFiltersHref = $derived(
-    `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&q=&reset=1#time-records`,
+  const expectedDrafts = $derived(
+    entries
+      .filter((entry) => String(entry.approval_state) === 'draft')
+      .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
   );
 
-  function clearFilters(): void {
-    search = '';
-    projectFilter = '';
-    workerFilter = '';
-    clientFilter = '';
-    statusFilter = '';
-    order = 'newest';
-    registerPage = 1;
-    writeOperationalRegisterState(registerStateKey(), { search: '', order: 'newest', page: 1 });
-  }
-
-  function filterHref(overrides: Record<string, string>): string {
-    const params = new URLSearchParams();
-    if ($page.url.searchParams.get('includeArchived') === '1') params.set('includeArchived', '1');
-    const project = overrides.project ?? projectFilter;
-    const category = overrides.category ?? String(data.timeFilter?.category ?? '');
-    const status = overrides.status ?? statusFilter;
-    const worker = overrides.worker ?? workerFilter;
-    const client = overrides.client ?? clientFilter;
-    const from = overrides.from ?? String(data.timeFilter?.from ?? '');
-    const to = overrides.to ?? String(data.timeFilter?.to ?? '');
-    const queryText = overrides.q ?? search;
-    const week = data.weekStart ?? '';
-    if (week) params.set('week', week);
-    if (project) params.set('project', project);
-    if (category) params.set('category', category);
-    if (status) params.set('status', status);
-    if (worker) params.set('worker', worker);
-    if (client) params.set('client', client);
-    if (from) params.set('from', from);
-    if (to) params.set('to', to);
-    params.set('q', queryText);
-    if ($page.url.searchParams.has('lang')) params.set('lang', $page.url.searchParams.get('lang')!);
-    const query = params.toString();
-    return `${base}/app/time${query ? `?${query}` : ''}#time-records`;
-  }
-
-  const submitBatch: SubmitFunction = ({ formData, formElement, cancel }) => {
-    batchProblem = null;
-    const recoverBatch = (fieldErrors: Record<string, string[]>): void => {
-      batchProblem = {
-        code: 'TIME_BATCH_ENTRY_INVALID',
-        messageKey: 'problem.time.batchEntryInvalid',
-        params: {},
-        fieldErrors,
-        remedies: [{ id: 'review_week' }],
-        correlationId: '',
-      };
-      reportFormFieldErrors(formElement, fieldErrors);
-      requestGuidedRecovery({ problem: batchProblem, source: formElement, form: formElement });
-    };
-    if (batchProjectUnavailable) {
-      batchError = translate(
-        'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.',
-      );
-      cancel();
-      recoverBatch({ projectId: ['problem.time.projectInvalid'] });
-      return;
-    }
-    const workerId = String(formData.get('workerId') ?? '');
-    const projectId = String(formData.get('projectId') ?? '');
-    const entries: Array<Record<string, string | number>> = [];
-    for (const [index, date] of batchDates.entries()) {
-      const enteredHours = String(formData.get(`hours_${index}`) ?? '').trim();
-      const summary = String(formData.get(`summary_${index}`) ?? '').trim();
-      if (!enteredHours && !summary) continue;
-      const minutes = decimalHoursToMinutes(enteredHours);
-      if (minutes === null || summary.length < 3 || !workerId || !projectId) {
-        batchError = translate(
-          'Enter a worker, assigned project, valid decimal hours and activity for every filled day.',
-        );
-        cancel();
-        recoverBatch({
-          ...(!workerId ? { workerId: ['problem.time.batchEntryInvalid'] } : {}),
-          ...(!projectId ? { projectId: ['problem.time.projectInvalid'] } : {}),
-          ...(minutes === null
-            ? { [`hours_${index}`]: ['Enter a valid number of hours from 0 to 24.'] }
-            : {}),
-          ...(summary.length < 3 ? { [`summary_${index}`]: ['problem.time.summaryInvalid'] } : {}),
-        });
-        return;
-      }
-      entries.push({
-        projectId,
-        workDate: date,
-        category: String(formData.get(`category_${index}`) ?? 'regular'),
-        minutes,
-        summary,
-      });
-    }
-    if (entries.length === 0) {
-      batchError = translate('Enter hours and activity for at least one day.');
-      cancel();
-      recoverBatch({
-        hours_0: ['problem.time.batchEntryInvalid'],
-        summary_0: ['problem.time.summaryInvalid'],
-      });
-      return;
-    }
-    formData.set('entries', JSON.stringify(entries));
-    batchError = '';
-    batchSaving = true;
-    return async ({ result, update }) => {
-      try {
-        await update({ reset: false });
-        if (result.type === 'success') {
-          try {
-            localStorage.setItem(
-              `ja-time-next-day:${data.user.id}`,
-              JSON.stringify({
-                date: nextIsoDate(String(entries.at(-1)?.workDate ?? '')),
-                workerId,
-              }),
-            );
-          } catch {
-            // The batch is already saved even if browser storage is unavailable.
-          }
-        } else if (result.type === 'failure') {
-          batchProblem = result.data?.code ? (result.data as ProblemData) : null;
-          batchError = standaloneActionMessage(
-            normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-            result.data,
-          );
-          await tick();
-          if (batchProblem) reportFormFieldErrors(formElement, batchProblem.fieldErrors);
-          document
-            .querySelector<HTMLElement>('[data-time-batch-problem]')
-            ?.focus({ preventScroll: true });
-        } else if (result.type === 'error')
-          batchError = translate('The daily entries could not be saved. Try again.');
-      } finally {
-        batchSaving = false;
-      }
-    };
+  type SheetResult = {
+    actionName?: string;
+    success?: boolean;
+    messageKey?: string;
+    message?: string;
+    cell?: { projectId: string; workDate: string; category: string };
   };
-
-  const submitWeek: SubmitFunction = () => {
-    weekProblem = null;
-    weekSubmitError = '';
-    weekSubmitting = true;
-    return async ({ result, update }) => {
-      try {
-        await update({ reset: false });
-        if (result.type === 'failure') {
-          weekProblem = result.data?.code ? (result.data as ProblemData) : null;
-          weekSubmitError = standaloneActionMessage(
-            normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-            result.data,
-          );
-          await tick();
-          document
-            .querySelector<HTMLElement>('[data-time-week-problem]')
-            ?.focus({ preventScroll: true });
-        } else if (result.type === 'error')
-          weekSubmitError = translate('The week could not be submitted. Refresh and try again.');
-      } finally {
-        weekSubmitting = false;
-      }
-    };
-  };
-
-  const deleteDraft: SubmitFunction = () => {
-    const scrollTop = window.scrollY;
-    deleteProblem = null;
-    deleteError = '';
-    return async ({ result, update }) => {
-      await update({ reset: false });
-      if (result.type === 'failure') {
-        deleteProblem = result.data?.code ? (result.data as ProblemData) : null;
-        deleteError = standaloneActionMessage(
-          normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
-          result.data,
-        );
-        await tick();
-        document
-          .querySelector<HTMLElement>('[data-time-delete-problem]')
-          ?.focus({ preventScroll: true });
-      } else if (result.type === 'error')
-        deleteError = translate('The draft could not be deleted. Refresh and try again.');
-      await tick();
-      window.scrollTo({ top: scrollTop, behavior: 'instant' });
-    };
-  };
-
-  useAssistantSurfaceRequest({
-    url: () => $page.url,
-    surfaces: ['time-create'],
-    activate: () => {
-      if (isAuditor || nativeRecoveryActive || surface === 'create') return;
-      openCreate();
-    },
-    deactivate: () => {
-      if (surface === 'create' && !nativeRecoveryActive) closeSurface();
-    },
+  const result = $derived($page.form as SheetResult | null);
+  const problem = $derived(
+    result?.actionName === 'saveTimeWeek' && result.success === false ? result : null,
+  );
+  const problemKey = $derived(
+    problem?.cell ? `${problem.cell.projectId}|${problem.cell.category}|${problem.cell.workDate}` : '',
+  );
+  const problemText = $derived.by(() => {
+    if (!problem) return '';
+    const text = problem.messageKey ? translate(problem.messageKey) : '';
+    return text && text !== problem.messageKey ? text : (problem.message ?? '');
   });
 
-  function openCreate(dateOverride?: string, workerOverride?: string): void {
-    nativeRecoveryActive = false;
-    surfaceError = '';
-    surfaceProblem = null;
-    const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
-    const useDeepLinkDate = !dateDeepLinkConsumed && /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate);
-    if (useDeepLinkDate) dateDeepLinkConsumed = true;
-    const filteredDate = String(data.timeFilter?.from ?? '');
-    const filteredSingleDay =
-      /^\d{4}-\d{2}-\d{2}$/u.test(filteredDate) &&
-      filteredDate === String(data.timeFilter?.to ?? '')
-        ? filteredDate
-        : '';
-    let remembered: { date?: string; workerId?: string } = {};
-    try {
-      remembered = JSON.parse(localStorage.getItem(`ja-time-next-day:${data.user.id}`) ?? '{}');
-    } catch {
-      // Browser storage is optional.
-    }
-    createDate =
-      dateOverride ??
-      (useDeepLinkDate
-        ? requestedDate
-        : filteredSingleDay ||
-          (/^\d{4}-\d{2}-\d{2}$/u.test(remembered.date ?? '') ? remembered.date! : localToday()));
-    const requestedProjectId = $page.url.searchParams.get('project')?.trim();
-    const filteredProjectId = requestedProjectId ?? String(data.timeFilter?.projectId ?? '');
-    createWorker =
-      workerOverride ??
-      ((data.workers ?? []).some((worker) => String(worker.id) === remembered.workerId)
-        ? remembered.workerId!
-        : data.user.role === 'project_manager' &&
-            (data.workers ?? []).some((worker) => String(worker.id) === String(data.user.id))
-          ? String(data.user.id)
-          : '');
-    createProject = filteredProjectId;
-    surface = 'create';
-    editTimeId = null;
-    createCategory = 'regular';
-    createExpenseEnabled = false;
-    createRequestId = crypto.randomUUID();
-  }
-
-  function selectCreateProject(event: Event): void {
-    const nextProject = (event.currentTarget as HTMLSelectElement).value;
-    if (nextProject !== createProject) createWorker = '';
-    createProject = nextProject;
-  }
-
-  function selectCreateDate(event: Event): void {
-    const nextDate = (event.currentTarget as HTMLInputElement).value;
-    createDate = nextDate;
-    if (
-      createWorker &&
-      !assignedTimeWorkersForProjectDate(
-        data.workers ?? [],
-        data.timeAssignments ?? [],
-        createProject,
-        nextDate,
-      ).some((worker) => String(worker.id) === createWorker)
-    )
-      createWorker = '';
-  }
-
-  function selectCreateWorker(event: Event): void {
-    createWorker = (event.currentTarget as HTMLSelectElement).value;
-  }
-
-  function openEdit(row: Row): void {
-    if (Number(row.correction_linked ?? 0) === 1) return;
-    nativeRecoveryActive = false;
-    surfaceError = '';
-    surfaceProblem = null;
-    surface = 'edit';
-    editTimeId = String(row.id);
-    editCategory = String(row.category ?? 'regular');
-  }
-
-  function closeSurface(): void {
-    nativeRecoveryActive = false;
-    surface = null;
-    surfaceProblem = null;
-    editTimeId = null;
-    createCategory = 'regular';
-    editCategory = 'regular';
-    createExpenseEnabled = false;
-  }
-
-  async function handleOfflineDraft(event: SubmitEvent): Promise<void> {
-    const form = event.currentTarget as HTMLFormElement;
-    const result = await saveOfflineDraft(event, 'time');
-    if (!form.isConnected) return;
-    if (result.saved) {
-      closeSurface();
-      return;
-    }
-    if (!result.error) return;
-    surfaceProblem = null;
-    surfaceError = translate(result.error);
+  const submitSheet: SubmitFunction = () => {
+    busy = intent;
+    return async ({ result: outcome, update }) => {
+      busy = '';
+      if (outcome.type === 'success') {
+        edits = {};
+        extraRows = [];
+        reason = '';
+      }
+      await update({ reset: false, invalidateAll: true });
+      intent = 'save';
+    };
+  };
+  const save = () => {
+    intent = 'save';
+    sheetForm?.requestSubmit();
+  };
+  const openConfirm = () => {
+    if (invalidCells.length) return;
+    confirmDialog?.showModal();
+  };
+  const confirmSubmit = async () => {
+    confirmDialog?.close();
+    intent = 'submit';
+    // Let Svelte write the hidden intent before submitting.
     await tick();
-    const notice = form
-      .closest('[data-ui="responsive-sheet"]')
-      ?.querySelector<HTMLElement>('[data-operational-form-error]');
-    notice?.focus({ preventScroll: true });
-    notice?.scrollIntoView({ block: 'start' });
-  }
+    sheetForm?.requestSubmit();
+  };
+  const addRow = () => {
+    if (!newRowProject) return;
+    extraRows = [
+      ...extraRows,
+      { key: `${newRowProject}|${newRowCategory}`, projectId: newRowProject, category: newRowCategory },
+    ];
+    addingRow = false;
+  };
 
-  function canDelete(row: Row): boolean {
-    if (row.linked_pair_expense_id) return false;
-    if (data.user.role === 'owner_admin') return canDeleteTimeDraft(row, data.user.id, true);
-    return canDeleteTimeDraft(row, data.user.id);
-  }
-  function timeStatusLabel(row: Row): string {
-    return row.linked_pair_expense_id && row.approval_state === 'void'
-      ? translate('Withdrawn')
-      : controlledValue('status', row.approval_state);
-  }
+  const allHistoryRows = $derived((data.records ?? []) as Row[]);
+  let historyLimit = $state(20);
+  const historyRows = $derived(allHistoryRows.slice(0, historyLimit));
+  const historyTotal = $derived(Number(data.recordsTotal ?? historyRows.length));
+  const historyFiltered = $derived(
+    Boolean(data.timeFilter?.projectId || data.timeFilter?.workerId || data.timeFilter?.status),
+  );
+  const workerName = (id: string) =>
+    workers.find((worker) => worker.id === id)?.name ??
+    String(historyRows.find((row) => String(row.worker_id) === id)?.worker_name ?? '');
+  const cellTitle = (cell: Cell): string =>
+    cell.kind === 'unassigned'
+      ? t('noAssignment')
+      : cell.kind === 'multi'
+        ? t('multiple')
+        : cell.kind === 'locked'
+          ? t('readOnly', { status: statusLabel(cell.status ?? 'submitted') })
+          : '';
 </script>
 
-<div class="time-page">
-  <header class="time-page-context">
-    <div>
-      <p class="time-eyebrow">{translate('Worker operations')}</p>
-      <h2>{translate('Time')}</h2>
-      <p>
-        {operationalOnly
-          ? translate('Record the date, duration and activity you actually worked.')
-          : isAuditor
-            ? translate(
-                'Review actual operational time. Commercial interpretation follows the configured project rules.',
-              )
-            : translate(
-                'Record actual operational time. Commercial interpretation is applied from configured project rules.',
-              )}
-      </p>
-    </div>
-  </header>
-  <ProjectContextNav
-    project={availableProjects.find((project) => String(project.id) === projectFilter)}
-    current="time"
-    {locale}
-  />
-
-  {#if !isAuditor}
-    <div class="time-primary-action-wrap time-primary-action-top">
-      <button
-        type="button"
-        class="time-primary-action"
-        data-time-primary-cta
-        disabled={saving}
-        onclick={() => openCreate()}
-      >
-        {translate('Log time')}
-      </button>
-    </div>
-    <p class="operational-action-copy">
-      {translate(
-        'Save a draft while details are still changing. Submit time only after the recorded date, duration and activity are accurate; submitted time is reviewed and cannot be silently overwritten.',
-      )}
-    </p>
+{#snippet cellInput(line: { row: SheetRow; cells: Cell[] }, cell: Cell, index: number)}
+  {@const date = days[index]!}
+  {@const label = t('hoursFor', { project: `${projectLabel(line.row.projectId)} (${categoryLabel(line.row.category)})`, day: dayName(date, 'long') })}
+  {#if cell.kind === 'new' || cell.kind === 'draft' || cell.kind === 'fix'}
+    <input
+      class="hours-input"
+      class:is-changed={cell.changed}
+      class:is-invalid={cell.minutes === undefined || problemKey === cell.key}
+      data-status={cell.kind === 'new' ? 'empty' : cell.status}
+      type="text"
+      inputmode="decimal"
+      autocomplete="off"
+      maxlength="5"
+      placeholder="–"
+      aria-label={label}
+      aria-invalid={cell.minutes === undefined || problemKey === cell.key}
+      value={cell.value}
+      oninput={(event) => setCell(cell.key, event.currentTarget.value)}
+    />
+  {:else}
+    <span
+      class="hours-locked"
+      data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
+      title={cellTitle(cell)}
+      aria-label={`${label}: ${cell.kind === 'unassigned' ? t('noAssignment') : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
+    >
+      {#if cell.kind === 'unassigned'}
+        ·
+      {:else}
+        {hoursText(cell.originalMinutes) || '0'}
+        {#if cell.status === 'approved'}<span aria-hidden="true" class="mark">✓</span>{:else if cell.status === 'submitted'}<span
+            aria-hidden="true"
+            class="mark">⏳</span
+          >{/if}
+      {/if}
+    </span>
   {/if}
+{/snippet}
 
-  <nav
-    id="time-quick-links"
-    class="time-quick-links"
-    aria-label={workRound2Text(warningLocale, 'timeLinks')}
-  >
-    {#if data.timesheet}
-      <a href="#weekly-timesheet-summary">{workRound2Text(warningLocale, 'timeWeekView')}</a>
+<section class="time-week" aria-labelledby="time-week-title" data-testid="time-week">
+  <header class="time-week-head">
+    <div>
+      <h2 id="time-week-title" class="sr-only">{t('title')}</h2>
+      <p class="muted">{delegating && workerId !== data.user.id ? t('workerHint') : t('intro')}</p>
+    </div>
+    {#if delegating}
+      <label class="worker-pick">
+        <span>{t('worker')}</span>
+        {#if workers.length}
+          <select value={workerId} onchange={pickWorker} data-testid="time-worker-select">
+            {#each workers as worker (worker.id)}
+              <option value={worker.id}>{worker.name || worker.id}</option>
+            {/each}
+          </select>
+        {:else}
+          <span class="muted">{t('noWorkers')}</span>
+        {/if}
+      </label>
     {/if}
-    {#if !isAuditor}
-      <a href="#time-week-submit-title">{translate('Submit this week')}</a>
-    {/if}
-    <a href="#time-records">{workRound2Text(warningLocale, 'timeRegister')}</a>
-    <a href="#time-filters">{translate('Filters')}</a>
-    {#if data.weekStart && data.weekEnd}
-      <a
-        class="time-quick-link-current-week"
-        href={filterHref({ from: data.weekStart, to: data.weekEnd })}
-        >{workRound2Text(warningLocale, 'timeThisWeekRegister')}</a
+  </header>
+
+  <nav class="week-nav" aria-label={t('week')}>
+    <a
+      class="week-arrow"
+      href={sheetHref({ week: shiftWeek(-1) })}
+      onclick={leaveGuard}
+      aria-label={t('previousWeek')}
+      data-sveltekit-noscroll>‹</a
+    >
+    <div class="week-label">
+      <strong>{rangeLabel}</strong>
+      <StatusBadge variant={variant(weekStatus)} text={weekStatusLabel} data-testid="week-status" />
+    </div>
+    <a
+      class="week-arrow"
+      href={sheetHref({ week: shiftWeek(1) })}
+      onclick={leaveGuard}
+      aria-label={t('nextWeek')}
+      data-sveltekit-noscroll>›</a
+    >
+    {#if weekStart !== currentWeek}
+      <a class="this-week" href={sheetHref({ week: null })} onclick={leaveGuard} data-sveltekit-noscroll
+        >{t('thisWeek')}</a
       >
     {/if}
   </nav>
 
-  <div class="time-status-strip" aria-label={translate('Time attention summary')}>
-    <a class="time-status-card" href={filterHref({ status: '' })}>
-      <span>{translate('Actual recorded')}</span>
-      <strong>{formatDecimalHours(totalActualMinutes)}</strong>
-      <small
-        >{translate(
-          data.user.role === 'worker'
-            ? 'Hours you really recorded.'
-            : 'Hours recorded for the selected scope.',
-        )}</small
-      >
-    </a>
-    <a class="time-status-card" href={filterHref({ status: 'attention' })}>
-      <span>{translate('Needs attention')}</span>
-      <strong>{pendingCount}</strong>
-      <small>{translate('Draft or review state')}</small>
-    </a>
-    <a class="time-status-card" href={filterHref({ status: 'approved' })}>
-      <span>{translate('Approved')}</span>
-      <strong>{approvedCount}</strong>
-      <small>{translate('Rows approved by the workflow')}</small>
-    </a>
-  </div>
+  {#if returned.length}
+    <div class="returned" role="status" data-testid="time-needs-changes">
+      <p><strong>{t('statusNeedsChanges')}.</strong> {t('needsChangesHelp')}</p>
+      <ul>
+        {#each returned as entry (entry.id)}
+          <li>
+            <span>{dayName(String(entry.work_date))} · {projectLabel(String(entry.project_id))}</span>
+            <span class="note"
+              >{t('reviewerNote')}: {entry.review_reason ? String(entry.review_reason) : t('noNote')}</span
+            >
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
 
-  {#if data.timesheet}
-    <details class="time-week-details" bind:open={weekDetailsOpen}>
-      <summary id="weekly-timesheet-summary">
-        <span class="time-week-summary-item">
-          <small>{workRound2Text(warningLocale, 'timeWeekContext')}</small>
-          <strong>{data.timesheet.weekStart} → {data.timesheet.weekEnd}</strong>
-        </span>
-        <span class="time-week-summary-item">
-          <small>{workRound2Text(warningLocale, 'timeWeekTotal')}</small>
-          <strong>{formatDecimalHours(weekActualMinutes)}</strong>
-        </span>
-        <span class="time-week-summary-item">
-          <small>{workRound2Text(warningLocale, 'timeWeekDrafts')}</small>
-          <strong>{ownerMode && !weekWorkerId ? '—' : weekDrafts.length}</strong>
-        </span>
-        <span class="time-week-details-action"
-          >{workRound2Text(warningLocale, 'timeWeekDetails')}</span
+  {#if problem}
+    <div class="sheet-problem" role="alert" data-testid="time-week-problem">
+      {#if problem.cell}
+        <strong
+          >{t('problemAt', {
+            day: dayName(problem.cell.workDate, 'long'),
+            project: projectLabel(problem.cell.projectId),
+          })}</strong
         >
-      </summary>
-      <TimesheetPanel {locale} {data} {isAuditor} {translate} {controlledValue} />
-    </details>
-    {#if !isAuditor}
-      <section
-        class="time-day-shortcuts"
-        aria-label={workRound2Text(warningLocale, 'timeWeekView')}
-      >
-        <p>{workRound2Text(warningLocale, 'timeSiteDate')}</p>
-        <div>
-          {#each data.timesheet.days as day (day.date)}
+      {/if}
+      <p>{problemText}</p>
+    </div>
+  {/if}
+
+  {#if rows.length === 0}
+    <p class="empty" data-testid="time-no-projects">{delegating && !workers.length ? t('noWorkers') : t('noProjects')}</p>
+  {:else}
+    <form
+      method="POST"
+      action="?/saveTimeWeek"
+      bind:this={sheetForm}
+      use:enhance={submitSheet}
+      class="sheet-form"
+    >
+      <input type="hidden" name="weekStart" value={weekStart} />
+      <input type="hidden" name="workerId" value={workerId} />
+      <input type="hidden" name="cells" value={JSON.stringify(payloadCells)} />
+      <input type="hidden" name="expected" value={JSON.stringify(expectedDrafts)} />
+      <input type="hidden" name="intent" value={intent} />
+      <input type="hidden" name="reason" value={reason} />
+
+      <!-- Desktop/tablet: projects x days table -->
+      <div class="sheet-table-wrap">
+        <table class="sheet-table" data-testid="time-week-table">
+          <thead>
+            <tr>
+              <th scope="col" class="col-project">{t('project')}</th>
+              {#each days as date, index (date)}
+                <th scope="col" class:is-today={date === today}>
+                  <span class="day-head">{dayName(date)}</span>
+                  {#if dayStatus(date) !== 'empty'}
+                    <span class="dot" data-status={dayStatus(date)} title={statusLabel(dayStatus(date))}></span>
+                  {/if}
+                  <span class="sr-only">{dayTotals[index]}</span>
+                </th>
+              {/each}
+              <th scope="col" class="col-total">{t('total')}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each grid as line (line.row.key)}
+              <tr>
+                <th scope="row" class="col-project">
+                  <span class="project-name">{projectLabel(line.row.projectId)}</span>
+                  <span class="category" data-category={line.row.category}>{categoryLabel(line.row.category)}</span>
+                </th>
+                {#each line.cells as cell, index (cell.key)}
+                  <td class:is-today={days[index] === today}>{@render cellInput(line, cell, index)}</td>
+                {/each}
+                <td class="col-total">
+                  {decimalHoursFromMinutes(line.cells.reduce((sum, cell) => sum + cellMinutes(cell), 0))}
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+          <tfoot>
+            <tr>
+              <th scope="row" class="col-project">{t('dayTotal')}</th>
+              {#each dayTotals as total, index (days[index])}
+                <td>{decimalHoursFromMinutes(total)}</td>
+              {/each}
+              <td class="col-total week-total" data-testid="week-total">{decimalHoursFromMinutes(weekTotal)}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <!-- Phone: one card per day -->
+      <ol class="sheet-days" data-testid="time-week-days">
+        {#each days as date, index (date)}
+          <li class="day-card" class:is-today={date === today}>
+            <div class="day-card-head">
+              <strong>{dayName(date, 'long')}</strong>
+              {#if dayStatus(date) !== 'empty'}
+                <StatusBadge variant={variant(dayStatus(date))} text={statusLabel(dayStatus(date))} />
+              {/if}
+              <span class="day-card-total">{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</span>
+            </div>
+            <ul>
+              {#each grid as line (line.row.key)}
+                {@const cell = line.cells[index]!}
+                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
+                  <li class="day-line">
+                    <span class="day-line-label">
+                      <span class="project-name">{projectLabel(line.row.projectId)}</span>
+                      <span class="category" data-category={line.row.category}>{categoryLabel(line.row.category)}</span>
+                    </span>
+                    {@render cellInput(line, cell, index)}
+                  </li>
+                {/if}
+              {/each}
+            </ul>
+          </li>
+        {/each}
+      </ol>
+
+      <div class="sheet-tools">
+        {#if !isAuditor && rowProjects.length}
+          {#if addingRow}
+            <fieldset class="add-row">
+              <legend>{t('addRowTitle')}</legend>
+              <label
+                >{t('project')}
+                <select bind:value={newRowProject}>
+                  {#each rowProjects as project (project.id)}
+                    <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
+                  {/each}
+                </select>
+              </label>
+              <label
+                >{t('type')}
+                <select bind:value={newRowCategory}>
+                  {#each quickCategories as category (category)}
+                    <option value={category}>{categoryLabel(category)}</option>
+                  {/each}
+                </select>
+              </label>
+              <button type="button" class="secondary" onclick={addRow}>{t('add')}</button>
+              <button type="button" class="link" onclick={() => (addingRow = false)}>{t('cancel')}</button>
+            </fieldset>
+          {:else}
             <button
               type="button"
-              class="secondary-button"
-              aria-label={`${translate('Log time on this day')}: ${day.date}`}
-              onclick={() => openCreate(day.date, ownerMode ? weekSubmitWorker : undefined)}
+              class="link"
+              onclick={() => {
+                newRowProject = String(rowProjects[0]?.id ?? '');
+                addingRow = true;
+              }}>+ {t('addRow')}</button
             >
-              <span>{day.date.slice(5)}</span>
-              <small>{formatDecimalHours(day.actualMinutes)}</small>
-              {translate('Log time')}
-            </button>
-          {/each}
-        </div>
-      </section>
-    {/if}
-  {/if}
-
-  {#if !isAuditor}
-    <section class="time-week-submit" aria-labelledby="time-week-submit-title">
-      <div>
-        <h3 id="time-week-submit-title">{translate('Submit this week')}</h3>
-        {#if $page.url.searchParams.get('includeArchived') === '1'}
-          <p>
-            {{
-              en: 'Weekly submission excludes archived project drafts. They remain available in history.',
-              es: 'El envío semanal excluye los borradores de proyectos archivados. Siguen disponibles en el historial.',
-              pt: 'O envio semanal exclui rascunhos de projetos arquivados. Continuam disponíveis no histórico.',
-            }[warningLocale]}
-          </p>
+          {/if}
         {/if}
-        <p>
-          {translate(
-            'Submit all draft hours for one worker in the displayed week, together with meals added in Log time. Submitted records enter review.',
-          )}
+        <p class="legend" aria-label={t('legend')}>
+          <span class="dot" data-status="draft"></span>{t('statusDraft')}
+          <span class="dot" data-status="submitted"></span>{t('statusSubmitted')}
+          <span class="dot" data-status="approved"></span>{t('statusApproved')}
+          <span class="dot" data-status="needs_changes"></span>{t('statusNeedsChanges')}
         </p>
       </div>
-      <form method="POST" action="?/submitTimeWeek" use:enhance={submitWeek}>
-        {#if ownerMode}
-          <label>
-            <span>{translate('Worker')}</span>
-            <select name="workerId" required bind:value={weekSubmitWorker}>
-              <option value="">{translate('Select worker')}</option>
-              {#each data.workers ?? [] as worker}
-                <option value={String(worker.id)}>{worker.name}</option>
-              {/each}
-            </select>
-          </label>
-        {:else}
-          <input type="hidden" name="workerId" value={data.user.id} />
-        {/if}
-        <input type="hidden" name="weekStart" value={data.weekStart ?? ''} />
-        <input type="hidden" name="entries" value={JSON.stringify(weekDrafts)} />
-        <p>
-          {weekDrafts.length}
-          {translate('draft entries ready')} · {data.weekStart} → {data.weekEnd}
-        </p>
-        {#if ownerMode && !weekWorkerId}
-          <p class="time-week-scope" role="status">
-            {translate('Select a worker to review this week’s draft count.')}
-          </p>
-        {:else if weekDrafts.length === 0}
-          <p class="time-week-scope" role="status">
-            {workRound2Text(warningLocale, 'timeNoWeekDrafts')}
-          </p>
-        {/if}
-        {#if weekSubmitWarning}
-          <ProblemNotice
-            problem={weekSubmitWarning}
-            kind="warning"
-            remedyLinks={{
-              review_week: {
-                label: portalText(warningLocale, 'problem.remedy.reviewWeekDrafts'),
-                href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}&worker=${encodeURIComponent(weekWorkerId)}#time-records`,
-              },
-            }}
-          />
-        {/if}
-        {#if weekProblem}
-          <div tabindex="-1" data-time-week-problem>
-            <ProblemNotice
-              problem={weekProblem}
-              status={[visibleWorkerName(weekWorkerId), data.weekStart, data.weekEnd]
-                .filter(Boolean)
-                .join(' · ')}
-              remedyLinks={{
-                review_week: {
-                  label: translate('Review updated week'),
-                  href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}#time-records`,
-                },
-                contact_project_owner: {
-                  label: translate('Contact the project owner to review access.'),
-                },
-              }}
-            />
-          </div>
-        {:else if weekSubmitError}<p role="alert">{weekSubmitError}</p>{/if}
-        <button type="submit" disabled={weekSubmitting || weekDrafts.length === 0}>
-          {translate(weekSubmitting ? 'Submitting…' : 'Submit all week drafts')}
-        </button>
-      </form>
-    </section>
-  {/if}
 
-  {#if ownerMode && !isAuditor}
-    <section class="time-owner-calendar" aria-labelledby="time-calendar-title">
-      {#if deleteProblem}
-        <div tabindex="-1" data-time-delete-problem>
-          <ProblemNotice
-            problem={deleteProblem}
-            remedyLinks={{
-              review_time: {
-                label: translate('Review updated time entry'),
-                href: `${base}/app/time#time-records`,
-              },
-              contact_finance: {
-                label: operationalOnly
-                  ? translate('Contact the project owner or designated administrator.')
-                  : translate('Contact Finance for an audited adjustment.'),
-              },
-            }}
-          />
-        </div>
-      {:else if deleteError}<p role="alert">{deleteError}</p>{/if}
-      <div class="time-owner-heading">
-        <div>
-          <h3 id="time-calendar-title">{translate('Time calendar')}</h3>
-          <p>{translate('Choose a worker and a day to add time or manage editable drafts.')}</p>
-        </div>
-        <div class="time-calendar-controls">
-          <label
-            ><span>{translate('Worker')}</span>
-            <select bind:value={calendarWorker}>
-              <option value="">{translate('Select worker')}</option>
-              {#each data.workers ?? [] as worker}
-                <option value={String(worker.id)}>{worker.name}</option>
-              {/each}
-            </select>
-          </label>
-          <label
-            ><span>{translate('Month')}</span><input
-              type="month"
-              value={calendarMonth}
-              onchange={(event) => {
-                calendarMonth = event.currentTarget.value;
-                calendarDay = calendarMonth ? `${calendarMonth}-01` : '';
-              }}
-            /></label
-          >
-        </div>
-      </div>
-      <div class="time-calendar-grid" aria-label={translate('Time calendar')}>
-        {#each ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as weekday}
-          <strong class="time-calendar-weekday">{translate(weekday)}</strong>
-        {/each}
-        {#each calendarDates as date}
-          {@const dayRows = calendarRecords.filter(
-            (row) =>
-              String(row.worker_id) === calendarWorker &&
-              String(row.work_date) === date &&
-              !['rejected', 'void'].includes(String(row.approval_state)),
-          )}
-          <button
-            type="button"
-            class:time-calendar-outside={date.slice(0, 7) !== calendarMonth}
-            class:time-calendar-selected={date === calendarDay}
-            aria-pressed={date === calendarDay}
-            aria-label={`${date}: ${dayRows.length} ${translate('time entries')}`}
-            onclick={() => {
-              calendarDay = date;
-              calendarMonth = date.slice(0, 7);
-            }}
-          >
-            <span>{Number(date.slice(-2))}</span>
-            {#if dayRows.length}<small
-                >{formatDecimalHours(
-                  dayRows.reduce((sum, row) => sum + Number(row.minutes ?? 0), 0),
-                )}</small
-              >{/if}
-          </button>
-        {/each}
-      </div>
-      <div class="time-calendar-day">
-        <div class="time-owner-heading">
-          <h4>{calendarDay}</h4>
-          <button
-            type="button"
-            disabled={!calendarWorker || !calendarDay}
-            onclick={() => openCreate(calendarDay, calendarWorker)}
-          >
-            {translate('Log time on this day')}
-          </button>
-        </div>
-        {#if !calendarWorker}
-          <p>{translate('Select a worker to review this day.')}</p>
-        {:else if calendarDayRecords.length === 0}
-          <p>{translate('No time recorded for this day.')}</p>
-        {:else}
-          <ul>
-            {#each calendarDayRecords as row}
-              <li>
-                <span
-                  ><strong>{row.project_number}</strong> · {formatDecimalHours(row.minutes)} · {timeStatusLabel(
-                    row,
-                  )}</span
-                >
-                <span class="time-calendar-row-actions">
-                  {#if row.approval_state === 'draft' && !row.linked_pair_expense_id && Number(row.correction_linked ?? 0) !== 1}
-                    <button type="button" class="secondary-button" onclick={() => openEdit(row)}
-                      >{translate('Edit draft')}</button
-                    >
-                    {#if canDelete(row)}
-                      <form
-                        method="POST"
-                        action="?/deleteDraft"
-                        use:enhance={deleteDraft}
-                        data-action="deleteDraft"
-                        data-record-type="time_entry"
-                        data-record-id={String(row.id)}
-                      >
-                        <input type="hidden" name="recordType" value="time_entry" />
-                        <input type="hidden" name="recordId" value={row.id} />
-                        <input type="hidden" name="version" value={row.version} />
-                        <button type="submit" class="destructive-button"
-                          >{translate('Delete draft')}</button
-                        >
-                      </form>
-                    {/if}
-                  {:else}
-                    <a href={`${base}/app/time/${String(row.id)}`}>{translate('Open record')}</a>
-                  {/if}
-                </span>
-              </li>
-            {/each}
-          </ul>
-        {/if}
-      </div>
-    </section>
-
-    <details class="time-owner-batch" bind:open={batchDetailsOpen}>
-      <summary id="time-owner-batch-title">{translate('Enter a week in a table')}</summary>
-      <div class="time-owner-batch-body">
-        <p>
-          {translate(
-            'Add daily hours for one assigned worker and project. Blank days are skipped. The whole batch saves as drafts or nothing saves.',
-          )}
-        </p>
-        <form
-          class="time-batch-week-form"
-          method="GET"
-          action={`${base}/app/time#time-owner-batch-title`}
-          onsubmit={submitBatchWeekPicker}
-        >
-          <input type="hidden" name="batch" value="1" />
-          {#if $page.url.searchParams.get('includeArchived') === '1'}
-            <input type="hidden" name="includeArchived" value="1" />
-          {/if}
-          <div class="time-batch-week-control">
-            <label>
-              <span>{translate('Week of')}</span>
-              <input
-                type="date"
-                name="week"
-                value={batchWeekStart}
-                onchange={selectBatchWeek}
-                data-batch-week-picker
-              />
-            </label>
-            <span class="time-batch-week-range" aria-live="polite">
-              {batchDates[0]} → {batchDates[6]}
-            </span>
-            <button type="submit">{translate('Open week')}</button>
-          </div>
-        </form>
-        <form
-          method="POST"
-          action="?/createTimeBatch"
-          use:operationalFieldValidation
-          use:enhance={submitBatch}
-        >
-          <input type="hidden" name="batchForm" value="week_table" />
-          <input type="hidden" name="weekStart" value={batchWeekStart} />
-          <div class="time-batch-top-controls">
-            <label
-              ><span>{translate('Worker')}</span>
-              <select name="workerId" required bind:value={batchWorker}>
-                <option value="">{translate('Select worker')}</option>
-                {#each data.workers ?? [] as worker}
-                  <option value={String(worker.id)}>{worker.name}</option>
-                {/each}
-              </select>
-            </label>
-            <label
-              ><span>{translate('Assigned project')}</span>
-              <select name="projectId" required bind:value={batchProject}>
-                <option value="">{translate('Select assignment')}</option>
-                {#if batchProjectUnavailable}
-                  <option value={batchProject} disabled>
-                    {visibleProjectName(batchProject) || translate('Project')} — {translate(
-                      'Unavailable',
-                    )}
-                  </option>
-                {/if}
-                {#each batchProjects as project}
-                  <option value={String(project.id)}
-                    >{project.project_number} — {project.name}</option
-                  >
-                {/each}
-              </select>
-            </label>
-          </div>
-          {#if batchProjectUnavailable}
-            <p class="time-batch-project-warning" role="status">
-              {translate(
-                'The selected project is unavailable for this form. Its access, status, or assignment dates may have changed.',
-              )}
-            </p>
-          {/if}
-          <div class="time-batch-rows">
-            {#each batchDates as date, index (date)}
-              <div class="time-batch-row">
-                <strong>{date}</strong>
-                <input type="hidden" name={`workDate_${index}`} value={date} />
-                <label
-                  ><span>{translate('Hours')}</span><input
-                    name={`hours_${index}`}
-                    required={Boolean(
-                      batchInputs[date]?.summary ?? restoredBatchDayValue(date, index, 'summary'),
-                    )}
-                    type="number"
-                    min="0.01"
-                    max="24"
-                    step="0.01"
-                    inputmode="decimal"
-                    placeholder="7.5"
-                    value={batchInputs[date]?.hours ?? restoredBatchDayValue(date, index, 'hours')}
-                    oninput={(event) =>
-                      updateBatchDay(date, index, 'hours', event.currentTarget.value)}
-                  /></label
-                >
-                <label
-                  ><span>{translate('Category')}</span>
-                  <select
-                    name={`category_${index}`}
-                    value={batchInputs[date]?.category ??
-                      (restoredBatchDayValue(date, index, 'category') || 'regular')}
-                    onchange={(event) =>
-                      updateBatchDay(date, index, 'category', event.currentTarget.value)}
-                  >
-                    {#each filterCategories as category}<option value={category.value}
-                        >{translate(category.label)}</option
-                      >{/each}
-                  </select>
-                </label>
-                <label
-                  ><span>{translate('Activity summary')}</span><input
-                    name={`summary_${index}`}
-                    required={Boolean(
-                      batchInputs[date]?.hours ?? restoredBatchDayValue(date, index, 'hours'),
-                    )}
-                    minlength="3"
-                    maxlength="5000"
-                    placeholder={translate('Work completed')}
-                    value={batchInputs[date]?.summary ??
-                      restoredBatchDayValue(date, index, 'summary')}
-                    oninput={(event) =>
-                      updateBatchDay(date, index, 'summary', event.currentTarget.value)}
-                  /></label
-                >
-              </div>
-            {/each}
-          </div>
-          {#if batchProblem}
-            <div tabindex="-1" data-time-batch-problem>
-              <ProblemNotice
-                problem={batchProblem}
-                status={batchProblemContext}
-                remedyLinks={{
-                  review_time: {
-                    label: translate('Review time entries'),
-                    href: `${base}/app/time#time-records`,
-                  },
-                  contact_project_owner: {
-                    label: translate('Contact the project owner to review access.'),
-                  },
-                  contact_owner: {
-                    label: portalText(warningLocale, 'problem.remedy.contactAccessOwner'),
-                  },
-                  sign_in_again: {
-                    label: portalText(warningLocale, 'problem.remedy.signInAgain'),
-                    href: `${base}/login`,
-                  },
-                  review_worker_assignment: {
-                    label: translate('Review worker assignment'),
-                    href: `${base}/app/time#time-records`,
-                  },
-                }}
-              />
-              {#if batchProblem.code === 'TIME_DUPLICATE_ENTRY' && batchProblem.params.duplicateDate}
-                <p class="form-help">
-                  {translate('Conflicting day')}: {String(batchProblem.params.duplicateDate)}
-                </p>
-              {/if}
-            </div>
-          {:else if batchError}<p role="alert">{batchError}</p>{/if}
-          {#if batchProblem?.code === 'TIME_DUPLICATE_ENTRY'}
-            <label class="time-expense-toggle">
-              <input type="checkbox" name="allowExactDuplicate" value="on" />
-              <span>{translate('This is separate work. Save another identical time entry.')}</span>
-            </label>
-          {/if}
-          <button type="submit" disabled={batchSaving}
-            >{translate(batchSaving ? 'Saving…' : 'Save daily drafts')}</button
-          >
-        </form>
-      </div>
-    </details>
-  {/if}
-
-  <form
-    id="time-filters"
-    class="time-filters"
-    method="GET"
-    action={`${base}/app/time#time-filters`}
-    aria-label={translate('Filter time entries')}
-    onsubmit={validateRegisterDateRange}
-  >
-    <input type="hidden" name="week" value={data.weekStart ?? ''} />
-    {#if $page.url.searchParams.get('includeArchived') === '1'}
-      <input type="hidden" name="includeArchived" value="1" />
-    {/if}
-    <label>
-      <span>{translate('Search register')}</span>
-      <input
-        name="q"
-        bind:value={search}
-        oninput={() => (registerPage = 1)}
-        type="search"
-        placeholder={translate('Project, activity or date')}
-      />
-    </label>
-    <label>
-      <span>{translate('Project')}</span>
-      <select name="project" bind:value={projectFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All projects')}</option>
-        {#each availableProjects as project}
-          <option value={String(project.id)}>{project.project_number} — {project.name}</option>
-        {/each}
-      </select>
-    </label>
-    {#if ['owner_admin', 'project_manager', 'finance_admin'].includes(String(data.user.role))}
-      <label>
-        <span>{translate('Worker')}</span>
-        <select name="worker" bind:value={workerFilter} onchange={() => (registerPage = 1)}>
-          <option value="">{translate('All workers')}</option>
-          {#each data.workers ?? [] as worker}
-            <option value={String(worker.id)}>{worker.name}</option>
-          {/each}
-        </select>
-      </label>
-    {/if}
-    <label>
-      <span>{translate('Status')}</span>
-      <select name="status" bind:value={statusFilter} onchange={() => (registerPage = 1)}>
-        <option value="">{translate('All statuses')}</option>
-        <option value="attention">{translate('Needs attention')}</option>
-        <option value="draft">{translate('Draft')}</option>
-        <option value="submitted">{translate('Submitted')}</option>
-        <option value="approved">{translate('Approved')}</option>
-        <option value="needs_changes">{translate('Needs changes')}</option>
-      </select>
-    </label>
-    <SectionCard
-      title={translate('Filter time entries')}
-      description={advancedFilters.length
-        ? `${translate('Active filters')}: ${advancedFilters.length}`
-        : undefined}
-      collapsible
-      expanded={Boolean(
-        data.timeFilter?.workerId ||
-        data.timeFilter?.from ||
-        data.timeFilter?.to ||
-        data.timeFilter?.category ||
-        clientFilter ||
-        order !== 'newest',
-      )}
-      class="register-filter-disclosure"
-    >
-      <div class="secondary-filter-fields time-filters-secondary">
-        <label>
-          <span>{translate('Client')}</span>
-          <select name="client" bind:value={clientFilter} onchange={() => (registerPage = 1)}>
-            <option value="">{translate('All clients')}</option>
-            {#each clientOptions as client}<option value={client}>{client}</option>{/each}
-          </select>
+      {#if fixingCells.length}
+        <label class="fix-reason">
+          <span>{t('correctionReason')}</span>
+          <input type="text" maxlength="500" bind:value={reason} />
+          <small class="muted">{t('correctionReasonHint')}</small>
         </label>
-        <label
-          ><span>{translate('From')}</span><input
-            name="from"
-            type="date"
-            bind:value={registerFrom}
-            aria-invalid={registerDateRangeInvalid}
-            aria-describedby={registerDateRangeInvalid ? 'time-register-date-error' : undefined}
-          /></label
-        >
-        <label
-          ><span>{translate('To')}</span><input
-            name="to"
-            type="date"
-            bind:value={registerTo}
-            aria-invalid={registerDateRangeInvalid}
-            aria-describedby={registerDateRangeInvalid ? 'time-register-date-error' : undefined}
-          /></label
-        >
+      {/if}
 
-        <label>
-          <span>{translate('Sort by')}</span>
-          <select name="order" bind:value={order} onchange={() => (registerPage = 1)}>
-            <option value="newest">{translate('Newest first')}</option>
-            <option value="oldest">{translate('Oldest first')}</option>
-            <option value="name">{translate('Name')}</option>
-            <option value="status">{translate('Status')}</option>
-          </select>
-        </label>
-        <label>
-          <span>{translate('Category')}</span>
-          <select name="category">
-            <option value="">{translate('All categories')}</option>
-            {#each filterCategories as category}
-              <option value={category.value} selected={data.timeFilter?.category === category.value}
-                >{translate(category.label)}</option
-              >
-            {/each}
-          </select>
-        </label>
-      </div>
-    </SectionCard>
-    {#if registerDateRangeInvalid}
-      <p id="time-register-date-error" class="form-help" role="alert">
-        {translate('Choose an end date on or after the start date.')}
-      </p>
-    {/if}
-    <div class="time-filter-actions">
-      <button type="submit" class="secondary-button">{translate('Apply filters')}</button>
-    </div>
-    <DatePresets
-      from={String(data.timeFilter?.from ?? '')}
-      to={String(data.timeFilter?.to ?? '')}
-      href={(range) => filterHref(range)}
-      {translate}
-    />
-    <FilterSummary
-      items={activeFilters}
-      resultCount={filteredRecords.length}
-      clearHref={clearFiltersHref}
-      onclear={clearFilters}
-      {translate}
-    />
-  </form>
+      {#if invalidCells.length}
+        <p class="invalid-hint" role="alert">{t('invalidHours')}</p>
+      {/if}
 
-  <section id="time-records" class="time-record-list" aria-labelledby="time-records-title">
-    <div class="time-list-heading">
-      <div>
-        <span class="time-eyebrow">{translate('ACTIVITY REGISTER')}</span>
-        <h3 id="time-records-title">{translate('Recent time entries')}</h3>
-      </div>
-      <span class="time-record-count">{filteredRecords.length}</span>
-    </div>
-    <div class="time-records">
-      {#each pagedRecords.rows as row}
-        <article
-          class:time-record-needs-changes={row.approval_state === 'needs_changes'}
-          class="time-record"
-        >
-          <a class="time-record-link" href={`${base}/app/time/${String(row.id)}`}>
-            <strong>{row.work_date} · {row.project_number}</strong>
-            <small
-              >{controlledValue('category', row.category)} · {#if row.start_time && row.end_time}{row.start_time}
-                – {row.end_time} ·
-              {/if}{formatDecimalHours(row.minutes)} · {timeStatusLabel(row)}</small
+      {#if !isAuditor}
+        <div class="sheet-actions" data-testid="time-week-actions">
+          <div class="sheet-actions-total">
+            <span>{t('weekTotal')}</span>
+            <strong>{decimalHoursFromMinutes(weekTotal)} {t('hoursUnit')}</strong>
+            <small class:unsaved={dirty}>{dirty ? t('unsaved') : t('allSaved')}</small>
+          </div>
+          <div class="sheet-actions-buttons">
+            <button
+              type="button"
+              class="secondary"
+              disabled={!dirty || Boolean(busy) || invalidCells.length > 0}
+              onclick={save}>{busy === 'save' ? t('saving') : t('save')}</button
             >
-            <span class="time-record-summary">{row.activity_summary}</span>
-            <span>{translate('Open record')} <DirectionIcon /></span>
-          </a>
-          {#if row.approval_state === 'draft' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-            <div class="time-submit-warning">
-              <ProblemNotice
-                problem={timeSubmitWarning(row)}
-                kind="warning"
-                status={`${row.work_date} · ${row.project_number}`}
-                remedyLinks={{
-                  review_time: {
-                    label: portalText(warningLocale, 'problem.remedy.reviewTimeDraft'),
-                    href: `${base}/app/time/${encodeURIComponent(String(row.id))}`,
-                  },
-                }}
-              />
-            </div>
-            <div class="time-record-actions">
-              {#if !row.linked_pair_expense_id && Number(row.correction_linked ?? 0) !== 1}
-                <button type="button" class="secondary-button" onclick={() => openEdit(row)}>
-                  {translate('Edit draft')}
-                </button>
-              {/if}
-              {#if row.linked_pair_expense_id}
-                <a href={`${base}/app/time/${encodeURIComponent(String(row.id))}`}>
-                  {translate('Linked time and meal entry')}
-                </a>
-                <p class="form-help">
-                  {translate('Submit this pair with the weekly time entries.')}
-                </p>
-              {:else}
-                <form method="POST" action={timeRegisterAction('submitTime')}>
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="version" value={row.version} />
-                  <button type="submit">{translate('Submit')}</button>
-                </form>
-              {/if}
-            </div>
-          {/if}
-          {#if row.active_correction_id && row.approval_state === 'needs_changes'}
-            <a
-              class="secondary-button"
-              href={`${base}/app/time/${String(row.active_correction_id)}`}
-              >{translate('Open existing correction')} <DirectionIcon /></a
-            >
-          {:else if row.approval_state === 'needs_changes' && (String(row.worker_id) === data.user.id || data.user.role === 'owner_admin')}
-            <a
-              class="secondary-button"
-              href={`${base}/app/time/${String(row.id)}#time-correction-title`}
-              >{translate('Create corrected draft')} <DirectionIcon /></a
-            >
-          {/if}
-          {#if canDelete(row)}
-            <div class="time-record-actions time-destructive-actions">
-              <form
-                method="POST"
-                action="?/deleteDraft"
-                use:enhance={deleteDraft}
-                data-action="deleteDraft"
-                data-record-type="time_entry"
-                data-record-id={String(row.id)}
-              >
-                <input type="hidden" name="recordType" value="time_entry" />
-                <input type="hidden" name="recordId" value={row.id} />
-                <input type="hidden" name="version" value={row.version} />
-                <button type="submit" class="destructive-button">{translate('Delete')}</button>
-              </form>
-            </div>
-          {/if}
-          {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-            <a href={`${base}/app/manage?type=time_entry#${String(row.id)}`}
-              >{translate('Manage record')} <DirectionIcon /></a
-            >
-          {/if}
-        </article>
-      {:else}
-        <div class="time-empty" role="status">
-          {#if activeFilters.length || records.length}
-            <strong>{translate('No matching records.')}</strong>
-            <span>{translate('Clear filters to see more records.')}</span>
-            <button type="button" class="secondary-button" onclick={clearFilters}
-              >{translate('Clear filters')}</button
-            >
-          {:else}
-            <strong>{translate('No time recorded.')}</strong>
-            <span>{translate('Your actual time entries will appear here.')}</span>
-            {#if !isAuditor}<button
+            {#if canSubmit}
+              <button
                 type="button"
-                class="primary-button"
-                onclick={() => openCreate()}>{translate('Log time')}</button
-              >{/if}
+                class="primary"
+                disabled={submitCount === 0 || Boolean(busy) || invalidCells.length > 0}
+                title={submitCount === 0 ? t('nothingToSubmit') : ''}
+                onclick={openConfirm}
+                data-testid="time-week-submit"
+                >{busy === 'submit' ? t('submitting') : t('submitWeek')}</button
+              >
+            {/if}
+          </div>
+          {#if !canSubmit}
+            <p class="muted small">{t('delegatedSubmitHint')}</p>
           {/if}
         </div>
-      {/each}
-    </div>
-    {#if pagedRecords.totalPages > 1}
-      <nav class="operational-pagination" aria-label={translate('Time register pages')}>
-        <button
-          type="button"
-          class="secondary-button"
-          disabled={pagedRecords.current === 1}
-          onclick={() => (registerPage -= 1)}>{translate('Previous')}</button
-        >
-        <span
-          >{translate('Page')}
-          {pagedRecords.current}
-          {translate('of')}
-          {pagedRecords.totalPages}</span
-        >
-        <button
-          type="button"
-          class="secondary-button"
-          disabled={pagedRecords.current === pagedRecords.totalPages}
-          onclick={() => (registerPage += 1)}>{translate('Next')}</button
-        >
-      </nav>
-    {/if}
-    <a class="register-back-to-shortcuts" href="#time-quick-links">
-      {workRound2Text(warningLocale, 'timeBackToShortcuts')}
-    </a>
-  </section>
-</div>
+      {/if}
+    </form>
 
-<ResponsiveSheet
-  protectChanges
-  open={surface !== null}
-  title={surface === 'edit' ? translate('Edit time entry') : translate('Log time')}
-  description={operationalOnly
-    ? translate('Enter the date, actual duration and activity for this work.')
-    : translate('Operational entry only. Commercial rules are applied separately.')}
-  closeLabel={translate('Close time form')}
-  class="time-entry-sheet"
-  onclose={closeSurface}
->
-  {#if surfaceProblem}
-    <div class="time-form-error" tabindex="-1" data-operational-form-error>
-      <ProblemNotice
-        problem={surfaceProblem}
-        kind={surfaceProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-        status={timeProblemContext || undefined}
-        remedyLinks={{
-          review_time: {
-            label: translate('Review updated time entry'),
-            href: `${base}/app/time#time-records`,
-          },
-          review_week: {
-            label: translate('Review updated week'),
-            href: `${base}/app/time?week=${encodeURIComponent(data.weekStart ?? '')}#time-records`,
-          },
-          contact_project_owner: {
-            label: translate('Contact the project owner to review access.'),
-          },
-          contact_owner: {
-            label: portalText(warningLocale, 'problem.remedy.contactAccessOwner'),
-          },
-          sign_in_again: {
-            label: portalText(warningLocale, 'problem.remedy.signInAgain'),
-            href: `${base}/login`,
-          },
-          contact_finance: {
-            label: operationalOnly
-              ? translate('Contact the project owner or designated administrator.')
-              : translate('Contact Finance for an audited adjustment.'),
-          },
-          review_worker_assignment: {
-            label: translate('Review worker assignment'),
-            href: `${base}/app/time#time-records`,
-          },
-        }}
-      />
-    </div>
-  {:else if surfaceError}
-    <p role="alert" class="time-form-error" tabindex="-1" data-operational-form-error>
-      {surfaceError}
-    </p>
-  {/if}
-  {#if surface === 'create'}
-    <form
-      method="POST"
-      action="?/createTime"
-      data-assistant-target="time-create"
-      class="expense-entry-form time-entry-form"
-      aria-busy={saving}
-      data-time-entry-surface
-      use:dirtyFormGuard
-      use:operationalFieldValidation
-      use:enhance={submitTime}
-      onsubmit={(event) => {
-        if (createExpenseEnabled && !navigator.onLine) {
-          event.preventDefault();
-          surfaceError = translate(
-            'Reconnect to save time and expense together. Your entries are still here.',
-          );
-          return;
-        }
-        void handleOfflineDraft(event);
-      }}
-    >
-      {#if emptyProjectProblem}
-        <ProblemNotice
-          problem={emptyProjectProblem}
-          kind="error"
-          remedyLinks={{
-            review_projects: {
-              label: translate('Review available projects'),
-              href: `${base}/app/projects`,
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-          }}
-        />
-      {/if}
-      {#if emptyWorkerProblem}
-        <ProblemNotice
-          problem={emptyWorkerProblem}
-          kind="error"
-          remedyLinks={{
-            review_workers: {
-              label: translate('Review available workers'),
-              href: `${base}/app/projects?view=team&lang=${encodeURIComponent(warningLocale)}#team-panel-specialists`,
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-          }}
-        />
-      {/if}
-      <div class="expense-entry-intro time-entry-intro">
-        <strong>{translate('Capture actual work')}</strong>
-        <span>{translate('Describe what happened on site and record the actual duration.')}</span>
+    <dialog bind:this={confirmDialog} class="confirm" aria-labelledby="time-confirm-title" data-testid="time-week-confirm">
+      <h3 id="time-confirm-title">{t('confirmTitle')}</h3>
+      <p class="muted">{rangeLabel}{delegating ? ` · ${workerName(workerId)}` : ''}</p>
+      <table class="confirm-totals">
+        <tbody>
+          {#each days as date, index (date)}
+            {#if dayTotals[index]}
+              <tr><th scope="row">{dayName(date, 'long')}</th><td>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</td></tr>
+            {/if}
+          {/each}
+        </tbody>
+        <tfoot>
+          <tr><th scope="row">{t('weekTotal')}</th><td><strong>{decimalHoursFromMinutes(weekTotal)} {t('hoursUnit')}</strong></td></tr>
+        </tfoot>
+      </table>
+      <p>{t('confirmEntries', { count: submitCount })}</p>
+      <p class="muted">{t('confirmBody')}</p>
+      <div class="confirm-actions">
+        <button type="button" class="secondary" onclick={() => confirmDialog?.close()}>{t('cancel')}</button>
+        <button type="button" class="primary" onclick={confirmSubmit} data-testid="time-week-confirm-submit"
+          >{t('confirmSubmit')}</button
+        >
       </div>
-      {#if missingAssignmentProblem}
-        <ProblemNotice
-          problem={missingAssignmentProblem}
-          kind="error"
-          status={selectedCreateProject
-            ? `${selectedCreateProject.name} · ${controlledValue('status', selectedCreateProject.status)}`
-            : undefined}
-          remedyLinks={{
-            review_assignments: {
-              label: translate('Review assignments'),
-              href: assignmentReviewHref,
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-          }}
-        />
+    </dialog>
+  {/if}
+
+  <details class="time-history" data-testid="time-history" open={historyFiltered}>
+    <summary
+      ><span>{t('history')}</span>
+      <span class="muted history-count">{t('historyCount', { count: historyTotal })}</span></summary
+    >
+    <form method="GET" action={`${base}/app/time`} class="history-filters" data-sveltekit-noscroll>
+      <input type="hidden" name="week" value={weekStart} />
+      {#if delegating}<input type="hidden" name="worker" value={workerId} />{/if}
+      {#if $page.url.searchParams.get('lang')}
+        <input type="hidden" name="lang" value={$page.url.searchParams.get('lang')} />
       {/if}
-      {#if selectedProjectUnavailableProblem}
-        <ProblemNotice
-          problem={selectedProjectUnavailableProblem}
-          kind="error"
-          status={selectedCreateProject
-            ? `${selectedCreateProject.name} · ${controlledValue('status', selectedCreateProject.status)}`
-            : undefined}
-          remedyLinks={{
-            review_assignments: {
-              label: translate('Review assignments'),
-              href: assignmentReviewHref,
-            },
-            contact_project_owner: {
-              label: translate('Contact the project owner to review access.'),
-            },
-          }}
-        />
-      {/if}
-      <label>
-        <span>{translate('Assigned project')}</span>
-        <select name="projectId" required value={createProject} onchange={selectCreateProject}>
-          <option value="">{translate('Select assignment')}</option>
-          {#if createProject && !assignedCreateProjects.some((project) => String(project.id) === createProject)}
-            <option value={createProject} disabled
-              >{selectedCreateProject
-                ? `${selectedCreateProject.project_number} — ${selectedCreateProject.name} · ${controlledValue('status', selectedCreateProject.status)}`
-                : translate('Previously selected project is no longer available')}</option
-            >
-          {/if}
-          {#each assignedCreateProjects as project}
-            <option value={String(project.id)}>{project.project_number} — {project.name}</option>
+      <label
+        ><span class="sr-only">{t('project')}</span>
+        <select name="project" value={data.timeFilter?.projectId ?? ''}>
+          <option value="">{t('allProjects')}</option>
+          {#each projects as project (project.id)}
+            <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
           {/each}
         </select>
-        {#if ['owner_admin', 'project_manager'].includes(String(data.user.role)) && !createWorker}
-          <small>{translate(createProject ? 'Select worker' : 'Select project first')}</small>
-        {/if}
       </label>
-      {#if ['owner_admin', 'project_manager'].includes(String(data.user.role))}
-        <label>
-          <span>{translate('Worker')}</span>
-          <select
-            name="workerId"
-            required
-            value={createWorker}
-            onchange={selectCreateWorker}
-            disabled={!createProject || assignedCreateWorkers.length === 0}
-            data-time-worker-options
-          >
-            <option value="">{translate('Select worker')}</option>
-            {#each assignedCreateWorkers as worker (String(worker.id))}
-              <option value={String(worker.id)}>{worker.name} — {worker.email}</option>
+      {#if delegating}
+        <label
+          ><span class="sr-only">{t('worker')}</span>
+          <select name="rworker" value={data.timeFilter?.workerId ?? ''}>
+            <option value="">{t('allWorkers')}</option>
+            {#each workers as worker (worker.id)}
+              <option value={worker.id}>{worker.name}</option>
             {/each}
           </select>
         </label>
       {/if}
-      <label>
-        <span>{translate('Date')}</span>
-        <input
-          name="workDate"
-          type="date"
-          required
-          value={createDate}
-          onchange={selectCreateDate}
-        />
-        <small>{workRound2Text(warningLocale, 'timeSiteDate')}</small>
-      </label>
-      <label>
-        <span>{translate('Operational category')}</span>
-        <select name="category" bind:value={createCategory} required>
-          {#each primaryCategories as category}
-            <option value={category.value}>{translate(category.label)}</option>
-          {/each}
-          <optgroup label={translate('More')}>
-            {#each moreCategories as category}
-              <option value={category.value}>{translate(category.label)}</option>
-            {/each}
-          </optgroup>
+      <label
+        ><span class="sr-only">{t('status')}</span>
+        <select name="status" value={data.timeFilter?.status ?? ''}>
+          <option value="">{t('allStatuses')}</option>
+          <option value="draft">{t('statusDraft')}</option>
+          <option value="submitted">{t('statusSubmitted')}</option>
+          <option value="needs_changes">{t('statusNeedsChanges')}</option>
+          <option value="approved">{t('statusApproved')}</option>
         </select>
       </label>
-      {#if showOperationalDetail}
-        <label>
-          <span>{translate(operationalDetailLabel)}</span>
-          <input
-            name="activityCode"
-            maxlength="100"
-            value={restoredTimeValue('activityCode')}
-            placeholder={translate('Operational detail')}
-          />
-        </label>
+      <button type="submit" class="secondary">{t('apply')}</button>
+      {#if historyFiltered}
+        <a href={sheetHref({ project: null, rworker: null, status: null })}>{t('clear')}</a>
       {/if}
-      <TimeIntervalFields
-        {translate}
-        initialStart={restoredTimeValue('startTime')}
-        initialEnd={restoredTimeValue('endTime')}
-        initialBreak={Number(restoredTimeValue('breakMinutes') || 0)}
-        legacyMinutes={restoredTimeValue('minutes')
-          ? Number(restoredTimeValue('minutes'))
-          : undefined}
-      />
-      <label>
-        <span>{translate('Activity summary')}</span>
-        <textarea name="summary" minlength="3" maxlength="5000" required
-          >{restoredTimeValue('summary')}</textarea
-        >
-      </label>
-      {#if surfaceProblem?.code === 'TIME_DUPLICATE_ENTRY'}
-        <label class="time-expense-toggle">
-          <input type="checkbox" name="allowExactDuplicate" value="on" />
-          <span>{translate('This is separate work. Save another identical time entry.')}</span>
-        </label>
-      {/if}
-      <label class="time-expense-toggle">
-        <input type="checkbox" name="withExpense" bind:checked={createExpenseEnabled} />
-        <span>{translate('Add a meal expense with these hours')}</span>
-      </label>
-      <input type="hidden" name="requestId" value={createRequestId} />
-      {#if createExpenseEnabled}
-        <div class="expense-entry-intro">
-          <strong>{translate('Expense for this shift')}</strong>
-          <span
-            >{translate(
-              'The expense will use the same worker, project and date. Add a receipt from the expense detail after saving if needed.',
-            )}</span
-          >
-        </div>
-        <label>
-          <span>{translate('Vendor (optional)')}</span>
-          <input name="expenseVendor" maxlength="200" value={restoredTimeValue('expenseVendor')} />
-        </label>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Category')}</span>
-            <select name="expenseCategory" required>
-              <option value="meals">{translate('Meals')}</option>
-            </select>
-          </label>
-          <label>
-            <span>{translate('Time expense occurred (optional)')}</span>
-            <input
-              name="expenseOccurredTimeLocal"
-              type="time"
-              step="60"
-              value={restoredTimeValue('expenseOccurredTimeLocal')}
-            />
-          </label>
-        </div>
-        <div class="expense-form-grid">
-          <label>
-            <span>{translate('Amount')}</span>
-            <input
-              name="expenseAmount"
-              inputmode="decimal"
-              pattern="[0-9]+([.][0-9][0-9]?)?"
-              required
-              value={restoredTimeValue('expenseAmount')}
-            />
-          </label>
-          <label>
-            <span>{translate('Currency')}</span>
-            <select
-              name="expenseCurrency"
-              required
-              value={restoredTimeValue('expenseCurrency') || 'USD'}
-            >
-              <option value="EUR">EUR</option>
-              <option value="USD">USD</option>
-              <option value="BRL">BRL</option>
-            </select>
-          </label>
-        </div>
-        <label>
-          <span>{translate('Who paid')}</span>
-          <select
-            name="expenseWhoPaid"
-            required
-            value={restoredTimeValue('expenseWhoPaid') || 'worker'}
-          >
-            <option value="worker">{translate('Worker')}</option>
-            <option value="company_card">{translate('Company card')}</option>
-            <option value="company_direct">{translate('Company direct')}</option>
-            <option value="client">{translate('Client paid directly')}</option>
-            <option value="third_party">{translate('Third party')}</option>
-          </select>
-        </label>
-        <label>
-          <span>{translate('Description')}</span>
-          <textarea name="expenseDescription" minlength="3" maxlength="5000" required
-            >{restoredTimeValue('expenseDescription')}</textarea
-          >
-        </label>
-        <label>
-          <span>{translate('Payment method (optional)')}</span>
-          <input
-            name="expensePaymentMethod"
-            maxlength="80"
-            value={restoredTimeValue('expensePaymentMethod')}
-          />
-        </label>
-      {/if}
-      <div class="expense-entry-actions time-entry-actions">
-        <button type="button" data-sheet-close class="secondary-button" onclick={closeSurface}
-          >{translate('Cancel')}</button
-        >
-        <button type="submit" disabled={saving}
-          >{translate(saving ? 'Saving…' : 'Save draft')}</button
-        >
-      </div>
     </form>
-  {:else if surface === 'edit' && editRow}
-    <form
-      method="POST"
-      action="?/updateTime"
-      class="expense-entry-form time-entry-form"
-      aria-busy={saving}
-      data-entity-id={String(editRow.id)}
-      data-version={String(editRow.version)}
-      data-time-entry-surface
-      use:dirtyFormGuard
-      use:operationalFieldValidation
-      use:enhance={submitTime}
-      onsubmit={(event) => {
-        void handleOfflineDraft(event);
-      }}
-    >
-      <input type="hidden" name="id" value={editRow.id} />
-      <input type="hidden" name="version" value={restoredTimeValue('version') || editRow.version} />
-      <input type="hidden" name="projectId" value={editRow.project_id} />
-      <input
-        type="hidden"
-        name="workDate"
-        value={restoredTimeValue('workDate') || editRow.work_date}
-      />
-      <div class="expense-entry-intro time-entry-intro">
-        <strong>{translate('Update actual work')}</strong>
-        <span>{translate('The project and date remain bound to the original entry.')}</span>
-      </div>
-      <label>
-        <span>{translate('Operational category')}</span>
-        <select name="category" bind:value={editCategory} required>
-          {#each primaryCategories as category}
-            <option value={category.value}>{translate(category.label)}</option>
-          {/each}
-          <optgroup label={translate('More')}>
-            {#each moreCategories as category}
-              <option value={category.value}>{translate(category.label)}</option>
-            {/each}
-          </optgroup>
-        </select>
-      </label>
-      {#if showOperationalDetail}
-        <label>
-          <span>{translate(operationalDetailLabel)}</span>
-          <input
-            name="activityCode"
-            maxlength="100"
-            value={restoredTimeValue('activityCode') || String(editRow.activity_code ?? '')}
-            placeholder={translate('Operational detail')}
-          />
-        </label>
+    {#if historyRows.length === 0}
+      <p class="muted">{t('noHistory')}</p>
+    {:else}
+      <ul class="history-list">
+        {#each historyRows as row (row.id)}
+          {@const status = entryStatus(row)}
+          <li>
+            <a href={`${base}/app/time/${String(row.id)}`}>
+              <span class="history-date">{String(row.work_date)}</span>
+              <span class="history-main">
+                <span>{projectLabel(String(row.project_id))}</span>
+                <span class="muted"
+                  >{delegating ? `${String(row.worker_name ?? '')} · ` : ''}{categoryLabel(String(row.category))}</span
+                >
+              </span>
+              <span class="history-hours">{decimalHoursFromMinutes(row.minutes)} {t('hoursUnit')}</span>
+              <StatusBadge
+                variant={String(row.approval_state) === 'rejected' ? 'danger' : variant(status)}
+                text={String(row.approval_state) === 'rejected'
+                  ? controlledValue('status', 'rejected')
+                  : statusLabel(status)}
+              />
+            </a>
+          </li>
+        {/each}
+      </ul>
+      {#if allHistoryRows.length > historyRows.length}
+        <button type="button" class="link" onclick={() => (historyLimit += 40)}>{t('showMore')}</button>
+      {:else if historyTotal > historyRows.length}
+        <p class="muted small">{t('historyShowing', { shown: historyRows.length, count: historyTotal })}</p>
       {/if}
-      {#key editRow.id}
-        <TimeIntervalFields
-          {translate}
-          initialStart={restoredTimeValue('startTime') || String(editRow.start_time ?? '')}
-          initialEnd={restoredTimeValue('endTime') || String(editRow.end_time ?? '')}
-          initialBreak={Number(restoredTimeValue('breakMinutes') || editRow.break_minutes || 0)}
-          legacyMinutes={Number(restoredTimeValue('minutes') || editRow.minutes || 0)}
-        />
-      {/key}
-      <label>
-        <span>{translate('Activity summary')}</span>
-        <textarea name="summary" minlength="3" maxlength="5000" required
-          >{restoredTimeValue('summary') || editRow.activity_summary}</textarea
-        >
-      </label>
-      <div class="expense-entry-actions time-entry-actions">
-        <button type="button" data-sheet-close class="secondary-button" onclick={closeSurface}
-          >{translate('Cancel')}</button
-        >
-        <button type="submit" disabled={saving}
-          >{translate(saving ? 'Saving…' : 'Save changes')}</button
-        >
-      </div>
-    </form>
-  {/if}
-</ResponsiveSheet>
+    {/if}
+  </details>
+</section>
 
 <style>
-  .time-page {
-    --time-accent: #2349b5;
-    --time-accent-hover: #193889;
-    --time-calendar-surface: #eef3ff;
+  .time-week {
+    display: grid;
+    gap: 1rem;
+    max-width: 72rem;
   }
-  .time-submit-warning {
-    grid-column: 1 / -1;
-    min-width: 0;
+  .time-week-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
   }
-  #time-filters,
-  #time-records {
-    scroll-margin-top: 5rem;
+  .time-week-head h2 {
+    margin: 0;
   }
-  .time-form-error {
-    color: var(--ja-red-dark, #8f1d14);
-    padding: 0.75rem 0;
+  .time-week-head p {
+    margin: 0.25rem 0 0;
   }
-  .time-primary-action-top {
-    justify-content: flex-start;
+  .muted {
+    color: var(--ja-steel, #5b6573);
   }
-  .time-quick-links {
+  .small {
+    font-size: 0.875rem;
+  }
+  .worker-pick {
+    display: grid;
+    gap: 0.25rem;
+    font-weight: 600;
+    min-width: min(100%, 16rem);
+  }
+  .worker-pick select,
+  .history-filters select,
+  .add-row select,
+  .fix-reason input {
+    min-height: var(--ja-target-min, 44px);
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: var(--ja-control-radius, 8px);
+    padding: 0 0.6rem;
+    background: var(--ja-white, #fff);
+    font: inherit;
+  }
+  .week-nav {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .week-arrow {
+    display: inline-grid;
+    place-items: center;
+    width: var(--ja-target-min, 44px);
+    height: var(--ja-target-min, 44px);
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: 999px;
+    font-size: 1.5rem;
+    line-height: 1;
+    text-decoration: none;
+    color: var(--ja-ink, #1c2430);
+    background: var(--ja-white, #fff);
+  }
+  .week-label {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
-    margin: 0.8rem 0 1rem;
+    min-width: 12rem;
+    justify-content: center;
+    flex: 0 1 auto;
   }
-  .time-quick-links a {
+  .this-week {
+    margin-left: 0.25rem;
+  }
+  .returned,
+  .sheet-problem {
+    border-radius: var(--ja-radius, 10px);
+    padding: 0.75rem 1rem;
+  }
+  .returned {
+    background: #fff7e6;
+    border: 1px solid #f0c36d;
+  }
+  .returned p,
+  .sheet-problem p {
+    margin: 0;
+  }
+  .returned ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .returned li {
+    display: grid;
+  }
+  .returned .note {
+    font-style: italic;
+  }
+  .sheet-problem {
+    background: #fdecec;
+    border: 1px solid var(--ja-danger, #c62828);
+  }
+  .empty {
+    padding: 1rem;
+    border: 1px dashed var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+  }
+  .sheet-form {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .sheet-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+  }
+  .sheet-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .sheet-table th,
+  .sheet-table td {
+    padding: 0.4rem;
+    text-align: center;
+    border-bottom: 1px solid var(--ja-line, #e3e7ec);
+  }
+  .sheet-table thead th {
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  .sheet-table .col-project {
+    text-align: left;
+    min-width: 12rem;
+    padding-left: 0.75rem;
+  }
+  .sheet-table .col-total {
+    font-weight: 700;
+    min-width: 4rem;
+  }
+  .sheet-table tfoot td,
+  .sheet-table tfoot th {
+    font-weight: 700;
+    border-bottom: 0;
+    background: var(--ja-surface, #f6f8fa);
+  }
+  .is-today {
+    background: #f1f7ff;
+  }
+  .project-name {
+    display: block;
+    font-weight: 600;
+  }
+  .category {
+    display: inline-block;
+    font-size: 0.8rem;
+    color: var(--ja-steel, #5b6573);
+  }
+  .category[data-category='travel'],
+  .category[data-category='overtime'] {
+    font-weight: 700;
+    color: #6a3fb5;
+  }
+  .hours-input,
+  .hours-locked {
+    box-sizing: border-box;
+    width: 4.25rem;
+    min-height: var(--ja-target-min, 44px);
+    border-radius: 8px;
+    text-align: center;
+    font: inherit;
+    font-size: 1rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .hours-input {
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    background: var(--ja-white, #fff);
+    padding: 0 0.25rem;
+  }
+  .hours-input:focus-visible {
+    outline: 3px solid var(--ja-focus-ring, #1f6feb);
+    outline-offset: 1px;
+  }
+  .time-week .hours-input.is-changed {
+    border-color: #1f6feb;
+    background: #f3f8ff;
+  }
+  .time-week .hours-input.is-invalid {
+    border: 2px solid var(--ja-danger, #c62828);
+    background: #fdecec;
+  }
+  .time-week .hours-input[data-status='needs_changes'] {
+    border: 2px solid #e09b00;
+    background: #fff7e6;
+  }
+  .hours-locked {
     display: inline-flex;
     align-items: center;
-    min-height: 2.75rem;
-    padding: 0.35rem 0.75rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
+    justify-content: center;
+    gap: 0.2rem;
+    border: 1px solid transparent;
+  }
+  .hours-locked[data-status='submitted'] {
+    background: #eaf2fd;
+    border-color: #b7d0f5;
+  }
+  .hours-locked[data-status='approved'] {
+    background: #e8f6ec;
+    border-color: #a9dbb8;
+  }
+  .hours-locked[data-status='draft'] {
+    background: var(--ja-surface, #f6f8fa);
+    border-color: var(--ja-line, #d5dbe3);
+  }
+  .hours-locked[data-status='unassigned'] {
+    color: #a0a8b3;
+  }
+  .mark {
+    font-size: 0.8rem;
+  }
+  .dot {
+    display: inline-block;
+    width: 0.65rem;
+    height: 0.65rem;
     border-radius: 999px;
-    background: var(--ja-white, #fff);
-    color: var(--ja-text, #252520);
-    font-size: 0.875rem;
-    font-weight: 650;
-    text-decoration: none;
+    margin: 0 0.3rem 0 0.15rem;
+    vertical-align: middle;
+    border: 1px solid #8a94a3;
+    background: #fff;
   }
-  .time-quick-links a:hover,
-  .time-quick-links a:focus-visible {
-    border-color: var(--time-accent);
-    outline: 2px solid color-mix(in srgb, var(--time-accent) 22%, transparent);
-    outline-offset: 2px;
+  .dot[data-status='submitted'] {
+    background: #3b82f6;
+    border-color: #3b82f6;
   }
-  .time-quick-links .time-quick-link-current-week {
-    border-color: color-mix(in srgb, var(--time-accent) 48%, white);
-    background: color-mix(in srgb, var(--time-accent) 8%, white);
+  .dot[data-status='approved'] {
+    background: #2e9e5b;
+    border-color: #2e9e5b;
   }
-  .time-day-shortcuts {
-    display: grid;
-    gap: 0.55rem;
-    margin: 0.75rem 0 1rem;
+  .dot[data-status='needs_changes'] {
+    background: #e09b00;
+    border-color: #e09b00;
   }
-  .time-day-shortcuts p {
-    margin: 0;
-    color: var(--ja-steel, #77756d);
-    font-size: 0.82rem;
-  }
-  .time-day-shortcuts > div {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.4rem;
-  }
-  .time-day-shortcuts button {
-    display: grid;
-    justify-items: center;
-    gap: 0.15rem;
-    min-width: 0;
-    min-height: 3.5rem;
-    padding: 0.35rem 0.2rem;
-  }
-  .time-day-shortcuts small {
-    font-size: 0.72rem;
-    font-weight: 500;
-  }
-  .time-week-scope {
-    padding: 0.55rem 0.7rem;
-    border-inline-start: 3px solid var(--time-accent);
-    background: color-mix(in srgb, var(--time-accent) 6%, white);
-  }
-  .time-primary-action {
-    background: var(--time-accent);
-    border-color: var(--time-accent);
-    color: var(--ja-white, #fff);
-  }
-  .time-primary-action:hover:not(:disabled),
-  .time-primary-action:focus-visible:not(:disabled) {
-    background: var(--time-accent-hover);
-    border-color: var(--time-accent-hover);
-    color: var(--ja-white, #fff);
-  }
-  .time-primary-action:focus-visible {
-    outline: 3px solid var(--ja-border-focus, #4568ff);
-    outline-offset: 2px;
-  }
-  .time-primary-action:disabled {
-    background: var(--time-accent);
-    border-color: var(--time-accent);
-    opacity: 0.62;
-    cursor: wait;
-  }
-  .operational-action-copy {
-    color: var(--ja-steel, #77756d);
-    margin: -0.4rem 0 0;
-    max-width: 72ch;
-    font-size: 0.86rem;
-  }
-  .time-status-card {
-    color: inherit;
-    text-decoration: none;
-  }
-  .time-status-card:hover,
-  .time-status-card:focus-visible {
-    border-color: var(--ja-teal, #706e66);
-    outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 25%, transparent);
-    outline-offset: 2px;
-  }
-  .time-week-submit,
-  .time-owner-calendar,
-  .time-owner-batch {
-    margin-top: 1.25rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 0.9rem;
-    background: white;
-    padding: 1.25rem;
-  }
-  .time-week-details {
-    margin-top: 0.8rem;
-  }
-  .time-week-details > summary {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-    align-items: center;
-    gap: 0.65rem 1rem;
-    min-height: 4rem;
-    padding: 0.7rem 0.9rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 0.85rem;
-    background: var(--ja-white, #fff);
-    cursor: pointer;
-    list-style: none;
-  }
-  .time-week-details > summary::-webkit-details-marker {
+  .sheet-days {
     display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0.6rem;
   }
-  .time-week-details > summary:focus-visible {
-    outline: 3px solid color-mix(in srgb, var(--time-accent) 32%, transparent);
-    outline-offset: 3px;
+  .day-card {
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+    padding: 0.6rem 0.75rem;
   }
-  .time-week-summary-item {
-    display: grid;
-    min-width: 0;
-    gap: 0.15rem;
+  .day-card-head {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
-  .time-week-summary-item small {
-    color: var(--ja-steel, #77756d);
-    font-size: 0.75rem;
-  }
-  .time-week-summary-item strong {
-    overflow-wrap: anywhere;
-  }
-  .time-week-details-action {
-    grid-column: 4;
-    grid-row: 1;
-    color: var(--time-accent);
-    font-size: 0.82rem;
+  .day-card-total {
+    margin-left: auto;
     font-weight: 700;
   }
-  .time-week-details-action::after {
-    content: '＋';
-    margin-inline-start: 0.35rem;
+  .day-card ul {
+    list-style: none;
+    margin: 0.4rem 0 0;
+    padding: 0;
   }
-  .time-week-details[open] .time-week-details-action::after {
-    content: '−';
+  .day-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.3rem 0;
+    border-top: 1px solid var(--ja-line, #eef1f4);
   }
-  .time-week-submit,
-  .time-owner-heading,
-  .time-batch-top-controls,
-  .time-calendar-controls {
+  .day-line-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .sheet-tools {
     display: flex;
     flex-wrap: wrap;
-    align-items: end;
-    gap: 1rem;
+    align-items: center;
     justify-content: space-between;
+    gap: 0.5rem 1rem;
   }
-  .time-week-submit h3,
-  .time-owner-calendar h3,
-  .time-owner-calendar h4 {
+  .legend {
     margin: 0;
-  }
-  .time-week-submit p,
-  .time-owner-calendar p,
-  .time-owner-batch p {
-    margin: 0.35rem 0 0.75rem;
-    color: var(--ja-steel, #77756d);
-  }
-  .time-week-submit form,
-  .time-owner-batch form {
-    display: grid;
-    gap: 0.75rem;
-  }
-  .time-week-submit label,
-  .time-calendar-controls label,
-  .time-batch-top-controls label,
-  .time-batch-row label {
-    display: grid;
-    gap: 0.35rem;
-    min-width: 0;
-  }
-  .time-week-submit form button {
-    justify-self: start;
-  }
-  .time-calendar-controls label {
-    flex: 1 1 10rem;
-  }
-  .time-calendar-controls {
-    flex: 1 1 24rem;
-    max-width: 28rem;
-    min-width: 0;
-    gap: 0.75rem;
-  }
-  .time-calendar-grid {
-    display: grid;
-    grid-template-columns: repeat(7, minmax(0, 1fr));
-    gap: 0.35rem;
-    margin-top: 1rem;
-  }
-  .time-calendar-weekday {
-    text-align: center;
     font-size: 0.85rem;
+    color: var(--ja-steel, #5b6573);
   }
-  .time-calendar-grid button {
-    min-width: 0;
-    min-height: 64px;
+  .add-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.5rem;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+  .add-row label {
     display: grid;
     gap: 0.2rem;
-    padding: 0.4rem;
-    border: 1px solid color-mix(in srgb, var(--time-accent) 65%, white);
-    border-radius: var(--ja-control-radius, 0.625rem);
-    background: color-mix(in srgb, var(--time-calendar-surface) 40%, white);
-    color: var(--time-accent);
+    font-size: 0.9rem;
   }
-  .time-calendar-grid button small {
-    font-size: 0.8rem;
-    color: inherit;
-    overflow-wrap: anywhere;
-  }
-  .time-calendar-grid button.time-calendar-outside {
-    background: var(--ja-canvas, #f6f6f1);
-    color: var(--ja-text-secondary, #57574f);
-  }
-  .time-calendar-grid button.time-calendar-selected {
-    border: 2px solid var(--time-accent);
-    background: var(--time-calendar-surface);
-    color: var(--time-accent);
-  }
-  .time-calendar-grid button:hover,
-  .time-calendar-grid button:focus-visible {
-    border-color: var(--time-accent);
-    background: var(--time-calendar-surface);
-    color: var(--time-accent);
-  }
-  .time-calendar-grid button:focus-visible {
-    outline: 3px solid var(--time-accent);
-    outline-offset: 2px;
-  }
-  .time-calendar-day {
-    margin-top: 1rem;
-    border-top: 1px solid var(--ja-control-border, #d7d8d2);
-    padding-top: 1rem;
-  }
-  .time-calendar-day ul {
-    list-style: none;
-    padding: 0;
-    margin: 0.75rem 0 0;
+  .fix-reason {
     display: grid;
-    gap: 0.5rem;
+    gap: 0.25rem;
+    max-width: 36rem;
+    font-weight: 600;
   }
-  .time-calendar-day li {
+  .invalid-hint {
+    color: var(--ja-danger, #c62828);
+    margin: 0;
+  }
+  button.link {
+    background: none;
+    border: 0;
+    padding: 0.5rem 0;
+    min-height: var(--ja-target-min, 44px);
+    color: var(--ja-teal, #0b6b78);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+  }
+  button.primary,
+  button.secondary {
+    min-height: var(--ja-target-min, 44px);
+    padding: 0 1.1rem;
+    border-radius: var(--ja-control-radius, 8px);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary {
+    background: var(--ja-red, #b3261e);
+    color: #fff;
+    border: 1px solid var(--ja-red, #b3261e);
+  }
+  button.secondary {
+    background: var(--ja-white, #fff);
+    color: var(--ja-ink, #1c2430);
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+  }
+  button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .sheet-actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.5rem;
-    border: 1px solid var(--ja-control-border, #d7d8d2);
-    border-radius: 0.5rem;
-    padding: 0.65rem;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+    box-shadow: 0 -4px 14px rgb(0 0 0 / 6%);
   }
-  .time-calendar-row-actions {
+  .sheet-actions-total {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    align-items: baseline;
     gap: 0.5rem;
+    flex-wrap: wrap;
   }
-  .time-owner-batch > summary {
-    cursor: pointer;
+  .sheet-actions-total strong {
+    font-size: 1.25rem;
+  }
+  .sheet-actions-total small {
+    color: var(--ja-steel, #5b6573);
+  }
+  .sheet-actions-total small.unsaved {
+    color: #a15c00;
     font-weight: 700;
   }
-  .time-owner-batch-body {
-    margin-top: 1rem;
-  }
-  .time-batch-top-controls {
-    justify-content: flex-start;
-  }
-  .time-batch-week-control {
+  .sheet-actions-buttons {
     display: flex;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    align-items: end;
-    gap: 0.75rem 1rem;
   }
-  .time-batch-week-control label {
-    display: grid;
-    gap: 0.35rem;
-    min-width: min(100%, 12rem);
+  .sheet-actions p {
+    flex-basis: 100%;
+    margin: 0;
   }
-  .time-batch-week-control input {
+  .confirm {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
+    border: 0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    width: min(28rem, calc(100vw - 2rem));
+    box-sizing: border-box;
+  }
+  .confirm::backdrop {
+    background: rgb(0 0 0 / 40%);
+  }
+  .confirm h3 {
+    margin: 0 0 0.25rem;
+  }
+  .confirm-totals {
     width: 100%;
-    min-height: 2.75rem;
+    border-collapse: collapse;
+    margin: 0.5rem 0;
   }
-  .time-batch-week-range {
-    color: var(--ja-steel, #77756d);
-    padding-bottom: 0.7rem;
+  .confirm-totals th {
+    text-align: left;
+    font-weight: 400;
   }
-  .time-batch-project-warning {
-    color: var(--ja-red-dark, #8f1d14) !important;
+  .confirm-totals td {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
   }
-  .time-batch-top-controls label {
-    flex: 1 1 15rem;
+  .confirm-totals th,
+  .confirm-totals td {
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--ja-line, #eef1f4);
   }
-  .time-batch-rows {
-    display: grid;
-    gap: 0.5rem;
+  .confirm-totals tfoot th {
+    font-weight: 700;
+    text-transform: none;
   }
-  .time-batch-row {
-    display: grid;
-    grid-template-columns: 8rem minmax(5rem, 0.6fr) minmax(8rem, 1fr) minmax(12rem, 2fr);
-    align-items: end;
-    gap: 0.5rem;
-    border-top: 1px solid var(--ja-control-border, #d7d8d2);
-    padding-top: 0.5rem;
+  .time-week :global([data-ui='status-badge'][data-variant='success']) {
+    background: #e8f6ec;
+    color: #17663a;
+    border-color: #a9dbb8;
   }
-  .time-batch-row > strong {
-    align-self: center;
+  .time-week :global([data-ui='status-badge'][data-variant='warning']) {
+    background: #fff3d6;
+    color: #8a5300;
+    border-color: #f0c36d;
   }
-  .time-batch-row input,
-  .time-batch-row select,
-  .time-calendar-controls input,
-  .time-calendar-controls select {
-    width: 100%;
-    min-height: 2.75rem;
+  .time-week :global([data-ui='status-badge'][data-variant='info']) {
+    background: #eaf2fd;
+    color: #1d4f91;
+    border-color: #b7d0f5;
   }
-  @media (max-width: 650px) {
-    .time-week-submit,
-    .time-owner-calendar,
-    .time-owner-batch {
-      padding: 0.8rem;
-    }
-    .time-week-details > summary {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .time-week-details-action {
-      grid-column: 1 / -1;
-      grid-row: auto;
-    }
-    .time-calendar-grid button {
-      min-height: 48px;
-    }
-    .time-calendar-grid button small {
-      font-size: 0.7rem;
-    }
-    .time-calendar-grid {
-      gap: 0.2rem;
-    }
-    .time-day-shortcuts > div {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .time-batch-row {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .time-batch-row > strong {
-      grid-column: 1 / -1;
-    }
-    .time-batch-row label:last-child {
-      grid-column: 1 / -1;
-    }
-  }
-  .operational-pagination {
-    align-items: center;
+  .confirm-actions {
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.65rem;
     justify-content: flex-end;
-    margin-top: 1rem;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
-  .operational-pagination span {
-    color: var(--ja-steel, #77756d);
-    font-size: 0.85rem;
+  .time-history {
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+    padding: 0 1rem;
   }
-  .register-back-to-shortcuts {
-    display: inline-flex;
+  .time-history summary {
+    cursor: pointer;
+    min-height: var(--ja-target-min, 44px);
+    display: flex;
     align-items: center;
-    min-height: 2.75rem;
-    margin-top: 0.65rem;
-    color: var(--time-accent);
-    font-weight: 650;
-    text-underline-offset: 0.15em;
+    gap: 0.35rem;
+    font-weight: 700;
   }
-  @media (max-width: 480px) {
-    .time-quick-links {
+  .history-count {
+    font-weight: 400;
+    margin-right: auto;
+  }
+  .history-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.25rem 0 0.75rem;
+  }
+  .history-filters label {
+    flex: 1 1 10rem;
+    display: grid;
+  }
+  .history-list {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+  }
+  .history-list a {
+    display: grid;
+    grid-template-columns: 6.5rem minmax(0, 1fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0;
+    border-top: 1px solid var(--ja-line, #eef1f4);
+    color: inherit;
+    text-decoration: none;
+  }
+  .history-list a:hover .history-main > span:first-child {
+    text-decoration: underline;
+  }
+  .history-main {
+    display: grid;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .history-hours {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  @media (max-width: 620px) {
+    /* Keep the action bar above the fixed phone bottom navigation. */
+    .sheet-actions {
+      bottom: calc(4.2rem + env(safe-area-inset-bottom, 0px));
+    }
+  }
+
+  @media (max-width: 760px) {
+    .sheet-table-wrap {
+      display: none;
+    }
+    .sheet-days {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
-    .time-quick-links a {
-      justify-content: center;
-      text-align: center;
-    }
-    .operational-pagination {
-      justify-content: stretch;
-    }
-    .operational-pagination button {
-      flex: 1 1 7rem;
-    }
-    .operational-pagination span {
-      order: -1;
+    .worker-pick {
       width: 100%;
+    }
+    .week-nav {
+      justify-content: space-between;
+    }
+    .week-label {
+      flex: 1 1 0;
+      min-width: 0;
       text-align: center;
+    }
+    .this-week {
+      flex-basis: 100%;
+      text-align: center;
+    }
+    .sheet-actions {
+      margin: 0 -0.25rem;
+    }
+    .sheet-actions {
+      padding: 0.5rem 0.75rem;
+      gap: 0.4rem;
+    }
+    .sheet-actions-total small {
+      display: none;
+    }
+    .sheet-actions-total small.unsaved {
+      display: inline;
+    }
+    .sheet-actions-buttons {
+      width: 100%;
+      flex-wrap: nowrap;
+    }
+    .sheet-actions-buttons button {
+      flex: 0 0 auto;
+      line-height: 1.2;
+      padding: 0.35rem 0.8rem;
+    }
+    .sheet-actions-buttons button.primary {
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    .history-list a {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .history-date {
+      grid-column: 1 / -1;
+      font-size: 0.85rem;
+      color: var(--ja-steel, #5b6573);
     }
   }
 </style>

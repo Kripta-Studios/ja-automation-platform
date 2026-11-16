@@ -73,6 +73,10 @@ export type PortalData = {
   assignments?: PortalRow[];
   assignmentToday?: string;
   timeAssignments?: PortalRow[];
+  timeWorkers?: Array<{ id: string; name: string }>;
+  timeWorkerId?: string;
+  weekEntries?: PortalRow[];
+  recordsTotal?: number;
   contacts?: PortalRow[];
   workers?: PortalRow[];
   planningFilterWorkers?: PortalRow[];
@@ -139,6 +143,7 @@ export type PortalData = {
     category: string;
     projectId: string;
     workerId: string;
+    status?: string;
     from: string;
     to: string;
   };

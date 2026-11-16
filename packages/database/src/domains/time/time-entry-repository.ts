@@ -375,7 +375,9 @@ export class TimeEntryRepository {
       });
       const category = this.deps.assertText(input.category, 'Category', 100);
       const activityCode = input.activityCode?.trim() || null;
-      const summary = this.deps.assertText(input.summary, 'Activity summary');
+      // Activity summary is optional operational context (owner decision 2026-11-16).
+      const summary = (input.summary ?? '').trim();
+      if (summary.length > 5000) throw this.deps.errors.validation('Activity summary is too long');
       const site = input.site?.trim() || null;
       const duplicate = this.deps.sqlite
         .prepare(

@@ -346,7 +346,8 @@ export const timeInputSchema = z
       .union([z.literal(''), z.coerce.number().int().min(0).max(1440)])
       .optional()
       .transform((value) => (value === '' ? undefined : value)),
-    summary: z.string().trim().min(3).max(5000),
+    // Activity summary is optional: the owner removed it from Log time.
+    summary: z.string().trim().max(5000).optional().default(''),
   })
   .superRefine((input, context) => {
     const hasStart = input.startTime !== undefined;

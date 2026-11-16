@@ -9,7 +9,7 @@ import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod, isRealIsoDate } from '$lib/server/iso-date';
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { mondayOf, weeklyView, type WeeklyProjectSchedule } from '$lib/server/portal-week';
+import { mondayOf } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import {
@@ -130,6 +130,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     };
     switch (section) {
       case 'time': {
+        // One week timesheet (rows = project + category, columns = days) and
+        // a compact register. Planned/scheduled hours are never projected
+        // into the sheet: only recorded actual time is returned.
         const timeScope = projectVisibility(
           context.repository.listAssignedProjects(context.principal),
           includeArchived,
@@ -137,147 +140,104 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const timeProjects = timeScope.projects;
         const selectedProject = normalizeProjectQuery(timeScope.projectIds);
         const timeProjectIds = timeProjects.map((project) => String(project.id));
-        const timeAssignments = timeProjectIds.length
-          ? context.sqlite
-              .prepare(
-                `SELECT pm.project_id,pm.user_id AS worker_id,pm.starts_on,pm.ends_on
-                   FROM project_member pm
-                   JOIN project p ON p.id=pm.project_id
-                  WHERE pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})
-                    AND pm.status='active'
-                    AND p.status IN ('active','planned','paused')`,
-              )
-              .all(...timeProjectIds)
-              .filter((assignment) =>
-                context.principal.role === 'worker'
-                  ? String(assignment.worker_id) === context.principal.userId
-                  : (common.workers as Array<{ id: string }>).some(
-                      (worker) => String(worker.id) === String(assignment.worker_id),
-                    ),
-              )
-          : [];
-        const weekStart = mondayOf(url.searchParams.get('week'));
-        const weekEnd = context.repository.listOwnTimeWeek(context.principal, weekStart).weekEnd;
-        const week =
-          context.principal.role === 'worker'
-            ? context.repository.listOwnTimeWeek(context.principal, weekStart)
-            : {
-                weekStart,
-                weekEnd,
-                rows: context.repository.listTimeForScope(context.principal, {
-                  from: weekStart,
-                  to: weekEnd,
-                }),
-              };
-        // Internal workers' own future memberships can make a selected day's
-        // target ambiguous even while those projects are absent from current
-        // operational access. Count those identities internally, but join
-        // schedule values only for visible projects and never return the rows.
-        // Supplier profiles retain their dated operational membership scope.
-        const weeklySchedules: WeeklyProjectSchedule[] =
-          context.principal.role !== 'worker' || timeProjectIds.length === 0
-            ? []
-            : (context.sqlite
+        const allAssignments = (
+          timeProjectIds.length
+            ? context.sqlite
                 .prepare(
-                  `SELECT pm.project_id,
-                          pm.starts_on AS assignment_starts_on,
-                          pm.ends_on AS assignment_ends_on,
-                          s.effective_from,s.effective_to,
-                          s.monday_minutes,s.tuesday_minutes,s.wednesday_minutes,
-                          s.thursday_minutes,s.friday_minutes,s.saturday_minutes,s.sunday_minutes
+                  `SELECT pm.project_id,pm.user_id AS worker_id,pm.starts_on,pm.ends_on
                      FROM project_member pm
                      JOIN project p ON p.id=pm.project_id
-                LEFT JOIN schedule s
-                       ON s.project_id=pm.project_id
-                      AND s.project_id IN (${timeProjectIds.map(() => '?').join(',')})
-                      AND s.effective_from <= ?
-                      AND (s.effective_to IS NULL OR s.effective_to >= ?)
-                    WHERE pm.user_id=?
-                      ${restrictedProfile ? `AND pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})` : ''}
+                    WHERE pm.project_id IN (${timeProjectIds.map(() => '?').join(',')})
                       AND pm.status='active'
-                      AND p.status IN ('active','planned','paused')
-                      AND pm.starts_on <= ?
-                      AND (pm.ends_on IS NULL OR pm.ends_on >= ?)
-                    ORDER BY pm.project_id,s.effective_from DESC`,
+                      AND p.status IN ('active','planned','paused')`,
                 )
-                .all(
-                  ...timeProjectIds,
-                  week.weekEnd,
-                  weekStart,
-                  context.principal.userId,
-                  ...(restrictedProfile ? timeProjectIds : []),
-                  week.weekEnd,
-                  weekStart,
-                ) as WeeklyProjectSchedule[]);
-        const visibleWeekRows = visibleProjectRecords(week.rows, timeScope.projectIds);
-        const timesheet = weeklyView(
-          visibleWeekRows as Array<Record<string, unknown>>,
-          weekStart,
-          weeklySchedules,
+                .all(...timeProjectIds)
+            : []
+        ) as Array<Record<string, unknown>>;
+        const delegating = ['owner_admin', 'project_manager'].includes(context.principal.role);
+        const assignedWorkerIds = new Set(allAssignments.map((row) => String(row.worker_id)));
+        const timeWorkers = delegating
+          ? [
+              ...(assignedWorkerIds.has(context.principal.userId) &&
+              !(common.workers as Array<{ id: string }>).some(
+                (worker) => String(worker.id) === context.principal.userId,
+              )
+                ? [{ id: context.principal.userId, name: locals.user.name ?? locals.user.email }]
+                : []),
+              ...(common.workers as Array<Record<string, unknown>>)
+                .filter((worker) => assignedWorkerIds.has(String(worker.id)))
+                .map((worker) => ({ id: String(worker.id), name: String(worker.name ?? '') })),
+            ]
+          : [];
+        const requestedWorker = url.searchParams.get('worker')?.trim() ?? '';
+        const timeWorkerId = !delegating
+          ? context.principal.userId
+          : timeWorkers.some((worker) => worker.id === requestedWorker)
+            ? requestedWorker
+            : assignedWorkerIds.has(context.principal.userId)
+              ? context.principal.userId
+              : (timeWorkers[0]?.id ?? context.principal.userId);
+        const timeAssignments = allAssignments.filter(
+          (assignment) => String(assignment.worker_id) === timeWorkerId,
         );
-        const ownWeeklyPay =
-          context.principal.role === 'worker' && !restrictedProfile
-            ? context.v3.workerPay(context.principal, weekStart, week.weekEnd)
-            : undefined;
-        // Operational time needs own aggregate estimates, never the full
-        // historical statement's project identities or planning/budget metadata.
-        const weeklyPay = ownWeeklyPay
-          ? {
-              currency: ownWeeklyPay.currency,
-              approvedMinutes: ownWeeklyPay.approvedMinutes,
-              pendingMinutes: ownWeeklyPay.pendingMinutes,
-              estimatedApprovedMinor: ownWeeklyPay.estimatedApprovedMinor,
-              estimatedPendingMinor: ownWeeklyPay.estimatedPendingMinor,
-              currencyBreakdown: ownWeeklyPay.currencyBreakdown.map((amount) => ({
-                currency: amount.currency,
-                estimatedApprovedMinor: amount.estimatedApprovedMinor,
-                estimatedPendingMinor: amount.estimatedPendingMinor,
-              })),
+        const weekStart = mondayOf(url.searchParams.get('week'));
+        const weekEnd = context.repository.listOwnTimeWeek(context.principal, weekStart).weekEnd;
+        const weekEntries = visibleProjectRecords(
+          context.repository.listTimeForScope(context.principal, {
+            from: weekStart,
+            to: weekEnd,
+          }),
+          timeScope.projectIds,
+        )
+          .filter(
+            (row) =>
+              String(row.worker_id) === timeWorkerId &&
+              !['void', 'rejected'].includes(String(row.approval_state)) &&
+              !row.active_correction_id,
+          )
+          .map((row) => {
+            if (String(row.approval_state) !== 'needs_changes') return row;
+            try {
+              const detail = context.repository.timeDetail(context.principal, String(row.id));
+              return { ...row, review_reason: detail.review_reason ?? null };
+            } catch {
+              return row;
             }
-          : undefined;
-        const category = url.searchParams.get('category')?.trim() || undefined;
-        const projectId = selectedProject || undefined;
-        const workerId = url.searchParams.get('worker')?.trim() || undefined;
-        // Native GET week picks need the same selected-week scope as the week
-        // links, without retaining an earlier register's date range.
-        const weekJump = url.searchParams.get('weekJump') === '1';
-        const from = weekJump ? weekStart : url.searchParams.get('from')?.trim() || undefined;
-        const to = weekJump ? weekEnd : url.searchParams.get('to')?.trim() || undefined;
+          });
+        const registerWorker = delegating ? url.searchParams.get('rworker')?.trim() || '' : '';
+        const registerStatus = url.searchParams.get('status')?.trim() || '';
+        const registerRows = visibleProjectRecords(
+          context.repository.listTimeForScope(context.principal, {
+            projectId: selectedProject || undefined,
+          }),
+          timeScope.projectIds,
+        ).filter(
+          (row) =>
+            String(row.approval_state) !== 'void' &&
+            // A returned entry superseded by its correction is shown once, as the correction.
+            !row.active_correction_id &&
+            (!registerWorker || String(row.worker_id) === registerWorker) &&
+            (!registerStatus || String(row.approval_state) === registerStatus),
+        );
         return {
           ...common,
           projects: timeProjects,
           timeAssignments,
-          records: visibleProjectRecords(
-            context.repository.listTimeForScope(context.principal, {
-              category,
-              projectId,
-              from,
-              to,
-            }),
-            timeScope.projectIds,
-          ).filter((row) => !workerId || String(row.worker_id) === workerId),
-          calendarRecords:
-            context.principal.role === 'owner_admin'
-              ? visibleProjectRecords(
-                  context.repository.listTimeForScope(context.principal),
-                  timeScope.projectIds,
-                )
-              : undefined,
-          weekDraftRecords: visibleProjectRecords(
-            week.rows,
-            projectVisibility(timeProjects).projectIds,
-          ),
+          timeWorkers,
+          timeWorkerId,
+          weekEntries,
+          records: registerRows.slice(0, 100),
+          recordsTotal: registerRows.length,
           timeFilter: {
-            category: category ?? '',
-            projectId: projectId ?? '',
-            workerId: workerId ?? '',
-            from: from ?? '',
-            to: to ?? '',
+            category: '',
+            projectId: selectedProject ?? '',
+            workerId: registerWorker,
+            status: registerStatus,
+            from: '',
+            to: '',
           },
           weekStart,
-          weekEnd: week.weekEnd,
-          timesheet,
-          weeklyPay,
+          weekEnd,
         };
       }
       case 'reports': {

@@ -4,6 +4,7 @@ import { notificationCopy } from '../../apps/portal/src/lib/notifications/copy';
 import { portalText } from '../../apps/portal/src/lib/portal-i18n';
 import { copy as financePreviewCopy } from '../../apps/portal/src/routes/app/finance/preview/copy';
 import { readFileSync } from 'node:fs';
+import { timeWeekText } from '../../apps/portal/src/lib/portal/sections/time-week-copy';
 import { portalCatalog } from '../../apps/portal/src/lib/portal-i18n';
 import { portalTitles, portalViewTitles } from '../../apps/portal/src/lib/portal-navigation';
 
@@ -28,15 +29,15 @@ describe('conditional workflow copy in all portal languages', () => {
     }
   });
   it('registers and translates operational category labels passed through dynamic options', () => {
+    // The week timesheet offers Work/Travel/Overtime from its own localized copy;
+    // any other stored category is labelled through the controlled timeCategory domain.
     const source = readFileSync('apps/portal/src/lib/portal/sections/TimeSection.svelte', 'utf8');
-    const labels = [...source.matchAll(/\{ value: '[^']+', label: '([^']+)' \}/gu)].map(
-      (match) => match[1],
-    );
-    expect(labels).toHaveLength(9);
-    for (const label of labels) {
-      expect(portalCatalog.en).toHaveProperty(label);
-      for (const locale of ['es', 'pt'] as const) expect(portalText(locale, label)).not.toBe(label);
-    }
+    expect(source).toContain("controlledValue('timeCategory', category)");
+    for (const key of ['work', 'travel', 'overtime'] as const)
+      for (const locale of ['es', 'pt'] as const)
+        expect(timeWeekText(locale, key)).not.toBe(timeWeekText('en', key));
+    expect(timeWeekText('es', 'work')).toBe('Trabajo');
+    expect(timeWeekText('pt', 'work')).toBe('Trabalho');
     expect(portalText('es', 'Work')).toBe('Trabajo');
     expect(portalText('pt', 'Work')).toBe('Trabalho');
     expect(portalText('es', 'Standby')).toBe('Guardia / espera');

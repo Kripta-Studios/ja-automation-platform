@@ -16,62 +16,36 @@ describe('Worker time UI vertical slice', () => {
     expect(timeBranch).not.toContain('action="?/createTime"');
   });
 
-  it('keeps the primary Log time CTA above the list and status context', () => {
+  // Owner decision 2026-11-16: Log hours is one week timesheet with a single
+  // Save and a single "Submit week for approval"; the activity summary, start/end
+  // times, meal expense, calendar and per-day forms were removed.
+  it('is one week timesheet with one save and one submit action', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-    expect(source.indexOf('class="time-status-strip"')).toBeGreaterThan(-1);
-    expect(source.indexOf('class="time-filters"')).toBeGreaterThan(-1);
-    expect(source.indexOf('data-time-primary-cta')).toBeLessThan(
-      source.indexOf('class="time-record-list"'),
-    );
-    expect((source.match(/data-time-primary-cta/g) ?? []).length).toBe(1);
+    expect(source).toContain('action="?/saveTimeWeek"');
+    expect((source.match(/action="\?\//g) ?? []).length).toBe(1);
+    expect((source.match(/data-testid="time-week-submit"/g) ?? []).length).toBe(1);
+    expect(source).toContain('data-testid="time-week-confirm"');
+    expect(source).not.toMatch(/name="summary"|name="startTime"|name="withExpense"/u);
+    expect(source).not.toContain('Activity summary');
   });
 
-  it('keeps attention filtering and user-selected ordering truthful', () => {
+  it('keeps Worker entry operational and never asks for commercial treatment', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-
-    expect(source).toMatch(/let order = \$state<OperationalOrder>\([\s\S]*?: 'newest',/);
-    expect(source).toContain("const requestedInitialOrder = $page.url.searchParams.get('order')");
-    expect(source).toContain("!$page.url.searchParams.has('order')");
-    expect(source).toContain('operationalStatusMatches(');
-    expect(source).toContain("filterHref({ status: 'attention' })");
-    expect(source).toContain('<option value="attention">{translate(\'Needs attention\')}</option>');
-    expect(source).toContain('bind:value={order}');
-    expect(source).toContain('writeOperationalRegisterState(registerStateKey(), {');
-    expect(source).toContain('order,');
-  });
-
-  it('keeps Worker entry operational and derives conditional detail from category', () => {
-    const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-
-    expect(source).toContain("{ value: 'regular', label: 'Work' }");
-    expect(source).toContain("{ value: 'overtime', label: 'Overtime' }");
-    expect(source).toContain("{ value: 'travel', label: 'Travel' }");
-    expect(source).toContain("{ value: 'standby', label: 'Standby' }");
-    expect(source).toContain("{ value: 'commissioning', label: 'Commissioning' }");
-    expect(source).toContain('Travel operational detail');
-    expect(source).toContain('Standby reason');
-    expect(source).toContain("activeCategory === 'travel'");
-    expect(source).toContain("activeCategory === 'standby'");
-    expect(source).toContain('name="activityCode"');
-    expect(source).toContain('data-entity-id={String(editRow.id)}');
-    expect(source).toContain('data-version={String(editRow.version)}');
-    expect(source).toContain('const filterCategories = [...primaryCategories, ...moreCategories]');
-    expect(source).toContain('bind:value={createCategory}');
-    expect(source).toContain('bind:value={editCategory}');
+    expect(source).toContain("const quickCategories = ['regular', 'travel', 'overtime'] as const;");
     expect(source).not.toMatch(/name="(?:clientRate|tax|markup|multiplier|billable)"/i);
   });
 
-  it('uses the stable ResponsiveSheet and preserves the configured-target truth', () => {
-    const time = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-    const timesheet = readSource('apps/portal/src/lib/portal/sections/TimesheetPanel.svelte');
+  it('shows read-only reviewed cells and the reviewer note for returned time', () => {
+    const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
+    expect(source).toContain("else kind = 'locked';");
+    expect(source).toContain("kind = 'fix'");
+    expect(source).toContain('entry.review_reason');
+    expect(source).toContain('data-testid="time-needs-changes"');
+  });
 
-    expect(time).toContain('<ResponsiveSheet');
-    expect(time).toContain('data-time-entry-surface');
-    expect(timesheet).not.toContain('Expected availability is 10 hours');
-    expect(timesheet).toContain('Planning target only; it never creates time.');
-    expect(timesheet).toContain('day.expectedMinutes');
-    expect(timesheet).toContain(
-      'Copies projects, categories and activity labels into zero-hour drafts',
-    );
+  it('stacks days vertically on phones', () => {
+    const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
+    expect(source).toContain('data-testid="time-week-days"');
+    expect(source).toMatch(/@media \(max-width: 760px\)[\s\S]*\.sheet-table-wrap \{\s*display: none;/u);
   });
 });

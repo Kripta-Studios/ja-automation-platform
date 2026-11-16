@@ -96,9 +96,13 @@ describe('credential and presentation hygiene', () => {
 
   it('does not offer worker void/delete actions for submitted or approved time', () => {
     const source = read('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-    expect(source).toMatch(/canDeleteTimeDraft/u);
-    expect(source).toContain('action="?/deleteDraft"');
+    // The week timesheet has no delete/void buttons: only never-submitted
+    // drafts (and reviewer-returned cells, via correction) are editable;
+    // submitted/approved cells render read-only.
+    expect(source).toContain("String(entry.approval_state) === 'draft'");
+    expect(source).toContain("kind = 'locked'");
     expect(source).not.toContain('action="?/deleteTime"');
+    expect(source).not.toContain('action="?/deleteDraft"');
     expect(source).not.toContain("translate('Void')");
   });
 });

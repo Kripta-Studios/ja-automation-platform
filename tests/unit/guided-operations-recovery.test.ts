@@ -82,7 +82,6 @@ describe('guided operational recovery', () => {
         code: 'TIME_BATCH_ENTRY_INVALID',
         actionName: 'createTimeBatch',
         fieldErrors: {
-          summary_1: ['problem.time.summaryInvalid'],
           category_4: ['problem.time.categoryInvalid'],
           hours_4: ['Enter a valid number of hours from 0 to 24.'],
         },
@@ -90,6 +89,10 @@ describe('guided operational recovery', () => {
     });
     expect((result as { data: { fieldErrors: object } }).data.fieldErrors).not.toHaveProperty(
       'entries',
+    );
+    // Activity summary is optional (owner decision 2026-11-16): a short summary is valid.
+    expect((result as { data: { fieldErrors: object } }).data.fieldErrors).not.toHaveProperty(
+      'summary_1',
     );
   });
 

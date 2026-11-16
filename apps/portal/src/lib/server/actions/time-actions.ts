@@ -631,6 +631,40 @@ export function timeActionFailure(
   return actionFailure(error, { values: savedValues });
 }
 
+const weekCategories = new Set([
+  'regular',
+  'commissioning',
+  'overtime',
+  'weekend_holiday',
+  'travel',
+  'standby',
+  'remote_support',
+  'training',
+  'internal',
+]);
+
+/** Decimal hours ("7.5", "8", "0", "") -> minutes; null = empty; undefined = invalid. */
+export function weekCellMinutes(value: unknown): number | null | undefined {
+  const raw = String(value ?? '')
+    .trim()
+    .replace(',', '.');
+  if (!raw) return null;
+  const match = /^(\d{1,2})(?:\.(\d{1,2}))?$/u.exec(raw);
+  if (!match) return undefined;
+  const hundredths = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
+  if (hundredths > 2400) return undefined;
+  return Math.round((hundredths * 3) / 5);
+}
+
+type WeekCellInput = {
+  projectId: string;
+  category: string;
+  workDate: string;
+  minutes: number | null;
+  id?: string;
+  version?: number;
+};
+
 export const timeActions = withOperationalActionNames({
   createTimeBatch: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'time')
@@ -794,6 +828,115 @@ export const timeActions = withOperationalActionNames({
       );
     } catch (error) {
       return timeActionFailure(error, object);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /** One timesheet for one worker and ISO week: save drafts, optionally submit. */
+  saveTimeWeek: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const values = {
+      weekStart: String(object.weekStart ?? ''),
+      workerId: String(object.workerId ?? ''),
+    };
+    const weekStart = object.weekStart;
+    if (!realIsoDate(weekStart) || mondayOf(weekStart) !== weekStart)
+      return timePrecheckFailure(
+        'TIME_WEEK_START_INVALID',
+        'problem.time.weekStartInvalid',
+        'Select a week that starts on Monday, then review its drafts before submitting.',
+        values,
+        'weekStart',
+        'review_week',
+      );
+    const dates = new Set(weekDates(weekStart));
+    let rawCells: unknown;
+    let rawExpected: unknown;
+    try {
+      rawCells = JSON.parse(String(object.cells ?? '[]'));
+      rawExpected = JSON.parse(String(object.expected ?? '[]'));
+    } catch {
+      rawCells = undefined;
+    }
+    const invalidBatch = () =>
+      timePrecheckFailure(
+        'TIME_BATCH_ENTRIES_INVALID',
+        'problem.time.batchEntriesInvalid',
+        'The batch entries could not be read. Review the daily drafts and save again.',
+        values,
+        'entries',
+        'review_week',
+      );
+    if (!Array.isArray(rawCells) || rawCells.length > 300 || !Array.isArray(rawExpected))
+      return invalidBatch();
+    const cells: WeekCellInput[] = [];
+    for (const raw of rawCells as unknown[]) {
+      if (!raw || typeof raw !== 'object') return invalidBatch();
+      const cell = raw as Record<string, unknown>;
+      const projectId = String(cell.projectId ?? '');
+      const category = String(cell.category ?? '');
+      const workDate = String(cell.workDate ?? '');
+      if (!projectId || projectId.length > 100 || !weekCategories.has(category) || !dates.has(workDate))
+        return invalidBatch();
+      const minutes = weekCellMinutes(cell.hours);
+      if (minutes === undefined)
+        return actionFail(
+          400,
+          'problem.time.batchEntryInvalid',
+          {},
+          'Enter valid decimal hours for each filled day before saving the batch.',
+          {
+            code: 'TIME_BATCH_ENTRY_INVALID',
+            values,
+            cell: { projectId, category, workDate },
+            fieldErrors: { [`cell:${projectId}:${category}:${workDate}`]: ['problem.time.batchEntryInvalid'] },
+            remedies: [{ id: 'review_week' }],
+          },
+        );
+      const id = typeof cell.id === 'string' && cell.id ? cell.id : undefined;
+      const version = Number(cell.version);
+      if (id && (!Number.isInteger(version) || version < 1)) return invalidBatch();
+      cells.push({ projectId, category, workDate, minutes, ...(id ? { id, version } : {}) });
+    }
+    const expected = (rawExpected as unknown[]).flatMap((row) =>
+      row &&
+      typeof row === 'object' &&
+      typeof (row as { id?: unknown }).id === 'string' &&
+      Number.isInteger((row as { version?: unknown }).version)
+        ? [{ id: (row as { id: string }).id, version: (row as { version: number }).version }]
+        : [],
+    );
+    const submit = object.intent === 'submit';
+    const context = openPortalRepository(locals);
+    try {
+      const result = context.repository.saveTimeWeek(context.principal, {
+        workerId: values.workerId || context.principal.userId,
+        weekStart,
+        cells,
+        expected,
+        submit,
+        correctionReason: typeof object.reason === 'string' ? object.reason : undefined,
+      });
+      const saved = result.created + result.updated + result.removed + result.corrected;
+      return submit
+        ? actionSuccess(
+            'action.time.weekSubmitted',
+            { timeSubmitted: result.submitted, mealsSubmitted: 0 },
+            `${result.submitted} time drafts submitted`,
+          )
+        : actionSuccess(
+            'action.time.batchDraftsSaved',
+            { count: saved },
+            `${saved} daily time drafts saved`,
+          );
+    } catch (error) {
+      const failure = timeActionFailure(error, values);
+      const cell = (error as { weekCell?: unknown } | null)?.weekCell;
+      if (cell && failure && typeof failure === 'object' && 'data' in failure && failure.data)
+        Object.assign(failure.data as object, { cell });
+      return failure;
     } finally {
       context.sqlite.close();
     }

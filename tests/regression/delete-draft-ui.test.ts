@@ -20,11 +20,10 @@ describe('draft delete controls', () => {
   it('uses deleteDraft for never-submitted time and expense drafts', () => {
     const time = read('apps/portal/src/lib/portal/sections/TimeSection.svelte');
     const expense = read('apps/portal/src/lib/portal/sections/ExpenseSection.svelte');
-    expect(time).toContain('data-action="deleteDraft"');
-    expect(time).toContain('data-record-type="time_entry"');
-    expect(time).toContain('action="?/deleteDraft"');
-    expect(time).toContain("import { canDeleteTimeDraft } from './time-entry-actions'");
-    expect(time).toContain('return canDeleteTimeDraft(row, data.user.id);');
+    // Week timesheet: clearing a never-submitted draft cell removes it server-side
+    // (saveTimeWeek -> deleteTime, which refuses anything but unlocked drafts).
+    expect(time).not.toContain('action="?/deleteTime"');
+    expect(time).toContain("String(entry.approval_state) === 'draft'");
     expect(expense).toContain('data-action="deleteDraft"');
     expect(expense).toContain('data-record-type="expense"');
     expect(expense).toContain('action="?/deleteDraft"');
@@ -35,8 +34,7 @@ describe('draft delete controls', () => {
     const detail = read('apps/portal/src/routes/app/time/[id]/+page.svelte');
     const action = read('apps/portal/src/routes/app/time/[id]/+page.server.ts');
     const correctionForm = read('apps/portal/src/lib/portal/ui/CorrectionDraftForm.svelte');
-    expect(time).toContain("row.approval_state === 'needs_changes'");
-    expect(time).toContain('#time-correction-title');
+    expect(time).toContain("String(list[0]!.approval_state) === 'needs_changes'");
     expect(detail).toContain('recordType="time_entry"');
     expect(action).toContain('createCorrectionDraft: async');
     expect(correctionForm).toContain('action={correctionAction}');
@@ -45,7 +43,6 @@ describe('draft delete controls', () => {
     );
     expect(correctionForm).toContain(": '?/createCorrectionDraft';");
     expect(correctionForm).toContain('name="reason"');
-    expect(time).toContain('Create corrected draft');
   });
 
   it('keeps returned and approved expenses append-only and routes them to a reasoned correction', () => {

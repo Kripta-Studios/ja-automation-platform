@@ -89,6 +89,7 @@
     href: string;
     active: boolean;
     tone?: 'danger';
+    items?: Array<{ id: string; label: string; value: string; href: string }>;
   };
   const inbox = $derived(data.homeInbox);
   const overdueTotals = $derived(
@@ -142,6 +143,19 @@
             ? link('billing', { project: ready.topProjectId, assistantSurface: 'invoice-create' })
             : (invoiceDraftHref ?? link('billing')),
         active: ready.projects > 0,
+        // Several projects: one "Create invoice" per project, straight from Home.
+        items:
+          canCreateInvoiceDraft && ready.items.length > 1
+            ? ready.items.slice(0, 6).map((item) => ({
+                id: item.projectId,
+                label: item.label,
+                value: money(item.minor, item.currency),
+                href: link('billing', {
+                  project: item.projectId,
+                  assistantSurface: 'invoice-create',
+                }),
+              }))
+            : undefined,
       });
     }
     if (data.ownerFinance) {
@@ -176,7 +190,8 @@
         href: link('billing', { stage: 'drafts' }),
         active: true,
       });
-    return rows;
+    // What needs the owner comes first; finished rows sink to the bottom.
+    return [...rows.filter((row) => row.active), ...rows.filter((row) => !row.active)];
   });
   const inboxClear = $derived(inboxRows.length > 0 && inboxRows.every((row) => !row.active));
 
@@ -255,13 +270,32 @@
             <strong class="home-inbox-value">{row.value}</strong>
             {#if row.detail}<span class="home-inbox-detail">{row.detail}</span>{/if}
           </div>
-          <a
-            class="home-inbox-action"
-            class:home-inbox-action--primary={row.active}
-            href={row.href}
-            aria-label={`${row.action} · ${row.label}`}
-            ><span class="home-inbox-action-label">{row.action}</span> <DirectionIcon /></a
-          >
+          {#if !row.items}
+            <a
+              class="home-inbox-action"
+              class:home-inbox-action--primary={row.active}
+              href={row.href}
+              aria-label={`${row.action} · ${row.label}`}
+              ><span class="home-inbox-action-label">{row.action}</span> <DirectionIcon /></a
+            >
+          {:else}
+            <ul class="home-inbox-items">
+              {#each row.items as item (item.id)}
+                <li>
+                  <span class="home-inbox-item-label">{item.label}</span>
+                  <strong>{item.value}</strong>
+                  <a
+                    class="home-inbox-action home-inbox-action--primary"
+                    href={item.href}
+                    data-home-invoice-project={item.id}
+                    aria-label={`${row.action} · ${item.label}`}
+                    ><span class="home-inbox-action-label">{row.action}</span>
+                    <DirectionIcon /></a
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
         </li>
       {/each}
     </ul>
@@ -506,6 +540,33 @@
   }
   .home-inbox-row--quiet .home-inbox-value {
     font-size: 1.125rem;
+  }
+  .home-inbox-row:has(.home-inbox-items) {
+    flex-wrap: wrap;
+  }
+  .home-inbox-items {
+    display: grid;
+    gap: 0.5rem;
+    flex: 1 1 100%;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .home-inbox-items li {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 0.75rem;
+    padding-top: 0.5rem;
+    border-top: 1px dashed var(--ja-border-subdued);
+  }
+  .home-inbox-item-label {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    font-size: 0.9375rem;
+  }
+  .home-inbox-items strong {
+    font-variant-numeric: tabular-nums;
   }
   .home-inbox-action {
     display: inline-flex;

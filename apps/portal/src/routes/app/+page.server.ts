@@ -128,6 +128,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
                   return [
                     {
                       projectId: String(project.id),
+                      label: [project.project_number, project.name].filter(Boolean).join(' · '),
                       currency: String(finance.currency ?? project.currency ?? ''),
                       minor: finance.approvedUnbilledWipMinor,
                     },

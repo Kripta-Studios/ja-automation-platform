@@ -72,29 +72,58 @@ export function pendingApprovalSummary(rows: readonly QueueRow[]): ApprovalPendi
   };
 }
 
+export type ReadyToInvoiceItem = {
+  projectId: string;
+  label: string;
+  currency: string;
+  minor: string;
+};
+
 export type ReadyToInvoice = {
   projects: number;
   totals: CurrencyTotal[];
+  /** One row per project with approved, unbilled work; largest first. */
+  items: ReadyToInvoiceItem[];
   /** The project with the largest amount, to open the invoice draft directly. */
   topProjectId: string | null;
 };
 
 export function readyToInvoiceSummary(
-  rows: ReadonlyArray<{ projectId: string; currency: string; minor: string | null | undefined }>,
+  rows: ReadonlyArray<{
+    projectId: string;
+    currency: string;
+    minor: string | null | undefined;
+    label?: string;
+  }>,
 ): ReadyToInvoice {
   const totals = new Map<string, bigint>();
-  let projects = 0;
-  let top: { id: string; minor: bigint } | null = null;
+  const items: Array<ReadyToInvoiceItem & { value: bigint }> = [];
   for (const row of rows) {
     const raw = text(row.minor).trim();
     if (!/^\d+$/u.test(raw)) continue;
     const minor = BigInt(raw);
     if (minor <= 0n) continue;
-    projects += 1;
     totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
-    if (!top || minor > top.minor) top = { id: row.projectId, minor };
+    items.push({
+      projectId: row.projectId,
+      label: row.label ?? row.projectId,
+      currency: row.currency,
+      minor: raw,
+      value: minor,
+    });
   }
-  return { projects, totals: currencyTotals(totals), topProjectId: top?.id ?? null };
+  items.sort((left, right) => (left.value === right.value ? 0 : left.value > right.value ? -1 : 1));
+  return {
+    projects: items.length,
+    totals: currencyTotals(totals),
+    items: items.map((item) => ({
+      projectId: item.projectId,
+      label: item.label,
+      currency: item.currency,
+      minor: item.minor,
+    })),
+    topProjectId: items[0]?.projectId ?? null,
+  };
 }
 
 export type HomeInbox = {

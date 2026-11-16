@@ -79,6 +79,10 @@ describe('home inbox projections', () => {
     ).toEqual({
       projects: 2,
       totals: [{ currency: 'USD', minor: '900719925474099400' }],
+      items: [
+        { projectId: 'a', label: 'a', currency: 'USD', minor: '900719925474099300' },
+        { projectId: 'b', label: 'b', currency: 'USD', minor: '100' },
+      ],
       topProjectId: 'a',
     });
   });

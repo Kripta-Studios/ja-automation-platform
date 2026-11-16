@@ -22,6 +22,7 @@ import { createInvoiceDraftResolvingPeriod } from '$lib/server/invoice-draft';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { removePurgedFiles } from '$lib/server/permanent-deletion';
+import { emptyProjectHub, projectHubData } from '$lib/server/project-hub';
 import type { ProblemData } from '$lib/problem/contract';
 import type { PageServerLoad, Actions } from './$types';
 
@@ -247,6 +248,24 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
             : null,
       },
       documents: context.repository.listDocuments(context.principal, params.id),
+      // Hub header, per-person summaries and invoice list (role-narrowed in the helper).
+      hub: (() => {
+        try {
+          return projectHubData(
+            context,
+            params.id,
+            overview.project as { timezone?: unknown; project_manager_id?: unknown },
+            { financeVisible },
+          );
+        } catch (cause) {
+          // The hub is a summary; the project page must still open without it.
+          console.error('Project hub summary unavailable', {
+            projectId: params.id,
+            cause: cause instanceof Error ? cause.name : 'unknown',
+          });
+          return emptyProjectHub();
+        }
+      })(),
     };
   } catch (caught) {
     if (caught instanceof AccessDeniedError) error(403, 'detail.project.forbidden');
@@ -336,7 +355,8 @@ type DetailAction =
   | 'saveBillingSetup'
   | 'createInvoiceDraft'
   | 'updateProject'
-  | 'deleteProject';
+  | 'deleteProject'
+  | 'setClientRate';
 type DetailValues = Record<string, string>;
 type DetailProblemKey = `problem.${string}`;
 type DetailRule = readonly [
@@ -1914,6 +1934,73 @@ export const actions: Actions = {
       return actionSuccess('action.projects.projectUpdated', {}, 'Project updated');
     } catch (e) {
       return detailFailure(e, 'updateProject', values, projectId);
+    } finally {
+      context?.sqlite.close();
+    }
+  },
+  /**
+   * Inline "rate missing → set it here" (owner directive 2026-11-16). Saves a
+   * project-wide client hourly rate, or a person override when workerId is
+   * given. Authorization and currency checks stay in V3 createClientLaborRate.
+   */
+  setClientRate: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const values = detailValues(data);
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+        actionName: 'setClientRate',
+        values,
+        remedies: [{ id: 'sign_in_again' }],
+      });
+    const parsed = z
+      .object({
+        workerId: z.string().trim().max(200).default(''),
+        rate: amount,
+        effectiveFrom: z.iso.date(),
+      })
+      .safeParse({
+        workerId: values.workerId ?? '',
+        rate: values.rate ?? '',
+        effectiveFrom: values.effectiveFrom ?? '',
+      });
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'problem.projectDetail.personTermsRateInvalid',
+        {},
+        'Enter a valid rate, for example 85 or 85.50.',
+        {
+          code: 'PROJECT_CLIENT_RATE_INVALID',
+          actionName: 'setClientRate',
+          values,
+          fieldErrors: { rate: ['problem.projectDetail.personTermsRateInvalid'] },
+        },
+      );
+    const [whole, fraction = ''] = parsed.data.rate.replace(',', '.').split('.');
+    const rateMinor = BigInt(whole ?? '0') * 100n + BigInt((fraction + '00').slice(0, 2));
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const project = context.repository.projectOverview(context.principal, params.id, {
+        includeFinance: false,
+      }).project as { currency?: string };
+      if (parsed.data.workerId) {
+        const member = context.sqlite
+          .prepare('SELECT 1 FROM project_member WHERE project_id=? AND user_id=? LIMIT 1')
+          .get(params.id, parsed.data.workerId);
+        if (!member) throw new ValidationError('Worker is not assigned to this project');
+      }
+      context.v3.createClientLaborRate(context.principal, {
+        projectId: params.id,
+        workerId: parsed.data.workerId || undefined,
+        currency: String(project.currency) as 'EUR' | 'USD' | 'BRL',
+        hourlyRateMinor: rateMinor,
+        effectiveFrom: parsed.data.effectiveFrom,
+      });
+      return actionSuccess('action.projects.projectUpdated', {}, 'Client rate saved');
+    } catch (e) {
+      return detailFailure(e, 'setClientRate', values, params.id);
     } finally {
       context?.sqlite.close();
     }

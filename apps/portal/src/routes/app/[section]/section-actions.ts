@@ -4,11 +4,13 @@ import { accessActions } from '$lib/server/actions/access-actions';
 import { billingActions } from '$lib/server/actions/billing-actions';
 import { documentActions } from '$lib/server/actions/document-actions';
 import { expenseActions } from '$lib/server/actions/expense-actions';
+import { ratesActions } from '$lib/server/actions/rates-actions';
 import { financeActions } from '$lib/server/actions/finance-actions';
 import { notificationActions } from '$lib/server/actions/notification-actions';
 import { projectActions } from '$lib/server/actions/project-actions';
 import { reportActions } from '$lib/server/actions/operations-actions';
 import { timeActions } from '$lib/server/actions/time-actions';
+import { teamActions } from '$lib/server/actions/team-actions';
 
 const reportAutosaveAction = reportActions.autosaveReport;
 
@@ -88,6 +90,8 @@ export const sectionActions: Actions = {
   destroyMailboxAccount: accessActions.destroyMailboxAccount,
   updateUserStatus: accessActions.updateUserStatus,
   updateWorkerProfile: accessActions.updateWorkerProfile,
+  fixPersonNames: teamActions.fixPersonNames,
+  setPersonDefaultRates: teamActions.setPersonDefaultRates,
   updateSkill: reportActions.updateSkill,
   deleteSkill: reportActions.deleteSkill,
   deleteWorkerSkill: reportActions.deleteWorkerSkill,
@@ -138,6 +142,8 @@ export const sectionActions: Actions = {
   supersedeInternalCostRule: financeActions.supersedeInternalCostRule,
   deactivateInternalCostRule: financeActions.deactivateInternalCostRule,
   createAssignmentRateOverride: financeActions.createAssignmentRateOverride,
+  saveClientRate: ratesActions.saveClientRate,
+  saveWorkerPay: ratesActions.saveWorkerPay,
   markNotificationRead: notificationActions.markNotificationRead,
   archiveDocument: documentActions.archiveDocument,
   deleteDocument: documentActions.deleteDocument,

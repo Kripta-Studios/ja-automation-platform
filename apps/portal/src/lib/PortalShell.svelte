@@ -4943,6 +4943,16 @@
         suppliers={data.suppliers ?? []}
         workers={data.workers ?? []}
         assignments={data.assignments ?? []}
+        projects={data.projects ?? []}
+        teamStats={data.teamStats ?? []}
+        teamWeekStart={data.teamWeekStart ?? ''}
+        mailboxLinkedIds={data.mailboxLinkedIds ?? []}
+        personPayRules={data.personPayRules ?? []}
+        personAssignModes={data.personAssignModes ?? {}}
+        skills={data.allSkills ?? []}
+        workerSkills={data.workerSkills ?? []}
+        viewerRole={data.user.role ?? ''}
+        {locale}
         mailboxes={mailboxData.mailboxes}
         mailboxDirectoryStatus={mailboxData.mailboxDirectoryStatus}
         mailboxDirectoryError={mailboxData.mailboxDirectoryError}

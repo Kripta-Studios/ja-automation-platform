@@ -137,14 +137,13 @@ describe('portal role navigation contract', () => {
 
   it('gives Finance the economic and billing workflow without audit clutter', () => {
     expect(labels('finance_admin')).toEqual([
-      'Finance Overview',
+      'Money',
       'Projects',
-      'Economic Review',
       'Billing',
+      'Payments',
       'Approvals',
-      'Collections / Ledger',
       'Accounting',
-      'Commercial Configuration',
+      'Rates',
       'Documents',
       'Profile',
     ]);
@@ -193,15 +192,7 @@ describe('portal role navigation contract', () => {
       ],
       [
         'finance',
-        [
-          'Finance Overview',
-          'Economic Review',
-          'Collections / Ledger',
-          'Accounting',
-          'Commercial Configuration',
-          'Data management',
-          'Audit',
-        ],
+        ['Money', 'Payments', 'Rates', 'Accounting', 'Data management', 'Audit'],
       ],
     ]);
     // Profile lives in the account menu only.
@@ -223,11 +214,10 @@ describe('portal role navigation contract', () => {
       'Crew hours',
       'Documents',
       'Reports',
-      'Finance Overview',
-      'Economic Review',
-      'Collections / Ledger',
+      'Money',
+      'Payments',
+      'Rates',
       'Accounting',
-      'Commercial Configuration',
       'Profile',
       'Data management',
       'Audit',
@@ -236,9 +226,9 @@ describe('portal role navigation contract', () => {
 
   it('keeps the read-only auditor menu limited to read-only finance, audit and profile areas', () => {
     expect(labels('auditor_read_only')).toEqual([
-      'Finance Overview',
-      'Economic Review',
-      'Collections / Ledger',
+      'Money',
+      'Payments',
+      'Detailed analysis',
       'Accounting',
       'Profile',
       'Audit',
@@ -260,10 +250,10 @@ describe('portal role navigation contract', () => {
     expect(all.find((item) => item.label === 'Clients')?.href).toBe(
       '/j-aautomation/app/projects?view=clients',
     );
-    expect(all.find((item) => item.label === 'Economic Review')?.href).toBe(
-      '/j-aautomation/app/finance?view=economic',
+    expect(all.find((item) => item.label === 'Money')?.href).toBe(
+      '/j-aautomation/app/finance?view=overview',
     );
-    expect(all.find((item) => item.label === 'Commercial Configuration')?.href).toBe(
+    expect(all.find((item) => item.label === 'Rates')?.href).toBe(
       '/j-aautomation/app/finance?view=commercial',
     );
   });
@@ -380,11 +370,11 @@ describe('active portal navigation destination', () => {
   });
 
   it.each([
-    ['finance_admin', 'overview', 'Finance Overview'],
-    ['finance_admin', 'economic', 'Economic Review'],
-    ['finance_admin', 'commercial', 'Commercial Configuration'],
-    ['owner_admin', 'economic', 'Economic Review'],
-    ['auditor_read_only', 'economic', 'Economic Review'],
+    ['finance_admin', 'overview', 'Money'],
+    ['finance_admin', 'economic', 'Money'],
+    ['finance_admin', 'commercial', 'Rates'],
+    ['owner_admin', 'economic', 'Money'],
+    ['auditor_read_only', 'economic', 'Detailed analysis'],
   ])('keeps %s in the selected finance %s view after filtering', (role, view, label) => {
     const items = flatten(role);
     const current = location(
@@ -400,8 +390,8 @@ describe('active portal navigation destination', () => {
     ['worker', 'Today'],
     ['project_manager', 'Home'],
     ['owner_admin', 'Home'],
-    ['finance_admin', 'Finance Overview'],
-    ['auditor_read_only', 'Finance Overview'],
+    ['finance_admin', 'Money'],
+    ['auditor_read_only', 'Money'],
   ])('selects the role landing for %s at the root URL', (role, label) => {
     expect(activeNavItem(flatten(role), location('?lang=es', 'today', role))?.label).toBe(label);
   });

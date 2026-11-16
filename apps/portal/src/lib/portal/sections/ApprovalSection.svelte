@@ -307,7 +307,7 @@
   // Visible filters: worker, project and week. A project filter narrows the
   // groups to that project's entries, so "Approve week" never approves hidden work.
   let workerFilter = $state('');
-  let projectFilter = $state('');
+  let projectFilter = $state($page.url.searchParams.get('project')?.trim() ?? '');
   let weekFilter = $state('');
   const rowWeek = (row: Row): string => weekStartForDate(value(row, 'date')) ?? value(row, 'date');
   const filteredPending = $derived(

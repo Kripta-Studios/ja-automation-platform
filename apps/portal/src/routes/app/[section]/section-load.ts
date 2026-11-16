@@ -12,6 +12,8 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
+import { buildMoneyOverview } from '$lib/server/money-overview';
+import { buildRatesOverview } from '$lib/server/rates-overview';
 import {
   reviewFinanceReimbursement,
   withFinanceReimbursementSnapshot,
@@ -24,6 +26,7 @@ import {
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
 import { listMailboxAccounts } from '$lib/server/mail-directory';
+import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
 import {
   includesArchivedProjectHistory,
   normalizeVisibleProjectSelection,
@@ -711,6 +714,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .filter(
                   (worker) =>
                     includeArchived ||
+                    // The People directory filters status on the page itself.
+                    url.searchParams.get('view') === 'team' ||
                     url.searchParams.get('includeInactive') === '1' ||
                     url.searchParams.get('status') === 'inactive' ||
                     worker.status === 'active',
@@ -737,8 +742,21 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               )
               .all(...eligibleWorkerIds)
           : [];
+        // People directory: week hours, pending counts, mailbox link and (Owner
+        // only) the viewed person's pay terms. Scoped to visible projects.
+        const teamExtras =
+          url.searchParams.get('view') === 'team' && context.principal.role !== 'worker'
+            ? loadTeamDirectoryExtras(context.sqlite, {
+                role: context.principal.role,
+                canonicalOwner,
+                projectIds: [...directoryScope.projectIds],
+                personId: url.searchParams.get('person'),
+                projects: directoryProjects as Array<Record<string, unknown>>,
+              })
+            : null;
         return {
           ...common,
+          ...(teamExtras ?? {}),
           projects: directoryProjects,
           clients:
             context.principal.role === 'owner_admin' ||
@@ -1090,6 +1108,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'finance': {
+        const requestedFinanceView = (url.searchParams.get('view') ?? '').trim().toLowerCase();
+        const financeView = ['economic', 'commercial'].includes(requestedFinanceView)
+          ? requestedFinanceView
+          : 'overview';
         const scope = projectVisibility(
           context.repository.listFinanceProjects(context.principal),
           includeArchived,
@@ -1357,6 +1379,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           canonicalAuthorityAsOf: canManageCanonicalAuthority
             ? new Date().toISOString().slice(0, 10)
             : undefined,
+          // Owner "Money" and "Rates" views: exact per-currency sums from the same
+          // authorized repository reads; nothing is persisted or combined across currencies.
+          ...(financeView === 'overview'
+            ? {
+                moneyOverview: buildMoneyOverview(
+                  context.v3,
+                  context.principal,
+                  url.searchParams.get('period'),
+                  { includeArchived },
+                ),
+              }
+            : {}),
+          ...(financeView === 'commercial'
+            ? {
+                ratesOverview: buildRatesOverview(
+                  context.sqlite,
+                  context.v3,
+                  context.principal,
+                  projects as Array<Record<string, unknown>>,
+                ),
+              }
+            : {}),
         };
       }
       case 'ledger':

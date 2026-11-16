@@ -12,20 +12,22 @@ describe('Client Essential project detail role-safe UI', () => {
     expect(detail).toContain("{ id: 'overview'");
     expect(detail).toContain("{ id: 'team'");
     expect(detail).toContain("{ id: 'reports'");
-    expect(detail).toContain("{ id: 'commercial'");
-    expect(detail).toContain("{ id: 'billing'");
+    // Owner hub (2026-11-16): Overview · Team · Hours · Expenses · Invoices · Reports · Settings.
+    expect(detail).toContain("{ id: 'hours'");
+    expect(detail).toContain("{ id: 'expenses'");
+    expect(detail).toContain("{ id: 'invoices'");
+    expect(detail).toContain("{ id: 'settings'");
     expect(detail).toContain('canViewCommercial');
     expect(detail).toContain('role="tablist"');
     expect(detail).toContain('aria-selected={activeTab === tab.id}');
-    expect(detail).toContain('Reports & Files');
   });
 
   it('keeps commercial and billing surfaces out of ordinary PM/Worker navigation', () => {
     expect(detail).toContain(
       'const canViewCommercial = $derived(isOwner || isFinance || isAuditor);',
     );
-    expect(detail).toContain("{:else if activeTab === 'commercial' && canViewCommercial}");
-    expect(detail).toContain("{:else if activeTab === 'billing' && canViewCommercial}");
+    expect(detail).toContain("{:else if activeTab === 'invoices' && canViewCommercial}");
+    expect(detail).toContain("if (!commercialRole && tab === 'invoices') return 'overview';");
     expect(detail).not.toContain('billing_treatment');
     expect(detail).not.toContain('client_treatment');
     expect(detail).toContain('No commercial treatment is inferred.');

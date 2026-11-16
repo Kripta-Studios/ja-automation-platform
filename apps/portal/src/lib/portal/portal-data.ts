@@ -1,5 +1,6 @@
 import type { OwnerFinanceSummary } from './owner-finance';
 import type { HomeInbox, WorkerWeekStatus } from './home-inbox';
+import type { MoneyOverview, RatesOverview } from './money-overview-types';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -66,6 +67,8 @@ export type PortalData = {
   archivedProjectCount?: number;
   /** Pending approvals for the navigation badge (layout data). */
   approvalPendingCount?: number;
+  moneyOverview?: MoneyOverview;
+  ratesOverview?: RatesOverview;
   user: {
     id: string;
     name: string;
@@ -98,6 +101,14 @@ export type PortalData = {
     rows: PortalRow[];
   };
   contacts?: PortalRow[];
+  /** People directory (projects?view=team) projections; see team-directory-load.ts. */
+  teamStats?: PortalRow[];
+  teamWeekStart?: string;
+  teamWeekEnd?: string;
+  mailboxLinkedIds?: string[];
+  personPayRules?: PortalRow[];
+  defaultsProjectIds?: string[];
+  personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
   workers?: PortalRow[];
   planningFilterWorkers?: PortalRow[];
   skills?: PortalRow[];

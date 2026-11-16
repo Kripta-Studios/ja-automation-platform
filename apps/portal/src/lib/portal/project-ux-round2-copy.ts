@@ -39,6 +39,11 @@ const copy: Record<string, CopyValue> = {
     'Ver los proyectos de este cliente',
     'Ver os projetos deste cliente',
   ],
+  openClientPage: [
+    'Open client page',
+    'Abrir ficha del cliente',
+    'Abrir ficha do cliente',
+  ],
   newProjectForClient: [
     'Create a project for this client',
     'Crear un proyecto para este cliente',

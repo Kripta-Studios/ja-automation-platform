@@ -515,6 +515,14 @@
           <StatusBadge variant={clientStatus(client)} text={statusLabel(client)} />
         </div>
 
+        <p class="client-directory__open">
+          <a
+            class="client-directory__action primary-button"
+            data-client-open-page
+            href={`${base}/app/clients/${encodeURIComponent(clientId)}?lang=${encodeURIComponent(problemLocale)}`}
+            >{ux('openClientPage')}</a
+          >
+        </p>
         {#if canManageContacts}
           <div class="directory-actions">
             <a

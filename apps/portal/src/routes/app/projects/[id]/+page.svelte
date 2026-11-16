@@ -1,12 +1,18 @@
 <script lang="ts">
   import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
   import { journeyText } from '$lib/portal/project-invoice-journey';
-  import { projectUxText } from '$lib/portal/project-ux-copy';
   import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
   import ProjectSiteFields from '$lib/portal/sections/ProjectSiteFields.svelte';
   import TimezoneSelect from '$lib/portal/ui/TimezoneSelect.svelte';
   import PermanentDeleteDialog from '$lib/portal/ui/PermanentDeleteDialog.svelte';
-  import { projectCopy, type ProjectCopyKey } from '$lib/portal/project-ux-round3-copy';
+  import {
+    projectCopy,
+    projectPickLabel,
+    type ProjectCopyKey,
+  } from '$lib/portal/project-ux-round3-copy';
+  import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
+  import ProjectHubTeam from '$lib/portal/sections/ProjectHubTeam.svelte';
+  import type { ProjectHubData, HubMoney } from '$lib/server/project-hub';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
@@ -44,7 +50,13 @@
 
   type Primitive = string | number | boolean | null | undefined;
   type Row = Record<string, Primitive>;
-  type TabId = 'work' | 'overview' | 'team' | 'reports' | 'commercial' | 'billing';
+  type TabId = 'overview' | 'team' | 'hours' | 'expenses' | 'invoices' | 'reports' | 'settings';
+  /** Old links (?tab=work|commercial|billing) keep working and land in the hub. */
+  const legacyTabs: Record<string, TabId> = {
+    work: 'overview',
+    commercial: 'settings',
+    billing: 'settings',
+  };
   type FinancialProjection = {
     currency?: string;
     approvedCostMinor?: string | null;
@@ -79,28 +91,31 @@
   };
 
   const allowedTabIds: readonly TabId[] = [
-    'work',
     'overview',
     'team',
+    'hours',
+    'expenses',
+    'invoices',
     'reports',
-    'commercial',
-    'billing',
+    'settings',
   ];
 
   function resolveTabFromUrl(value: string | null, roleValue: unknown): TabId {
-    const candidate = value?.trim() ?? '';
-    if (!allowedTabIds.includes(candidate as TabId))
-      return roleValue === 'owner_admin' || roleValue === 'finance_admin' ? 'work' : 'overview';
+    const raw = value?.trim() ?? '';
+    const candidate = legacyTabs[raw] ?? raw;
+    if (!allowedTabIds.includes(candidate as TabId)) return 'overview';
     const tab = candidate as TabId;
     const commercialRole =
       roleValue === 'owner_admin' ||
       roleValue === 'finance_admin' ||
       roleValue === 'auditor_read_only';
+    if (!commercialRole && tab === 'invoices') return 'overview';
     if (
-      (!commercialRole && (tab === 'commercial' || tab === 'billing')) ||
-      (tab === 'work' && roleValue !== 'owner_admin' && roleValue !== 'finance_admin')
+      roleValue === 'worker' &&
+      (tab === 'hours' || tab === 'expenses' || tab === 'settings')
     )
       return 'overview';
+    if (!commercialRole && raw !== tab && tab === 'settings') return 'overview';
     return tab;
   }
 
@@ -219,10 +234,6 @@
   const t = (key: string): string => standaloneText(locale, key);
   const pc = (key: ProjectCopyKey, params: Record<string, string | number> = {}): string =>
     projectCopy(locale, key, params);
-  const projectUx = (
-    key: Parameters<typeof projectUxText>[1],
-    params?: Record<string, string | number>,
-  ): string => projectUxText(locale, key, params);
   const projectUx2 = (
     key: Parameters<typeof projectUxRound2Text>[1],
     params?: Record<string, string | number>,
@@ -255,6 +266,9 @@
   );
   const role = $derived(String(data.user?.role ?? ''));
   const isOwner = $derived(role === 'owner_admin');
+  const isWorker = $derived(role === 'worker');
+  const h = (key: ProjectHubCopyKey, params: Record<string, string | number> = {}): string =>
+    hubText(locale, key, params);
   useAssistantPaneRequest({
     url: () => page.url,
     panes: ['project-edit'],
@@ -367,13 +381,9 @@
   }
   const billingRules = $derived((data.billingRules ?? []) as BillingRule[]);
   const activeBillingRules = $derived(billingRules.filter((rule) => String(rule.enabled) === '1'));
-  const recordInvoiceRules = $derived(
-    activeBillingRules.filter((rule) => ['labor', 'expense'].includes(String(rule.stream_type))),
-  );
-  const prepareInvoiceHref = $derived(
-    recordInvoiceRules.length > 0
-      ? `${projectHref}?tab=work&lang=${locale}#project-panel-work`
-      : `${base}/app/billing?project=${encodeURIComponent(String(project.id))}&assistantSurface=invoice-create&mode=whole-period&lang=${locale}`,
+  // The quick invoice flow (Billing → New invoice) prefilled with this project.
+  const quickInvoiceHref = $derived(
+    `${base}/app/billing?project=${encodeURIComponent(String(project.id))}&assistantSurface=invoice-create&lang=${locale}`,
   );
   const billingSetup = $derived(data.billingSetup ?? null);
   const finance = $derived(overview.financial);
@@ -441,16 +451,168 @@
   );
 
   const tabs = $derived([
-    ...(canWriteFinance ? [{ id: 'work' as const, label: journeyText(locale, 'work') }] : []),
-    { id: 'overview' as const, label: t('Overview') },
-    { id: 'team' as const, label: t('Team') },
-    { id: 'reports' as const, label: t('Reports & Files') },
-    ...(canViewCommercial ? [{ id: 'commercial' as const, label: t('Commercial') }] : []),
-    ...(canViewCommercial
-      ? [{ id: 'billing' as const, label: journeyText(locale, 'conditions') }]
-      : []),
+    { id: 'overview' as const, label: h('tabOverview') },
+    { id: 'team' as const, label: h('tabTeam') },
+    ...(isWorker
+      ? []
+      : [
+          { id: 'hours' as const, label: h('tabHours') },
+          { id: 'expenses' as const, label: h('tabExpenses') },
+        ]),
+    ...(canViewCommercial ? [{ id: 'invoices' as const, label: h('tabInvoices') }] : []),
+    { id: 'reports' as const, label: h('tabReports') },
+    ...(isWorker ? [] : [{ id: 'settings' as const, label: h('tabSettings') }]),
   ] satisfies Array<{ id: TabId; label: string }>);
-  const activeTabLabel = $derived(tabs.find((tab) => tab.id === activeTab)?.label ?? t('Overview'));
+  const hub = $derived(data.hub as ProjectHubData);
+  const rawTabParam = $derived(page.url.searchParams.get('tab') ?? '');
+  const settingsGroup = $derived(
+    page.url.searchParams.get('group') ??
+      (rawTabParam === 'billing' || page.url.searchParams.has('billingStep')
+        ? 'billing'
+        : rawTabParam === 'commercial'
+          ? 'commercial'
+          : ''),
+  );
+  const approvalsHref = $derived(
+    `${base}/app/approvals?project=${encodeURIComponent(String(project.id))}&lang=${locale}`,
+  );
+  const expenseTotals = $derived.by((): HubMoney[] => {
+    const totals = new Map<string, bigint>();
+    for (const person of hub.expenses.people)
+      for (const row of person.total)
+        totals.set(row.currency, (totals.get(row.currency) ?? 0n) + BigInt(row.amountMinor));
+    return [...totals].map(([currency, amount]) => ({ currency, amountMinor: amount.toString() }));
+  });
+  const pendingTotal = $derived(
+    hub.pending.timeCount + hub.pending.expenseCount + hub.pending.reportCount,
+  );
+  function tabHref(tab: TabId, extra = ''): string {
+    return `${projectHref}?tab=${tab}${extra}&lang=${locale}`;
+  }
+  function tabLink(event: MouseEvent, tab: TabId): void {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey) return;
+    event.preventDefault();
+    if (selectTab(tab)) window.scrollTo({ top: 0, behavior: 'instant' });
+  }
+  function hoursOverviewHref(workerId = ''): string {
+    return `${base}/app/time?view=overview&period=this_month&project=${encodeURIComponent(String(project.id))}${workerId ? `&rworker=${encodeURIComponent(workerId)}` : ''}&lang=${locale}`;
+  }
+  function expensesOverviewHref(workerId = ''): string {
+    return `${base}/app/expenses?view=overview&project=${encodeURIComponent(String(project.id))}${workerId ? `&worker=${encodeURIComponent(workerId)}` : ''}&lang=${locale}`;
+  }
+  function moneyList(list: readonly HubMoney[]): string {
+    if (!list.length) return money('0', String(project.currency ?? 'USD'));
+    return list.map((row) => money(row.amountMinor, row.currency)).join(' + ');
+  }
+  type AttentionItem = {
+    id: string;
+    tone: 'warn' | 'info';
+    text: string;
+    action: string;
+    href: string;
+    tab?: TabId;
+    primary?: boolean;
+  };
+  const attention = $derived.by((): AttentionItem[] => {
+    const items: AttentionItem[] = [];
+    if (!isWorker && pendingTotal > 0)
+      items.push({
+        id: 'approvals',
+        tone: 'warn',
+        text: h('attApprovals', {
+          hours: hours(hub.pending.timeMinutes),
+          expenses: hub.pending.expenseCount,
+          reports: hub.pending.reportCount,
+        }),
+        action: h('attApprovalsAction'),
+        href: approvalsHref,
+        primary: true,
+      });
+    const fin = hub.finance;
+    if (fin && canWriteFinance && (fin.unbilledMinutes > 0 || (fin.approvedUnbilledMinor !== '0' && fin.openDrafts === 0)))
+      items.push({
+        id: 'unbilled',
+        tone: 'warn',
+        text:
+          fin.approvedUnbilledMinor !== '0'
+            ? h('attUnbilled', {
+                amount: money(fin.approvedUnbilledMinor, fin.currency),
+                hours: hours(fin.unbilledMinutes),
+              })
+            : h('attUnbilledHoursOnly', { hours: hours(fin.unbilledMinutes) }),
+        action: h('createInvoice'),
+        href: quickInvoiceHref,
+        primary: items.length === 0,
+      });
+    if (fin?.missingRate && canWriteFinance)
+      items.push({
+        id: 'rates',
+        tone: 'warn',
+        text: h('attMissingRate'),
+        action: h('attMissingRateAction'),
+        href: tabHref('team'),
+        tab: 'team',
+      });
+    if (canWriteFinance && billingSetup?.issuingPrerequisites?.includes('billing_setup_required'))
+      items.push({
+        id: 'billing-setup',
+        tone: 'warn',
+        text: h('attBillingSetup'),
+        action: h('attBillingSetupAction'),
+        href: tabHref('settings', '&group=billing'),
+      });
+    if (fin && fin.openDrafts > 0)
+      items.push({
+        id: 'drafts',
+        tone: 'info',
+        text: h('attDrafts', { count: fin.openDrafts }),
+        action: h('attDraftsAction'),
+        href: tabHref('invoices'),
+        tab: 'invoices',
+      });
+    if (fin && fin.overdue > 0)
+      items.push({
+        id: 'overdue',
+        tone: 'warn',
+        text: h('attOverdue', { count: fin.overdue }),
+        action: h('attDraftsAction'),
+        href: tabHref('invoices'),
+        tab: 'invoices',
+      });
+    if (isOwner && !display(project.po_number, '') && !display(hub.clientPo, ''))
+      items.push({
+        id: 'po',
+        tone: 'info',
+        text: h('attNoPo'),
+        action: h('attNoPoAction'),
+        href: tabHref('settings', '&assistantPane=project-edit'),
+      });
+    if ((isOwner || role === 'project_manager') && hub.assignments.length === 0)
+      items.push({
+        id: 'team',
+        tone: 'info',
+        text: h('attNoTeam'),
+        action: h('addPeople'),
+        href: tabHref('team'),
+        tab: 'team',
+      });
+    return items;
+  });
+  let hubToasts = $state<ToastItem[]>([]);
+  function hubNotify(message: string, variant: 'success' | 'danger'): void {
+    const id = `hub:${Date.now()}`;
+    hubToasts = [
+      ...hubToasts,
+      {
+        id,
+        message,
+        title: variant === 'success' ? t('Success') : t('Error'),
+        variant,
+        closeLabel: t('Dismiss notification'),
+      },
+    ];
+    setTimeout(() => (hubToasts = hubToasts.filter((toast) => toast.id !== id)), 6000);
+  }
   const financeExportUrl = $derived(
     base +
       '/app/api/projects/' +
@@ -944,13 +1106,16 @@
       action === 'savePeopleTerms' ||
       action === 'createInvoiceDraft'
     )
-      restoredTab = { projectId: String(data.overview.project.id), tab: 'billing' };
+      restoredTab = { projectId: String(data.overview.project.id), tab: action === 'createInvoiceDraft' ? 'invoices' : 'settings' };
     else if (
       action === 'submitMilestone' ||
       (action === 'updateProject' && !preserveBillingDrafts) ||
       action === 'deleteProject'
     )
-      restoredTab = { projectId: String(data.overview.project.id), tab: 'overview' };
+      restoredTab = {
+        projectId: String(data.overview.project.id),
+        tab: action === 'submitMilestone' ? 'overview' : 'settings',
+      };
     if (action === 'savePersonTerms' || action === 'savePeopleTerms') return;
     void tick().then(() => {
       const formElement = action
@@ -1079,14 +1244,6 @@
         <PrintIcon />
         {t('Print report')}
       </button>
-      <a href={base + '/app/'}>{t('Operations dashboard')}</a>
-      {#if canWriteFinance}
-        <a
-          data-project-closeout-link
-          href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '/closeout'}
-          >{t('Project closeout')}</a
-        >
-      {/if}
     </div>
   </nav>
 
@@ -1112,74 +1269,102 @@
     </p>
   {/if}
 
-  <header class="project-context">
-    <div>
-      <p class="portal-kicker">
-        {display(project.client_number)} · {display(project.project_number)}
-      </p>
+  <header class="project-context hub-header" data-project-hub-header>
+    <div class="hub-header__identity">
+      <p class="hub-header__ref">{projectPickLabel(project)}</p>
       <h1>{display(project.name, t('Project'))}</h1>
       <p class="project-context-meta">
-        {#if canViewCommercial && project.client_id}
+        {#if !isWorker && project.client_id}
           <a
             class="project-context-client-link"
-            href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(project.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(project.client_id))}`}
+            data-hub-client-link
+            href={`${base}/app/clients/${encodeURIComponent(String(project.client_id))}?lang=${encodeURIComponent(locale)}`}
             >{display(project.client_name, t('Client'))}</a
           >
         {:else}
           {display(project.client_name)}
         {/if}
-        · {display(project.site_name)} · {display(project.country)}
+        · {display(project.site_name, h('noSite'))}
+        · {h('projectManager')}: {hub.managerName ?? h('noManager')}
       </p>
     </div>
     <div class="project-context-actions">
       <span class="state-badge" data-state={String(project.status ?? 'unknown')}
         >{status(project.status)}</span
       >
-      {#if isOwner}
-        <button
-          type="button"
-          class="primary-button"
-          data-project-edit-cta
-          disabled={!mounted}
-          onclick={() => (editOpen = true)}
-        >
-          {t('Edit project')}
-        </button>
-      {/if}
     </div>
   </header>
 
-  <nav class="project-quick-links" aria-label={projectUx('detailShortcuts')}>
-    <span class="project-quick-links__label">{projectUx('detailShortcuts')}</span>
-    {#if !isAuditor}
+  <section class="hub-figures" aria-label={t('Project status summary')} data-hub-figures>
+    <a class="hub-figure" href={tabHref('hours')} onclick={(event) => tabLink(event, 'hours')}>
+      <span>{h('figHoursMonth')}</span>
+      <strong data-hub-fig-hours>{hours(hub.hours.monthMinutes)}</strong>
+      <small>{h('figHoursTotal', { hours: hours(hub.hours.totalMinutes) })}</small>
+    </a>
+    {#if hub.finance}
       <a
-        href={`${base}/app/time?action=log-time&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-        >{projectUx('logTime')}</a
+        class="hub-figure"
+        class:hub-figure--attention={hub.finance.unbilledMinutes > 0}
+        href={canWriteFinance ? quickInvoiceHref : tabHref('invoices')}
       >
-      <a
-        href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-        >{projectUx('recordExpense')}</a
-      >
-      <a
-        href={`${base}/app/reports?assistantSurface=report-daily&project=${encodeURIComponent(String(project.id))}&lang=${locale}#report-panel-daily`}
-        >{projectUx('createWorkReport')}</a
-      >
-    {/if}
-    <a
-      href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=team&lang=${locale}`}
-      >{projectUx('team')}</a
-    >
-    {#if canViewCommercial}
-      {#if canWriteFinance}
-        <a href={prepareInvoiceHref}>{projectUx('prepareInvoice')}</a>
-      {:else}
-        <a
-          href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&lang=${locale}#project-panel-billing`}
-          >{projectUx('viewInvoices')}</a
+        <span>{h('figUnbilled')}</span>
+        <strong data-hub-fig-unbilled
+          >{money(hub.finance.approvedUnbilledMinor, hub.finance.currency)}</strong
         >
+        <small
+          >{hub.finance.unbilledMinutes === 0 && hub.finance.openDrafts > 0
+            ? h('figInDrafts', { count: hub.finance.openDrafts })
+            : h('figUnbilledHours', { hours: hours(hub.finance.unbilledMinutes) })}</small
+        >
+      </a>
+      {#if hub.finance.budgetConsumedBps !== null}
+        <a class="hub-figure" href={tabHref('settings')} onclick={(event) => tabLink(event, 'settings')}>
+          <span>{h('figBudget')}</span>
+          <strong>{percentageFromBps(hub.finance.budgetConsumedBps)}</strong>
+          <small
+            >{hub.finance.budgetMinor
+              ? h('figBudgetOf', { amount: money(hub.finance.budgetMinor, hub.finance.currency) })
+              : ''}</small
+          >
+        </a>
       {/if}
     {/if}
-  </nav>
+    {#if !isWorker}
+      <a class="hub-figure" href={tabHref('expenses')} onclick={(event) => tabLink(event, 'expenses')}>
+        <span>{h('figExpensesMonth')}</span>
+        <strong>{moneyList(hub.expenses.month)}</strong>
+        <small>{h('total')}: {moneyList(expenseTotals)}</small>
+      </a>
+    {/if}
+    {#if hub.finance && hub.invoices}
+      <a class="hub-figure" href={tabHref('invoices')} onclick={(event) => tabLink(event, 'invoices')}>
+        <span>{h('figOpenInvoices')}</span>
+        <strong>{money(hub.finance.receivableMinor, hub.finance.currency)}</strong>
+        <small
+          >{h('figOpenInvoicesCount', {
+            count: hub.invoices.filter((row) => row.outstandingMinor !== '0').length,
+          })}</small
+        >
+      </a>
+    {/if}
+    {#if !isWorker}
+      <a
+        class="hub-figure"
+        class:hub-figure--attention={pendingTotal > 0}
+        href={approvalsHref}
+      >
+        <span>{h('figWaiting')}</span>
+        <strong>{pendingTotal}</strong>
+        <small
+          >{h('figWaitingDetail', {
+            hours: hours(hub.pending.timeMinutes),
+            expenses: hub.pending.expenseCount,
+            reports: hub.pending.reportCount,
+          })}</small
+        >
+      </a>
+    {/if}
+  </section>
 
   {#if data.invalidProjectTimezone}
     <section class="project-surface" data-project-timezone-problem role="alert">
@@ -1276,49 +1461,6 @@
     </section>
   {/if}
 
-  <section class="attention-grid" aria-label={t('Project status summary')}>
-    <a
-      class="attention-card"
-      href={`${base}/app/time?project=${encodeURIComponent(String(project.id))}`}
-    >
-      <span>{t('Actual time')}</span><strong>{hours(overview.actualMinutes)}</strong><small
-        >{t('Recorded operational time')}</small
-      >
-    </a>
-    <a
-      class="attention-card"
-      href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}`}
-    >
-      <span>{t('Assigned team')}</span><strong>{overview.workers.length}</strong><small
-        >{t('Current project assignment(s)')}</small
-      >
-    </a>
-    <a
-      class="attention-card"
-      href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}`}
-    >
-      <span>{t('Reports')}</span><strong>{overview.reports.length}</strong><small
-        >{t('Daily and technical records')}</small
-      >
-    </a>
-    {#if canViewCommercial && finance}
-      <a
-        class="attention-card finance-summary"
-        href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}`}
-      >
-        <span>{t('Contribution')}</span><strong
-          >{money(
-            finance.contributionMarginMinor,
-            String(finance.currency ?? project.currency),
-          )}</strong
-        ><small>{t('Canonical project finance projection')}</small>
-      </a>
-    {/if}
-  </section>
-
-  <p class="project-tab-current no-print" aria-live="polite">
-    <span>{t('Current section')}</span><strong>{activeTabLabel}</strong>
-  </p>
   <div class="project-tabs no-print" role="tablist" aria-label={t('Project detail sections')}>
     {#each tabs as tab}
       <button
@@ -1336,405 +1478,7 @@
     {/each}
   </div>
 
-  <div class="project-tab-panels">
-    {#if activeTab === 'work' && canWriteFinance}
-      <div
-        id="project-panel-work"
-        class="project-tab-panel"
-        role="tabpanel"
-        aria-labelledby="project-tab-work"
-        tabindex="0"
-      >
-        <div class="billing-action-row">
-          {#if isOwner}<a
-              class="secondary-button"
-              href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}#project-assignment`}
-              >{journeyText(locale, 'addPeople')}</a
-            >{/if}
-          <a
-            class="secondary-button"
-            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=billing&billingStep=people&lang=${locale}#project-person-conditions`}
-            >{journeyText(locale, 'conditions')}</a
-          >
-          <a
-            class="secondary-button"
-            href={`${base}/app/time?action=log-time&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-            >{journeyText(locale, 'addHours')}</a
-          >
-          <a
-            class="secondary-button"
-            href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-            >{journeyText(locale, 'addExpenses')}</a
-          >
-          <a
-            class="secondary-button"
-            href={`${base}/app/projects/${encodeURIComponent(String(project.id))}?tab=reports&lang=${locale}#project-reports`}
-            >{journeyText(locale, 'reports')}</a
-          >
-        </div>
-        <ProjectInvoiceComposer
-          projectId={String(project.id)}
-          projectTimezone={String(project.timezone ?? '')}
-          rules={billingRules}
-          {locale}
-          {role}
-          userId={String(data.user.id)}
-          initialDate={[
-            ...overview.time.map((row) => String(row.work_date ?? '')),
-            ...overview.expenses.map((row) => String(row.spent_on ?? '')),
-          ]
-            .filter(Boolean)
-            .sort()
-            .at(-1) ?? String(project.start_date ?? '')}
-        />
-      </div>
-    {:else if activeTab === 'overview'}
-      <div
-        id="project-panel-overview"
-        class="project-tab-panel"
-        role="tabpanel"
-        aria-labelledby="project-tab-overview"
-        tabindex="0"
-      >
-        <div class="project-panel-grid">
-          <section class="project-surface" aria-labelledby="project-overview-title">
-            <div class="surface-heading">
-              <div>
-                <p class="portal-kicker">{t('PROJECT CONTEXT')}</p>
-                <h2 id="project-overview-title">{t('Overview')}</h2>
-              </div>
-              <span class="surface-count">{status(project.status)}</span>
-            </div>
-            <dl class="project-facts">
-              <div>
-                <dt>{t('Client')}</dt>
-                <dd>
-                  {#if canViewCommercial && project.client_id}
-                    <a
-                      href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(project.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(project.client_id))}`}
-                      >{display(project.client_name, t('Client'))}</a
-                    >
-                  {:else}{display(project.client_name)}{/if}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('Client number')}</dt>
-                <dd>{display(project.client_number)}</dd>
-              </div>
-              <div>
-                <dt>{t('Project number')}</dt>
-                <dd>{display(project.project_number)}</dd>
-              </div>
-              <div>
-                <dt>{t('Cost center')}</dt>
-                <dd>{display(project.cost_center_code, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('PO / reference')}</dt>
-                <dd>{display(project.po_number, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('Site / plant')}</dt>
-                <dd>{display(project.site_name, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('Location (optional)')}</dt>
-                <dd>{display(project.site_location, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('On-site manager (optional)')}</dt>
-                <dd>{display(project.onsite_manager, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('On-site contact (optional)')}</dt>
-                <dd data-project-site-contact>
-                  {#if siteContact}
-                    <div class="project-contact-details">
-                      <a
-                        href={`${siteContactDirectoryHref}#client-contact-${encodeURIComponent(String(siteContact.id))}`}
-                        >{display(siteContact.name)}</a
-                      >
-                      {#each [['role', 'Role'], ['company', 'Company'], ['location', 'Location']] as [field, label]}
-                        {#if display(siteContact[field], '')}
-                          <p><span>{t(label)}:</span> {display(siteContact[field])}</p>
-                        {/if}
-                      {/each}
-                      {#if display(siteContact.phone, '')}
-                        <p>
-                          <span>{t('Phone')}:</span>
-                          <a href={`tel:${display(siteContact.phone, '')}`}
-                            >{display(siteContact.phone)}</a
-                          >
-                        </p>
-                      {/if}
-                      {#if display(siteContact.email, '')}
-                        <p>
-                          <span>{t('Email')}:</span>
-                          <a href={`mailto:${display(siteContact.email, '')}`}
-                            >{display(siteContact.email)}</a
-                          >
-                        </p>
-                      {/if}
-                      {#if Number(siteContact.is_primary) === 1}<p>{t('Primary contact')}</p>{/if}
-                      {#if Number(siteContact.is_billing_contact) === 1}<p>
-                          {t('Billing contact')}
-                        </p>{/if}
-                      {#if display(siteContact.notes, '')}
-                        <p class="project-contact-notes">
-                          <span>{t('Notes')}:</span>
-                          {display(siteContact.notes)}
-                        </p>
-                      {/if}
-                      {#if isOwner || isFinance}
-                        <a
-                          href={`${siteContactDirectoryHref}#client-contact-edit-${encodeURIComponent(String(siteContact.id))}`}
-                          >{t('Edit contact')}</a
-                        >
-                      {/if}
-                      {#if canViewCommercial}
-                        <a
-                          class="project-contact-directory-link"
-                          href={`${siteContactDirectoryHref}#client-contacts-${encodeURIComponent(String(siteContact.client_id))}`}
-                          >{t('Open client contacts')} <DirectionIcon /></a
-                        >
-                      {/if}
-                    </div>
-                  {:else}{t('Not configured')}{/if}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('Timezone')}</dt>
-                <dd>{display(project.timezone)}</dd>
-              </div>
-              <div>
-                <dt>{t('Schedule')}</dt>
-                <dd>{display(project.start_date)} → {display(project.planned_end_date)}</dd>
-              </div>
-            </dl>
-            {#if display(project.description, '')}<p class="project-description">
-                {display(project.description)}
-              </p>{/if}
-          </section>
-
-          <section class="project-surface" aria-labelledby="operational-expenses-title">
-            <div class="surface-heading">
-              <div>
-                <p class="portal-kicker">{t('OPERATIONS')}</p>
-                <h2 id="operational-expenses-title">
-                  {isFinance || isOwner || isAuditor
-                    ? t('Expense review')
-                    : t('Operational expenses')}
-                </h2>
-              </div>
-              <span class="surface-count">{filteredExpenses.length}</span>
-            </div>
-            <p class="surface-intro">
-              {isFinance || isOwner || isAuditor
-                ? t('Commercial classification is shown only in the Finance view.')
-                : t('Reported expense amounts, receipt evidence and operational review state.')}
-            </p>
-            <label class="expense-filter">
-              <span>{t('Filter by category')}</span>
-              <select bind:value={expenseCategoryFilter}>
-                <option value="">{t('All categories')}</option>
-                {#each expenseCategories as category}
-                  <option value={category}>{controlled('expenseCategory', category)}</option>
-                {/each}
-              </select>
-            </label>
-            <div class="compact-record-list">
-              {#each filteredExpenses.slice(0, 5) as expense}
-                <a
-                  class="compact-record"
-                  href={base + '/app/expenses/' + String(expense.id)}
-                  data-expense-record
-                >
-                  <span class="record-mark" aria-hidden="true">E</span>
-                  <span class="record-copy"
-                    ><strong
-                      >{display(
-                        expense.vendor,
-                        display(
-                          expense.description,
-                          controlled('expenseCategory', expense.category),
-                        ),
-                      )}</strong
-                    ><small
-                      >{display(expense.spent_on)} · {controlled(
-                        'expenseCategory',
-                        expense.category,
-                      )} · {status(expense.approval_state)}</small
-                    ></span
-                  >
-                  <span class="record-value">{expenseAmount(expense)}</span>
-                </a>
-              {:else}
-                <div class="empty-state project-empty-action">
-                  <span>
-                    {expenseCategoryFilter
-                      ? t('No expenses match this category.')
-                      : t('No expenses recorded for this project.')}
-                  </span>
-                  {#if !expenseCategoryFilter}
-                    <a
-                      class="secondary-button"
-                      href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-                      >{t('Add expense')} <DirectionIcon /></a
-                    >
-                  {/if}
-                </div>
-              {/each}
-            </div>
-            <a
-              class="inline-link"
-              href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
-              >{t('View all expenses')} <DirectionIcon /></a
-            >
-          </section>
-          {#if data.user.role === 'project_manager' && overview.milestones.length > 0}
-            <section class="project-surface" aria-labelledby="operational-milestones-title">
-              <div class="surface-heading">
-                <div>
-                  <p class="portal-kicker">{t('PROJECT RECORDS')}</p>
-                  <h2 id="operational-milestones-title">{t('Milestones')}</h2>
-                </div>
-                <span class="surface-count">{overview.milestones.length}</span>
-              </div>
-              <div class="compact-record-list">
-                {#each overview.milestones as milestone}
-                  <div class="compact-record">
-                    <span class="record-mark" aria-hidden="true">M</span>
-                    <span class="record-copy">
-                      <strong>{display(milestone.name, t('Milestone'))}</strong>
-                      <small
-                        >{display(milestone.due_on, t('No due date'))} · {status(
-                          milestone.approval_state,
-                        )}</small
-                      >
-                    </span>
-                    {#if ['draft', 'rejected'].includes(String(milestone.approval_state ?? ''))}
-                      <form
-                        method="POST"
-                        action="?/submitMilestone&tab=overview"
-                        use:enhance={submitDetail}
-                      >
-                        <input type="hidden" name="id" value={milestone.id} />
-                        <input type="hidden" name="version" value={milestone.version} />
-                        <button type="submit" class="secondary-button"
-                          >{t('Submit for approval now')}</button
-                        >
-                      </form>
-                    {/if}
-                  </div>
-                {/each}
-              </div>
-            </section>
-          {/if}
-        </div>
-      </div>
-    {:else if activeTab === 'team'}
-      <div
-        id="project-panel-team"
-        class="project-tab-panel"
-        role="tabpanel"
-        aria-labelledby="project-tab-team"
-        tabindex="0"
-      >
-        <div class="project-panel-grid">
-          <section class="project-surface" aria-labelledby="team-title">
-            <div class="surface-heading">
-              <div>
-                <p class="portal-kicker">{t('OPERATIONAL ASSIGNMENTS')}</p>
-                <h2 id="team-title">
-                  <a
-                    href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
-                    >{t('Team')}</a
-                  >
-                </h2>
-                {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}<a
-                    class="secondary-button"
-                    href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
-                    >{t('Assign worker')} <DirectionIcon /></a
-                  ><a
-                    class="secondary-button"
-                    href={`${base}/app/crew?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`}
-                    >{t('Crew hours')} <DirectionIcon /></a
-                  >{/if}
-                {#if canViewCommercial}<a
-                    class="secondary-button"
-                    href={`${base}/app/projects/${project.id}?tab=billing&billingStep=people`}
-                    >{canWriteFinance ? t('Configure person rates') : t('View person rates')}
-                    <DirectionIcon /></a
-                  >{/if}
-              </div>
-              <span class="surface-count">{overview.workers.length}</span>
-            </div>
-            {#if isOwner}
-              <p class="surface-intro">
-                {t(
-                  'Assign people here, then set each person’s customer rate, pay and expense terms in this project’s Billing setup.',
-                )}
-              </p>
-            {/if}
-            <div class="team-list">
-              {#each overview.workers as worker}
-                <article class="team-record">
-                  <div class="avatar" aria-hidden="true">
-                    {display(worker.name, '?')
-                      .split(' ')
-                      .map((part) => part[0] ?? '')
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase()}
-                  </div>
-                  <div class="record-copy">
-                    <a
-                      href={`${base}/app/projects?view=team&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}&lang=${encodeURIComponent(locale)}`}
-                      ><strong>{display(worker.name, t('Assigned worker'))}</strong></a
-                    ><small>{controlled('role', worker.assignment_role ?? worker.role)}</small>
-                    <small>
-                      {t('Starts on')}: {formatProjectDate(worker.starts_on)} · {t('Ends on')}:
-                      {formatProjectDate(worker.ends_on, t('Open target'))}
-                    </small>
-                    {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
-                      <small
-                        ><a
-                          href={`${base}/app/projects?action=update-assignment&project=${encodeURIComponent(String(project.id))}&worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}&lang=${encodeURIComponent(locale)}#project-assignment-list`}
-                          aria-label={`${projectUx2('manageAssignment')}: ${display(worker.name, t('Assigned worker'))}`}
-                          >{projectUx2('manageAssignment')} →</a
-                        ></small
-                      >
-                    {/if}
-                    {#if isOwner}
-                      <small
-                        ><a
-                          href={`${base}/app/manage/worker-pay?worker=${encodeURIComponent(String(worker.worker_id ?? worker.id))}`}
-                          >{t('Worker pay review')} <DirectionIcon /></a
-                        ></small
-                      >
-                    {/if}
-                  </div>
-                  <span class="record-value"
-                    >{worker.planned_minutes === null || worker.planned_minutes === undefined
-                      ? '—'
-                      : hours(worker.planned_minutes) + ' ' + t('planned')}</span
-                  >
-                </article>
-              {:else}
-                <div class="empty-state project-empty-action">
-                  <span>{t('No active assignments for this project.')}</span>
-                  {#if data.user.role === 'owner_admin' || data.user.role === 'project_manager'}
-                    <a
-                      class="secondary-button"
-                      href={`${base}/app/projects?action=assign-worker&project=${encodeURIComponent(String(project.id))}&lang=${locale}#project-assignment`}
-                      >{t('Assign worker')} <DirectionIcon /></a
-                    >
-                  {/if}
-                </div>
-              {/each}
-            </div>
-          </section>
-
+  {#snippet planningPanel()}
           <section class="project-surface" aria-labelledby="planning-title">
             <div class="surface-heading">
               <div>
@@ -1861,415 +1605,414 @@
               {/each}
             </div>
           </section>
-        </div>
-      </div>
-    {:else if activeTab === 'reports'}
-      <div
-        id="project-panel-reports"
-        class="project-tab-panel"
-        role="tabpanel"
-        aria-labelledby="project-tab-reports"
-        tabindex="0"
-      >
-        <section
-          id="project-reports"
-          class="project-surface report-surface"
-          aria-labelledby="reports-title"
-          tabindex="-1"
-        >
-          <div class="surface-heading">
-            <div>
-              <p class="portal-kicker">{t('REPORTS & FILES')}</p>
-              <h2 id="reports-title">{t('Reports')}</h2>
-            </div>
-            <a
-              class="primary-button"
-              href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}`}
-              >{t('Open Reports')}</a
-            >
-          </div>
-          <div class="report-surface-grid">
-            <a
-              class="report-type-card"
-              href={base +
-                '/app/reports?view=daily&project=' +
-                encodeURIComponent(String(project.id))}
-              ><span class="report-type-icon" aria-hidden="true">D</span><strong
-                >{t('Daily')}</strong
-              ><small>{t('Field activity and operational summary')}</small><span
-                class="record-value"
-                >{overview.reports.filter((row) => row.type !== 'PLC').length}</span
-              ></a
-            >
-            <a
-              class="report-type-card"
-              href={base +
-                '/app/reports?view=technical&project=' +
-                encodeURIComponent(String(project.id))}
-              ><span class="report-type-icon" aria-hidden="true">P</span><strong
-                >{t('Technical / PLC')}</strong
-              ><small>{t('Controls, systems and technical evidence')}</small><span
-                class="record-value"
-                >{overview.reports.filter((row) => row.type === 'PLC').length}</span
-              ></a
-            >
-            <a
-              class="report-type-card report-signoff-card"
-              href={base +
-                '/app/reports?view=signoff&project=' +
-                encodeURIComponent(String(project.id))}
-              ><span class="report-type-icon" aria-hidden="true">✓</span><strong
-                >{t('Client Sign-off')}</strong
-              ><small>{t('Customer-safe hours, activities and conformity surface')}</small><span
-                class="inline-link">{t('Open sign-off')} <DirectionIcon /></span
-              ></a
-            >
-          </div>
-          <div class="report-register" aria-label={t('Project report register')}>
-            {#each overview.reports as report}
-              <a class="compact-record" href={base + '/app/reports/' + String(report.id)}
-                ><span class="record-mark" aria-hidden="true"
-                  >{report.type === 'PLC' ? 'P' : 'D'}</span
-                ><span class="record-copy"
-                  ><strong>{display(report.title, t('Report'))}</strong><small
-                    >{reportType(report.type)} · {display(report.date)} · {status(
-                      report.approval_state,
-                    )}</small
-                  ></span
-                >{#if report.safety_related}<span class="safety-label">{t('Safety')}</span>{/if}</a
-              >
-            {:else}
-              <div class="empty-state project-empty-action">
-                <span>{t('No reports recorded for this project.')}</span>
-                <a
-                  class="secondary-button"
-                  href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
-                >
-                  {t('Open Reports')}
-                  <DirectionIcon />
-                </a>
-              </div>
-            {/each}
-          </div>
-        </section>
-        <section class="project-surface" aria-labelledby="project-files-title">
-          <div class="surface-heading">
-            <div>
-              <p class="portal-kicker">{t('REPORTS & FILES')}</p>
-              <h2 id="project-files-title">
-                {t('Private project documents')} · {projectDocuments.length}
-              </h2>
-            </div>
-            <a
-              class="secondary-button"
-              href={`${base}/app/documents?project=${encodeURIComponent(String(project.id))}#document-list`}
-              >{t('Documents')}</a
-            >
-          </div>
-          <div class="compact-record-list">
-            {#each projectDocuments.slice(0, 5) as document}
-              <div class="compact-record">
-                <span class="record-mark" aria-hidden="true">F</span>
-                <span class="record-copy">
-                  <strong
-                    >{display(
-                      document.safe_filename ?? document.original_filename,
-                      t('Document'),
-                    )}</strong
-                  >
-                  <small>{display(document.artifact_type)}</small>
-                </span>
-              </div>
-            {:else}
-              <p class="empty-state">
-                {t('No private documents are available in your access scope.')}
-              </p>
-            {/each}
-          </div>
-        </section>
-      </div>
-    {:else if activeTab === 'commercial' && canViewCommercial}
-      <div
-        id="project-panel-commercial"
-        class="project-tab-panel"
-        role="tabpanel"
-        aria-labelledby="project-tab-commercial"
-        tabindex="0"
-      >
-        <div class="project-panel-grid">
-          <section class="project-surface" aria-labelledby="commercial-policy-title">
-            <div class="surface-heading">
-              <div>
-                <p class="portal-kicker">{t('FINANCE / ADMIN')}</p>
-                <h2 id="commercial-policy-title">
-                  <a href={`${base}/app/finance?view=commercial&project=${project.id}`}
-                    >{t('Commercial configuration')}</a
-                  >
-                </h2>
-              </div>
-              <span class="read-only-note">{isAuditor ? t('Read only') : t('Authorized view')}</span
-              >
-            </div>
-            {#if canWriteFinance}
-              <a
-                class="secondary-button"
-                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
-                >{t('Configure commercial terms')} <DirectionIcon /></a
-              >
-            {/if}
-            <dl class="project-facts">
-              <div>
-                <dt>{t('Commercial model')}</dt>
-                <dd>{controlled('billingModel', project.billing_model) || t('Not configured')}</dd>
-              </div>
-              <div>
-                <dt>{t('Reference hours / day')}</dt>
-                <dd>
-                  {!project.expected_minutes_per_day
-                    ? pc('noExpectation')
-                    : hours(project.expected_minutes_per_day)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('Client minimum')}</dt>
-                <dd>
-                  {project.client_daily_minimum_minutes === null ||
-                  project.client_daily_minimum_minutes === undefined
-                    ? t('Not configured')
-                    : hours(project.client_daily_minimum_minutes)}
-                </dd>
-              </div>
-              <div>
-                <dt>{t('Budget type')}</dt>
-                <dd>{controlled('budgetType', project.budget_type) || t('Not configured')}</dd>
-              </div>
-              <div>
-                <dt>{t('Cost center')}</dt>
-                <dd>{display(project.cost_center_code, t('Not configured'))}</dd>
-              </div>
-              <div>
-                <dt>{t('PO / reference')}</dt>
-                <dd>{display(project.po_number, t('Not configured'))}</dd>
-              </div>
-            </dl>
-            <p class="surface-intro">
-              {t(
-                'Workers and PMs record operational truth. Finance configuration determines its commercial interpretation.',
-              )}
-            </p>
-          </section>
+  {/snippet}
 
-          <section class="project-surface" aria-labelledby="economics-title">
-            <div class="surface-heading">
-              <div>
-                <p class="portal-kicker">{t('CANONICAL PROJECTION')}</p>
-                <h2 id="economics-title">
-                  <a href={`${base}/app/finance?view=economic&project=${project.id}`}
-                    >{t('Project economics')}</a
-                  >
-                </h2>
-              </div>
-              <span class="read-only-note"
-                >{isAuditor ? t('Read only') : t('Exact source records')}</span
-              >
-            </div>
-            {#if canWriteFinance}
-              <a
-                class="secondary-button"
-                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
-                >{t('Edit economics inputs')} <DirectionIcon /></a
-              >
-            {/if}
-            {#if finance}
-              <dl class="finance-facts">
-                <div>
-                  <dt>{t('Contribution')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
-                    >
-                      {money(
-                        finance.contributionMarginMinor,
-                        String(finance.currency ?? project.currency),
-                      )}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Contribution Margin %')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
-                    >
-                      {String(finance.revenueCandidateMinor ?? '').trim() === '0'
-                        ? t('Not applicable — no revenue candidate')
-                        : percentageFromBps(finance.contributionMarginBps)}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Direct Project Result')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
-                    >
-                      {money(
-                        finance.contributionMarginMinor,
-                        String(finance.currency ?? project.currency),
-                      )}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Direct cost')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
-                    >
-                      {money(
-                        finance.approvedCostMinor,
-                        String(finance.currency ?? project.currency),
-                      )}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Client receivable')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
-                    >
-                      {money(finance.receivableMinor, String(finance.currency ?? project.currency))}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Invoiced')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}`}
-                    >
-                      {money(finance.invoicedMinor, String(finance.currency ?? project.currency))}
-                    </a>
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Collected')}</dt>
-                  <dd>
-                    <a href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
-                      >{money(finance.paidMinor, String(finance.currency ?? project.currency))}</a
-                    >
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t('Approved WIP')}</dt>
-                  <dd>
-                    <a
-                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}&stage=wip`}
-                    >
-                      {money(
-                        finance.approvedUnbilledWipMinor,
-                        String(finance.currency ?? project.currency),
-                      )}
-                    </a>
-                  </dd>
-                </div>
-              </dl>
-            {:else}<p class="empty-state">
-                {periodProblem
-                  ? t('problem.projectDetail.periodNotApplied')
-                  : t('Finance projection is not available for this role.')}
-              </p>{/if}
-          </section>
-        </div>
-        <section class="project-surface" aria-labelledby="milestones-title">
-          <div class="surface-heading">
-            <div>
-              <p class="portal-kicker">{t('COMMERCIAL RECORDS')}</p>
-              <h2 id="milestones-title">{t('Milestones')}</h2>
-            </div>
-            <span class="surface-count">{overview.milestones.length}</span>
-          </div>
-          {#if isOwner}
-            <a
-              class="secondary-button"
-              href={`${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}`}
-              >{t('Create or edit milestones')} <DirectionIcon /></a
-            >
-          {/if}
-          <div class="compact-record-list">
-            {#each overview.milestones as milestone}
-              <svelte:element
-                this={isOwner ? 'a' : 'div'}
-                class="compact-record"
-                href={isOwner
-                  ? `${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(milestone.id))}`
-                  : undefined}
-                ><span class="record-mark" aria-hidden="true">M</span><span class="record-copy"
-                  ><strong>{display(milestone.name, t('Milestone'))}</strong><small
-                    >{display(milestone.due_on, t('No due date'))} · {status(
-                      milestone.approval_state,
-                    )}</small
-                  ></span
-                ><span class="record-value"
-                  >{money(
-                    milestone.amount_minor,
-                    String(milestone.currency ?? project.currency),
-                  )}</span
-                ></svelte:element
-              >
-            {:else}<p class="empty-state">{t('No milestones configured.')}</p>{/each}
-          </div>
-        </section>
-      </div>
-    {:else if activeTab === 'billing' && canViewCommercial}
+  <div class="project-tab-panels">
+    {#if activeTab === 'overview'}
       <div
-        id="project-panel-billing"
+        id="project-panel-overview"
         class="project-tab-panel"
         role="tabpanel"
-        aria-labelledby="project-tab-billing"
+        aria-labelledby="project-tab-overview"
         tabindex="0"
       >
-        {#if billingSetup}
-          {#key data.personDefaultsRevision}
-            <ProjectEconomicsDefaults
-              projectId={String(project.id)}
-              currency={String(project.currency)}
-              defaults={data.personDefaults}
-              revision={data.personDefaultsRevision}
-              canEdit={canWriteFinance}
-              {form}
-              {t}
-            />
-          {/key}
-          {#key billingEditorKey}
-            <ProjectBillingSetup
-              bind:personDraftStatus
-              projectId={String(project.id)}
-              currency={String(project.currency)}
-              timezone={String(project.timezone)}
-              commercialModel={String(project.billing_model ?? t('Not configured'))}
-              poCap={money(project.po_cap_minor, String(project.currency))}
-              rules={billingRules}
-              legalEntities={billingSetup.legalEntities}
-              taxProfiles={billingSetup.taxProfiles}
-              contacts={billingSetup.contacts}
-              templates={billingSetup.templates}
-              people={billingSetup.people}
-              personDefaults={data.personDefaults}
-              version={billingSetup.version}
-              rulesFingerprint={billingSetup.rulesFingerprint}
-              issuingPrerequisites={billingSetup.issuingPrerequisites}
-              requestKey={billingSetup.requestKey}
-              canEdit={canWriteFinance}
-              canEditProject={isOwner}
-              onEditProject={() => (editOpen = true)}
-              form={visibleForm}
-              {t}
-              {locale}
-            />
-          {/key}
+        <section class="project-surface hub-attention" aria-labelledby="hub-attention-title" data-hub-attention>
+          <h2 id="hub-attention-title">{h('attentionTitle')}</h2>
+          {#if attention.length === 0}
+            <p class="hub-clear" data-hub-attention-clear>{h('attentionClear')}</p>
+          {:else}
+            <ul class="hub-attention-list">
+              {#each attention as item (item.id)}
+                <li class="hub-attention-item" data-tone={item.tone} data-hub-attention-item={item.id}>
+                  <span>{item.text}</span>
+                  <a
+                    class={item.primary ? 'primary-button' : 'secondary-button'}
+                    href={item.href}
+                    onclick={(event) => (item.tab ? tabLink(event, item.tab) : undefined)}
+                    >{item.action}</a
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
+        {#if !isAuditor}
+          <nav class="hub-shortcuts" aria-label={h('shortcuts')}>
+            <a
+              class="secondary-button"
+              href={`${base}/app/time?action=log-time&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+              >{h('logTime')}</a
+            >
+            <a
+              class="secondary-button"
+              href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+              >{h('addExpense')}</a
+            >
+            <a
+              class="secondary-button"
+              href={`${base}/app/reports?assistantSurface=report-daily&project=${encodeURIComponent(String(project.id))}&lang=${locale}#report-panel-daily`}
+              >{h('workReport')}</a
+            >
+          </nav>
         {/if}
+          {#if data.user.role === 'project_manager' && overview.milestones.length > 0}
+            <section class="project-surface" aria-labelledby="operational-milestones-title">
+              <div class="surface-heading">
+                <div>
+                  <p class="portal-kicker">{t('PROJECT RECORDS')}</p>
+                  <h2 id="operational-milestones-title">{t('Milestones')}</h2>
+                </div>
+                <span class="surface-count">{overview.milestones.length}</span>
+              </div>
+              <div class="compact-record-list">
+                {#each overview.milestones as milestone}
+                  <div class="compact-record">
+                    <span class="record-mark" aria-hidden="true">M</span>
+                    <span class="record-copy">
+                      <strong>{display(milestone.name, t('Milestone'))}</strong>
+                      <small
+                        >{display(milestone.due_on, t('No due date'))} · {status(
+                          milestone.approval_state,
+                        )}</small
+                      >
+                    </span>
+                    {#if ['draft', 'rejected'].includes(String(milestone.approval_state ?? ''))}
+                      <form
+                        method="POST"
+                        action="?/submitMilestone&tab=overview"
+                        use:enhance={submitDetail}
+                      >
+                        <input type="hidden" name="id" value={milestone.id} />
+                        <input type="hidden" name="version" value={milestone.version} />
+                        <button type="submit" class="secondary-button"
+                          >{t('Submit for approval now')}</button
+                        >
+                      </form>
+                    {/if}
+                  </div>
+                {/each}
+              </div>
+            </section>
+          {/if}
+        {#if isWorker}
+          {@render planningPanel()}
+        {/if}
+      </div>
+    {:else if activeTab === 'team'}
+      <div
+        id="project-panel-team"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-team"
+        tabindex="0"
+      >
+        {#if isWorker}
+          <section class="project-surface" aria-labelledby="team-title">
+            <h2 id="team-title">{h('tabTeam')} · {overview.workers.length}</h2>
+            <ul class="hub-plain-list">
+              {#each overview.workers as worker}
+                <li>
+                  <strong>{display(worker.name, t('Assigned worker'))}</strong>
+                  <small>{controlled('role', worker.assignment_role ?? worker.role)}</small>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {:else}
+          <ProjectHubTeam
+            projectId={String(project.id)}
+            currency={String(project.currency ?? '')}
+            {locale}
+            {role}
+            assignments={hub.assignments}
+            workers={(data.workers ?? []) as Array<Record<string, unknown>>}
+            ratePeople={billingSetup ? billingSetup.people : null}
+            hasPersonDefaults={Boolean(data.personDefaults)}
+            projectStart={String(project.start_date ?? '')}
+            projectEnd={String(project.planned_end_date ?? '')}
+            today={hub.today}
+            canSetRates={canWriteFinance}
+            roleLabel={(value) => controlled('role', value ?? 'worker')}
+            formatDate={(value) => formatProjectDate(value)}
+            describe={(result) => standaloneActionMessage(locale, result ?? { success: false })}
+            notify={hubNotify}
+          />
+        {/if}
+      </div>
+    {:else if activeTab === 'hours' && !isWorker}
+      <div
+        id="project-panel-hours"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-hours"
+        tabindex="0"
+      >
+        <section class="project-surface" aria-labelledby="hub-hours-title" data-hub-hours>
+          <div class="surface-heading">
+            <h2 id="hub-hours-title">{h('tabHours')}</h2>
+            <a class="primary-button" href={hoursOverviewHref()}>{h('openHoursOverview')}</a>
+          </div>
+          {#if hub.hours.people.length === 0}
+            <p class="empty-state">{h('noHours')}</p>
+          {:else}
+            <div class="hub-table-wrap">
+              <table class="hub-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{h('person')}</th>
+                    <th scope="col">{h('thisMonth')}</th>
+                    <th scope="col">{h('total')}</th>
+                    <th scope="col">{h('waiting')}</th>
+                    <th scope="col">{h('drafts')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each hub.hours.people as row (row.workerId)}
+                    <tr>
+                      <th scope="row"
+                        ><a href={hoursOverviewHref(row.workerId)}>{row.name}</a></th
+                      >
+                      <td data-label={h('thisMonth')}>{hours(row.monthMinutes)}</td>
+                      <td data-label={h('total')}>{hours(row.totalMinutes)}</td>
+                      <td data-label={h('waiting')} class:hub-warn={row.waitingMinutes > 0}
+                        >{row.waitingMinutes ? hours(row.waitingMinutes) : '—'}</td
+                      >
+                      <td data-label={h('drafts')}
+                        >{row.draftMinutes ? hours(row.draftMinutes) : '—'}</td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th scope="row">{h('total')}</th>
+                    <td data-label={h('thisMonth')}>{hours(hub.hours.monthMinutes)}</td>
+                    <td data-label={h('total')}>{hours(hub.hours.totalMinutes)}</td>
+                    <td data-label={h('waiting')}
+                      >{hours(hub.hours.people.reduce((sum, row) => sum + row.waitingMinutes, 0))}</td
+                    >
+                    <td data-label={h('drafts')}
+                      >{hours(hub.hours.people.reduce((sum, row) => sum + row.draftMinutes, 0))}</td
+                    >
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          {/if}
+        </section>
+      </div>
+    {:else if activeTab === 'expenses' && !isWorker}
+      <div
+        id="project-panel-expenses"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-expenses"
+        tabindex="0"
+      >
+        <section class="project-surface" aria-labelledby="hub-expenses-title" data-hub-expenses>
+          <div class="surface-heading">
+            <h2 id="hub-expenses-title">{h('tabExpenses')}</h2>
+            <a class="primary-button" href={expensesOverviewHref()}>{h('openExpensesOverview')}</a>
+          </div>
+          {#if hub.expenses.people.length === 0}
+            <p class="empty-state">{h('noExpenses')}</p>
+          {:else}
+            <div class="hub-table-wrap">
+              <table class="hub-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{h('person')}</th>
+                    <th scope="col">{h('thisMonth')}</th>
+                    <th scope="col">{h('total')}</th>
+                    <th scope="col">{h('waiting')}</th>
+                    <th scope="col">{h('missingReceipt')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each hub.expenses.people as row (row.workerId)}
+                    <tr>
+                      <th scope="row"
+                        ><a href={expensesOverviewHref(row.workerId)}>{row.name}</a></th
+                      >
+                      <td data-label={h('thisMonth')}>{moneyList(row.month)}</td>
+                      <td data-label={h('total')}>{moneyList(row.total)} · {row.count}</td>
+                      <td data-label={h('waiting')} class:hub-warn={row.waitingCount > 0}
+                        >{row.waitingCount || '—'}</td
+                      >
+                      <td data-label={h('missingReceipt')} class:hub-warn={row.missingReceipts > 0}
+                        >{row.missingReceipts || '—'}</td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        </section>
+          <section class="project-surface" aria-labelledby="operational-expenses-title">
+            <div class="surface-heading">
+              <div>
+                <p class="portal-kicker">{t('OPERATIONS')}</p>
+                <h2 id="operational-expenses-title">
+                  {isFinance || isOwner || isAuditor
+                    ? t('Expense review')
+                    : t('Operational expenses')}
+                </h2>
+              </div>
+              <span class="surface-count">{filteredExpenses.length}</span>
+            </div>
+            <p class="surface-intro">
+              {isFinance || isOwner || isAuditor
+                ? t('Commercial classification is shown only in the Finance view.')
+                : t('Reported expense amounts, receipt evidence and operational review state.')}
+            </p>
+            <label class="expense-filter">
+              <span>{t('Filter by category')}</span>
+              <select bind:value={expenseCategoryFilter}>
+                <option value="">{t('All categories')}</option>
+                {#each expenseCategories as category}
+                  <option value={category}>{controlled('expenseCategory', category)}</option>
+                {/each}
+              </select>
+            </label>
+            <div class="compact-record-list">
+              {#each filteredExpenses.slice(0, 5) as expense}
+                <a
+                  class="compact-record"
+                  href={base + '/app/expenses/' + String(expense.id)}
+                  data-expense-record
+                >
+                  <span class="record-mark" aria-hidden="true">E</span>
+                  <span class="record-copy"
+                    ><strong
+                      >{display(
+                        expense.vendor,
+                        display(
+                          expense.description,
+                          controlled('expenseCategory', expense.category),
+                        ),
+                      )}</strong
+                    ><small
+                      >{display(expense.spent_on)} · {controlled(
+                        'expenseCategory',
+                        expense.category,
+                      )} · {status(expense.approval_state)}</small
+                    ></span
+                  >
+                  <span class="record-value">{expenseAmount(expense)}</span>
+                </a>
+              {:else}
+                <div class="empty-state project-empty-action">
+                  <span>
+                    {expenseCategoryFilter
+                      ? t('No expenses match this category.')
+                      : t('No expenses recorded for this project.')}
+                  </span>
+                  {#if !expenseCategoryFilter}
+                    <a
+                      class="secondary-button"
+                      href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                      >{t('Add expense')} <DirectionIcon /></a
+                    >
+                  {/if}
+                </div>
+              {/each}
+            </div>
+            <a
+              class="inline-link"
+              href={`${base}/app/expenses?project=${encodeURIComponent(String(project.id))}`}
+              >{t('View all expenses')} <DirectionIcon /></a
+            >
+          </section>
+      </div>
+    {:else if activeTab === 'invoices' && canViewCommercial}
+      <div
+        id="project-panel-invoices"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-invoices"
+        tabindex="0"
+      >
+        <section class="project-surface" aria-labelledby="hub-invoices-title" data-hub-invoices>
+          <div class="surface-heading">
+            <h2 id="hub-invoices-title">{h('tabInvoices')} · {hub.invoices?.length ?? 0}</h2>
+            {#if canWriteFinance}
+              <a class="primary-button" href={quickInvoiceHref} data-hub-new-invoice
+                >{h('newInvoice')}</a
+              >
+            {/if}
+          </div>
+          {#if !hub.invoices?.length}
+            <p class="empty-state">{h('noInvoices')}</p>
+          {:else}
+            <div class="hub-table-wrap">
+              <table class="hub-table">
+                <thead>
+                  <tr>
+                    <th scope="col">{h('invoice')}</th>
+                    <th scope="col">{h('period')}</th>
+                    <th scope="col">{h('status')}</th>
+                    <th scope="col">{h('total')}</th>
+                    <th scope="col">{h('outstanding')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each hub.invoices as invoice (invoice.id)}
+                    <tr>
+                      <th scope="row"
+                        ><a
+                          href={`${base}/app/billing/invoices/${encodeURIComponent(invoice.id)}?lang=${locale}`}
+                          >{invoice.number ?? h('draft')}</a
+                        ></th
+                      >
+                      <td data-label={h('period')}
+                        >{invoice.periodStart
+                          ? `${formatProjectDate(invoice.periodStart)} – ${formatProjectDate(invoice.periodEnd)}`
+                          : '—'}</td
+                      >
+                      <td data-label={h('status')}
+                        ><span class="state-badge" data-state={invoice.state}
+                          >{status(invoice.state)}</span
+                        ></td
+                      >
+                      <td data-label={h('total')}>{money(invoice.totalMinor, invoice.currency)}</td>
+                      <td data-label={h('outstanding')}
+                        >{invoice.outstandingMinor === '0'
+                          ? '—'
+                          : money(invoice.outstandingMinor, invoice.currency)}{invoice.dueAt &&
+                        invoice.outstandingMinor !== '0'
+                          ? ` · ${h('due')} ${formatProjectDate(String(invoice.dueAt).slice(0, 10))}`
+                          : ''}</td
+                      >
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          {/if}
+        </section>
+        <details class="hub-group" open={settingsGroup === 'advanced'} data-hub-invoice-advanced>
+          <summary>{h('invoiceAdvanced')}</summary>
+          <div class="hub-group__body">
+            {#if canWriteFinance}
+              <div id="project-panel-work">
+        <ProjectInvoiceComposer
+          projectId={String(project.id)}
+          projectTimezone={String(project.timezone ?? '')}
+          rules={billingRules}
+          {locale}
+          {role}
+          userId={String(data.user.id)}
+          initialDate={[
+            ...overview.time.map((row) => String(row.work_date ?? '')),
+            ...overview.expenses.map((row) => String(row.spent_on ?? '')),
+          ]
+            .filter(Boolean)
+            .sort()
+            .at(-1) ?? String(project.start_date ?? '')}
+        />
+              </div>
+            {/if}
         <section class="project-surface" aria-labelledby="billing-title">
           <div class="surface-heading">
             <div>
@@ -2424,16 +2167,601 @@
               {t('Auditor access is read only. Finance actions remain unavailable.')}
             </p>{/if}
         </section>
+          </div>
+        </details>
+      </div>
+    {:else if activeTab === 'reports'}
+      <div
+        id="project-panel-reports"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-reports"
+        tabindex="0"
+      >
+        <section
+          id="project-reports"
+          class="project-surface report-surface"
+          aria-labelledby="reports-title"
+          tabindex="-1"
+        >
+          <div class="surface-heading">
+            <div>
+              <p class="portal-kicker">{t('REPORTS & FILES')}</p>
+              <h2 id="reports-title">{t('Reports')}</h2>
+            </div>
+            <a
+              class="primary-button"
+              href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}`}
+              >{t('Open Reports')}</a
+            >
+          </div>
+          <div class="report-surface-grid">
+            <a
+              class="report-type-card"
+              href={base +
+                '/app/reports?view=daily&project=' +
+                encodeURIComponent(String(project.id))}
+              ><span class="report-type-icon" aria-hidden="true">D</span><strong
+                >{t('Daily')}</strong
+              ><small>{t('Field activity and operational summary')}</small><span
+                class="record-value"
+                >{overview.reports.filter((row) => row.type !== 'PLC').length}</span
+              ></a
+            >
+            <a
+              class="report-type-card"
+              href={base +
+                '/app/reports?view=technical&project=' +
+                encodeURIComponent(String(project.id))}
+              ><span class="report-type-icon" aria-hidden="true">P</span><strong
+                >{t('Technical / PLC')}</strong
+              ><small>{t('Controls, systems and technical evidence')}</small><span
+                class="record-value"
+                >{overview.reports.filter((row) => row.type === 'PLC').length}</span
+              ></a
+            >
+            <a
+              class="report-type-card report-signoff-card"
+              href={base +
+                '/app/reports?view=signoff&project=' +
+                encodeURIComponent(String(project.id))}
+              ><span class="report-type-icon" aria-hidden="true">✓</span><strong
+                >{t('Client Sign-off')}</strong
+              ><small>{t('Customer-safe hours, activities and conformity surface')}</small><span
+                class="inline-link">{t('Open sign-off')} <DirectionIcon /></span
+              ></a
+            >
+          </div>
+          <div class="report-register" aria-label={t('Project report register')}>
+            {#each overview.reports as report}
+              <a class="compact-record" href={base + '/app/reports/' + String(report.id)}
+                ><span class="record-mark" aria-hidden="true"
+                  >{report.type === 'PLC' ? 'P' : 'D'}</span
+                ><span class="record-copy"
+                  ><strong>{display(report.title, t('Report'))}</strong><small
+                    >{reportType(report.type)} · {display(report.date)} · {status(
+                      report.approval_state,
+                    )}</small
+                  ></span
+                >{#if report.safety_related}<span class="safety-label">{t('Safety')}</span>{/if}</a
+              >
+            {:else}
+              <div class="empty-state project-empty-action">
+                <span>{t('No reports recorded for this project.')}</span>
+                <a
+                  class="secondary-button"
+                  href={`${base}/app/reports?project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
+                >
+                  {t('Open Reports')}
+                  <DirectionIcon />
+                </a>
+              </div>
+            {/each}
+          </div>
+        </section>
+        <section class="project-surface" aria-labelledby="project-files-title">
+          <div class="surface-heading">
+            <div>
+              <p class="portal-kicker">{t('REPORTS & FILES')}</p>
+              <h2 id="project-files-title">
+                {t('Private project documents')} · {projectDocuments.length}
+              </h2>
+            </div>
+            <a
+              class="secondary-button"
+              href={`${base}/app/documents?project=${encodeURIComponent(String(project.id))}#document-list`}
+              >{t('Documents')}</a
+            >
+          </div>
+          <div class="compact-record-list">
+            {#each projectDocuments.slice(0, 5) as document}
+              <div class="compact-record">
+                <span class="record-mark" aria-hidden="true">F</span>
+                <span class="record-copy">
+                  <strong
+                    >{display(
+                      document.safe_filename ?? document.original_filename,
+                      t('Document'),
+                    )}</strong
+                  >
+                  <small>{display(document.artifact_type)}</small>
+                </span>
+              </div>
+            {:else}
+              <p class="empty-state">
+                {t('No private documents are available in your access scope.')}
+              </p>
+            {/each}
+          </div>
+        </section>
+      </div>
+    {:else if activeTab === 'settings' && !isWorker}
+      <div
+        id="project-panel-settings"
+        class="project-tab-panel"
+        role="tabpanel"
+        aria-labelledby="project-tab-settings"
+        tabindex="0"
+      >
+        <p class="surface-intro">{h('settingsIntro')}</p>
+        <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
+          <summary>{h('setDetails')}</summary>
+          <div class="hub-group__body">
+            {#if isOwner}
+              <button
+                type="button"
+                class="primary-button"
+                data-project-edit-cta
+                disabled={!mounted}
+                onclick={() => (editOpen = true)}
+              >
+                {h('editDetails')}
+              </button>
+            {/if}
+          <section class="project-surface" aria-label={h('setDetails')}>
+            <dl class="project-facts">
+              <div>
+                <dt>{t('Client')}</dt>
+                <dd>
+                  {#if canViewCommercial && project.client_id}
+                    <a
+                      href={`${base}/app/projects?view=clients&focus=${encodeURIComponent(String(project.client_id))}&lang=${encodeURIComponent(locale)}#client-directory-client-${encodeURIComponent(String(project.client_id))}`}
+                      >{display(project.client_name, t('Client'))}</a
+                    >
+                  {:else}{display(project.client_name)}{/if}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('Client number')}</dt>
+                <dd>{display(project.client_number)}</dd>
+              </div>
+              <div>
+                <dt>{t('Project number')}</dt>
+                <dd>{display(project.project_number)}</dd>
+              </div>
+              <div>
+                <dt>{t('Cost center')}</dt>
+                <dd>{display(project.cost_center_code, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('PO / reference')}</dt>
+                <dd>{display(project.po_number, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('Site / plant')}</dt>
+                <dd>{display(project.site_name, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('Location (optional)')}</dt>
+                <dd>{display(project.site_location, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('On-site manager (optional)')}</dt>
+                <dd>{display(project.onsite_manager, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('On-site contact (optional)')}</dt>
+                <dd data-project-site-contact>
+                  {#if siteContact}
+                    <div class="project-contact-details">
+                      <a
+                        href={`${siteContactDirectoryHref}#client-contact-${encodeURIComponent(String(siteContact.id))}`}
+                        >{display(siteContact.name)}</a
+                      >
+                      {#each [['role', 'Role'], ['company', 'Company'], ['location', 'Location']] as [field, label]}
+                        {#if display(siteContact[field], '')}
+                          <p><span>{t(label)}:</span> {display(siteContact[field])}</p>
+                        {/if}
+                      {/each}
+                      {#if display(siteContact.phone, '')}
+                        <p>
+                          <span>{t('Phone')}:</span>
+                          <a href={`tel:${display(siteContact.phone, '')}`}
+                            >{display(siteContact.phone)}</a
+                          >
+                        </p>
+                      {/if}
+                      {#if display(siteContact.email, '')}
+                        <p>
+                          <span>{t('Email')}:</span>
+                          <a href={`mailto:${display(siteContact.email, '')}`}
+                            >{display(siteContact.email)}</a
+                          >
+                        </p>
+                      {/if}
+                      {#if Number(siteContact.is_primary) === 1}<p>{t('Primary contact')}</p>{/if}
+                      {#if Number(siteContact.is_billing_contact) === 1}<p>
+                          {t('Billing contact')}
+                        </p>{/if}
+                      {#if display(siteContact.notes, '')}
+                        <p class="project-contact-notes">
+                          <span>{t('Notes')}:</span>
+                          {display(siteContact.notes)}
+                        </p>
+                      {/if}
+                      {#if isOwner || isFinance}
+                        <a
+                          href={`${siteContactDirectoryHref}#client-contact-edit-${encodeURIComponent(String(siteContact.id))}`}
+                          >{t('Edit contact')}</a
+                        >
+                      {/if}
+                      {#if canViewCommercial}
+                        <a
+                          class="project-contact-directory-link"
+                          href={`${siteContactDirectoryHref}#client-contacts-${encodeURIComponent(String(siteContact.client_id))}`}
+                          >{t('Open client contacts')} <DirectionIcon /></a
+                        >
+                      {/if}
+                    </div>
+                  {:else}{t('Not configured')}{/if}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('Timezone')}</dt>
+                <dd>{display(project.timezone)}</dd>
+              </div>
+              <div>
+                <dt>{t('Schedule')}</dt>
+                <dd>{display(project.start_date)} → {display(project.planned_end_date)}</dd>
+              </div>
+            </dl>
+            {#if display(project.description, '')}<p class="project-description">
+                {display(project.description)}
+              </p>{/if}
+          </section>
+          </div>
+        </details>
+        {#if billingSetup}
+          <details
+            id="project-billing-setup"
+            class="hub-group"
+            open={settingsGroup === 'billing'}
+            data-hub-group="billing"
+          >
+            <summary>{h('setBilling')} <small>{h('setBillingHint')}</small></summary>
+            <div class="hub-group__body">
+        {#if billingSetup}
+          {#key data.personDefaultsRevision}
+            <ProjectEconomicsDefaults
+              projectId={String(project.id)}
+              currency={String(project.currency)}
+              defaults={data.personDefaults}
+              revision={data.personDefaultsRevision}
+              canEdit={canWriteFinance}
+              {form}
+              {t}
+            />
+          {/key}
+          {#key billingEditorKey}
+            <ProjectBillingSetup
+              bind:personDraftStatus
+              projectId={String(project.id)}
+              currency={String(project.currency)}
+              timezone={String(project.timezone)}
+              commercialModel={String(project.billing_model ?? t('Not configured'))}
+              poCap={money(project.po_cap_minor, String(project.currency))}
+              rules={billingRules}
+              legalEntities={billingSetup.legalEntities}
+              taxProfiles={billingSetup.taxProfiles}
+              contacts={billingSetup.contacts}
+              templates={billingSetup.templates}
+              people={billingSetup.people}
+              personDefaults={data.personDefaults}
+              version={billingSetup.version}
+              rulesFingerprint={billingSetup.rulesFingerprint}
+              issuingPrerequisites={billingSetup.issuingPrerequisites}
+              requestKey={billingSetup.requestKey}
+              canEdit={canWriteFinance}
+              canEditProject={isOwner}
+              onEditProject={() => (editOpen = true)}
+              form={visibleForm}
+              {t}
+              {locale}
+            />
+          {/key}
+        {/if}
+            </div>
+          </details>
+        {/if}
+        {#if canViewCommercial}
+          <details class="hub-group" open={settingsGroup === 'commercial'} data-hub-group="commercial">
+            <summary>{h('setCommercial')}</summary>
+            <div class="hub-group__body project-panel-grid">
+          <section class="project-surface" aria-labelledby="commercial-policy-title">
+            <div class="surface-heading">
+              <div>
+                <p class="portal-kicker">{t('FINANCE / ADMIN')}</p>
+                <h2 id="commercial-policy-title">
+                  <a href={`${base}/app/finance?view=commercial&project=${project.id}`}
+                    >{t('Commercial configuration')}</a
+                  >
+                </h2>
+              </div>
+              <span class="read-only-note">{isAuditor ? t('Read only') : t('Authorized view')}</span
+              >
+            </div>
+            {#if canWriteFinance}
+              <a
+                class="secondary-button"
+                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Configure commercial terms')} <DirectionIcon /></a
+              >
+            {/if}
+            <dl class="project-facts">
+              <div>
+                <dt>{t('Commercial model')}</dt>
+                <dd>{controlled('billingModel', project.billing_model) || t('Not configured')}</dd>
+              </div>
+              <div>
+                <dt>{t('Reference hours / day')}</dt>
+                <dd>
+                  {!project.expected_minutes_per_day
+                    ? pc('noExpectation')
+                    : hours(project.expected_minutes_per_day)}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('Client minimum')}</dt>
+                <dd>
+                  {project.client_daily_minimum_minutes === null ||
+                  project.client_daily_minimum_minutes === undefined
+                    ? t('Not configured')
+                    : hours(project.client_daily_minimum_minutes)}
+                </dd>
+              </div>
+              <div>
+                <dt>{t('Budget type')}</dt>
+                <dd>{controlled('budgetType', project.budget_type) || t('Not configured')}</dd>
+              </div>
+              <div>
+                <dt>{t('Cost center')}</dt>
+                <dd>{display(project.cost_center_code, t('Not configured'))}</dd>
+              </div>
+              <div>
+                <dt>{t('PO / reference')}</dt>
+                <dd>{display(project.po_number, t('Not configured'))}</dd>
+              </div>
+            </dl>
+            <p class="surface-intro">
+              {t(
+                'Workers and PMs record operational truth. Finance configuration determines its commercial interpretation.',
+              )}
+            </p>
+          </section>
+          <section class="project-surface" aria-labelledby="economics-title">
+            <div class="surface-heading">
+              <div>
+                <p class="portal-kicker">{t('CANONICAL PROJECTION')}</p>
+                <h2 id="economics-title">
+                  <a href={`${base}/app/finance?view=economic&project=${project.id}`}
+                    >{t('Project economics')}</a
+                  >
+                </h2>
+              </div>
+              <span class="read-only-note"
+                >{isAuditor ? t('Read only') : t('Exact source records')}</span
+              >
+            </div>
+            {#if canWriteFinance}
+              <a
+                class="secondary-button"
+                href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(String(project.id))}`}
+                >{t('Edit economics inputs')} <DirectionIcon /></a
+              >
+            {/if}
+            {#if finance}
+              <dl class="finance-facts">
+                <div>
+                  <dt>{t('Contribution')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.contributionMarginMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Contribution Margin %')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {String(finance.revenueCandidateMinor ?? '').trim() === '0'
+                        ? t('Not applicable — no revenue candidate')
+                        : percentageFromBps(finance.contributionMarginBps)}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Direct Project Result')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.contributionMarginMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Direct cost')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/finance?view=economic&project=${encodeURIComponent(String(project.id))}&source=portfolio#finance-source-records`}
+                    >
+                      {money(
+                        finance.approvedCostMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Client receivable')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
+                    >
+                      {money(finance.receivableMinor, String(finance.currency ?? project.currency))}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Invoiced')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}`}
+                    >
+                      {money(finance.invoicedMinor, String(finance.currency ?? project.currency))}
+                    </a>
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Collected')}</dt>
+                  <dd>
+                    <a href={`${base}/app/ledger?project=${encodeURIComponent(String(project.id))}`}
+                      >{money(finance.paidMinor, String(finance.currency ?? project.currency))}</a
+                    >
+                  </dd>
+                </div>
+                <div>
+                  <dt>{t('Approved WIP')}</dt>
+                  <dd>
+                    <a
+                      href={`${base}/app/billing?project=${encodeURIComponent(String(project.id))}&stage=wip`}
+                    >
+                      {money(
+                        finance.approvedUnbilledWipMinor,
+                        String(finance.currency ?? project.currency),
+                      )}
+                    </a>
+                  </dd>
+                </div>
+              </dl>
+            {:else}<p class="empty-state">
+                {periodProblem
+                  ? t('problem.projectDetail.periodNotApplied')
+                  : t('Finance projection is not available for this role.')}
+              </p>{/if}
+          </section>
+            </div>
+          </details>
+          <details class="hub-group" open={settingsGroup === 'milestones'} data-hub-group="milestones">
+            <summary>{h('setMilestones')} · {overview.milestones.length}</summary>
+            <div class="hub-group__body">
+        <section class="project-surface" aria-labelledby="milestones-title">
+          <div class="surface-heading">
+            <div>
+              <p class="portal-kicker">{t('COMMERCIAL RECORDS')}</p>
+              <h2 id="milestones-title">{t('Milestones')}</h2>
+            </div>
+            <span class="surface-count">{overview.milestones.length}</span>
+          </div>
+          {#if isOwner}
+            <a
+              class="secondary-button"
+              href={`${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}`}
+              >{t('Create or edit milestones')} <DirectionIcon /></a
+            >
+          {/if}
+          <div class="compact-record-list">
+            {#each overview.milestones as milestone}
+              <svelte:element
+                this={isOwner ? 'a' : 'div'}
+                class="compact-record"
+                href={isOwner
+                  ? `${base}/app/manage?area=project_milestone&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(milestone.id))}`
+                  : undefined}
+                ><span class="record-mark" aria-hidden="true">M</span><span class="record-copy"
+                  ><strong>{display(milestone.name, t('Milestone'))}</strong><small
+                    >{display(milestone.due_on, t('No due date'))} · {status(
+                      milestone.approval_state,
+                    )}</small
+                  ></span
+                ><span class="record-value"
+                  >{money(
+                    milestone.amount_minor,
+                    String(milestone.currency ?? project.currency),
+                  )}</span
+                ></svelte:element
+              >
+            {:else}<p class="empty-state">{t('No milestones configured.')}</p>{/each}
+          </div>
+        </section>
+            </div>
+          </details>
+        {/if}
+        <details class="hub-group" open={settingsGroup === 'schedule'} data-hub-group="schedule">
+          <summary>{h('setSchedule')}</summary>
+          <div class="hub-group__body">
+            {@render planningPanel()}
+          </div>
+        </details>
+        {#if canWriteFinance}
+          <details class="hub-group" open={settingsGroup === 'closeout'} data-hub-group="closeout">
+            <summary>{h('setCloseout')}</summary>
+            <div class="hub-group__body">
+              <p class="surface-intro">{h('setCloseoutHint')}</p>
+              <a
+                class="secondary-button"
+                data-project-closeout-link
+                href={base + '/app/projects/' + encodeURIComponent(String(project.id)) + '/closeout'}
+                >{h('openCloseout')}</a
+              >
+            </div>
+          </details>
+        {/if}
+        {#if isOwner}
+          <section class="hub-danger" aria-label={h('dangerZone')}>
+            <h3>{h('dangerZone')}</h3>
+            <PermanentDeleteDialog
+              kind="project"
+              recordId={String(project.id)}
+              action="?/deleteProject"
+              {base}
+              {locale}
+            />
+          </section>
+        {/if}
       </div>
     {/if}
   </div>
 </main>
 
 <ToastRegion
-  toasts={actionToasts}
+  toasts={[...actionToasts, ...hubToasts]}
   label={t('Notifications')}
   class="project-action-toast-region"
-  ondismiss={dismissActionToast}
+  ondismiss={(id: string) =>
+    id.startsWith('hub:')
+      ? (hubToasts = hubToasts.filter((toast) => toast.id !== id))
+      : dismissActionToast()}
 />
 
 {#if isOwner}
@@ -3133,13 +3461,7 @@
     overflow-wrap: anywhere;
   }
 
-  .attention-grid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin-block: 1rem 1.25rem;
-  }
-  .attention-card,
+
   .project-surface {
     border: 1px solid var(--project-line);
     background: var(--project-surface);
@@ -3198,24 +3520,13 @@
       grid-template-columns: minmax(0, 1fr);
     }
   }
-  .attention-card {
-    display: grid;
-    min-height: 7.5rem;
-    gap: 0.35rem;
-    align-content: start;
-    padding: 1rem;
-    color: inherit;
-    text-decoration: none;
-  }
-  .attention-card:hover,
-  .attention-card:focus-visible,
+
   .billing-stream:hover,
   .billing-stream:focus-visible {
     border-color: var(--ja-teal, #706e66);
     outline: 3px solid color-mix(in srgb, var(--ja-teal, #706e66) 22%, transparent);
     outline-offset: 2px;
   }
-  .attention-card span,
   .project-facts dt,
   .finance-facts dt,
   .schedule-facts dt {
@@ -3225,13 +3536,8 @@
     letter-spacing: 0.07em;
     text-transform: uppercase;
   }
-  .attention-card strong {
-    font-size: clamp(1.35rem, 3vw, 1.9rem);
-    font-variant-numeric: tabular-nums;
-  }
-  .attention-card small,
+
   .record-copy small,
-  .team-record small,
   .planning-record small,
   .billing-stream small,
   .report-type-card small {
@@ -3239,23 +3545,8 @@
     line-height: 1.4;
   }
 
-  .project-quick-links {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.35rem 0.85rem;
-    margin-block: 0.7rem 1rem;
-    padding: 0.55rem 0.7rem;
-    border: 1px solid var(--project-line);
-    background: var(--project-soft);
-  }
-  .project-quick-links__label {
-    margin-inline-end: 0.25rem;
-    color: var(--project-muted);
-    font-size: 0.76rem;
-    font-weight: 800;
-  }
-  .project-quick-links a,
+
+
   .project-contact-directory-link {
     display: inline-flex;
     min-height: 2.75rem;
@@ -3267,19 +3558,8 @@
     text-underline-offset: 0.16em;
   }
 
-  .project-tab-current {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 0.75rem;
-    margin: 0.85rem 0 0.15rem;
-    color: var(--project-muted);
-    font-size: 0.78rem;
-  }
-  .project-tab-current strong {
-    color: var(--project-ink);
-    font-size: 0.9rem;
-  }
+
+
 
   .project-tabs {
     display: flex;
@@ -3456,7 +3736,6 @@
   }
 
   .compact-record-list,
-  .team-list,
   .planning-list,
   .billing-stream-list,
   .report-register {
@@ -3472,7 +3751,6 @@
     scroll-margin-top: 5rem;
   }
   .compact-record,
-  .team-record,
   .planning-record,
   .billing-stream {
     display: flex;
@@ -3490,8 +3768,7 @@
     border-color: var(--ja-teal, #706e66);
   }
   .record-mark,
-  .report-type-icon,
-  .avatar {
+  .report-type-icon {
     display: grid;
     flex: 0 0 auto;
     place-items: center;
@@ -3535,14 +3812,8 @@
     display: inline-block;
     margin-top: 0.8rem;
   }
-  .team-record {
-    align-items: flex-start;
-  }
-  .avatar {
-    border-radius: 50%;
-    background: #f3f3f2;
-    color: var(--ja-teal, #706e66);
-  }
+
+
   .planning-record {
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -3746,9 +4017,7 @@
   }
 
   @media (max-width: 900px) {
-    .attention-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
+
     .project-panel-grid {
       grid-template-columns: 1fr;
     }
@@ -3777,10 +4046,7 @@
       box-sizing: border-box;
       text-align: center;
     }
-    .attention-grid {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 0.55rem;
-    }
+
     .project-facts,
     .finance-facts,
     .schedule-facts,
@@ -3791,13 +4057,8 @@
     .project-context {
       margin-top: 1rem;
     }
-    .attention-card {
-      min-height: 6.25rem;
-      padding: 0.75rem;
-    }
-    .attention-card strong {
-      font-size: 1.15rem;
-    }
+
+
     .project-tabs {
       display: flex;
       overflow-x: auto;
@@ -3810,8 +4071,7 @@
       padding-inline: 0.75rem;
     }
     .compact-record,
-    .team-record,
-    .billing-stream {
+  .billing-stream {
       align-items: flex-start;
     }
     .record-value {
@@ -3863,19 +4123,224 @@
       padding: 0;
     }
     .project-breadcrumb,
-    .project-tabs,
-    .project-context-actions,
-    .attention-card.finance-summary,
-    .no-print {
+  .project-tabs,
+  .project-context-actions,
+  .no-print {
       display: none !important;
     }
     .project-tab-panel:not([id='project-panel-overview']) {
       display: none;
     }
-    .project-surface,
-    .attention-card {
+    .project-surface {
       break-inside: avoid;
       box-shadow: none;
+    }
+  }
+
+  /* ---- Project hub (owner round 2026-11-16) ---- */
+  .hub-header__ref {
+    margin: 0 0 0.25rem;
+    font-weight: 600;
+    color: var(--project-muted);
+    letter-spacing: 0.01em;
+  }
+  .hub-figures {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10.5rem, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0 1.25rem;
+  }
+  .hub-figure {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--project-line);
+    border-radius: 0.75rem;
+    background: var(--project-surface);
+    color: inherit;
+    text-decoration: none;
+    min-width: 0;
+  }
+  .hub-figure:hover,
+  .hub-figure:focus-visible {
+    border-color: var(--project-ink);
+  }
+  .hub-figure span,
+  .hub-figure small {
+    color: var(--project-muted);
+    font-size: 0.85rem;
+  }
+  .hub-figure strong {
+    font-size: 1.35rem;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+  .hub-figure--attention {
+    border-color: #f59e0b;
+    background: #fffbeb;
+  }
+  .hub-attention h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+  }
+  .hub-attention-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .hub-attention-item {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.6rem;
+    border-left: 4px solid #3b82f6;
+    background: var(--project-soft);
+  }
+  .hub-attention-item[data-tone='warn'] {
+    border-left-color: #f59e0b;
+    background: #fffbeb;
+  }
+  .hub-attention-item span {
+    flex: 1 1 16rem;
+  }
+  .hub-clear {
+    margin: 0;
+    color: var(--project-muted);
+  }
+  .hub-shortcuts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+  }
+  .hub-table-wrap {
+    overflow-x: auto;
+  }
+  .hub-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .hub-table th,
+  .hub-table td {
+    text-align: left;
+    padding: 0.6rem 0.75rem;
+    border-top: 1px solid var(--project-line);
+    white-space: nowrap;
+  }
+  .hub-table thead th {
+    border-top: 0;
+    color: var(--project-muted);
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .hub-table tfoot th,
+  .hub-table tfoot td {
+    font-weight: 700;
+  }
+  .hub-table td.hub-warn {
+    color: #9a3412;
+    font-weight: 600;
+  }
+  .hub-plain-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .hub-plain-list li {
+    display: grid;
+  }
+  .hub-group {
+    border: 1px solid var(--project-line);
+    border-radius: 0.75rem;
+    background: var(--project-surface);
+    margin-bottom: 0.75rem;
+  }
+  .hub-group > summary {
+    cursor: pointer;
+    padding: 1rem 1.25rem;
+    font-weight: 700;
+    min-height: var(--ja-target-min, 2.75rem);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+  }
+  .hub-group > summary small {
+    font-weight: 400;
+    color: var(--project-muted);
+  }
+  .hub-group__body {
+    padding: 0 1.25rem 1.25rem;
+    display: grid;
+    gap: 1rem;
+  }
+  .hub-group__body > .primary-button,
+  .hub-group__body > .secondary-button {
+    justify-self: start;
+  }
+  .hub-danger {
+    margin-top: 1.5rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid #fecaca;
+    border-radius: 0.75rem;
+    background: #fef2f2;
+  }
+  .hub-danger h3 {
+    margin: 0 0 0.5rem;
+    color: #b42318;
+  }
+  @media (max-width: 640px) {
+    .project-breadcrumb-actions {
+      display: none;
+    }
+    .hub-figures {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 0.5rem;
+    }
+    .hub-figure {
+      padding: 0.65rem 0.75rem;
+    }
+    .hub-figure strong {
+      font-size: 1.1rem;
+    }
+    .hub-table thead {
+      display: none;
+    }
+    .hub-table,
+    .hub-table tbody,
+    .hub-table tfoot,
+    .hub-table tr,
+    .hub-table th,
+    .hub-table td {
+      display: block;
+      white-space: normal;
+    }
+    .hub-table tr {
+      border-top: 1px solid var(--project-line);
+      padding: 0.5rem 0;
+    }
+    .hub-table th,
+    .hub-table td {
+      border: 0;
+      padding: 0.15rem 0;
+    }
+    .hub-table td[data-label]::before {
+      content: attr(data-label) ': ';
+      color: var(--project-muted);
+    }
+    .hub-group > summary {
+      padding: 0.85rem 1rem;
+    }
+    .hub-group__body {
+      padding: 0 1rem 1rem;
     }
   }
 </style>

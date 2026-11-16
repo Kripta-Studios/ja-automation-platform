@@ -317,16 +317,36 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               )).get(id),
           };
         })();
-        const records = visibleProjectRecords(authorizedRecords, scope.projectIds).map((row) =>
-          ['needs_changes', 'rejected'].includes(String(row.approval_state))
-            ? {
-                ...row,
-                review_note:
-                  (reviewNote.get(String(row.id)) as { reason: string | null } | undefined)
-                    ?.reason ?? null,
-              }
-            : row,
-        );
+        // The owner's capture list shows only expenses the owner entered (for
+        // themselves or for someone else), never other people's own drafts.
+        const createdByMe = (() => {
+          if (context.principal.role !== 'owner_admin') return null;
+          try {
+            return new Set(
+              (
+                context.sqlite
+                  .prepare(
+                    "SELECT entity_id FROM audit_event WHERE actor_id=? AND action='expense.create' AND entity_type='expense'",
+                  )
+                  .all(context.principal.userId) as Array<{ entity_id: string }>
+              ).map((row) => row.entity_id),
+            );
+          } catch {
+            return null;
+          }
+        })();
+        const records = visibleProjectRecords(authorizedRecords, scope.projectIds)
+          .map((row) => (createdByMe?.has(String(row.id)) ? { ...row, created_by_me: 1 } : row))
+          .map((row) =>
+            ['needs_changes', 'rejected'].includes(String(row.approval_state))
+              ? {
+                  ...row,
+                  review_note:
+                    (reviewNote.get(String(row.id)) as { reason: string | null } | undefined)
+                      ?.reason ?? null,
+                }
+              : row,
+          );
         return {
           ...common,
           projects: scope.projects,

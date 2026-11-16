@@ -25,6 +25,7 @@
   import { expenseCategories, primaryExpenseCategories } from '../expense-categories';
   import { expenseReceiptState } from '../expense-evidence';
   import ExpenseOverview from './ExpenseOverview.svelte';
+  import { readReceipt } from './expense-receipt-reader';
   import { expenseStatusLabel, expenseStatusOf, expenseStatusVariant } from './expense-status';
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import { expenseCopy, expenseLocaleTag, type ExpenseCopyKey } from './expense-copy';
@@ -105,7 +106,7 @@
       (row) =>
         text(row, 'worker_id') === me ||
         text(row, 'crew_recorded_by_user_id') === me ||
-        (isOwner && row.approval_state === 'draft'),
+        Number(row.created_by_me ?? 0) === 1,
     ),
   );
   let showAll = $state(false);
@@ -159,7 +160,7 @@
     }).format(parsed);
   }
   /** Exact per-currency totals using bigint minor units (never floats). */
-  function totals(rows: Row[]): string {
+  function totals(rows: Row[]): string[] {
     const sums = new Map<string, bigint>();
     for (const row of rows) {
       // A returned original that has a correction is replaced by it; rejected
@@ -170,11 +171,11 @@
       const currency = text(row, 'currency') || 'USD';
       sums.set(currency, (sums.get(currency) ?? 0n) + BigInt(minor));
     }
-    return (
-      [...sums.entries()]
-        .map(([currency, minor]) => money(minor.toString(), currency, tag))
-        .join(' + ') || '—'
-    );
+    // One line per currency: amounts in different currencies are never added.
+    const lines = [...sums.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([currency, minor]) => money(minor.toString(), currency, tag));
+    return lines.length ? lines : ['—'];
   }
 
   type PersonBlock = { workerId: string; workerName: string; rows: Row[]; drafts: Row[] };
@@ -267,6 +268,10 @@
   let receiptUrl = $state<string | null>(null);
   let receiptName = $state('');
   let receiptIsImage = $state(false);
+  let receiptReading = $state(false);
+  let receiptFilled = $state(false);
+  let amountTouched = false;
+  let dateTouched = false;
   let crewOptions = $state<Array<{ id: string; name: string }>>([]);
 
   const projectCurrency = (id: string): string =>
@@ -289,6 +294,8 @@
     receiptUrl = null;
     receiptName = '';
     receiptIsImage = false;
+    receiptFilled = false;
+    receiptReading = false;
     if (receiptInput) receiptInput.value = '';
   }
   function onReceiptChange(event: Event): void {
@@ -297,6 +304,27 @@
     receiptName = file?.name ?? '';
     receiptIsImage = Boolean(file?.type.startsWith('image/'));
     receiptUrl = file ? URL.createObjectURL(file) : null;
+    receiptFilled = false;
+    if (!file || mode !== 'create') return;
+    const scope = formKey;
+    receiptReading = true;
+    void readReceipt(file, locale)
+      .then((facts) => {
+        if (scope !== formKey || mode !== 'create') return;
+        let filled = false;
+        if (facts.amount && !amountTouched && !fAmount.trim()) {
+          fAmount = facts.amount;
+          filled = true;
+        }
+        if (facts.date && !dateTouched) {
+          fDate = facts.date;
+          filled = true;
+        }
+        receiptFilled = filled;
+      })
+      .finally(() => {
+        if (scope === formKey) receiptReading = false;
+      });
   }
 
   function openCreate(): void {
@@ -321,6 +349,8 @@
     requestId = crypto.randomUUID();
     allowSeparate = false;
     savedAnother = false;
+    amountTouched = false;
+    dateTouched = false;
     formError = '';
     formProblem = null;
     editing = null;
@@ -413,6 +443,7 @@
         fNote = '';
         fVendor = '';
         fTimeEntryId = '';
+        amountTouched = false;
         requestId = crypto.randomUUID();
         allowSeparate = false;
         formError = '';
@@ -476,6 +507,8 @@
 
   /* -------------------------------------------------------- bulk entry */
   type BulkRow = {
+    reading?: boolean;
+    filled?: boolean;
     key: number;
     date: string;
     category: string;
@@ -493,6 +526,7 @@
   let bulkSaving = $state(false);
   let bulkError = $state('');
   let bulkErrorRow = $state<number | null>(null);
+  let bulkProblemCode = $state('');
   let nextBulkKey = 0;
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
@@ -515,6 +549,46 @@
     bulkErrorRow = null;
     bulkFormKey += 1;
     bulkOpen = true;
+  }
+  async function fillBulkRow(key: number, file: File): Promise<void> {
+    const target = bulkRows.find((row) => row.key === key);
+    if (!target) return;
+    target.reading = true;
+    const facts = await readReceipt(file, locale, { retryWhenBusy: true });
+    const row = bulkRows.find((item) => item.key === key);
+    if (!row) return;
+    row.reading = false;
+    if (facts.amount && !row.amount.trim()) {
+      row.amount = facts.amount;
+      row.filled = true;
+    }
+    if (facts.date) {
+      row.date = facts.date;
+      row.filled = true;
+    }
+  }
+  /** Several receipts at once: one draft row per file, each read for amount and date. */
+  async function onBulkReceipts(event: Event): Promise<void> {
+    const input = event.currentTarget as HTMLInputElement;
+    const kept = bulkRows.filter((row) => row.amount.trim() || row.file);
+    const files = [...(input.files ?? [])].slice(0, Math.max(0, 20 - kept.length));
+    input.value = '';
+    if (!files.length) return;
+    const start = kept.at(-1)?.date ?? localToday();
+    const added = files.map((file) => ({ ...blankRow(start), file: file.name }));
+    bulkRows = [...kept, ...added];
+    await tick();
+    added.forEach((row, index) => {
+      const target = document.querySelector<HTMLInputElement>(`[data-bulk-file="${row.key}"]`);
+      if (!target || typeof DataTransfer === 'undefined') return;
+      const transfer = new DataTransfer();
+      transfer.items.add(files[index]!);
+      target.files = transfer.files;
+    });
+    for (const [index, row] of added.entries()) {
+      if (!bulkOpen) return;
+      await fillBulkRow(row.key, files[index]!);
+    }
   }
   function addBulkRow(): void {
     if (bulkRows.length >= 20) return;
@@ -543,6 +617,7 @@
       bulkError = value;
     },
     setProblem: (value) => {
+      bulkProblemCode = value?.code ?? '';
       const row = (value as (ProblemData & { batchRow?: number }) | null)?.batchRow;
       bulkErrorRow = typeof row === 'number' ? row : null;
     },
@@ -643,14 +718,17 @@
       <section class="xp-week" aria-labelledby={`xp-week-${week.start}`}>
         <header class="xp-week-head">
           <h3 id={`xp-week-${week.start}`}>{c('week', { range: weekRange(week.start) })}</h3>
-          <strong class="xp-total">{totals(week.rows)}</strong>
+          <strong class="xp-total"
+            >{#each totals(week.rows) as line (line)}<span>{line}</span>{/each}</strong
+          >
         </header>
         {#each week.people as block (block.workerId)}
           <div class="xp-person">
             {#if showPersonHeaders}
               <p class="xp-person-name">
                 {block.workerId === me ? c('me') : block.workerName}
-                {#if week.people.length > 1}<span class="xp-muted">· {totals(block.rows)}</span
+                {#if week.people.length > 1}<span class="xp-muted"
+                    >· {totals(block.rows).join(' · ')}</span
                   >{/if}
               </p>
             {/if}
@@ -723,7 +801,11 @@
             </ul>
             {#if canSubmitBlock(block)}
               <div class="xp-submit-bar">
-                <span>{c('drafts', { n: block.drafts.length })} · {totals(block.drafts)}</span>
+                <span
+                  >{c('drafts', { n: block.drafts.length })} · {totals(block.drafts).join(
+                    ' · ',
+                  )}</span
+                >
                 <button
                   type="button"
                   data-expense-submit-week
@@ -774,10 +856,22 @@
       use:enhance={submitBulk}
     >
       <p class="xp-muted">{c('bulkHint')}</p>
+      <label class="xp-receipt">
+        <input
+          type="file"
+          multiple
+          accept="image/*,.heic,.heif,application/pdf"
+          data-expense-bulk-receipts
+          onchange={(event) => void onBulkReceipts(event)}
+        />
+        <span class="xp-receipt-cta">{c('pickReceipts')}</span>
+      </label>
       {#if bulkError}
         <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
           {#if bulkErrorRow !== null}{c('rowLabel', { n: bulkErrorRow + 1 })}:
-          {/if}{bulkError}
+          {/if}{bulkProblemCode === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
+            ? c('duplicateReceiptBulk')
+            : bulkError}
         </p>
       {/if}
       <input type="hidden" name="requestId" value={bulkRequestId} />
@@ -867,10 +961,16 @@
             <label class="xp-bulk-file" class:has-file={row.file}>
               <input
                 type="file"
+                data-bulk-file={row.key}
                 name={`receipt_${index}`}
                 accept="image/*,.heic,.heif,application/pdf"
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('receipt')}`}
-                onchange={(event) => (row.file = event.currentTarget.files?.[0]?.name ?? '')}
+                onchange={(event) => {
+                  const file = event.currentTarget.files?.[0];
+                  row.file = file?.name ?? '';
+                  row.filled = false;
+                  if (file) void fillBulkRow(row.key, file);
+                }}
               />
               <span>{row.file || c('receipt')}</span>
             </label>
@@ -878,6 +978,11 @@
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
             </label>
+            {#if row.reading}
+              <p class="xp-muted xp-bulk-status" role="status">{c('readingReceipt')}</p>
+            {:else if row.filled}
+              <p class="xp-ok xp-bulk-status" role="status">{c('filledFromReceipt')}</p>
+            {/if}
             {#if bulkRows.length > 1}
               <button
                 type="button"
@@ -931,7 +1036,11 @@
       }}
     >
       {#if formError}
-        <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>{formError}</p>
+        <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
+          {formProblem?.code === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
+            ? c('duplicateReceipt')
+            : formError}
+        </p>
       {/if}
       {#if savedAnother && !formError}
         <p class="xp-ok" role="status">{c('savedAnother')}</p>
@@ -997,9 +1106,57 @@
         {/if}
       {/if}
 
+      <div class="xp-field">
+        <span class="xp-label">{c('receipt')}</span>
+        <label class="xp-receipt">
+          <input
+            bind:this={receiptInput}
+            type="file"
+            name="receipt"
+            accept="image/*,.heic,.heif,application/pdf"
+            onchange={onReceiptChange}
+          />
+          {#if receiptUrl}
+            <span class="receipt-preview">
+              {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
+              <span>{receiptName}</span>
+            </span>
+          {:else}
+            <span class="xp-receipt-cta"
+              >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id')
+                ? c('receiptReplace')
+                : c('receiptFirst')}</span
+            >
+          {/if}
+        </label>
+        <small
+          >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id') && !receiptUrl
+            ? `${c('receiptOnFile')} · `
+            : ''}{c('receiptHint')}</small
+        >
+        {#if receiptReading}
+          <p class="xp-muted" role="status">{c('readingReceipt')}</p>
+        {:else if receiptFilled}
+          <p class="xp-ok" role="status" data-expense-receipt-filled>{c('filledFromReceipt')}</p>
+        {:else if mode === 'create' && !receiptUrl}
+          <p class="xp-muted">{c('noReceiptHint')}</p>
+        {/if}
+        {#if receiptUrl}
+          <button type="button" class="secondary-button xp-small" onclick={clearReceipt}
+            >{c('receiptRemove')}</button
+          >
+        {/if}
+      </div>
+
       <label class="xp-field">
         <span>{c('date')}</span>
-        <input type="date" name="spentOn" required bind:value={fDate} />
+        <input
+          type="date"
+          name="spentOn"
+          required
+          bind:value={fDate}
+          oninput={() => (dateTouched = true)}
+        />
       </label>
 
       <fieldset class="xp-field">
@@ -1055,6 +1212,7 @@
             placeholder="0.00"
             data-expense-amount
             bind:value={fAmount}
+            oninput={() => (amountTouched = true)}
           />
         </label>
         <label class="xp-field xp-currency">
@@ -1069,41 +1227,6 @@
             </select>
           {/if}
         </label>
-      </div>
-
-      <div class="xp-field">
-        <span class="xp-label">{c('receipt')}</span>
-        <label class="xp-receipt">
-          <input
-            bind:this={receiptInput}
-            type="file"
-            name="receipt"
-            accept="image/*,.heic,.heif,application/pdf"
-            onchange={onReceiptChange}
-          />
-          {#if receiptUrl}
-            <span class="receipt-preview">
-              {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
-              <span>{receiptName}</span>
-            </span>
-          {:else}
-            <span class="xp-receipt-cta"
-              >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id')
-                ? c('receiptReplace')
-                : c('receiptAction')}</span
-            >
-          {/if}
-        </label>
-        <small
-          >{mode === 'edit' && text(editing ?? undefined, 'receipt_document_id') && !receiptUrl
-            ? `${c('receiptOnFile')} · `
-            : ''}{c('receiptHint')}</small
-        >
-        {#if receiptUrl}
-          <button type="button" class="secondary-button xp-small" onclick={clearReceipt}
-            >{c('receiptRemove')}</button
-          >
-        {/if}
       </div>
 
       <label class="xp-field">
@@ -1205,7 +1328,9 @@
       {/each}
     </ul>
     <p class="xp-confirm-total">
-      <span>{c('total')}</span><strong>{totals(block.drafts)}</strong>
+      <span>{c('total')}</span><strong class="xp-total"
+        >{#each totals(block.drafts) as line (line)}<span>{line}</span>{/each}</strong
+      >
     </p>
     {#if block.drafts.some((row) => expenseReceiptState(row) !== 'attached')}
       <p class="xp-warn">
@@ -1323,6 +1448,12 @@
   }
   .xp-bulk-remove {
     min-height: 2.9rem;
+  }
+  .xp-bulk-status {
+    grid-column: 2 / -1 !important;
+    margin: 0;
+    padding: 0.3rem 0.6rem !important;
+    font-size: 0.85rem;
   }
   .xp-bulk-file {
     position: relative;
@@ -1449,6 +1580,8 @@
     font-size: 1rem;
   }
   .xp-total {
+    display: inline-grid;
+    justify-items: end;
     font-variant-numeric: tabular-nums;
   }
   .xp-person + .xp-person {
@@ -1535,7 +1668,8 @@
       align-items: center;
     }
     .xp-row-actions {
-      grid-column: auto !important;
+      grid-column: 4 !important;
+      grid-row: 1;
       min-width: 0;
     }
   }

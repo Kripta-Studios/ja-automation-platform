@@ -97,6 +97,7 @@
   let workerFilter = $state(query.get('worker') ?? '');
   let statusFilter = $state(query.get('status') ?? '');
   let categoryFilter = $state(query.get('category') ?? '');
+  let missingReceiptOnly = $state(query.get('receipt') === 'missing');
   let groupBy = $state<'worker' | 'project'>(
     query.get('group') === 'project' ? 'project' : 'worker',
   );
@@ -110,10 +111,30 @@
         (!projectFilter || text(row, 'project_id') === projectFilter) &&
         (!workerFilter || text(row, 'worker_id') === workerFilter) &&
         (!categoryFilter || text(row, 'category') === categoryFilter) &&
-        (!statusFilter || expenseStatusOf(row) === statusFilter)
+        (!statusFilter || expenseStatusOf(row) === statusFilter) &&
+        (!missingReceiptOnly || expenseReceiptState(row) !== 'attached')
       );
     }),
   );
+
+  // Counts for the quick filters use the period and dropdown filters only.
+  const quickCounts = $derived.by(() => {
+    const scoped = records.filter((row) => {
+      const date = text(row, 'spent_on');
+      return (
+        (!window_.from || date >= window_.from) &&
+        (!window_.to || date <= window_.to) &&
+        (!projectFilter || text(row, 'project_id') === projectFilter) &&
+        (!workerFilter || text(row, 'worker_id') === workerFilter) &&
+        (!categoryFilter || text(row, 'category') === categoryFilter)
+      );
+    });
+    return {
+      missing: scoped.filter((row) => expenseReceiptState(row) !== 'attached').length,
+      needsChanges: scoped.filter((row) => expenseStatusOf(row) === 'needs_changes').length,
+      submitted: scoped.filter((row) => expenseStatusOf(row) === 'submitted').length,
+    };
+  });
 
   /** Rows that count toward money totals: replaced originals and rejected claims do not. */
   const counts = (row: Row): boolean =>
@@ -129,11 +150,13 @@
     }
     return result;
   }
-  const format = (totals: Map<string, bigint>): string =>
-    [...totals.entries()]
+  /** One line per currency; different currencies are never added together. */
+  const format = (totals: Map<string, bigint>): string[] => {
+    const lines = [...totals.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([currency, minor]) => money(minor.toString(), currency, tag))
-      .join(' + ') || '—';
+      .map(([currency, minor]) => money(minor.toString(), currency, tag));
+    return lines.length ? lines : ['—'];
+  };
   const statusOrder: ExpenseStatus[] = [
     'draft',
     'submitted',
@@ -295,12 +318,38 @@
     </label>
   </div>
 
+  <div class="ov-quick" role="group" aria-label={c('filters')}>
+    <button
+      type="button"
+      class="ov-chip"
+      aria-pressed={missingReceiptOnly}
+      onclick={() => (missingReceiptOnly = !missingReceiptOnly)}
+      >{c('noReceiptShort')} ({quickCounts.missing})</button
+    >
+    <button
+      type="button"
+      class="ov-chip"
+      aria-pressed={statusFilter === 'needs_changes'}
+      onclick={() => (statusFilter = statusFilter === 'needs_changes' ? '' : 'needs_changes')}
+      >{c('statusNeedsChanges')} ({quickCounts.needsChanges})</button
+    >
+    <button
+      type="button"
+      class="ov-chip"
+      aria-pressed={statusFilter === 'submitted'}
+      onclick={() => (statusFilter = statusFilter === 'submitted' ? '' : 'submitted')}
+      >{c('statusSubmitted')} ({quickCounts.submitted})</button
+    >
+  </div>
+
   <div class="ov-summary">
     <div>
       <span class="ov-muted"
         >{c('periodTotal')} · {dateLabel(window_.from)} – {dateLabel(window_.to)}</span
       >
-      <strong class="ov-big">{format(sums(inPeriod))}</strong>
+      <strong class="ov-big"
+        >{#each format(sums(inPeriod)) as line (line)}<span>{line}</span>{/each}</strong
+      >
       <span class="ov-muted">{c('items', { n: inPeriod.length })}</span>
     </div>
     <div class="ov-badges">
@@ -342,7 +391,9 @@
           <details class="ov-group" data-expense-overview-group>
             <summary>
               <span class="ov-group-name">{group.name}</span>
-              <strong class="ov-amount">{format(sums(group.rows))}</strong>
+              <strong class="ov-amount"
+                >{#each format(sums(group.rows)) as line (line)}<span>{line}</span>{/each}</strong
+              >
               <span class="ov-group-meta">
                 {c('items', { n: group.rows.length })}
                 {#each breakdown(group.rows) as item (item.status)}
@@ -408,7 +459,9 @@
                     >{categoryLabel(item.category)}
                     <span class="ov-muted">({item.rows.length})</span></span
                   >
-                  <strong class="ov-amount">{format(item.totals)}</strong>
+                  <strong class="ov-amount"
+                    >{#each format(item.totals) as line (line)}<span>{line}</span>{/each}</strong
+                  >
                 </span>
                 <span class="ov-bar" aria-hidden="true"
                   ><span style:width={`${item.share}%`}></span></span
@@ -505,6 +558,20 @@
   .ov-summary > div:first-child {
     display: grid;
     gap: 0.15rem;
+  }
+  .ov-quick {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+  .ov-big,
+  .ov-amount {
+    display: inline-grid;
+    justify-items: start;
+  }
+  .ov-group summary .ov-amount,
+  .ov-cat-row .ov-amount {
+    justify-items: end;
   }
   .ov-big {
     font-size: 1.6rem;

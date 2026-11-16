@@ -932,8 +932,16 @@
       </section>
     {/if}
     {#if data.canCreateCorrection}
-      <section class="detail-panel record-detail-copy" aria-labelledby="expense-correction-title">
-        <h2 id="expense-correction-title">{t('Create corrected draft')}</h2>
+      <!-- Collapsed unless the expense was returned (or the link targets it), so the
+           phone view leads with the expense itself. -->
+      <details
+        class="detail-panel record-detail-copy expense-correction-panel"
+        aria-labelledby="expense-correction-title"
+        open={record.approval_state === 'needs_changes' ||
+          detailForm?.actionName === 'createCorrectionDraft' ||
+          $page.url.hash === '#expense-correction-title'}
+      >
+        <summary><h2 id="expense-correction-title">{t('Create corrected draft')}</h2></summary>
         <div data-expense-detail-action="createCorrectionDraft">
           {#if data.user.role === 'project_manager'}
             <form
@@ -1046,7 +1054,7 @@
             />
           {/if}
         </div>
-      </section>
+      </details>
     {/if}
     {#if financeClassificationPending}
       <div data-expense-finance-classification-hold>
@@ -1104,35 +1112,39 @@
       </div>
       <p>{record.description ?? t('No description was recorded.')}</p>
       <dl class="record-facts">
-        <div>
-          <dt>{t('Vendor')}</dt>
-          <dd>{record.vendor || '—'}</dd>
-        </div>
-        <div>
-          <dt>{t('Time expense occurred')}</dt>
-          <dd>{record.occurred_time_local ?? '—'}</dd>
-        </div>
-        <div>
-          <dt>{t('Related logged hours')}</dt>
-          <dd>
-            {#if record.time_entry_id}
-              <a
-                href={base +
-                  (data.user?.role === 'worker' &&
-                  String(record.worker_id) !== String(data.user?.id)
-                    ? '/app/crew/time/'
-                    : '/app/time/') +
-                  String(record.time_entry_id)}>{t('Open time record')}</a
-              >
-            {:else}
-              —
-            {/if}
-          </dd>
-        </div>
-        {#if canViewExpenseMoney}
+        {#if record.vendor}
+          <div>
+            <dt>{t('Vendor')}</dt>
+            <dd>{record.vendor}</dd>
+          </div>
+        {/if}
+        {#if record.occurred_time_local}
+          <div>
+            <dt>{t('Time expense occurred')}</dt>
+            <dd>{record.occurred_time_local}</dd>
+          </div>
+        {/if}
+        {#if record.time_entry_id}
+          <div>
+            <dt>{t('Related logged hours')}</dt>
+            <dd>
+              {#if record.time_entry_id}
+                <a
+                  href={base +
+                    (data.user?.role === 'worker' &&
+                    String(record.worker_id) !== String(data.user?.id)
+                      ? '/app/crew/time/'
+                      : '/app/time/') +
+                    String(record.time_entry_id)}>{t('Open time record')}</a
+                >
+              {/if}
+            </dd>
+          </div>
+        {/if}
+        {#if canViewExpenseMoney && record.payment_method}
           <div>
             <dt>{t('Payment method')}</dt>
-            <dd>{record.payment_method ?? '—'}</dd>
+            <dd>{record.payment_method}</dd>
           </div>
         {/if}
         {#if canViewFinance}
@@ -1208,6 +1220,16 @@
 {/if}
 
 <style>
+  .expense-correction-panel > summary {
+    cursor: pointer;
+    list-style: none;
+  }
+  .expense-correction-panel > summary::-webkit-details-marker {
+    display: none;
+  }
+  .expense-correction-panel > summary h2 {
+    display: inline;
+  }
   textarea#correction-draft-reason {
     scroll-margin-block-start: 8rem;
   }

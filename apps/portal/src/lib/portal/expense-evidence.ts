@@ -41,3 +41,98 @@ export const receiptStateLabels: Record<ReceiptState, string> = {
   attached: 'Receipt attached',
   not_required: 'Receipt not required',
 };
+
+export type ReceiptFacts = { amount?: string; date?: string };
+
+/** Normalize "1.234,56" / "1,234.56" / "12,50" / "12.5" into an exact "1234.56" decimal string. */
+export function normalizeReceiptAmount(raw: string): string | undefined {
+  const value = raw.replace(/[^\d.,]/gu, '');
+  if (!/\d/u.test(value)) return undefined;
+  const lastComma = value.lastIndexOf(',');
+  const lastDot = value.lastIndexOf('.');
+  const decimalAt = Math.max(lastComma, lastDot);
+  let whole = value;
+  let fraction = '';
+  if (decimalAt >= 0 && value.length - decimalAt - 1 >= 1 && value.length - decimalAt - 1 <= 2) {
+    whole = value.slice(0, decimalAt);
+    fraction = value.slice(decimalAt + 1);
+  }
+  whole = whole.replace(/[.,]/gu, '');
+  if (!/^\d{1,9}$/u.test(whole) || !/^\d{0,2}$/u.test(fraction)) return undefined;
+  const normalized = `${String(Number(whole))}${fraction ? `.${fraction.padEnd(2, '0')}` : ''}`;
+  return /^0(\.0+)?$/u.test(normalized) ? undefined : normalized;
+}
+
+function validIsoDate(year: number, month: number, day: number, today: string): string | undefined {
+  if (year < 100) year += 2000;
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  )
+    return undefined;
+  const iso = date.toISOString().slice(0, 10);
+  const oldest = new Date(`${today}T00:00:00Z`);
+  oldest.setUTCFullYear(oldest.getUTCFullYear() - 1);
+  return iso <= today && iso >= oldest.toISOString().slice(0, 10) ? iso : undefined;
+}
+
+/**
+ * Best-effort facts from receipt text (local OCR) or a file name. Only a
+ * suggestion: the form shows it for the person to confirm and never saves it
+ * on its own. Day-first dates are preferred for es/pt, month-first for en.
+ */
+export function receiptFactsFromText(
+  text: string,
+  options: { locale?: 'en' | 'es' | 'pt'; today: string },
+): ReceiptFacts {
+  const facts: ReceiptFacts = {};
+  const source = text.slice(0, 20_000);
+  const iso = /(20\d{2})[-/.](\d{1,2})[-/.](\d{1,2})/u.exec(source);
+  if (iso) facts.date = validIsoDate(Number(iso[1]), Number(iso[2]), Number(iso[3]), options.today);
+  if (!facts.date) {
+    const local = /\b(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})\b/u.exec(source);
+    if (local) {
+      const [a, b, y] = [Number(local[1]), Number(local[2]), Number(local[3])];
+      const dayFirst = options.locale !== 'en' || a > 12;
+      facts.date = dayFirst
+        ? (validIsoDate(y, b, a, options.today) ?? validIsoDate(y, a, b, options.today))
+        : (validIsoDate(y, a, b, options.today) ?? validIsoDate(y, b, a, options.today));
+    }
+  }
+  const money = /(\d{1,3}(?:[.,\s]\d{3})*[.,]\d{2}|\d+[.,]\d{2})(?!\d)/gu;
+  const totalLine =
+    /\b(total(?:\s+a\s+pagar|\s+due|\s+geral)?|importe|valor\s+total|amount\s+due|grand\s+total|a\s+pagar)\b/iu;
+  const lines = source.split(/\r?\n/u);
+  for (const line of lines) {
+    if (!totalLine.test(line) || /subtotal|sub-total/iu.test(line)) continue;
+    const found = [...line.matchAll(money)].map((match) => normalizeReceiptAmount(match[1]!));
+    const last = found.filter(Boolean).at(-1);
+    if (last) facts.amount = last;
+  }
+  if (!facts.amount) {
+    let best: { value: string; minor: bigint } | undefined;
+    for (const match of source.matchAll(money)) {
+      const value = normalizeReceiptAmount(match[1]!);
+      if (!value) continue;
+      const [w, f = ''] = value.split('.');
+      const minor = BigInt(`${w}${f.padEnd(2, '0')}`);
+      if (!best || minor > best.minor) best = { value, minor };
+    }
+    if (best) facts.amount = best.value;
+  }
+  return facts;
+}
+
+/** File names like "2026-11-14_hotel_89.90.jpg" or "recibo 12,50.png". */
+export function receiptFactsFromFileName(name: string, today: string): ReceiptFacts {
+  const stem = name.replace(/\.[a-z0-9]{2,5}$/iu, '');
+  const facts: ReceiptFacts = {};
+  const iso = /(20\d{2})[-_.]?(\d{2})[-_.]?(\d{2})/u.exec(stem);
+  if (iso) facts.date = validIsoDate(Number(iso[1]), Number(iso[2]), Number(iso[3]), today);
+  const rest = iso ? stem.replace(iso[0], ' ') : stem;
+  const amount = /(?:^|[^\d])(\d{1,7}[.,]\d{2})(?!\d)/u.exec(rest);
+  if (amount) facts.amount = normalizeReceiptAmount(amount[1]!);
+  return facts;
+}

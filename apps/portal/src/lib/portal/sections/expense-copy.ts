@@ -121,6 +121,15 @@ const en = {
   receiptLink: 'Receipt',
   open: 'Open',
   noReceiptShort: 'No receipt',
+  receiptFirst: 'Start with a photo of the receipt',
+  readingReceipt: 'Reading the receipt…',
+  filledFromReceipt: 'Amount and date filled from the receipt. Check them before saving.',
+  noReceiptHint: 'No receipt? Fill in the details below and add a note.',
+  pickReceipts: 'Choose several receipt photos — one row each',
+  duplicateReceipt:
+    'This receipt is already on another expense. Is this a different expense? Attach another photo.',
+  duplicateReceiptBulk:
+    'One of these receipts is already on another expense, or the same photo is used twice. Attach a different photo. Nothing was saved.',
 };
 
 type Copy = Record<keyof typeof en, string>;
@@ -245,6 +254,14 @@ const es: Copy = {
   receiptLink: 'Ticket',
   open: 'Abrir',
   noReceiptShort: 'Sin ticket',
+  receiptFirst: 'Empieza con una foto del ticket',
+  readingReceipt: 'Leyendo el ticket…',
+  filledFromReceipt: 'Importe y fecha rellenados desde el ticket. Revísalos antes de guardar.',
+  noReceiptHint: '¿Sin ticket? Rellena los datos y añade una nota.',
+  pickReceipts: 'Elige varias fotos de tickets: una fila por cada una',
+  duplicateReceipt: 'Este ticket ya está en otro gasto. ¿Es un gasto distinto? Adjunta otra foto.',
+  duplicateReceiptBulk:
+    'Uno de estos tickets ya está en otro gasto o la misma foto se usa dos veces. Adjunta otra foto. No se guardó nada.',
 };
 
 const pt: Copy = {
@@ -367,6 +384,15 @@ const pt: Copy = {
   receiptLink: 'Recibo',
   open: 'Abrir',
   noReceiptShort: 'Sem recibo',
+  receiptFirst: 'Comece com uma foto do recibo',
+  readingReceipt: 'Lendo o recibo…',
+  filledFromReceipt: 'Valor e data preenchidos a partir do recibo. Confira antes de salvar.',
+  noReceiptHint: 'Sem recibo? Preencha os dados e adicione uma observação.',
+  pickReceipts: 'Escolha várias fotos de recibos — uma linha para cada',
+  duplicateReceipt:
+    'Este recibo já está em outra despesa. É uma despesa diferente? Anexe outra foto.',
+  duplicateReceiptBulk:
+    'Um destes recibos já está em outra despesa ou a mesma foto foi usada duas vezes. Anexe outra foto. Nada foi salvo.',
 };
 
 const catalogs: Record<PortalLocale, Copy> = { en, es, pt };

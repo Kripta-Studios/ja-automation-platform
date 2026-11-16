@@ -47,3 +47,45 @@ describe('simplified expense intake defaults', () => {
     expect(defaultExpensePayer(sqlite, { ...input, workerId: 'nobody' })).toBe('worker');
   });
 });
+
+import {
+  normalizeReceiptAmount,
+  receiptFactsFromFileName,
+  receiptFactsFromText,
+} from '../../apps/portal/src/lib/portal/expense-evidence';
+
+describe('receipt-first suggestions', () => {
+  const today = '2026-11-16';
+  it('normalizes receipt amounts exactly', () => {
+    expect(normalizeReceiptAmount('1.234,56')).toBe('1234.56');
+    expect(normalizeReceiptAmount('1,234.56')).toBe('1234.56');
+    expect(normalizeReceiptAmount('12,5')).toBe('12.50');
+    expect(normalizeReceiptAmount('0,00')).toBeUndefined();
+  });
+  it('prefers the total line and a valid recent date', () => {
+    const text =
+      'HOTEL RED ROOF\n14/11/2026 21:03\nSubtotal 80,00\nIVA 9,90\nTOTAL 89,90\nCambio 10,10';
+    expect(receiptFactsFromText(text, { locale: 'es', today })).toEqual({
+      amount: '89.90',
+      date: '2026-11-14',
+    });
+    expect(
+      receiptFactsFromText('Date 11/14/2026\nAmount due $35.20', { locale: 'en', today }),
+    ).toEqual({
+      amount: '35.20',
+      date: '2026-11-14',
+    });
+    expect(
+      receiptFactsFromText('2027-01-01 total 5.00', { locale: 'en', today }).date,
+    ).toBeUndefined();
+  });
+  it('reads deliberate file names', () => {
+    expect(receiptFactsFromFileName('2026-11-14_hotel_89.90.jpg', today)).toEqual({
+      date: '2026-11-14',
+      amount: '89.90',
+    });
+    expect(receiptFactsFromFileName('IMG_20261115_103000.jpg', today)).toEqual({
+      date: '2026-11-15',
+    });
+  });
+});

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { personDisplayName } from './portal/display-name';
   import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -1534,7 +1535,7 @@
     // the edited dates no longer fit it. The server validates any saved change.
     if (!eligible.some((worker) => String(worker.id) === String(row.worker_id)))
       return [
-        { id: String(row.worker_id), name: String(row.worker_name ?? row.worker_id) },
+        { id: String(row.worker_id), name: personDisplayName(row.worker_name) || String(row.worker_id) },
         ...eligible,
       ];
     return eligible;
@@ -1656,7 +1657,7 @@
         String(row.worker_id),
         {
           id: String(row.worker_id),
-          label: String(row.worker_name ?? row.worker_id),
+          label: personDisplayName(row.worker_name) || String(row.worker_id),
         },
       ]),
     ).values(),
@@ -2469,7 +2470,10 @@
       const group = searchGroupLabel(searchGroupKey(row));
       return {
         id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
-        label: String(row.label ?? translate('Record')),
+        label:
+          row.type === 'worker'
+            ? personDisplayName(row.label) || String(row.detail ?? '')
+            : String(row.label ?? translate('Record')),
         detail: isExpenseSearchRow(row)
           ? searchResultDescription(row, group).replace(`${group} · `, '')
           : String(row.detail ?? ''),
@@ -3884,7 +3888,7 @@
                 href={searchHref(result)}
                 aria-label={expenseSearchAccessibleLabel(result, group.label)}
               >
-                <strong>{String(result.label ?? translate('Result'))}</strong>
+                <strong>{result.type === 'worker' ? personDisplayName(result.label) || String(result.label ?? '') : String(result.label ?? translate('Result'))}</strong>
                 <small>{searchResultDescription(result, group.label)}</small>
               </a>
             {/each}
@@ -5547,7 +5551,7 @@
                       )}
                     />
                     <p class="form-help wide-field">
-                      {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                      {assignment.project_number} · {assignment.project_name} · {personDisplayName(assignment.worker_name)}
                     </p>
                     <label
                       >{translate('Starts on')}<input
@@ -5639,7 +5643,7 @@
                       )}
                     />
                     <p class="form-help wide-field">
-                      {assignment.project_number} · {assignment.project_name} · {assignment.worker_name}
+                      {assignment.project_number} · {assignment.project_name} · {personDisplayName(assignment.worker_name)}
                     </p>
                     <label
                       >{translate('End date')}<input
@@ -6356,7 +6360,7 @@
                 <div>
                   <strong>{assignment.project_number} · {assignment.project_name}</strong>
                   <small
-                    >{assignment.worker_name} · {assignment.starts_on} → {assignment.ends_on || '—'} ·
+                    >{personDisplayName(assignment.worker_name)} · {assignment.starts_on} → {assignment.ends_on || '—'} ·
                     {controlledValue('status', assignment.status)}</small
                   >
                 </div>
@@ -6376,7 +6380,7 @@
           initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.records ?? []).map((row) => ({
             id: String(row.id),
-            title: `${row.worker_name} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
+            title: `${personDisplayName(row.worker_name)} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
             startsAt: String(row.starts_at),
             endsAt: row.ends_at == null ? undefined : String(row.ends_at),
             href: planningRecordHref(row),
@@ -6400,7 +6404,7 @@
               >
             </div>
             <p>
-              <strong>{focusedPlanningRecord.worker_name}</strong> · {focusedPlanningRecord.project_number}
+              <strong>{personDisplayName(focusedPlanningRecord.worker_name)}</strong> · {focusedPlanningRecord.project_number}
               · {focusedPlanningRecord.project_name}
             </p>
             <dl class="planning-shift-facts">
@@ -6520,7 +6524,7 @@
                 }}
               >
                 <summary
-                  >{row.worker_name} · {row.project_number} · {String(row.starts_at)
+                  >{personDisplayName(row.worker_name)} · {row.project_number} · {String(row.starts_at)
                     .slice(0, 16)
                     .replace('T', ' ')}{row.ends_at
                     ? ` → ${String(row.ends_at).slice(0, 16).replace('T', ' ')}`
@@ -7053,7 +7057,7 @@
           {#each planningPage as row}<a class="record-card-link" href={planningRecordHref(row)}>
               <div>
                 <strong class="planning-record-heading"
-                  >{row.worker_name} · {row.project_number}</strong
+                  >{personDisplayName(row.worker_name)} · {row.project_number}</strong
                 >
                 <small class="planning-record-detail"
                   >{String(row.starts_at).replace('T', ' ').slice(0, 16)}{row.planned_minutes ==

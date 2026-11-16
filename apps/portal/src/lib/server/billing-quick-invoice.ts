@@ -17,6 +17,7 @@ import {
 } from '@ja/database';
 import { periodForCadence, type BillingCadence } from '@ja/billing-engine';
 import type { openPortalRepository } from './portal-repository';
+import { personDisplayName } from '../portal/display-name';
 
 type Context = ReturnType<typeof openPortalRepository>;
 type Row = Record<string, unknown>;
@@ -374,7 +375,7 @@ function groupLines(
       key = `labor:${worker}:${category}:${unit}:${line.unitPriceMinor}`;
       group = {
         kind: 'labor',
-        label: names.get(worker) ?? '—',
+        label: personDisplayName(names.get(worker)) || '—',
         detail: unit === 'hourly' ? category : `${category} · ${unit}`,
         minutes: 0,
         unitPriceMinor: line.unitPriceMinor,

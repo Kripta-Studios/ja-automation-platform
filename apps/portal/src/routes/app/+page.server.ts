@@ -13,10 +13,13 @@ import type { PageServerLoad } from './$types';
 import { portalLandingForRole } from '$lib/portal-navigation';
 import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
 import {
+  isPendingApproval,
   pendingApprovalSummary,
   readyToInvoiceSummary,
+  splitUnbilledSources,
   workerWeekStatus,
   type HomeInbox,
+  type ProjectGlance,
 } from '$lib/portal/home-inbox';
 import { mondayOf } from '$lib/server/portal-week';
 export const load: PageServerLoad = ({ locals, url }) => {
@@ -106,6 +109,90 @@ export const load: PageServerLoad = ({ locals, url }) => {
         .all(...batch) as Array<{ id: string; currency: string; amount_minor: string }>)
         expenseMoney.set(row.id, row);
     }
+    // Owner: one finance read per open project feeds "Ready to invoice" and the project glance.
+    const openProjects = isOwner
+      ? visible.projects.filter((project) =>
+          ['active', 'closing', 'paused'].includes(String(project.status)),
+        )
+      : [];
+    // Who holds each approved source: an unissued draft ("in draft") or a live invoice.
+    const holders = new Map<string, string>();
+    if (openProjects.length) {
+      const holderQuery = context.sqlite.prepare(
+        `SELECT source.source_type type,source.source_id id,invoice.state state
+           FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+          WHERE invoice.project_id=? AND invoice.state NOT IN ('void','cancelled','superseded')`,
+      );
+      for (const project of openProjects)
+        for (const row of holderQuery.all(String(project.id)) as Array<{
+          type: string;
+          id: string;
+          state: string;
+        }>)
+          holders.set(`${row.type}:${row.id}`, row.state);
+    }
+    const weekStart = mondayOf(new Date().toISOString().slice(0, 10));
+    const weekEndDate = new Date(`${weekStart}T00:00:00Z`);
+    weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
+    const weekEnd = weekEndDate.toISOString().slice(0, 10);
+    const weekMinutes = new Map<string, number>();
+    if (openProjects.length)
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
+            WHERE work_date BETWEEN ? AND ? AND approval_state IN ('submitted','approved','locked')
+            GROUP BY project_id`,
+        )
+        .all(weekStart, weekEnd) as Array<{ projectId: string; minutes: number }>)
+        weekMinutes.set(row.projectId, Number(row.minutes) || 0);
+    const pendingByProject = new Map<string, number>();
+    for (const row of approvalRows)
+      if (isPendingApproval(row))
+        pendingByProject.set(
+          String(row.project_id),
+          (pendingByProject.get(String(row.project_id)) ?? 0) + 1,
+        );
+    // Commercial references for the alerts, read for the already-authorized projects only.
+    const projectTerms = context.sqlite.prepare(
+      'SELECT po_number poNumber,billing_model billingModel FROM project WHERE id=?',
+    );
+    const projectGlance: ProjectGlance[] = openProjects.flatMap((project) => {
+      try {
+        const finance = context.v3.projectFinance(context.principal, String(project.id)) as {
+          currency?: string;
+          approvedUnbilledSources?: Array<Record<string, unknown>>;
+          alerts?: string[];
+        };
+        const split = splitUnbilledSources(finance.approvedUnbilledSources ?? [], holders);
+        return [
+          {
+            projectId: String(project.id),
+            weekMinutes: weekMinutes.get(String(project.id)) ?? 0,
+            pendingApprovals: pendingByProject.get(String(project.id)) ?? 0,
+            currency: String(finance.currency ?? project.currency ?? ''),
+            readyMinor: split.readyMinor,
+            draftMinor: split.draftMinor,
+            missingRate: (finance.alerts ?? []).includes('MISSING_RATE'),
+            missingPo: (() => {
+              const terms = projectTerms.get(String(project.id)) as
+                | { poNumber: string | null; billingModel: string | null }
+                | undefined;
+              return Boolean(
+                terms && terms.billingModel !== 'internal' && !String(terms.poNumber ?? '').trim(),
+              );
+            })(),
+          },
+        ];
+      } catch {
+        return [];
+      }
+    });
+    const projectLabel = new Map(
+      openProjects.map((project) => [
+        String(project.id),
+        [project.project_number, project.name].filter(Boolean).join(' · '),
+      ]),
+    );
     const homeInbox: HomeInbox = {
       approvals: pendingApprovalSummary(
         approvalRows.map((row) => {
@@ -115,30 +202,19 @@ export const load: PageServerLoad = ({ locals, url }) => {
             : row;
         }),
       ),
+      // Work already on a draft is not "ready" again; it shows as "in a draft" instead.
       readyToInvoice: isOwner
         ? readyToInvoiceSummary(
-            visible.projects
-              .filter((project) => ['active', 'closing', 'paused'].includes(String(project.status)))
-              .flatMap((project) => {
-                try {
-                  const finance = context.v3.projectFinance(
-                    context.principal,
-                    String(project.id),
-                  ) as { approvedUnbilledWipMinor?: string; currency?: string };
-                  return [
-                    {
-                      projectId: String(project.id),
-                      label: [project.project_number, project.name].filter(Boolean).join(' · '),
-                      currency: String(finance.currency ?? project.currency ?? ''),
-                      minor: finance.approvedUnbilledWipMinor,
-                    },
-                  ];
-                } catch {
-                  return [];
-                }
-              }),
+            projectGlance.map((glance) => ({
+              projectId: glance.projectId,
+              label: projectLabel.get(glance.projectId) ?? glance.projectId,
+              currency: glance.currency,
+              minor: glance.readyMinor,
+              draftMinor: glance.draftMinor,
+            })),
           )
         : null,
+      ...(isOwner ? { projects: projectGlance } : {}),
     };
     return {
       homeInbox,

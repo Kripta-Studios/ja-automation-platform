@@ -137,6 +137,11 @@
   let createMessage = $state('');
   let requestKey = $state(newKey());
   let controller: AbortController | null = null;
+  // Opening a project tries its default dates; when nothing is billable there but approved,
+  // unbilled work exists elsewhere, jump to the suggested dates (at most a few times).
+  let autoPeriod = false;
+  let autoVisited: string[] = [];
+  let autoAdjusted = $state(false);
   let debounce: ReturnType<typeof setTimeout> | undefined;
 
   function newKey(): string {
@@ -237,9 +242,13 @@
     const choice = periodChoices[0];
     if (choice) applyChoice(choice);
     else schedulePreview(0);
+    autoPeriod = true;
+    autoVisited = [];
   }
 
   function applyChoice(choice: PeriodChoice): void {
+    autoPeriod = false;
+    autoAdjusted = false;
     choiceId = choice.id;
     periodStart = choice.start;
     periodEnd = choice.end;
@@ -247,11 +256,14 @@
   }
 
   function applyCustom(): void {
+    autoPeriod = false;
+    autoAdjusted = false;
     choiceId = 'custom';
     schedulePreview(400);
   }
 
   function useSuggested(range: { start: string; end: string }): void {
+    autoPeriod = false;
     choiceId = 'custom';
     periodStart = range.start;
     periodEnd = range.end;
@@ -282,6 +294,22 @@
       const body = (await response.json()) as { success?: boolean; preview?: Preview };
       if (controller !== current) return;
       if (!response.ok || !body.preview) throw new Error('preview failed');
+      const suggested = body.preview.suggestedPeriod;
+      if (autoPeriod && body.preview.state === 'empty' && suggested) {
+        autoVisited.push(`${periodStart}:${periodEnd}`);
+        const key = `${suggested.start}:${suggested.end}`;
+        if (!autoVisited.includes(key) && autoVisited.length <= 3) {
+          choiceId = 'custom';
+          periodStart = suggested.start;
+          periodEnd = suggested.end;
+          autoAdjusted = true;
+          controller = null;
+          previewLoading = false;
+          void loadPreview();
+          return;
+        }
+      }
+      if (body.preview.state !== 'empty') autoPeriod = false;
       preview = body.preview;
       requestKey = newKey();
     } catch (error) {
@@ -557,6 +585,9 @@
                 />
               </label>
             </div>
+          {/if}
+          {#if autoAdjusted && choiceId === 'custom'}
+            <p class="quick-invoice__muted" data-quick-invoice-auto-dates>{t('autoDates')}</p>
           {/if}
           {#if currentStream(project)}
             <p class="quick-invoice__muted">{cadenceText(currentStream(project)!.cadence)}</p>

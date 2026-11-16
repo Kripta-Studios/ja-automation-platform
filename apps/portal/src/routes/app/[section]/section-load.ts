@@ -802,6 +802,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const technicalApprovalTitle = context.sqlite.prepare(
           'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
         );
+        // Operational report content for the in-queue "Read" preview (no money fields).
+        const dailyApprovalDetail = context.sqlite.prepare(
+          `SELECT tasks_completed tasks,problems_found problems,blockers,next_day_plan next_day,
+                  safety_notes safety,downtime_minutes downtime FROM daily_report
+            WHERE id=? AND project_id=? AND worker_id=?`,
+        );
+        const technicalApprovalDetail = context.sqlite.prepare(
+          `SELECT change_summary change,validation_result validation,open_risk risk,
+                  production_impact impact FROM technical_report
+            WHERE id=? AND project_id=? AND author_id=?`,
+        );
         const expenseApprovalIdentity = context.sqlite.prepare(
           `SELECT e.category,e.vendor,e.description,e.amount_minor,e.currency,e.version,
                   e.receipt_document_id,d.media_type receipt_media_type
@@ -903,6 +914,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 : {}),
               ...(['daily', 'technical'].includes(String(row.type))
                 ? {
+                    report_detail: Object.fromEntries(
+                      Object.entries(
+                        ((row.type === 'daily' ? dailyApprovalDetail : technicalApprovalDetail).get(
+                          String(row.id),
+                          String(row.project_id),
+                          String(row.worker_id),
+                        ) ?? {}) as Record<string, unknown>,
+                      )
+                        .filter(([, detail]) => detail !== null && String(detail).trim() !== '' && String(detail) !== '0')
+                        .map(([key, detail]) => [key, String(detail).slice(0, 2000)]),
+                    ),
                     report_title: String(
                       (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
                         String(row.id),

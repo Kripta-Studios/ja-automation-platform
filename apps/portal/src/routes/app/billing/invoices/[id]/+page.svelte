@@ -1162,6 +1162,18 @@
           >
         </div>
         <div class="invoice-lifecycle__actions">
+          {#if pdfStatus === 'ready'}
+            <a
+              class="primary-button"
+              href={pdfUrl}
+              download
+              aria-disabled={issuedPdfBusy}
+              data-invoice-lifecycle-pdf
+              onclick={(event) => onIssuedPdfLinkClick(event, 'download')}
+              onauxclick={(event) => onIssuedPdfLinkClick(event, 'download')}
+              >{t('Download PDF')}</a
+            >
+          {/if}
           {#if invoiceState === 'issued'}
             <form method="POST" action="?/sendInvoice" use:enhance>
               <input type="hidden" name="invoiceId" value={invoiceId} />

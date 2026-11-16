@@ -89,7 +89,7 @@
     href: string;
     active: boolean;
     tone?: 'danger';
-    items?: Array<{ id: string; label: string; value: string; href: string }>;
+    items?: Array<{ id: string; label: string; value: string; note?: string; href: string }>;
   };
   const inbox = $derived(data.homeInbox);
   const overdueTotals = $derived(
@@ -145,11 +145,14 @@
         active: ready.projects > 0,
         // Several projects: one "Create invoice" per project, straight from Home.
         items:
-          canCreateInvoiceDraft && ready.items.length > 1
+          canCreateInvoiceDraft && ready.items.length > 0
             ? ready.items.slice(0, 6).map((item) => ({
                 id: item.projectId,
                 label: item.label,
                 value: money(item.minor, item.currency),
+                note: item.draftMinor
+                  ? h('inDraft', { amount: money(item.draftMinor, item.currency) })
+                  : undefined,
                 href: link('billing', {
                   project: item.projectId,
                   assistantSurface: 'invoice-create',
@@ -193,6 +196,24 @@
     // What needs the owner comes first; finished rows sink to the bottom.
     return [...rows.filter((row) => row.active), ...rows.filter((row) => !row.active)];
   });
+  // One combined bulk action for the weekly routine (confirmation happens on Approvals).
+  const approveAll = $derived.by(() => {
+    const approvals = inbox?.approvals;
+    if (!approvals || approvals.time.count + approvals.expenses.count === 0) return null;
+    const parts = [
+      approvals.time.count ? hoursText(approvals.time.minutes) : '',
+      approvals.expenses.count
+        ? [
+            plural(approvals.expenses.count, 'expense', 'expenses'),
+            totalsText(approvals.expenses.totals),
+          ]
+            .filter(Boolean)
+            .join(' ')
+        : '',
+    ].filter(Boolean);
+    return { detail: parts.join(' · '), href: link('approvals', { approveAll: '1' }) };
+  });
+  const glance = $derived(new Map((inbox?.projects ?? []).map((item) => [item.projectId, item])));
   const inboxClear = $derived(inboxRows.length > 0 && inboxRows.every((row) => !row.active));
 
   // Worker week
@@ -257,6 +278,12 @@
   <section id="dashboard-overview" class="home-inbox" aria-labelledby="home-inbox-title">
     <h2 id="home-inbox-title">{h('inboxTitle')}</h2>
     {#if inboxClear}<p class="home-inbox-clear">{h('inboxAllClear')}</p>{/if}
+    {#if approveAll}
+      <a class="home-approve-all" href={approveAll.href} data-home-approve-all>
+        <span class="home-approve-all-label">{h('approveAll')} <DirectionIcon /></span>
+        <span class="home-approve-all-detail">{approveAll.detail}</span>
+      </a>
+    {/if}
     <ul class="home-inbox-list">
       {#each inboxRows as row (row.id)}
         <li
@@ -282,7 +309,11 @@
             <ul class="home-inbox-items">
               {#each row.items as item (item.id)}
                 <li>
-                  <span class="home-inbox-item-label">{item.label}</span>
+                  <span class="home-inbox-item-label"
+                    >{item.label}{#if item.note}<small class="home-inbox-item-note"
+                        >{item.note}</small
+                      >{/if}</span
+                  >
                   <strong>{item.value}</strong>
                   <a
                     class="home-inbox-action home-inbox-action--primary"
@@ -315,9 +346,26 @@
     {#each activeProjects as project}<a
         class="project-board-row"
         href={`${base}/app/projects/${project.id}`}
-        ><span><b>{project.project_number}</b><strong>{project.name}</strong></span><small
-          >{controlledValue('status', project.status)} · {project.timezone}</small
-        ><i>{h('openProject')}</i></a
+        data-home-project={project.id}
+        ><span><b>{project.project_number}</b><strong>{project.name}</strong></span
+        >{#if glance.get(String(project.id))}{@const item = glance.get(String(project.id))!}<span
+            class="project-glance"
+            ><small
+              >{item.weekMinutes > 0
+                ? h('weekHours', { hours: decimalHoursFromMinutes(item.weekMinutes) })
+                : h('noHoursWeek')}</small
+            >{#if BigInt(item.readyMinor) > 0n}<small class="project-glance-ready"
+                >{h('readyAmount', { amount: money(item.readyMinor, item.currency) })}</small
+              >{/if}{#if BigInt(item.draftMinor) > 0n}<small
+                >{h('inDraft', { amount: money(item.draftMinor, item.currency) })}</small
+              >{/if}{#if item.pendingApprovals > 0}<small class="project-glance-warn"
+                >{h('pendingCount', { count: item.pendingApprovals })}</small
+              >{/if}{#if item.missingRate}<small class="project-glance-alert"
+                >{h('missingRate')}</small
+              >{/if}{#if item.missingPo}<small class="project-glance-warn">{h('missingPo')}</small
+              >{/if}</span
+          >{:else}<small>{controlledValue('status', project.status)} · {project.timezone}</small
+          >{/if}<i>{h('openProject')}</i></a
       >{/each}
   </section>
 {:else}
@@ -477,6 +525,73 @@
   .home-inbox h2 {
     margin: 0;
     font-size: 1.125rem;
+  }
+  .home-approve-all {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    min-height: 52px;
+    padding: 0.85rem 1.25rem;
+    border-radius: 0.875rem;
+    color: #fff;
+    background: var(--ja-red, #b42318);
+    text-decoration: none;
+  }
+  .home-approve-all:focus-visible {
+    outline: 3px solid var(--ja-border-focus);
+    outline-offset: 3px;
+  }
+  .home-approve-all-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.0625rem;
+    font-weight: 700;
+  }
+  .home-approve-all-detail {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    opacity: 0.92;
+  }
+  .home-inbox-item-note {
+    display: block;
+    color: var(--ja-text-secondary);
+    font-size: 0.8125rem;
+  }
+  .project-glance {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+  @media (max-width: 767px) {
+    .project-glance {
+      grid-column: 1 / -1;
+    }
+  }
+  .project-glance small {
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--ja-canvas, #f3f3ef);
+    color: var(--ja-text-primary);
+    font-size: 0.8125rem;
+    white-space: nowrap;
+  }
+  .project-glance .project-glance-ready {
+    background: #e6f4ea;
+    color: #14532d;
+    font-weight: 600;
+  }
+  .project-glance .project-glance-warn {
+    background: #fff4e5;
+    color: #7a4100;
+  }
+  .project-glance .project-glance-alert {
+    background: #fde8e8;
+    color: #8a1c1c;
+    font-weight: 600;
   }
   .home-inbox-clear {
     margin: 0;

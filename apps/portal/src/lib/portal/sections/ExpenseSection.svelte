@@ -9,6 +9,7 @@
   import { page } from '$app/stores';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
+  import { personDisplayName } from '../display-name';
   import { replaceState } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -73,7 +74,7 @@
   const records = $derived((data.records ?? []).filter((row) => row.approval_state !== 'void'));
   const people = $derived(
     [...(data.workers ?? [])]
-      .map((w) => ({ id: text(w, 'id'), name: text(w, 'name') }))
+      .map((w) => ({ id: text(w, 'id'), name: personDisplayName(text(w, 'name')) }))
       .filter((w) => w.id && w.name)
       .sort((a, b) => a.name.localeCompare(b.name)),
   );
@@ -197,7 +198,7 @@
         const blocks = [...byPerson.entries()]
           .map(([workerId, personRows]) => ({
             workerId,
-            workerName: text(personRows[0], 'worker_name'),
+            workerName: personDisplayName(text(personRows[0], 'worker_name')),
             rows: [...personRows].sort((a, b) =>
               text(b, 'spent_on').localeCompare(text(a, 'spent_on')),
             ),
@@ -880,7 +881,7 @@
         <label class="xp-field">
           <span>{c('person')}</span>
           <select name="workerId" bind:value={bulkWorker}>
-            <option value="">{c('me')} ({data.user.name})</option>
+            <option value="">{c('me')} ({personDisplayName(data.user.name)})</option>
             {#each people as person (person.id)}
               <option value={person.id}>{person.name}</option>
             {/each}
@@ -1063,7 +1064,7 @@
           <label class="xp-field">
             <span>{c('person')}</span>
             <select name="workerId" bind:value={fWorker}>
-              <option value="">{c('me')} ({data.user.name})</option>
+              <option value="">{c('me')} ({personDisplayName(data.user.name)})</option>
               {#each people as person (person.id)}
                 <option value={person.id}>{person.name}</option>
               {/each}

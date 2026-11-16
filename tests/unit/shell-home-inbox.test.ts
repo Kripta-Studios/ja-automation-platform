@@ -3,6 +3,7 @@ import { personDisplayName, personInitials } from '../../apps/portal/src/lib/por
 import {
   pendingApprovalSummary,
   readyToInvoiceSummary,
+  splitUnbilledSources,
   workerWeekStatus,
 } from '../../apps/portal/src/lib/portal/home-inbox';
 import { searchPaletteRecords } from '../../apps/portal/src/lib/portal/ui/section-search';
@@ -84,6 +85,35 @@ describe('home inbox projections', () => {
         { projectId: 'b', label: 'b', currency: 'USD', minor: '100' },
       ],
       topProjectId: 'a',
+    });
+  });
+
+  it('does not count work already on a draft as ready again', () => {
+    const sources = [
+      { sourceType: 'time', sourceId: 't1', amountMinor: '120000' },
+      { sourceType: 'time', sourceId: 't2', amountMinor: '80000' },
+      { sourceType: 'expense', sourceId: 'e1', amountMinor: '4550' },
+      { sourceType: 'time', sourceId: 't3', amountMinor: '999' },
+    ];
+    const holders = new Map([
+      ['time:t1', 'draft'],
+      ['expense:e1', 'approved'],
+      ['time:t3', 'issued'],
+    ]);
+    expect(splitUnbilledSources(sources, holders)).toEqual({
+      readyMinor: '80000',
+      draftMinor: '124550',
+    });
+    expect(
+      readyToInvoiceSummary([
+        { projectId: 'p', currency: 'USD', minor: '80000', draftMinor: '124550', label: 'P' },
+        { projectId: 'q', currency: 'USD', minor: '0', draftMinor: '332500', label: 'Q' },
+      ]),
+    ).toEqual({
+      projects: 1,
+      totals: [{ currency: 'USD', minor: '80000' }],
+      items: [{ projectId: 'p', label: 'P', currency: 'USD', minor: '80000', draftMinor: '124550' }],
+      topProjectId: 'p',
     });
   });
 

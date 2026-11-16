@@ -23,6 +23,7 @@
   import { ProblemNotice, StatusBadge, formValidation } from '../ui';
   import { weekStartForDate } from './time-entry-actions';
   import { approvalQueueText, type ApprovalQueueCopyKey } from './approval-queue-copy';
+  import { personDisplayName } from '../display-name';
 
   type Tab = 'time' | 'expenses' | 'reports';
   type Kind = 'time' | 'expense';
@@ -96,7 +97,7 @@
   }
 
   function workerName(row: Row): string {
-    return value(row, 'worker_name') || translate('Worker');
+    return personDisplayName(value(row, 'worker_name')) || translate('Worker');
   }
 
   function recordHref(row: Row): string {
@@ -349,6 +350,66 @@
   );
   const tabCount = (tab: Tab): number => pendingRows.filter((row) => matchesTab(row, tab)).length;
 
+  // ---------- approve all hours and expenses (one transaction via approveBatch) ----------
+  const APPROVE_ALL_LIMIT = 200; // matches the server batch limit
+  const allDecidable = $derived(
+    pendingRows
+      .filter((row) => ['time', 'expense'].includes(value(row, 'type')))
+      .map(toItem)
+      .filter((item) => !item.own && item.version)
+      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
+  );
+  const approveAllItems = $derived(allDecidable.slice(0, APPROVE_ALL_LIMIT));
+  type WorkerSummary = {
+    workerId: string;
+    workerName: string;
+    time: Item[];
+    expenses: Item[];
+    projects: string[];
+  };
+  const approveAllWorkers = $derived.by((): WorkerSummary[] => {
+    const byWorker = new Map<string, WorkerSummary>();
+    for (const item of approveAllItems) {
+      let entry = byWorker.get(item.workerId);
+      if (!entry) {
+        entry = { workerId: item.workerId, workerName: item.workerName, time: [], expenses: [], projects: [] };
+        byWorker.set(item.workerId, entry);
+      }
+      (item.type === 'time' ? entry.time : entry.expenses).push(item);
+      if (!entry.projects.includes(item.projectName)) entry.projects.push(item.projectName);
+    }
+    return [...byWorker.values()].sort((a, b) => a.workerName.localeCompare(b.workerName));
+  });
+  function mixedSummary(items: readonly Item[]): string {
+    const time = items.filter((item) => item.type === 'time');
+    const expenses = items.filter((item) => item.type === 'expense');
+    return [
+      time.length ? `${hoursText(sumMinutes(time))} (${countLabel('time', time.length)})` : '',
+      expenses.length
+        ? [countLabel('expense', expenses.length), moneyTotals(expenses)].filter(Boolean).join(' · ')
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  let approveAllOpen = $state(false);
+  async function openApproveAll(): Promise<void> {
+    approveAllOpen = true;
+    confirmOpen = false;
+    await tick();
+    const panel = document.getElementById(`approve-all-${componentId}`);
+    panel?.scrollIntoView({ block: 'start', behavior: 'instant' });
+    panel?.focus({ preventScroll: true });
+  }
+  function closeApproveAll(): void {
+    approveAllOpen = false;
+    if (typeof location === 'undefined') return;
+    const url = new URL(location.href);
+    if (!url.searchParams.has('approveAll')) return;
+    url.searchParams.delete('approveAll');
+    replaceState(url, $page.state);
+  }
+
   const visibleGroups = $derived(
     activeTab === 'time' ? timeGroups : activeTab === 'expenses' ? expenseGroups : [],
   );
@@ -391,6 +452,9 @@
           : 'time',
   );
   onMount(() => {
+    // Home "Approve all hours and expenses" lands here with the summary already open.
+    if ($page.url.searchParams.get('approveAll') === '1' && canDecide && allDecidable.length > 0)
+      void openApproveAll();
     // Open the first tab that has work when the URL does not name one.
     if (!initialTab && !initialFailureType && tabCount('time') === 0) {
       const next = tabs.find((tab) => tabCount(tab) > 0);
@@ -601,6 +665,7 @@
           sendBackFor = null;
           confirmOpen = false;
           selected = {};
+          if (key === 'all') closeApproveAll();
         }
       };
     };
@@ -614,6 +679,8 @@
     if (sent.length === 1)
       return `${groupTitle(sent[0]!.group)} · ${groupFacts(sent[0]!.group, sent[0]!.items)}`;
     const items = sent.flatMap((part) => part.items);
+    if (items.some((item) => item.type === 'time') && items.some((item) => item.type === 'expense'))
+      return mixedSummary(items);
     return items.every((item) => item.type === 'time')
       ? `${countLabel('time', items.length)} · ${hoursText(sumMinutes(items))}`
       : [countLabel('expense', items.length), moneyTotals(items)].filter(Boolean).join(' · ');
@@ -629,6 +696,30 @@
     return activeTab === 'time'
       ? `${countLabel('time', items.length)} · ${hoursText(sumMinutes(items))}`
       : [countLabel('expense', items.length), moneyTotals(items)].filter(Boolean).join(' · ');
+  }
+
+  const reportLabels: Record<string, ApprovalQueueCopyKey> = {
+    tasks: 'reportTasks',
+    problems: 'reportProblems',
+    blockers: 'reportBlockers',
+    next_day: 'reportNextDay',
+    safety: 'reportSafety',
+    downtime: 'reportDowntime',
+    change: 'reportChange',
+    validation: 'reportValidation',
+    risk: 'reportRisk',
+    impact: 'reportImpact',
+  };
+  /** Label/text pairs for the in-queue report preview (server sends operational text only). */
+  function reportDetail(row: Row): Array<[string, string]> {
+    const detail = (row.report_detail ?? {}) as Record<string, unknown>;
+    return Object.entries(reportLabels).flatMap(([key, label]) => {
+      const raw = detail[key];
+      if (raw === null || raw === undefined || String(raw).trim() === '') return [];
+      const text =
+        key === 'downtime' ? `${String(raw)} min` : String(raw);
+      return [[t(label), text] as [string, string]];
+    });
   }
 
   function statusVariant(state: unknown): 'success' | 'warning' | 'danger' | 'neutral' {
@@ -682,6 +773,117 @@
         >{translate('Dismiss notification')}</button
       >
     </p>
+  {/if}
+
+  {#if canDecide && allDecidable.length > 0}
+    {#if !approveAllOpen}
+      <div class="aq-all-row">
+        <button
+          type="button"
+          class="aq-primary aq-all-button"
+          onclick={openApproveAll}
+          data-approve-all-open
+          disabled={busyKey !== null}
+        >
+          {t('approveAll')}
+        </button>
+        <span class="aq-muted">{mixedSummary(approveAllItems)}</span>
+      </div>
+    {:else}
+      <form
+        class="aq-confirm aq-all-confirm"
+        id={`approve-all-${componentId}`}
+        tabindex="-1"
+        method="POST"
+        action="?/approveBatch"
+        data-approve-all-confirm
+        use:enhance={decide('all', mixedSummary(approveAllItems), 'approved')}
+      >
+        <strong class="aq-confirm-title">{t('approveAllTitle')}</strong>
+        <p>{t('approveAllIntro')}</p>
+        <div class="aq-all-table-wrap">
+          <table class="aq-all-table">
+            <thead>
+              <tr>
+                <th scope="col">{t('filterWorker')}</th>
+                <th scope="col" class="aq-num">{t('tabTime')}</th>
+                <th scope="col" class="aq-num">{t('tabExpenses')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each approveAllWorkers as worker (worker.workerId)}
+                <tr data-approve-all-worker={worker.workerId}>
+                  <th scope="row">
+                    {worker.workerName}
+                    <small>{worker.projects.length > 2
+                        ? t('projects', { count: worker.projects.length })
+                        : worker.projects.join(', ')}</small>
+                  </th>
+                  <td class="aq-num">
+                    {#if worker.time.length}
+                      <strong>{hoursText(sumMinutes(worker.time))}</strong>
+                      <small>{countLabel('time', worker.time.length)}</small>
+                    {:else}—{/if}
+                  </td>
+                  <td class="aq-num">
+                    {#if worker.expenses.length}
+                      <strong>{moneyTotals(worker.expenses) || countLabel('expense', worker.expenses.length)}</strong>
+                      {#if moneyTotals(worker.expenses)}<small
+                          >{countLabel('expense', worker.expenses.length)}</small
+                        >{/if}
+                    {:else}—{/if}
+                  </td>
+                </tr>
+              {/each}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">{t('confirmTotal')}</th>
+                <td class="aq-num">
+                  {#if approveAllItems.some((item) => item.type === 'time')}
+                    <strong
+                      >{hoursText(
+                        sumMinutes(approveAllItems.filter((item) => item.type === 'time')),
+                      )}</strong
+                    >
+                  {:else}—{/if}
+                </td>
+                <td class="aq-num">
+                  <strong
+                    >{moneyTotals(approveAllItems.filter((item) => item.type === 'expense')) ||
+                      countLabel(
+                        'expense',
+                        approveAllItems.filter((item) => item.type === 'expense').length,
+                      )}</strong
+                  >
+                </td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+        {#if allDecidable.length > approveAllItems.length}
+          <p class="aq-muted">
+            {t('approveAllLimit', { shown: approveAllItems.length, count: allDecidable.length })}
+          </p>
+        {/if}
+        {#if ownerApprovalIncludesFinance}
+          <p class="aq-muted">{t('confirmOwnerNote')}</p>
+        {/if}
+        {#each approveAllItems as item (item.id)}
+          <input type="hidden" name="item" value={token(item)} />
+        {/each}
+        <div class="aq-sendback-actions">
+          <button type="submit" class="aq-primary" disabled={busyKey !== null}>
+            {busyKey === 'all'
+              ? t('approving')
+              : t('approveAllButton', { count: approveAllItems.length })}
+          </button>
+          <button type="button" class="aq-secondary" onclick={closeApproveAll}
+            >{t('cancel')}</button
+          >
+        </div>
+      </form>
+    {/if}
   {/if}
 
   <div class="approval-tabs" aria-label={t('tabsLabel')} role="tablist">
@@ -961,15 +1163,25 @@
       <ul class="aq-groups" aria-live="polite">
         {#each visibleReports as row (value(row, 'id'))}
           {@const reportSummary = `${value(row, 'type') === 'daily' ? t('daily') : t('technical')} · ${workerName(row)} · ${dayLabel(value(row, 'date'))}`}
+          {@const reportOpen = expanded[`report:${value(row, 'id')}`] ?? false}
+          {@const detail = reportDetail(row)}
           <li class="aq-group aq-report" data-approval-row={value(row, 'id')}>
             <div class="aq-group-head">
-              <a class="aq-group-toggle" href={recordHref(row)}>
+              <button
+                type="button"
+                class="aq-group-toggle"
+                aria-expanded={reportOpen}
+                aria-controls={`aq-report-${componentId}-${value(row, 'id')}`}
+                data-report-read
+                onclick={() =>
+                  (expanded = { ...expanded, [`report:${value(row, 'id')}`]: !reportOpen })}
+              >
                 <strong class="aq-group-title">{reportSummary}</strong>
                 <span class="aq-group-facts"
                   >{value(row, 'report_title') || t('untitled')} · {projectName(row)}</span
                 >
-                <span class="aq-group-more">{t('open')}</span>
-              </a>
+                <span class="aq-group-more">{reportOpen ? t('hideReport') : t('readReport')}</span>
+              </button>
               <div class="aq-group-action">
                 {#if !canDecide}
                   <span class="aq-muted">{t('readOnly')}</span>
@@ -997,6 +1209,20 @@
                 {/if}
               </div>
             </div>
+            {#if reportOpen}
+              <div class="aq-report-detail" id={`aq-report-${componentId}-${value(row, 'id')}`}>
+                {#if detail.length}
+                  <dl>
+                    {#each detail as [label, text] (label)}
+                      <div><dt>{label}</dt><dd>{text}</dd></div>
+                    {/each}
+                  </dl>
+                {:else}
+                  <p class="aq-muted">{t('reportEmpty')}</p>
+                {/if}
+                <a class="aq-link" href={recordHref(row)}>{t('fullReport')}</a>
+              </div>
+            {/if}
             {#if sendBackFor === value(row, 'id')}
               <form
                 class="aq-sendback"
@@ -1685,6 +1911,114 @@
     gap: 0.25rem;
     font-size: 0.875rem;
     font-weight: 600;
+  }
+
+  .aq-report-detail {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.25rem 1rem 1rem;
+  }
+  .aq-report-detail dl {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+  }
+  .aq-report-detail dl div {
+    display: grid;
+    grid-template-columns: minmax(7rem, 10rem) minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+  .aq-report-detail dt {
+    font-weight: 650;
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .aq-report-detail dd {
+    margin: 0;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+  }
+  @media (max-width: 620px) {
+    .aq-report-detail dl div {
+      grid-template-columns: 1fr;
+      gap: 0.1rem;
+    }
+  }
+
+  /* Approve all hours and expenses */
+  .aq-all-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+  }
+  .aq-all-button {
+    min-height: 48px;
+    font-size: 1rem;
+  }
+  .aq-all-confirm {
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.25rem;
+    border: 2px solid var(--ja-red, #b3261e);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+  }
+  .aq-all-table-wrap {
+    max-height: 50vh;
+    overflow: auto;
+  }
+  .aq-all-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-variant-numeric: tabular-nums;
+  }
+  .aq-all-table th,
+  .aq-all-table td {
+    padding: 0.5rem 0.5rem;
+    border-bottom: 1px solid var(--ja-border-subdued, #e5e5e0);
+    text-align: left;
+    vertical-align: top;
+  }
+  .aq-all-table thead th {
+    font-size: 0.8125rem;
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .aq-all-table tfoot th,
+  .aq-all-table tfoot td {
+    border-bottom: 0;
+    border-top: 2px solid var(--ja-ink, #1c2430);
+  }
+  .aq-all-table small {
+    display: block;
+    color: var(--ja-text-secondary, #57574f);
+    font-weight: 400;
+    font-size: 0.8125rem;
+  }
+  .aq-all-table .aq-num {
+    text-align: right;
+    white-space: nowrap;
+  }
+  @media (max-width: 620px) {
+    .aq-all-confirm {
+      padding: 0.85rem;
+    }
+    /* Keep the decision above the fixed phone navigation while the summary is on screen. */
+    .aq-all-confirm .aq-sendback-actions {
+      position: sticky;
+      bottom: calc(4.2rem + 0.5rem + env(safe-area-inset-bottom, 0px));
+      z-index: 2;
+      padding: 0.5rem 0;
+      background: var(--ja-white, #fff);
+    }
+    .aq-all-button,
+    .aq-all-confirm .aq-sendback-actions button {
+      flex: 1 1 100%;
+      width: 100%;
+    }
+    .aq-all-table th,
+    .aq-all-table td {
+      padding: 0.45rem 0.25rem;
+    }
   }
 
   /* Sticky bulk bar and in-page confirmation */

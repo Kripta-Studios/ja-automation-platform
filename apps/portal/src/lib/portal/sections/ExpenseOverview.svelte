@@ -15,6 +15,7 @@
   import { expenseReceiptState } from '../expense-evidence';
   import type { PortalLocale } from '../../portal-i18n';
   import { expenseCopy, expenseLocaleTag, type ExpenseCopyKey } from './expense-copy';
+  import { personDisplayName } from '../display-name';
   import {
     expenseStatusOf,
     expenseStatusLabel,
@@ -181,7 +182,7 @@
       const id = groupBy === 'worker' ? text(row, 'worker_id') : text(row, 'project_id');
       const name =
         groupBy === 'worker'
-          ? text(row, 'worker_name')
+          ? personDisplayName(text(row, 'worker_name'))
           : `${text(row, 'project_number')} · ${text(row, 'project_name')}`;
       const group = map.get(id) ?? { id, name, rows: [] };
       group.rows.push(row);
@@ -294,7 +295,7 @@
       <select bind:value={workerFilter}>
         <option value="">{c('allPeople')}</option>
         {#each people as person (person.id)}
-          <option value={person.id}>{person.name}</option>
+          <option value={person.id}>{personDisplayName(person.name)}</option>
         {/each}
       </select>
     </label>
@@ -411,7 +412,7 @@
                       {dateLabel(text(row, 'spent_on'))} ·
                       {groupBy === 'worker'
                         ? text(row, 'project_number')
-                        : text(row, 'worker_name')}
+                        : personDisplayName(text(row, 'worker_name'))}
                       {#if text(row, 'vendor')}· {text(row, 'vendor')}{/if}
                     </span>
                   </span>

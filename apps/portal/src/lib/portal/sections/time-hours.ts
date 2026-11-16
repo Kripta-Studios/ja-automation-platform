@@ -1,3 +1,4 @@
+import { personDisplayName } from '../display-name';
 /**
  * Parse the hours a person types into the timesheet.
  * Accepted: "8", "7.5", "7,5", "7:30", "7h30", "7h", "0". Returns integer
@@ -50,11 +51,5 @@ export const DAY_MAX_MINUTES = 24 * 60;
 
 /** Show a login-style username ("gabriel.lamoglia") as a person's name. */
 export function personName(value: unknown): string {
-  const text = String(value ?? '').trim();
-  if (!text || /\s/u.test(text) || text.includes('@')) return text;
-  if (!/^[\p{L}]+(?:[._-][\p{L}]+)+$/u.test(text)) return text;
-  return text
-    .split(/[._-]/u)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(' ');
+  return personDisplayName(value);
 }

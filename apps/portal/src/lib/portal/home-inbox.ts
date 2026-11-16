@@ -76,7 +76,10 @@ export type ReadyToInvoiceItem = {
   projectId: string;
   label: string;
   currency: string;
+  /** Approved work no invoice holds yet (drafts included as holders). */
   minor: string;
+  /** Approved work already sitting on an unissued draft of this project. */
+  draftMinor?: string;
 };
 
 export type ReadyToInvoice = {
@@ -93,6 +96,7 @@ export function readyToInvoiceSummary(
     projectId: string;
     currency: string;
     minor: string | null | undefined;
+    draftMinor?: string | null;
     label?: string;
   }>,
 ): ReadyToInvoice {
@@ -104,11 +108,13 @@ export function readyToInvoiceSummary(
     const minor = BigInt(raw);
     if (minor <= 0n) continue;
     totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
+    const draft = text(row.draftMinor).trim();
     items.push({
       projectId: row.projectId,
       label: row.label ?? row.projectId,
       currency: row.currency,
       minor: raw,
+      ...(/^\d+$/u.test(draft) && BigInt(draft) > 0n ? { draftMinor: draft } : {}),
       value: minor,
     });
   }
@@ -116,19 +122,48 @@ export function readyToInvoiceSummary(
   return {
     projects: items.length,
     totals: currencyTotals(totals),
-    items: items.map((item) => ({
-      projectId: item.projectId,
-      label: item.label,
-      currency: item.currency,
-      minor: item.minor,
-    })),
+    items: items.map(({ value: _value, ...item }) => item),
     topProjectId: items[0]?.projectId ?? null,
   };
 }
 
+/**
+ * Split a project's approved, unbilled sources into what is still free to invoice and
+ * what an unissued draft already holds. Sources held by an issued (live) invoice are
+ * dropped. Exact minor units only.
+ */
+export function splitUnbilledSources(
+  sources: ReadonlyArray<Readonly<Record<string, unknown>>>,
+  holders: ReadonlyMap<string, string>,
+): { readyMinor: string; draftMinor: string } {
+  let ready = 0n;
+  let draft = 0n;
+  for (const source of sources) {
+    const raw = text(source.amountMinor).trim();
+    if (!/^-?\d+$/u.test(raw)) continue;
+    const holder = holders.get(`${text(source.sourceType)}:${text(source.sourceId)}`);
+    if (!holder) ready += BigInt(raw);
+    else if (holder === 'draft' || holder === 'approved') draft += BigInt(raw);
+  }
+  return { readyMinor: ready.toString(), draftMinor: draft.toString() };
+}
+
+/** Owner Home "projects at a glance": this week's hours, money ready to invoice, alerts. */
+export type ProjectGlance = {
+  projectId: string;
+  weekMinutes: number;
+  pendingApprovals: number;
+  currency: string;
+  readyMinor: string;
+  draftMinor: string;
+  missingRate: boolean;
+  missingPo: boolean;
+};
+
 export type HomeInbox = {
   approvals: ApprovalPendingSummary;
   readyToInvoice: ReadyToInvoice | null;
+  projects?: ProjectGlance[];
 };
 
 export type WorkerWeekStatus = {

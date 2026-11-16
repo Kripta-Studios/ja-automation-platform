@@ -75,6 +75,11 @@ const copy = {
     'Há trabalho aprovado não faturado',
   ],
   useDates: ['Use these dates', 'Usar estas fechas', 'Usar estas datas'],
+  autoDates: [
+    'Dates set to cover the approved work that is not invoiced yet.',
+    'Fechas ajustadas para cubrir el trabajo aprobado que aún no está facturado.',
+    'Datas ajustadas para cobrir o trabalho aprovado que ainda não foi faturado.',
+  ],
   existing: [
     'These dates are already on an invoice.',
     'Estas fechas ya están en una factura.',

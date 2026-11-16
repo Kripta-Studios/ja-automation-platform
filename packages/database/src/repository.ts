@@ -2162,7 +2162,37 @@ export class PortalRepository {
       let updated = 0;
       let removed = 0;
       let corrected = 0;
+      // Actual time only: hours cannot be entered for a day that has not yet
+      // started in the project's time zone (clearing a value is always allowed).
+      const projectToday = new Map<string, string>();
+      const todayFor = (projectId: string): string => {
+        const cached = projectToday.get(projectId);
+        if (cached) return cached;
+        const zone =
+          (this.sqlite.prepare('SELECT timezone FROM project WHERE id=?').get(projectId) as
+            | { timezone: string | null }
+            | undefined)?.timezone || 'UTC';
+        let value = now().slice(0, 10);
+        try {
+          const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: zone,
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+          }).formatToParts(new Date(now()));
+          const get = (type: string) => parts.find((part) => part.type === type)?.value ?? '';
+          value = `${get('year')}-${get('month')}-${get('day')}`;
+        } catch {
+          // Unknown zone: fall back to UTC.
+        }
+        projectToday.set(projectId, value);
+        return value;
+      };
       for (const cell of input.cells) {
+        if (cell.minutes && cell.workDate > todayFor(cell.projectId))
+          withCell(cell, () => {
+            throw new ValidationError('Hours cannot be entered for a future day');
+          });
         if (cell.workDate < input.weekStart || cell.workDate > weekEnd)
           withCell(cell, () => {
             throw new ValidationError('A daily entry is outside the selected week');

@@ -3,7 +3,8 @@ import { afterNavigate, goto } from '$app/navigation';
 /** Server-backed GET viewers retain their applied criteria on a normal revisit. */
 export function rememberUrlView(user: () => string, appBase: string): void {
   const routes: Record<string, string[]> = {
-    time: ['project', 'worker', 'from', 'to', 'category', 'status', 'client', 'q', 'order', 'week'],
+    // Time is not remembered: Log hours always opens on today/this week for the
+    // signed-in person, and the overview defaults to this week (owner decision 2026-11-16).
     projects: ['q', 'status'],
     'finance/cash': ['currency', 'filter', 'from', 'to', 'dated', 'group', 'project'],
     finance: ['view'],

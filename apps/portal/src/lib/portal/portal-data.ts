@@ -77,6 +77,17 @@ export type PortalData = {
   timeWorkerId?: string;
   weekEntries?: PortalRow[];
   recordsTotal?: number;
+  timeDay?: string;
+  timeView?: 'capture' | 'overview';
+  canReviewTime?: boolean;
+  overview?: {
+    period: string;
+    from: string;
+    to: string;
+    workerId: string;
+    status: string;
+    rows: PortalRow[];
+  };
   contacts?: PortalRow[];
   workers?: PortalRow[];
   planningFilterWorkers?: PortalRow[];

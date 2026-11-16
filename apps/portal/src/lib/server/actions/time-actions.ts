@@ -14,6 +14,7 @@ import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/
 import { mondayOf } from '$lib/server/portal-week';
 import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
 import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
+import { parseHoursText } from '$lib/portal/sections/time-hours';
 import type { ZodError } from 'zod';
 
 export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
@@ -524,6 +525,13 @@ const timeProblems: Record<string, TimeProblem> = {
     field: 'entries',
     remedy: 'review_week',
   },
+  'Hours cannot be entered for a future day': {
+    status: 400,
+    code: 'TIME_FUTURE_DAY',
+    key: 'problem.time.workDateInvalid',
+    message: 'Hours cannot be entered for a day that has not happened yet.',
+    remedy: 'review_week',
+  },
   'Week start must be a Monday': {
     status: 400,
     code: 'TIME_WEEK_START_INVALID',
@@ -643,18 +651,11 @@ const weekCategories = new Set([
   'internal',
 ]);
 
-/** Decimal hours ("7.5", "8", "0", "") -> minutes; null = empty; undefined = invalid. */
-export function weekCellMinutes(value: unknown): number | null | undefined {
-  const raw = String(value ?? '')
-    .trim()
-    .replace(',', '.');
-  if (!raw) return null;
-  const match = /^(\d{1,2})(?:\.(\d{1,2}))?$/u.exec(raw);
-  if (!match) return undefined;
-  const hundredths = Number(match[1]) * 100 + Number((match[2] ?? '').padEnd(2, '0'));
-  if (hundredths > 2400) return undefined;
-  return Math.round((hundredths * 3) / 5);
-}
+/**
+ * Hours text -> minutes. Accepts "8", "7.5", "7,5", "7:30", "7h30", "7h".
+ * null = empty; undefined = invalid. Shared rules with the browser sheet.
+ */
+export { parseHoursText as weekCellMinutes } from '$lib/portal/sections/time-hours';
 
 type WeekCellInput = {
   projectId: string;
@@ -880,7 +881,7 @@ export const timeActions = withOperationalActionNames({
       const workDate = String(cell.workDate ?? '');
       if (!projectId || projectId.length > 100 || !weekCategories.has(category) || !dates.has(workDate))
         return invalidBatch();
-      const minutes = weekCellMinutes(cell.hours);
+      const minutes = parseHoursText(cell.hours);
       if (minutes === undefined)
         return actionFail(
           400,

@@ -56,3 +56,15 @@
     flex-basis: 100%;
   }
 }
+.project-list-link--simple > a > span {
+  font-family: inherit;
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.project-list-link--simple small,
+.project-list-link--simple small span {
+  font-family: inherit;
+  letter-spacing: normal;
+}

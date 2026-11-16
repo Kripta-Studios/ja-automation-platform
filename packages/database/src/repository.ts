@@ -1193,6 +1193,23 @@ export class PortalRepository {
     return { ...result, projectNumber: result.reference };
   }
 
+  /**
+   * Next free numeric cost center for a client ("001", "002", ...), used when
+   * the owner leaves the cost center blank on the simplified create form.
+   */
+  suggestCostCenterCode(principal: Principal, clientId: string): string {
+    this.assertReadable(principal);
+    if (!canManageClients(principal)) throw new AccessDeniedError('Project administration required');
+    const rows = this.sqlite
+      .prepare('SELECT cost_center_code FROM project WHERE client_id=? AND cost_center_code IS NOT NULL')
+      .all(clientId) as Array<{ cost_center_code: string }>;
+    const highest = rows.reduce((max, row) => {
+      const digits = /^\s*(\d{1,9})\s*$/u.exec(row.cost_center_code)?.[1];
+      return digits ? Math.max(max, Number(digits)) : max;
+    }, 0);
+    return String(highest + 1).padStart(3, '0');
+  }
+
   createProject(principal: Principal, input: ProjectInput) {
     this.assertActive(principal);
     if (!canManageClients(principal))

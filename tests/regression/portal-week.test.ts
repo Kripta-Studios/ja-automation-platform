@@ -16,6 +16,35 @@ const schedule = (overrides: Partial<WeeklyProjectSchedule> = {}): WeeklyProject
 });
 
 describe('Worker weekly planning projection', () => {
+  it('shows no expected or difference values when the project has no expected hours', () => {
+    const none = schedule({
+      monday_minutes: 0,
+      tuesday_minutes: 0,
+      wednesday_minutes: 0,
+      thursday_minutes: 0,
+      friday_minutes: 0,
+    });
+    const view = weeklyView(
+      [
+        {
+          project_id: 'project-a',
+          work_date: '2026-08-10',
+          category: 'regular',
+          minutes: 480,
+          approval_state: 'approved',
+        },
+      ],
+      '2026-08-10',
+      [none],
+    );
+    expect(view.days[0]).toMatchObject({
+      actualMinutes: 480,
+      expectedMinutes: null,
+      differenceMinutes: null,
+    });
+    expect(weeklyView([], '2026-08-10', [schedule()]).days[0]?.expectedMinutes).toBe(600);
+  });
+
   it('does not normalize an impossible week query into a different calendar date', () => {
     expect(mondayOf('2026-02-30')).toBe(mondayOf(null));
   });

@@ -130,8 +130,13 @@ describe('Client Essential identifier portal contract', () => {
   it('exposes the fields through the authorized create/edit surfaces and maps updates server-side', () => {
     expect(shell).toContain('name="clientCode"');
     expect(shell).toContain('maxlength="40"');
-    expect(shell).toContain('name="costCenterCode"');
-    expect(shell).toContain('maxlength="120"');
+    // The create-project form moved to its own component (2026-11-16 simplification).
+    const createForm = readFileSync(
+      resolve(process.cwd(), 'apps/portal/src/lib/portal/sections/ProjectCreateForm.svelte'),
+      'utf8',
+    );
+    expect(createForm).toContain('name="costCenterCode"');
+    expect(createForm).toContain('maxlength="120"');
     expect(projectActions).toContain("costCenterCode: text('costCenterCode')");
     expect(detail).toContain('name="costCenterCode"');
     expect(detail).toContain('maxlength="120"');

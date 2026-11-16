@@ -30,6 +30,21 @@ const copy = {
     'Cualquier texto, por ejemplo 001. Puede repetirse: la referencia del proyecto añade el código del cliente.',
     'Qualquer texto, por exemplo 001. Pode se repetir: a referência do projeto adiciona o código do cliente.',
   ],
+  costCenterAuto: [
+    'Leave blank to number it automatically (001, 002…).',
+    'Déjalo vacío para numerarlo automáticamente (001, 002…).',
+    'Deixe em branco para numerar automaticamente (001, 002…).',
+  ],
+  clientRate: [
+    'Client hourly rate ({currency}, optional)',
+    'Tarifa por hora al cliente ({currency}, opcional)',
+    'Tarifa horária do cliente ({currency}, opcional)',
+  ],
+  clientRateHint: [
+    'Used to price approved hours on invoices. Rates per worker can be added later.',
+    'Se usa para valorar las horas aprobadas en las facturas. Luego puedes añadir tarifas por trabajador.',
+    'Usada para valorar as horas aprovadas nas faturas. Tarifas por trabalhador podem ser adicionadas depois.',
+  ],
   referencePreview: [
     'Project reference: {reference}',
     'Referencia del proyecto: {reference}',
@@ -75,9 +90,9 @@ const copy = {
   workers: ['Workers', 'Trabajadores', 'Trabalhadores'],
   moreSettings: ['More settings', 'Más ajustes', 'Mais configurações'],
   moreSettingsHint: [
-    'Currency, end date, billing model, expected hours, budgets, site contact and reporting rules',
-    'Moneda, fecha de fin, modelo de facturación, horas previstas, presupuestos, contacto en planta y reglas de informes',
-    'Moeda, data de término, modelo de faturamento, horas previstas, orçamentos, contato no local e regras de relatórios',
+    'End date, billing model, expected hours, budgets, site contact and reporting rules',
+    'Fecha de fin, modelo de facturación, horas previstas, presupuestos, contacto en planta y reglas de informes',
+    'Data de término, modelo de faturamento, horas previstas, orçamentos, contato no local e regras de relatórios',
   ],
   expectedHours: [
     'Expected hours per day (optional)',
@@ -121,6 +136,7 @@ const copy = {
   ],
   projectCount: ['{count} projects', '{count} proyectos', '{count} projetos'],
   open: ['Open', 'Abrir', 'Abrir'],
+  rowActions: ['Close, archive or delete', 'Cerrar, archivar o eliminar', 'Encerrar, arquivar ou excluir'],
   moreTools: ['More tools', 'Más herramientas', 'Mais ferramentas'],
   moreToolsHint: [
     'Calendar, assignments, milestones, schedules and contacts',

@@ -25,6 +25,18 @@ import { removePurgedFiles } from '$lib/server/permanent-deletion';
 import type { ProblemData } from '$lib/problem/contract';
 import type { PageServerLoad, Actions } from './$types';
 
+function projectHasInvoices(
+  sqlite: { prepare?: (sql: string) => { get: (projectId: string) => unknown } },
+  projectId: string,
+): boolean {
+  try {
+    return Boolean(sqlite.prepare?.('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(projectId));
+  } catch {
+    // The hint is advisory; never fail the project page because of it.
+    return false;
+  }
+}
+
 function currentPeriod(): { periodStart: string; periodEnd: string } {
   return defaultLookbackPeriod();
 }
@@ -168,11 +180,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       invalidProjectTimezone: !validProjectTimezone,
       // Owner-only hint for the reference editor: issued invoices keep their snapshot text.
       projectHasInvoices:
-        locals.user.role === 'owner_admin'
-          ? Boolean(
-              context.sqlite.prepare('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(params.id),
-            )
-          : false,
+        locals.user.role === 'owner_admin' ? projectHasInvoices(context.sqlite, params.id) : false,
       invoiceDraftStart: invoiceDraftPeriod.periodStart,
       invoiceDraftEnd: invoiceDraftPeriod.periodEnd,
       workers:

@@ -91,6 +91,8 @@
     ),
   );
   const essentialFields = new Set([
+    'currency',
+    'clientHourlyRate',
     'clientId',
     'name',
     'costCenterCode',
@@ -171,10 +173,9 @@
       {#if errors.name?.length}<small class="field-error">{fieldError('name')}</small>{/if}
     </label>
     <label
-      >{c('costCenter')} *
+      >{c('costCenter')}
       <input
         name="costCenterCode"
-        required
         maxlength="120"
         bind:value={costCenter}
         aria-invalid={Boolean(errors.costCenterCode?.length)}
@@ -184,7 +185,7 @@
         {#if reference}<strong data-project-reference-preview
             >{c('referencePreview', { reference })}</strong
           >
-          · {c('referencePreviewSuffix')}{:else}{c('costCenterHint')}{/if}
+          · {c('referencePreviewSuffix')}{:else}{c('costCenterHint')} {c('costCenterAuto')}{/if}
       </small>
       {#if errors.costCenterCode?.length}<small class="field-error"
           >{fieldError('costCenterCode')}</small
@@ -210,6 +211,32 @@
       <input name="poNumber" maxlength="100" defaultValue={value('poNumber')} />
       <small>{c('poHint')}</small>
     </label>
+    <div class="project-create-simple__rate">
+      <label
+          >{translate('Currency')}
+          <select
+            name="currency"
+            value={currency}
+            onchange={(event) => (currencyOverride = event.currentTarget.value)}
+            ><option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
+              >BRL</option
+            ></select
+          >
+        </label>
+      <label
+        >{c('clientRate', { currency })}
+        <input
+          name="clientHourlyRate"
+          inputmode="decimal"
+          autocomplete="off"
+          pattern={'[0-9]+([.,][0-9]{1,2})?'}
+          placeholder="85.00"
+          defaultValue={value('clientHourlyRate')}
+          aria-invalid={Boolean(errors.clientHourlyRate?.length)}
+        />
+      </label>
+      <small>{c('clientRateHint')}</small>
+    </div>
     <label
       >{c('projectManager')}
       <select name="projectManagerId" bind:value={projectManagerId}>
@@ -251,17 +278,7 @@
       <small>{c('moreSettingsHint')}</small>
     </summary>
     <div class="project-create-simple__grid">
-      <label
-        >{translate('Currency')}
-        <select
-          name="currency"
-          value={currency}
-          onchange={(event) => (currencyOverride = event.currentTarget.value)}
-          ><option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
-            >BRL</option
-          ></select
-        >
-      </label>
+
       <label
         >{translate('Planned end date (optional)')}
         <input name="plannedEndDate" type="date" defaultValue={value('plannedEndDate')} />
@@ -444,6 +461,28 @@
   }
   .project-create-simple__grid small strong {
     color: var(--text, #1f1d1a);
+  }
+  .project-create-simple__rate {
+    display: grid;
+    grid-template-columns: minmax(5.5rem, 7rem) minmax(0, 1fr);
+    gap: 0.35rem 0.75rem;
+    align-items: start;
+  }
+  .project-create-simple__rate label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+    min-width: 0;
+  }
+  .project-create-simple__rate select,
+  .project-create-simple__rate input {
+    width: 100%;
+    min-width: 0;
+    font-weight: 400;
+  }
+  .project-create-simple__rate small {
+    grid-column: 1 / -1;
+    color: var(--muted, #5f5b55);
   }
   .project-create-simple__grid .wide {
     grid-column: 1 / -1;

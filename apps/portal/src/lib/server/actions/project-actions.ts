@@ -1126,6 +1126,9 @@ export const projectActions = {
       initialWorkerIds,
       initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? undefined,
     });
+    // Optional project-wide client hourly rate shown on the simplified form.
+    const clientHourlyRate = String(values.clientHourlyRate ?? '').trim();
+    delete values.clientHourlyRate;
     const personDefaultsJson = String(values.personDefaultsJson ?? 'null');
     const initialAssignmentsJson = String(values.initialAssignmentsJson ?? '[]');
     delete values.personDefaultsJson;
@@ -1210,14 +1213,44 @@ export const projectActions = {
         },
       );
     }
+    // Owner decision 2026-11-16: a blank cost center is numbered automatically
+    // per client ("001", "002", ...); codes may repeat across clients.
+    const enteredCostCenter = String(values.costCenterCode ?? '').trim();
+    if (!enteredCostCenter && typeof values.clientId === 'string' && values.clientId) {
+      const lookup = openPortalRepository(locals);
+      try {
+        values.costCenterCode = lookup.repository.suggestCostCenterCode(
+          lookup.principal,
+          values.clientId,
+        );
+      } catch {
+        // Validation below reports the missing cost center.
+      } finally {
+        lookup.sqlite.close();
+      }
+    }
+    const rateMatch = /^(\d{1,12})(?:[.,](\d{1,2}))?$/u.exec(clientHourlyRate);
+    const clientHourlyRateMinor = rateMatch
+      ? BigInt(rateMatch[1]!) * 100n + BigInt((rateMatch[2] ?? '').padEnd(2, '0') || '0')
+      : null;
     const parsed = projectInputSchema.safeParse(values);
     const retainedValues = {
       ...values,
+      costCenterCode: enteredCostCenter,
+      clientHourlyRate,
       personDefaultsJson,
       initialAssignmentsJson,
       initialWorkerIds,
       initialWorkersStartOn: data.get('initialWorkersStartOn')?.toString() ?? '',
     };
+    if (clientHourlyRate && clientHourlyRateMinor === null)
+      return inputFailure(
+        'PROJECT_FIELDS_INVALID',
+        'problem.project.fieldsInvalid',
+        'Enter the client hourly rate as an amount with at most two decimals, for example 85.50.',
+        { clientHourlyRate: ['problem.project.fieldsInvalid'] },
+        { values: retainedValues, actionName: 'createProject', correlationId: locals.correlationId },
+      );
     if (!parsed.success || !people.success)
       return inputFailure(
         'PROJECT_FIELDS_INVALID',
@@ -1264,6 +1297,19 @@ export const projectActions = {
           ...parsed.data,
           initialWorkerIds: [],
         });
+        if (clientHourlyRateMinor !== null)
+          context.v3.createClientLaborRate(context.principal, {
+            projectId: created.id,
+            currency: parsed.data.currency,
+            hourlyRateMinor: clientHourlyRateMinor,
+            effectiveFrom:
+              parsed.data.startDate ||
+              (
+                context.sqlite.prepare('SELECT start_date FROM project WHERE id=?').get(created.id) as {
+                  start_date: string;
+                }
+              ).start_date,
+          });
         const personRepository = new ProjectPersonDefaultsRepository(
           context.sqlite,
           context.repository,

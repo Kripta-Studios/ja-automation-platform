@@ -25,6 +25,7 @@
   } from '../management-recovery';
   import type { PortalRow } from '../portal-data';
   import ClientWorkCalendar from './ClientWorkCalendar.svelte';
+  import PermanentDeleteDialog from '../ui/PermanentDeleteDialog.svelte';
   import type { ClientCalendarEntry } from '../client-work-calendar';
 
   /**
@@ -41,6 +42,8 @@
     calendarLocale?: string;
     canViewWorkCalendar?: boolean;
     canManageContacts?: boolean;
+    /** Owner only: permanent deletion of a client with all its projects. */
+    canDeletePermanently?: boolean;
     form?: unknown;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status', value: unknown) => string;
@@ -55,6 +58,7 @@
     calendarLocale = 'en-US',
     canViewWorkCalendar = false,
     canManageContacts = false,
+    canDeletePermanently = false,
     form,
     translate,
     controlledValue,
@@ -526,8 +530,18 @@
             <a
               class="secondary-button"
               href={`${base}/app/projects?lang=${encodeURIComponent(problemLocale)}#client-controls-${clientId}`}
-              >{translate('Archive')} / {translate('Delete client')}</a
+              >{translate('Archive')}</a
             >
+            {#if canDeletePermanently && clientId}
+              <PermanentDeleteDialog
+                kind="client"
+                recordId={clientId}
+                action="?view=clients&/deleteClient"
+                {base}
+                locale={problemLocale}
+                compact
+              />
+            {/if}
           </div>
         {/if}
         <dl class="client-directory__facts">

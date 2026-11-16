@@ -5083,6 +5083,7 @@
         contacts={data.contacts ?? []}
         projects={data.projects ?? []}
         canManageContacts={canManageClientContacts}
+        canDeletePermanently={data.user.role === 'owner_admin'}
         calendarEntries={data.calendarEntries ?? []}
         calendarMonth={data.calendarMonth ?? ''}
         canViewWorkCalendar={data.canViewWorkCalendar ?? false}
@@ -5886,7 +5887,7 @@
                     class="project-row-actions"
                     use:disclosure
                   >
-                    <summary>{translate('Actions')}</summary>
+                    <summary>{projectCopy(locale, 'rowActions')}</summary>
                     <div class="record-actions lifecycle-actions">
                       {#if row.status === 'active' || row.status === 'paused'}
                         <form

@@ -22,7 +22,7 @@
   import { money } from '../portal-format';
   import { ProblemNotice, StatusBadge, formValidation } from '../ui';
   import { approvalQueueText, type ApprovalQueueCopyKey } from './approval-queue-copy';
-  import type { QueueTotals } from '../approval-queue-page';
+  import type { ApprovalQueuePage, QueueTotals } from '../approval-queue-page';
   import type { CurrencyTotal } from '../home-inbox';
   import { personDisplayName } from '../display-name';
 
@@ -235,7 +235,7 @@
 
   // ---------- queue model (server: pending only, searched, filtered, paginated) ----------
   const emptyTotals: QueueTotals = { timeCount: 0, minutes: 0, expenseCount: 0, expenseTotals: [] };
-  const queue = $derived(
+  const queue = $derived<ApprovalQueuePage>(
     data.approvalQueue ?? {
       query: {
         tab: 'time',
@@ -270,6 +270,7 @@
       finance: { count: 0, rows: [] },
     },
   );
+  const activeTab = $derived<Tab>(queue.query.tab as Tab);
   /** Every row the server sent (for "problem with …" lookups). */
   const rows = $derived((data.records ?? []) as Row[]);
   const milestones = $derived((data.milestones ?? []) as Row[]);
@@ -341,7 +342,7 @@
       if (text) next.searchParams.set(key, text);
       else next.searchParams.delete(key);
     }
-    return `${next.pathname}${next.search}#approval-queue`;
+    return `${next.pathname}${next.search}`;
   }
   function navigate(changes: Record<string, string | number | null>): void {
     selected = {};
@@ -374,6 +375,7 @@
 
   // ---------- approve all hours and expenses (one transaction via approveBatch) ----------
   const APPROVE_ALL_LIMIT = 200; // matches the server batch limit
+  const PENDING_PAGE_SIZE = 20; // APPROVAL_PAGE_SIZE on the server
   const approveAllTokens = $derived(queue.approveAll.tokens);
   const approveAllWorkers = $derived(queue.approveAll.workers);
   function totalsSummary(totals: QueueTotals): string {
@@ -451,7 +453,6 @@
   );
 
   // ---------- tabs ----------
-  const activeTab = $derived<Tab>(queue.query.tab);
   onMount(() => {
     // Home "Approve all hours and expenses" lands here with the summary already open.
     if (
@@ -1346,7 +1347,7 @@
       <p class="aq-more-row">
         <a
           class="aq-secondary aq-show-more"
-          href={queueHref({ show: shownCount + queue.pageSize })}
+          href={queueHref({ show: shownCount + PENDING_PAGE_SIZE, view: null })}
           data-sveltekit-noscroll
           data-sveltekit-keepfocus
           data-approval-show-more>{t('showMore')}</a
@@ -1376,13 +1377,12 @@
             </li>
           {/each}
         </ul>
+        {#if waitingRows.length < queue.waiting.count}
+          <p class="aq-muted">
+            {t('showing', { shown: waitingRows.length, count: queue.waiting.count })}
+          </p>
+        {/if}
       </details>
-    {/if}
-
-    {#if waitingRows.length < queue.waiting.count}
-      <p class="aq-muted">
-        {t('showing', { shown: waitingRows.length, count: queue.waiting.count })}
-      </p>
     {/if}
 
     <!-- Approved, not invoiced: a separate list, loaded only on request. -->

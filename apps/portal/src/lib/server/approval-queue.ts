@@ -312,12 +312,14 @@ export function loadApprovalQueuePage(
   });
   const matchingTab = filterQueueRows(tabRows, filters, filterLabels);
 
+  // `show` pages the list that is open: the approved list in view=approved, else the queue.
+  const pendingShow = query.view === 'approved' ? APPROVAL_PAGE_SIZE : query.show;
   let groups: ApprovalQueuePage['groups'] = [];
   let reports: Row[] = [];
   let groupCount = 0;
   if (query.tab === 'reports') {
     const sorted = [...matchingTab].sort((a, b) => text(a.date).localeCompare(text(b.date)));
-    reports = sorted.slice(0, query.show).map(decorate);
+    reports = sorted.slice(0, pendingShow).map(decorate);
   } else {
     const all = groupQueueRows(
       matchingTab,
@@ -325,7 +327,7 @@ export function loadApprovalQueuePage(
       labels.workerName,
     );
     groupCount = all.length;
-    groups = all.slice(0, query.show).map((group) => ({
+    groups = all.slice(0, pendingShow).map((group) => ({
       key: group.key,
       kind: group.kind,
       workerId: group.workerId,

@@ -90,6 +90,9 @@
     active: boolean;
     tone?: 'danger';
     items?: Array<{ id: string; label: string; value: string; note?: string; href: string }>;
+    moreCount?: number;
+    moreHref?: string;
+    moreLabel?: string;
   };
   const inbox = $derived(data.homeInbox);
   const overdueTotals = $derived(
@@ -156,6 +159,10 @@
             : (invoiceDraftHref ?? link('billing')),
         active: ready.projects > 0,
         // Several projects: one "Create invoice" per project, straight from Home.
+        // The rest are one click away on Money, sorted by money waiting.
+        moreCount: canCreateInvoiceDraft ? Math.max(0, ready.items.length - 6) : 0,
+        moreHref: link('finance', { view: 'overview' }),
+        moreLabel: h('viewAllProjects', { count: ready.items.length }),
         items:
           canCreateInvoiceDraft && ready.items.length > 0
             ? ready.items.slice(0, 6).map((item) => ({
@@ -370,6 +377,11 @@
                 </li>
               {/each}
             </ul>
+            {#if row.moreCount}
+              <a class="home-inbox-more" href={row.moreHref} data-home-ready-more
+                >{row.moreLabel} <DirectionIcon /></a
+              >
+            {/if}
           {/if}
         </li>
       {/each}
@@ -673,6 +685,14 @@
     min-width: 0;
     padding: 1rem 1.25rem;
     border-left: 4px solid var(--ja-ink, #24251f);
+  }
+  .home-inbox-more {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    min-height: 44px;
   }
   .home-inbox-row + .home-inbox-row {
     border-top: 1px solid var(--ja-border-subdued);

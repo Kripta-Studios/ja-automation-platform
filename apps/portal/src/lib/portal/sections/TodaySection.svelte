@@ -135,8 +135,20 @@
       rows.push({
         id: 'ready',
         label: h('readyToInvoice'),
-        value: ready.projects ? totalsText(ready.totals) : '—',
-        detail: ready.projects ? plural(ready.projects, 'project', 'projects') : h('noReady'),
+        value: ready.projects
+          ? totalsText(ready.totals) ||
+            (ready.pendingMinutes ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) }) : '—')
+          : '—',
+        detail: ready.projects
+          ? [
+              plural(ready.projects, 'project', 'projects'),
+              ready.totals.length && ready.pendingMinutes
+                ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) })
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : h('noReady'),
         action: h('createInvoice'),
         href:
           ready.topProjectId && canCreateInvoiceDraft
@@ -149,10 +161,19 @@
             ? ready.items.slice(0, 6).map((item) => ({
                 id: item.projectId,
                 label: item.label,
-                value: money(item.minor, item.currency),
-                note: item.draftMinor
-                  ? h('inDraft', { amount: money(item.draftMinor, item.currency) })
-                  : undefined,
+                value:
+                  BigInt(item.minor) > 0n
+                    ? money(item.minor, item.currency)
+                    : h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes ?? 0) }),
+                note:
+                  [
+                    item.draftMinor ? h('inDraft', { amount: money(item.draftMinor, item.currency) }) : '',
+                    BigInt(item.minor) > 0n && item.pendingMinutes
+                      ? h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes) })
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined,
                 href: link('billing', {
                   project: item.projectId,
                   assistantSurface: 'invoice-create',

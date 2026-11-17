@@ -195,11 +195,47 @@
     !['unlocked', 'locked'].includes(source.billingState);
   const needsApproval = (source: InvoiceCompositionSource) =>
     !source.financeAccepted || source.approvalState !== 'approved';
+  // "Approve & include" (owner decisions 2026-11-17): Owner and Finance approve on the
+  // worker's behalf from any pre-approval state; the server audits every step.
   const canApprove = (source: InvoiceCompositionSource) =>
     !reserved(source) &&
-    ((role === 'owner_admin' && ['submitted', 'approved'].includes(source.approvalState)) ||
-      (role === 'finance_admin' && source.approvalState === 'approved')) &&
+    ['owner_admin', 'finance_admin'].includes(role) &&
+    ['draft', 'needs_changes', 'submitted', 'approved'].includes(source.approvalState) &&
     needsApproval(source);
+  /** One row per blocker code (never one per record): count, people and hours. */
+  function groupedReasons(reasons: readonly Reason[]) {
+    const groups = new Map<string, { reason: Reason; count: number; workers: Set<string>; minutes: number }>();
+    for (const reason of reasons) {
+      const group = groups.get(reason.code) ?? { reason, count: 0, workers: new Set<string>(), minutes: 0 };
+      group.count += 1;
+      const source = reason.sourceId
+        ? inventory?.sources.find((candidate) => candidate.id === reason.sourceId)
+        : undefined;
+      if (source) {
+        group.workers.add(source.workerName);
+        group.minutes += source.minutes ?? 0;
+      }
+      groups.set(reason.code, group);
+    }
+    return [...groups.values()];
+  }
+  const groupLabel = (group: ReturnType<typeof groupedReasons>[number]) =>
+    [
+      reasonText(group.reason.code),
+      group.count > 1 || group.workers.size
+        ? `${group.count} · ${[...group.workers].join(', ')}${group.minutes ? ` ${hoursFromMinutes(group.minutes)}` : ''}`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' — ');
+  const approvalCodes = new Set([
+    'pending_time_submission',
+    'pending_time_approval',
+    'pending_time_finance_review',
+    'pending_expense_approval',
+    'pending_expense_submission',
+    'pending_expense_finance_review',
+  ]);
   const pendingSelected = $derived(selectedSources.filter(canApprove));
   const visible = $derived(
     (inventory?.sources ?? []).filter(
@@ -1012,8 +1048,14 @@
               >{/if}
           </div>{/if}
         {#if feedback.reasons}<ul>
-            {#each feedback.reasons as reason}<li>
-                {reasonText(reason.code)} <a href={blockerHref(reason)}>{text('solve')}</a>
+            {#each groupedReasons(feedback.reasons) as group (group.reason.code)}<li>
+                {groupLabel(group)}
+                {#if approvalCodes.has(group.reason.code) && pendingSelected.length}<button
+                    type="button"
+                    class="secondary-button"
+                    disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
+                    onclick={() => command('approveSources')}>{text('approveInclude')}</button
+                  >{:else}<a href={blockerHref(group.reason)}>{text('solve')}</a>{/if}
               </li>{/each}
           </ul>{/if}
       {/if}
@@ -1190,7 +1232,7 @@
                           : 'viewInvoice',
                       )}</a
                     >
-                  {:else if !['pending_time_approval', 'pending_time_finance_review', 'pending_expense_approval', 'pending_expense_finance_review'].includes(reason.code)}
+                  {:else if !approvalCodes.has(reason.code)}
                     <a href={blockerHref(reason)}>{text('solve')}</a>{/if}
                 </p>{/each}
               {#if source.type === 'expense' && source.classificationState === 'unclassified' && inventory.expensePolicies?.some((policy) => policy.sourceId === source.id && policy.available)}
@@ -1281,7 +1323,7 @@
               class="primary-button"
               onclick={() => command('approveSources')}
               disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
-              >{text('approve')} ({pendingSelected.length})</button
+              >{text('approveInclude')} ({pendingSelected.length})</button
             >{/if}
           <button
             type="button"
@@ -1297,8 +1339,14 @@
         {#if preview}
           {#if preview.reasons.length}<div role="alert">
               <ul>
-                {#each preview.reasons as reason}<li>
-                    {reasonText(reason.code)} <a href={blockerHref(reason)}>{text('solve')}</a>
+                {#each groupedReasons(preview.reasons) as group (group.reason.code)}<li>
+                    {groupLabel(group)}
+                    {#if approvalCodes.has(group.reason.code) && pendingSelected.length}<button
+                        type="button"
+                        class="secondary-button"
+                        disabled={busy || formBusy || !selectionCurrent || uncertainCreate}
+                        onclick={() => command('approveSources')}>{text('approveInclude')}</button
+                      >{:else}<a href={blockerHref(group.reason)}>{text('solve')}</a>{/if}
                   </li>{/each}
               </ul>
             </div>{/if}

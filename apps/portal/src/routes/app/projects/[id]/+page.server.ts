@@ -21,6 +21,7 @@ import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/ac
 import { createInvoiceDraftResolvingPeriod } from '$lib/server/invoice-draft';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { RateSaveError, saveClientRate } from '$lib/server/rates-core';
 import { removePurgedFiles } from '$lib/server/permanent-deletion';
 import { emptyProjectHub, projectHubData } from '$lib/server/project-hub';
 import type { ProblemData } from '$lib/problem/contract';
@@ -1977,27 +1978,33 @@ export const actions: Actions = {
           fieldErrors: { rate: ['problem.projectDetail.personTermsRateInvalid'] },
         },
       );
-    const [whole, fraction = ''] = parsed.data.rate.replace(',', '.').split('.');
-    const rateMinor = BigInt(whole ?? '0') * 100n + BigInt((fraction + '00').slice(0, 2));
     let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       context = openPortalRepository(locals);
-      const project = context.repository.projectOverview(context.principal, params.id, {
-        includeFinance: false,
-      }).project as { currency?: string };
+      // Object-level access check before any write.
+      context.repository.projectOverview(context.principal, params.id, { includeFinance: false });
       if (parsed.data.workerId) {
         const member = context.sqlite
           .prepare('SELECT 1 FROM project_member WHERE project_id=? AND user_id=? LIMIT 1')
           .get(params.id, parsed.data.workerId);
         if (!member) throw new ValidationError('Worker is not assigned to this project');
       }
-      context.v3.createClientLaborRate(context.principal, {
-        projectId: params.id,
-        workerId: parsed.data.workerId || undefined,
-        currency: String(project.currency) as 'EUR' | 'USD' | 'BRL',
-        hourlyRateMinor: rateMinor,
-        effectiveFrom: parsed.data.effectiveFrom,
-      });
+      // Same core as Finance and invoice preparation: dated person override that is
+      // verified to win the rate resolution, never back-dated over an issued invoice.
+      try {
+        saveClientRate(context.sqlite, context.v3, context.principal, {
+          projectId: params.id,
+          workerId: parsed.data.workerId,
+          amount: parsed.data.rate,
+          basis: 'hourly',
+          effectiveFrom: parsed.data.effectiveFrom,
+        });
+      } catch (error) {
+        if (!(error instanceof RateSaveError)) throw error;
+        throw error.code === 'already_invoiced' || error.code === 'same_day'
+          ? new ConflictError(`Client rate not saved: ${error.code}`)
+          : new ValidationError(`Client rate not saved: ${error.code}`);
+      }
       return actionSuccess('action.projects.projectUpdated', {}, 'Client rate saved');
     } catch (e) {
       return detailFailure(e, 'setClientRate', values, params.id);

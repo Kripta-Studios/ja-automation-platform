@@ -9,9 +9,11 @@
  */
 import {
   AccessDeniedError,
+  AssignmentExpensePolicyRepository,
   ConflictError,
   ValidationError,
   assertLiveSession,
+  type InvoiceCompositionSource,
   type InvoiceCompositionSourceRef,
   type ReadinessReason,
 } from '@ja/database';
@@ -98,6 +100,111 @@ export type QuickInvoicePreview = {
   issuerLegalEntityId: string | null;
   /** Unissued drafts of this project overlapping the period (records may already sit there). */
   openDrafts: Array<{ id: string; state: string; periodStart: string; periodEnd: string; totalMinor: string }>;
+  /**
+   * Everything the workers logged is selected by default. When some of it still needs an
+   * approval, the engine is run a second time inside a rolled-back savepoint that simulates
+   * "Approve & include": these are its exact totals. `totalMinor` above stays the amount
+   * that would be created right now (the create/issue guard).
+   */
+  projected: QuickInvoiceProjection | null;
+  /** Grouped checklist: at most one item per (fix × person), in a fixed order. */
+  attention: QuickInvoiceAttention[];
+  /** Expenses of an expense-carrying stream (first 50), for the treatment toggle. */
+  expenseRows: QuickInvoiceExpenseRow[];
+  expenseRowsTotal: number;
+  client: QuickInvoiceClient | null;
+  capabilities: { canApprove: boolean; role: string };
+};
+
+export type QuickInvoiceProjection = {
+  state: 'ready' | 'blocked' | 'empty' | 'existing';
+  groups: QuickInvoiceGroup[];
+  subtotalMinor: string;
+  taxMinor: string;
+  totalMinor: string;
+  /** Exact difference the pending approvals add (projected total − total now). */
+  includedPendingMinor: string;
+  pendingCount: number;
+  pendingMinutes: number;
+};
+
+export type QuickInvoiceAttentionPerson = {
+  workerId: string;
+  name: string;
+  minutes: number;
+  count: number;
+  /** Exact amount these records add once approved (projection lines). */
+  projectedMinor?: string;
+  states?: { draft: number; submitted: number; returned: number; financePending: number };
+  returnedReason?: string | null;
+  futureCount?: number;
+  /** Oldest affected date: a saved rate/cost starts here so it covers the invoice. */
+  fromDate?: string;
+  suggestedRateMinor?: string | null;
+  sources?: InvoiceCompositionSourceRef[];
+};
+
+export type QuickInvoiceExpenseRow = {
+  ref: InvoiceCompositionSourceRef;
+  label: string;
+  date: string;
+  workerName: string;
+  amountMinor: string;
+  currency: string;
+  approvalState: string;
+  classificationState: string;
+  clientTreatment: string;
+  billingTreatment: string;
+  markupBps: number;
+  /** Treatment cannot change: the expense sits on an unissued draft or live invoice. */
+  locked: boolean;
+  policyAvailable: boolean;
+};
+
+export type QuickInvoiceClient = {
+  id: string;
+  version: number;
+  name: string;
+  legalName: string;
+  billingAddress: string | null;
+  billingEmail: string | null;
+};
+
+export type QuickInvoiceAttention = {
+  kind:
+    | 'approve'
+    | 'clientRate'
+    | 'workerCost'
+    | 'expenseTreatment'
+    | 'clientDetails'
+    | 'billingSetup'
+    | 'issuerBank'
+    | 'purchaseOrder'
+    | 'other';
+  /** Engine code for 'other' items (shown with plain text + an Advanced link). */
+  code?: string;
+  blocks: 'create' | 'issue' | 'none';
+  people?: QuickInvoiceAttentionPerson[];
+  expenseIds?: string[];
+  totalCount: number;
+  minutes?: number;
+  fix?: QuickInvoiceWarning['fix'];
+  message?: string;
+  billingSetup?: {
+    legalEntities: Array<{ id: string; code: string; name: string }>;
+    taxProfiles: Array<{ id: string; name: string; legalEntityId: string | null; basisPoints: number }>;
+  };
+  issuer?: {
+    legalEntityId: string;
+    currency: string;
+    version: number;
+    bankName: string;
+    bankAccountNumber: string;
+  };
+  project?: { id: string; version: number; poNumber: string | null };
+  /** workerCost: which of the person's internal settings are missing. */
+  payMissing?: boolean;
+  costMissing?: boolean;
 };
 
 function authorize(context: Context): void {
@@ -442,6 +549,9 @@ export type QuickInvoiceInput = {
 type Computed = {
   preview: QuickInvoicePreview;
   selection: InvoiceCompositionSourceRef[] | null;
+  /** Raw engine reasons (per record), for the grouped checklist. */
+  reasons: ReadinessReason[];
+  lines: Array<{ sourceType: string; sourceId: string; subtotalMinor: string }>;
 };
 
 function emptyPreview(
@@ -475,6 +585,12 @@ function emptyPreview(
     suggestedPeriod: null,
     issuerLegalEntityId: null,
     openDrafts: [],
+    projected: null,
+    attention: [],
+    expenseRows: [],
+    expenseRowsTotal: 0,
+    client: null,
+    capabilities: { canApprove: false, role: '' },
   };
 }
 
@@ -560,7 +676,7 @@ function suggestPeriod(
   };
 }
 
-function compute(context: Context, input: QuickInvoiceInput): Computed {
+function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   const project = context.repository
     .listFinanceProjects(context.principal)
     .find((row) => String(row.id) === input.projectId);
@@ -570,6 +686,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     ? (streams.find((candidate) => candidate.id === input.billingRuleId) ?? null)
     : chooseQuickInvoiceStream(streams, input.periodStart, input.periodEnd);
   if (input.billingRuleId && !stream) throw new ValidationError('Billing stream not found');
+  const collected: ReadinessReason[] = [];
   // A stream's terms apply only inside its effective window: bill the part of the
   // requested period the stream covers and show the dates actually used.
   if (stream) {
@@ -600,6 +717,8 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
         warnings: [{ code: 'missing_billing_stream', severity: 'blocker', count: 0, minutes: 0, fix: 'billing_setup' }],
       },
       selection: null,
+      reasons: collected,
+      lines: [],
     };
 
   const readiness = context.repository.billingReadiness(
@@ -609,6 +728,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     input.periodEnd,
   );
   const readinessReasons = readiness.reasons as readonly ReadinessReason[];
+  collected.push(...readinessReasons);
   const globalReasons = readinessReasons.filter(
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );
@@ -627,6 +747,8 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
         totalMinor: String(invoice.total_minor ?? '0'),
       },
       selection: null,
+      reasons: collected,
+      lines: [],
     };
   }
 
@@ -649,11 +771,13 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           ],
         },
         selection: null,
+      reasons: collected,
+      lines: [],
       };
     // Only individual records are not ready: invoice what is ready, list the rest.
     excluded = groupedWarnings(context, readinessReasons, () => 'excluded');
     if (stream.streamType === 'milestone')
-      return { preview: { ...base, state: 'blocked', warnings: excluded }, selection: null };
+      return { preview: { ...base, state: 'blocked', warnings: excluded }, selection: null, reasons: collected, lines: [] };
     selection = eligibleSelection(context, {
       projectId: input.projectId,
       billingRuleId: stream.id,
@@ -673,6 +797,8 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           ),
         },
         selection: null,
+      reasons: collected,
+      lines: [],
       };
   }
 
@@ -684,6 +810,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     selection ?? undefined,
   );
   if (!dryRun.ok) {
+    collected.push(...dryRun.reasons);
     const nothing = dryRun.reasons.every((reason) =>
       ['no_billable_sources', 'no_new_client_unit_charges'].includes(reason.code),
     );
@@ -706,9 +833,12 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
         suggestedPeriod: nothing ? suggestPeriod(stream, nearby) : null,
       },
       selection: null,
+      reasons: collected,
+      lines: [],
     };
   }
   const invoice = dryRun.preview.invoice as Row;
+  if (!dryRun.issue.ok) collected.push(...dryRun.issue.reasons);
   // A whole-period draft for exactly these dates is rebuilt, never duplicated. When the
   // rebuild would change nothing, simply point to that draft.
   let updatesDraft = false;
@@ -725,6 +855,8 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           totalMinor: current.total,
         },
         selection: null,
+      reasons: collected,
+      lines: [],
       };
     updatesDraft = true;
   }
@@ -782,6 +914,448 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
       issuerLegalEntityId: invoice.issuer_legal_entity_id ? String(invoice.issuer_legal_entity_id) : null,
     },
     selection,
+    reasons: collected,
+    lines: dryRun.lines,
+  };
+}
+
+/** Records workers logged that still need an approval step before they can be invoiced. */
+export function pendingInvoiceSources(
+  sources: readonly InvoiceCompositionSource[],
+): InvoiceCompositionSource[] {
+  const hard = new Set([
+    'source_not_billable',
+    'source_already_reserved',
+    'source_requires_remaining_period_billing',
+  ]);
+  return sources.filter(
+    (source) =>
+      source.containingInvoice === null &&
+      !source.blockers.some((reason) => hard.has(reason.code)) &&
+      (['draft', 'submitted', 'needs_changes'].includes(source.approvalState) ||
+        (source.approvalState === 'approved' && !source.financeAccepted)),
+  );
+}
+
+const ATTENTION_CODES: Record<string, QuickInvoiceAttention['kind']> = {
+  missing_client_rate: 'clientRate',
+  ambiguous_client_rate: 'clientRate',
+  hybrid_requires_hourly_client_rates: 'clientRate',
+  missing_internal_cost: 'workerCost',
+  missing_compensation_rule: 'workerCost',
+  missing_expense_classification: 'expenseTreatment',
+  missing_expense_finance_projection: 'expenseTreatment',
+  missing_issuer_settings: 'issuerBank',
+  missing_purchase_order: 'purchaseOrder',
+  missing_billing_stream: 'billingSetup',
+};
+/** Handled by "Approve & include" (or simply the selection), never listed separately. */
+const APPROVAL_CODES = new Set([
+  'pending_time_submission',
+  'pending_time_approval',
+  'pending_time_finance_review',
+  'pending_expense_approval',
+  'pending_expense_submission',
+  'complete_client_billing_group_required',
+  'source_not_billable',
+  'no_billable_sources',
+  'no_new_client_unit_charges',
+  'updates_existing_draft',
+]);
+const CLIENT_RATE_CODES = new Set(['missing_client_rate', 'ambiguous_client_rate', 'hybrid_requires_hourly_client_rates']);
+const COST_CODES = new Set(['missing_internal_cost', 'missing_compensation_rule']);
+const KIND_ORDER: QuickInvoiceAttention['kind'][] = [
+  'approve',
+  'clientRate',
+  'workerCost',
+  'expenseTreatment',
+  'clientDetails',
+  'billingSetup',
+  'issuerBank',
+  'other',
+  'purchaseOrder',
+];
+
+function latestReturnReasons(context: Context, ids: readonly string[]): Map<string, string> {
+  const reasons = new Map<string, string>();
+  if (!ids.length) return reasons;
+  for (let offset = 0; offset < ids.length; offset += 400) {
+    const batch = ids.slice(offset, offset + 400);
+    for (const row of context.sqlite
+      .prepare(
+        `SELECT entity_id id,reason FROM approval_event WHERE to_state='needs_changes' AND reason IS NOT NULL
+           AND entity_id IN (${batch.map(() => '?').join(',')}) ORDER BY occurred_at`,
+      )
+      .all(...batch) as Array<{ id: string; reason: string }>)
+      reasons.set(row.id, row.reason);
+  }
+  return reasons;
+}
+
+/** Suggested client rate: the project-wide rate, else this person's latest rate for the client. */
+function suggestedRate(context: Context, projectId: string, workerId: string, date: string): string | null {
+  const row = context.sqlite
+    .prepare(
+      `SELECT CAST(COALESCE(CASE WHEN rate_basis='hourly' THEN hourly_rate_minor ELSE unit_rate_minor END,0) AS TEXT) minor
+         FROM client_labor_rate r
+        WHERE rate_basis='hourly' AND (
+              (r.project_id=? AND r.worker_id IS NULL AND r.category IS NULL AND r.effective_from<=? AND (r.effective_to IS NULL OR r.effective_to>=?))
+           OR (r.worker_id=? AND r.project_id IN (SELECT id FROM project WHERE client_id=(SELECT client_id FROM project WHERE id=?))))
+        ORDER BY (r.project_id=? AND r.worker_id IS NULL) DESC, r.effective_from DESC LIMIT 1`,
+    )
+    .get(projectId, date, date, workerId, projectId, projectId) as { minor: string } | undefined;
+  return row && BigInt(row.minor) > 0n ? row.minor : null;
+}
+
+function clientOf(context: Context, projectId: string): QuickInvoiceClient | null {
+  const row = context.sqlite
+    .prepare(
+      `SELECT c.id,c.version,c.display_name,c.legal_name,c.billing_address,c.billing_email
+         FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
+    )
+    .get(projectId) as Row | undefined;
+  if (!row) return null;
+  const clean = (value: unknown) => (typeof value === 'string' && value.trim() ? value : null);
+  return {
+    id: String(row.id),
+    version: Number(row.version),
+    name: String(row.display_name || row.legal_name || ''),
+    legalName: String(row.legal_name || ''),
+    billingAddress: clean(row.billing_address),
+    billingEmail: clean(row.billing_email),
+  };
+}
+
+function people(
+  context: Context,
+  sources: readonly InvoiceCompositionSource[],
+): Map<string, QuickInvoiceAttentionPerson> {
+  const names = new Map<string, QuickInvoiceAttentionPerson>();
+  for (const source of sources) {
+    const person = names.get(source.workerId) ?? {
+      workerId: source.workerId,
+      name: personDisplayName(source.workerName) || '—',
+      minutes: 0,
+      count: 0,
+      fromDate: source.date,
+      sources: [],
+    };
+    person.count += 1;
+    person.minutes += source.type === 'time' ? Number(source.minutes ?? 0) : 0;
+    if (source.date < (person.fromDate ?? source.date)) person.fromDate = source.date;
+    person.sources!.push({ type: source.type, id: source.id, version: source.version });
+    names.set(source.workerId, person);
+  }
+  void context;
+  return names;
+}
+
+function buildAttention(
+  context: Context,
+  input: QuickInvoiceInput,
+  base: Computed,
+  projected: Computed | null,
+  inventory: readonly InvoiceCompositionSource[],
+  pending: readonly InvoiceCompositionSource[],
+  client: QuickInvoiceClient | null,
+): { attention: QuickInvoiceAttention[]; expenseRows: QuickInvoiceExpenseRow[]; expenseRowsTotal: number } {
+  const items: QuickInvoiceAttention[] = [];
+  const byId = new Map(inventory.map((source) => [`${source.id}`, source]));
+  const today = new Date().toISOString().slice(0, 10);
+
+  // 1. Approval: one row per person, whatever state the worker left the records in.
+  if (pending.length) {
+    const pendingIds = new Set(pending.map((source) => source.id));
+    const projectedByWorker = new Map<string, bigint>();
+    for (const line of projected?.lines ?? []) {
+      if (!pendingIds.has(line.sourceId)) continue;
+      const worker = byId.get(line.sourceId)?.workerId;
+      if (worker)
+        projectedByWorker.set(worker, (projectedByWorker.get(worker) ?? 0n) + BigInt(line.subtotalMinor));
+    }
+    const returned = latestReturnReasons(
+      context,
+      pending.filter((source) => source.approvalState === 'needs_changes').map((source) => source.id),
+    );
+    const grouped = people(context, pending);
+    for (const person of grouped.values()) {
+      const mine = pending.filter((source) => source.workerId === person.workerId);
+      person.states = {
+        draft: mine.filter((source) => source.approvalState === 'draft').length,
+        submitted: mine.filter((source) => source.approvalState === 'submitted').length,
+        returned: mine.filter((source) => source.approvalState === 'needs_changes').length,
+        financePending: mine.filter((source) => source.approvalState === 'approved').length,
+      };
+      person.returnedReason =
+        mine.map((source) => returned.get(source.id)).find((reason) => Boolean(reason)) ?? null;
+      person.futureCount = mine.filter((source) => source.date > today).length;
+      const amount = projectedByWorker.get(person.workerId);
+      if (amount !== undefined) person.projectedMinor = amount.toString();
+    }
+    const list = [...grouped.values()].sort((a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name));
+    items.push({
+      kind: 'approve',
+      blocks: base.preview.state === 'ready' ? 'none' : 'create',
+      people: list.slice(0, 25),
+      totalCount: list.length,
+      minutes: list.reduce((total, person) => total + person.minutes, 0),
+    });
+  }
+
+  // 2–4. Rates, costs, expense treatment from the engine reasons of the projected selection.
+  const reasons = (projected ?? base).reasons;
+  const issueCodes = new Set(
+    (projected ?? base).preview.warnings
+      .filter((warning) => warning.severity === 'issue')
+      .map((warning) => warning.code),
+  );
+  const perKind = new Map<string, Set<string>>();
+  const otherCodes = new Map<string, Set<string>>();
+  for (const reason of reasons) {
+    const kind = ATTENTION_CODES[reason.code];
+    if (kind && ['clientRate', 'workerCost', 'expenseTreatment'].includes(kind)) {
+      const ids = perKind.get(kind) ?? new Set<string>();
+      if (reason.sourceId) ids.add(reason.sourceId);
+      perKind.set(kind, ids);
+    } else if (!kind && !APPROVAL_CODES.has(reason.code)) {
+      const ids = otherCodes.get(reason.code) ?? new Set<string>();
+      if (reason.sourceId) ids.add(reason.sourceId);
+      otherCodes.set(reason.code, ids);
+    }
+  }
+  for (const kind of ['clientRate', 'workerCost'] as const) {
+    const ids = perKind.get(kind);
+    if (!ids?.size) continue;
+    const sources = [...ids].map((id) => byId.get(id)).filter((source): source is InvoiceCompositionSource => Boolean(source));
+    const grouped = [...people(context, sources).values()].sort((a, b) => b.minutes - a.minutes);
+    for (const person of grouped) {
+      if (kind === 'clientRate')
+        person.suggestedRateMinor = suggestedRate(context, input.projectId, person.workerId, person.fromDate ?? input.periodStart);
+      delete person.sources;
+    }
+    const codes = kind === 'clientRate' ? CLIENT_RATE_CODES : COST_CODES;
+    const present = new Set(reasons.filter((reason) => reason.sourceId && ids.has(reason.sourceId)).map((reason) => reason.code));
+    items.push({
+      kind,
+      ...(kind === 'workerCost'
+        ? { payMissing: present.has('missing_compensation_rule'), costMissing: present.has('missing_internal_cost') }
+        : {}),
+      // Missing only on records still waiting for approval: issuing what is approved now
+      // stays possible; once approved (or for approved records) it must be fixed first.
+      blocks: base.reasons.some((reason) => codes.has(reason.code)) || base.preview.state !== 'ready' ? 'create' : 'none',
+      people: grouped.slice(0, 25),
+      totalCount: grouped.length,
+      minutes: grouped.reduce((total, person) => total + person.minutes, 0),
+    });
+  }
+  const unclassified = [...(perKind.get('expenseTreatment') ?? [])];
+  const expenses = inventory.filter((source) => source.type === 'expense');
+  const expenseRows: QuickInvoiceExpenseRow[] = [];
+  if (expenses.length) {
+    const detail = context.sqlite.prepare(
+      'SELECT client_treatment,billing_treatment,markup_bps,category FROM expense WHERE id=?',
+    );
+    const policies = new AssignmentExpensePolicyRepository(context.sqlite);
+    for (const source of expenses.slice(0, 50)) {
+      const row = (detail.get(source.id) ?? {}) as Row;
+      let policyAvailable = false;
+      if (source.classificationState === 'unclassified')
+        try {
+          const policy = policies.preview(context.principal, source.id);
+          policyAvailable =
+            policy.issues.length === 0 && !!policy.policy && !!policy.clientTreatment && !!policy.billingTreatment;
+        } catch {
+          policyAvailable = false;
+        }
+      expenseRows.push({
+        ref: { type: 'expense', id: source.id, version: source.version },
+        label: [String(row.category ?? ''), source.summary].filter(Boolean).join(' · '),
+        date: source.date,
+        workerName: personDisplayName(source.workerName),
+        amountMinor: String(source.originalAmountMinor ?? source.amountMinor ?? '0'),
+        currency: String(source.originalCurrency ?? source.currency),
+        approvalState: source.approvalState,
+        classificationState: String(source.classificationState ?? ''),
+        clientTreatment: String(row.client_treatment ?? ''),
+        billingTreatment: String(row.billing_treatment ?? ''),
+        markupBps: Number(row.markup_bps ?? 0),
+        locked: source.containingInvoice !== null,
+        policyAvailable,
+      });
+    }
+  }
+  // Unclassified expenses always need a decision before approval, even without an engine reason.
+  for (const source of expenses)
+    if (source.classificationState === 'unclassified' && source.containingInvoice === null && !unclassified.includes(source.id))
+      unclassified.push(source.id);
+  if (unclassified.length)
+    items.push({
+      kind: 'expenseTreatment',
+      blocks: 'create',
+      expenseIds: unclassified.slice(0, 50),
+      totalCount: unclassified.length,
+    });
+
+  // 5. Client details (saved on the client; drafts read it live, issuing freezes it).
+  if (client && (!client.billingAddress || !client.billingEmail))
+    items.push({ kind: 'clientDetails', blocks: 'none', totalCount: 1 });
+
+  // 6–8. Billing setup, issuer bank details, other engine reasons, PO.
+  const warnings = (projected ?? base).preview.warnings;
+  if (warnings.some((warning) => warning.code === 'missing_billing_stream')) {
+    const entities = (context.repository.listLegalEntities(context.principal) as unknown as Row[])
+      .filter((entity) => String(entity.currency) === base.preview.currency)
+      .map((entity) => ({ id: String(entity.id), code: String(entity.code), name: String(entity.legal_name) }));
+    const taxProfiles = (context.repository.listTaxProfiles(context.principal) as Row[])
+      .filter((profile) => String(profile.currency) === base.preview.currency && String(profile.status) === 'active')
+      .map((profile) => ({
+        id: String(profile.id),
+        name: String(profile.name),
+        legalEntityId: profile.legal_entity_id ? String(profile.legal_entity_id) : null,
+        basisPoints: (() => {
+          try {
+            return (JSON.parse(String(profile.components_json ?? '[]')) as Array<{ basisPoints: string }>).reduce(
+              (total, component) => total + Number(component.basisPoints ?? 0),
+              0,
+            );
+          } catch {
+            return 0;
+          }
+        })(),
+      }));
+    items.push({ kind: 'billingSetup', blocks: 'create', totalCount: 1, billingSetup: { legalEntities: entities, taxProfiles } });
+  }
+  const issuerId = (projected ?? base).preview.issuerLegalEntityId;
+  if (warnings.some((warning) => warning.code === 'missing_issuer_settings') && issuerId) {
+    const entity = (context.repository.listLegalEntities(context.principal) as unknown as Row[])
+      .find((candidate) => String(candidate.id) === issuerId) as Row | undefined;
+    const settings = entity?.document_settings as Row | undefined;
+    if (settings)
+      items.push({
+        kind: 'issuerBank',
+        blocks: 'none',
+        totalCount: 1,
+        issuer: {
+          legalEntityId: issuerId,
+          currency: String(settings.currency),
+          version: Number(settings.version ?? 0),
+          bankName: String(settings.bankName ?? ''),
+          bankAccountNumber: String(settings.bankAccountNumber ?? ''),
+        },
+      });
+  }
+  for (const warning of warnings) {
+    if (ATTENTION_CODES[warning.code] || APPROVAL_CODES.has(warning.code) || warning.code === 'expenses_separate')
+      continue;
+    if (warning.severity === 'excluded' && !otherCodes.has(warning.code)) continue;
+    items.push({
+      kind: 'other',
+      code: warning.code,
+      blocks: warning.severity === 'blocker' ? 'create' : warning.severity === 'issue' || issueCodes.has(warning.code) ? 'issue' : 'none',
+      totalCount: warning.count,
+      minutes: warning.minutes,
+      fix: warning.fix,
+      ...(warning.message ? { message: warning.message } : {}),
+    });
+  }
+  if (warnings.some((warning) => warning.code === 'missing_purchase_order')) {
+    const project = context.sqlite
+      .prepare('SELECT version,po_number FROM project WHERE id=?')
+      .get(input.projectId) as { version: number; po_number: string | null } | undefined;
+    if (project)
+      items.push({
+        kind: 'purchaseOrder',
+        blocks: 'none',
+        totalCount: 1,
+        project: { id: input.projectId, version: Number(project.version), poNumber: project.po_number },
+      });
+  }
+  items.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+  return { attention: items, expenseRows, expenseRowsTotal: expenses.length };
+}
+
+function compute(context: Context, input: QuickInvoiceInput): Computed {
+  const base = computeCore(context, input);
+  const preview = base.preview;
+  const client = clientOf(context, input.projectId);
+  const capabilities = { canApprove: ['owner_admin', 'finance_admin'].includes(context.principal.role), role: context.principal.role };
+  let inventory: InvoiceCompositionSource[] = [];
+  let pending: InvoiceCompositionSource[] = [];
+  let projected: Computed | null = null;
+  const stream = preview.stream;
+  if (stream && ['labor', 'expense'].includes(stream.streamType) && preview.state !== 'existing') {
+    inventory = [
+      ...context.repository.invoiceCompositionSources(context.principal, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: preview.periodStart,
+        periodEnd: preview.periodEnd,
+      }).sources,
+    ];
+    pending = pendingInvoiceSources(inventory);
+    if (pending.length && capabilities.canApprove) {
+      // Exact "if you approve" amount: the real approval commands and the real draft
+      // engine run inside a savepoint that is always rolled back.
+      context.sqlite.exec('SAVEPOINT quick_invoice_projection');
+      try {
+        context.repository.approvePendingForInvoice(context.principal, {
+          projectId: input.projectId,
+          sources: pending.map((source) => ({ type: source.type, id: source.id, version: source.version })),
+          requestKey: `projection-${Date.now()}`,
+          periodStart: preview.periodStart,
+          periodEnd: preview.periodEnd,
+          simulate: true,
+        });
+        projected = computeCore(context, { ...input, periodStart: preview.periodStart, periodEnd: preview.periodEnd, billingRuleId: stream.id });
+      } catch {
+        projected = null;
+      } finally {
+        context.sqlite.exec('ROLLBACK TO quick_invoice_projection');
+        context.sqlite.exec('RELEASE quick_invoice_projection');
+      }
+    }
+  }
+  const { attention, expenseRows, expenseRowsTotal } = buildAttention(
+    context,
+    input,
+    base,
+    projected,
+    inventory,
+    pending,
+    client,
+  );
+  const projectedPreview = projected?.preview;
+  const zeroIfNotReady = (state: string, value: string) => (state === 'ready' ? value : '0');
+  return {
+    ...base,
+    preview: {
+      ...preview,
+      // An approval-only blocker is not "blocked": the checklist resolves it here.
+      state:
+        preview.state === 'empty' && projectedPreview?.state === 'ready' ? 'blocked' : preview.state,
+      projected:
+        projectedPreview && pending.length
+          ? {
+              state: projectedPreview.state,
+              groups: projectedPreview.groups,
+              subtotalMinor: projectedPreview.subtotalMinor,
+              taxMinor: projectedPreview.taxMinor,
+              totalMinor: projectedPreview.totalMinor,
+              includedPendingMinor: (
+                BigInt(zeroIfNotReady(projectedPreview.state, projectedPreview.totalMinor)) -
+                BigInt(zeroIfNotReady(preview.state, preview.totalMinor))
+              ).toString(),
+              pendingCount: pending.length,
+              pendingMinutes: pending.reduce((total, source) => total + Number(source.minutes ?? 0), 0),
+            }
+          : null,
+      attention,
+      expenseRows,
+      expenseRowsTotal,
+      client,
+      capabilities,
+      suggestedPeriod: pending.length ? null : preview.suggestedPeriod,
+    },
   };
 }
 
@@ -808,16 +1382,16 @@ export function quickInvoiceCreate(
   sqlite.exec('BEGIN IMMEDIATE');
   let committed = false;
   try {
-    const { preview, selection } = compute(context, input);
+    const { preview, selection } = computeCore(context, input);
     if (preview.state !== 'ready' || !preview.stream) {
       sqlite.exec('ROLLBACK');
       committed = true;
-      return { ok: false, reason: 'not_ready', preview };
+      return { ok: false, reason: 'not_ready', preview: compute(context, input).preview };
     }
     if (preview.totalMinor !== input.expectedTotalMinor) {
       sqlite.exec('ROLLBACK');
       committed = true;
-      return { ok: false, reason: 'amount_changed', preview };
+      return { ok: false, reason: 'amount_changed', preview: compute(context, input).preview };
     }
     const result = selection
       ? context.repository.createSelectedInvoiceDraft(context.principal, {

@@ -80,8 +80,10 @@ export type ReadyToInvoiceItem = {
   minor: string;
   /** Approved work already sitting on an unissued draft of this project. */
   draftMinor?: string;
-  /** Logged hours still waiting for an approval ("Approve & include" on the invoice screen). */
+  /** Submitted hours still waiting for your approval ("Approve & include" on the invoice screen). */
   pendingMinutes?: number;
+  /** Draft or sent-back hours the worker has not sent yet (never counted as "to approve"). */
+  unsentMinutes?: number;
 };
 
 export type ReadyToInvoice = {
@@ -103,6 +105,7 @@ export function readyToInvoiceSummary(
     draftMinor?: string | null;
     label?: string;
     pendingMinutes?: number | null;
+    unsentMinutes?: number | null;
   }>,
 ): ReadyToInvoice {
   const totals = new Map<string, bigint>();
@@ -117,6 +120,7 @@ export function readyToInvoiceSummary(
     if (minor > 0n) totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
     pendingTotal += pending;
     const draft = text(row.draftMinor).trim();
+    const unsent = Number.isFinite(Number(row.unsentMinutes)) ? Math.max(0, Number(row.unsentMinutes ?? 0)) : 0;
     items.push({
       projectId: row.projectId,
       label: row.label ?? row.projectId,
@@ -124,6 +128,7 @@ export function readyToInvoiceSummary(
       minor: minor.toString(),
       ...(/^\d+$/u.test(draft) && BigInt(draft) > 0n ? { draftMinor: draft } : {}),
       ...(pending > 0 ? { pendingMinutes: pending } : {}),
+      ...(unsent > 0 ? { unsentMinutes: unsent } : {}),
       value: minor,
     });
   }

@@ -54,7 +54,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
     const projects = (
       sqlite
         .prepare(
-          `SELECT p.id,p.project_number,p.name,p.status,p.currency,p.site_name,p.start_date,p.planned_end_date
+          `SELECT p.id,p.project_number,p.name,p.status,p.currency,p.site_name,p.start_date,p.planned_end_date,p.po_number
              FROM project p WHERE p.client_id=? ORDER BY p.status='archived',p.project_number`,
         )
         .all(params.id) as Row[]

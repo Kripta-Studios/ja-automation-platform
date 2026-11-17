@@ -92,7 +92,7 @@ for (const role of ['owner', 'finance'] as const) {
       await expect(links.getByRole('link', { name: 'Team access', exact: true })).toBeVisible();
     }
     await page.goto(portal('/projects?view=clients'));
-    await expect(page.getByRole('heading', { name: 'Client contacts', exact: true })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Clients', exact: true })).toBeVisible();
     await page.goto(portal('/projects?view=team'));
     await expect(page.getByRole('heading', { name: 'Team access', exact: true })).toBeVisible();
   });

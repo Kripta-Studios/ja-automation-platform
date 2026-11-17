@@ -81,7 +81,11 @@ export function expenseRegisterExport(
     Currency,
     'Recorded total': decimal(Amount),
   }));
-  if (format === 'csv') return new TextEncoder().encode(toCsv(rows, columns));
+  const amountColumns = ['Recorded amount', 'Reimbursement amount', 'Reimbursed amount'];
+  // Amounts are plain numbers so spreadsheets can sum them; text cells keep the
+  // CSV-injection guard in toCsv.
+  if (format === 'csv')
+    return new TextEncoder().encode(toCsv(rows, columns, { numericColumns: amountColumns }));
   if (format === 'xlsx')
     return xlsxFromSheets([
       {

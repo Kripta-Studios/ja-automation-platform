@@ -3,6 +3,8 @@ export type PlanningEvent = {
   title: string;
   startsAt: string;
   endsAt?: string;
+  /** No end date yet (e.g. a project without a planned end): shown on every day from the start. */
+  ongoing?: boolean;
   href?: string;
   tone?: 'info' | 'success' | 'warning' | 'danger' | 'neutral';
 };
@@ -52,7 +54,8 @@ export function calendarMonthDays(date: string): { date: string; inMonth: boolea
 }
 
 /** Timestamp intervals have exclusive ends; date-only ends include that day.
- * Missing ends represent a single event on its start's UTC day. Invalid or
+ * Missing ends represent a single event on its start's UTC day, unless the
+ * event is `ongoing` (it then occurs on every day from its start). Invalid or
  * reversed intervals never appear, and events spanning midnight overlap both
  * days only when their exclusive end is later than midnight.
  */
@@ -61,7 +64,8 @@ export function eventOccursOnDate(event: PlanningEvent, date: string): boolean {
     const day = new Date(`${calendarDate(date)}T00:00:00Z`).getTime();
     calendarDate(event.startsAt);
     const start = calendarInstant(event.startsAt).getTime();
-    if (!event.endsAt) return start >= day && start < day + DAY_MS;
+    if (!event.endsAt)
+      return event.ongoing ? start < day + DAY_MS : start >= day && start < day + DAY_MS;
     calendarDate(event.endsAt);
     const end =
       calendarInstant(event.endsAt).getTime() + (DATE_ONLY.test(event.endsAt) ? DAY_MS : 0);

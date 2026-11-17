@@ -67,6 +67,16 @@
 
   const rateFor = (workerId: string) => ratePeople?.find((person) => person.id === workerId);
   const anyRate = $derived((ratePeople ?? []).some((person) => person.customerRate !== null));
+  // People on the team with no client rate at all. The project-wide rate stays on offer
+  // while anyone is missing one, even when others already have a personal rate.
+  const missingRateCount = $derived(
+    ratePeople
+      ? assignments.filter((row) => {
+          const rate = rateFor(row.workerId);
+          return !rate || rate.customerRate === null;
+        }).length
+      : 0,
+  );
 
   // ---------- add people ----------
   let addOpen = $state(false);
@@ -336,9 +346,11 @@
     </form>
   {/if}
 
-  {#if canSetRates && ratePeople && !anyRate && assignments.length > 0}
+  {#if canSetRates && ratePeople && assignments.length > 0 && (!anyRate || missingRateCount > 0)}
     <div class="hub-rate-banner" data-hub-project-rate>
-      <p>{h('attMissingRate')}</p>
+      <p>
+        {anyRate ? h('projectRateSome', { count: missingRateCount }) : h('attMissingRate')}
+      </p>
       {#if rateFormFor === ''}
         {@render rateForm(h('rateForProject', { currency }))}
       {:else}

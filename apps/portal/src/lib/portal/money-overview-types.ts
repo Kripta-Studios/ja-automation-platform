@@ -22,6 +22,8 @@ export type MoneyCurrencyTotals = {
   marginMinor: string;
   marginBps: string | null;
   readyToInvoiceMinor: string;
+  /** Approved work already on an unissued draft (not counted as ready). */
+  inDraftMinor: string;
 };
 
 export type MoneyProjectRow = {
@@ -36,6 +38,8 @@ export type MoneyProjectRow = {
   marginMinor: string;
   marginBps: string | null;
   readyToInvoiceMinor: string;
+  /** Approved work already on an unissued draft (not counted as ready). */
+  inDraftMinor: string;
   outstandingMinor: string;
   overdueMinor: string;
   missingRates: number;

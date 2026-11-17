@@ -2,6 +2,7 @@ import type { V3Repository } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import type { MoneyOverview, MoneyPeriodKey } from '../portal/money-overview-types';
 import { normalizeSelectSearch } from '../portal/searchable-selects';
+import { splitUnbilledSources } from '../portal/home-inbox';
 
 const big = (value: unknown): bigint => {
   const text = String(value ?? '0');
@@ -58,7 +59,18 @@ export function buildMoneyOverview(
   v3: V3Repository,
   principal: Principal,
   requestedPeriod: string | null | undefined,
-  options: Readonly<{ includeArchived: boolean; today?: string; search?: string; limit?: number }>,
+  options: Readonly<{
+    includeArchived: boolean;
+    today?: string;
+    search?: string;
+    limit?: number;
+    /**
+     * Invoice holding each approved source (see invoice-source-holders.ts). When given,
+     * "Ready to invoice" uses the Home definition: work on an unissued draft is not
+     * ready again and is reported apart as "in a draft".
+     */
+    holders?: ReadonlyMap<string, string>;
+  }>,
 ): MoneyOverview {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const period = moneyPeriod(requestedPeriod, today);
@@ -81,6 +93,7 @@ export function buildMoneyOverview(
     expenseCost: bigint;
     workValue: bigint;
     readyToInvoice: bigint;
+    inDraft: bigint;
   };
   const totals = new Map<string, Totals>();
   const totalsFor = (currency: string): Totals => {
@@ -97,6 +110,7 @@ export function buildMoneyOverview(
         expenseCost: 0n,
         workValue: 0n,
         readyToInvoice: 0n,
+        inDraft: 0n,
       };
       totals.set(currency, row);
     }
@@ -142,10 +156,23 @@ export function buildMoneyOverview(
   }
 
   const unbilledByProject = new Map<string, bigint>();
+  const draftByProject = new Map<string, bigint>();
   for (const project of allTime.projects) {
-    const unbilled = big(project.approvedUnbilledWipMinor);
+    let unbilled = big(project.approvedUnbilledWipMinor);
+    let draft = 0n;
+    if (options.holders) {
+      const split = splitUnbilledSources(
+        (project.approvedUnbilledSources as Array<Record<string, unknown>> | undefined) ?? [],
+        options.holders,
+      );
+      unbilled = big(split.readyMinor);
+      draft = big(split.draftMinor);
+    }
     unbilledByProject.set(String(project.projectId), unbilled);
-    totalsFor(String(project.currency)).readyToInvoice += unbilled;
+    draftByProject.set(String(project.projectId), draft);
+    const row = totalsFor(String(project.currency));
+    row.readyToInvoice += unbilled;
+    row.inDraft += draft;
   }
 
   const projects: MoneyOverview['projects'] = [];
@@ -162,6 +189,7 @@ export function buildMoneyOverview(
     const cost = labor + expense;
     const open = projectOpen.get(projectId) ?? { outstanding: 0n, overdue: 0n };
     const unbilled = unbilledByProject.get(projectId) ?? 0n;
+    const inDraft = draftByProject.get(projectId) ?? 0n;
     const invoiced = projectInvoiced.get(projectId) ?? 0n;
     projects.push({
       projectId,
@@ -175,6 +203,7 @@ export function buildMoneyOverview(
       marginMinor: (workValue - cost).toString(),
       marginBps: workValue === 0n ? null : (((workValue - cost) * 10_000n) / workValue).toString(),
       readyToInvoiceMinor: unbilled.toString(),
+      inDraftMinor: inDraft.toString(),
       outstandingMinor: open.outstanding.toString(),
       overdueMinor: open.overdue.toString(),
       missingRates: Number(project.missingRateCount ?? 0),
@@ -183,6 +212,7 @@ export function buildMoneyOverview(
         cost !== 0n ||
         invoiced !== 0n ||
         unbilled !== 0n ||
+        inDraft !== 0n ||
         open.outstanding !== 0n,
     });
   }
@@ -229,6 +259,7 @@ export function buildMoneyOverview(
         marginMinor: margin.toString(),
         marginBps: row.workValue === 0n ? null : ((margin * 10_000n) / row.workValue).toString(),
         readyToInvoiceMinor: row.readyToInvoice.toString(),
+        inDraftMinor: row.inDraft.toString(),
       };
     });
   return {

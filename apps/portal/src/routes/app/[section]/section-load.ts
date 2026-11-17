@@ -1,3 +1,4 @@
+import { invoiceSourceHolders } from '$lib/server/invoice-source-holders';
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -1699,7 +1700,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   context.v3,
                   context.principal,
                   url.searchParams.get('period'),
-                  { includeArchived, search: financeSearch, limit: financeListLimit },
+                  {
+                    includeArchived,
+                    search: financeSearch,
+                    limit: financeListLimit,
+                    holders: invoiceSourceHolders(context.sqlite),
+                  },
                 ),
               }
             : {}),

@@ -50,6 +50,7 @@
       row.costsMinor,
       row.workValueMinor,
       row.readyToInvoiceMinor,
+      row.inDraftMinor,
     ].some((value) => big(value) !== 0n);
   const currencies = $derived(overview.currencies.filter(hasMoney));
   // The server sends one page of projects with activity (most money waiting first).
@@ -153,7 +154,7 @@
               : t('marginHelp', { value: money(row.workValueMinor, row.currency) })}</small
           >
         </article>
-        {#if big(row.readyToInvoiceMinor) > 0n}
+        {#if big(row.readyToInvoiceMinor) > 0n || big(row.inDraftMinor) > 0n}
           <a
             class="money__card money__card--action"
             href={`${base}/app/billing?assistantSurface=invoice-create&${lang}`}
@@ -162,6 +163,9 @@
             <span>{t('readyToInvoice')}</span>
             <strong>{money(row.readyToInvoiceMinor, row.currency)}</strong>
             <small>{t('readyToInvoiceHelp')}</small>
+            {#if big(row.inDraftMinor) > 0n}<small data-money-in-draft
+                >{t('inDraft', { amount: money(row.inDraftMinor, row.currency) })}</small
+              >{/if}
           </a>
         {/if}
       </div>
@@ -246,7 +250,12 @@
                   data-label={t('marginPct')}>{percent(project.marginBps)}</td
                 >
                 <td class="num" data-label={t('readyToInvoice')}
-                  >{money(project.readyToInvoiceMinor, project.currency)}</td
+                  >{money(project.readyToInvoiceMinor, project.currency)}
+                  {#if big(project.inDraftMinor) > 0n}<small class="money__draft"
+                      >{t('inDraft', {
+                        amount: money(project.inDraftMinor, project.currency),
+                      })}</small
+                    >{/if}</td
                 >
                 <td class="num" data-label={t('unpaid')}>
                   {money(project.outstandingMinor, project.currency)}
@@ -407,6 +416,11 @@
   .money__overdue {
     color: #b42318;
     font-weight: 700;
+  }
+  .money__draft {
+    display: block;
+    color: var(--ja-muted, #5b6472);
+    font-weight: 400;
   }
   .money__empty {
     padding: 1rem;

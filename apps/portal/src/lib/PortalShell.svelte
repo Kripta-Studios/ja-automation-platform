@@ -2544,6 +2544,12 @@
   const printableSection = $derived(['reports', 'finance'].includes(data.section));
   // "Include archived" is a list filter: only on list sections, only for review
   // roles, and only when something is archived (or the filter is already on).
+  // The Clients view counts archived clients; every other list counts archived projects.
+  const archivedFilterCount = $derived(
+    data.section === 'projects' && projectDirectoryView === 'clients' && data.clientDirectory
+      ? Number(data.clientDirectory.archivedClients ?? 0)
+      : Number(data.archivedProjectCount ?? 0),
+  );
   const showArchivedFilter = $derived(
     [
       'time',
@@ -2560,8 +2566,7 @@
         String(data.user.role),
       ) &&
       !data.user.workforceProfile &&
-      (Number(data.archivedProjectCount ?? 0) > 0 ||
-        $page.url.searchParams.get('includeArchived') === '1'),
+      (archivedFilterCount > 0 || $page.url.searchParams.get('includeArchived') === '1'),
   );
   const toastItems = $derived.by(() => {
     const items: ToastItem[] = [];
@@ -3892,7 +3897,7 @@
             <ArchivedProjectHistory
               url={$page.url}
               {locale}
-              archivedCount={Number(data.archivedProjectCount ?? 0)}
+              archivedCount={archivedFilterCount}
               context={data.section === 'projects' && projectDirectoryView === 'clients'
                 ? 'client'
                 : data.section === 'projects' && projectDirectoryView === 'team'
@@ -6281,9 +6286,15 @@
                 .filter((project) => project.start_date)
                 .map((project) => ({
                   id: String(project.id),
-                  title: `${project.project_number} · ${project.name}`,
+                  title: `${project.project_number} · ${project.name}${project.planned_end_date || project.actual_end_date ? '' : ` · ${translate('open ended')}`}`,
                   startsAt: String(project.start_date),
-                  endsAt: project.planned_end_date ? String(project.planned_end_date) : undefined,
+                  endsAt: project.planned_end_date
+                    ? String(project.planned_end_date)
+                    : project.actual_end_date
+                      ? String(project.actual_end_date)
+                      : undefined,
+                  // No planned end yet: the project runs until it is closed.
+                  ongoing: !project.planned_end_date && !project.actual_end_date,
                   href: `${base}/app/projects/${project.id}`,
                 }))}
             />

@@ -158,6 +158,9 @@ describe('project finance XLSX export', () => {
     expect(cellByHeader(files, 1, 'Recorded amount', 3)).toContain('90071992547409.93');
     expect(cellByHeader(files, 1, 'Vendor')).toContain('t="inlineStr"');
     expect(files.get('xl/worksheets/sheet1.xml')).not.toContain('<f>');
+    const csv = new TextDecoder().decode(expenseRegisterExport([record], 'csv', '2026-09'));
+    expect(csv).toContain(',125.50,');
+    expect(csv).toContain("'=UNTRUSTED()");
     const ordinary = unzip(expenseRegisterExport([record], 'xlsx', '2026-09'));
     expect(cellByHeader(ordinary, 2, 'Recorded total')).toContain('s="2"><v>125.5</v>');
   });
@@ -182,7 +185,10 @@ describe('project finance XLSX export', () => {
     const csv = new TextDecoder().decode(expenseRegisterExport(records, 'csv', '2026-09'));
     expect(csv).toContain('QA draft');
     expect(csv).not.toContain('draft,0.80');
-    expect(csv).toContain("approved,'0.80,,pending");
+    // Amounts are numeric in CSV so spreadsheets can sum them.
+    expect(csv).toContain('approved,0.80,,pending');
+    expect(csv).toContain(',1.00,worker,');
+    expect(csv).not.toContain("'1.00");
     const workbook = unzip(expenseRegisterExport(records, 'xlsx', '2026-09'));
     expect(cellByHeader(workbook, 1, 'Reimbursement status', 2)).not.toContain('pending');
     expect(cellByHeader(workbook, 1, 'Reimbursement status', 6)).toContain('pending');

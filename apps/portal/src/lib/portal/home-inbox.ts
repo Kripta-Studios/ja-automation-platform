@@ -80,11 +80,15 @@ export type ReadyToInvoiceItem = {
   minor: string;
   /** Approved work already sitting on an unissued draft of this project. */
   draftMinor?: string;
+  /** Logged hours still waiting for an approval ("Approve & include" on the invoice screen). */
+  pendingMinutes?: number;
 };
 
 export type ReadyToInvoice = {
   projects: number;
   totals: CurrencyTotal[];
+  /** Hours logged on these projects that still need an approval before invoicing. */
+  pendingMinutes?: number;
   /** One row per project with approved, unbilled work; largest first. */
   items: ReadyToInvoiceItem[];
   /** The project with the largest amount, to open the invoice draft directly. */
@@ -98,30 +102,42 @@ export function readyToInvoiceSummary(
     minor: string | null | undefined;
     draftMinor?: string | null;
     label?: string;
+    pendingMinutes?: number | null;
   }>,
 ): ReadyToInvoice {
   const totals = new Map<string, bigint>();
   const items: Array<ReadyToInvoiceItem & { value: bigint }> = [];
+  let pendingTotal = 0;
   for (const row of rows) {
     const raw = text(row.minor).trim();
-    if (!/^\d+$/u.test(raw)) continue;
-    const minor = BigInt(raw);
-    if (minor <= 0n) continue;
-    totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
+    const minor = /^\d+$/u.test(raw) ? BigInt(raw) : 0n;
+    const pending = Number.isFinite(Number(row.pendingMinutes)) ? Math.max(0, Number(row.pendingMinutes ?? 0)) : 0;
+    // Pending-approval work counts too: the invoice screen approves and includes it.
+    if (minor <= 0n && pending <= 0) continue;
+    if (minor > 0n) totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
+    pendingTotal += pending;
     const draft = text(row.draftMinor).trim();
     items.push({
       projectId: row.projectId,
       label: row.label ?? row.projectId,
       currency: row.currency,
-      minor: raw,
+      minor: minor.toString(),
       ...(/^\d+$/u.test(draft) && BigInt(draft) > 0n ? { draftMinor: draft } : {}),
+      ...(pending > 0 ? { pendingMinutes: pending } : {}),
       value: minor,
     });
   }
-  items.sort((left, right) => (left.value === right.value ? 0 : left.value > right.value ? -1 : 1));
+  items.sort((left, right) =>
+    left.value === right.value
+      ? (right.pendingMinutes ?? 0) - (left.pendingMinutes ?? 0)
+      : left.value > right.value
+        ? -1
+        : 1,
+  );
   return {
     projects: items.length,
     totals: currencyTotals(totals),
+    ...(pendingTotal > 0 ? { pendingMinutes: pendingTotal } : {}),
     items: items.map(({ value: _value, ...item }) => item),
     topProjectId: items[0]?.projectId ?? null,
   };

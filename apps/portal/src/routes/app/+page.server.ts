@@ -146,6 +146,25 @@ export const load: PageServerLoad = ({ locals, url }) => {
         )
         .all(weekStart, weekEnd) as Array<{ projectId: string; minutes: number }>)
         weekMinutes.set(row.projectId, Number(row.minutes) || 0);
+    // Logged hours that still wait for an approval and no invoice holds: the invoice
+    // screen can approve and include them ("Ready to invoice" counts them too).
+    const pendingMinutes = new Map<string, number>();
+    if (openProjects.length)
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
+            WHERE (approval_state IN ('draft','submitted','needs_changes')
+                   OR (approval_state='approved' AND finance_approved_at IS NULL AND billability_state='pending'))
+              AND invoice_id IS NULL AND billability_state<>'non_billable'
+              AND NOT EXISTS (SELECT 1 FROM record_correction_link link JOIN time_entry correction ON correction.id=link.correction_id
+                     WHERE link.record_type='time_entry' AND link.original_id=time_entry.id AND correction.approval_state NOT IN ('rejected','void'))
+              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                     WHERE source.source_type='time' AND source.source_id=time_entry.id
+                       AND invoice.state NOT IN ('void','cancelled','superseded'))
+            GROUP BY project_id`,
+        )
+        .all() as Array<{ projectId: string; minutes: number }>)
+        pendingMinutes.set(row.projectId, Number(row.minutes) || 0);
     const pendingByProject = new Map<string, number>();
     for (const row of approvalRows)
       if (isPendingApproval(row))
@@ -214,6 +233,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
               currency: glance.currency,
               minor: glance.readyMinor,
               draftMinor: glance.draftMinor,
+              pendingMinutes: pendingMinutes.get(glance.projectId) ?? 0,
             })),
           )
         : null,

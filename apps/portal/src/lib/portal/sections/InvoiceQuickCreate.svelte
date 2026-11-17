@@ -25,10 +25,17 @@
   import { journeyMoney } from '../project-invoice-journey';
   import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import {
+    quickInvoiceFormat,
     quickInvoiceText,
     quickInvoiceWarningText,
     type QuickInvoiceCopyKey,
   } from '../billing-quick-invoice-copy';
+  import QuickInvoiceAttention, {
+    type AttentionClient,
+    type AttentionItem,
+    type ExpenseRow,
+    type RunResult,
+  } from './QuickInvoiceAttention.svelte';
 
   type Stream = {
     id: string;
@@ -100,6 +107,21 @@
       periodEnd: string;
       totalMinor: string;
     }>;
+    projected: {
+      state: string;
+      groups: Group[];
+      subtotalMinor: string;
+      taxMinor: string;
+      totalMinor: string;
+      includedPendingMinor: string;
+      pendingCount: number;
+      pendingMinutes: number;
+    } | null;
+    attention: AttentionItem[];
+    expenseRows: ExpenseRow[];
+    expenseRowsTotal: number;
+    client: AttentionClient | null;
+    capabilities: { canApprove: boolean; role: string };
   };
   type PeriodChoice = { id: string; label: string; start: string; end: string };
 
@@ -144,6 +166,12 @@
   let creating = $state(false);
   let createMessage = $state('');
   let requestKey = $state(newKey());
+  let issueOpen = $state(false);
+  let issuing = $state(false);
+  let fixing = $state(false);
+  let purchaseNo = $state('');
+  let issueMessage = $state('');
+  let issueFailedInvoice = $state('');
   let controller: AbortController | null = null;
   // Opening a project tries its default dates; when nothing is billable there but approved,
   // unbilled work exists elsewhere, jump to the suggested dates (at most a few times).
@@ -372,6 +400,120 @@
     }
   }
 
+  /** One inline fix: the server applies it and returns the recalculated preview. */
+  async function run(operation: string, payload: Record<string, unknown>): Promise<RunResult> {
+    fixing = true;
+    try {
+      const response = await fetch(api, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          operation,
+          projectId,
+          periodStart,
+          periodEnd,
+          ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          ...payload,
+        }),
+      });
+      const body = (await response.json()) as RunResult & { preview?: Preview; problem?: { message?: string } };
+      if (body.preview) {
+        preview = body.preview;
+        requestKey = newKey();
+        if (operation === 'setupBilling') {
+          // The new stream now exists: reload the project list so periods follow it.
+          void reloadProjects();
+        }
+      }
+      return {
+        ...body,
+        success: response.ok && body.success !== false,
+        message: body.message ?? body.problem?.message,
+      };
+    } finally {
+      fixing = false;
+    }
+  }
+
+  async function reloadProjects(): Promise<void> {
+    try {
+      const response = await fetch(api, { headers: { accept: 'application/json' } });
+      const body = (await response.json()) as { projects?: Project[] };
+      if (response.ok && body.projects) projects = body.projects;
+    } catch {
+      /* the preview already reflects the change */
+    }
+  }
+
+  async function issueInvoice(): Promise<void> {
+    if (!preview || preview.state !== 'ready' || issuing) return;
+    issuing = true;
+    issueMessage = '';
+    issueFailedInvoice = '';
+    try {
+      const response = await fetch(api, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        body: JSON.stringify({
+          operation: 'issue',
+          projectId,
+          periodStart,
+          periodEnd,
+          ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          expectedTotalMinor: preview.totalMinor,
+          requestKey,
+          locale: locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en',
+          ...(purchaseNo ? { purchaseNo } : {}),
+        }),
+      });
+      const body = (await response.json()) as {
+        ok?: boolean;
+        invoiceId?: string;
+        reason?: string;
+        message?: string;
+        preview?: Preview;
+      };
+      if (body.ok && body.invoiceId) {
+        await goto(
+          `${base}/app/billing/invoices/${encodeURIComponent(body.invoiceId)}?lang=${locale}&issued=1`,
+        );
+        return;
+      }
+      if (body.preview) {
+        preview = body.preview;
+        requestKey = newKey();
+      }
+      if (body.reason === 'issue_failed' && body.invoiceId) {
+        issueFailedInvoice = body.invoiceId;
+        issueMessage = quickInvoiceFormat(locale, 'issueFailedDraft', { reason: body.message ?? '—' });
+      } else if (body.reason === 'already_invoiced') {
+        issueMessage = t('existing');
+      } else
+        issueMessage = body.reason === 'amount_changed' ? t('amountChanged') : t('createFailed');
+      issueOpen = false;
+    } catch {
+      issueMessage = t('createFailed');
+    } finally {
+      issuing = false;
+    }
+  }
+
+  function focusFirstBlocking(): void {
+    const target = document.querySelector<HTMLElement>(
+      '[data-attention-blocks="create"], [data-attention-blocks="issue"]',
+    );
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target?.querySelector<HTMLElement>('input, button, select, textarea')?.focus({ preventScroll: true });
+  }
+
+  function attentionText(item: AttentionItem): string {
+    return (
+      item.message ??
+      quickInvoiceWarningText(locale, { code: item.code ?? '', count: item.totalCount, minutes: item.minutes ?? 0 }) ??
+      translate(billingReadinessMessageKey(item.code ?? ''))
+    );
+  }
+
   const money = (minor: string | null | undefined) =>
     minor === null || minor === undefined ? '—' : journeyMoney(minor, preview?.currency ?? '', locale);
   const hours = (minutes: number) =>
@@ -398,14 +540,6 @@
     )[cadence] ?? t('cadence_manual');
   const streamLabel = (stream: Stream) =>
     `${t(`stream_${stream.streamType}` as QuickInvoiceCopyKey) ?? stream.streamType} · ${cadenceText(stream.cadence)} · ${dateText(stream.effectiveFrom)} → ${stream.effectiveTo ? dateText(stream.effectiveTo) : '…'}`;
-
-  function warningText(warning: Warning): string {
-    return (
-      quickInvoiceWarningText(locale, warning) ??
-      warning.message ??
-      translate(billingReadinessMessageKey(warning.code))
-    );
-  }
 
   function fixHref(warning: Warning): string | null {
     const portal = `${base}/app`;
@@ -452,13 +586,38 @@
     }
   }
 
-  const blockers = $derived(preview?.warnings.filter((w) => w.severity === 'blocker') ?? []);
-  const excluded = $derived(preview?.warnings.filter((w) => w.severity === 'excluded') ?? []);
-  const issues = $derived(preview?.warnings.filter((w) => w.severity === 'issue') ?? []);
-  const notes = $derived(preview?.warnings.filter((w) => w.severity === 'info') ?? []);
-  const labor = $derived(preview?.groups.filter((g) => g.kind === 'labor') ?? []);
-  const fees = $derived(preview?.groups.filter((g) => g.kind === 'fee') ?? []);
-  const expenses = $derived(preview?.groups.filter((g) => g.kind === 'expense') ?? []);
+  /** Hours / Expenses switch when the project bills them on separate streams for these dates. */
+  const streamKinds = $derived.by(() => {
+    if (!preview?.stream) return [] as Stream[];
+    const all = [preview.stream, ...preview.alternatives].filter(
+      (stream) =>
+        ['labor', 'expense'].includes(stream.streamType) &&
+        stream.effectiveFrom <= preview!.periodEnd &&
+        (!stream.effectiveTo || stream.effectiveTo >= preview!.periodStart),
+    );
+    const byKind = new Map<string, Stream>();
+    for (const stream of all) if (!byKind.has(stream.streamType) || stream.id === preview.stream.id) byKind.set(stream.streamType, stream);
+    return [...byKind.values()].sort((a, b) => (a.streamType === 'labor' ? -1 : b.streamType === 'labor' ? 1 : 0));
+  });
+  /** What the screen shows: everything logged (projection) when approvals are pending. */
+  const shown = $derived.by(() => {
+    if (!preview) return null;
+    if (preview.projected?.state === 'ready') return preview.projected;
+    return preview.state === 'ready' ? preview : null;
+  });
+  const labor = $derived(shown?.groups.filter((g) => g.kind === 'labor') ?? []);
+  const fees = $derived(shown?.groups.filter((g) => g.kind === 'fee') ?? []);
+  const expenses = $derived(shown?.groups.filter((g) => g.kind === 'expense') ?? []);
+  const blocking = $derived(preview?.attention.filter((item) => item.blocks !== 'none') ?? []);
+  const canIssue = $derived(Boolean(preview && preview.state === 'ready' && blocking.length === 0));
+  const canSaveDraft = $derived(
+    Boolean(preview && preview.state === 'ready' && !blocking.some((item) => item.blocks === 'create')),
+  );
+  const pendingLeftOut = $derived(
+    preview?.projected && BigInt(preview.projected.includedPendingMinor) > 0n
+      ? preview.projected.includedPendingMinor
+      : null,
+  );
   const datesAdjusted = $derived(
     Boolean(preview && (preview.periodStart !== periodStart || preview.periodEnd !== periodEnd)),
   );
@@ -635,18 +794,65 @@
           >
         {:else if preview}
           <div class:quick-invoice__stale={previewLoading}>
+            {#if preview.stream && streamKinds.length > 1}
+              <div class="quick-invoice__choices quick-invoice__kinds" role="group" aria-label={t('stream')}>
+                {#each streamKinds as kind (kind.id)}
+                  <button
+                    type="button"
+                    class="quick-invoice__choice"
+                    aria-pressed={preview.stream.id === kind.id}
+                    onclick={() => {
+                      streamOverride = kind.id;
+                      schedulePreview(0);
+                    }}
+                    data-quick-invoice-stream={kind.streamType}><strong>{t(`stream_${kind.streamType}` as QuickInvoiceCopyKey)}</strong></button
+                  >
+                {/each}
+              </div>
+            {/if}
             {#if datesAdjusted}
               <p class="quick-invoice__muted" data-quick-invoice-dates-used>
                 {t('datesUsed')}: {rangeText(preview.periodStart, preview.periodEnd)}
               </p>
             {/if}
 
-            {#if preview.state === 'ready'}
-              <div class="quick-invoice__total" data-quick-invoice-total={preview.totalMinor}>
-                <span>{t('amountHeading')}</span>
-                <strong>{money(preview.totalMinor)}</strong>
+            {#if shown}
+              <div
+                class="quick-invoice__total"
+                data-quick-invoice-total={preview.totalMinor}
+                data-quick-invoice-shown-total={shown.totalMinor}
+              >
+                <span>{preview.projected && shown === preview.projected ? t('ifApproved') : t('amountHeading')}</span>
+                <strong>{money(shown.totalMinor)}</strong>
+                {#if preview.projected && BigInt(preview.projected.includedPendingMinor) > 0n}
+                  <small data-quick-invoice-projected
+                    >{quickInvoiceFormat(locale, 'projected', { amount: money(preview.projected.includedPendingMinor) })}</small
+                  >
+                {/if}
               </div>
-              <table class="quick-invoice__lines">
+            {/if}
+
+            {#if preview.state !== 'existing' && (preview.attention.length || shown)}
+              <QuickInvoiceAttention
+                {locale}
+                role={preview.capabilities.role || role}
+                currency={preview.currency}
+                attention={preview.attention}
+                expenseRows={preview.expenseRows}
+                client={preview.client}
+                disabled={previewLoading || issuing}
+                bind:purchaseNo
+                {run}
+                {newKey}
+                fixHref={(fix) => fixHref({ code: '', severity: 'info', count: 0, minutes: 0, fix: fix ?? null })}
+                otherText={attentionText}
+                recordHref={(workerId) =>
+                  `${base}/app${billingReadinessReviewPath(['pending_time_submission'], projectId, { start: preview!.periodStart, end: preview!.periodEnd })}&worker=${encodeURIComponent(workerId)}&lang=${locale}`}
+              />
+            {/if}
+
+            {#if shown}
+              <table class="quick-invoice__lines" aria-label={t('lines')}>
                 <tbody>
                   {#if labor.length}
                     <tr class="quick-invoice__group-row"><th colspan="2">{t('hours')}</th></tr>
@@ -691,16 +897,15 @@
                 <tfoot>
                   <tr>
                     <th scope="row">{t('subtotal')}</th>
-                    <td class="quick-invoice__money">{money(preview.subtotalMinor)}</td>
+                    <td class="quick-invoice__money">{money(shown.subtotalMinor)}</td>
                   </tr>
                   <tr>
-                    <th scope="row">{t('tax')} · {preview.taxProfileName ?? t('noTax')}</th
-                    >
-                    <td class="quick-invoice__money">{money(preview.taxMinor)}</td>
+                    <th scope="row">{t('tax')} · {preview.taxProfileName ?? t('noTax')}</th>
+                    <td class="quick-invoice__money">{money(shown.taxMinor)}</td>
                   </tr>
                   <tr class="quick-invoice__grand">
                     <th scope="row">{t('total')}</th>
-                    <td class="quick-invoice__money">{money(preview.totalMinor)}</td>
+                    <td class="quick-invoice__money">{money(shown.totalMinor)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -716,7 +921,7 @@
                 {/if}
                 <div>
                   <dt>{t('po')}</dt>
-                  <dd>{preview.purchaseNo ?? '—'}</dd>
+                  <dd>{purchaseNo || preview.purchaseNo || '—'}</dd>
                 </div>
                 {#if preview.provisionalNumber}
                   <div>
@@ -733,7 +938,7 @@
                 >{t('openInvoice')}{#if preview.existingInvoice.number}
                   · {preview.existingInvoice.number}{/if}</a
               >
-            {:else if preview.state === 'empty'}
+            {:else if preview.state === 'empty' && !preview.attention.some((item) => item.blocks !== 'none')}
               <p class="quick-invoice__plain" role="status" data-quick-invoice-nothing>
                 {t('nothing')}
               </p>
@@ -753,37 +958,9 @@
                   >
                 </div>
               {/if}
-            {:else if preview.state === 'blocked'}
+            {:else if !preview.attention.length}
               <p class="quick-invoice__plain" role="alert">{t('blocked')}</p>
             {/if}
-
-            {#snippet warningList(list: Warning[], title: string, tone: string)}
-              {#if list.length}
-                <div class="quick-invoice__warnings quick-invoice__warnings--{tone}">
-                  <h4>{title}</h4>
-                  <ul>
-                    {#each list as warning (warning.code)}
-                      {@const href = fixHref(warning)}
-                      <li data-quick-invoice-warning={warning.code}>
-                        <span>{warningText(warning)}</span>
-                        {#if href}
-                          <a class="secondary-button" {href}
-                            >{t(`fix_${warning.fix}` as QuickInvoiceCopyKey)}</a
-                          >
-                        {/if}
-                      </li>
-                    {/each}
-                  </ul>
-                </div>
-              {/if}
-            {/snippet}
-            {@render warningList(blockers, t('blocked'), 'danger')}
-            {#if preview.mode === 'selection' && preview.state === 'ready' && excluded.length}
-              <p class="quick-invoice__muted">{t('selectionNote')}</p>
-            {/if}
-            {@render warningList(excluded, t('leftOut'), 'warning')}
-            {@render warningList(issues, t('beforeIssue'), 'warning')}
-            {@render warningList(notes, t('notes'), 'info')}
 
             {#if preview.openDrafts.length}
               <div class="quick-invoice__warnings quick-invoice__warnings--info">
@@ -849,29 +1026,82 @@
     {/if}
   </div>
 
-  {#if project && !choosingProject}
-    <div class="quick-invoice__actionbar">
-      {#if createMessage}
-        <p class="quick-invoice__create-message" role="alert">{createMessage}</p>
+  {#if project && !choosingProject && preview && preview.state !== 'existing' && (shown || blocking.length || issueMessage || createMessage)}
+    <div class="quick-invoice__actionbar" data-quick-invoice-actionbar>
+      {#if createMessage || issueMessage}
+        <p class="quick-invoice__create-message" role="alert">
+          {createMessage || issueMessage}
+          {#if issueFailedInvoice}
+            <a href={`${base}/app/billing/invoices/${encodeURIComponent(issueFailedInvoice)}?lang=${locale}`}>{t('openInvoice')}</a>
+          {/if}
+        </p>
+      {/if}
+      {#if issueOpen && preview?.state === 'ready'}
+        <div class="quick-invoice__confirm" role="dialog" aria-modal="false" aria-labelledby="quick-invoice-confirm-title" data-quick-invoice-confirm>
+          <strong id="quick-invoice-confirm-title"
+            >{quickInvoiceFormat(locale, 'issueConfirmTitle', { amount: money(preview.totalMinor) })}</strong
+          >
+          <p>
+            {quickInvoiceFormat(locale, 'issueConfirmBody', {
+              client: preview.client?.name ?? project.client,
+              period: rangeText(preview.periodStart, preview.periodEnd),
+            })}
+          </p>
+          {#if pendingLeftOut}
+            <p class="quick-invoice__amber">{quickInvoiceFormat(locale, 'projectedNotIncluded', { amount: money(pendingLeftOut) })}</p>
+          {/if}
+          <div class="quick-invoice__confirm-actions">
+            <button
+              type="button"
+              class="primary-button quick-invoice__create"
+              disabled={issuing || previewLoading}
+              onclick={issueInvoice}
+              data-quick-invoice-issue-confirm>{issuing ? t('issuing') : t('issueConfirm')}</button
+            >
+            <button type="button" class="secondary-button" onclick={() => (issueOpen = false)}>{t('cancel')}</button>
+          </div>
+        </div>
       {/if}
       <div class="quick-invoice__actionbar-row">
         <div class="quick-invoice__actionbar-total">
-          {#if preview?.state === 'ready'}
+          {#if shown}
             <span>{t('total')}</span>
-            <strong>{money(preview.totalMinor)}</strong>
-          {:else}
-            <span>{t('createHelp')}</span>
+            <strong>{money(canIssue || canSaveDraft ? preview!.totalMinor : shown.totalMinor)}</strong>
+          {:else if blocking.length}
+            <span>{t('attentionHelp')}</span>
           {/if}
         </div>
-        <button
-          type="button"
-          class="primary-button quick-invoice__create"
-          disabled={!preview || preview.state !== 'ready' || previewLoading || creating}
-          onclick={createInvoice}
-          data-quick-invoice-create>{creating ? t('creating') : t('create')}</button
-        >
+        <div class="quick-invoice__actionbar-buttons">
+          {#if canSaveDraft}
+            <button
+              type="button"
+              class="quick-invoice__secondary"
+              disabled={previewLoading || creating || issuing || fixing}
+              onclick={createInvoice}
+              data-quick-invoice-create>{creating ? t('creating') : t('saveDraft')}</button
+            >
+          {/if}
+          {#if canIssue}
+            <button
+              type="button"
+              class="primary-button quick-invoice__create"
+              disabled={previewLoading || creating || issuing || fixing}
+              aria-expanded={issueOpen}
+              onclick={() => (issueOpen = !issueOpen)}
+              data-quick-invoice-issue>{t('issueButton')} ▸</button
+            >
+          {:else if blocking.length}
+            <button
+              type="button"
+              class="primary-button quick-invoice__create"
+              onclick={focusFirstBlocking}
+              data-quick-invoice-resolve>{quickInvoiceFormat(locale, 'issueBlockedN', { count: blocking.length })}</button
+            >
+          {:else}
+            <button type="button" class="primary-button quick-invoice__create" disabled>{t('issueButton')}</button>
+          {/if}
+        </div>
       </div>
-      {#if preview?.state === 'ready'}<p class="quick-invoice__muted">{t('createHelp')}</p>{/if}
     </div>
   {/if}
 </div>
@@ -1192,6 +1422,49 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
+  .quick-invoice__actionbar-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+  }
+  .quick-invoice__secondary {
+    min-height: 2.75rem;
+    padding: 0 0.5rem !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--ja-text-primary, #20201d) !important;
+    text-decoration: underline;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    cursor: pointer;
+  }
+  .quick-invoice__confirm {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-border-strong, #d1d1c9);
+    border-radius: 0.6rem;
+    background: var(--ja-canvas, #f4f4f2);
+  }
+  .quick-invoice__confirm p {
+    margin: 0;
+    font-size: 0.85rem;
+  }
+  .quick-invoice__confirm-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .quick-invoice__amber {
+    color: #92400e;
+    font-weight: 600;
+  }
+  .quick-invoice__total small {
+    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.85rem;
+  }
   .quick-invoice__create-message {
     margin: 0;
     color: var(--ja-red, #b42318);
@@ -1200,6 +1473,15 @@
   @media (max-width: 600px) {
     .quick-invoice__create {
       width: 100%;
+    }
+    .quick-invoice__actionbar-buttons {
+      width: 100%;
+      flex-direction: row-reverse;
+      justify-content: space-between;
+    }
+    .quick-invoice__actionbar-buttons .quick-invoice__create {
+      flex: 1 1 auto;
+      width: auto;
     }
   }
 </style>

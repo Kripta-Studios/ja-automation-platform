@@ -465,7 +465,12 @@ export class TimeEntryRepository {
     });
   }
 
-  submitTime(principal: Principal, id: string, baseVersion: number) {
+  submitTime(
+    principal: Principal,
+    id: string,
+    baseVersion: number,
+    options: Readonly<{ onBehalfForInvoice?: boolean }> = {},
+  ) {
     this.deps.assertActive(principal);
     return this.deps.transaction(() => {
       const current = this.deps.sqlite
@@ -506,7 +511,11 @@ export class TimeEntryRepository {
         current.project_id,
         current.worker_id,
         current.work_date,
-        ownerCorrection || principal.role === 'owner_admin',
+        ownerCorrection ||
+          principal.role === 'owner_admin' ||
+          // Invoice preparation: Finance submits on the worker's behalf (owner decision
+          // 2026-11-17). Only the audited approvePendingForInvoice path passes this flag.
+          (options.onBehalfForInvoice === true && principal.role === 'finance_admin'),
       );
       if (
         current.invoice_id !== null ||
@@ -540,6 +549,105 @@ export class TimeEntryRepository {
       this.deps.audit(principal, 'time.submit', 'time_entry', id, {
         baseVersion,
         workerId: current.worker_id,
+        ...(options.onBehalfForInvoice ? { onBehalfOfWorker: true, origin: 'invoice_prep' } : {}),
+      });
+      return { id, version: baseVersion + 1 };
+    });
+  }
+
+  /**
+   * Invoice preparation: an Owner (or Finance) accepts reviewer-returned time exactly as
+   * the worker recorded it. needs_changes → submitted, with an approval event and an
+   * audit row; the caller then approves it through the normal operational path. Refused
+   * while the worker has an open correction draft for the entry.
+   */
+  acceptReturnedTime(principal: Principal, id: string, baseVersion: number, reason: string) {
+    this.deps.assertActive(principal);
+    if (!['owner_admin', 'finance_admin'].includes(principal.role))
+      throw this.deps.errors.accessDenied('Owner or Finance role required');
+    return this.deps.transaction(() => {
+      const current = this.deps.sqlite
+        .prepare(
+          'SELECT project_id,worker_id,work_date,minutes,start_time,end_time,break_minutes,approval_state,invoice_id,billing_status,billing_lock_id,locked_at,version FROM time_entry WHERE id=?',
+        )
+        .get(id) as
+        | {
+            project_id: string;
+            worker_id: string;
+            work_date: string;
+            minutes: number;
+            start_time: string | null;
+            end_time: string | null;
+            break_minutes: number | null;
+            approval_state: string;
+            invoice_id: string | null;
+            billing_status: string;
+            billing_lock_id: string | null;
+            locked_at: string | null;
+            version: number;
+          }
+        | undefined;
+      if (!current) throw this.deps.errors.validation('Time entry not found');
+      this.assertEffectiveMembership(
+        principal,
+        current.project_id,
+        current.worker_id,
+        current.work_date,
+        true,
+      );
+      if (current.approval_state !== 'needs_changes')
+        throw this.deps.errors.conflict('Time entry is not returned for changes');
+      if (current.version !== baseVersion)
+        throw this.deps.errors.conflict('Time entry changed before acceptance');
+      if (
+        current.invoice_id !== null ||
+        current.billing_status !== 'unlocked' ||
+        current.billing_lock_id !== null ||
+        current.locked_at !== null
+      )
+        throw this.deps.errors.conflict('Time entry locked before acceptance');
+      if (
+        this.deps.sqlite
+          .prepare(
+            `SELECT 1 FROM record_correction_link link JOIN time_entry correction ON correction.id=link.correction_id
+              WHERE link.record_type='time_entry' AND link.original_id=? AND correction.approval_state NOT IN ('rejected','void') LIMIT 1`,
+          )
+          .get(id)
+      )
+        throw this.deps.errors.conflict('The worker is already correcting this time entry');
+      this.validateEffectiveEntry({
+        id,
+        workerId: current.worker_id,
+        workDate: current.work_date,
+        minutes: current.minutes,
+        startTime: current.start_time,
+        endTime: current.end_time,
+        breakMinutes: current.break_minutes,
+      });
+      const timestamp = this.deps.now();
+      const result = this.deps.sqlite
+        .prepare(
+          `UPDATE time_entry SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1
+             WHERE id=? AND approval_state='needs_changes' AND version=? AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL`,
+        )
+        .run(timestamp, timestamp, id, baseVersion);
+      if (result.changes !== 1)
+        throw this.deps.errors.conflict('Time entry changed before acceptance');
+      this.deps.sqlite
+        .prepare(
+          'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+        )
+        .run(newId(), 'time', id, 'needs_changes', 'submitted', principal.userId, reason, timestamp);
+      // No dedicated audit action exists without a registry migration: the reviewed
+      // `time.submit` action records the acceptance with its origin and prior state.
+      this.deps.audit(principal, 'time.submit', 'time_entry', id, {
+        baseVersion,
+        workerId: current.worker_id,
+        fromState: 'needs_changes',
+        acceptedAsIs: true,
+        onBehalfOfWorker: true,
+        origin: 'invoice_prep',
+        reason,
       });
       return { id, version: baseVersion + 1 };
     });

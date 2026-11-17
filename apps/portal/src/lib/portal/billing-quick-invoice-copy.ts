@@ -225,6 +225,198 @@ const copy = {
   tabInvoices: ['Invoices', 'Facturas', 'Faturas'],
   tabStreams: ['Per-project settings', 'Ajustes por proyecto', 'Ajustes por projeto'],
   tabSetup: ['Company and numbering', 'Empresa y numeración', 'Empresa e numeração'],
+  // One-screen invoice: "Needs attention" checklist and inline fixes
+  attentionTitle: ['Needs attention ({count})', 'Necesita atención ({count})', 'Precisa de atenção ({count})'],
+  attentionNone: ['Everything is ready', 'Todo está listo', 'Tudo pronto'],
+  approveGroupOne: ['1 entry not approved yet', '1 entrada sin aprobar', '1 lançamento não aprovado'],
+  approveGroup: [
+    '{count} entries not approved yet',
+    '{count} entradas sin aprobar',
+    '{count} lançamentos não aprovados',
+  ],
+  approveGroupMany: [
+    'Approve & include all ({people} people, {hours} h)',
+    'Aprobar e incluir todo ({people} personas, {hours} h)',
+    'Aprovar e incluir tudo ({people} pessoas, {hours} h)',
+  ],
+  approveStates: [
+    '{draft} drafts · {submitted} submitted · {returned} returned',
+    '{draft} borradores · {submitted} enviadas · {returned} devueltas',
+    '{draft} rascunhos · {submitted} enviados · {returned} devolvidos',
+  ],
+  stateDraft: ['draft', 'borrador', 'rascunho'],
+  stateSubmitted: ['submitted', 'enviada', 'enviado'],
+  stateReturned: ['returned', 'devuelta', 'devolvido'],
+  stateFinance: ['finance review', 'revisión financiera', 'revisão financeira'],
+  attentionHelp: ['Fix the items above to see the amount.', 'Resuelve lo de arriba para ver el importe.', 'Resolva os itens acima para ver o valor.'],
+  approveInclude: ['Approve & include', 'Aprobar e incluir', 'Aprovar e incluir'],
+  approveConfirmTitle: [
+    'Approve {count} entries of {name} ({hours} h)?',
+    '¿Aprobar {count} entradas de {name} ({hours} h)?',
+    'Aprovar {count} lançamentos de {name} ({hours} h)?',
+  ],
+  approveConfirmAll: [
+    'Approve {count} entries of {people} people ({hours} h)?',
+    '¿Aprobar {count} entradas de {people} personas ({hours} h)?',
+    'Aprovar {count} lançamentos de {people} pessoas ({hours} h)?',
+  ],
+  approveConfirmBody: [
+    'This records that you ({role}) approved them on the worker’s behalf. Drafts are submitted for them; returned entries are accepted as recorded. They will see it in their history.',
+    'Quedará registrado que tú ({role}) las aprobaste en nombre del trabajador. Los borradores se envían por él; las devueltas se aceptan tal cual. Lo verá en su historial.',
+    'Ficará registrado que você ({role}) aprovou em nome do trabalhador. Rascunhos são enviados por ele; devolvidos são aceitos como estão. Ele verá no histórico.',
+  ],
+  approveReturnedNote: [
+    'Returned for changes: “{reason}”',
+    'Devueltas para cambios: «{reason}»',
+    'Devolvidos para ajustes: “{reason}”',
+  ],
+  approveFutureNote: [
+    '{count} entries are dated in the future.',
+    '{count} entradas tienen fecha futura.',
+    '{count} lançamentos têm data futura.',
+  ],
+  approveConfirm: ['Confirm and approve', 'Confirmar y aprobar', 'Confirmar e aprovar'],
+  approveSkipped: [
+    '{count} records were left out ({reasons}).',
+    'Se dejaron fuera {count} registros ({reasons}).',
+    '{count} registros ficaram de fora ({reasons}).',
+  ],
+  roleOwner: ['owner', 'dueño', 'proprietário'],
+  roleFinance: ['finance', 'finanzas', 'financeiro'],
+  fixRecord: ['Change hours', 'Cambiar horas', 'Alterar horas'],
+  fixRecordHelp: [
+    'Fix the worker’s record (also changes pay): open the entry and use the audited correction. Changing hours only on the invoice comes later.',
+    'Corregir el registro del trabajador (cambia también su paga): abre la entrada y usa la corrección auditada. Cambiar horas solo en la factura llegará más adelante.',
+    'Corrigir o registro do trabalhador (muda também o pagamento): abra o lançamento e use a correção auditada. Alterar horas só na fatura virá depois.',
+  ],
+  fixRecordOpen: ['Fix the worker’s record', 'Corregir el registro', 'Corrigir o registro'],
+  rateGroup: [
+    '{count} people without a client rate',
+    '{count} personas sin tarifa para el cliente',
+    '{count} pessoas sem tarifa para o cliente',
+  ],
+  rateGroupOne: ['Client rate missing', 'Falta la tarifa para el cliente', 'Falta a tarifa para o cliente'],
+  rateLabel: ['Client rate for {name}', 'Tarifa para el cliente de {name}', 'Tarifa para o cliente de {name}'],
+  perHour: ['/h', '/h', '/h'],
+  rateSaveDefault: [
+    'Save as this project’s rate',
+    'Guardar como tarifa de este proyecto',
+    'Salvar como tarifa deste projeto',
+  ],
+  rateOnlyLater: [
+    '“Only on this invoice” is coming soon.',
+    '«Solo en esta factura» llegará pronto.',
+    '“Só nesta fatura” chegará em breve.',
+  ],
+  rateFrom: ['Applies from {date}', 'Se aplica desde {date}', 'Vale a partir de {date}'],
+  rateAfterIssued: [
+    'Applied from {date}; earlier work is already invoiced.',
+    'Aplicada desde {date}; lo anterior ya está facturado.',
+    'Aplicada a partir de {date}; o anterior já foi faturado.',
+  ],
+  rateSuggested: ['Suggested: {amount}', 'Sugerida: {amount}', 'Sugerida: {amount}'],
+  rateZero: ['Enter an amount above 0.', 'Escribe un importe mayor que 0.', 'Digite um valor acima de 0.'],
+  save: ['Save', 'Guardar', 'Salvar'],
+  saving: ['Saving…', 'Guardando…', 'Salvando…'],
+  saved: ['Saved ✓', 'Guardado ✓', 'Salvo ✓'],
+  costGroup: [
+    '{count} people without an internal cost',
+    '{count} personas sin coste interno',
+    '{count} pessoas sem custo interno',
+  ],
+  payLabel: [
+    'Worker pay per hour (also used as cost; not shown to client)',
+    'Paga del trabajador por hora (también como coste; no se muestra al cliente)',
+    'Pagamento do trabalhador por hora (também como custo; não aparece para o cliente)',
+  ],
+  costGroupOne: ['Internal cost missing', 'Falta el coste interno', 'Falta o custo interno'],
+  costLabel: ['Cost (not shown to client)', 'Coste (no se muestra al cliente)', 'Custo (não aparece para o cliente)'],
+  expenseGroupOne: [
+    '1 expense: decide how the client pays it',
+    '1 gasto: decide cómo lo paga el cliente',
+    '1 despesa: defina como o cliente a paga',
+  ],
+  expenseGroup: [
+    '{count} expenses: decide how the client pays them',
+    '{count} gastos: decide cómo los paga el cliente',
+    '{count} despesas: defina como o cliente as paga',
+  ],
+  applyConditions: ['Apply project conditions', 'Aplicar condiciones del proyecto', 'Aplicar condições do projeto'],
+  treatment_reimbursable: ['Reimbursable', 'Reembolsable', 'Reembolsável'],
+  treatment_all_in: ['All-in (in the rate)', 'Todo incluido (en la tarifa)', 'Tudo incluído (na tarifa)'],
+  treatment_non_billable: ['Not charged', 'No se cobra', 'Não cobrado'],
+  treatmentLabel: ['How the client pays', 'Cómo lo paga el cliente', 'Como o cliente paga'],
+  markup: ['Markup %', 'Recargo %', 'Acréscimo %'],
+  expenseLocked: ['On another draft', 'En otro borrador', 'Em outro rascunho'],
+  expenseList: ['Expenses in this period', 'Gastos de este periodo', 'Despesas deste período'],
+  clientDetails: ['Missing client details for {client}', 'Faltan datos del cliente {client}', 'Faltam dados do cliente {client}'],
+  clientEdit: ['Client details', 'Datos del cliente', 'Dados do cliente'],
+  billingAddress: ['Billing address', 'Dirección de facturación', 'Endereço de faturamento'],
+  billingEmail: ['Billing email', 'Email de facturación', 'E-mail de faturamento'],
+  legalName: ['Legal name', 'Razón social', 'Razão social'],
+  clientSavedFuture: [
+    'Saved to {client}; used on future invoices too.',
+    'Se guarda en {client}; se usará también en próximas facturas.',
+    'Salvo em {client}; usado também nas próximas faturas.',
+  ],
+  setupBilling: ['How to invoice this project', 'Cómo facturar este proyecto', 'Como faturar este projeto'],
+  issuer: ['Issuing company', 'Empresa emisora', 'Empresa emissora'],
+  taxPick: ['Tax', 'Impuesto', 'Imposto'],
+  taxNone: ['No tax (exempt)', 'Sin impuesto (exento)', 'Sem imposto (isento)'],
+  taxNew: ['New tax…', 'Nuevo impuesto…', 'Novo imposto…'],
+  taxName: ['Tax name', 'Nombre del impuesto', 'Nome do imposto'],
+  taxPercent: ['Rate %', 'Porcentaje %', 'Percentual %'],
+  cadence: ['How often', 'Frecuencia', 'Frequência'],
+  createSetup: ['Save billing setup', 'Guardar configuración', 'Salvar configuração'],
+  noIssuer: [
+    'No issuing company in this currency yet. Set it up in Advanced → Company and numbering.',
+    'Aún no hay empresa emisora en esta moneda. Configúrala en Avanzado → Empresa y numeración.',
+    'Ainda não há empresa emissora nesta moeda. Configure em Avançado → Empresa e numeração.',
+  ],
+  issuerBank: ['Bank details for the invoice', 'Datos bancarios para la factura', 'Dados bancários para a fatura'],
+  bankName: ['Bank', 'Banco', 'Banco'],
+  bankAccount: ['Account / IBAN', 'Cuenta / IBAN', 'Conta / IBAN'],
+  poTitle: ['No PO number', 'Sin número de PO', 'Sem número de PO'],
+  poThisInvoice: ['Only this invoice', 'Solo esta factura', 'Só nesta fatura'],
+  poProject: ['The whole project', 'Todo el proyecto', 'Todo o projeto'],
+  poPending: ['PO {po} goes on this invoice.', 'El PO {po} irá en esta factura.', 'O PO {po} irá nesta fatura.'],
+  advancedLink: ['Open in Advanced', 'Abrir en Avanzado', 'Abrir em Avançado'],
+  projected: [
+    'Includes {amount} pending your approval',
+    'Incluye {amount} pendientes de tu aprobación',
+    'Inclui {amount} aguardando sua aprovação',
+  ],
+  projectedNotIncluded: [
+    'Not yet included: {amount} waiting for approval.',
+    'Aún no incluido: {amount} pendientes de aprobación.',
+    'Ainda não incluído: {amount} aguardando aprovação.',
+  ],
+  issueBlockedN: ['Resolve {count} to issue', 'Resuelve {count} para emitir', 'Resolva {count} para emitir'],
+  saveDraft: ['Save draft', 'Guardar borrador', 'Salvar rascunho'],
+  issueConfirmTitle: ['Issue invoice for {amount}?', '¿Emitir factura por {amount}?', 'Emitir fatura de {amount}?'],
+  issueConfirmBody: [
+    'To {client} · {period}. Issuing assigns the final number and locks the invoice; corrections are made with a credit note.',
+    'Para {client} · {period}. Al emitir se asigna el número definitivo y la factura queda bloqueada; las correcciones se hacen con nota de crédito.',
+    'Para {client} · {period}. Ao emitir, o número definitivo é atribuído e a fatura fica bloqueada; correções são feitas com nota de crédito.',
+  ],
+  issueConfirm: ['Confirm and issue', 'Confirmar y emitir', 'Confirmar e emitir'],
+  issueFailedDraft: [
+    'The draft was saved, but it could not be issued: {reason}',
+    'El borrador se guardó, pero no se pudo emitir: {reason}',
+    'O rascunho foi salvo, mas não pôde ser emitido: {reason}',
+  ],
+  alreadyInvoiced: ['Already invoiced · {number}', 'Ya facturado · {number}', 'Já faturado · {number}'],
+  staleSource: [
+    'A record changed while you were reviewing. Check again.',
+    'Un registro cambió mientras revisabas. Revisa de nuevo.',
+    'Um registro mudou enquanto você revisava. Verifique de novo.',
+  ],
+  fixFailed: ['Not saved: {reason}', 'No se guardó: {reason}', 'Não salvo: {reason}'],
+  showMore: ['Show {count} more', 'Mostrar {count} más', 'Mostrar mais {count}'],
+  people: ['people', 'personas', 'pessoas'],
+  close: ['Close', 'Cerrar', 'Fechar'],
+  lines: ['Lines', 'Líneas', 'Linhas'],
+  ifApproved: ['If approved', 'Si se aprueba', 'Se aprovado'],
 } satisfies Record<string, Triple>;
 
 export type QuickInvoiceCopyKey = keyof typeof copy;
@@ -233,6 +425,17 @@ const index = (locale: PortalLocale) => (locale === 'es' ? 1 : locale === 'pt' ?
 
 export function quickInvoiceText(locale: PortalLocale, key: QuickInvoiceCopyKey): string {
   return copy[key][index(locale)];
+}
+
+/** Copy with `{name}` placeholders filled in (values are already locale-formatted). */
+export function quickInvoiceFormat(
+  locale: PortalLocale,
+  key: QuickInvoiceCopyKey,
+  params: Record<string, string | number>,
+): string {
+  return copy[key][index(locale)].replace(/\{(\w+)\}/gu, (match, name: string) =>
+    name in params ? String(params[name]) : match,
+  );
 }
 
 type Warning = { code: string; count: number; minutes: number };

@@ -322,12 +322,17 @@ describe('explicit canonical invoice composition', () => {
     const f = setup();
     const submitted = f.time('2026-08-20', 60, false);
     const input = { projectId: f.project.id, sources: [submitted] };
-    expect(() => f.repository.approveInvoiceCompositionSources(f.finance, input)).toThrow(
-      AccessDeniedError,
-    );
     expect(() => f.repository.approveInvoiceCompositionSources(f.manager, input)).toThrow(
       AccessDeniedError,
     );
+    // Owner decision 2026-11-17: Finance may approve on behalf of workers ("Approve & include").
+    const forFinance = f.time('2026-08-22', 30, false);
+    expect(
+      f.repository.approveInvoiceCompositionSources(f.finance, {
+        projectId: f.project.id,
+        sources: [forFinance],
+      })[0],
+    ).toMatchObject({ approvalState: 'approved', financeAccepted: true });
     expect(() => f.repository.invoiceCompositionSources(f.worker, f.scope)).toThrow(
       AccessDeniedError,
     );
@@ -350,12 +355,18 @@ describe('explicit canonical invoice composition', () => {
       minutes: 30,
       summary: 'Unsubmitted',
     });
-    expect(() =>
+    // "Approve & include" also submits a worker's draft on their behalf (audited).
+    expect(
       f.repository.approveInvoiceCompositionSources(f.owner, {
         ...input,
         sources: [f.ref('time', draft.id)],
-      }),
-    ).toThrow(ConflictError);
+      })[0],
+    ).toMatchObject({ approvalState: 'approved', financeAccepted: true });
+    expect(
+      f.sqlite
+        .prepare("SELECT COUNT(*) n FROM audit_event WHERE action='time.submit' AND entity_id=? AND actor_id=?")
+        .get(draft.id, f.owner.userId),
+    ).toEqual({ n: 1 });
   });
 
   it.each(['daily', 'weekly'] as const)('requires complete %s person groups', (unit) => {

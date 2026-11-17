@@ -1228,6 +1228,7 @@ export {
 export { OwnerCatalogManagement, ownerCatalogs } from './domains/owner/owner-catalog-management.ts';
 
 export * from './domains/commercial/project-person-defaults.ts';
+export { withCommercialRuleSnapshot } from './domains/commercial/assignment-commercial-terms.ts';
 
 export {
   resolveInvoiceIssuerAuthority,

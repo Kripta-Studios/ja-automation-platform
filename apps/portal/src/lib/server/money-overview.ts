@@ -1,12 +1,31 @@
 import type { V3Repository } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import type { MoneyOverview, MoneyPeriodKey } from '../portal/money-overview-types';
+import { normalizeSelectSearch } from '../portal/searchable-selects';
 
 const big = (value: unknown): bigint => {
   const text = String(value ?? '0');
   return /^-?\d+$/u.test(text) ? BigInt(text) : 0n;
 };
 const day = (value: unknown): string => String(value ?? '').slice(0, 10);
+
+/**
+ * Detailed analysis lists every project with its summary numbers only. The per-project
+ * source arrays (time/expense economics, unbilled sources) are dropped here: they made
+ * the page several megabytes and are shown for the selected project from `finance`.
+ */
+export function slimFinancePortfolio<T extends { projects: Array<Record<string, unknown>> }>(
+  portfolio: T,
+): T {
+  return {
+    ...portfolio,
+    projects: portfolio.projects.map((row) =>
+      Object.fromEntries(
+        Object.entries(row).filter(([, value]) => value === null || typeof value !== 'object'),
+      ),
+    ),
+  };
+}
 
 /** Calendar windows in UTC dates, matching the rest of finance (dates are ISO days). */
 export function moneyPeriod(
@@ -39,7 +58,7 @@ export function buildMoneyOverview(
   v3: V3Repository,
   principal: Principal,
   requestedPeriod: string | null | undefined,
-  options: Readonly<{ includeArchived: boolean; today?: string }>,
+  options: Readonly<{ includeArchived: boolean; today?: string; search?: string; limit?: number }>,
 ): MoneyOverview {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const period = moneyPeriod(requestedPeriod, today);
@@ -97,7 +116,10 @@ export function buildMoneyOverview(
     const projectId = String(invoice.projectId);
     if (state !== 'void' && inPeriod(invoice.issueDate)) {
       row.invoiced += big(invoice.totalMinor);
-      projectInvoiced.set(projectId, (projectInvoiced.get(projectId) ?? 0n) + big(invoice.totalMinor));
+      projectInvoiced.set(
+        projectId,
+        (projectInvoiced.get(projectId) ?? 0n) + big(invoice.totalMinor),
+      );
     }
     for (const payment of invoice.payments as Array<Record<string, unknown>>)
       if (inPeriod(payment.received_at)) row.collected += big(payment.grossAmountMinor);
@@ -164,15 +186,28 @@ export function buildMoneyOverview(
         open.outstanding !== 0n,
     });
   }
-  projects.sort(
-    (a, b) =>
-      Number(b.hasActivity) - Number(a.hasActivity) ||
-      a.currency.localeCompare(b.currency) ||
-      (big(b.workValueMinor) + big(b.readyToInvoiceMinor) > big(a.workValueMinor) + big(a.readyToInvoiceMinor)
-        ? 1
-        : -1) ||
-      a.projectNumber.localeCompare(b.projectNumber),
-  );
+  // Projects that need the owner first: money waiting (ready to invoice + unpaid), then
+  // the period's work value. Amounts are only compared, never added across currencies.
+  const waiting = (row: MoneyOverview['projects'][number]) =>
+    big(row.readyToInvoiceMinor) + big(row.outstandingMinor);
+  projects.sort((a, b) => {
+    if (a.hasActivity !== b.hasActivity) return a.hasActivity ? -1 : 1;
+    const byWaiting = waiting(b) - waiting(a);
+    if (byWaiting !== 0n) return byWaiting > 0n ? 1 : -1;
+    const byValue = big(b.workValueMinor) - big(a.workValueMinor);
+    if (byValue !== 0n) return byValue > 0n ? 1 : -1;
+    return a.projectNumber.localeCompare(b.projectNumber);
+  });
+  const active = projects.filter((project) => project.hasActivity);
+  const search = normalizeSelectSearch(options.search ?? '');
+  const matches = search
+    ? active.filter((project) =>
+        normalizeSelectSearch(
+          `${project.projectNumber} ${project.projectName} ${project.clientName}`,
+        ).includes(search),
+      )
+    : active;
+  const limit = Math.max(1, options.limit ?? 20);
 
   const currencies = [...totals.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
@@ -196,5 +231,16 @@ export function buildMoneyOverview(
         readyToInvoiceMinor: row.readyToInvoice.toString(),
       };
     });
-  return { period: { ...period, today }, currencies, projects };
+  return {
+    period: { ...period, today },
+    currencies,
+    projects: matches.slice(0, limit),
+    projectList: {
+      active: active.length,
+      quiet: projects.length - active.length,
+      matches: matches.length,
+      search: (options.search ?? '').trim(),
+      limit,
+    },
+  };
 }

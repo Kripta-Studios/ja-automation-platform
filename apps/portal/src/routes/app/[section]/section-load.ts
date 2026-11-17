@@ -13,7 +13,7 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
-import { buildMoneyOverview } from '$lib/server/money-overview';
+import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
 import { buildRatesOverview } from '$lib/server/rates-overview';
 import {
   reviewFinanceReimbursement,
@@ -1182,7 +1182,37 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         );
         const projects = scope.projects;
         const requestedProject = normalizeProjectQuery(scope.projectIds);
-        const selected = requestedProject || (projects[0] as { id?: string } | undefined)?.id || '';
+        // Each finance view loads only its own data. The per-project workspace (rules,
+        // settlements, expenses, reimbursements, legal entities) belongs to "Detailed
+        // analysis" and to a project opened in Rates; Money and the Rates list never build it.
+        const loadsProjectWorkspace =
+          financeView === 'economic' ||
+          (financeView === 'commercial' &&
+            // Rates "Advanced settings" (opened explicitly or through older deep links).
+            ['advanced', 'task', 'asOf', 'category', 'policyPerson', 'expense', 'sourceRecord'].some(
+              (key) => url.searchParams.has(key),
+            ));
+        const selected = loadsProjectWorkspace
+          ? requestedProject || (projects[0] as { id?: string } | undefined)?.id || ''
+          : '';
+        const financeSearch = (url.searchParams.get('find') ?? '').trim().slice(0, 80);
+        const financeShow = Number.parseInt(url.searchParams.get('show') ?? '', 10);
+        const financeListLimit =
+          Number.isInteger(financeShow) && financeShow > 0 ? Math.min(financeShow, 500) : 20;
+        // Rules of the selected project plus the global rules of the people on it.
+        const selectedMemberIds = new Set(
+          selected
+            ? (
+                context.sqlite
+                  .prepare('SELECT DISTINCT user_id FROM project_member WHERE project_id=?')
+                  .all(selected) as Array<{ user_id: string }>
+              ).map((row) => row.user_id)
+            : [],
+        );
+        const inSelectedScope = (rule: Record<string, unknown>) =>
+          rule.project_id
+            ? String(rule.project_id) === selected
+            : selectedMemberIds.has(String(rule.worker_id ?? ''));
         const canManageCanonicalAuthority = ['owner_admin', 'finance_admin'].includes(
           context.principal.role,
         );
@@ -1397,19 +1427,42 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : [],
           // Keep global rules while restricting project-specific configuration to this mode.
           // Settlements, payments and invoice/ledger history retain their authoritative scopes.
-          compensationRules: context.v3
-            .listCompensationRules(context.principal)
-            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
-          clientLaborRates: visibleProjectRecords(
-            context.v3.listClientLaborRates(context.principal),
-            scope.projectIds,
-          ),
-          internalCostRules: context.v3
-            .listInternalCostRules(context.principal)
-            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
-          portfolio: context.v3.financePortfolio(context.principal, undefined, undefined, {
-            includeArchived,
-          }),
+          compensationRules: selected
+            ? context.v3
+                .listCompensationRules(context.principal)
+                .filter(
+                  (rule) =>
+                    (!rule.project_id || scope.projectIds.has(String(rule.project_id))) &&
+                    inSelectedScope(rule),
+                )
+            : [],
+          clientLaborRates: selected
+            ? visibleProjectRecords(
+                context.v3.listClientLaborRates(context.principal),
+                scope.projectIds,
+              ).filter(inSelectedScope)
+            : [],
+          internalCostRules: selected
+            ? context.v3
+                .listInternalCostRules(context.principal)
+                .filter(
+                  (rule) =>
+                    (!rule.project_id || scope.projectIds.has(String(rule.project_id))) &&
+                    inSelectedScope(rule),
+                )
+            : [],
+          // Detailed analysis only. Per-project rows keep their summary numbers; the
+          // source-record arrays (time/expense economics) are shown for the selected
+          // project from `finance`, so they are not serialized for every project.
+          ...(financeView === 'economic'
+            ? {
+                portfolio: slimFinancePortfolio(
+                  context.v3.financePortfolio(context.principal, undefined, undefined, {
+                    includeArchived,
+                  }),
+                ),
+              }
+            : {}),
           settlements,
           compensationPayments: settlementIds.size
             ? context.v3
@@ -1424,12 +1477,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
             : [],
-          legalEntities: canManageCanonicalAuthority
-            ? context.repository.listLegalEntities(context.principal)
-            : [],
-          canonicalLegalEntityOptions: canManageCanonicalAuthority
-            ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
-            : [],
+          legalEntities:
+            canManageCanonicalAuthority && selected
+              ? context.repository.listLegalEntities(context.principal)
+              : [],
+          canonicalLegalEntityOptions:
+            canManageCanonicalAuthority && selected
+              ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
+              : [],
           projectLegalEntityAssignments:
             canManageCanonicalAuthority && selected
               ? context.v3.listProjectLegalEntityAssignments(context.principal, selected)
@@ -1451,7 +1506,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   context.v3,
                   context.principal,
                   url.searchParams.get('period'),
-                  { includeArchived },
+                  { includeArchived, search: financeSearch, limit: financeListLimit },
                 ),
               }
             : {}),
@@ -1462,6 +1517,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   context.v3,
                   context.principal,
                   projects as Array<Record<string, unknown>>,
+                  {
+                    openProjectId: requestedProject,
+                    search: financeSearch,
+                    missingOnly: url.searchParams.get('missing') === '1',
+                    limit: financeListLimit,
+                  },
                 ),
               }
             : {}),

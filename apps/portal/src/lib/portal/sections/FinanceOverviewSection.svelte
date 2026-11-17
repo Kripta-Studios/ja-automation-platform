@@ -1831,7 +1831,7 @@
       {locale}
       {money}
       canEdit={canWriteFinance}
-      advanced={legacyFinance}
+      advanced={data.finance ? legacyFinance : undefined}
     />
   {:else}
     {#if activeView === 'economic'}

@@ -7276,7 +7276,7 @@
         {controlledValue}
         formatMoney={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
       />
-    {:else if data.section === 'finance' && data.finance}
+    {:else if data.section === 'finance' && (data.finance || data.moneyOverview || data.ratesOverview)}
       <FinanceOverviewSection
         {locale}
         {data}

@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { uuidSchema } from '@ja/schemas';
+import { projectRecordIdSchema, uuidSchema } from '@ja/schemas';
 import { json } from '@sveltejs/kit';
 import { actionFailure, openPortalRepository } from '$lib/server/portal-repository';
 import {
@@ -26,7 +26,7 @@ export const POST: RequestHandler = async ({ locals, request }) => {
   const uploadedFile = file instanceof File ? file : null;
   if (
     typeof projectId !== 'string' ||
-    !uuidSchema.safeParse(projectId).success ||
+    !projectRecordIdSchema.safeParse(projectId).success ||
     typeof attachmentId !== 'string' ||
     !uuidSchema.safeParse(attachmentId).success ||
     !uploadedFile

@@ -29,11 +29,11 @@ export const GET: RequestHandler = ({ locals, url }) => {
     .safeParse(Object.fromEntries(url.searchParams));
   if (!parsed.success) return currencyApiError(400, 'INVALID', 'Invalid conversion source');
   const opened = openFinanceCurrencyContext(locals);
-  if ('error' in opened) return opened.error;
+  if (opened.error) return opened.error;
   const { context } = opened;
   try {
     const q = parsed.data;
-    let sourceCurrency = q.sourceCurrency ?? null;
+    let sourceCurrency: string | null = q.sourceCurrency ?? null;
     let documentDate = q.documentDate ?? null;
     if (q.sourceKind === 'expense') {
       const expense = context.sqlite
@@ -89,7 +89,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
   const parsed = postSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) return currencyApiError(400, 'INVALID', 'Check the rate and amount');
   const opened = openFinanceCurrencyContext(locals);
-  if ('error' in opened) return opened.error;
+  if (opened.error) return opened.error;
   const { context } = opened;
   try {
     const input = parsed.data;

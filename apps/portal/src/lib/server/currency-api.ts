@@ -12,18 +12,21 @@ export function currencyApiError(status: number, code: string, message: string) 
 }
 
 /** Owner / finance only, live session; returns an open context the caller must close. */
-export function openFinanceCurrencyContext(locals: App.Locals) {
-  if (!locals.user || !locals.session) return { error: currencyApiError(401, 'SIGN_IN', 'Sign in required') } as const;
+type FinanceContext = ReturnType<typeof openPortalRepository>;
+export function openFinanceCurrencyContext(
+  locals: App.Locals,
+): { error: Response; context?: never } | { context: FinanceContext; error?: never } {
+  if (!locals.user || !locals.session) return { error: currencyApiError(401, 'SIGN_IN', 'Sign in required') };
   const context = openPortalRepository(locals);
   try {
     assertLiveSession(context.sqlite, context.principal, AccessDeniedError);
   } catch {
     context.sqlite.close();
-    return { error: currencyApiError(401, 'SIGN_IN', 'Live authenticated session required') } as const;
+    return { error: currencyApiError(401, 'SIGN_IN', 'Live authenticated session required') };
   }
   if (!['owner_admin', 'finance_admin'].includes(context.principal.role)) {
     context.sqlite.close();
-    return { error: currencyApiError(403, 'FINANCE_ONLY', 'Owner or finance access required') } as const;
+    return { error: currencyApiError(403, 'FINANCE_ONLY', 'Owner or finance access required') };
   }
-  return { context } as const;
+  return { context };
 }

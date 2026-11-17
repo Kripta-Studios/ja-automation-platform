@@ -22,7 +22,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
   if (!isCurrency(from) || !isCurrency(to) || !/^\d{4}-\d{2}-\d{2}$/u.test(date))
     return currencyApiError(400, 'INVALID', 'Choose two currencies and a date');
   const opened = openFinanceCurrencyContext(locals);
-  if ('error' in opened) return opened.error;
+  if (opened.error) return opened.error;
   const { context } = opened;
   try {
     return json(
@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
   const body = (await request.json().catch(() => null)) as { operation?: unknown } | null;
   if (body?.operation !== 'refresh') return currencyApiError(400, 'INVALID', 'Unknown operation');
   const opened = openFinanceCurrencyContext(locals);
-  if ('error' in opened) return opened.error;
+  if (opened.error) return opened.error;
   const { context } = opened;
   try {
     const result = await refreshExchangeRates(context.sqlite, {

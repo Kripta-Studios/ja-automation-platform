@@ -58,10 +58,10 @@ export function storeEcbRates(
   let inserted = 0;
   let unchanged = 0;
   let conflicts = 0;
-  let latestDate: string | null = null;
+  let latestDate = null as string | null;
   for (const day of days) {
     if (!ISO_DATE.test(day.date)) continue;
-    latestDate = !latestDate || day.date > latestDate ? day.date : latestDate;
+    if (latestDate === null || day.date > latestDate) latestDate = day.date;
     for (const [quote, rate] of Object.entries(day.rates)) {
       const row = existing.get(day.date, quote) as { rate_decimal: string } | undefined;
       if (row) {

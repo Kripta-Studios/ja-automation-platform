@@ -32,8 +32,30 @@
     invoicedSources: number;
     excludedSources: number;
     pendingSources: number;
+    timeCount: number;
+    expenseCount: number;
+    timeByCategory: CategorySubtotal[];
+    expensesByCategory: CategorySubtotal[];
+    /** Source rows: only for the person opened on demand, a page at a time. */
     time: Source[];
     expenses: Source[];
+  };
+  type CategorySubtotal = {
+    category: string;
+    count: number;
+    actualMinutes: number;
+    billableMinutes: number;
+    revenueMinor: string;
+    costMinor: string;
+  };
+  type Issue = {
+    code: string;
+    sourceId: string | null;
+    workerName: string | null;
+    sourceKind: 'time' | 'expense' | 'person' | null;
+    workDate: string | null;
+    spentOn: string | null;
+    description: string | null;
   };
   type Explanation = {
     project: { id: string; number: string; name: string; currency: string; billingModel: string };
@@ -51,7 +73,10 @@
     dailyMinimumAdjustments: Source[];
     milestones: Source[];
     people: Person[];
-    issues: Array<{ code: string; sourceId: string | null }>;
+    issues: Issue[];
+    categories: CategorySubtotal[];
+    selectedPersonId: string | null;
+    sourceRowLimit: number;
   };
 
   let { data } = $props<{
@@ -85,37 +110,21 @@
       'Expense currency conversion is missing for a source record.',
     missing_person_forecast_rate: 'A planned worker needs a rate before the forecast is complete.',
   };
-  function issueDisplay(issue: Explanation['issues'][number]): {
-    message: string;
-    context: string;
-  } {
-    const sourceId = String(issue.sourceId ?? '');
-    const person = explanation?.people.find(
-      (candidate) =>
-        candidate.workerId === sourceId ||
-        candidate.time.some((row) => String(row.id ?? '') === sourceId) ||
-        candidate.expenses.some((row) => String(row.id ?? '') === sourceId),
-    );
-    const time = person?.time.find((row) => String(row.id ?? '') === sourceId);
-    const expense = person?.expenses.find((row) => String(row.id ?? '') === sourceId);
-    const context = time
-      ? `${person?.workerName ?? ''} · ${String(time.workDate ?? '')}`
-      : expense
-        ? `${String(expense.description ?? '')} · ${person?.workerName ?? ''} · ${String(expense.spentOn ?? '')}`
-        : (person?.workerName ?? project.name);
-    return { message: t(issueMessages[issue.code] ?? issue.code.replaceAll('_', ' ')), context };
+  function issueDisplay(issue: Issue): string {
+    return issue.sourceKind === 'time'
+      ? `${issue.workerName ?? ''} · ${issue.workDate ?? ''}`
+      : issue.sourceKind === 'expense'
+        ? [issue.description, issue.workerName, issue.spentOn].filter(Boolean).join(' · ')
+        : (issue.workerName ?? project.name);
   }
-  function issueRemedy(issue: Explanation['issues'][number]): { label: string; href?: string } {
+  function issueRemedy(issue: Issue): { label: string; href?: string } {
     if (data.user.role === 'auditor_read_only') return { label: t('Contact Finance or an owner') };
     const sourceId = String(issue.sourceId ?? '');
     if (
       issue.code === 'missing_expense_finance_projection' ||
       issue.code === 'missing_expense_currency_conversion'
     ) {
-      const expense = explanation?.people
-        .flatMap((person) => person.expenses)
-        .find((row) => String(row.id ?? '') === sourceId);
-      if (issue.code === 'missing_expense_currency_conversion' && expense)
+      if (issue.code === 'missing_expense_currency_conversion' && issue.sourceKind === 'expense')
         return {
           label: t('Review source expense'),
           href: `${base}/app/expenses/${encodeURIComponent(sourceId)}`,
@@ -139,17 +148,42 @@
       task,
       lang: locale,
     });
-    if (
-      sourceId &&
-      explanation?.people.some((person) =>
-        person.time.some((row) => String(row.id ?? '') === sourceId),
-      )
-    )
-      query.set('sourceRecord', sourceId);
+    if (sourceId && issue.sourceKind === 'time') query.set('sourceRecord', sourceId);
     return {
       label: `${t('Open finance configuration')}: ${t(task)}`,
       href: `${base}/app/finance?${query.toString()}#finance-configuration-task`,
     };
+  }
+  /** Configuration gaps grouped by kind: one collapsed line per kind. */
+  const issueGroups = $derived.by(() => {
+    const groups = new Map<string, Issue[]>();
+    for (const issue of explanation?.issues ?? [])
+      groups.set(issue.code, [...(groups.get(issue.code) ?? []), issue]);
+    return [...groups.entries()].map(([code, issues]) => ({ code, issues }));
+  });
+  const ISSUES_SHOWN = 10;
+  const PEOPLE_SHOWN = 10;
+  let showAllPeople = $state(false);
+  /** Ten people at a time (the opened person always stays visible). */
+  const visiblePeople = $derived(
+    showAllPeople
+      ? (explanation?.people ?? [])
+      : (explanation?.people ?? []).filter(
+          (person, index) =>
+            index < PEOPLE_SHOWN || person.workerId === explanation?.selectedPersonId,
+        ),
+  );
+  let expandedIssueGroups = $state<Record<string, boolean>>({});
+  const issueMessage = (code: string) => t(issueMessages[code] ?? code.replaceAll('_', ' '));
+  /** Link that opens (or pages) one person's source rows; keeps period and language. */
+  function personHref(workerId: string | null, rows?: number): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    query.delete('person');
+    query.delete('rows');
+    if (workerId) query.set('person', workerId);
+    if (workerId && rows) query.set('rows', String(rows));
+    const anchor = workerId ? `#person-${encodeURIComponent(workerId)}` : '#people-calculation-title';
+    return `${base}/app/projects/${encodeURIComponent(project.id)}/calculation?${query.toString()}${anchor}`;
   }
   onMount(() => {
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'));
@@ -321,6 +355,41 @@
 
 <svelte:head><title>{t('How this project is calculated')}</title></svelte:head>
 
+{#snippet categoryTable(rows: CategorySubtotal[], kind: 'time' | 'expense')}
+  <table class="category-table">
+    <thead>
+      <tr>
+        <th scope="col">{t('Category')}</th>
+        <th scope="col">{t('Entries')}</th>
+        {#if kind === 'time'}
+          <th scope="col">{t('Recorded')}</th>
+          <th scope="col">{t('Billable')}</th>
+          <th scope="col">{t('Revenue')}</th>
+        {:else}
+          <th scope="col">{t('Revenue')}</th>
+          <th scope="col">{t('Cost')}</th>
+        {/if}
+      </tr>
+    </thead>
+    <tbody>
+      {#each rows as row (row.category)}
+        <tr>
+          <th scope="row">{category(row.category)}</th>
+          <td>{row.count}</td>
+          {#if kind === 'time'}
+            <td>{hours(row.actualMinutes)}</td>
+            <td>{hours(row.billableMinutes)}</td>
+            <td>{money(row.revenueMinor)}</td>
+          {:else}
+            <td>{money(row.revenueMinor)}</td>
+            <td>{money(row.costMinor)}</td>
+          {/if}
+        </tr>
+      {/each}
+    </tbody>
+  </table>
+{/snippet}
+
 <main class="calculation-page" data-project-calculation-page>
   <a
     class="back-link"
@@ -414,14 +483,6 @@
     </form>
   </section>
   {#if !periodProblem && explanation}
-    <section class="notice" data-calculation-canonical-note>
-      <strong>{t('These are the canonical project-finance results.')}</strong>
-      <p>
-        {t(
-          'Amounts come from the same saved finance projection used by the project finance workspace. This screen explains its source rows and effective terms; it does not recalculate invoice amounts.',
-        )}
-      </p>
-    </section>
 
     <section class="totals" aria-label={t('Period totals')}>
       <article data-calculation-total="recorded">
@@ -496,6 +557,15 @@
       </p>
     {/if}
 
+    <section class="notice" data-calculation-canonical-note>
+      <strong>{t('These are the canonical project-finance results.')}</strong>
+      <p>
+        {t(
+          'Amounts come from the same saved finance projection used by the project finance workspace. This screen explains its source rows and effective terms; it does not recalculate invoice amounts.',
+        )}
+      </p>
+    </section>
+
     <section class="section-card" aria-labelledby="billing-configuration-title">
       <h2 id="billing-configuration-title">{t('Billing configuration in this period')}</h2>
       {#if explanation.billingRules.length}
@@ -522,21 +592,50 @@
       {/if}
     </section>
 
-    {#if explanation.issues.length}
-      <section class="issues" aria-label={t('Configuration issues')}>
+    {#if issueGroups.length}
+      <section class="issues" aria-label={t('Configuration issues')} data-calculation-issues>
         <h2>{t('Configuration that still needs attention')}</h2>
-        <ul>
-          {#each explanation.issues as issue}
-            {@const readable = issueDisplay(issue)}
-            {@const remedy = issueRemedy(issue)}
-            <li>
-              {readable.message} · {readable.context}
-              {#if remedy.href}<a href={remedy.href}>{remedy.label}</a>
-              {:else}<span>{remedy.label}</span>{/if}
-            </li>
-          {/each}
-        </ul>
+        {#each issueGroups as group (group.code)}
+          {@const shown = expandedIssueGroups[group.code]
+            ? group.issues
+            : group.issues.slice(0, ISSUES_SHOWN)}
+          <details class="group" data-calculation-issue-group={group.code}>
+            <summary
+              ><span>{issueMessage(group.code)}</span><span class="count">{group.issues.length}</span
+              ></summary
+            >
+            <ul>
+              {#each shown as issue, index (`${issue.sourceId ?? ''}-${index}`)}
+                {@const remedy = issueRemedy(issue)}
+                <li>
+                  <span>{issueDisplay(issue)}</span>
+                  {#if remedy.href}<a href={remedy.href}>{remedy.label}</a>
+                  {:else}<span class="muted">{remedy.label}</span>{/if}
+                </li>
+              {/each}
+            </ul>
+            {#if group.issues.length > shown.length}
+              <button
+                type="button"
+                class="link-button"
+                onclick={() => (expandedIssueGroups[group.code] = true)}
+                >{t('Show all ({n})', { n: group.issues.length })}</button
+              >
+            {/if}
+          </details>
+        {/each}
       </section>
+    {/if}
+
+    {#if explanation.categories?.length}
+      <details class="section-card group" data-calculation-categories>
+        <summary
+          ><span>{t('Hours by category')}</span><span class="count"
+            >{explanation.categories.length}</span
+          ></summary
+        >
+        {@render categoryTable(explanation.categories, 'time')}
+      </details>
     {/if}
 
     <section class="people-section" aria-labelledby="people-calculation-title">
@@ -547,12 +646,25 @@
         </div>
         <span>{explanation.people.length} {t('people')}</span>
       </div>
-      {#each explanation.people as person}
-        <article class="person" data-calculation-person={person.workerId}>
-          <header>
-            <div>
-              <h3>{person.workerName}</h3>
-              <span
+      <p class="provenance-unavailable">
+        {t(
+          data.user.role === 'auditor_read_only'
+            ? 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; ask Finance or an owner to review future terms in Project billing setup.'
+            : 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
+        )}
+      </p>
+      <div class="people-list">
+        {#each visiblePeople as person (person.workerId)}
+          {@const isOpen = explanation.selectedPersonId === person.workerId}
+          <details
+            class="person"
+            id={`person-${person.workerId}`}
+            data-calculation-person={person.workerId}
+            open={isOpen}
+          >
+            <summary class="person-row">
+              <strong class="person-name">{person.workerName}</strong>
+              <span class="person-hours"
                 >{hours(person.actualMinutes)}
                 {t('actual ·')}
                 {hours(person.approvedMinutes)}
@@ -560,96 +672,136 @@
                 {hours(person.billableMinutes)}
                 {t('billable')}</span
               >
-            </div>
-            <span class="person-revenue"
-              >{money(person.customerRevenueMinor)} {t('customer revenue')}</span
-            >
-          </header>
-          <div class="person-totals">
-            <span
-              >{t('Worker compensation')}
-              <strong>{money(person.workerCompensationMinor)}</strong></span
-            >
-            <span
-              >{t('Internal labor cost')} <strong>{money(person.internalCostMinor)}</strong></span
-            >
-            <span>{t('Expense recovery')} <strong>{money(person.expenseRevenueMinor)}</strong></span
-            >
-            <span>{t('Expense cost')} <strong>{money(person.expenseCostMinor)}</strong></span>
-          </div>
-          <div class="source-counts" aria-label={`Source state for ${person.workerName}`}>
-            <span>{person.approvedOperationalSources} {t('approved operational')}</span><span
-              >{person.invoicedSources} {t('invoiced')}</span
-            ><span>{person.pendingSources} {t('pending')}</span><span
-              >{person.excludedSources} {t('excluded')}</span
-            >
-          </div>
-          <p class="provenance-unavailable">
-            {t(
-              data.user.role === 'auditor_read_only'
-                ? 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; ask Finance or an owner to review future terms in Project billing setup.'
-                : 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
-            )}
-          </p>
-          <details>
-            <summary>{t('Recorded time and calculation sources (')}{person.time.length})</summary>
-            <div class="source-list">
-              {#each person.time as row}
-                <article>
-                  <div>
-                    <strong
-                      >{sourceText(row, 'workDate')} · {category(
-                        sourceText(row, 'category'),
-                      )}</strong
-                    ><span
-                      >{hours(row.actualMinutes)}
-                      {t('actual ·')}
-                      {hours(row.billableMinutes)}
-                      {t('billable ·')}
-                      {stateLabel(row.sourceState)}</span
-                    >
-                    <span>{sourceCalculationSummary(row)}</span>
+              {#if person.pendingSources}<span class="pill warn"
+                  >{person.pendingSources} {t('pending')}</span
+                >{/if}
+              <span class="person-revenue"
+                >{money(person.customerRevenueMinor)} {t('customer revenue')}</span
+              >
+            </summary>
+            <div class="person-body">
+              <div class="person-totals">
+                <span
+                  >{t('Worker compensation')}
+                  <strong>{money(person.workerCompensationMinor)}</strong></span
+                >
+                <span
+                  >{t('Internal labor cost')}
+                  <strong>{money(person.internalCostMinor)}</strong></span
+                >
+                <span
+                  >{t('Expense recovery')} <strong>{money(person.expenseRevenueMinor)}</strong></span
+                >
+                <span>{t('Expense cost')} <strong>{money(person.expenseCostMinor)}</strong></span>
+              </div>
+              <div class="source-counts" aria-label={`Source state for ${person.workerName}`}>
+                <span>{person.approvedOperationalSources} {t('approved operational')}</span><span
+                  >{person.invoicedSources} {t('invoiced')}</span
+                ><span>{person.pendingSources} {t('pending')}</span><span
+                  >{person.excludedSources} {t('excluded')}</span
+                >
+              </div>
+              {#if person.timeByCategory?.length}
+                <h4>{t('Recorded time and calculation sources (')}{person.timeCount})</h4>
+                {@render categoryTable(person.timeByCategory, 'time')}
+              {/if}
+              {#if person.expensesByCategory?.length}
+                <h4>{t('Expenses and recovery sources (')}{person.expenseCount})</h4>
+                {@render categoryTable(person.expensesByCategory, 'expense')}
+              {/if}
+              {#if !isOpen}
+                {#if person.timeCount + person.expenseCount > 0}
+                  <a class="source-link" href={personHref(person.workerId)} data-sveltekit-noscroll
+                    >{t('Show source rows ({n})', {
+                      n: person.timeCount + person.expenseCount,
+                    })}</a
+                  >
+                {:else}
+                  <p class="muted">{t('No time or expense source exists in this period.')}</p>
+                {/if}
+              {:else}
+                {#if person.timeCount}
+                  <h4>{t('Recorded time')} · {person.time.length} / {person.timeCount}</h4>
+                  <div class="source-list" data-calculation-time-rows>
+                    {#each person.time as row (String(row.id))}
+                      <article>
+                        <div>
+                          <strong
+                            >{sourceText(row, 'workDate')} · {category(
+                              sourceText(row, 'category'),
+                            )}</strong
+                          ><span
+                            >{hours(row.actualMinutes)}
+                            {t('actual ·')}
+                            {hours(row.billableMinutes)}
+                            {t('billable ·')}
+                            {stateLabel(row.sourceState)}</span
+                          >
+                          <span>{sourceCalculationSummary(row)}</span>
+                        </div>
+                        <div>
+                          <strong>{money(row.clientRevenueMinor)}</strong>
+                        </div>
+                      </article>
+                    {/each}
                   </div>
-                  <div>
-                    <strong>{money(row.clientRevenueMinor)}</strong><span
-                      >{sourceText(row, 'formula')}</span
-                    >
+                {/if}
+                {#if person.expenseCount}
+                  <h4>{t('Expenses')} · {person.expenses.length} / {person.expenseCount}</h4>
+                  <div class="source-list" data-calculation-expense-rows>
+                    {#each person.expenses as row (String(row.id))}
+                      <article>
+                        <div>
+                          <strong
+                            >{sourceText(row, 'spentOn')} · {category(
+                              sourceText(row, 'category'),
+                            )}</strong
+                          ><span>{t(sourceText(row, 'treatment'))} · {stateLabel(row.sourceState)}</span>
+                          <span>{expensePolicySummary(row)}</span>
+                        </div>
+                        <div>
+                          <strong>{money(row.revenueMinor)}</strong><span
+                            >{t('Cost')} {money(row.costMinor)}</span
+                          >
+                          <span
+                            >{t('Worker reimbursement')}
+                            {money(row.reimbursementAmountMinor)} · {sourceText(
+                              row,
+                              'reimbursementState',
+                            )}</span
+                          >
+                        </div>
+                      </article>
+                    {/each}
                   </div>
-                </article>
-              {:else}<p>{t('No time source in this period.')}</p>{/each}
+                {/if}
+                <div class="source-actions">
+                  {#if person.time.length < person.timeCount || person.expenses.length < person.expenseCount}
+                    <a
+                      class="source-link"
+                      href={personHref(person.workerId, explanation.sourceRowLimit + 25)}
+                      data-sveltekit-noscroll
+                      data-calculation-show-more>{t('Show more')}</a
+                    >
+                  {/if}
+                  <a class="source-link secondary" href={personHref(null)} data-sveltekit-noscroll
+                    >{t('Hide source rows')}</a
+                  >
+                </div>
+              {/if}
             </div>
           </details>
-          <details>
-            <summary>{t('Expenses and recovery sources (')}{person.expenses.length})</summary>
-            <div class="source-list">
-              {#each person.expenses as row}
-                <article>
-                  <div>
-                    <strong
-                      >{sourceText(row, 'spentOn')} · {category(
-                        sourceText(row, 'category'),
-                      )}</strong
-                    ><span>{t(sourceText(row, 'treatment'))} · {stateLabel(row.sourceState)}</span>
-                  </div>
-                  <div>
-                    <strong>{money(row.revenueMinor)}</strong><span
-                      >{t('Cost')} {money(row.costMinor)}</span
-                    >
-                    <span
-                      >{t('Worker reimbursement')}
-                      {money(row.reimbursementAmountMinor)} · {sourceText(
-                        row,
-                        'reimbursementState',
-                      )}</span
-                    >
-                    <span>{expensePolicySummary(row)}</span>
-                  </div>
-                </article>
-              {:else}<p>{t('No expense source in this period.')}</p>{/each}
-            </div>
-          </details>
-        </article>
-      {:else}<p class="empty">{t('No time or expense source exists in this period.')}</p>{/each}
+        {:else}<p class="empty">{t('No time or expense source exists in this period.')}</p>{/each}
+      </div>
+      {#if visiblePeople.length < explanation.people.length}
+        <button
+          type="button"
+          class="link-button"
+          data-calculation-show-all-people
+          onclick={() => (showAllPeople = true)}
+          >{t('Show all ({n})', { n: explanation.people.length })}</button
+        >
+      {/if}
     </section>
 
     {#if explanation.milestones.length}
@@ -900,23 +1052,126 @@
   .section-heading > span {
     color: #526379;
   }
-  .person {
-    margin-top: 1rem;
+  .people-list {
+    display: grid;
+    gap: 0.5rem;
+    margin-top: 0.8rem;
   }
-  .person header {
+  details.person {
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid #cdd9e6;
+  }
+  .person-row {
     display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1rem;
+    align-items: center;
+    padding: 0.7rem 1rem;
+    min-height: 52px;
+  }
+  .person-name {
+    flex: 1 1 12rem;
+  }
+  .person-hours {
+    color: #526379;
+    font-weight: 400;
+    font-size: 0.9rem;
+  }
+  .person-body {
+    padding: 0 1rem 1rem;
+  }
+  .person-body h4 {
+    margin: 1rem 0 0.4rem;
+    font-size: 0.95rem;
+  }
+  .pill {
+    border-radius: 999px;
+    padding: 0.15rem 0.55rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  .pill.warn {
+    background: #fff1d6;
+    color: #8a4b00;
+  }
+  details.group > summary {
     justify-content: space-between;
     gap: 1rem;
-    align-items: start;
   }
-  .person h3 {
-    margin-bottom: 0.25rem;
+  .count {
+    background: #edf1f5;
+    border-radius: 999px;
+    padding: 0.1rem 0.6rem;
+    font-size: 0.85rem;
   }
-  .person header span {
+  .issues details.group {
+    border-top-color: #e9c77f;
+  }
+  .issues li {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.8rem;
+    padding: 0.25rem 0;
+  }
+  .muted {
     color: #526379;
   }
+  .link-button {
+    background: none;
+    border: 0;
+    color: #1c5d99;
+    font: inherit;
+    font-weight: 700;
+    min-height: 44px;
+    cursor: pointer;
+    padding: 0;
+  }
+  .category-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+  }
+  .category-table th,
+  .category-table td {
+    text-align: right;
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e4eaf0;
+    white-space: nowrap;
+  }
+  .category-table th:first-child {
+    text-align: left;
+    white-space: normal;
+  }
+  .category-table thead th {
+    color: #526379;
+    font-weight: 700;
+  }
+  .source-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 0.8rem;
+  }
+  .source-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 0.6rem;
+    padding: 0 1rem;
+    border-radius: 8px;
+    background: #1c5d99;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .source-link.secondary {
+    background: #fff;
+    color: #1c5d99;
+    border: 1px solid #b8c7d6;
+  }
   .person-revenue {
-    color: #172033 !important;
+    color: #172033;
     font-weight: 800;
     white-space: nowrap;
   }
@@ -1014,13 +1269,16 @@
     .person-totals {
       grid-template-columns: 1fr;
     }
-    .person header,
     .source-list article {
       display: block;
     }
     .person-revenue {
-      display: block;
-      margin-top: 0.6rem;
+      white-space: normal;
+    }
+    .category-table th,
+    .category-table td {
+      padding: 0.35rem 0.3rem;
+      font-size: 0.82rem;
     }
     .source-list article div:last-child {
       text-align: left;

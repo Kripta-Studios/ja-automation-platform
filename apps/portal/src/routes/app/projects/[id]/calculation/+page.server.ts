@@ -11,6 +11,7 @@ import {
 } from '@ja/database';
 import { defaultLookbackPeriod } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { compactCalculationExplanation } from '$lib/server/project-calculation-view';
 import type { ProblemData } from '$lib/problem/contract';
 import type { PageServerLoad } from './$types';
 
@@ -111,7 +112,18 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       periodEnd,
       finance,
     });
-    return { user: locals.user, project, periodValues, periodProblem: null, explanation };
+    return {
+      user: locals.user,
+      project,
+      periodValues,
+      periodProblem: null,
+      // Totals and per-person/category subtotals for everyone; source rows only
+      // for the person opened on demand (?person=), a page at a time (?rows=).
+      explanation: compactCalculationExplanation(explanation, {
+        personId: url.searchParams.get('person'),
+        rows: Number(url.searchParams.get('rows') ?? ''),
+      }),
+    };
   } catch (caught) {
     if (caught instanceof AccessDeniedError || caught instanceof V3AccessDeniedError)
       error(403, 'Finance role required');

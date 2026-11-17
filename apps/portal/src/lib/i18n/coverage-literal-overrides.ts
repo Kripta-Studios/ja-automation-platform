@@ -3145,6 +3145,19 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Os registros de horas não têm uma regra de remuneração correspondente e exigem revisão de Finanças.',
   ],
   'worker paid': ['pagado por el trabajador', 'pago pelo colaborador'],
+  // Scale lists: planning schedule and project calculation (2026-11-17).
+  'This week + next': ['Esta semana y la próxima', 'Esta semana e a próxima'],
+  'Last week': ['Semana pasada', 'Semana passada'],
+  'All dates': ['Todas las fechas', 'Todas as datas'],
+  'Showing {from}–{to} of {total}': ['Mostrando {from}–{to} de {total}', 'Mostrando {from}–{to} de {total}'],
+  Pages: ['Páginas', 'Páginas'],
+  'Show more': ['Mostrar más', 'Mostrar mais'],
+  Entries: ['Registros', 'Registros'],
+  'Recorded time': ['Horas registradas', 'Horas registradas'],
+  'Hours by category': ['Horas por categoría', 'Horas por categoria'],
+  'Show all ({n})': ['Mostrar todo ({n})', 'Mostrar tudo ({n})'],
+  'Show source rows ({n})': ['Ver registros de origen ({n})', 'Ver registros de origem ({n})'],
+  'Hide source rows': ['Ocultar registros de origen', 'Ocultar registros de origem'],
 };
 
 /**

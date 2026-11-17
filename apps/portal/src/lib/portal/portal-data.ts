@@ -131,6 +131,19 @@ export type PortalData = {
   personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
   workers?: PortalRow[];
   planningFilterWorkers?: PortalRow[];
+  /** Planning: the focused assignment (may be outside the current page) and compact calendar events. */
+  planningFocus?: PortalRow | null;
+  planningCalendar?: PortalRow[];
+  planningList?: {
+    period: string;
+    from: string;
+    to: string;
+    search: string;
+    page: number;
+    pageSize: number;
+    total: number;
+    allTotal: number;
+  };
   skills?: PortalRow[];
   workerSkills?: PortalRow[];
   allSkills?: PortalRow[];

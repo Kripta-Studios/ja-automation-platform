@@ -35,6 +35,7 @@ import {
   visibleProjectRecords,
 } from '$lib/portal/project-visibility';
 import { clientCalendarWindow, normalizeCalendarMonth } from '$lib/portal/client-work-calendar';
+import { publishedAssignmentMatches } from '$lib/portal/sections/published-assignment-filter';
 
 /** Own recent hours and last daily report, used to prefill a new daily report. */
 function ownReportPrefill(
@@ -1073,25 +1074,129 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         planningFilterWorkers.sort(
           (left, right) => left.name.localeCompare(right.name) || left.id.localeCompare(right.id),
         );
+        // Scale: default to this week + next, one search box, server-side pages
+        // of 25. Only the page rows are serialized; the calendar gets compact
+        // events for a three-month window of the same filters.
+        const PLANNING_PAGE_SIZE = 25;
+        const shiftDays = (date: string, days: number) => {
+          const value = new Date(`${date}T00:00:00.000Z`);
+          value.setUTCDate(value.getUTCDate() + days);
+          return value.toISOString().slice(0, 10);
+        };
+        const thisMonday = mondayOf(new Date().toISOString().slice(0, 10));
+        const requestedWeek = url.searchParams.get('week') ?? '';
+        const requestedPeriod = url.searchParams.get('period') ?? '';
+        const planningPeriod =
+          requestedWeek && isRealIsoDate(requestedWeek)
+            ? 'week'
+            : ['this_week', 'next_week', 'last_week', 'all'].includes(requestedPeriod)
+              ? requestedPeriod
+              : 'upcoming';
+        const periodFrom =
+          planningPeriod === 'week'
+            ? mondayOf(requestedWeek)
+            : planningPeriod === 'next_week'
+              ? shiftDays(thisMonday, 7)
+              : planningPeriod === 'last_week'
+                ? shiftDays(thisMonday, -7)
+                : planningPeriod === 'all'
+                  ? ''
+                  : thisMonday;
+        const periodTo =
+          planningPeriod === 'all'
+            ? ''
+            : shiftDays(periodFrom, planningPeriod === 'upcoming' ? 13 : 6);
+        const planningSearch = (url.searchParams.get('find') ?? '').trim().slice(0, 120);
+        const projectById = new Map(
+          scope.projects.map((project) => [String(project.id), project as Record<string, unknown>]),
+        );
+        const filtered = projectRows.filter(
+          (row) =>
+            (!selectedWorkerId || String(row.worker_id) === selectedWorkerId) &&
+            publishedAssignmentMatches(row, projectById.get(String(row.project_id)), {
+              search: planningSearch,
+              projectId: '',
+              workerId: '',
+            }),
+        );
+        const overlaps = (row: Record<string, unknown>, from: string, to: string) => {
+          const start = String(row.starts_at ?? '').slice(0, 10);
+          const end = String(row.ends_at ?? row.starts_at ?? '').slice(0, 10) || start;
+          return (!to || start <= to) && (!from || end >= from);
+        };
+        const inScope = filtered
+          .filter((row) => overlaps(row, periodFrom, periodTo))
+          .sort(
+            (left, right) =>
+              String(left.starts_at).localeCompare(String(right.starts_at)) ||
+              String(left.worker_name ?? '').localeCompare(String(right.worker_name ?? '')),
+          );
+        const pageCount = Math.max(1, Math.ceil(inScope.length / PLANNING_PAGE_SIZE));
+        const planningPageNumber = Math.min(
+          pageCount,
+          Math.max(1, Math.floor(Number(url.searchParams.get('ppage') ?? '1')) || 1),
+        );
+        const pageRows = inScope.slice(
+          (planningPageNumber - 1) * PLANNING_PAGE_SIZE,
+          planningPageNumber * PLANNING_PAGE_SIZE,
+        );
+        const focusId = url.searchParams.get('focus') ?? '';
+        const planningFocus = focusId
+          ? (allRows.find((row) => String(row.id) === focusId) ?? null)
+          : null;
+        const calendarAnchor =
+          url.searchParams.get('date') && isRealIsoDate(url.searchParams.get('date') ?? '')
+            ? String(url.searchParams.get('date'))
+            : periodFrom || thisMonday;
+        const calendarFrom = `${shiftDays(calendarAnchor, -45).slice(0, 7)}-01`;
+        const calendarTo = shiftDays(calendarAnchor, 75);
+        const planningCalendar = filtered
+          .filter((row) => overlaps(row, calendarFrom, calendarTo))
+          .slice(0, 1500)
+          .map((row) => ({
+            id: row.id,
+            project_id: row.project_id,
+            project_number: row.project_number,
+            worker_name: row.worker_name,
+            planned_minutes: row.planned_minutes,
+            starts_at: row.starts_at,
+            ends_at: row.ends_at,
+          }));
+        const manager = context.principal.role !== 'worker';
         return {
           ...common,
-          records: projectRows.filter(
-            (row) => !selectedWorkerId || String(row.worker_id) === selectedWorkerId,
-          ),
+          records: pageRows,
+          planningFocus,
+          planningCalendar,
+          planningList: {
+            period: planningPeriod,
+            from: periodFrom,
+            to: periodTo,
+            search: planningSearch,
+            page: planningPageNumber,
+            pageSize: PLANNING_PAGE_SIZE,
+            total: inScope.length,
+            allTotal: allRows.length,
+          },
           planningFilterWorkers,
           projects: scope.projects,
           skills: context.repository.listSkills(context.principal),
-          workers:
-            context.principal.role !== 'worker'
-              ? context.repository.listPlanningWorkerOptions(context.principal)
-              : [],
-          assignments:
-            context.principal.role !== 'worker'
-              ? visibleProjectRecords(
-                  context.repository.listAssignments(context.principal),
-                  scope.projectIds,
-                )
-              : [],
+          workers: manager ? context.repository.listPlanningWorkerOptions(context.principal) : [],
+          // Only what the create/edit forms need to offer eligible workers.
+          assignments: manager
+            ? visibleProjectRecords(
+                context.repository.listAssignments(context.principal),
+                scope.projectIds,
+              )
+                .filter((assignment) => assignment.status === 'active')
+                .map((assignment) => ({
+                project_id: assignment.project_id,
+                worker_id: assignment.worker_id ?? assignment.user_id,
+                status: assignment.status,
+                starts_on: assignment.starts_on,
+                ends_on: assignment.ends_on,
+              }))
+            : [],
         };
       }
       case 'profile': {

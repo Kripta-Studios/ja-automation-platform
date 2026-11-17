@@ -1,6 +1,5 @@
 <script lang="ts">
   import { personDisplayName } from './portal/display-name';
-  import { publishedAssignmentMatches } from './portal/sections/published-assignment-filter';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { paySummaryText } from '$lib/portal/pay-summary-copy';
@@ -354,12 +353,12 @@
     mode: 'view' | 'download';
     problem: ProblemData;
   } | null>(null);
-  let planningPage = $state<Row[]>([]);
   const focusedPlanningRecord = $derived(
     data.section === 'planning' && $page.url.searchParams.get('focus')
-      ? (data.records ?? []).find(
+      ? ((data.planningFocus as Row | null | undefined) ??
+        (data.records ?? []).find(
           (row: Row) => String(row.id) === $page.url.searchParams.get('focus'),
-        )
+        ))
       : undefined,
   );
   function planningRecordHref(row: Row): string {
@@ -1425,7 +1424,8 @@
   );
   const planningFailedRecordId = $derived(String(planningFailure?.values?.id ?? ''));
   const planningFailedRecordVisible = $derived(
-    (data.records ?? []).some((row) => String(row.id) === planningFailedRecordId),
+    (data.records ?? []).some((row) => String(row.id) === planningFailedRecordId) ||
+      String(data.planningFocus?.id ?? '') === planningFailedRecordId,
   );
   const planningProblem = $derived(
     planningFailure?.code && planningFailure.correlationId
@@ -1635,48 +1635,74 @@
   const profileRemovalExpertiseOptions = $derived(
     profileExpertiseOptions.length > 0 ? profileExpertiseOptions : profileAssignedExpertise,
   );
-  let publishedPlanningSearch = $state('');
-  let publishedPlanningProjectId = $state('');
-  let publishedPlanningWorkerId = $state('');
-  const publishedPlanningProjects = $derived([
-    ...new Map(
-      (data.records ?? []).map((row) => [
-        String(row.project_id),
-        {
-          id: String(row.project_id),
-          label: [row.project_number, row.project_name].filter(Boolean).join(' · '),
-        },
-      ]),
-    ).values(),
-  ]);
-  const publishedPlanningWorkers = $derived([
-    ...new Map(
-      (data.records ?? []).map((row) => [
-        String(row.worker_id),
-        {
-          id: String(row.worker_id),
-          label: personDisplayName(row.worker_name) || String(row.worker_id),
-        },
-      ]),
-    ).values(),
-  ]);
-  const filteredPublishedPlanning = $derived(
-    (data.records ?? []).filter((row) =>
-      publishedAssignmentMatches(
-        row,
-        (data.projects ?? []).find((project) => String(project.id) === String(row.project_id)),
-        {
-          search: publishedPlanningSearch,
-          projectId: publishedPlanningProjectId,
-          workerId: publishedPlanningWorkerId,
-        },
-      ),
-    ),
-  );
-  function clearPublishedPlanningFilters() {
-    publishedPlanningSearch = '';
-    publishedPlanningProjectId = '';
-    publishedPlanningWorkerId = '';
+  // Planning list (scale): one compact row per assignment; a single inline
+  // editor opens on demand. Filters, search and paging live in the URL.
+  let editingPlanningId = $state('');
+  let handledPlanningEditSignal = '';
+  $effect(() => {
+    if (data.section !== 'planning') return;
+    const focus = $page.url.searchParams.get('focus') ?? '';
+    const failedId =
+      planningFailure &&
+      ['updatePlanning', 'cancelPlanning'].includes(planningFailure.operation ?? '')
+        ? String(planningFailure.values?.id ?? '')
+        : '';
+    const hashId = $page.url.hash.startsWith('#planning-assignment-')
+      ? $page.url.hash.slice('#planning-assignment-'.length)
+      : '';
+    const signal = `${failedId}|${focus}|${hashId}`;
+    if (signal === handledPlanningEditSignal) return;
+    handledPlanningEditSignal = signal;
+    if (failedId) editingPlanningId = failedId;
+    else if (hashId && hashId === focus) editingPlanningId = hashId;
+  });
+  let handledPlanningEditSuccess: unknown;
+  $effect(() => {
+    const result = form as { success?: boolean; operation?: string } | null | undefined;
+    if (
+      result?.success === true &&
+      ['updatePlanning', 'cancelPlanning'].includes(result.operation ?? '') &&
+      result !== handledPlanningEditSuccess
+    ) {
+      handledPlanningEditSuccess = result;
+      editingPlanningId = '';
+    }
+  });
+  function planningListHref(changes: Record<string, string | null>): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    query.delete('focus');
+    for (const key of [...query.keys()]) if (key.startsWith('/')) query.delete(key);
+    for (const [key, value] of Object.entries(changes))
+      if (value === null || value === '') query.delete(key);
+      else query.set(key, value);
+    if (!('ppage' in changes)) query.delete('ppage');
+    const search = query.toString();
+    return `${base}/app/planning${search ? `?${search}` : ''}#published-schedule`;
+  }
+  /** Planning row actions keep the list filters so the saved row stays in view. */
+  function planningActionHref(action: string, hash: string): string {
+    const query = new URLSearchParams($page.url.searchParams);
+    for (const key of [...query.keys()]) if (key.startsWith('/')) query.delete(key);
+    const search = query.toString();
+    return `?${search ? `${search}&` : ''}/${action}${hash}`;
+  }
+  const planningPeriodChoices: ReadonlyArray<readonly [string, string]> = [
+    ['upcoming', 'This week + next'],
+    ['this_week', 'This week'],
+    ['next_week', 'Next week'],
+    ['last_week', 'Last week'],
+    ['all', 'All dates'],
+  ];
+  const planningShiftWeek = (from: string, days: number): string => {
+    const value = new Date(`${from}T00:00:00.000Z`);
+    value.setUTCDate(value.getUTCDate() + days);
+    return value.toISOString().slice(0, 10);
+  };
+  function planningWhen(row: Row): string {
+    const start = String(row.starts_at ?? '').replace('T', ' ').slice(0, 16);
+    const end = row.ends_at ? String(row.ends_at).replace('T', ' ').slice(0, 16) : '';
+    if (!end) return start;
+    return end.slice(0, 10) === start.slice(0, 10) ? `${start}–${end.slice(11)}` : `${start} → ${end}`;
   }
   let planningStarts = $state('');
   let planningEnds = $state('');
@@ -6555,12 +6581,140 @@
       </div>
     {:else if data.section === 'planning'}
       <div class="management-stack">
+        {#snippet planningEditor(row: Row)}
+          {@const updateWorkers = planningWorkersForUpdate(row)}
+          {@const selectedWorkerId = planningEditValue(row, 'workerId', row.worker_id)}
+          <div class="planning-editor" data-planning-editor={String(row.id)}>
+          <form
+            method="POST"
+            action={planningActionHref('updatePlanning', `#planning-assignment-${row.id}`)}
+            data-workforce-operation="updatePlanning"
+            data-record-id={String(row.id)}
+            class="admin-form-grid"
+            use:formValidation
+            oninput={(event) => rememberPlanningEdit(row, event.currentTarget)}
+          >
+            {#if planningProblem && planningFailure?.operation === 'updatePlanning' && planningFailedUpdateId === String(row.id)}
+              <ProblemNotice
+                problem={planningProblem}
+                kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
+            <input type="hidden" name="id" value={row.id} />
+            <input type="hidden" name="version" value={row.version} />
+            <input type="hidden" name="projectId" value={row.project_id} />
+            <label
+              >{translate('Worker')}<select name="workerId" required>
+                <option
+                  value=""
+                  selected={!updateWorkers.some(
+                    (worker) => String(worker.id) === selectedWorkerId,
+                  )}>{translate('Select assigned worker')}</option
+                >
+                {#each updateWorkers as worker}
+                  <option value={worker.id} selected={String(worker.id) === selectedWorkerId}
+                    >{worker.name}</option
+                  >
+                {/each}
+              </select></label
+            >{#if planningFieldMessage('workerId', 'updatePlanning', String(row.id))}<small
+                class="field-error"
+                role="alert"
+                >{planningFieldMessage('workerId', 'updatePlanning', String(row.id))}</small
+              >{/if}
+            <label
+              >{translate('Start')}<input
+                name="startsAt"
+                type="datetime-local"
+                value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
+                required
+              /></label
+            >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
+                class="field-error"
+                role="alert"
+                >{planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}</small
+              >{/if}
+            <label
+              >{translate('End (optional)')}<input
+                name="endsAt"
+                type="datetime-local"
+                value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
+              /></label
+            >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
+                class="field-error"
+                role="alert"
+                >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
+              >{/if}
+            <label
+              >{translate('Planned hours (optional)')}<DecimalHoursInput
+                id={`planning-${row.id}-planned-hours`}
+                label={translate('Planned hours (optional)')}
+                name="plannedMinutes"
+                minMinutes={0}
+                maxMinutes={10080}
+                invalidMessage={translate(
+                  'Enter valid decimal hours within the allowed range.',
+                )}
+                value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
+              /></label
+            >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
+                class="field-error"
+                role="alert"
+                >{planningFieldMessage(
+                  'plannedMinutes',
+                  'updatePlanning',
+                  String(row.id),
+                )}</small
+              >{/if}
+            <label
+              >{translate('Site (optional)')}<input
+                name="site"
+                value={planningEditValue(row, 'site', row.site)}
+              /></label
+            >
+            <label
+              >{translate('Required expertise')}<input
+                name="requiredSkill"
+                value={planningEditValue(row, 'requiredSkill', row.required_skill)}
+              /></label
+            >
+            <button type="submit">{translate('Save assignment')}</button>
+          </form>
+          <form
+            method="POST"
+            action={planningActionHref('cancelPlanning', `#planning-assignment-${row.id}`)}
+            data-workforce-operation="cancelPlanning"
+            data-record-id={String(row.id)}
+            use:formValidation
+          >
+            {#if planningProblem && planningFailure?.operation === 'cancelPlanning' && String(planningFailure.values?.id ?? '') === String(row.id)}
+              <ProblemNotice
+                problem={planningProblem}
+                kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+                remedyLinks={globalRemedyLinks}
+              />
+            {/if}
+            <input type="hidden" name="id" value={row.id} />
+            <input type="hidden" name="version" value={row.version} />
+            <button type="submit" class="secondary-button"
+              >{translate('Cancel assignment')}</button
+            >
+          </form>
+            <button
+              type="button"
+              class="secondary-button"
+              data-planning-editor-close
+              onclick={() => (editingPlanningId = '')}>{translate('Close')}</button
+            >
+          </div>
+        {/snippet}
         <PlanningCalendar
           {translate}
           {locale}
           agendaId="planning-day-agenda"
           initialDate={$page.url.searchParams.get('date') ?? undefined}
-          events={(data.records ?? []).map((row) => ({
+          events={(data.planningCalendar ?? data.records ?? []).map((row) => ({
             id: String(row.id),
             title: `${personDisplayName(row.worker_name)} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
             startsAt: String(row.starts_at),
@@ -6628,6 +6782,19 @@
               href={`${base}/app/projects/${encodeURIComponent(String(focusedPlanningRecord.project_id))}?tab=team`}
               >{translate('Open project')} <DirectionIcon /></a
             >
+            {#if canManageAssignmentControls && !(data.records ?? []).some((row) => String(row.id) === String(focusedPlanningRecord.id))}
+              {#if editingPlanningId === String(focusedPlanningRecord.id)}
+                {@render planningEditor(focusedPlanningRecord)}
+              {:else}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-planning-edit
+                  onclick={() => (editingPlanningId = String(focusedPlanningRecord.id))}
+                  >{translate('Edit')}</button
+                >
+              {/if}
+            {/if}
           </section>
         {/if}
         {#if planningProblem && planningFailure?.operation !== 'createPlanning' && !planningFailedRecordVisible}
@@ -6639,203 +6806,185 @@
             />
           </div>
         {/if}
-        {#if canManageAssignmentControls && (data.records?.length ?? 0) > 0}
-          <SectionCard
-            title={translate('Published assignments')}
-            class="full"
-            id="published-assignments"
-          >
-            <div class="admin-form-grid" data-assignment-filters>
-              <label>
-                <span>{translate('Search assignments')}</span>
-                <input
-                  type="search"
-                  bind:value={publishedPlanningSearch}
-                  placeholder={translate('Project, worker or reference')}
-                  autocomplete="off"
-                  data-assignment-search
-                />
-              </label>
-              <label>
-                <span>{translate('Project')}</span>
-                <select bind:value={publishedPlanningProjectId} data-assignment-project-filter>
-                  <option value="">{translate('All projects')}</option>
-                  {#each publishedPlanningProjects as project (project.id)}
-                    <option value={project.id}>{project.label}</option>
-                  {/each}
-                </select>
-              </label>
-              <label>
-                <span>{translate('Worker')}</span>
-                <select bind:value={publishedPlanningWorkerId} data-assignment-worker-filter>
-                  <option value="">{translate('All workers')}</option>
-                  {#each publishedPlanningWorkers as worker (worker.id)}
-                    <option value={worker.id}>{worker.label}</option>
-                  {/each}
-                </select>
-              </label>
-              <button
-                type="button"
-                class="secondary-button"
-                data-assignment-clear-filters
-                disabled={!publishedPlanningSearch &&
-                  !publishedPlanningProjectId &&
-                  !publishedPlanningWorkerId}
-                onclick={clearPublishedPlanningFilters}>{translate('Clear filters')}</button
+        <section
+          class="record-list full planning-schedule"
+          id="published-schedule"
+          aria-labelledby="published-schedule-title"
+          data-planning-schedule
+        >
+          <div class="panel-title">
+            <h2 id="published-schedule-title">{translate('Published schedule')}</h2>
+            <span data-planning-total>{data.planningList?.total ?? data.records?.length ?? 0}</span>
+          </div>
+          <nav class="planning-periods" aria-label={translate('Period')}>
+            {#each planningPeriodChoices as [value, label] (value)}
+              <a
+                href={planningListHref({ period: value === 'upcoming' ? null : value, week: null })}
+                aria-current={data.planningList?.period === value ? 'page' : undefined}
+                data-sveltekit-noscroll
+                data-planning-period={value}>{translate(label)}</a
               >
+            {/each}
+          </nav>
+          <form method="GET" action={`${base}/app/planning#published-schedule`} class="planning-filters" data-sveltekit-noscroll>
+            {#if $page.url.searchParams.get('includeArchived') === '1'}
+              <input type="hidden" name="includeArchived" value="1" />
+            {/if}
+            {#if $page.url.searchParams.get('lang')}
+              <input type="hidden" name="lang" value={$page.url.searchParams.get('lang')} />
+            {/if}
+            {#if data.planningList?.period === 'week'}
+              <input type="hidden" name="week" value={data.planningList.from} />
+            {:else if data.planningList?.period && data.planningList.period !== 'upcoming'}
+              <input type="hidden" name="period" value={data.planningList.period} />
+            {/if}
+            <label class="planning-search"
+              ><span>{translate('Search assignments')}</span><input
+                type="search"
+                name="find"
+                value={data.planningList?.search ?? ''}
+                placeholder={translate('Project, worker or reference')}
+                autocomplete="off"
+                data-assignment-search
+              /></label
+            >
+            <label
+              ><span>{translate('Project')}</span><select
+                name="project"
+                value={$page.url.searchParams.get('project') ?? ''}
+                data-assignment-project-filter
+              >
+                <option value="">{translate('All projects')}</option>
+                {#each data.projects ?? [] as project (project.id)}<option value={project.id}
+                    >{project.project_number} · {project.name}</option
+                  >{/each}
+              </select></label
+            >
+            {#if data.user.role !== 'worker' && (data.planningFilterWorkers?.length || $page.url.searchParams.get('worker'))}<label
+                ><span>{translate('Worker')}</span><select
+                  name="worker"
+                  value={$page.url.searchParams.get('worker') ?? ''}
+                  data-assignment-worker-filter
+                >
+                  <option value="">{translate('All workers')}</option>
+                  {#if $page.url.searchParams.get('worker') && !(data.planningFilterWorkers ?? []).some((worker) => String(worker.id) === $page.url.searchParams.get('worker'))}<option
+                      value={$page.url.searchParams.get('worker') ?? ''}
+                      disabled>{translate('Worker')} · {translate('Unavailable')}</option
+                    >{/if}
+                  {#each data.planningFilterWorkers ?? [] as worker (worker.id)}<option value={worker.id}
+                      >{worker.label}</option
+                    >{/each}
+                </select></label
+              >{/if}
+            <button type="submit">{translate('Filter')}</button>
+            {#if data.planningList?.search || $page.url.searchParams.get('project') || $page.url.searchParams.get('worker')}
+              <a
+                class="secondary-button"
+                href={planningListHref({ find: null, project: null, worker: null })}
+                data-assignment-clear-filters>{translate('Clear filters')}</a
+              >
+            {/if}
+          </form>
+          {#if data.planningList}
+            {@const list = data.planningList}
+            <div class="planning-scope" aria-live="polite" data-planning-scope>
+              {#if list.period !== 'all'}
+                <a
+                  class="secondary-button planning-week-step"
+                  href={planningListHref({ week: planningShiftWeek(list.from, -7), period: null })}
+                  data-sveltekit-noscroll
+                  aria-label={translate('Previous week')}>‹</a
+                >
+              {/if}
+              <span
+                ><strong
+                  >{list.period === 'all'
+                    ? translate('All dates')
+                    : `${list.from} – ${list.to}`}</strong
+                >
+                · {list.total === 0
+                  ? translate('No assignments match these filters.')
+                  : translate('Showing {from}–{to} of {total}')
+                      .replace('{from}', String((list.page - 1) * list.pageSize + 1))
+                      .replace('{to}', String(Math.min(list.total, list.page * list.pageSize)))
+                      .replace('{total}', String(list.total))}</span
+              >
+              {#if list.period !== 'all'}
+                <a
+                  class="secondary-button planning-week-step"
+                  href={planningListHref({ week: planningShiftWeek(list.from, 7), period: null })}
+                  data-sveltekit-noscroll
+                  aria-label={translate('Next week')}>›</a
+                >
+              {/if}
             </div>
-            <p class="form-help" aria-live="polite">
-              {filteredPublishedPlanning.length} / {data.records?.length ?? 0}
-            </p>
-            {#each filteredPublishedPlanning as row (row.id)}
-              {@const updateWorkers = planningWorkersForUpdate(row)}
-              {@const selectedWorkerId = planningEditValue(row, 'workerId', row.worker_id)}
-              <details
+          {/if}
+          <ul class="planning-rows">
+            {#each data.records ?? [] as row (row.id)}
+              <li
                 id={`planning-assignment-${row.id}`}
+                class="planning-row"
+                class:is-editing={editingPlanningId === String(row.id)}
                 data-planning-assignment-row
                 data-project-id={String(row.project_id)}
                 data-worker-id={String(row.worker_id)}
-                open={$page.url.searchParams.get('focus') === String(row.id) ||
-                  $page.url.hash === `#planning-assignment-${row.id}` ||
-                  planningEditorsExpanded[planningEditKey(row)] === true ||
-                  planningFailedUpdateId === String(row.id) ||
-                  (planningFailure?.operation === 'cancelPlanning' &&
-                    String(planningFailure.values?.id ?? '') === String(row.id))}
-                ontoggle={(event) => {
-                  planningEditorsExpanded[planningEditKey(row)] = event.currentTarget.open;
-                }}
               >
-                <summary
-                  >{personDisplayName(row.worker_name)} · {row.project_number} · {String(row.starts_at)
-                    .slice(0, 16)
-                    .replace('T', ' ')}{row.ends_at
-                    ? ` → ${String(row.ends_at).slice(0, 16).replace('T', ' ')}`
-                    : ''}</summary
-                >
-                <form
-                  method="POST"
-                  action={`?/updatePlanning#planning-assignment-${row.id}`}
-                  data-workforce-operation="updatePlanning"
-                  data-record-id={String(row.id)}
-                  class="admin-form-grid"
-                  use:formValidation
-                  oninput={(event) => rememberPlanningEdit(row, event.currentTarget)}
-                >
-                  {#if planningProblem && planningFailure?.operation === 'updatePlanning' && planningFailedUpdateId === String(row.id)}
-                    <ProblemNotice
-                      problem={planningProblem}
-                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-                      remedyLinks={globalRemedyLinks}
-                    />
+                <div class="planning-row-main">
+                  <strong class="planning-record-heading">{personDisplayName(row.worker_name)}</strong>
+                  <span class="planning-row-project">{row.project_number} · {row.project_name}</span>
+                  <small class="planning-record-detail"
+                    >{planningWhen(row)} UTC{row.planned_minutes == null
+                      ? ''
+                      : ` · ${hoursFromMinutes(row.planned_minutes)}`}{row.site
+                      ? ` · ${row.site}`
+                      : ''}</small
+                  >
+                </div>
+                <div class="planning-row-actions">
+                  {#if canManageAssignmentControls}
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      aria-expanded={editingPlanningId === String(row.id)}
+                      data-planning-edit
+                      onclick={() =>
+                        (editingPlanningId =
+                          editingPlanningId === String(row.id) ? '' : String(row.id))}
+                      >{translate('Edit')}</button
+                    >
+                  {:else}
+                    <a class="record-card-open" href={planningRecordHref(row)}
+                      >{translate('Open record')} <DirectionIcon /></a
+                    >
                   {/if}
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="version" value={row.version} />
-                  <input type="hidden" name="projectId" value={row.project_id} />
-                  <label
-                    >{translate('Worker')}<select name="workerId" required>
-                      <option
-                        value=""
-                        selected={!updateWorkers.some(
-                          (worker) => String(worker.id) === selectedWorkerId,
-                        )}>{translate('Select assigned worker')}</option
-                      >
-                      {#each updateWorkers as worker}
-                        <option value={worker.id} selected={String(worker.id) === selectedWorkerId}
-                          >{worker.name}</option
-                        >
-                      {/each}
-                    </select></label
-                  >{#if planningFieldMessage('workerId', 'updatePlanning', String(row.id))}<small
-                      class="field-error"
-                      role="alert"
-                      >{planningFieldMessage('workerId', 'updatePlanning', String(row.id))}</small
-                    >{/if}
-                  <label
-                    >{translate('Start')}<input
-                      name="startsAt"
-                      type="datetime-local"
-                      value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
-                      required
-                    /></label
-                  >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
-                      class="field-error"
-                      role="alert"
-                      >{planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}</small
-                    >{/if}
-                  <label
-                    >{translate('End (optional)')}<input
-                      name="endsAt"
-                      type="datetime-local"
-                      value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
-                    /></label
-                  >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
-                      class="field-error"
-                      role="alert"
-                      >{planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}</small
-                    >{/if}
-                  <label
-                    >{translate('Planned hours (optional)')}<DecimalHoursInput
-                      id={`planning-${row.id}-planned-hours`}
-                      label={translate('Planned hours (optional)')}
-                      name="plannedMinutes"
-                      minMinutes={0}
-                      maxMinutes={10080}
-                      invalidMessage={translate(
-                        'Enter valid decimal hours within the allowed range.',
-                      )}
-                      value={planningEditValue(row, 'plannedMinutes', row.planned_minutes)}
-                    /></label
-                  >{#if planningFieldMessage('plannedMinutes', 'updatePlanning', String(row.id))}<small
-                      class="field-error"
-                      role="alert"
-                      >{planningFieldMessage(
-                        'plannedMinutes',
-                        'updatePlanning',
-                        String(row.id),
-                      )}</small
-                    >{/if}
-                  <label
-                    >{translate('Site (optional)')}<input
-                      name="site"
-                      value={planningEditValue(row, 'site', row.site)}
-                    /></label
-                  >
-                  <label
-                    >{translate('Required expertise')}<input
-                      name="requiredSkill"
-                      value={planningEditValue(row, 'requiredSkill', row.required_skill)}
-                    /></label
-                  >
-                  <button type="submit">{translate('Save assignment')}</button>
-                </form>
-                <form
-                  method="POST"
-                  action={`?/cancelPlanning#planning-assignment-${row.id}`}
-                  data-workforce-operation="cancelPlanning"
-                  data-record-id={String(row.id)}
-                  use:formValidation
-                >
-                  {#if planningProblem && planningFailure?.operation === 'cancelPlanning' && String(planningFailure.values?.id ?? '') === String(row.id)}
-                    <ProblemNotice
-                      problem={planningProblem}
-                      kind={planningProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-                      remedyLinks={globalRemedyLinks}
-                    />
-                  {/if}
-                  <input type="hidden" name="id" value={row.id} />
-                  <input type="hidden" name="version" value={row.version} />
-                  <button type="submit" class="secondary-button"
-                    >{translate('Cancel assignment')}</button
-                  >
-                </form>
-              </details>
+                </div>
+                {#if canManageAssignmentControls && editingPlanningId === String(row.id)}
+                  {@render planningEditor(row)}
+                {/if}
+              </li>
             {:else}
-              <p class="empty" data-assignment-filter-empty>
+              <li class="empty" data-assignment-filter-empty>
                 {translate('No assignments match these filters.')}
-              </p>
+              </li>
             {/each}
-          </SectionCard>
-        {/if}
+          </ul>
+          {#if data.planningList && data.planningList.total > data.planningList.pageSize}
+            {@const list = data.planningList}
+            <nav class="planning-pager" aria-label={translate('Pages')}>
+              {#if list.page > 1}
+                <a class="secondary-button" href={planningListHref({ ppage: String(list.page - 1) })} data-sveltekit-noscroll
+                  >{translate('Previous')}</a
+                >
+              {/if}
+              <span>{list.page} / {Math.ceil(list.total / list.pageSize)}</span>
+              {#if list.page * list.pageSize < list.total}
+                <a class="secondary-button" href={planningListHref({ ppage: String(list.page + 1) })} data-sveltekit-noscroll data-planning-next-page
+                  >{translate('Next')}</a
+                >
+              {/if}
+            </nav>
+          {/if}
+        </section>
         {#if canManageAssignmentControls}<form
             id="planning-create-form"
             method="POST"
@@ -7193,67 +7342,6 @@
             </details>
           </SectionCard>
         {/if}
-        <section class="record-list full">
-          <div class="panel-title">
-            <h2>{translate('Published schedule')}</h2>
-            <span>{data.records?.length ?? 0}</span>
-          </div>
-          <form method="GET" class="admin-form-grid">
-            {#if $page.url.searchParams.get('includeArchived') === '1'}
-              <input type="hidden" name="includeArchived" value="1" />
-            {/if}
-            <label
-              >{translate('Project')}<select
-                name="project"
-                value={$page.url.searchParams.get('project') ?? ''}
-              >
-                <option value="">{translate('All')}</option>
-                {#each data.projects ?? [] as project}<option value={project.id}
-                    >{project.project_number} · {project.name}</option
-                  >{/each}
-              </select></label
-            >
-            {#if data.user.role !== 'worker' && (data.planningFilterWorkers?.length || $page.url.searchParams.get('worker'))}<label
-                >{translate('Worker')}<select
-                  name="worker"
-                  value={$page.url.searchParams.get('worker') ?? ''}
-                >
-                  <option value="">{translate('All')}</option>
-                  {#if $page.url.searchParams.get('worker') && !(data.planningFilterWorkers ?? []).some((worker) => String(worker.id) === $page.url.searchParams.get('worker'))}<option
-                      value={$page.url.searchParams.get('worker') ?? ''}
-                      disabled>{translate('Worker')} · {translate('Unavailable')}</option
-                    >{/if}
-                  {#each data.planningFilterWorkers ?? [] as worker}<option value={worker.id}
-                      >{worker.label}</option
-                    >{/each}
-                </select></label
-              >{/if}
-            <button type="submit">{translate('Filter')}</button>
-          </form>
-          <RecordBrowser
-            rows={data.records ?? []}
-            bind:visible={planningPage}
-            {translate}
-            label="Published schedule"
-          />
-          {#each planningPage as row}<a class="record-card-link" href={planningRecordHref(row)}>
-              <div>
-                <strong class="planning-record-heading"
-                  >{personDisplayName(row.worker_name)} · {row.project_number}</strong
-                >
-                <small class="planning-record-detail"
-                  >{String(row.starts_at).replace('T', ' ').slice(0, 16)}{row.planned_minutes ==
-                  null
-                    ? ''
-                    : ` · ${hoursFromMinutes(row.planned_minutes)}`}{row.site
-                    ? ` · ${row.site}`
-                    : ''}</small
-                >
-              </div>
-              <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
-              <span class="state-tag">{controlledValue('status', row.status)}</span>
-            </a>{/each}
-        </section>
       </div>
     {:else if data.section === 'approvals'}
       <ApprovalSection
@@ -8038,6 +8126,108 @@
   .planning-workers-fieldset {
     grid-column: 1 / -1;
     min-width: 0;
+  }
+  .planning-periods {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.25rem 0 0.75rem;
+  }
+  .planning-periods a {
+    min-height: 40px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    text-decoration: none;
+    color: var(--ja-ink, #1c2430);
+    font-weight: 600;
+    background: var(--ja-white, #fff);
+  }
+  .planning-periods a[aria-current='page'] {
+    background: var(--ja-ink, #1c2430);
+    border-color: var(--ja-ink, #1c2430);
+    color: #fff;
+  }
+  .planning-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: flex-end;
+  }
+  .planning-filters label {
+    display: grid;
+    gap: 0.2rem;
+    flex: 1 1 12rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .planning-filters .planning-search {
+    flex: 2 1 16rem;
+  }
+  .planning-scope {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0 0.25rem;
+    flex-wrap: wrap;
+  }
+  .planning-week-step {
+    min-width: 44px;
+    justify-content: center;
+    flex: 0 0 auto;
+  }
+  .planning-scope > span {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .planning-rows {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+  }
+  .planning-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem 1rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--ja-line, #d5dbe3);
+  }
+  .planning-row-main {
+    flex: 1 1 16rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1rem 0.75rem;
+    align-items: baseline;
+    min-width: 0;
+  }
+  .planning-row-project {
+    color: var(--ja-steel, #5b6573);
+  }
+  .planning-row-main .planning-record-detail {
+    flex-basis: 100%;
+  }
+  .planning-row.is-editing {
+    background: var(--ja-surface-muted, #f5f7fa);
+  }
+  .planning-editor {
+    flex-basis: 100%;
+    display: grid;
+    gap: 0.6rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-white, #fff);
+  }
+  .planning-pager {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    justify-content: center;
+    margin-top: 0.75rem;
   }
   .planning-shift-detail {
     scroll-margin-top: 1rem;

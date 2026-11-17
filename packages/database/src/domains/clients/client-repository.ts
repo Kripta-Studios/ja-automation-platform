@@ -14,6 +14,8 @@ export type ClientInput = Readonly<{
   billingAddress: string;
   paymentTermsDays?: number;
   poReference?: string;
+  /** Client tax identification (VAT / NIF / CNPJ / EIN), printed on new invoices. */
+  taxId?: string;
   notes?: string;
 }>;
 
@@ -43,6 +45,7 @@ type ClientRow = Readonly<{
   billing_email: string | null;
   billing_address: string | null;
   po_reference: string | null;
+  tax_id?: string | null;
   payment_terms_days: number;
   notes: string | null;
   status: string;
@@ -385,7 +388,7 @@ export class ClientRepository {
     return deps.sqlite
       .prepare(
         `SELECT id,client_number,client_code,display_name,legal_name,status,currency,timezone,billing_email,
-                billing_address,po_reference,payment_terms_days,notes,version,
+                billing_address,po_reference,tax_id,payment_terms_days,notes,version,
                 (SELECT name FROM client_contact WHERE client_id=client.id AND is_billing_contact=1
                  ORDER BY is_primary DESC,id LIMIT 1) AS billing_contact_name
          FROM client ORDER BY client_number`,
@@ -453,6 +456,11 @@ export class ClientRepository {
         return deps.validation('PO / reference is too long');
       const notes = input.notes !== undefined ? input.notes?.trim() || null : existing.notes;
       if (notes && notes.length > 5000) return deps.validation('Client notes are too long');
+      const taxId =
+        input.taxId !== undefined
+          ? input.taxId?.replace(/\s+/gu, ' ').trim() || null
+          : (existing.tax_id ?? null);
+      if (taxId && taxId.length > 64) return deps.validation('Tax ID is too long');
       const existingContact = deps.sqlite
         .prepare(
           'SELECT id,name FROM client_contact WHERE client_id=? AND is_billing_contact=1 ORDER BY is_primary DESC,id LIMIT 1',
@@ -517,7 +525,7 @@ export class ClientRepository {
       try {
         updated = deps.sqlite
           .prepare(
-            'UPDATE client SET client_code=?, legal_name=?, display_name=?, currency=?, timezone=?, billing_email=?, billing_address=?, po_reference=?, payment_terms_days=?, notes=?, updated_at=?,version=version+1 WHERE id=? AND version=?',
+            'UPDATE client SET client_code=?, legal_name=?, display_name=?, currency=?, timezone=?, billing_email=?, billing_address=?, po_reference=?, tax_id=?, payment_terms_days=?, notes=?, updated_at=?,version=version+1 WHERE id=? AND version=?',
           )
           .run(
             clientCode,
@@ -528,6 +536,7 @@ export class ClientRepository {
             billingEmail,
             billingAddress,
             poReference,
+            taxId,
             paymentTermsDays,
             notes,
             deps.now(),
@@ -540,7 +549,10 @@ export class ClientRepository {
       }
       if (updated.changes !== 1) return deps.conflict('Client changed before update');
 
-      deps.audit(principal, 'client.update', 'client', clientId, { version: expectedVersion });
+      deps.audit(principal, 'client.update', 'client', clientId, {
+        version: expectedVersion,
+        ...(taxId !== (existing.tax_id ?? null) ? { taxIdChanged: true } : {}),
+      });
     });
   }
 

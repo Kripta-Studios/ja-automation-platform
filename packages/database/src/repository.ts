@@ -4,6 +4,19 @@ import {
 } from './domains/projects/project-site-settings.ts';
 import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
 import {
+  InvoiceOverrideValidationError,
+  describeInvoiceOverrides,
+  hasInvoiceOverrides,
+  invoiceOverrideRows,
+  loadInvoiceOverrides,
+  overrideRateFor,
+  persistInvoiceOverrides,
+  planBilledMinutes,
+  resolveInvoiceOverrides,
+  type InvoiceOverrideInput,
+  type ResolvedInvoiceOverrides,
+} from './domains/billing/invoice-line-overrides.ts';
+import {
   executePurge,
   planPurge,
   type PurgeSummary,
@@ -648,6 +661,13 @@ export class PortalRepository {
   private readonly expenseClassifications: ExpenseCommercialClassificationRepository;
   private readonly time: TimeEntryRepository;
   private readonly workforce: WorkforceRepository;
+  /**
+   * Invoice-only overrides in force while the draft engine prices one invoice (explicit:
+   * supplied by the caller and persisted on the draft; otherwise inherited from the draft
+   * being rebuilt). Read by the rate, billed-hours, tax and PO steps of the engine.
+   */
+  private invoiceOverrideScope: { value: ResolvedInvoiceOverrides; explicit: boolean } | null =
+    null;
 
   constructor(sqlite: DatabaseSync) {
     this.sqlite = sqlite;
@@ -3326,28 +3346,32 @@ export class PortalRepository {
         );
       if (changed.changes !== 1)
         throw new ConflictError('Project changed before lifecycle transition');
-      // The entity_lifecycle_event guard trigger (migration 0019) predates the owner
-      // decision to allow reactivation, so closing/closed -> active cannot be stored
-      // there without a schema migration. Reactivation is recorded in the immutable,
-      // registered audit_event below (reactivated: true) instead.
-      // TODO(migration): extend entity_lifecycle_subject_guard and drop this branch.
-      if (!reactivating)
-        this.appendLifecycleEvent(
-          principal,
-          'project',
-          projectId,
-          current.status,
-          target,
-          current.version,
-          reason,
-        );
-      this.audit(principal, 'lifecycle.transition', 'project', projectId, {
-        fromState: current.status,
-        toState: target,
+      // Reactivation (owner decision 2026-11-16) is a native lifecycle transition since
+      // migration 0079 and has its own reviewed audit action.
+      this.appendLifecycleEvent(
+        principal,
+        'project',
+        projectId,
+        current.status,
+        target,
+        current.version,
         reason,
-        ...(closeDate ? { closeDate } : {}),
-        ...(reactivating ? { reactivated: true, previousActualEndDate: current.actual_end_date } : {}),
-      });
+      );
+      this.audit(
+        principal,
+        reactivating ? 'project.reactivate' : 'lifecycle.transition',
+        'project',
+        projectId,
+        {
+          fromState: current.status,
+          toState: target,
+          reason,
+          ...(closeDate ? { closeDate } : {}),
+          ...(reactivating
+            ? { reactivated: true, previousActualEndDate: current.actual_end_date }
+            : {}),
+        },
+      );
       return { id: projectId, status: target, version: current.version + 1 };
     });
   }
@@ -6283,6 +6307,95 @@ export class PortalRepository {
     return clientBillingUnit(selected.selected?.rule.rate_basis);
   }
 
+  /**
+   * Run `work` with invoice-only overrides in force (dry run, create, issue from the
+   * one-screen invoice). The engine validates their scope and persists them on the draft.
+   */
+  withInvoiceOverrides<T>(overrides: InvoiceOverrideInput | null | undefined, work: () => T): T {
+    let resolved: ResolvedInvoiceOverrides | null;
+    try {
+      resolved = resolveInvoiceOverrides(overrides);
+    } catch (error) {
+      if (error instanceof InvoiceOverrideValidationError) throw new ValidationError(error.message);
+      throw error;
+    }
+    if (!resolved || !hasInvoiceOverrides(resolved)) return work();
+    const previous = this.invoiceOverrideScope;
+    this.invoiceOverrideScope = { value: resolved, explicit: true };
+    try {
+      return work();
+    } finally {
+      this.invoiceOverrideScope = previous;
+    }
+  }
+
+  /** Active invoice-only overrides recorded on an invoice (rows, for display and audit). */
+  listInvoiceOverrides(principal: Principal, invoiceId: string) {
+    this.assertActive(principal);
+    if (!canManageBilling(principal) && principal.role !== 'auditor_read_only')
+      throw new AccessDeniedError('Finance role required');
+    return invoiceOverrideRows(this.sqlite, invoiceId);
+  }
+
+  /** Overrides recorded on `invoiceId` are in force for `work` unless the caller set some. */
+  private withInheritedInvoiceOverrides<T>(invoiceId: string | null | undefined, work: () => T): T {
+    if (this.invoiceOverrideScope || !invoiceId) return work();
+    const inherited = loadInvoiceOverrides(this.sqlite, invoiceId);
+    if (!inherited) return work();
+    this.invoiceOverrideScope = { value: inherited, explicit: false };
+    try {
+      return work();
+    } finally {
+      this.invoiceOverrideScope = null;
+    }
+  }
+
+  /** Billed minutes per priced hourly slice when billed-hours overrides are in force. */
+  private billedMinutesPlan(projectId: string, slices: readonly BillingTimeSlice[]) {
+    const overrides = this.invoiceOverrideScope?.value ?? null;
+    if (!overrides?.people.some((person) => person.billedMinutes !== null)) return null;
+    try {
+      return planBilledMinutes(
+        overrides,
+        slices
+          .filter((slice) => this.billingSliceClientUnit(projectId, slice) === 'hourly')
+          .map((slice) => ({
+            key: `${slice.row.id}:${slice.sliceIndex}`,
+            workerId: slice.row.worker_id,
+            category: slice.category,
+            minutes: slice.minutes,
+          })),
+      );
+    } catch (error) {
+      if (error instanceof InvoiceOverrideValidationError) throw new ValidationError(error.message);
+      throw error;
+    }
+  }
+
+  /** The tax profile an invoice is priced with: the stream's, unless overridden for it. */
+  private effectiveInvoiceTaxProfileId(rule: {
+    tax_profile_id: string | null;
+    currency: string;
+    legal_entity_id: string;
+  }): string | null {
+    const tax = this.invoiceOverrideScope?.value.tax ?? null;
+    if (!tax) return rule.tax_profile_id;
+    if (tax.mode === 'exempt') return null;
+    const profile = this.sqlite
+      .prepare('SELECT status,currency,legal_entity_id FROM tax_profile WHERE id=?')
+      .get(tax.taxProfileId) as
+      | { status: string; currency: string; legal_entity_id: string | null }
+      | undefined;
+    if (
+      !profile ||
+      profile.status !== 'active' ||
+      profile.currency !== rule.currency ||
+      (profile.legal_entity_id !== null && profile.legal_entity_id !== rule.legal_entity_id)
+    )
+      throw new ValidationError('Tax profile must be active and match the issuer and currency');
+    return tax.taxProfileId;
+  }
+
   private billingSliceClientRate(
     principal: Principal | null,
     projectId: string,
@@ -6291,6 +6404,13 @@ export class PortalRepository {
     billingRuleId?: string,
   ): bigint | null {
     const row = slice.row;
+    // "Change for this invoice only": the override is the client rate of this invoice.
+    const invoiceRate = overrideRateFor(
+      this.invoiceOverrideScope?.value ?? null,
+      row.worker_id,
+      slice.category,
+    );
+    if (invoiceRate !== null) return invoiceRate;
     if (slice.category === 'overtime') {
       const overtime = this.findClientRateMinor(
         principal,
@@ -6328,6 +6448,30 @@ export class PortalRepository {
     execution?: FencedJobExecution,
     selection?: readonly InvoiceCompositionSourceRef[],
   ): { fingerprint: string; selectedRules: readonly Record<string, unknown>[] } {
+    // Approval and issue recompute this from the stored draft: its overrides are inputs.
+    return this.withInheritedInvoiceOverrides(invoiceId, () =>
+      this.billingCalculationProvenanceCore(
+        invoiceId,
+        billingRuleId,
+        periodStart,
+        periodEnd,
+        principal,
+        execution,
+        selection,
+      ),
+    );
+  }
+
+  private billingCalculationProvenanceCore(
+    invoiceId: string,
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    principal: Principal | null,
+    execution?: FencedJobExecution,
+    selection?: readonly InvoiceCompositionSourceRef[],
+  ): { fingerprint: string; selectedRules: readonly Record<string, unknown>[] } {
+    const overrides = this.invoiceOverrideScope?.value ?? null;
     const rule = this.sqlite.prepare('SELECT * FROM billing_rule WHERE id=?').get(billingRuleId) as
       | Record<string, unknown>
       | undefined;
@@ -6338,9 +6482,14 @@ export class PortalRepository {
         'SELECT id,currency,billing_model,po_cap_minor,fixed_price_minor,client_daily_minimum_minutes FROM project WHERE id=?',
       )
       .get(projectId) as { billing_model: string } | undefined;
+    const taxProfileId = overrides?.tax
+      ? overrides.tax.mode === 'exempt'
+        ? null
+        : overrides.tax.taxProfileId
+      : rule.tax_profile_id;
     const taxProfile = this.sqlite
       .prepare('SELECT * FROM tax_profile WHERE id=?')
-      .get(String(rule.tax_profile_id));
+      .get(String(taxProfileId));
     const legalEntity = this.sqlite
       .prepare('SELECT * FROM legal_entity WHERE id=?')
       .get(String(rule.legal_entity_id));
@@ -6348,7 +6497,7 @@ export class PortalRepository {
       .prepare(
         'SELECT id,name,basis_points,calculation_order,compound,calculation_type,display_mode,basis FROM tax_component WHERE tax_profile_id=? ORDER BY calculation_order,id',
       )
-      .all(String(rule.tax_profile_id));
+      .all(String(taxProfileId));
     const selectedRules: Record<string, unknown>[] = [];
     if (rule.stream_type === 'labor') {
       const slices = this.billingTimeSlices(projectId, periodStart, periodEnd, selection).filter(
@@ -6380,6 +6529,23 @@ export class PortalRepository {
           execution,
           billingRuleId,
         );
+        const overrideRate = overrideRateFor(overrides, row.worker_id, slice.category);
+        if (overrideRate !== null && rate !== null) {
+          selectedRules.push({
+            kind: 'client_labor',
+            sourceId: row.id,
+            sourceVersion: row.version,
+            workDate: row.work_date,
+            category: slice.category,
+            minutes: slice.minutes,
+            sliceIndex: slice.sliceIndex,
+            rateMinor: rate.toString(),
+            rateRule: null,
+            rateProvenance: { source: 'invoice_override' },
+            timePolicy: null,
+          });
+          continue;
+        }
         if (!resolved.selected || resolved.issues.length || rate === null)
           throw new ReadinessError([{ code: 'missing_client_rate', sourceId: row.id }]);
         const policy = slice.policyId
@@ -6482,6 +6648,10 @@ export class PortalRepository {
           taxComponents,
           selectedRules,
           capInvoices,
+          // Absent for invoices without overrides, so their fingerprints are unchanged.
+          ...(overrides && hasInvoiceOverrides(overrides)
+            ? { invoiceOverrides: describeInvoiceOverrides(overrides) }
+            : {}),
         }),
       )
       .digest('hex');
@@ -7052,20 +7222,16 @@ export class PortalRepository {
         { minutes: number; rate: bigint; workerId: string; workDate: string }
       >();
       const charges = new ClientLaborChargeAllocator(this.sqlite, existingInvoiceId ?? '');
-      for (const slice of this.billingTimeSlices(
-        rule.project_id,
-        periodStart,
-        periodEnd,
-        selection,
-      )) {
+      const priced = this.billingTimeSlices(rule.project_id, periodStart, periodEnd, selection).filter(
+        (slice) =>
+          ['approved', 'locked'].includes(slice.row.approval_state) &&
+          slice.row.billability_state === 'billable' &&
+          slice.row.invoice_id === null &&
+          slice.clientBillable,
+      );
+      const plan = this.billedMinutesPlan(rule.project_id, priced);
+      for (const slice of priced) {
         const row = slice.row;
-        if (
-          !['approved', 'locked'].includes(row.approval_state) ||
-          row.billability_state !== 'billable' ||
-          row.invoice_id !== null ||
-          !slice.clientBillable
-        )
-          continue;
         const rate = this.billingSliceClientRate(
           principal,
           rule.project_id,
@@ -7074,12 +7240,13 @@ export class PortalRepository {
           billingRuleId,
         );
         if (rate === null) return false;
+        const sliceMinutes = plan?.minutes.get(`${row.id}:${slice.sliceIndex}`) ?? slice.minutes;
         const billableMinutes =
           rule.billing_model === 'hybrid'
-            ? Math.max(0, slice.minutes - Math.min(slice.minutes, includedRemaining))
-            : slice.minutes;
+            ? Math.max(0, sliceMinutes - Math.min(sliceMinutes, includedRemaining))
+            : sliceMinutes;
         if (rule.billing_model === 'hybrid')
-          includedRemaining = Math.max(0, includedRemaining - slice.minutes);
+          includedRemaining = Math.max(0, includedRemaining - sliceMinutes);
         if (billableMinutes === 0) continue;
         lines.push({
           sourceType: 'time',
@@ -7111,6 +7278,12 @@ export class PortalRepository {
         .get(rule.project_id) as { client_daily_minimum_minutes: number | null } | undefined;
       if (minimum?.client_daily_minimum_minutes) {
         for (const day of daily.values()) {
+          if (
+            this.invoiceOverrideScope?.value.people.some(
+              (person) => person.workerId === day.workerId && person.billedMinutes !== null,
+            )
+          )
+            continue;
           const topUp = Math.max(0, minimum.client_daily_minimum_minutes - day.minutes);
           if (topUp === 0) continue;
           lines.push({
@@ -7369,8 +7542,9 @@ export class PortalRepository {
         !input.simulate &&
         this.sqlite
           .prepare(
-            `SELECT 1 FROM audit_event WHERE action='project.update' AND entity_type='project' AND entity_id=?
-               AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf'
+            `SELECT 1 FROM audit_event WHERE entity_type='project' AND entity_id=?
+               AND (action='invoice.approve_on_behalf' OR (action='project.update'
+                 AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf'))
                AND json_extract(metadata_json,'$.requestKey')=? LIMIT 1`,
           )
           .get(input.projectId, input.requestKey)
@@ -7471,9 +7645,8 @@ export class PortalRepository {
         approved.push(item.ref);
       }
       if (!input.simulate && plan.length)
-        // Grouped evidence next to the per-record lifecycle events. A dedicated audit action
-        // needs a registry migration; the reviewed project-scoped action carries the event.
-        this.audit(principal, 'project.update', 'project', input.projectId, {
+        // Grouped evidence next to the per-record lifecycle events (reviewed action, 0079).
+        this.audit(principal, 'invoice.approve_on_behalf', 'project', input.projectId, {
           event: 'invoice_prep.approve_on_behalf',
           projectId: input.projectId,
           actorRole: principal.role,
@@ -7487,6 +7660,246 @@ export class PortalRepository {
           requestKey: input.requestKey,
         });
       return { approved, skipped, replayed: false };
+    });
+  }
+
+  /**
+   * "Fix the worker's record" from invoice preparation: one audited correction of a time
+   * entry's hours (correction draft + submit + approve, all or nothing), with a reason. The
+   * original entry is replaced by the approved correction through the existing append-only
+   * correction flow, so pay, cost and the invoice all follow the corrected hours. Draft or
+   * submitted entries are first approved as recorded on the worker's behalf.
+   */
+  correctHoursForInvoice(
+    principal: Principal,
+    input: Readonly<{
+      projectId: string;
+      source: InvoiceCompositionSourceRef;
+      minutes: number;
+      reason: string;
+      requestKey: string;
+      periodStart?: string;
+      periodEnd?: string;
+    }>,
+  ): { correctionId: string; fromMinutes: number; toMinutes: number; replayed: boolean } {
+    this.assertActive(principal);
+    if (!['owner_admin', 'finance_admin'].includes(principal.role))
+      throw new AccessDeniedError('Owner or Finance approval required');
+    this.assertLiveSession(principal);
+    if (input.source?.type !== 'time') throw new ValidationError('A time entry is required');
+    if (!Number.isSafeInteger(input.minutes) || input.minutes < 1 || input.minutes > 24 * 60)
+      throw new ValidationError('Hours must be more than 0 and at most 24 per entry');
+    const reason = assertText(input.reason, 'Correction reason', 2000);
+    if (reason.length < 10)
+      throw new ValidationError('Explain the correction (at least 10 characters)');
+    if (!/^[A-Za-z0-9:._-]{8,200}$/u.test(input.requestKey))
+      throw new ValidationError('A valid request key is required');
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          'SELECT project_id,worker_id,work_date,minutes,start_time,end_time,approval_state,version,invoice_id FROM time_entry WHERE id=?',
+        )
+        .get(input.source.id) as
+        | {
+            project_id: string;
+            worker_id: string;
+            work_date: string;
+            minutes: number;
+            start_time: string | null;
+            end_time: string | null;
+            approval_state: string;
+            version: number;
+            invoice_id: string | null;
+          }
+        | undefined;
+      if (!row || row.project_id !== input.projectId)
+        throw new AccessDeniedError('Selected record is outside this project');
+      if (
+        input.periodStart &&
+        input.periodEnd &&
+        (row.work_date < input.periodStart || row.work_date > input.periodEnd)
+      )
+        throw new ValidationError('Selected record is outside the invoice period');
+      const requestId = `invoice-fix-${input.requestKey}`;
+      const prior = this.sqlite
+        .prepare(
+          "SELECT correction_id FROM record_correction_link WHERE record_type='time_entry' AND original_id=? AND request_id=?",
+        )
+        .get(input.source.id, requestId) as { correction_id: string } | undefined;
+      if (prior)
+        return {
+          correctionId: prior.correction_id,
+          fromMinutes: row.minutes,
+          toMinutes: input.minutes,
+          replayed: true,
+        };
+      if (row.version !== input.source.version)
+        throw new ConflictError('Selected record changed. Reload before correcting.');
+      if (
+        row.invoice_id ||
+        this.sqlite
+          .prepare(
+            `SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id WHERE source.source_type='time' AND source.source_id=? AND invoice.state NOT IN ('void','cancelled','superseded') LIMIT 1`,
+          )
+          .get(input.source.id)
+      )
+        throw new ConflictError('This entry is already on an invoice');
+      if (row.minutes === input.minutes) throw new ValidationError('The hours did not change');
+      if (['draft', 'submitted'].includes(row.approval_state))
+        this.approveSourceForInvoice(principal, input.source);
+      const correctionInput = {
+        recordType: 'time_entry' as const,
+        originalId: input.source.id,
+        requestId,
+        reason,
+        patch: {
+          minutes: input.minutes,
+          ...(row.start_time || row.end_time
+            ? { startTime: null, endTime: null, breakMinutes: null }
+            : {}),
+        },
+      };
+      const correction =
+        principal.role === 'owner_admin'
+          ? this.ownerOverrideCorrectionDraft(principal, correctionInput)
+          : this.createCorrectionDraft(principal, correctionInput);
+      const correctionId = String(correction.correctionId);
+      const version = Number(
+        (this.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(correctionId) as
+          | { version: number }
+          | undefined)?.version ?? 1,
+      );
+      this.approveSourceForInvoice(principal, { type: 'time', id: correctionId, version });
+      this.audit(principal, 'time.correct_from_invoice', 'time_entry', input.source.id, {
+        projectId: input.projectId,
+        workerId: row.worker_id,
+        workDate: row.work_date,
+        correctionId,
+        fromMinutes: row.minutes,
+        toMinutes: input.minutes,
+        reason,
+        actorRole: principal.role,
+        requestKey: input.requestKey,
+      });
+      return { correctionId, fromMinutes: row.minutes, toMinutes: input.minutes, replayed: false };
+    });
+  }
+
+  /**
+   * Change the tax of a billing stream from invoice preparation ("from this period on").
+   * Without issued invoices the stream is updated in place (version + 1). Otherwise issued
+   * history keeps its terms: the stream is split, the current one ends the day before and a
+   * successor with the new tax starts on the effective date (moved after the last issued
+   * period when needed, which the result reports).
+   */
+  changeBillingStreamTaxProfile(
+    principal: Principal,
+    input: Readonly<{ ruleId: string; taxProfileId: string | null; effectiveFrom: string }>,
+  ): { ruleId: string; split: boolean; effectiveFrom: string; shifted: boolean; changed: boolean } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    assertDate(input.effectiveFrom, 'Effective date');
+    return this.transaction(() => {
+      const rule = this.sqlite
+        .prepare('SELECT * FROM billing_rule WHERE id=? AND enabled=1')
+        .get(input.ruleId) as Record<string, unknown> | undefined;
+      if (!rule) throw new ValidationError('Billing stream not found');
+      const currentTax = (rule.tax_profile_id as string | null) ?? null;
+      if (input.taxProfileId) {
+        const profile = this.sqlite
+          .prepare('SELECT status,currency,legal_entity_id FROM tax_profile WHERE id=?')
+          .get(input.taxProfileId) as
+          | { status: string; currency: string; legal_entity_id: string | null }
+          | undefined;
+        if (
+          !profile ||
+          profile.status !== 'active' ||
+          profile.currency !== rule.currency ||
+          (profile.legal_entity_id !== null && profile.legal_entity_id !== rule.legal_entity_id)
+        )
+          throw new ValidationError('Tax profile must be active and match the issuer and currency');
+      }
+      if ((input.taxProfileId ?? null) === currentTax)
+        return {
+          ruleId: input.ruleId,
+          split: false,
+          effectiveFrom: input.effectiveFrom,
+          shifted: false,
+          changed: false,
+        };
+      const lastIssued = (
+        this.sqlite
+          .prepare(
+            "SELECT MAX(period_end) through FROM invoice WHERE billing_rule_id=? AND state NOT IN ('draft','void','cancelled','superseded')",
+          )
+          .get(input.ruleId) as { through: string | null }
+      ).through;
+      const timestamp = now();
+      if (!lastIssued) {
+        this.sqlite
+          .prepare(
+            'UPDATE billing_rule SET tax_profile_id=?,updated_at=?,version=version+1 WHERE id=?',
+          )
+          .run(input.taxProfileId, timestamp, input.ruleId);
+        this.audit(principal, 'billing_rule.tax_profile_change', 'billing_rule', input.ruleId, {
+          projectId: rule.project_id,
+          ruleId: input.ruleId,
+          from: currentTax,
+          to: input.taxProfileId,
+          effectiveFrom: String(rule.effective_from),
+          newRuleId: null,
+        });
+        return {
+          ruleId: input.ruleId,
+          split: false,
+          effectiveFrom: String(rule.effective_from),
+          shifted: false,
+          changed: true,
+        };
+      }
+      let start = input.effectiveFrom < String(rule.effective_from) ? String(rule.effective_from) : input.effectiveFrom;
+      const shifted = start <= lastIssued;
+      if (shifted) start = shiftIsoDate(lastIssued, 1);
+      if (rule.effective_to && start > String(rule.effective_to))
+        throw new ConflictError('This billing stream has ended; set up the tax on its successor');
+      if (start === String(rule.effective_from))
+        throw new ConflictError('Issued invoices already use this billing stream from its start');
+      const columns = (
+        this.sqlite.prepare("SELECT name FROM pragma_table_info('billing_rule')").all() as Array<{
+          name: string;
+        }>
+      ).map((column) => column.name);
+      const id = newId();
+      const values: Record<string, unknown> = {
+        ...rule,
+        id,
+        tax_profile_id: input.taxProfileId,
+        effective_from: start,
+        version: 1,
+        created_at: timestamp,
+        updated_at: timestamp,
+      };
+      this.sqlite
+        .prepare(
+          'UPDATE billing_rule SET effective_to=?,updated_at=?,version=version+1 WHERE id=?',
+        )
+        .run(shiftIsoDate(start, -1), timestamp, input.ruleId);
+      this.sqlite
+        .prepare(
+          `INSERT INTO billing_rule(${columns.join(',')}) VALUES(${columns.map(() => '?').join(',')})`,
+        )
+        .run(...columns.map((column) => (values[column] ?? null) as never));
+      this.audit(principal, 'billing_rule.tax_profile_change', 'billing_rule', input.ruleId, {
+        projectId: rule.project_id,
+        ruleId: input.ruleId,
+        from: currentTax,
+        to: input.taxProfileId,
+        effectiveFrom: start,
+        requestedFrom: input.effectiveFrom,
+        newRuleId: id,
+      });
+      return { ruleId: id, split: true, effectiveFrom: start, shifted, changed: true };
     });
   }
 
@@ -7513,7 +7926,10 @@ export class PortalRepository {
   }
 
   refreshSelectedInvoiceDraft(principal: Principal, invoiceId: string, expectedVersion: number) {
-    return this.invoiceCompositionService().refresh(principal, invoiceId, expectedVersion);
+    // The draft's invoice-only overrides stay in force while its sources are re-checked.
+    return this.withInheritedInvoiceOverrides(invoiceId, () =>
+      this.invoiceCompositionService().refresh(principal, invoiceId, expectedVersion),
+    );
   }
 
   createInvoiceDraft(
@@ -7651,6 +8067,45 @@ export class PortalRepository {
     selection?: readonly InvoiceCompositionSourceRef[],
     refreshInvoiceId?: string,
   ) {
+    // A rebuilt draft keeps the invoice-only overrides recorded on it.
+    const rebuildId =
+      refreshInvoiceId ??
+      (selection
+        ? undefined
+        : (
+            this.sqlite
+              .prepare(
+                `SELECT id FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=?
+                   AND source_selection_json IS NULL AND state='draft' AND stream_type<>'adjustment'
+                 ORDER BY created_at DESC,id DESC LIMIT 1`,
+              )
+              .get(billingRuleId, periodStart, periodEnd) as { id: string } | undefined
+          )?.id);
+    return this.withInheritedInvoiceOverrides(rebuildId, () =>
+      this.createInvoiceDraftCoreInner(
+        billingRuleId,
+        periodStart,
+        periodEnd,
+        principal,
+        execution,
+        recovery,
+        selection,
+        refreshInvoiceId,
+      ),
+    );
+  }
+
+  private createInvoiceDraftCoreInner(
+    billingRuleId: string,
+    periodStart: string,
+    periodEnd: string,
+    principal: Principal | null,
+    execution?: FencedJobExecution,
+    recovery?: Readonly<{ invoiceId: string; version: number; reason: string }>,
+    selection?: readonly InvoiceCompositionSourceRef[],
+    refreshInvoiceId?: string,
+  ) {
+    const overrides = this.invoiceOverrideScope?.value ?? null;
     return this.transaction(() => {
       if (execution) {
         assertFencedJobExecution(this.sqlite, execution, {
@@ -7771,7 +8226,7 @@ export class PortalRepository {
           { code: 'archived_legal_entity' },
           { code: 'inactive_billing_configuration' },
         ]);
-      if (rule.tax_profile_id) {
+      if (rule.tax_profile_id && !overrides?.tax) {
         const selectedTax = this.sqlite
           .prepare('SELECT status,currency FROM tax_profile WHERE id=?')
           .get(rule.tax_profile_id) as { status: string; currency: Currency } | undefined;
@@ -7782,6 +8237,7 @@ export class PortalRepository {
         )
           throw new ReadinessError([{ code: 'inactive_tax_profile' }]);
       }
+      const taxProfileId = this.effectiveInvoiceTaxProfileId(rule);
       if (periodEnd < periodStart)
         throw new ValidationError('Billing period end must follow start');
       if (['weekly', 'every_14_days', 'semi_monthly', 'monthly'].includes(rule.cadence_type)) {
@@ -7844,6 +8300,7 @@ export class PortalRepository {
           .prepare('UPDATE invoice SET source_selection_json=? WHERE id=?')
           .run(JSON.stringify(selection), id);
       let subtotal = money(rule.currency, 0n);
+      let billedPlan: { minutes: Map<string, number>; worked: Map<string, number> } | null = null;
       const consumedForCap =
         rule.billing_model === 'capped_tm' && rule.po_cap_minor !== null
           ? (
@@ -7919,6 +8376,7 @@ export class PortalRepository {
         const charges = new ClientLaborChargeAllocator(this.sqlite, id);
         let includedRemaining =
           rule.billing_model === 'hybrid' ? Math.max(0, rule.included_minutes ?? 0) : 0;
+        billedPlan = this.billedMinutesPlan(rule.project_id, slices);
         for (const slice of slices) {
           const row = slice.row;
           const rate = this.billingSliceClientRate(
@@ -7930,12 +8388,15 @@ export class PortalRepository {
           );
           if (rate === null)
             throw new ReadinessError([{ code: 'missing_client_rate', sourceId: row.id }]);
+          const overrideRate = overrideRateFor(overrides, row.worker_id, slice.category);
+          const overrideMinutes = billedPlan?.minutes.get(`${row.id}:${slice.sliceIndex}`);
+          const sliceMinutes = overrideMinutes ?? slice.minutes;
           const billableMinutes =
             rule.billing_model === 'hybrid'
-              ? Math.max(0, slice.minutes - Math.min(slice.minutes, includedRemaining))
-              : slice.minutes;
+              ? Math.max(0, sliceMinutes - Math.min(sliceMinutes, includedRemaining))
+              : sliceMinutes;
           if (rule.billing_model === 'hybrid')
-            includedRemaining = Math.max(0, includedRemaining - slice.minutes);
+            includedRemaining = Math.max(0, includedRemaining - sliceMinutes);
           if (!reservedSources.has(row.id)) {
             this.insertInvoiceSource(
               id,
@@ -7997,6 +8458,10 @@ export class PortalRepository {
               commercialBilledMinutes: billableMinutes,
               commercialPolicyId: slice.policyId,
               commercialSliceIndex: slice.sliceIndex,
+              ...(overrideRate !== null ? { overrideRateMinor: overrideRate.toString() } : {}),
+              ...(overrideMinutes !== undefined
+                ? { workedMinutes: slice.minutes, overrideBilledMinutes: overrideMinutes }
+                : {}),
             },
           );
         }
@@ -8005,6 +8470,13 @@ export class PortalRepository {
           .get(rule.project_id) as { client_daily_minimum_minutes: number | null } | undefined;
         if (minimum?.client_daily_minimum_minutes) {
           for (const day of daily.values()) {
+            // Billed hours set for this invoice are final: no daily-minimum top-up on top.
+            if (
+              overrides?.people.some(
+                (person) => person.workerId === day.workerId && person.billedMinutes !== null,
+              )
+            )
+              continue;
             const topUp = Math.max(0, minimum.client_daily_minimum_minutes - day.minutes);
             if (!topUp) continue;
             const amount = hourlyRateForMinutes(money(rule.currency, day.rate), topUp);
@@ -8195,11 +8667,43 @@ export class PortalRepository {
         ]);
       }
       this.rebuildInvoiceCommercialManifest(id, rule.billing_model, timestamp);
+      if (this.invoiceOverrideScope) {
+        const actor =
+          principal?.userId ??
+          this.invoiceOverrideScope.value.people[0]?.createdBy ??
+          this.invoiceOverrideScope.value.invoiceCreatedBy;
+        if (!actor) throw new ValidationError('Invoice overrides require a signed-in user');
+        let changes: ReturnType<typeof persistInvoiceOverrides>;
+        try {
+          changes = persistInvoiceOverrides(this.sqlite, {
+            invoiceId: id,
+            desired: this.invoiceOverrideScope.value,
+            actorUserId: actor,
+            worked: billedPlan?.worked ?? new Map(),
+            timestamp,
+          });
+        } catch (error) {
+          if (error instanceof Error && /invoice overrides/iu.test(error.message))
+            throw new ConflictError('Invoice-only changes can be made on an unissued draft only');
+          throw error;
+        }
+        if (principal && changes.created.length)
+          this.audit(principal, 'invoice_line_override.create', 'invoice', id, {
+            projectId: rule.project_id,
+            created: changes.created,
+            superseded: changes.superseded,
+          });
+        else if (principal && changes.superseded.length)
+          this.audit(principal, 'invoice_line_override.supersede', 'invoice', id, {
+            projectId: rule.project_id,
+            superseded: changes.superseded,
+          });
+      }
       const components = this.sqlite
         .prepare(
           'SELECT basis_points,compound FROM tax_component WHERE tax_profile_id=? ORDER BY calculation_order,id',
         )
-        .all(rule.tax_profile_id) as Array<{ basis_points: number; compound: number }>;
+        .all(taxProfileId) as Array<{ basis_points: number; compound: number }>;
       const tax = calculateTaxComponents(
         subtotal,
         components.map((component) => ({
@@ -8237,11 +8741,17 @@ export class PortalRepository {
           safeInteger(tax.minorUnits),
           safeInteger(total.minorUnits),
           JSON.stringify({
-            purchaseNo: effectivePurchaseReference(
-              rule.po_number_override,
-              projectReference?.po_number,
-              projectReference?.po_reference,
-            ),
+            purchaseNo:
+              overrides?.purchaseNo ??
+              effectivePurchaseReference(
+                rule.po_number_override,
+                projectReference?.po_number,
+                projectReference?.po_reference,
+              ),
+            ...(overrides?.purchaseNo ? { draftOnlyOverrides: ['purchaseNo'] } : {}),
+            ...(overrides && hasInvoiceOverrides(overrides)
+              ? { invoiceOverrides: describeInvoiceOverrides(overrides) }
+              : {}),
             termsAndInstructions: {
               ...presentation.termsAndInstructions,
               pastDueNotice: rule.past_due_notice,
@@ -8363,7 +8873,13 @@ export class PortalRepository {
         .run(supersededAt, invoiceId, expectedVersion);
       if (moved.changes !== 1)
         throw new ConflictError('Invoice changed. Reload before recalculating.');
-      const rebuilt = this.createInvoiceDraftCore(
+      // The replacement draft carries the approved invoice's invoice-only overrides.
+      const carried = loadInvoiceOverrides(this.sqlite, invoiceId);
+      const previousScope = this.invoiceOverrideScope;
+      if (carried) this.invoiceOverrideScope = { value: carried, explicit: true };
+      const rebuilt = (() => {
+        try {
+          return this.createInvoiceDraftCore(
         invoice.billing_rule_id,
         invoice.period_start,
         invoice.period_end,
@@ -8380,7 +8896,11 @@ export class PortalRepository {
               .get(source.id)?.version ?? source.version,
           ),
         })),
-      );
+          );
+        } finally {
+          this.invoiceOverrideScope = previousScope;
+        }
+      })();
       if (!rebuilt.created || rebuilt.id === invoiceId)
         throw new ConflictError('Invoice could not be recalculated; prior approval is preserved');
       const replacementSources = this.sqlite
@@ -9501,7 +10021,7 @@ export class PortalRepository {
                   le.code,le.legal_name,le.billing_address,le.company_identifiers,
                   le.status legal_entity_status,le.currency legal_entity_currency,
                   c.legal_name client_legal_name,c.client_code,c.client_number,c.billing_address client_billing_address,
-                  c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,
+                  c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,c.tax_id client_tax_id,
                   p.project_number,p.name project_name,p.cost_center_code,p.po_number,
                   tp.id tax_profile_id,tp.name tax_name,tp.currency tax_currency,tp.status tax_profile_status,
                   tp.jurisdiction_label,tp.description tax_description
@@ -9533,6 +10053,7 @@ export class PortalRepository {
             client_po_reference: string | null;
             billing_email: string | null;
             payment_terms_days: number;
+            client_tax_id: string | null;
             project_number: string;
             project_name: string;
             cost_center_code: string | null;
@@ -9546,6 +10067,26 @@ export class PortalRepository {
           }
         | undefined;
       if (!context) throw new ValidationError('Billing context is incomplete');
+      // "This invoice only" tax recorded on the draft replaces the stream's profile.
+      const issuedOverrides = invoiceOverrideRows(this.sqlite, invoiceId);
+      const issuedTax = issuedOverrides.find((row) => row.target === 'invoice' && row.tax);
+      if (issuedTax) {
+        const profile = issuedTax.taxProfileId
+          ? (this.sqlite
+              .prepare(
+                'SELECT id,name,currency,status,jurisdiction_label,description FROM tax_profile WHERE id=?',
+              )
+              .get(issuedTax.taxProfileId) as Record<string, string | null> | undefined)
+          : undefined;
+        Object.assign(context, {
+          tax_profile_id: profile?.id ?? null,
+          tax_name: profile?.name ?? null,
+          tax_currency: profile?.currency ?? null,
+          tax_profile_status: profile?.status ?? null,
+          jurisdiction_label: profile?.jurisdiction_label ?? null,
+          tax_description: profile?.description ?? null,
+        });
+      }
       if (context.legal_entity_status !== 'active')
         throw new ValidationError('Cannot issue invoice for an archived legal entity');
       if (context.tax_profile_id && context.tax_profile_status !== 'active')
@@ -9711,6 +10252,7 @@ export class PortalRepository {
           billingEmail: context.billing_email,
           recipientEmail: context.recipient_email,
           billingContact: billingContact ?? null,
+          taxId: context.client_tax_id ?? null,
         },
         project: {
           number: context.project_number,
@@ -9775,6 +10317,7 @@ export class PortalRepository {
         },
         dueAt: due,
         billingRuleId: invoice.billing_rule_id,
+        ...(issuedOverrides.length ? { invoiceOverrides: issuedOverrides } : {}),
         lines,
         sources,
         commercialSourceManifest,
@@ -10727,7 +11270,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.cost_center_code,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.client_code,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.cost_center_code,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.client_code,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,c.tax_id client_tax_id,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
@@ -10949,6 +11492,24 @@ export class PortalRepository {
         'SELECT tc.name,tc.basis_points FROM invoice i JOIN billing_rule br ON br.id=i.billing_rule_id JOIN tax_component tc ON tc.tax_profile_id=br.tax_profile_id WHERE i.id=? ORDER BY tc.calculation_order',
       )
       .all(invoiceId);
+    const invoiceOverrides = invoiceOverrideRows(this.sqlite, invoiceId);
+    const taxOverride = invoiceOverrides.find((row) => row.target === 'invoice' && row.tax);
+    if (!frozenInvoice && taxOverride) {
+      // "This invoice only" tax: the draft is priced and shown with the chosen profile.
+      const profile = taxOverride.taxProfileId
+        ? (this.sqlite.prepare('SELECT name FROM tax_profile WHERE id=?').get(taxOverride.taxProfileId) as
+            | { name: string }
+            | undefined)
+        : undefined;
+      Object.assign(enrichedInvoice, { tax_profile_name: profile?.name ?? null });
+      taxes = taxOverride.taxProfileId
+        ? this.sqlite
+            .prepare(
+              'SELECT name,basis_points FROM tax_component WHERE tax_profile_id=? ORDER BY calculation_order',
+            )
+            .all(taxOverride.taxProfileId)
+        : [];
+    }
     if (frozenInvoice) {
       const frozenClient = invoicePresentationObject(customSnapshot.client);
       const frozenProject = invoicePresentationObject(customSnapshot.project);
@@ -10959,6 +11520,8 @@ export class PortalRepository {
         client_number: frozenClient.number ?? null,
         client_billing_address: frozenClient.billingAddress ?? null,
         billing_email: frozenClient.billingEmail ?? null,
+        // Invoices issued before client tax IDs existed print none.
+        client_tax_id: frozenClient.taxId ?? null,
         project_number: frozenProject.number ?? null,
         project_name: frozenProject.name ?? null,
         project_po_number: frozenProject.poNumber ?? null,
@@ -10987,6 +11550,7 @@ export class PortalRepository {
     return {
       invoice: {
         ...enrichedInvoice,
+        invoice_overrides: invoiceOverrides,
         source_settings_changed: sourceSettingsChanged,
         labor_subtotal_minor: laborSubtotal.toString(),
         expense_subtotal_minor: expenseSubtotal.toString(),

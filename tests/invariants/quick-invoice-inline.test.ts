@@ -175,7 +175,7 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(
       count(
         f,
-        "SELECT COUNT(*) n FROM audit_event WHERE action='project.update' AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf' AND actor_id=?",
+        "SELECT COUNT(*) n FROM audit_event WHERE action='invoice.approve_on_behalf' AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf' AND actor_id=?",
         owner.userId,
       ),
     ).toBe(1);

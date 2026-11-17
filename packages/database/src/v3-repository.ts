@@ -1310,9 +1310,8 @@ export class V3Repository {
    * Revoke an unused invitation so its link stops working. The invitation
    * table has no status column, so revocation moves the expiry back to the
    * creation time (expires_at = created_at), which the accept API and the
-   * mail outbox already treat as unusable. The reviewed audit registry has no
-   * `invitation.revoke` action, so this records the reviewed `invitation.create`
-   * action for the invitation entity with `operation: 'revoke'`.
+   * mail outbox already treat as unusable. Recorded with the reviewed
+   * `invitation.revoke` action (migration 0079).
    */
   revokeInvitation(
     principal: Principal,
@@ -1334,7 +1333,7 @@ export class V3Repository {
       this.sqlite
         .prepare('UPDATE invitation SET expires_at=created_at WHERE id=? AND used_at IS NULL')
         .run(row.id);
-      this.audit(principal, 'invitation.create', 'invitation', row.id, {
+      this.audit(principal, 'invitation.revoke', 'invitation', row.id, {
         operation: 'revoke',
         reason,
         email: row.email,

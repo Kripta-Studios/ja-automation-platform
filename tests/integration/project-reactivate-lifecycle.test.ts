@@ -45,11 +45,19 @@ describe('project reactivation and close date (B5)', () => {
     expect(row()).toMatchObject({ status: 'active', actual_end_date: null });
     const audit = value.sqlite
       .prepare(
-        "SELECT details_json AS payload FROM audit_event WHERE entity_type='project' AND entity_id=? AND action='lifecycle.transition' ORDER BY rowid DESC LIMIT 1",
+        "SELECT details_json AS payload FROM audit_event WHERE entity_type='project' AND entity_id=? AND action='project.reactivate' ORDER BY rowid DESC LIMIT 1",
       )
       .get(value.project.id) as { payload: string } | undefined;
     expect(audit).toBeDefined();
     expect(JSON.parse(audit!.payload)).toMatchObject({ fromState: 'closed', toState: 'active', reactivated: true });
+    // Since migration 0079 the lifecycle history records the reactivation natively.
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT from_state,to_state FROM entity_lifecycle_event WHERE entity_type='project' AND entity_id=? ORDER BY version_after DESC LIMIT 1",
+        )
+        .get(value.project.id),
+    ).toEqual({ from_state: 'closed', to_state: 'active' });
   });
 
   it('lets the owner cancel a pending close (closing -> active)', () => {
@@ -57,6 +65,13 @@ describe('project reactivation and close date (B5)', () => {
     move(value.owner, 'closing');
     move(value.owner, 'active');
     expect(row().status).toBe('active');
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT from_state,to_state FROM entity_lifecycle_event WHERE entity_type='project' AND entity_id=? ORDER BY version_after DESC LIMIT 1",
+        )
+        .get(value.project.id),
+    ).toEqual({ from_state: 'closing', to_state: 'active' });
   });
 
   it('only the owner may reactivate', () => {

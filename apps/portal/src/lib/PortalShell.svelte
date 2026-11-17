@@ -3713,12 +3713,16 @@
     return utc ? `${utc.replace('T', ' ').slice(0, 19)} UTC` : String(value ?? '').trim() || '—';
   }
 
-  /** TOTP sign-ins reuse the reviewed passkey sign-in action; show them as MFA sign-ins. */
+  /**
+   * TOTP sign-ins are `security.mfa.login` (migration 0079); rows written before that reused
+   * the passkey sign-in action with method "totp" and are shown the same way.
+   */
   function auditActionLabel(row: Record<string, unknown>): string {
     const action = String(row.action);
     if (
-      action === 'security.passkey.login' &&
-      /"method"\s*:\s*"totp"/u.test(String(row.details_json ?? ''))
+      action === 'security.mfa.login' ||
+      (action === 'security.passkey.login' &&
+        /"method"\s*:\s*"totp"/u.test(String(row.details_json ?? '')))
     )
       return 'security.mfa.login (totp)';
     return action.replaceAll('_', ' ');

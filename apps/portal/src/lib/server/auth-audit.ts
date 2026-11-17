@@ -18,14 +18,11 @@ export const AUTH_AUDIT_ACTIONS = {
   passkeyRevoke: { action: 'security.passkey.revoke', entityType: 'passkey' },
   passkeyLogin: { action: 'security.passkey.login', entityType: 'user' },
   /**
-   * A normal authenticator-code (TOTP) second-factor sign-in. The reviewed,
-   * immutable audit registry has no dedicated `security.mfa.login` action and
-   * adding one needs a registry migration, so this reuses the closest reviewed
-   * NON-recovery second-factor sign-in action. `details.method` = 'totp'
-   * distinguishes it from a passkey sign-in. Backup codes keep
-   * `security.mfa.recovery_login` (`details.method` = 'backup_code').
+   * A normal authenticator-code (TOTP) second-factor sign-in (reviewed action since
+   * migration 0079; earlier rows used `security.passkey.login` with `details.method`
+   * = 'totp'). Backup codes keep `security.mfa.recovery_login`.
    */
-  mfaTotpLogin: { action: 'security.passkey.login', entityType: 'user' },
+  mfaTotpLogin: { action: 'security.mfa.login', entityType: 'user' },
 } as const;
 
 /**

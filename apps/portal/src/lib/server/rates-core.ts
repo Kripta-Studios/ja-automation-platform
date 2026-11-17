@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import type { V3Repository } from '@ja/database';
+import { recordAuditEvent, type V3Repository } from '@ja/database';
 import type { Principal } from '@ja/domain';
 import { withAssignmentFinanceTransaction } from './actions/assignment-finance';
 
@@ -111,18 +111,84 @@ export function assertNotInvoiced(sqlite: DatabaseSync, projectId: string, date:
   if (billed) throw new RateSaveError('already_invoiced');
 }
 
-function assertNoSameDayOverride(
+/** The person's rule that already starts on `date` (set through a dated override), if any. */
+function sameDayOverrideRule(
   sqlite: DatabaseSync,
   memberId: string,
   date: string,
   column: 'client_labor_rate_id' | 'compensation_rule_id' | 'internal_cost_rule_id',
-) {
+): string | null {
   const existing = sqlite
     .prepare(
-      `SELECT 1 FROM assignment_rate_override WHERE project_member_id=? AND effective_from=? AND ${column} IS NOT NULL LIMIT 1`,
+      `SELECT ${column} rule_id FROM assignment_rate_override WHERE project_member_id=? AND effective_from=? AND ${column} IS NOT NULL
+        ORDER BY created_at DESC,id DESC LIMIT 1`,
     )
-    .get(memberId, date);
-  if (existing) throw new RateSaveError('same_day');
+    .get(memberId, date) as { rule_id: string } | undefined;
+  return existing?.rule_id ?? null;
+}
+
+/**
+ * Same-day replacement: a rate that starts on the same day for the same person/project is
+ * corrected in place instead of being refused (Owner/Finance only). Callers have already
+ * checked that no approved or issued invoice covers that date (`assertNotInvoiced`) or, for
+ * pay, that no settlement does, so no finalized document used the replaced amount.
+ */
+function replaceSameDay(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  kind: 'client' | 'pay' | 'cost',
+  ruleId: string,
+  values: { minor: bigint; basis: 'hourly' | 'daily' },
+) {
+  if (!['owner_admin', 'finance_admin'].includes(principal.role)) throw new RateSaveError('forbidden');
+  const table = kind === 'client' ? 'client_labor_rate' : kind === 'pay' ? 'compensation_rule' : 'internal_cost_rule';
+  const before = sqlite
+    .prepare(
+      kind === 'client'
+        ? 'SELECT rate_basis basis,CAST(hourly_rate_minor AS TEXT) hourly,CAST(unit_rate_minor AS TEXT) unit FROM client_labor_rate WHERE id=?'
+        : kind === 'pay'
+          ? 'SELECT rate_basis basis,CAST(rate_minor AS TEXT) hourly,rule_type unit FROM compensation_rule WHERE id=?'
+          : "SELECT 'hourly' basis,CAST(hourly_rate_minor AS TEXT) hourly,NULL unit FROM internal_cost_rule WHERE id=?",
+    )
+    .get(ruleId) as Record<string, string | null> | undefined;
+  if (!before) throw new RateSaveError('failed');
+  const timestamp = new Date().toISOString();
+  const minor = values.minor.toString();
+  const changed =
+    kind === 'client'
+      ? sqlite
+          .prepare(
+            'UPDATE client_labor_rate SET rate_basis=?,hourly_rate_minor=?,unit_rate_minor=?,updated_at=?,version=version+1 WHERE id=?',
+          )
+          .run(
+            values.basis,
+            values.basis === 'hourly' ? minor : '0',
+            values.basis === 'hourly' ? null : minor,
+            timestamp,
+            ruleId,
+          )
+      : kind === 'pay'
+        ? sqlite
+            .prepare(
+              'UPDATE compensation_rule SET rate_basis=?,rule_type=?,rate_minor=?,updated_at=?,version=version+1 WHERE id=?',
+            )
+            .run(values.basis, values.basis === 'daily' ? 'Daily' : 'Hourly', minor, timestamp, ruleId)
+        : sqlite
+            .prepare('UPDATE internal_cost_rule SET hourly_rate_minor=?,updated_at=?,version=version+1 WHERE id=?')
+            .run(minor, timestamp, ruleId);
+  if (changed.changes !== 1) throw new RateSaveError('failed');
+  recordAuditEvent(
+    sqlite,
+    principal,
+    kind === 'client'
+      ? 'client_rate.replace_same_day'
+      : kind === 'pay'
+        ? 'compensation_rule.replace_same_day'
+        : 'internal_cost.replace_same_day',
+    table,
+    ruleId,
+    { before, after: { basis: values.basis, minor }, reason: 'Replaced a rate that starts the same day' },
+  );
 }
 
 /** Give one person on one project their own client rate from `date`. */
@@ -144,7 +210,13 @@ function setPersonClientRate(
   const selected = clientRule(sqlite, terms.clientLaborRate?.id);
   if (selected && selected.rate_basis === input.basis && clientAmount(selected) === input.minor)
     return false;
-  assertNoSameDayOverride(sqlite, member.id, input.date, 'client_labor_rate_id');
+  const sameDay = sameDayOverrideRule(sqlite, member.id, input.date, 'client_labor_rate_id');
+  if (sameDay) {
+    replaceSameDay(sqlite, principal, 'client', sameDay, { minor: input.minor, basis: input.basis });
+    const replaced = v3.resolveAssignmentCommercialTerms(principal, input.projectId, input.workerId, 'regular', input.date);
+    if (replaced.clientLaborRate?.id !== sameDay) throw new RateSaveError('more_specific');
+    return true;
+  }
   const created = v3.createClientLaborRate(principal, {
     projectId: input.projectId,
     workerId: input.workerId,
@@ -214,7 +286,12 @@ export function saveClientRate(
     const currentRule = clientRule(sqlite, current?.id);
     let changed = 0;
     if (!currentRule || currentRule.rate_basis !== basis || clientAmount(currentRule) !== minor) {
-      if (currentRule && currentRule.effective_from === date) throw new RateSaveError('same_day');
+      if (currentRule && currentRule.effective_from === date) {
+        replaceSameDay(sqlite, principal, 'client', currentRule.id, { minor, basis });
+        changed += 1;
+      }
+    }
+    if (currentRule?.effective_from !== date && (!currentRule || currentRule.rate_basis !== basis || clientAmount(currentRule) !== minor)) {
       const input = {
         projectId,
         currency: project.currency,
@@ -337,8 +414,14 @@ export function saveWorkerPay(
     if (payUnchanged && costUnchanged) return { changed: 0 };
     let payRuleId: string | undefined;
     let costRuleId: string | undefined;
-    if (!payUnchanged) {
-      assertNoSameDayOverride(sqlite, member.id, date, 'compensation_rule_id');
+    const samePay = payUnchanged ? null : sameDayOverrideRule(sqlite, member.id, date, 'compensation_rule_id');
+    const sameCost = costUnchanged ? null : sameDayOverrideRule(sqlite, member.id, date, 'internal_cost_rule_id');
+    if (samePay) replaceSameDay(sqlite, principal, 'pay', samePay, { minor, basis });
+    if (sameCost) {
+      assertNotInvoiced(sqlite, projectId, date);
+      replaceSameDay(sqlite, principal, 'cost', sameCost, { minor, basis: 'hourly' });
+    }
+    if (!payUnchanged && !samePay) {
       const carry =
         selected && selected.rule_type === ruleType
           ? {
@@ -365,8 +448,7 @@ export function saveWorkerPay(
         effectiveTo: member.ends_on || undefined,
       } as never).id;
     }
-    if (!costUnchanged) {
-      assertNoSameDayOverride(sqlite, member.id, date, 'internal_cost_rule_id');
+    if (!costUnchanged && !sameCost) {
       costRuleId = v3.createInternalCostRule(principal, {
         workerId,
         projectId,
@@ -377,12 +459,13 @@ export function saveWorkerPay(
         effectiveTo: member.ends_on || undefined,
       } as never).id;
     }
-    v3.createAssignmentRateOverride(principal, {
-      projectMemberId: member.id,
-      effectiveFrom: date,
-      compensationRuleId: payRuleId,
-      internalCostRuleId: costRuleId,
-    } as never);
+    if (payRuleId || costRuleId)
+      v3.createAssignmentRateOverride(principal, {
+        projectMemberId: member.id,
+        effectiveFrom: date,
+        compensationRuleId: payRuleId,
+        internalCostRuleId: costRuleId,
+      } as never);
     const resolved = v3.resolveAssignmentCommercialTerms(principal, projectId, workerId, 'regular', date);
     if (
       (payRuleId && resolved.workerCompensation?.id !== payRuleId) ||
@@ -457,7 +540,12 @@ export function saveWorkerCost(
     const terms = v3.resolveAssignmentCommercialTerms(principal, projectId, workerId, 'regular', date);
     if (terms.internalCost !== null && BigInt(String(terms.internalCost.hourlyRateMinor)) === minor)
       return { changed: 0 };
-    assertNoSameDayOverride(sqlite, member.id, date, 'internal_cost_rule_id');
+    const sameCost = sameDayOverrideRule(sqlite, member.id, date, 'internal_cost_rule_id');
+    if (sameCost) {
+      assertNotInvoiced(sqlite, projectId, date);
+      replaceSameDay(sqlite, principal, 'cost', sameCost, { minor, basis: 'hourly' });
+      return { changed: 1 };
+    }
     const costRuleId = v3.createInternalCostRule(principal, {
       workerId,
       projectId,

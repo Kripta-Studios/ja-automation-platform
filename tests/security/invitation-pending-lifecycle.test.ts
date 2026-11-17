@@ -60,14 +60,14 @@ describe('pending invitations in the People directory', () => {
 
     const audits = sqlite
       .prepare(
-        "SELECT json_extract(details_json,'$.operation') operation, json_extract(details_json,'$.reason') reason FROM audit_event WHERE entity_type='invitation' ORDER BY occurred_at, rowid",
+        "SELECT action, json_extract(details_json,'$.operation') operation, json_extract(details_json,'$.reason') reason FROM audit_event WHERE entity_type='invitation' ORDER BY occurred_at, rowid",
       )
       .all();
     expect(audits).toEqual([
-      { operation: null, reason: null },
-      { operation: 'revoke', reason: 'replaced' },
-      { operation: null, reason: null },
-      { operation: 'revoke', reason: 'revoked' },
+      { action: 'invitation.create', operation: null, reason: null },
+      { action: 'invitation.revoke', operation: 'revoke', reason: 'replaced' },
+      { action: 'invitation.create', operation: null, reason: null },
+      { action: 'invitation.revoke', operation: 'revoke', reason: 'revoked' },
     ]);
   });
 

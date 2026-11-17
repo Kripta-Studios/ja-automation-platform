@@ -18,9 +18,9 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toMatch(/color:\s*var\(--portal-muted,\s*#[0-9a-f]{6}\)/i);
     expect(source).toContain('canManageContacts?: boolean');
     expect(source).toContain('data-contact-actions');
-    expect(source).toContain('?view=clients&/createClientContact');
-    expect(source).toContain('?view=clients&/updateClientContact');
-    expect(source).toContain('?view=clients&/deleteClientContact');
+    expect(source).toContain('?view=clients&client=${encodeURIComponent(clientId)}&/createClientContact');
+    expect(source).toContain('?view=clients&client=${encodeURIComponent(clientId)}&/updateClientContact');
+    expect(source).toContain('?view=clients&client=${encodeURIComponent(clientId)}&/deleteClientContact');
     expect(source).toContain("confirm(translate('Delete this contact?'))");
     expect(source).not.toMatch(/Begin close|Close project|transitionProject/);
   });

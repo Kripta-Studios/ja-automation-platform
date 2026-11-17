@@ -32,6 +32,7 @@
     beforeChange = () => true,
     statusless = false,
     initialOrder = 'priority',
+    server,
   }: {
     rows: T[];
     visible?: T[];
@@ -50,6 +51,18 @@
     beforeChange?: () => boolean;
     statusless?: boolean;
     initialOrder?: 'priority' | 'newest' | 'name';
+    /**
+     * Server-side paging (scale): rows are already one server page. The pager
+     * shows the server summary and links to the neighbouring pages instead of
+     * slicing in the browser.
+     */
+    server?: {
+      summary: string;
+      prevHref?: string;
+      nextHref?: string;
+      prevLabel?: string;
+      nextLabel?: string;
+    };
   } = $props();
   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
   let search = $state('');
@@ -191,28 +204,40 @@
         ></label
       >
     </div>{/if}
+  {#if server}
+    <nav class="record-browser__pages" aria-label={`${translate(label)}: ${translate('Pages')}`}>
+      {#if server.prevHref}<a href={server.prevHref} rel="prev" data-record-browser-prev
+          ><DirectionIcon direction="left" /> {server.prevLabel ?? translate('Previous')}</a
+        >{/if}
+      <span role="status" data-record-browser-summary>{server.summary}</span>
+      {#if server.nextHref}<a href={server.nextHref} rel="next" data-record-browser-next
+          >{server.nextLabel ?? translate('Next')} <DirectionIcon /></a
+        >{/if}
+    </nav>
+  {:else}
   <nav class="record-browser__pages" aria-label={`${translate(label)}: ${translate('Pages')}`}>
-    {#if pages > 1}<button
-        type="button"
-        disabled={current === 0}
-        onclick={() => {
-          if (beforeChange()) page = current - 1;
-        }}><DirectionIcon direction="left" /> {translate('Previous')}</button
-      >{/if}
-    <span role="status"
-      >{filtered.length ? current * pageSize + 1 : 0}–{Math.min(
-        (current + 1) * pageSize,
-        filtered.length,
-      )} / {filtered.length}</span
-    >
-    {#if pages > 1}<button
-        type="button"
-        disabled={current + 1 >= pages}
-        onclick={() => {
-          if (beforeChange()) page = current + 1;
-        }}>{translate('Next')} <DirectionIcon /></button
-      >{/if}
-  </nav>
-  {@render children?.(filtered.slice(current * pageSize, (current + 1) * pageSize))}
+      {#if pages > 1}<button
+          type="button"
+          disabled={current === 0}
+          onclick={() => {
+            if (beforeChange()) page = current - 1;
+          }}><DirectionIcon direction="left" /> {translate('Previous')}</button
+        >{/if}
+      <span role="status"
+        >{filtered.length ? current * pageSize + 1 : 0}–{Math.min(
+          (current + 1) * pageSize,
+          filtered.length,
+        )} / {filtered.length}</span
+      >
+      {#if pages > 1}<button
+          type="button"
+          disabled={current + 1 >= pages}
+          onclick={() => {
+            if (beforeChange()) page = current + 1;
+          }}>{translate('Next')} <DirectionIcon /></button
+        >{/if}
+    </nav>
+  {/if}
+  {@render children?.(server ? filtered : filtered.slice(current * pageSize, (current + 1) * pageSize))}
   {#if showEmpty && !filtered.length}<p role="status">{translate('No matching records.')}</p>{/if}
 </div>

@@ -28,6 +28,8 @@
     translate,
     currentSection = '',
     locale = 'en',
+    recordEndpoint = '',
+    mapRecord,
   }: {
     items: readonly NavItem[];
     shortcuts?: readonly NavShortcut[];
@@ -39,6 +41,9 @@
     translate: (key: string) => string;
     currentSection?: string;
     locale?: PortalLocale;
+    /** On-demand record search (scale): queried as the person types. */
+    recordEndpoint?: string;
+    mapRecord?: (row: Record<string, unknown>, index: number) => PaletteRecord;
   } = $props();
   const id = $props.id();
   const copy = $derived(paletteCopy[locale] ?? paletteCopy.en);
@@ -47,6 +52,9 @@
   let trigger: HTMLButtonElement;
   let query = $state('');
   let mac = $state(false);
+  // Results render only while the dialog is open, so every page does not
+  // ship the whole destination list in its HTML.
+  let isOpen = $state(false);
   const results = $derived(
     searchSectionDestinations(query, {
       items,
@@ -57,7 +65,39 @@
       itemHref,
     }),
   );
-  const records = $derived(canSearchRecords ? searchPaletteRecords(query, recordSuggestions) : []);
+  let remote = $state<{ query: string; records: PaletteRecord[] }>({ query: '', records: [] });
+  let remoteTimer: ReturnType<typeof setTimeout> | undefined;
+  let remoteAbort: AbortController | undefined;
+  $effect(() => {
+    const term = query.trim();
+    clearTimeout(remoteTimer);
+    remoteAbort?.abort();
+    if (!canSearchRecords || !recordEndpoint || !mapRecord || term.length < 2) return;
+    const mapper = mapRecord;
+    remoteTimer = setTimeout(() => {
+      const controller = new AbortController();
+      remoteAbort = controller;
+      const target = new URL(recordEndpoint, location.href);
+      target.searchParams.set('q', term);
+      fetch(target, { signal: controller.signal, headers: { accept: 'application/json' } })
+        .then((response) => (response.ok ? response.json() : { records: [] }))
+        .then((body: { records?: Array<Record<string, unknown>> }) => {
+          if (controller.signal.aborted) return;
+          remote = { query: term, records: (body.records ?? []).map(mapper) };
+        })
+        .catch(() => {
+          // Offline or aborted: the local suggestions still answer.
+        });
+    }, 180);
+  });
+  const localRecords = $derived(canSearchRecords ? searchPaletteRecords(query, recordSuggestions) : []);
+  const records = $derived.by(() => {
+    if (!canSearchRecords) return [];
+    const local = localRecords;
+    if (remote.query !== query.trim() || !remote.records.length) return local;
+    const seen = new Set(local.map((record) => record.id));
+    return [...local, ...remote.records.filter((record) => !seen.has(record.id))].slice(0, 8);
+  });
   const suggestedTasks = $derived.by((): AssistantTask[] => {
     const permitted = tasksForContext(context);
     return paletteSuggestedTaskIds
@@ -82,6 +122,7 @@
     )
       return;
     query = '';
+    isOpen = true;
     dialog.showModal();
     await tick();
     input.focus();
@@ -189,7 +230,10 @@
   aria-labelledby={`${id}-title`}
   aria-describedby={`${id}-description`}
   onkeydown={navigateResults}
-  onclose={() => trigger?.focus({ preventScroll: true })}
+  onclose={() => {
+    isOpen = false;
+    trigger?.focus({ preventScroll: true });
+  }}
 >
   <div class="section-dialog-heading">
     <h2 id={`${id}-title`}>{copy.title}</h2>
@@ -217,7 +261,9 @@
     {resultCount}
   </p>
   <nav aria-label={copy.title}>
-    {#if query.trim()}
+    {#if !isOpen}
+      <!-- Rendered on open. -->
+    {:else if query.trim()}
       {#each resultGroups as group (group.kind)}
         {#if group.entries.length}
           <section class="section-result-group" aria-label={group.label}>

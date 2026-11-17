@@ -11742,7 +11742,59 @@ export class PortalRepository {
     return this.planning.listPlanning(principal);
   }
 
-  listNotifications(principal: Principal) {
+  /**
+   * One page of the inbox for scale: unread first, newest first, with SQL
+   * counts. Rows use the same authorized projection as listNotifications.
+   */
+  listNotificationPage(
+    principal: Principal,
+    options: Readonly<{ unreadOnly?: boolean; page?: number; pageSize?: number }> = {},
+  ) {
+    const pageSize = Math.max(1, Math.min(100, Math.trunc(options.pageSize ?? 25)));
+    const counts = this.sqlite
+      .prepare(
+        'SELECT COUNT(*) total, COALESCE(SUM(read_at IS NULL),0) unread FROM notification WHERE user_id=?',
+      )
+      .get(principal.userId) as { total: number; unread: number };
+    const total = Number(options.unreadOnly ? counts.unread : counts.total);
+    const pages = Math.max(1, Math.ceil(total / pageSize));
+    const page = Math.min(pages, Math.max(1, Math.trunc(options.page ?? 1) || 1));
+    const rows = this.listNotifications(principal, {
+      unreadFirst: true,
+      unreadOnly: options.unreadOnly === true,
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+    });
+    return {
+      rows,
+      total,
+      all: Number(counts.total),
+      unread: Number(counts.unread),
+      page,
+      pages,
+      pageSize,
+    };
+  }
+
+  /** Marks every unread notification of the signed-in person as read. */
+  markAllNotificationsRead(principal: Principal): number {
+    this.assertActive(principal);
+    return Number(
+      this.sqlite
+        .prepare('UPDATE notification SET read_at=? WHERE user_id=? AND read_at IS NULL')
+        .run(now(), principal.userId).changes,
+    );
+  }
+
+  listNotifications(
+    principal: Principal,
+    options: Readonly<{
+      unreadFirst?: boolean;
+      unreadOnly?: boolean;
+      limit?: number;
+      offset?: number;
+    }> = {},
+  ) {
     this.assertReadable(principal);
     const persistedRole = this.sqlite
       .prepare('SELECT role FROM user WHERE id=?')
@@ -11760,9 +11812,16 @@ export class PortalRepository {
     });
     const notifications = this.sqlite
       .prepare(
-        'SELECT id,kind,subject_id,read_at,created_at FROM notification WHERE user_id=? ORDER BY created_at DESC LIMIT 50',
+        `SELECT id,kind,subject_id,read_at,created_at FROM notification
+          WHERE user_id=?${options.unreadOnly ? ' AND read_at IS NULL' : ''}
+          ORDER BY ${options.unreadFirst ? '(read_at IS NULL) DESC,' : ''}created_at DESC${options.unreadFirst ? ',id DESC' : ''}
+          LIMIT ? OFFSET ?`,
       )
-      .all(principal.userId);
+      .all(
+        principal.userId,
+        Math.max(1, Math.min(100, Math.trunc(options.limit ?? 50))),
+        Math.max(0, Math.trunc(options.offset ?? 0)),
+      );
     return notifications.map((notification) => {
       const row = notification as {
         id: string;
@@ -11778,7 +11837,8 @@ export class PortalRepository {
         .prepare(
           `SELECT ae.action,ae.details_json,ae.occurred_at,u.name actor_name
            FROM audit_event ae LEFT JOIN user u ON u.id=ae.actor_id
-           WHERE ae.entity_id=? AND ae.action LIKE 'report.%update'
+           WHERE ae.entity_type IN ('daily_report','technical_report') AND ae.entity_id=?
+             AND ae.action LIKE 'report.%update'
            ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 1`,
         )
         .get(view.sourceId ?? '') as
@@ -12136,22 +12196,73 @@ export class PortalRepository {
     return this.search(principal, '', options).slice(0, bounded);
   }
 
+  /**
+   * Filters shared by the audit register and its count. Every value is bound;
+   * the search term is matched literally (LIKE wildcards escaped).
+   */
+  private auditFilterSql(
+    options: Readonly<{
+      view?: 'all' | 'business' | 'service';
+      from?: string;
+      to?: string;
+      actorId?: string;
+      entityType?: string;
+      search?: string;
+    }>,
+  ) {
+    const conditions: string[] = [];
+    const values: Array<string | number> = [];
+    if (options.view === 'business') conditions.push("action NOT LIKE 'service_job.%'");
+    if (options.view === 'service') conditions.push("action LIKE 'service_job.%'");
+    if (options.from) {
+      conditions.push('occurred_at>=?');
+      values.push(options.from);
+    }
+    if (options.to) {
+      conditions.push('occurred_at<?');
+      values.push(options.to);
+    }
+    if (options.actorId === 'service') conditions.push("actor_kind='service'");
+    else if (options.actorId) {
+      conditions.push('actor_id=?');
+      values.push(options.actorId);
+    }
+    if (options.entityType) {
+      conditions.push('entity_type=?');
+      values.push(options.entityType);
+    }
+    const term = (options.search ?? '').trim().slice(0, 120);
+    if (term) {
+      const pattern = `%${term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
+      conditions.push(
+        "(entity_id=? OR entity_id LIKE ? ESCAPE '\\' OR action LIKE ? ESCAPE '\\' OR details_json LIKE ? ESCAPE '\\')",
+      );
+      values.push(term, pattern, pattern, pattern);
+    }
+    return { where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '', values };
+  }
+
   listAuditEvents(
     principal: Principal,
     options: Readonly<{
       view?: 'all' | 'business' | 'service';
       before?: Readonly<{ occurredAt: string; id: string }>;
       limit?: number;
+      offset?: number;
+      from?: string;
+      to?: string;
+      actorId?: string;
+      entityType?: string;
+      search?: string;
     }> = {},
   ) {
     this.assertReadable(principal);
     if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Audit access required');
     const bounded = Math.max(1, Math.min(500, Math.trunc(options.limit ?? 200)));
-    const conditions: string[] = [];
-    const values: Array<string | number> = [];
-    if (options.view === 'business') conditions.push("action NOT LIKE 'service_job.%'");
-    if (options.view === 'service') conditions.push("action LIKE 'service_job.%'");
+    const filter = this.auditFilterSql(options);
+    const conditions = filter.where ? [filter.where.slice('WHERE '.length)] : [];
+    const values: Array<string | number> = [...filter.values];
     if (options.before) {
       conditions.push('(occurred_at<? OR (occurred_at=? AND id<?))');
       values.push(options.before.occurredAt, options.before.occurredAt, options.before.id);
@@ -12160,9 +12271,9 @@ export class PortalRepository {
       .prepare(
         `SELECT id,actor_id,action,entity_type,entity_id,occurred_at,details_json
          FROM audit_event ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
-         ORDER BY occurred_at DESC,id DESC LIMIT ?`,
+         ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?`,
       )
-      .all(...values, bounded) as Array<{
+      .all(...values, bounded, Math.max(0, Math.trunc(options.offset ?? 0))) as Array<{
       id: string;
       actor_id: string;
       action: string;
@@ -12171,6 +12282,43 @@ export class PortalRepository {
       occurred_at: string;
       details_json: string;
     }>;
+  }
+
+  /** Number of audit events matching the register filters (same access rule). */
+  countAuditEvents(
+    principal: Principal,
+    options: Readonly<{
+      view?: 'all' | 'business' | 'service';
+      from?: string;
+      to?: string;
+      actorId?: string;
+      entityType?: string;
+      search?: string;
+    }> = {},
+  ): number {
+    this.assertReadable(principal);
+    if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
+      throw new AccessDeniedError('Audit access required');
+    const filter = this.auditFilterSql(options);
+    return Number(
+      (
+        this.sqlite
+          .prepare(`SELECT COUNT(*) n FROM audit_event ${filter.where}`)
+          .get(...filter.values) as { n: number }
+      ).n,
+    );
+  }
+
+  /** Entity types present in the audit log (index-only scan), for the filter. */
+  listAuditEntityTypes(principal: Principal): string[] {
+    this.assertReadable(principal);
+    if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
+      throw new AccessDeniedError('Audit access required');
+    return (
+      this.sqlite
+        .prepare('SELECT DISTINCT entity_type FROM audit_event ORDER BY entity_type')
+        .all() as Array<{ entity_type: string }>
+    ).map((row) => String(row.entity_type));
   }
 
   listOwnTime(principal: Principal) {

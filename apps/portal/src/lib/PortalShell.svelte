@@ -100,6 +100,7 @@
   import CollectionsLedgerSection from './portal/sections/CollectionsLedgerSection.svelte';
   import AccountingSection from './portal/sections/AccountingSection.svelte';
   import ClientDirectorySection from './portal/sections/ClientDirectorySection.svelte';
+  import AuditLogSection from './portal/sections/AuditLogSection.svelte';
   import ProfilePasswordCard from './portal/sections/ProfilePasswordCard.svelte';
   import TeamDirectorySection, {
     type MailboxDirectoryStatus,
@@ -2467,7 +2468,9 @@
     if (type === 'report' || type === 'reports') return `${base}/app/reports/${id}`;
     if (type === 'expense' || type === 'expenses') return `${base}/app/expenses/${id}`;
     if (['worker', 'workers', 'specialist', 'specialists', 'person', 'people'].includes(type))
-      return `${base}/app/planning`;
+      return data.user.role === 'worker'
+        ? `${base}/app/planning`
+        : `${base}/app/projects?view=team&person=${encodeURIComponent(id)}`;
     return `${base}/app/`;
   };
   const isExpenseSearchRow = (row: Row) => String(row.type ?? '').toLowerCase() === 'expense';
@@ -2494,23 +2497,22 @@
       ? `${String(row.label ?? translate('Record'))} · ${searchResultDescription(row, groupLabel, true)}`
       : undefined;
   // Records the server already scoped to this account, offered by the one search.
-  const paletteRecords = $derived(
-    (data.searchSuggestions ?? []).map((row, index) => {
-      const group = searchGroupLabel(searchGroupKey(row));
-      return {
-        id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
-        label:
-          row.type === 'worker'
-            ? personDisplayName(row.label) || String(row.detail ?? '')
-            : String(row.label ?? translate('Record')),
-        detail: isExpenseSearchRow(row)
-          ? searchResultDescription(row, group).replace(`${group} · `, '')
-          : String(row.detail ?? ''),
-        group,
-        href: searchHref(row),
-      };
-    }),
-  );
+  const toPaletteRecord = (row: Row, index: number) => {
+    const group = searchGroupLabel(searchGroupKey(row));
+    return {
+      id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
+      label:
+        row.type === 'worker'
+          ? personDisplayName(row.label) || String(row.detail ?? '')
+          : String(row.label ?? translate('Record')),
+      detail: isExpenseSearchRow(row)
+        ? searchResultDescription(row, group).replace(`${group} · `, '')
+        : String(row.detail ?? ''),
+      group,
+      href: searchHref(row),
+    };
+  };
+  const paletteRecords = $derived((data.searchSuggestions ?? []).map(toPaletteRecord));
   const navigationBadges = $derived({
     approvals: Number(($page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
   });
@@ -3840,6 +3842,7 @@
     onCloseMenu={() => (menuOpen = false)}
     badges={navigationBadges}
     recordSuggestions={canUseGlobalSearch ? paletteRecords : []}
+    mapRecord={canUseGlobalSearch ? toPaletteRecord : undefined}
   />
   <main id="portal-main" data-portal-section={data.section}>
     <header class="print-only-header" aria-hidden="true">
@@ -5117,6 +5120,7 @@
     {:else if data.section === 'projects' && projectDirectoryView === 'clients'}
       <ClientDirectorySection
         {form}
+        directory={data.clientDirectory}
         clients={data.clients ?? []}
         contacts={data.contacts ?? []}
         projects={data.projects ?? []}
@@ -7907,6 +7911,7 @@
     {:else if data.section === 'notifications'}
       <NotificationSection
         records={data.records ?? []}
+        serverPage={data.notificationPage}
         {form}
         currentUserId={String(data.user.id)}
         {base}
@@ -7914,70 +7919,24 @@
         {translate}
       />
     {:else if data.section === 'audit'}
-      <section class="record-list full">
-        <div class="panel-title">
-          <h2>{translate('Append-only security and finance audit')}</h2>
-          <span>{data.audit?.length ?? 0} {translate('events on this page')}</span>
-        </div>
-        <p class="form-help">
-          {translate(
-            'Business and security includes all events except job service lifecycle. All activity keeps every event available.',
-          )}
-        </p>
-        <nav class="audit-view-nav" aria-label={translate('Audit event filters')}>
-          <a
-            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=business`}
-            aria-current={(data.auditView ?? 'business') === 'business' ? 'page' : undefined}
-            >{translate('Business & security')}</a
-          >
-          <a
-            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=service`}
-            aria-current={data.auditView === 'service' ? 'page' : undefined}
-            >{translate('Job service')}</a
-          >
-          <a
-            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=all`}
-            aria-current={data.auditView === 'all' ? 'page' : undefined}
-            >{translate('All activity')}</a
-          >
-        </nav>
-        {#if data.auditOlderPage}
-          <a
-            class="audit-latest-link"
-            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=${data.auditView ?? 'business'}`}
-            >{translate('Latest events')}</a
-          >
-        {/if}
-        {#each data.audit ?? [] as row (String(row.id))}<article class="audit-event">
-            <div>
-              <strong>{auditActionLabel(row)}</strong><small
-                >{String(row.entity_type)} · {String(row.entity_id)} ·
-                <time datetime={auditUtcIso(row.occurred_at)}
-                  >{auditTimestampLabel(row.occurred_at)}</time
-                ></small
-              >
-              <small>{translate('Actor ID')}: {String(row.actor_id || '—')}</small>
-            </div>
-            <details class="audit-event__details">
-              <summary
-                aria-label={`${translate('View details')}: ${String(row.action)} · ${String(row.entity_id)}`}
-                >{translate('View details')}</summary
-              >
-              <pre><code>{auditDetailsDisplay(row.details_json)}</code></pre>
-            </details>
-          </article>{:else}<div class="empty">
-            {translate('No audit events in this view.')}
-          </div>{/each}
-        {#if data.auditHasMore && data.auditNextCursor}
-          <a
-            class="audit-older-link"
-            href={`${base}/app/audit?lang=${encodeURIComponent(locale)}&view=${data.auditView ?? 'business'}&beforeAt=${encodeURIComponent(data.auditNextCursor.occurredAt)}&beforeId=${encodeURIComponent(data.auditNextCursor.id)}`}
-            >{translate('Older events')}</a
-          >
-        {:else if data.auditOlderPage && (data.audit?.length ?? 0) > 0}
-          <p class="form-help">{translate('End of this audit view.')}</p>
-        {/if}
-      </section>
+      <AuditLogSection
+        rows={data.audit ?? []}
+        view={data.auditView ?? 'business'}
+        filter={data.auditFilter ?? { range: '7', from: '', to: '', actor: '', type: '', find: '' }}
+        total={data.auditTotal ?? 0}
+        pageNumber={data.auditPage ?? 1}
+        pages={data.auditPages ?? 1}
+        pageSize={data.auditPageSize ?? 25}
+        actors={data.auditActors ?? []}
+        entityTypes={data.auditEntityTypes ?? []}
+        {base}
+        {locale}
+        {translate}
+        actionLabel={auditActionLabel}
+        timestampLabel={auditTimestampLabel}
+        utcIso={auditUtcIso}
+        detailsDisplay={auditDetailsDisplay}
+      />
     {:else}
       <section class="record-list full">
         <div class="panel-title"><h2 data-portal-live-text>{translate(currentTitle)}</h2></div>

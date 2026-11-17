@@ -56,6 +56,7 @@
     onCloseMenu,
     badges = {},
     recordSuggestions = [],
+    mapRecord,
   }: {
     base: string;
     data: ChromeData;
@@ -83,6 +84,7 @@
     badges?: Readonly<Record<string, number>>;
     /** Already-authorized record suggestions offered by the search palette. */
     recordSuggestions?: readonly PaletteRecord[];
+    mapRecord?: (row: Record<string, unknown>, index: number) => PaletteRecord;
   } = $props();
 
   let accountOpen = $state(false);
@@ -543,6 +545,8 @@
     )}
     recordSearchHref={(query) => workspaceRecordSearchHref(base, data.user.role, query, locale)}
     {recordSuggestions}
+    {mapRecord}
+    recordEndpoint={mapRecord ? `${base}/app/api/search` : ''}
     itemHref={(item) => {
       const target = new URL(itemHref(item), $page.url);
       target.searchParams.set('lang', locale);

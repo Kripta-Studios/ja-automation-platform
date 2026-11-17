@@ -10,6 +10,7 @@
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalActionResult, PortalRow } from '../portal-data';
+  import { scaleCopy, scaleLocaleTag } from './scale-shell-copy';
 
   let {
     records,
@@ -18,7 +19,18 @@
     locale,
     translate,
     form,
+    serverPage,
   }: {
+    /** Server paging (scale): counts and page come from SQL, rows are one page. */
+    serverPage?: {
+      total: number;
+      all: number;
+      unread: number;
+      page: number;
+      pages: number;
+      pageSize: number;
+      unreadOnly: boolean;
+    };
     records: PortalRow[];
     base: string;
     currentUserId: string;
@@ -55,7 +67,27 @@
     blockedByAccess ? [] : records.filter((row) => String(row.id) !== hiddenNotificationId),
   );
   const unreadOnly = $derived($page.url.searchParams.get('read') === 'unread');
-  const unreadCount = $derived(visibleRecords.filter((row) => !row.read_at).length);
+  const unreadCount = $derived(
+    serverPage ? serverPage.unread : visibleRecords.filter((row) => !row.read_at).length,
+  );
+  const allCount = $derived(serverPage ? serverPage.all : visibleRecords.length);
+  const sc = (key: Parameters<typeof scaleCopy>[1], params?: Record<string, string | number>) =>
+    scaleCopy(locale, key, params);
+  const fmt = (value: number) => new Intl.NumberFormat(scaleLocaleTag[locale]).format(value);
+  const markedAll = $derived.by(() => {
+    const result = form as { success?: boolean; messageKey?: string; count?: number } | null | undefined;
+    return result?.success === true && result.messageKey === 'action.notifications.markedAllRead'
+      ? sc('markedAllRead', { count: fmt(Number(result.count ?? 0)) })
+      : '';
+  });
+  function pageHref(target: number): string {
+    const url = new URL($page.url);
+    url.searchParams.delete('/markNotificationRead');
+    url.searchParams.delete('/markAllNotificationsRead');
+    url.searchParams.set('page', String(target));
+    url.searchParams.set('lang', locale);
+    return `${url.pathname}${url.search}`;
+  }
   const filtered = $derived(
     unreadOnly ? visibleRecords.filter((row) => !row.read_at) : visibleRecords,
   );
@@ -286,21 +318,49 @@
   }
 </script>
 
-<section class="record-list full notification-inbox" aria-labelledby="notification-inbox-title">
+<section
+  class="record-list full notification-inbox"
+  class:notification-inbox--compact={Boolean(serverPage)}
+  aria-labelledby="notification-inbox-title"
+>
   <div class="panel-title">
     <h2 id="notification-inbox-title">{translate('Activity inbox')}</h2>
-    <span class="inbox-total"><b>{visibleRecords.length}</b>{translate('Records')}</span>
+    <span class="inbox-total"><b>{allCount}</b>{translate('Records')}</span>
   </div>
-  <p class="inbox-description">
-    {translate('Review your latest 50 notifications. Filters apply to this list.')}
-  </p>
+  {#if serverPage}
+    <p class="inbox-description" data-inbox-scope>
+      {sc('inboxScope', { unread: fmt(serverPage.unread), all: fmt(serverPage.all) })}
+    </p>
+  {:else}
+    <p class="inbox-description">
+      {translate('Review your latest 50 notifications. Filters apply to this list.')}
+    </p>
+  {/if}
   <nav class="inbox-filters" aria-label={translate('Notification filters')}>
     <a href={filterHref(false)} aria-current={!unreadOnly ? 'page' : undefined}>
-      {translate('All')} <span>{visibleRecords.length}</span>
+      {translate('All')} <span>{allCount}</span>
     </a>
     <a href={filterHref(true)} aria-current={unreadOnly ? 'page' : undefined}>
       {translate('Unread')} <span>{unreadCount}</span>
     </a>
+    {#if serverPage && serverPage.unread > 0}
+      <form
+        method="POST"
+        action="?/markAllNotificationsRead"
+        class="inbox-mark-all"
+        use:enhance={() => {
+          feedback = '';
+          enhancedProblem = null;
+          return async ({ update }) => {
+            await update({ reset: false });
+          };
+        }}
+      >
+        <button type="submit" class="secondary-button" data-mark-all-read
+          >{sc('markAllRead')}</button
+        >
+      </form>
+    {/if}
   </nav>
   {#if problem}
     <ProblemNotice
@@ -312,13 +372,29 @@
     />
   {/if}
   <p bind:this={feedbackElement} class="inbox-feedback" role="status" tabindex="-1">
-    {feedback || nativeSuccess}
+    {markedAll || feedback || nativeSuccess}
   </p>
   <RecordBrowser
     rows={filtered}
     controlled
     resetKey={String(unreadOnly)}
     pageSize={10}
+    server={serverPage
+      ? {
+          summary:
+            serverPage.total > 0
+              ? sc('showing', {
+                  from: fmt((serverPage.page - 1) * serverPage.pageSize + 1),
+                  to: fmt(Math.min(serverPage.total, serverPage.page * serverPage.pageSize)),
+                  total: fmt(serverPage.total),
+                })
+              : sc('showingNone'),
+          prevHref: serverPage.page > 1 ? pageHref(serverPage.page - 1) : undefined,
+          nextHref: serverPage.page < serverPage.pages ? pageHref(serverPage.page + 1) : undefined,
+          prevLabel: sc('previous'),
+          nextLabel: sc('next'),
+        }
+      : undefined}
     showEmpty={false}
     label="Notifications"
     {translate}
@@ -451,6 +527,15 @@
     color: var(--ja-muted, #56574f);
     margin: 0 0 1rem;
   }
+  .inbox-mark-all button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.75rem;
+  }
+  .inbox-mark-all {
+    margin-left: auto;
+  }
   .inbox-filters,
   .inbox-row-actions {
     display: flex;
@@ -517,6 +602,29 @@
   .record-card-link {
     min-width: 0;
     overflow-wrap: anywhere;
+  }
+  /* Scale: 25 rows per page stay one or two lines each. */
+  .notification-inbox--compact :global(.notification-row) {
+    gap: 0.4rem 1rem;
+    padding: 0.6rem 0.9rem;
+    margin-block: 0.4rem;
+  }
+  .notification-inbox--compact .record-card-link {
+    gap: 0.1rem;
+  }
+  .notification-inbox--compact .record-card-link > small {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .notification-inbox--compact .inbox-row-actions {
+    gap: 0.4rem;
+  }
+  @media (min-width: 900px) {
+    .notification-inbox--compact :global(.notification-row) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+    }
   }
   .inbox-row-actions form {
     margin: 0;

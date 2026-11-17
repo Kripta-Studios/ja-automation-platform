@@ -84,4 +84,31 @@ export const notificationActions = {
       context?.sqlite.close();
     }
   },
+  markAllNotificationsRead: async ({ locals, params }: PortalActionEvent) => {
+    if (params.section !== 'notifications')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.', {
+        code: 'NOTIFICATION_SIGN_IN_REQUIRED',
+        actionName: 'markAllNotificationsRead',
+        remedies: [{ id: 'sign_in_again' }],
+        correlationId: locals.correlationId,
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const count = context.repository.markAllNotificationsRead(context.principal);
+      return {
+        ...actionSuccess('action.notifications.markedAllRead', { count }, 'Notifications marked as read'),
+        count,
+      };
+    } catch (error) {
+      return actionFailure(error, {
+        actionName: 'markAllNotificationsRead',
+        correlationId: locals.correlationId,
+      });
+    } finally {
+      context?.sqlite.close();
+    }
+  },
 };

@@ -90,6 +90,8 @@ export const sectionActions: Actions = {
   updateMailboxPassword: accessActions.updateMailboxPassword,
   resetUserPassword: accessActions.resetUserPassword,
   destroyMailboxAccount: accessActions.destroyMailboxAccount,
+  reactivateMailboxUser: accessActions.reactivateMailboxUser,
+  setMailboxSignIn: accessActions.setMailboxSignIn,
   updateUserStatus: accessActions.updateUserStatus,
   updateWorkerProfile: accessActions.updateWorkerProfile,
   fixPersonNames: teamActions.fixPersonNames,

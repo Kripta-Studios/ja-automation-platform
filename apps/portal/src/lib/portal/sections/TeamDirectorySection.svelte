@@ -33,6 +33,12 @@
   import PersonPayPanel from './PersonPayPanel.svelte';
   import FixNamesPanel from './FixNamesPanel.svelte';
   import { normalizeSelectSearch } from '../searchable-selects';
+  import {
+    mailboxCopy,
+    mailboxOutcomeNeedsRetry,
+    mailboxOutcomeText,
+    type MailboxCopyKey,
+  } from '../mailbox-ux-copy';
 
   const CORPORATE_DOMAIN = '@j-aautomation.com';
   const OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
@@ -55,6 +61,40 @@
     status?: string | null;
     provisioningEligible?: boolean;
     isOwner?: boolean;
+    portalOffboardedAt?: string | null;
+    /** Stalwart Webmail sign-in state; null/undefined = mail server not asked. */
+    signInBlocked?: boolean | null;
+  };
+
+  export type MailboxStatusFilter = 'all' | 'active' | 'offboarded' | 'unlinked' | 'blocked';
+  /** Server-side scope of the Mailboxes tab (search, status filter, page). */
+  export type MailboxDirectoryMeta = {
+    source: 'live' | 'portal';
+    q: string;
+    status: MailboxStatusFilter;
+    page: number;
+    pageSize: number;
+    pageCount: number;
+    total: number;
+    filtered: number;
+    counts: Record<MailboxStatusFilter, number>;
+    stillSigningIn: number;
+  };
+  /** Server-side scope of the People directory (see team-directory-page.ts). */
+  export type PeopleDirectoryMeta = {
+    q: string;
+    role: string;
+    status: 'active' | 'inactive' | 'all';
+    project: string;
+    page: number;
+    pageSize: number;
+    pageCount: number;
+    total: number;
+    activeTotal: number;
+    filtered: number;
+    roleOptions: string[];
+    projectOptions: Array<{ id: string; name: string }>;
+    nameFixCount: number;
   };
 
   export type TeamDirectoryProps = {
@@ -64,6 +104,12 @@
     mailboxes?: MailboxRow[] | null;
     mailboxDirectoryStatus?: MailboxDirectoryStatus;
     mailboxDirectoryError?: string | null;
+    mailboxDirectory?: MailboxDirectoryMeta | null;
+    peopleDirectory?: PeopleDirectoryMeta | null;
+    /** Owner: people whose stored name looks like a login (Fix names). */
+    nameFixWorkers?: PortalRow[] | null;
+    /** Owner: active people without a login (Add person → existing person). */
+    existingPeople?: PortalRow[] | null;
     canManageTeam?: boolean;
     canManageMail?: boolean;
     canonicalOwner?: boolean;
@@ -101,6 +147,10 @@
     mailboxes,
     mailboxDirectoryStatus,
     mailboxDirectoryError = null,
+    mailboxDirectory = null,
+    peopleDirectory = null,
+    nameFixWorkers = null,
+    existingPeople = null,
     canManageTeam = false,
     canManageMail = false,
     canonicalOwner = false,
@@ -307,6 +357,7 @@
   let targetProvisionRole = $state<'worker' | 'project_manager' | 'finance_admin'>('worker');
   let creatingMailbox = $state(false);
   let filterProvisioned = $state<'all' | 'available' | 'provisioned'>('all');
+  let mailboxStatus = $state<MailboxStatusFilter>('all');
   // These keys do not drive UI state. Keeping the cache non-reactive also avoids
   // mutating reactive state while mailbox forms are being rendered.
   const externalCommandKeys: Record<string, string> = {};
@@ -540,7 +591,15 @@
   }
 
   type MailboxActionStatus = 'idle' | 'pending' | 'success' | 'error';
-  type MailboxActionState = { status: MailboxActionStatus; action: string; message: string };
+  type MailboxActionState = {
+    status: MailboxActionStatus;
+    action: string;
+    message: string;
+    /** Mailbox the action was about (for the inline row message). */
+    email?: string;
+    /** Portal change saved but the mailbox step must be retried. */
+    warning?: boolean;
+  };
   let mailboxAction = $state<MailboxActionState>({ status: 'idle', action: '', message: '' });
 
   // Accent- and case-insensitive: "josé raúl" finds "Jose Raul" and vice versa.
@@ -552,8 +611,75 @@
       (mailboxes === undefined || mailboxes === null ? 'unavailable' : 'ready'),
   );
   const mailboxCountLabel = $derived(
-    mailboxDirectoryState === 'ready' ? String(mailboxRows.length) : '—',
+    mailboxDirectory ? String(mailboxDirectory.total) : '',
   );
+  /** Stalwart down: the list shows only portal-linked mailboxes (from the DB). */
+  const mailboxDegraded = $derived(mailboxDirectory?.source === 'portal');
+  $effect(() => {
+    if (!mailboxDirectory) return;
+    const q = mailboxDirectory.q;
+    mailboxStatus = mailboxDirectory.status;
+    if (untrack(() => document.activeElement?.id !== 'mailbox-search' || !mailboxSearch))
+      mailboxSearch = q;
+  });
+  let mailboxSearchTimer: ReturnType<typeof setTimeout> | undefined;
+  function submitMailboxFilters(form: HTMLFormElement | null | undefined, delay = 0): void {
+    if (!form) return;
+    clearTimeout(mailboxSearchTimer);
+    mailboxSearchTimer = setTimeout(() => form.requestSubmit(), delay);
+  }
+  function mailboxListHref(changes: Record<string, string>): string {
+    const url = new URL($page.url);
+    url.searchParams.set('view', 'team');
+    url.searchParams.set('directory', 'mailboxes');
+    for (const [key, next] of Object.entries(changes)) {
+      if (next) url.searchParams.set(key, next);
+      else url.searchParams.delete(key);
+    }
+    for (const key of [...url.searchParams.keys()])
+      if (key.startsWith('/')) url.searchParams.delete(key);
+    return `?${url.searchParams.toString()}`;
+  }
+  const mailboxFilterHref = (status: MailboxStatusFilter) =>
+    mailboxListHref({ mstatus: status === 'all' ? '' : status, mpage: '' });
+  const mailboxPageHref = (pageNumber: number) =>
+    mailboxListHref({ mpage: pageNumber > 1 ? String(pageNumber) : '' });
+  const mailboxStatusOptions = $derived.by(() => {
+    const counts = mailboxDirectory?.counts;
+    const count = (key: MailboxStatusFilter) => counts?.[key] ?? 0;
+    return [
+      { value: 'all', label: mc('filterAll', { count: count('all') }), disabled: false },
+      { value: 'active', label: mc('filterActive', { count: count('active') }), disabled: false },
+      {
+        value: 'offboarded',
+        label: mc('filterOffboarded', { count: count('offboarded') }),
+        disabled: false,
+      },
+      {
+        value: 'unlinked',
+        label: mc('filterUnlinked', { count: count('unlinked') }),
+        disabled: mailboxDegraded,
+      },
+      {
+        value: 'blocked',
+        label: mailboxDegraded
+          ? mc('filterBlockedUnknown')
+          : mc('filterBlocked', { count: count('blocked') }),
+        disabled: mailboxDegraded,
+      },
+    ] satisfies Array<{ value: MailboxStatusFilter; label: string; disabled: boolean }>;
+  });
+  const mailboxRange = $derived.by(() => {
+    if (!mailboxDirectory) return null;
+    const from = mailboxDirectory.filtered
+      ? (mailboxDirectory.page - 1) * mailboxDirectory.pageSize + 1
+      : 0;
+    return {
+      from,
+      to: Math.min(mailboxDirectory.filtered, from + mailboxRows.length - 1),
+      total: mailboxDirectory.filtered,
+    };
+  });
   const canManageMailboxDirectory = $derived(
     Boolean(canManageMail || (canManageTeam && canonicalOwner)),
   );
@@ -743,7 +869,7 @@
     ),
   );
   const existingUserCandidates = $derived(
-    (workers ?? []).filter(
+    (existingPeople ?? workers ?? []).filter(
       (worker) =>
         value(worker, 'status') === 'active' &&
         value(worker, 'has_portal_access') !== '1' &&
@@ -822,11 +948,43 @@
       : controlledValue?.('role', role) || translate(role);
   }
 
+  function mailboxPortalInactive(mailbox: MailboxRow): boolean {
+    return (
+      Boolean(mailbox.isProvisioned) &&
+      !isOwnerMailbox(mailbox) &&
+      String(mailbox.portalStatus ?? 'active') !== 'active'
+    );
+  }
+
+  function shortDate(value: unknown): string {
+    const date = new Date(String(value ?? ''));
+    return Number.isNaN(date.getTime())
+      ? ''
+      : date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
   function mailboxPortalStatusLabel(mailbox: MailboxRow): string {
     if (isOwnerMailbox(mailbox)) return translate('Owner — protected');
-    if (!mailbox.isProvisioned) return translate('Available');
+    if (!mailbox.isProvisioned) return mc('portalNotLinked');
     const status = String(mailbox.portalStatus ?? 'active');
+    if (status === 'suspended') return mc('portalSuspended');
+    if (status !== 'active') {
+      const date = shortDate(mailbox.portalOffboardedAt);
+      return date ? mc('portalRemovedOn', { date }) : mc('portalRemoved');
+    }
     return `${statusLabel(status)} (${mailboxRoleLabel(mailbox)})`;
+  }
+
+  function mailboxSignInBadge(mailbox: MailboxRow): {
+    variant: 'success' | 'warning' | 'danger' | 'info' | 'neutral';
+    text: string;
+  } {
+    if (mailbox.signInBlocked === true) return { variant: 'neutral', text: mc('badgeBlocked') };
+    if (mailbox.signInBlocked === false)
+      return mailboxPortalInactive(mailbox)
+        ? { variant: 'danger', text: mc('badgeStillSignsIn') }
+        : { variant: 'success', text: mc('badgeSignsIn') };
+    return { variant: 'neutral', text: mc('badgeUnknown') };
   }
 
   function mailboxStatusVariant(
@@ -836,6 +994,7 @@
     if (mailbox.isProvisioned && String(mailbox.portalStatus ?? 'active') === 'active')
       return 'success';
     if (mailbox.isProvisioned) return 'warning';
+    if (!mailbox.isProvisioned && mailbox.signInBlocked === true) return 'neutral';
     if (['suspended', 'inactive', 'disabled'].includes(String(mailbox.status ?? '').toLowerCase()))
       return 'warning';
     return 'neutral';
@@ -848,7 +1007,9 @@
   }
 
   const filteredMailboxes = $derived(
-    mailboxRows.filter((mailbox) => {
+    mailboxDirectory
+      ? mailboxRows
+      : mailboxRows.filter((mailbox) => {
       if (filterProvisioned === 'available' && !mailboxIsEligible(mailbox)) return false;
       if (filterProvisioned === 'provisioned' && !mailbox.isProvisioned) return false;
       if (!normalizedMailboxSearch) return true;
@@ -923,6 +1084,16 @@
     if (result.type === 'redirect') return translate('Mailbox operation completed.');
     if (result.data && typeof result.data === 'object') {
       const data = result.data as Record<string, unknown>;
+      const outcome = mailboxOutcomeText(locale, data.mailboxOutcome);
+      if (result.type === 'success' && data.actionName === 'reactivateMailboxUser')
+        return [mc('reactivated', { role: roleLabel(String(data.role ?? 'worker')) }), outcome]
+          .filter(Boolean)
+          .join(' ');
+      if (result.type === 'success' && outcome) {
+        if (data.actionName === 'setMailboxSignIn') return outcome;
+        const base = translate(String(data.messageKey ?? ''));
+        return [base && base !== data.messageKey ? base : '', outcome].filter(Boolean).join(' ');
+      }
       if (typeof data.messageKey === 'string') {
         const localized = translate(data.messageKey);
         if (localized !== data.messageKey) return localized;
@@ -936,7 +1107,8 @@
 
   const enhanceMailboxForm: SubmitFunction = ({ formElement }) => {
     const action = formElement.dataset.mailboxAction ?? 'mailbox';
-    mailboxAction = { status: 'pending', action, message: translate('Working…') };
+    const email = String(new FormData(formElement).get('email') ?? '').toLowerCase() || undefined;
+    mailboxAction = { status: 'pending', action, email, message: translate('Working…') };
     return async ({ update, result }) => {
       if (result.type === 'success' || result.type === 'redirect') {
         const target =
@@ -944,13 +1116,23 @@
             ? 'new'
             : String(new FormData(formElement).get('stalwartAccountId') ?? 'new');
         delete externalCommandKeys[`${action}:${target || 'new'}`];
-        mailboxAction = { status: 'success', action, message: actionMessage(result) };
+        const outcome =
+          result.type === 'success'
+            ? (result.data as Record<string, unknown> | undefined)?.mailboxOutcome
+            : undefined;
+        mailboxAction = {
+          status: 'success',
+          action,
+          email,
+          warning: mailboxOutcomeNeedsRetry(outcome),
+          message: actionMessage(result),
+        };
         if (action === 'createMailboxAccount' || action === 'updateMailboxPassword')
           formElement.reset();
         if (action === 'createMailboxAccount') creatingMailbox = false;
         if (action === 'provisionMailboxUsers') clearMailboxSelection();
       } else {
-        mailboxAction = { status: 'error', action, message: actionMessage(result) };
+        mailboxAction = { status: 'error', action, email, message: actionMessage(result) };
       }
       await update();
     };
@@ -991,21 +1173,20 @@
     scope: 'team-directory',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
-    defaults: { search: '', showAll: false, mailboxSearch: '', filterProvisioned: 'all' },
-    get: () => ({ search, showAll, mailboxSearch, filterProvisioned }),
+    // Search and filters live in the URL (server-scoped lists); only the
+    // legacy "show inactive" toggle is remembered per viewer.
+    defaults: { showAll: false },
+    get: () => ({ showAll }),
     set: (saved) => {
-      search = saved.search;
       showAll = saved.showAll;
-      mailboxSearch = saved.mailboxSearch;
-      filterProvisioned = ['all', 'available', 'provisioned'].includes(saved.filterProvisioned)
-        ? (saved.filterProvisioned as typeof filterProvisioned)
-        : 'all';
     },
   });
 
   /* ------------------------------------------------ People directory */
   const tc = (key: TeamCopyKey, params: Record<string, string | number> = {}) =>
     teamCopy(locale, key, params);
+  const mc = (key: MailboxCopyKey, params: Record<string, string | number> = {}) =>
+    mailboxCopy(locale, key, params);
   const todayIso = new Date().toISOString().slice(0, 10);
   let fixingNames = $state(false);
   let roleFilter = $state('');
@@ -1155,6 +1336,21 @@
       | undefined;
     return payload?.success === true && payload.messageKey === 'action.access.workerProfile.updated';
   });
+  /** Mailbox step of the last portal status change (person page). */
+  const statusOutcome = $derived.by(() => {
+    const candidate = form as unknown as Record<string, unknown> | null | undefined;
+    const payload = (candidate?.data && typeof candidate.data === 'object' ? candidate.data : candidate) as
+      | Record<string, unknown>
+      | null
+      | undefined;
+    if (payload?.success !== true || payload.actionName !== 'updateUserStatus') return null;
+    return {
+      userId: String(payload.userId ?? ''),
+      outcome: String(payload.mailboxOutcome ?? ''),
+      text: mailboxOutcomeText(locale, payload.mailboxOutcome),
+      retry: mailboxOutcomeNeedsRetry(payload.mailboxOutcome),
+    };
+  });
   const hoursPeriods: Array<{ value: string; label: TeamCopyKey }> = [
     { value: 'this_week', label: 'hoursThisWeek' },
     { value: 'last_week', label: 'hoursLastWeek' },
@@ -1162,6 +1358,7 @@
     { value: 'last_month', label: 'hoursLastMonth' },
   ];
   const nameFixCount = $derived(
+    peopleDirectory?.nameFixCount ??
     workers.filter(
       (worker) =>
         value(worker, 'status') === 'active' &&
@@ -1170,10 +1367,46 @@
     ).length,
   );
   const roleOptions = $derived(
-    [...new Set(workers.map((worker) => accessRoleForWorker(worker)))].sort(),
+    peopleDirectory?.roleOptions ??
+      [...new Set(workers.map((worker) => accessRoleForWorker(worker)))].sort(),
   );
+  const peopleProjectOptions = $derived(peopleDirectory?.projectOptions ?? projectFilterOptions);
+  // Server-scoped directory: the page already holds the filtered, sorted page.
+  $effect(() => {
+    if (!peopleDirectory) return;
+    const q = peopleDirectory.q;
+    if (untrack(() => document.activeElement?.id !== 'team-search' || !search)) search = q;
+    roleFilter = peopleDirectory.role;
+    statusFilter = peopleDirectory.status;
+  });
+  let peopleSearchTimer: ReturnType<typeof setTimeout> | undefined;
+  function submitPeopleFilters(form: HTMLFormElement | null | undefined, delay = 0): void {
+    if (!form || !peopleDirectory) return;
+    clearTimeout(peopleSearchTimer);
+    peopleSearchTimer = setTimeout(() => form.requestSubmit(), delay);
+  }
+  function peoplePageHref(pageNumber: number): string {
+    const url = new URL($page.url);
+    url.searchParams.delete('person');
+    url.searchParams.delete('worker');
+    url.searchParams.delete('tab');
+    if (pageNumber > 1) url.searchParams.set('ppage', String(pageNumber));
+    else url.searchParams.delete('ppage');
+    return `?${url.searchParams.toString()}`;
+  }
+  const peopleRange = $derived.by(() => {
+    if (!peopleDirectory) return null;
+    const from = peopleDirectory.filtered ? (peopleDirectory.page - 1) * peopleDirectory.pageSize + 1 : 0;
+    return {
+      from,
+      to: Math.min(peopleDirectory.filtered, from + workers.length - 1),
+      total: peopleDirectory.filtered,
+    };
+  });
   const peopleRows = $derived(
-    relationFilteredWorkers
+    peopleDirectory
+      ? workers
+      : relationFilteredWorkers
       .filter((worker) => {
         const status = value(worker, 'status') || 'active';
         if (statusFilter === 'active' && status !== 'active') return false;
@@ -1193,13 +1426,28 @@
       })
       .sort((a, b) => personName(a).localeCompare(personName(b))),
   );
-  const shownPeople = $derived(peopleRows.slice(0, peopleLimit));
+  const shownPeople = $derived(peopleDirectory ? peopleRows : peopleRows.slice(0, peopleLimit));
   $effect(() => {
     teamPage = selectedPerson ? [selectedPerson] : shownPeople;
   });
 </script>
 
 <div class="team-directory" data-team-directory>
+  {#snippet pager(current: number, pages: number, href: (n: number) => string, name: string)}
+    <nav class="team-pager" aria-label={mc('pageOf', { page: current, pages })} data-pager={name}>
+      {#if current > 1}<a class="secondary-button team-pager__step" href={href(current - 1)} rel="prev"
+          >← {mc('previous')}</a
+        >{:else}<span class="secondary-button team-pager__step team-pager__step--off" aria-hidden="true"
+          >← {mc('previous')}</span
+        >{/if}
+      <span class="team-pager__label">{mc('pageOf', { page: current, pages })}</span>
+      {#if current < pages}<a class="secondary-button team-pager__step" href={href(current + 1)} rel="next"
+          >{mc('next')} →</a
+        >{:else}<span class="secondary-button team-pager__step team-pager__step--off" aria-hidden="true"
+          >{mc('next')} →</span
+        >{/if}
+    </nav>
+  {/snippet}
   <header class="team-directory__header">
     <div>
       <h2>{tc('title')}</h2>
@@ -1274,7 +1522,8 @@
         onkeydown={handleDirectoryTabKeydown}
       >
         <span>{tc('title')}</span><span class="team-directory__tab-count"
-          >{workers.filter((worker) => value(worker, 'status') === 'active').length}</span
+          >{peopleDirectory?.activeTotal ??
+            workers.filter((worker) => value(worker, 'status') === 'active').length}</span
         >
       </a>
       <a
@@ -1289,18 +1538,19 @@
         onclick={() => (activeTab = 'mailboxes')}
         onkeydown={handleDirectoryTabKeydown}
       >
-        <span>{translate('Mailboxes')} ({CORPORATE_DOMAIN})</span><span
-          class="team-directory__tab-count"
-          aria-label={translate('Mailbox count')}>{mailboxCountLabel}</span
-        >
+        <span>{translate('Mailboxes')} ({CORPORATE_DOMAIN})</span>{#if mailboxCountLabel}<span
+            class="team-directory__tab-count"
+            aria-label={translate('Mailbox count')}>{mailboxCountLabel}</span
+          >{/if}
       </a>
     </div>
   {/if}
 
   {#if mailboxAction.status !== 'idle'}
     <div
-      class:team-directory__feedback--success={mailboxAction.status === 'success'}
-      class:team-directory__feedback--error={mailboxAction.status === 'error'}
+      class:team-directory__feedback--success={mailboxAction.status === 'success' &&
+        !mailboxAction.warning}
+      class:team-directory__feedback--error={mailboxAction.status === 'error' || mailboxAction.warning}
       class:team-directory__feedback--pending={mailboxAction.status === 'pending'}
       class="team-directory__feedback"
       role={mailboxAction.status === 'error' ? 'alert' : 'status'}
@@ -1684,6 +1934,19 @@
                   {/if}
                     <section class="person__danger" aria-labelledby={`person-danger-${workerId(worker)}`}>
                       <h3 id={`person-danger-${workerId(worker)}`}>{tc('dangerTitle')}</h3>
+                      {#if statusOutcome && statusOutcome.userId === workerId(worker) && statusOutcome.text}
+                        <p
+                          class="team-directory__row-feedback"
+                          class:team-directory__row-feedback--error={statusOutcome.retry}
+                          role="status"
+                          data-status-mailbox-outcome={statusOutcome.outcome}
+                        >
+                          {statusOutcome.text}
+                          {#if statusOutcome.retry}<a href="?view=team&directory=mailboxes&mstatus=offboarded"
+                              >{mc('openMailboxes')}</a
+                            >{/if}
+                        </p>
+                      {/if}
                       {#if workerId(worker) === currentUserId}
                         <p class="person__muted">—</p>
                       {:else if value(worker, 'status') === 'active'}
@@ -1709,17 +1972,34 @@
                           <form
                             method="POST"
                             action={teamActionHref('updateUserStatus', workerId(worker))}
+                            class="person__offboard"
                             use:formValidation
+                            data-offboard-form
                             onsubmit={(event) => {
-                              if (!confirm(translate('Remove this team member access?')))
-                                event.preventDefault();
+                              if (!confirm(mc('removeAccessConfirm'))) event.preventDefault();
                             }}
                           >
                             <input type="hidden" name="userId" value={workerId(worker)} /><input
                               type="hidden"
                               name="status"
                               value="offboarded"
-                            /><button
+                            />
+                            {#if linked && canonicalOwner}
+                              <fieldset class="team-directory__mailbox-choice" data-offboard-mailbox-choice>
+                                <legend>{mc('mailboxChoiceLegend', { email: value(worker, 'email') })}</legend>
+                                <label
+                                  ><input type="radio" name="mailbox" value="block" checked />{mc(
+                                    'mailboxChoiceBlock',
+                                  )}</label
+                                ><label
+                                  ><input type="radio" name="mailbox" value="keep" />{mc(
+                                    'mailboxChoiceKeep',
+                                  )}</label
+                                >
+                                <small>{mc('mailboxChoiceHelp')}</small>
+                              </fieldset>
+                            {/if}
+                            <button
                               type="submit"
                               class="team-directory__action team-directory__action--danger-outline"
                               >{translate('Remove access')}</button
@@ -1740,7 +2020,13 @@
                             type="hidden"
                             name="status"
                             value="active"
-                          /><button type="submit" class="team-directory__action"
+                          />
+                          {#if linked && canonicalOwner}<label class="team-directory__inline-check"
+                              ><input type="checkbox" name="mailbox" value="unblock" checked />{mc(
+                                'alsoUnblock',
+                              )}</label
+                            >{/if}
+                          <button type="submit" class="team-directory__action"
                             >{translate('Restore access')}</button
                           >
                         </form>
@@ -2185,21 +2471,46 @@
           </section>
         {/if}
         {#if canManageTeam && fixingNames}
-          <FixNamesPanel {workers} {locale} onclose={() => (fixingNames = false)} />
+          <FixNamesPanel workers={nameFixWorkers ?? workers} {locale} onclose={() => (fixingNames = false)} />
         {/if}
 
-        <div class="people__filters" role="search">
+        <form
+          class="people__filters"
+          role="search"
+          method="GET"
+          action=""
+          data-sveltekit-keepfocus
+          data-sveltekit-noscroll
+          data-sveltekit-replacestate
+          data-people-filters
+          onsubmit={(event) => {
+            if (!peopleDirectory) event.preventDefault();
+          }}
+        >
+          <input type="hidden" name="view" value="team" />
+          {#if $page.url.searchParams.get('lang')}<input
+              type="hidden"
+              name="lang"
+              value={$page.url.searchParams.get('lang')}
+            />{/if}
           <label class="people__search"
             >{tc('search')}<input
               id="team-search"
+              name="pq"
               bind:value={search}
               type="search"
               placeholder={tc('searchPlaceholder')}
               data-people-search
+              oninput={(event) => submitPeopleFilters(event.currentTarget.form, 400)}
             /></label
           >
           <label
-            >{tc('role')}<select bind:value={roleFilter} data-people-role>
+            >{tc('role')}<select
+              name="prole"
+              bind:value={roleFilter}
+              data-people-role
+              onchange={(event) => submitPeopleFilters(event.currentTarget.form)}
+            >
               <option value="">{tc('allRoles')}</option>
               {#each roleOptions as option (option)}
                 <option value={option}>{roleLabel(option)}</option>
@@ -2207,7 +2518,12 @@
             </select></label
           >
           <label
-            >{tc('status')}<select bind:value={statusFilter} data-people-status>
+            >{tc('status')}<select
+              name="pstatus"
+              bind:value={statusFilter}
+              data-people-status
+              onchange={(event) => submitPeopleFilters(event.currentTarget.form)}
+            >
               <option value="active">{tc('statusActive')}</option>
               <option value="inactive">{tc('statusInactive')}</option>
               <option value="all">{tc('statusAll')}</option>
@@ -2216,21 +2532,32 @@
           <label
             >{tc('project')}<select
               id="team-project-filter"
+              name="project"
               value={directoryProjectId}
-              onchange={(event) => setDirectoryProject(event.currentTarget.value)}
+              onchange={(event) => {
+                if (peopleDirectory) submitPeopleFilters(event.currentTarget.form);
+                else setDirectoryProject(event.currentTarget.value);
+              }}
             >
               <option value="">{tc('allProjects')}</option>
-              {#each projectFilterOptions as project (project.id)}
+              {#each peopleProjectOptions as project (project.id)}
                 <option value={project.id}>{project.name}</option>
               {/each}
             </select></label
           >
+          <noscript><button type="submit" class="secondary-button">{mc('apply')}</button></noscript>
           {#if search || roleFilter || statusFilter !== 'active' || directoryProjectId}
-            <button type="button" class="secondary-button people__clear" onclick={clearPeopleFilters}
-              >{tc('clear')}</button
-            >
+            {#if peopleDirectory}
+              <a class="secondary-button people__clear" href={`?${linkParams().toString()}`}
+                >{tc('clear')}</a
+              >
+            {:else}
+              <button type="button" class="secondary-button people__clear" onclick={clearPeopleFilters}
+                >{tc('clear')}</button
+              >
+            {/if}
           {/if}
-        </div>
+        </form>
 
         {#if shownInvitations.length}
           <section
@@ -2307,8 +2634,18 @@
           </section>
         {/if}
 
-        <p class="people__count" aria-live="polite">
-          {peopleRows.length === 1 ? tc('shownOne') : tc('shown', { count: peopleRows.length })}
+        <p class="people__count" aria-live="polite" data-people-count>
+          {#if peopleRange}
+            {peopleRange.total === 0
+              ? tc('shown', { count: 0 })
+              : mc('showingRange', {
+                  from: peopleRange.from,
+                  to: peopleRange.to,
+                  total: peopleRange.total,
+                })}
+          {:else}
+            {peopleRows.length === 1 ? tc('shownOne') : tc('shown', { count: peopleRows.length })}
+          {/if}
         </p>
         {#if peopleRows.length === 0}
           <p class="team-directory__empty team-directory__empty--large">{tc('empty')}</p>
@@ -2344,10 +2681,10 @@
                   {#if current.length === 0}
                     <small class="person__muted">{tc('noProjects')}</small>
                   {:else}
-                    {#each current.slice(0, 2) as assignment (value(assignment, 'id'))}
-                      <span class="people__chip">{value(assignment, 'project_name') || value(assignment, 'project_number')}</span>
+                    {#each current.slice(0, 1) as assignment (value(assignment, 'id'))}
+                      <span class="people__chip" title={value(assignment, 'project_name') || value(assignment, 'project_number')}>{value(assignment, 'project_name') || value(assignment, 'project_number')}</span>
                     {/each}
-                    {#if current.length > 2}<small>{tc('moreProjects', { count: current.length - 2 })}</small>{/if}
+                    {#if current.length > 1}<small>{tc('moreProjects', { count: current.length - 1 })}</small>{/if}
                   {/if}
                 </span>
                 <span role="cell" class="people__week">
@@ -2370,7 +2707,9 @@
               </div>
             {/each}
           </div>
-          {#if peopleRows.length > shownPeople.length}
+          {#if peopleDirectory && peopleDirectory.pageCount > 1}
+            {@render pager(peopleDirectory.page, peopleDirectory.pageCount, peoplePageHref, 'people')}
+          {:else if peopleRows.length > shownPeople.length}
             <button type="button" class="secondary-button people__more" onclick={() => (peopleLimit += 50)}
               >{tc('showMore', { count: Math.min(50, peopleRows.length - shownPeople.length) })}</button
             >
@@ -2385,16 +2724,12 @@
       aria-labelledby="team-tab-mailboxes"
       class="team-directory__mailboxes"
       data-mailbox-directory-state={mailboxDirectoryState}
+      data-mailbox-source={mailboxDirectory?.source ?? 'none'}
     >
       <div class="team-directory__provisioning-heading">
         <div>
-          <p class="team-directory__eyebrow">{translate('STALWART MAIL SERVER DIRECTORY')}</p>
-          <h2>{translate('Corporate email accounts')}</h2>
-          <p>
-            {translate(
-              'Live accounts from Stalwart. Password hashes and credentials are never shown in the portal.',
-            )}
-          </p>
+          <h2>{mc('mailboxesTitle')}</h2>
+          <p>{mc('mailboxesIntro')}</p>
         </div>
         <button
           type="button"
@@ -2403,22 +2738,6 @@
           aria-controls="create-mailbox-sheet-form"
           onclick={() => (creatingMailbox = true)}>{translate('+ Create email account')}</button
         >
-      </div>
-      <div class="team-directory__protected-toolbar">
-        <form
-          method="POST"
-          action="?view=team&/bootstrapMailboxUsers"
-          data-mailbox-action="bootstrapMailboxUsers"
-          use:enhance={enhanceMailboxForm}
-        >
-          <button
-            type="submit"
-            class="team-directory__action team-directory__action--quiet"
-            disabled={mailboxAction.status === 'pending'}
-          >
-            {translate('Synchronize all Stalwart accounts')}
-          </button>
-        </form>
       </div>
       {#if mailboxDirectoryState === 'loading'}<div
           class="team-directory__directory-state"
@@ -2430,7 +2749,7 @@
           >
           <p>{translate('Reading the current Stalwart account list. Please wait.')}</p>
         </div>
-      {:else if mailboxDirectoryState === 'unavailable' || mailboxDirectoryState === 'error'}<div
+      {:else if (mailboxDirectoryState === 'unavailable' || mailboxDirectoryState === 'error') && !mailboxDirectory}<div
           class="team-directory__directory-state team-directory__directory-state--error"
           role="alert"
           aria-live="assertive"
@@ -2446,30 +2765,72 @@
           </p>
         </div>
       {:else}<div class="team-directory__mailbox-workspace">
-          <div class="team-directory__controls team-directory__mailbox-toolbar">
+          {#if mailboxDegraded}<div
+              class="team-directory__degraded"
+              role="status"
+              aria-live="polite"
+              data-mailbox-degraded
+            >
+              <strong>{mc('degradedTitle')}</strong>
+              <p>{mc('degradedBody')}</p>
+            </div>{/if}
+          <form
+            class="team-directory__controls team-directory__mailbox-toolbar"
+            role="search"
+            method="GET"
+            action=""
+            data-sveltekit-keepfocus
+            data-sveltekit-noscroll
+            data-sveltekit-replacestate
+            data-mailbox-filters
+          >
+            <input type="hidden" name="view" value="team" /><input
+              type="hidden"
+              name="directory"
+              value="mailboxes"
+            />{#if $page.url.searchParams.get('lang')}<input
+                type="hidden"
+                name="lang"
+                value={$page.url.searchParams.get('lang')}
+              />{/if}
             <div class="team-directory__field">
-              <label for="mailbox-search">{translate('Search accounts')}</label><input
+              <label for="mailbox-search">{mc('searchMailboxes')}</label><input
                 id="mailbox-search"
+                name="mq"
                 bind:value={mailboxSearch}
                 type="search"
-                placeholder={translate('Search by alias or name')}
+                placeholder={mc('searchMailboxesPlaceholder')}
+                oninput={(event) => submitMailboxFilters(event.currentTarget.form, 400)}
               />
             </div>
             <div class="team-directory__field">
-              <label for="mailbox-filter">{translate('Filter accounts')}</label><select
+              <label for="mailbox-filter">{mc('show')}</label><select
                 id="mailbox-filter"
-                bind:value={filterProvisioned}
+                name="mstatus"
+                bind:value={mailboxStatus}
                 class="team-directory__filter-select"
-                ><option value="all">{translate('All mailboxes')} ({mailboxRows.length})</option
-                ><option value="available"
-                  >{translate('Available to provision')} ({availableMailboxes.length})</option
-                ><option value="provisioned"
-                  >{translate('Already in Portal')} ({mailboxRows.length -
-                    availableMailboxes.length})</option
-                ></select
+                onchange={(event) => submitMailboxFilters(event.currentTarget.form)}
+                >{#each mailboxStatusOptions as option (option.value)}<option
+                    value={option.value}
+                    disabled={option.disabled}>{option.label}</option
+                  >{/each}</select
               >
             </div>
-          </div>
+            <noscript><button type="submit" class="team-directory__action">{mc('apply')}</button></noscript>
+          </form>
+          <p class="team-directory__mailbox-scope" aria-live="polite" data-mailbox-count>
+            {#if mailboxRange && mailboxRange.total > 0}{mc('showingRange', {
+                from: mailboxRange.from,
+                to: mailboxRange.to,
+                total: mailboxRange.total,
+              })}{:else}{mc('mailboxScope', { count: mailboxRange?.total ?? 0 })}{/if}
+            {#if mailboxDirectory && mailboxDirectory.stillSigningIn > 0 && mailboxDirectory.status !== 'offboarded'}
+              <span class="team-directory__attention" data-still-signing-in
+                >· {mc('stillSigningIn', { count: mailboxDirectory.stillSigningIn })}
+                <a href={mailboxFilterHref('offboarded')}>{mc('stillSigningInShow')}</a></span
+              >
+            {/if}
+          </p>
           {#if selectedMailboxes.size > 0}<form
               method="POST"
               action="?view=team&/provisionMailboxUsers"
@@ -2518,7 +2879,7 @@
               class="team-directory__empty team-directory__empty--large"
               role="status"
             >
-              {translate('No email accounts found matching your search.')}
+              {mc('noMailboxes')}
             </p>{:else}
             {#snippet mailboxControls(mailbox: MailboxRow, idPrefix: string)}
               {@const email = mailboxEmail(mailbox)}
@@ -2549,7 +2910,8 @@
               {/if}
               <details
                 class="team-directory__mailbox-management"
-                open={(['changeMailboxRole', 'deprovisionMailboxUser'].includes(
+                open={mailboxAction.email === email ||
+                  (['changeMailboxRole', 'deprovisionMailboxUser', 'reactivateMailboxUser'].includes(
                   problemPayload?.actionName ?? '',
                 ) &&
                   String(problemPayload?.values?.portalUserId ?? '') ===
@@ -2563,6 +2925,15 @@
                   >{translate('Manage mailbox')}</summary
                 >
                 <div class="team-directory__mailbox-management-body">
+                  {#if mailboxAction.email === email && mailboxAction.status !== 'idle'}<p
+                      class="team-directory__row-feedback"
+                      class:team-directory__row-feedback--error={mailboxAction.status === 'error' ||
+                        mailboxAction.warning}
+                      role={mailboxAction.status === 'error' ? 'alert' : 'status'}
+                      data-mailbox-row-feedback={mailboxAction.status}
+                    >
+                      {mailboxAction.message}
+                    </p>{/if}
                   {#if isOwnerMailbox(mailbox)}<div
                       class="team-directory__owner-lock"
                       role="status"
@@ -2643,7 +3014,60 @@
                         </form>
                       {/if}
                     </div>
-                  {:else}{#if mailbox.isProvisioned}<form
+                  {:else}{#if mailboxPortalInactive(mailbox)}<form
+                        method="POST"
+                        action="?view=team&directory=mailboxes&/reactivateMailboxUser"
+                        class="team-directory__protected-form team-directory__reactivate"
+                        data-mailbox-action="reactivateMailboxUser"
+                        use:enhance={enhanceMailboxForm}
+                        use:formValidation
+                        onsubmit={(event) => {
+                          const form = event.currentTarget as HTMLFormElement;
+                          const chosen = String(new FormData(form).get('role') ?? 'worker');
+                          if (!confirm(mc('reactivateConfirm', { email, role: roleLabel(chosen) })))
+                            event.preventDefault();
+                        }}
+                      >
+                        <h3>{mc('reactivateTitle')}</h3>
+                        <p class="team-directory__portal-status" data-portal-status>
+                          <strong>{mailboxPortalStatusLabel(mailbox)}</strong>
+                        </p>
+                        <p class="team-directory__form-help">{mc('reactivateHelp')}</p>
+                        <input type="hidden" name="email" value={email} /><input
+                          type="hidden"
+                          name="portalUserId"
+                          value={mailbox.portalUserId ?? ''}
+                        />
+                        <div class="team-directory__reactivate-row">
+                          <label for={`mailbox-reactivate-role-${fieldKey}`}>{mc('reactivateAs')}</label
+                          ><select
+                            id={`mailbox-reactivate-role-${fieldKey}`}
+                            name="role"
+                            value={failedMailboxValue('reactivateMailboxUser', mailbox, 'role') ||
+                              (['worker', 'project_manager', 'finance_admin'].includes(mailboxRole(mailbox))
+                                ? mailboxRole(mailbox)
+                                : 'worker')}
+                            required
+                            ><option value="worker">{translate('Worker')}</option><option
+                              value="project_manager">{translate('Project Manager')}</option
+                            ><option value="finance_admin">{translate('Finance Admin')}</option
+                            ></select
+                          ><button
+                            type="submit"
+                            class="team-directory__action"
+                            disabled={mailboxAction.status === 'pending'}
+                            >{mc('reactivateSave')}</button
+                          >
+                        </div>
+                        {#if mailbox.signInBlocked !== false}<label class="team-directory__inline-check"
+                            ><input
+                              type="checkbox"
+                              name="unblock"
+                              value="1"
+                              checked
+                            />{mc('alsoUnblock')}</label
+                          >{/if}
+                      </form>{:else if mailbox.isProvisioned}<form
                         method="POST"
                         action="?view=team&directory=mailboxes&/changeMailboxRole"
                         class="team-directory__protected-form"
@@ -2697,7 +3121,66 @@
                       </form>{:else}<p class="team-directory__form-help">
                         {translate('Provision this mailbox first to manage its portal role.')}
                       </p>{/if}
-                    {#if mailbox.isProvisioned}<form
+                    {#if accountId}<div class="team-directory__protected-form" data-mailbox-sign-in>
+                        <h3>{mc('signInTitle')}</h3>
+                        {#if mailbox.signInBlocked === true}
+                          <p class="team-directory__form-help">{mc('signInBlockedHelp')}</p>
+                          <form
+                            method="POST"
+                            action="?view=team&directory=mailboxes&/setMailboxSignIn"
+                            data-mailbox-action="setMailboxSignIn"
+                            use:enhance={enhanceMailboxForm}
+                            onsubmit={(event) => {
+                              if (!confirm(mc('unblockConfirm', { email }))) event.preventDefault();
+                            }}
+                          >
+                            <input type="hidden" name="stalwartAccountId" value={accountId} /><input
+                              type="hidden"
+                              name="email"
+                              value={email}
+                            /><input type="hidden" name="blocked" value="0" /><button
+                              type="submit"
+                              class="team-directory__action team-directory__action--quiet"
+                              disabled={mailboxAction.status === 'pending'}
+                              >{mc('unblockSignIn')}</button
+                            >
+                          </form>
+                        {:else if mailbox.signInBlocked === false}
+                          <p
+                            class="team-directory__form-help"
+                            class:team-directory__form-help--attention={mailboxPortalInactive(mailbox)}
+                          >
+                            {mailboxPortalInactive(mailbox) ? mc('signInOpenLeftHelp') : mc('signInOpenHelp')}
+                          </p>
+                          <form
+                            method="POST"
+                            action="?view=team&directory=mailboxes&/setMailboxSignIn"
+                            data-mailbox-action="setMailboxSignIn"
+                            use:enhance={enhanceMailboxForm}
+                            onsubmit={(event) => {
+                              if (!confirm(mc('blockConfirm', { email }))) event.preventDefault();
+                            }}
+                          >
+                            <input type="hidden" name="stalwartAccountId" value={accountId} /><input
+                              type="hidden"
+                              name="email"
+                              value={email}
+                            /><input type="hidden" name="blocked" value="1" /><button
+                              type="submit"
+                              class={mailboxPortalInactive(mailbox)
+                                ? 'team-directory__action'
+                                : 'team-directory__action team-directory__action--quiet'}
+                              disabled={mailboxAction.status === 'pending'}
+                              >{mc('blockSignIn')}</button
+                            >
+                          </form>
+                        {:else}
+                          <p class="team-directory__form-help">{mc('signInUnknownHelp')}</p>
+                        {/if}
+                      </div>{/if}
+                    <details class="team-directory__mailbox-more">
+                      <summary>{mc('moreMailboxActions')}</summary>
+                      {#if mailbox.isProvisioned && !mailboxPortalInactive(mailbox)}<form
                         method="POST"
                         action="?view=team&directory=mailboxes&/deprovisionMailboxUser"
                         class="team-directory__protected-form team-directory__protected-form--danger"
@@ -2716,7 +3199,19 @@
                           type="hidden"
                           name="portalUserId"
                           value={mailbox.portalUserId ?? ''}
-                        /><label for={`mailbox-offboard-reason-${fieldKey}`}
+                        /><fieldset class="team-directory__mailbox-choice">
+                          <legend>{mc('signInTitle')}</legend>
+                          <label
+                            ><input type="radio" name="mailbox" value="block" checked />{mc(
+                              'mailboxChoiceBlock',
+                            )}</label
+                          ><label
+                            ><input type="radio" name="mailbox" value="keep" />{mc(
+                              'mailboxChoiceKeep',
+                            )}</label
+                          >
+                          <small>{mc('mailboxChoiceHelp')}</small>
+                        </fieldset><label for={`mailbox-offboard-reason-${fieldKey}`}
                           >{translate('Reason for removing access')}</label
                         ><textarea
                           id={`mailbox-offboard-reason-${fieldKey}`}
@@ -2746,7 +3241,7 @@
                           >{translate('Remove portal access')}</button
                         >
                       </form>{/if}
-                    {#if accountId}<form
+                      {#if accountId && !mailboxDegraded}<form
                         method="POST"
                         action="?view=team&directory=mailboxes&/updateMailboxPassword"
                         class="team-directory__protected-form"
@@ -2865,11 +3360,12 @@
                           disabled={mailboxAction.status === 'pending'}
                           >{translate('Delete mailbox permanently')}</button
                         >
-                      </form>{:else}<p class="team-directory__form-help">
+                      </form>{:else if !accountId}<p class="team-directory__form-help">
                         {translate(
                           'Stalwart account identifier unavailable; protected controls are disabled.',
                         )}
-                      </p>{/if}
+                      </p>{:else}<p class="team-directory__form-help">{mc('signInUnknownHelp')}</p>{/if}
+                    </details>
                   {/if}
                 </div>
               </details>
@@ -2893,8 +3389,9 @@
                       ></th
                     ><th scope="col">{translate('Mailbox / Email')}</th><th scope="col"
                       >{translate('Name')}</th
-                    ><th scope="col">{translate('Portal status')}</th><th scope="col"
-                      >{translate('Controls')}</th
+                    ><th scope="col">{mc('colPortal')}</th>{#if !mailboxDegraded}<th scope="col"
+                        >{mc('colWebmail')}</th
+                      >{/if}<th scope="col">{translate('Controls')}</th
                     ></tr
                   ></thead
                 ><tbody
@@ -2924,7 +3421,10 @@
                           variant={mailboxStatusVariant(mailbox)}
                           text={mailboxPortalStatusLabel(mailbox)}
                         /></td
-                      ><td>{@render mailboxControls(mailbox, 'table')}</td></tr
+                      >{#if !mailboxDegraded}<td
+                          data-mailbox-sign-in-state={String(mailbox.signInBlocked ?? 'unknown')}
+                          ><StatusBadge {...mailboxSignInBadge(mailbox)} /></td
+                        >{/if}<td>{@render mailboxControls(mailbox, 'table')}</td></tr
                     >{/each}</tbody
                 >
               </table>
@@ -2959,25 +3459,36 @@
                         class="team-directory__mailbox-card-email">{email}</span
                       >
                     </div>
+                  </div>
+                  <div class="team-directory__mailbox-card-badges">
                     <StatusBadge
                       variant={mailboxStatusVariant(mailbox)}
                       text={mailboxPortalStatusLabel(mailbox)}
                     />
+                    {#if !mailboxDegraded}<StatusBadge {...mailboxSignInBadge(mailbox)} />{/if}
                   </div>
-                  <dl class="team-directory__mailbox-card-facts">
-                    <div>
-                      <dt>{translate('Alias')}</dt>
-                      <dd>{mailboxUsername(mailbox)}</dd>
-                    </div>
-                    <div>
-                      <dt>{translate('Portal role')}</dt>
-                      <dd>{mailboxRoleLabel(mailbox)}</dd>
-                    </div>
-                  </dl>
                   {@render mailboxControls(mailbox, 'card')}
                 </article>{/each}
             </div>
           {/if}
+          {#if mailboxDirectory && mailboxDirectory.pageCount > 1}
+            {@render pager(mailboxDirectory.page, mailboxDirectory.pageCount, mailboxPageHref, 'mailboxes')}
+          {/if}
+          {#if !mailboxDegraded}<form
+              method="POST"
+              action="?view=team&directory=mailboxes&/bootstrapMailboxUsers"
+              class="team-directory__protected-toolbar"
+              data-mailbox-action="bootstrapMailboxUsers"
+              use:enhance={enhanceMailboxForm}
+            >
+              <button
+                type="submit"
+                class="team-directory__action team-directory__action--quiet"
+                disabled={mailboxAction.status === 'pending'}
+              >
+                {translate('Synchronize all Stalwart accounts')}
+              </button>
+            </form>{/if}
         </div>{/if}
     </div>
   {/if}
@@ -3091,6 +3602,166 @@
 </div>
 
 <style>
+  /* Server-scoped lists: pager, scope line, degraded mail server notice. */
+  .team-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    margin: 1rem 0 0.5rem;
+  }
+  .team-pager__step {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .team-pager__step--off {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+  .team-pager__label {
+    color: var(--portal-muted, #63625b);
+    font-size: 0.9rem;
+  }
+  .team-directory__mailbox-scope {
+    margin: 0.25rem 0 0.75rem;
+    color: var(--portal-muted, #63625b);
+  }
+  .team-directory__attention {
+    color: #b42318;
+    font-weight: 600;
+  }
+  .team-directory__attention a {
+    color: inherit;
+    margin-left: 0.25rem;
+  }
+  .team-directory__degraded {
+    border: 1px solid #f0c36d;
+    background: #fff8e6;
+    color: #4d3800;
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.75rem;
+  }
+  .team-directory__degraded p {
+    margin: 0.25rem 0 0;
+    line-height: 1.4;
+  }
+  .team-directory__mailbox-choice {
+    display: grid;
+    gap: 0.25rem;
+    border: 1px solid var(--portal-border, #dfdedc);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem 0.75rem;
+    margin: 0 0 0.75rem;
+  }
+  .team-directory__mailbox-choice legend {
+    font-weight: 600;
+    padding: 0 0.25rem;
+    overflow-wrap: anywhere;
+  }
+  .team-directory__mailbox-choice label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: var(--ja-target-min, 2.75rem);
+    font-weight: 400;
+  }
+  .team-directory__mailbox-choice input,
+  .team-directory__protected-form .team-directory__mailbox-choice input[type='radio'] {
+    width: 1.15rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    min-height: 0;
+    flex: none;
+    margin: 0;
+  }
+  .team-directory__protected-form .team-directory__inline-check {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--portal-ink, #20201d);
+    font-size: 0.9rem;
+    font-weight: 600;
+  }
+  .team-directory__protected-form .team-directory__inline-check input[type='checkbox'] {
+    width: 1.15rem;
+    min-width: 1.15rem;
+    height: 1.15rem;
+    min-height: 0;
+    margin: 0;
+  }
+  .team-directory__protected-form .team-directory__mailbox-choice label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+  }
+  .team-directory__mailbox-choice small {
+    color: var(--portal-muted, #63625b);
+    line-height: 1.4;
+  }
+  .team-directory__portal-status {
+    margin: 0;
+    color: #8a4b00;
+  }
+  .team-directory__reactivate-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .team-directory__reactivate-row select {
+    min-height: var(--ja-target-min, 2.75rem);
+    flex: 1 1 10rem;
+  }
+  .team-directory__form-help--attention {
+    color: #b42318;
+    font-weight: 600;
+  }
+  .team-directory__row-feedback {
+    margin: 0 0 0.5rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.5rem;
+    background: #ecfdf3;
+    color: #05603a;
+    line-height: 1.4;
+  }
+  .team-directory__row-feedback--error {
+    background: #fff3f1;
+    color: #b42318;
+  }
+  .team-directory__row-feedback a {
+    color: inherit;
+    font-weight: 600;
+    margin-left: 0.35rem;
+  }
+  .team-directory__mailbox-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin: 0.5rem 0;
+  }
+  .team-directory__mailbox-more {
+    margin-top: 0.5rem;
+  }
+  .team-directory__mailbox-more > summary {
+    cursor: pointer;
+    min-height: var(--ja-target-min, 2.75rem);
+    display: flex;
+    align-items: center;
+    color: var(--portal-muted, #63625b);
+  }
+  .person__offboard {
+    display: grid;
+    gap: 0.5rem;
+    flex: 1 0 100%;
+    max-width: 36rem;
+  }
+  .person__offboard > button {
+    justify-self: start;
+  }
   .team-directory__email-preview {
     display: block;
     margin-top: 0.35rem;
@@ -3782,8 +4453,8 @@
   }
   .team-directory__email-cell {
     display: flex;
-    align-items: baseline;
-    gap: 0.15rem;
+    flex-direction: column;
+    gap: 0.1rem;
     overflow-wrap: anywhere;
   }
   .team-directory__email-cell span {
@@ -4236,6 +4907,10 @@
     align-items: center;
   }
   .people__chip {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     border-radius: 999px;
     padding: 0.15rem 0.55rem;
     background: var(--portal-wash, #efeeea);

@@ -18,11 +18,17 @@ describe('Worker time UI vertical slice', () => {
 
   // Owner decision 2026-11-16: Log hours is one week timesheet with a single
   // Save and a single "Submit week for approval"; the activity summary, start/end
-  // times, meal expense, calendar and per-day forms were removed.
+  // times, meal expense, calendar and per-day forms were removed. 2026-11-17:
+  // start/end/break/note came back only as an optional collapsed "+ detail"
+  // sent inside the week cells (no separate form fields).
   it('is one week timesheet with one save and one submit action', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
     expect(source).toContain('action="?/saveTimeWeek"');
-    expect((source.match(/action="\?\//g) ?? []).length).toBe(1);
+    // Owner decision 2026-11-17: plus one optional "signed activity sheet" upload.
+    expect([...source.matchAll(/action="\?\/(\w+)"/g)].map((match) => match[1])).toEqual([
+      'saveTimeWeek',
+      'attachWeekSheet',
+    ]);
     expect((source.match(/data-testid="time-week-submit"/g) ?? []).length).toBe(1);
     expect(source).toContain('data-testid="time-week-confirm"');
     expect(source).not.toMatch(/name="summary"|name="startTime"|name="withExpense"/u);
@@ -31,7 +37,9 @@ describe('Worker time UI vertical slice', () => {
 
   it('keeps Worker entry operational and never asks for commercial treatment', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
-    expect(source).toContain("const quickCategories = ['regular', 'travel', 'overtime'] as const;");
+    const categories = readSource('apps/portal/src/lib/portal/time-categories.ts');
+    expect(source).toContain('const quickCategories = quickTimeCategories;');
+    expect(categories).toContain("export const quickTimeCategories = ['regular', 'travel', 'overtime'] as const;");
     expect(source).not.toMatch(/name="(?:clientRate|tax|markup|multiplier|billable)"/i);
   });
 

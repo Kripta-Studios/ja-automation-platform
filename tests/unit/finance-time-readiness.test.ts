@@ -65,15 +65,21 @@ describe('exact minute-based hour display', () => {
     ['135', '2.25'],
     ['30', '0.5'],
     ['60', '1'],
-    ['1', '0.0167'],
-    ['7', '0.1167'],
-    ['59', '0.9833'],
+    ['1', '0.02'],
+    ['7', '0.12'],
+    ['59', '0.98'],
+    ['560', '9.33'],
+    ['26935', '448.92'],
     ['-135', '-2.25'],
     ['0', '0'],
     ['-0', '0'],
     ['9000000000000000000', '150000000000000000'],
-  ])('formats %s minutes as %s hours without truncation', (minutes, hours) => {
+  ])('formats %s minutes as %s hours (at most 2 decimals)', (minutes, hours) => {
     expect(decimalHoursFromMinutes(minutes)).toBe(hours);
+  });
+  it('keeps 4 decimals when an export asks for them', () => {
+    expect(decimalHoursFromMinutes(1, 4)).toBe('0.0167');
+    expect(decimalHoursFromMinutes(26935, 4)).toBe('448.9167');
   });
   it.each([null, undefined, '1.5', 'unknown', Number.MAX_SAFE_INTEGER + 1])(
     'rejects non-integral or unsafe minute values',

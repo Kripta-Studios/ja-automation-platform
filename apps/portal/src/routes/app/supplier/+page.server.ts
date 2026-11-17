@@ -802,8 +802,10 @@ function batchDuration(values: Record<string, string>): {
     if (!/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(endTime))
       throw new ValidationError('End time must use strict HH:mm format');
     const toMinutes = (clock: string) => Number(clock.slice(0, 2)) * 60 + Number(clock.slice(3));
-    const elapsed = toMinutes(endTime) - toMinutes(startTime);
-    if (elapsed <= 0) throw new ValidationError('End time must be later on the same day');
+    // End before start = overnight shift into the next day (same rule as Time).
+    const rawElapsed = toMinutes(endTime) - toMinutes(startTime);
+    if (rawElapsed === 0) throw new ValidationError('End time must be later on the same day');
+    const elapsed = rawElapsed > 0 ? rawElapsed : rawElapsed + 1440;
     const breakMinutes = Number(breakText);
     if (!Number.isInteger(breakMinutes) || breakMinutes < 0 || breakMinutes >= elapsed)
       throw new ValidationError('Break minutes must be an integer within the shift');

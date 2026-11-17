@@ -17,6 +17,18 @@ export type OverviewEntry = {
   category: string;
   minutes: number;
   approval_state: string;
+  /** Optional per-day detail (shown in the drill-down when present). */
+  start_time?: string | null;
+  end_time?: string | null;
+  break_minutes?: number | null;
+  note?: string;
+};
+export type OverviewSheet = {
+  id: string;
+  projectId: string;
+  workerId: string;
+  weekStart: string;
+  filename: string;
 };
 export type TimeOverviewGroup = 'worker' | 'project' | 'day';
 export type TimeOverviewData = {
@@ -49,6 +61,8 @@ export type TimeOverviewData = {
     workerId: string;
     firstDate: string;
     hasSubmitted: boolean;
+    /** Signed activity sheets for the worker/project weeks on this page. */
+    sheets?: OverviewSheet[];
   } | null;
 };
 

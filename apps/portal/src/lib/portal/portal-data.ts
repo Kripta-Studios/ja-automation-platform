@@ -141,6 +141,7 @@ export type PortalData = {
   timeWorkers?: Array<{ id: string; name: string }>;
   timeWorkerId?: string;
   weekEntries?: PortalRow[];
+  weekSheets?: Array<{ id: string; projectId: string; filename: string; createdAt: string }>;
   recordsTotal?: number;
   timeDay?: string;
   timeView?: 'capture' | 'overview';

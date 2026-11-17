@@ -162,8 +162,15 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
           );
           applyFieldErrors(formElement, result.data);
           const problem = problemFromResult(result.data);
+          // Validation and conflict problems (4xx except sign-in/permission)
+          // are already shown inline next to the form and its fields; never
+          // stack the blocking step-by-step dialog on top of them.
+          const inlineOnly =
+            result.status !== 401 && result.status !== 403 && result.status < 500;
           if (problem && options.inlineProblem?.(problem)) {
             /* The form shows its own inline confirmation. */
+          } else if (inlineOnly) {
+            /* Inline error + field errors only. */
           } else if (problem)
             requestGuidedRecovery({ problem, form: formElement, source: formElement });
           else requestRecoveryMessage(message, formElement);

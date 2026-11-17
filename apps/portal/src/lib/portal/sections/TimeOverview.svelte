@@ -22,6 +22,7 @@
   } from '../time-overview-types';
   import { decimalHoursFromMinutes } from '../minute-hours';
   import { weekStartForDate } from './time-entry-actions';
+  import { timeDetailText } from './time-hours';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
   import { localToday } from '../ui/time-entry-clock';
 
@@ -476,6 +477,9 @@
                   <span class="muted"
                     >{group === 'project' ? projectName(row) : row.worker_name} · {categoryLabel(row.category)}</span
                   >
+                  {#if row.start_time || row.note}
+                    <span class="ov-entry-detail" data-testid="ov-entry-detail">{timeDetailText(row)}</span>
+                  {/if}
                 </span>
                 <span class="ov-entry-hours">{hours(row.minutes)} h</span>
                 <StatusBadge variant={variant(statusOf(row.approval_state))} text={statusLabel(statusOf(row.approval_state))} />
@@ -502,6 +506,26 @@
             {/if}
           {/if}
         </div>
+        {#if drill.sheets?.length}
+          <div class="ov-sheets" data-testid="ov-drill-sheets">
+            <strong>{t('ovSheets')}</strong>
+            <ul>
+              {#each drill.sheets as sheet (sheet.id)}
+                <li>
+                  <a href={`${base}/app/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener"
+                    >📄 {sheet.filename}</a
+                  >
+                  <span class="muted small"
+                    >{t('ovSheetFor', {
+                      worker: drill.entries.find((entry) => entry.worker_id === sheet.workerId)?.worker_name ?? '',
+                      week: formatDate(sheet.weekStart),
+                    })}</span
+                  >
+                </li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
         <div class="ov-drill-actions">
           {#if delegating && drill.workerId && data.user.role !== 'auditor_read_only'}
             <a
@@ -911,6 +935,22 @@
   .ov-entry-main {
     display: grid;
     min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .ov-entry-detail {
+    font-size: 0.85rem;
+    color: var(--ja-steel, #5b6573);
+  }
+  .ov-sheets ul {
+    list-style: none;
+    margin: 0.25rem 0 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+  .ov-sheets a {
+    font-weight: 600;
+    margin-right: 0.5rem;
     overflow-wrap: anywhere;
   }
   .ov-entry-hours {

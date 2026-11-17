@@ -312,8 +312,8 @@
           </label>
         {/if}
         <label
-          >{t('Work performed')}
-          <textarea name="summary" rows="3" maxlength="5000" required
+          >{t('Work performed (optional)')}
+          <textarea name="summary" rows="3" maxlength="5000"
             >{submittedValue('summary', record.summary)}</textarea
           >
         </label>
@@ -387,8 +387,8 @@
           />
         </label>
         <label
-          >{t('Work performed')}
-          <textarea name="summary" rows="3" maxlength="5000" required
+          >{t('Work performed (optional)')}
+          <textarea name="summary" rows="3" maxlength="5000"
             >{submittedValue('summary', record.summary)}</textarea
           >
         </label>

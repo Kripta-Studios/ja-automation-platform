@@ -18,7 +18,7 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { documentLanguage, type PortalLocale } from '../../portal-i18n';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '../minute-hours';
   import { localToday } from '../ui/time-entry-clock';
   import { weekDates, weekStartForDate } from './time-entry-actions';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
@@ -32,8 +32,10 @@
     DAY_MAX_MINUTES,
     DAY_WARN_MINUTES,
     hoursAndMinutesText,
+    parseClockText,
     parseHoursText,
     personName,
+    shiftMinutes,
   } from './time-hours';
   import TimeOverview from './TimeOverview.svelte';
 
@@ -107,12 +109,19 @@
 
   let extraRows = $state<SheetRow[]>([]);
   let edits = $state<Record<string, string>>({});
+  /** Optional collapsed per-day detail (start, end, break, note), keyed like cells. */
+  type DetailDraft = { start: string; end: string; breakMinutes: string; note: string };
+  let detailEdits = $state<Record<string, DetailDraft>>({});
+  /** Cell whose "+ detail" panel is open ('' = none). */
+  let detailKey = $state('');
   let reason = $state('');
-  let busy = $state<'' | 'save' | 'submit' | 'submit_day'>('');
-  let intent = $state<'save' | 'submit' | 'submit_day'>('save');
+  type Intent = 'save' | 'submit' | 'submit_day' | 'submit_approve' | 'submit_day_approve';
+  let busy = $state<'' | Intent>('');
+  let intent = $state<Intent>('save');
   /** Inline "done" line for One day mode (kept until the next edit). */
-  let dayDone = $state<{ kind: 'saved' | 'sent'; minutes: number; day: string } | null>(null);
-  let pendingDone: { kind: 'saved' | 'sent'; minutes: number; day: string } | null = null;
+  type DoneKind = 'saved' | 'sent' | 'approved';
+  let dayDone = $state<{ kind: DoneKind; minutes: number; day: string } | null>(null);
+  let pendingDone: { kind: DoneKind; minutes: number; day: string } | null = null;
   let addingRow = $state(false);
   let newRowProject = $state('');
   let newRowCategory = $state('travel');
@@ -170,10 +179,52 @@
     value: string;
     minutes: number | null | undefined;
     changed: boolean;
+    /** Detail as it will be saved (stored or edited). */
+    detail: DetailDraft;
+    /** Minutes computed from start/end/break; null = no times; undefined = invalid times. */
+    detailMinutes: number | null | undefined;
+    detailChanged: boolean;
   };
 
   const parseHours = (value: string) => parseHoursText(value);
   const hoursText = (minutes: number) => (minutes ? decimalHoursFromMinutes(minutes) : '');
+  const storedDetail = (entry?: Row): DetailDraft => ({
+    start: entry?.start_time && entry?.end_time ? String(entry.start_time) : '',
+    end: entry?.start_time && entry?.end_time ? String(entry.end_time) : '',
+    breakMinutes:
+      entry?.start_time && entry?.end_time && Number(entry.break_minutes ?? 0)
+        ? String(Number(entry.break_minutes))
+        : '',
+    note: String(entry?.activity_summary ?? ''),
+  });
+  /** Worked minutes from a detail: null = no times, undefined = invalid. */
+  const detailMinutesOf = (detail: DetailDraft): number | null | undefined => {
+    const start = parseClockText(detail.start);
+    const end = parseClockText(detail.end);
+    if (start === null && end === null) return null;
+    if (!start || !end) return undefined;
+    const text = detail.breakMinutes.trim();
+    if (!/^\d{0,4}$/u.test(text)) return undefined;
+    return shiftMinutes(start, end, text ? Number(text) : 0);
+  };
+  const sameDetail = (a: DetailDraft, b: DetailDraft) =>
+    (parseClockText(a.start) ?? '') === (parseClockText(b.start) ?? '') &&
+    (parseClockText(a.end) ?? '') === (parseClockText(b.end) ?? '') &&
+    (Number(a.breakMinutes || 0) || 0) === (Number(b.breakMinutes || 0) || 0) &&
+    a.note.trim() === b.note.trim();
+  const hasDetail = (detail: DetailDraft) =>
+    Boolean(detail.start.trim() || detail.end.trim() || detail.note.trim());
+  const overnight = (detail: DetailDraft) => {
+    const start = parseClockText(detail.start);
+    const end = parseClockText(detail.end);
+    return Boolean(start && end && end <= start);
+  };
+  const detailSummary = (detail: DetailDraft) =>
+    detail.start && detail.end
+      ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${Number(detail.breakMinutes || 0) ? ` −${Number(detail.breakMinutes)} min` : ''}`
+      : detail.note.trim()
+        ? '✎'
+        : '';
 
   const cellFor = (row: SheetRow, date: string): Cell => {
     const key = cellKey(row, date);
@@ -189,8 +240,19 @@
     if (isAuditor && kind !== 'unassigned')
       kind = list.length ? 'locked' : 'unassigned';
     const editable = kind === 'new' || kind === 'draft' || kind === 'fix';
-    const value = editable && key in edits ? edits[key]! : hoursText(originalMinutes);
-    const minutes = parseHours(value);
+    const stored = storedDetail(list.length === 1 ? list[0] : undefined);
+    const detail = editable && key in detailEdits ? detailEdits[key]! : stored;
+    const detailMinutes = detailMinutesOf(detail);
+    const detailChanged = editable && key in detailEdits && !sameDetail(detail, stored);
+    // Start/end given: the hours are calculated (end - start - break).
+    const value =
+      editable && key in detailEdits && typeof detailMinutes === 'number'
+        ? hoursText(detailMinutes) || '0'
+        : editable && key in edits
+          ? edits[key]!
+          : hoursText(originalMinutes);
+    const minutes =
+      editable && key in detailEdits && detailMinutes === undefined ? undefined : parseHours(value);
     const statuses = [...new Set(list.map(entryStatus))];
     return {
       key,
@@ -200,7 +262,11 @@
       originalMinutes,
       value,
       minutes,
-      changed: editable && minutes !== undefined && (minutes ?? 0) !== originalMinutes,
+      changed:
+        editable && minutes !== undefined && ((minutes ?? 0) !== originalMinutes || detailChanged),
+      detail,
+      detailMinutes,
+      detailChanged,
     };
   };
 
@@ -358,6 +424,7 @@
       return;
     }
     edits = {};
+    detailEdits = {};
     extraRows = [];
     void goto(sheetHref({ worker: value }), { noScroll: true, keepFocus: true });
   };
@@ -377,6 +444,8 @@
     const identity = `${weekStart}|${workerId}`;
     if (sheetIdentity && sheetIdentity !== identity) {
       edits = {};
+      detailEdits = {};
+      detailKey = '';
       extraRows = [];
       reason = '';
     }
@@ -388,6 +457,19 @@
     edits = { ...edits, [key]: value };
   };
 
+  const detailPayload = (detail: DetailDraft) => ({
+    start: detail.start.trim(),
+    end: detail.end.trim(),
+    breakMinutes: detail.start.trim() && detail.end.trim() ? detail.breakMinutes.trim() : '',
+    note: detail.note.trim(),
+  });
+  const setDetail = (key: string, field: keyof DetailDraft, value: string, base: DetailDraft) => {
+    dayDone = null;
+    detailEdits = { ...detailEdits, [key]: { ...(detailEdits[key] ?? base), [field]: value } };
+  };
+  const clearDetail = (key: string) => {
+    detailEdits = { ...detailEdits, [key]: { start: '', end: '', breakMinutes: '', note: '' } };
+  };
   const payloadCells = $derived(
     grid.flatMap((line) =>
       line.cells.flatMap((cell, index) =>
@@ -399,6 +481,7 @@
                 workDate: days[index],
                 hours: cell.value,
                 ...(cell.entry ? { id: String(cell.entry.id), version: Number(cell.entry.version) } : {}),
+                ...(cell.key in detailEdits ? { detail: detailPayload(cell.detail) } : {}),
               },
             ]
           : [],
@@ -434,9 +517,9 @@
   const submitSheet: SubmitFunction = () => {
     busy = intent;
     pendingDone =
-      mode === 'day' && (intent === 'save' || intent === 'submit_day')
+      mode === 'day' && (intent === 'save' || intent === 'submit_day' || intent === 'submit_day_approve')
         ? {
-            kind: intent === 'submit_day' ? 'sent' : 'saved',
+            kind: intent === 'submit_day_approve' ? 'approved' : intent === 'submit_day' ? 'sent' : 'saved',
             minutes: dayModeTotal,
             day: selectedDay,
           }
@@ -445,6 +528,8 @@
       busy = '';
       if (outcome.type === 'success') {
         edits = {};
+        detailEdits = {};
+        detailKey = '';
         extraRows = [];
         reason = '';
         rememberDayChoice();
@@ -454,8 +539,8 @@
       intent = 'save';
     };
   };
-  const saveAndSend = () => {
-    intent = 'submit_day';
+  const saveAndSend = (approve = false) => {
+    intent = approve ? 'submit_day_approve' : 'submit_day';
     void tick().then(() => sheetForm?.requestSubmit());
   };
   const save = () => {
@@ -466,9 +551,9 @@
     if (invalidCells.length) return;
     confirmDialog?.showModal();
   };
-  const confirmSubmit = async () => {
+  const confirmSubmit = async (approve = false) => {
     confirmDialog?.close();
-    intent = 'submit';
+    intent = approve ? 'submit_approve' : 'submit';
     // Let Svelte write the hidden intent before submitting.
     await tick();
     sheetForm?.requestSubmit();
@@ -483,6 +568,29 @@
   };
 
   const workerName = (id: string) => personName(workers.find((worker) => worker.id === id)?.name ?? '');
+  // ---- Optional signed activity sheet for the week ----
+  const weekSheets = $derived(data.weekSheets ?? []);
+  let sheetBusy = $state(false);
+  let sheetMessage = $state<string | null>(null);
+  const attachSheet: SubmitFunction = () => {
+    sheetBusy = true;
+    sheetMessage = null;
+    return async ({ result: outcome, update, formElement }) => {
+      sheetBusy = false;
+      if (outcome.type === 'success') {
+        formElement.reset();
+        await update({ reset: false, invalidateAll: true });
+        sheetMessage = 'done';
+        return;
+      }
+      const failure = outcome.type === 'failure' ? (outcome.data as SheetResult | undefined) : undefined;
+      const text = failure?.messageKey ? translate(failure.messageKey) : '';
+      sheetMessage = text && text !== failure?.messageKey ? text : t('sheetFailed');
+    };
+  };
+  /** Owner logging for another person: "Save & approve" (same audited approval path). */
+  const forOther = $derived(delegating && workerId !== data.user.id);
+  const canApproveNow = $derived(forOther && data.user.role === 'owner_admin' && canSubmit);
 
   // ---- Capture modes: "One day" (fast) and "Whole week" (grid) ----
   const mode = $derived<'day' | 'week'>(
@@ -533,6 +641,8 @@
   );
   const chooseDay = (projectId: string, category: string) => {
     edits = {};
+    detailEdits = {};
+    detailKey = '';
     dayDone = null;
     dayProjectChoice = projectId;
     dayCategory = category;
@@ -589,6 +699,7 @@
               ...(dayCell.entry
                 ? { id: String(dayCell.entry.id), version: Number(dayCell.entry.version) }
                 : {}),
+              ...(dayCell.key in detailEdits ? { detail: detailPayload(dayCell.detail) } : {}),
             },
           ]
         : []
@@ -663,24 +774,35 @@
       type="text"
       inputmode="decimal"
       autocomplete="off"
-      maxlength="5"
+      maxlength="7"
       placeholder="–"
+      readonly={typeof cell.detailMinutes === 'number'}
       aria-label={label}
       aria-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
       aria-describedby={cell.minutes === undefined ? `${cell.key}-error` : undefined}
-      title={minutesHint(cell.minutes)}
+      title={typeof cell.detailMinutes === 'number' ? t('detailFromTimes') : minutesHint(cell.minutes)}
       value={cell.value}
       oninput={(event) => setCell(cell.key, event.currentTarget.value)}
       onblur={() => normalizeCell(cell.key)}
     />
     {#if cell.minutes === undefined}
-      <small class="cell-error" id={`${cell.key}-error`}>{t('invalidHoursShort')}</small>
+      <small class="cell-error" id={`${cell.key}-error`}>{cell.detailMinutes === undefined && cell.key in detailEdits ? t('detailInvalid') : t('invalidHoursShort')}</small>
     {/if}
+    <button
+      type="button"
+      class="detail-toggle"
+      class:has-detail={hasDetail(cell.detail)}
+      aria-expanded={detailKey === cell.key}
+      aria-label={t('detailLabel', { project: `${projectLabel(line.row.projectId)} (${categoryLabel(line.row.category)})`, day: dayName(date, 'long') })}
+      title={t('detailHint')}
+      onclick={() => (detailKey = detailKey === cell.key ? '' : cell.key)}
+      data-testid="time-detail-toggle">{hasDetail(cell.detail) ? detailSummary(cell.detail) : t('detailAdd')}</button
+    >
   {:else}
     <span
       class="hours-locked"
       data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
-      title={cellTitle(cell)}
+      title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail) : '', cell.detail.note].filter(Boolean).join(' · ')}
       aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
       {#if cell.kind === 'unassigned'}
@@ -693,7 +815,74 @@
           >{/if}
       {/if}
     </span>
+    {#if cell.kind !== 'unassigned' && hasDetail(cell.detail)}
+      <small class="detail-ro" title={cell.detail.note}>{detailSummary(cell.detail)}</small>
+    {/if}
   {/if}
+{/snippet}
+
+{#snippet detailPanel(cell: Cell, title: string)}
+  {@const base = cell.detail}
+  <div class="detail-panel" data-testid="time-detail-panel">
+    <p class="detail-title"><strong>{title}</strong></p>
+    <p class="muted small">{t('detailHint')}</p>
+    <div class="detail-grid">
+      <label>
+        <span>{t('detailStart')}</span>
+        <input
+          type="time"
+          value={cell.detail.start}
+          oninput={(event) => setDetail(cell.key, 'start', event.currentTarget.value, base)}
+          data-testid="time-detail-start"
+        />
+      </label>
+      <label>
+        <span>{t('detailEnd')}</span>
+        <input
+          type="time"
+          value={cell.detail.end}
+          oninput={(event) => setDetail(cell.key, 'end', event.currentTarget.value, base)}
+          data-testid="time-detail-end"
+        />
+      </label>
+      <label>
+        <span>{t('detailBreak')}</span>
+        <input
+          type="text"
+          inputmode="numeric"
+          maxlength="4"
+          placeholder="0"
+          value={cell.detail.breakMinutes}
+          oninput={(event) => setDetail(cell.key, 'breakMinutes', event.currentTarget.value, base)}
+          data-testid="time-detail-break"
+        />
+      </label>
+    </div>
+    <label class="detail-note">
+      <span>{t('detailNote')}</span>
+      <input
+        type="text"
+        maxlength="500"
+        placeholder={t('detailNotePlaceholder')}
+        value={cell.detail.note}
+        oninput={(event) => setDetail(cell.key, 'note', event.currentTarget.value, base)}
+        data-testid="time-detail-note"
+      />
+    </label>
+    {#if cell.detailMinutes === undefined}
+      <small class="cell-error" role="alert">{t('detailInvalid')}</small>
+    {:else if typeof cell.detailMinutes === 'number'}
+      <small class="detail-computed" data-testid="time-detail-computed"
+        >{t('detailComputed', { hours: decimalHoursFromMinutes(cell.detailMinutes) })} ({clockHoursFromMinutes(cell.detailMinutes)}){overnight(cell.detail) ? ` · ${t('detailOvernight')}` : ''}</small
+      >
+    {/if}
+    <div class="detail-actions">
+      <button type="button" class="secondary" onclick={() => (detailKey = '')} data-testid="time-detail-done">{t('detailDone')}</button>
+      {#if hasDetail(cell.detail)}
+        <button type="button" class="link" onclick={() => clearDetail(cell.key)}>{t('detailClear')}</button>
+      {/if}
+    </div>
+  </div>
 {/snippet}
 
 {#if data.canReviewTime}
@@ -938,15 +1127,19 @@
                   type="text"
                   inputmode="decimal"
                   autocomplete="off"
-                  maxlength="5"
+                  maxlength="7"
                   placeholder="8"
+                  readonly={typeof dayCell.detailMinutes === 'number'}
+                  title={typeof dayCell.detailMinutes === 'number' ? t('detailFromTimes') : undefined}
                   value={dayCell.value}
                   oninput={(event) => setCell(dayCell.key, event.currentTarget.value)}
                   onblur={() => normalizeCell(dayCell.key)}
                   aria-invalid={dayCell.minutes === undefined || dayModeTotal > DAY_MAX_MINUTES}
                   data-testid="time-day-hours"
                 />
-                {#if dayCell.minutes === undefined}
+                {#if dayCell.minutes === undefined && dayCell.detailMinutes === undefined && dayCell.key in detailEdits}
+                  <small class="cell-error" role="alert">{t('detailInvalid')}</small>
+                {:else if dayCell.minutes === undefined}
                   <small class="cell-error" role="alert">{t('invalidHours')}</small>
                 {:else if dayModeTotal > DAY_MAX_MINUTES}
                   <small class="cell-error" role="alert">{t('dayOver24')}</small>
@@ -961,18 +1154,44 @@
                   >{hoursText(dayCell.originalMinutes) || '0'} {t('hoursUnit')}</span
                 >
                 <small class="muted">{cellTitle(dayCell)}</small>
+                {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail)} {dayCell.detail.note}</small>{/if}
               {/if}
             </label>
+            {#if dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix')}
+              {#if detailKey === dayCell.key}
+                {@render detailPanel(dayCell, t('detailTitle', { day: dayName(selectedDay, 'long'), project: projectLabel(dayRow.projectId) }))}
+              {:else}
+                <button
+                  type="button"
+                  class="detail-toggle day"
+                  class:has-detail={hasDetail(dayCell.detail)}
+                  aria-expanded="false"
+                  onclick={() => (detailKey = dayCell.key)}
+                  data-testid="time-detail-toggle"
+                  >{hasDetail(dayCell.detail) ? `${t('ovDetail')}: ${detailSummary(dayCell.detail)}` : t('detailAdd')}</button
+                >
+              {/if}
+            {/if}
           {/if}
           {#if dayProject && !isAuditor}
             <input type="hidden" name="day" value={selectedDay} />
             <div class="day-buttons">
-              {#if canSubmit}
+              {#if canApproveNow}
                 <button
                   type="button"
                   class="primary wide"
                   disabled={(!dirtyNow && dayDraftCount === 0) || Boolean(busy) || invalidNow}
-                  onclick={saveAndSend}
+                  onclick={() => saveAndSend(true)}
+                  data-testid="time-day-approve"
+                  >{busy === 'submit_day_approve' ? t('approving') : t('saveApprove')}</button
+                >
+              {/if}
+              {#if canSubmit}
+                <button
+                  type="button"
+                  class={canApproveNow ? 'secondary wide' : 'primary wide'}
+                  disabled={(!dirtyNow && dayDraftCount === 0) || Boolean(busy) || invalidNow}
+                  onclick={() => saveAndSend()}
                   data-testid="time-day-send"
                   >{busy === 'submit_day'
                     ? t('sendingDay')
@@ -993,7 +1212,7 @@
             {#if dayDone && dayDone.day === selectedDay}
               <p class="day-done" role="status" data-testid="time-day-done">
                 <span aria-hidden="true">✓</span>
-                {t(dayDone.kind === 'sent' ? 'sentDay' : 'savedDay', {
+                {t(dayDone.kind === 'approved' ? 'approvedDay' : dayDone.kind === 'sent' ? 'sentDay' : 'savedDay', {
                   hours: decimalHoursFromMinutes(dayDone.minutes),
                   day: dayName(dayDone.day, 'long'),
                 })}
@@ -1062,8 +1281,7 @@
               {#each dayTotals as total, index (days[index])}
                 <td class:day-over={dayOver(index)} class:day-long={dayLong(index)}>
                   {decimalHoursFromMinutes(total)}
-                  {#if dayOver(index)}<small class="cell-error">{t('over24Short')}</small>
-                  {:else if dayLong(index)}<small class="cell-warn">{t('over12Short')}</small>{/if}
+                  {#if dayOver(index)}<small class="cell-error">{t('over24Short')}</small>{/if}
                 </td>
               {/each}
               <td class="col-total week-total" data-testid="week-total">{decimalHoursFromMinutes(weekTotal)}</td>
@@ -1071,12 +1289,22 @@
           </tfoot>
         </table>
       </div>
+      {#each grid as line (line.row.key)}
+        {#each line.cells as cell, index (cell.key)}
+          {#if detailKey === cell.key}
+            <div class="detail-desktop">
+              {@render detailPanel(cell, t('detailTitle', { day: dayName(days[index]!, 'long'), project: `${projectLabel(line.row.projectId)} (${categoryLabel(line.row.category)})` }))}
+            </div>
+          {/if}
+        {/each}
+      {/each}
 
       <!-- Phone: one card per day -->
       <ol class="sheet-days" data-testid="time-week-days">
         {#each days as date, index (date)}
           <li class="day-card" class:is-today={date === today}>
-            <details open={date === today || dayOver(index) || (!days.includes(today) && index === 0) || grid.some((line) => line.cells[index]?.minutes === undefined || line.cells[index]?.kind === 'fix')}>
+            <!-- All 7 days start open (small rows): no extra tap per day, and typing never re-collapses a card. -->
+            <details open>
             <summary class="day-card-head">
               <strong>{dayName(date, 'long')}</strong>
               {#if dayStatus(date) !== 'empty'}
@@ -1084,8 +1312,7 @@
               {/if}
               <span class="day-card-total" class:day-over={dayOver(index)}>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</span>
             </summary>
-            {#if dayOver(index)}<p class="cell-error">{t('dayOver24')}</p>
-            {:else if dayLong(index)}<p class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[index]) })}</p>{/if}
+            {#if dayOver(index)}<p class="cell-error">{t('dayOver24')}</p>{/if}
             <ul>
               {#each grid as line (line.row.key)}
                 {@const cell = line.cells[index]!}
@@ -1096,6 +1323,11 @@
                       <span class="category" data-category={line.row.category}>{categoryLabel(line.row.category)}</span>
                     </span>
                     {@render cellInput(line, cell, index)}
+                    {#if detailKey === cell.key}
+                      <div class="detail-phone">
+                        {@render detailPanel(cell, t('detailTitle', { day: dayName(date, 'long'), project: projectLabel(line.row.projectId) }))}
+                      </div>
+                    {/if}
                   </li>
                 {/if}
               {/each}
@@ -1161,10 +1393,12 @@
       {#if invalidNow}
         <p class="invalid-hint" role="alert">{blockReason}</p>
       {:else if mode === 'week' && longDays.length}
-        <p class="cell-warn" role="status">
-          {longDays
-            .map((date) => t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[days.indexOf(date)]), day: dayName(date) }))
-            .join(' ')}
+        <p class="cell-warn" role="status" data-testid="time-long-days">
+          {t('longDays', {
+            days: longDays
+              .map((date) => `${dayName(date)} (${decimalHoursFromMinutes(dayTotals[days.indexOf(date)])} ${t('hoursUnit')})`)
+              .join(', '),
+          })}
         </p>
       {/if}
 
@@ -1212,7 +1446,7 @@
                 title={submitCount === 0 ? t('nothingToSubmit') : ''}
                 onclick={openConfirm}
                 data-testid="time-week-submit"
-                >{busy === 'submit' ? t('submitting') : t('submitWeek')}</button
+                >{busy === 'submit' ? t('submitting') : busy === 'submit_approve' ? t('approving') : t('submitWeek')}</button
               >
             {/if}
           </div>
@@ -1226,6 +1460,60 @@
       {/if}
     </form>
 
+    {#if mode === 'week' && rowProjects.length && !isAuditor && (canSubmit || data.user.role === 'project_manager')}
+      <details class="week-sheet" data-testid="time-week-sheet" open={weekSheets.length > 0 || sheetMessage !== null}>
+        <summary>
+          <strong>{t('sheetTitle')}</strong>
+          {#if weekSheets.length}<span class="muted"> · {t('sheetCount', { n: weekSheets.length })}</span>{/if}
+        </summary>
+        <p class="muted small">{t('sheetHint')}</p>
+        {#if weekSheets.length}
+          <ul class="sheet-files">
+            {#each weekSheets as sheet (sheet.id)}
+              <li>
+                <a href={`${base}/app/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener" data-testid="time-week-sheet-link"
+                  >📄 {sheet.filename}</a
+                >
+                {#if rowProjects.length > 1}<span class="muted small">{projectLabel(sheet.projectId)}</span>{/if}
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        <form
+          method="POST"
+          action="?/attachWeekSheet"
+          enctype="multipart/form-data"
+          class="sheet-upload"
+          use:enhance={attachSheet}
+        >
+          <input type="hidden" name="weekStart" value={weekStart} />
+          <input type="hidden" name="workerId" value={workerId} />
+          {#if rowProjects.length > 1}
+            <label>
+              <span>{t('project')}</span>
+              <select name="projectId">
+                {#each rowProjects as project (project.id)}
+                  <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
+                {/each}
+              </select>
+            </label>
+          {:else}
+            <input type="hidden" name="projectId" value={String(rowProjects[0]!.id)} />
+          {/if}
+          <label class="sheet-file">
+            <span>{t('sheetFile')}</span>
+            <input type="file" name="sheet" accept="application/pdf,image/*" required data-testid="time-week-sheet-file" />
+          </label>
+          <button type="submit" class="secondary" disabled={sheetBusy} data-testid="time-week-sheet-attach"
+            >{sheetBusy ? t('sheetAttaching') : t('sheetAttach')}</button
+          >
+        </form>
+        {#if sheetMessage && sheetMessage !== 'done'}
+          <p class="cell-error" role="alert">{sheetMessage}</p>
+        {/if}
+      </details>
+    {/if}
+
     <dialog bind:this={confirmDialog} class="confirm" aria-labelledby="time-confirm-title" data-testid="time-week-confirm">
       <h3 id="time-confirm-title">{t('confirmTitle')}</h3>
       <p class="muted">{rangeLabel}{delegating ? ` · ${workerName(workerId)}` : ''}</p>
@@ -1233,7 +1521,7 @@
         <tbody>
           {#each days as date, index (date)}
             {#if dayTotals[index]}
-              <tr><th scope="row">{dayName(date, 'long')}</th><td>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</td></tr>
+              <tr class:day-long={dayLong(index)}><th scope="row">{dayName(date, 'long')}</th><td>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}</td></tr>
             {/if}
           {/each}
         </tbody>
@@ -1242,15 +1530,27 @@
         </tfoot>
       </table>
       <p>{t('confirmEntries', { count: submitCount })}</p>
-      {#each longDays as date (date)}
-        <p class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayTotals[days.indexOf(date)]), day: dayName(date, 'long') })}</p>
-      {/each}
-      <p class="muted">{t('confirmBody')}</p>
+      <p class="muted">
+        {forOther
+          ? t('confirmBodyOther', { name: workerName(workerId) })
+          : data.user.role === 'owner_admin'
+            ? t('confirmBodyOwnerSelf')
+            : t('confirmBody')}
+      </p>
       <div class="confirm-actions">
         <button type="button" class="secondary" onclick={() => confirmDialog?.close()}>{t('cancel')}</button>
-        <button type="button" class="primary" onclick={confirmSubmit} data-testid="time-week-confirm-submit"
-          >{t('confirmSubmit')}</button
-        >
+        {#if canApproveNow}
+          <button type="button" class="secondary" onclick={() => confirmSubmit(false)} data-testid="time-week-confirm-submit"
+            >{t('sendOnly')}</button
+          >
+          <button type="button" class="primary" onclick={() => confirmSubmit(true)} data-testid="time-week-confirm-approve"
+            >{t('approveWeek')}</button
+          >
+        {:else}
+          <button type="button" class="primary" onclick={() => confirmSubmit(false)} data-testid="time-week-confirm-submit"
+            >{t('confirmSubmit')}</button
+          >
+        {/if}
       </div>
     </dialog>
   {/if}
@@ -1769,9 +2069,10 @@
   }
   .day-line {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     justify-content: space-between;
-    gap: 0.75rem;
+    gap: 0.4rem 0.75rem;
     padding: 0.3rem 0;
     border-top: 1px solid var(--ja-line, #eef1f4);
   }
@@ -1960,6 +2261,152 @@
     white-space: nowrap;
   }
 
+  .detail-toggle {
+    display: block;
+    margin: 0.2rem auto 0;
+    padding: 0.15rem 0.35rem;
+    min-height: 28px;
+    border: 0;
+    background: transparent;
+    color: var(--ja-steel, #5b6573);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+    white-space: nowrap;
+    text-decoration: underline dotted;
+  }
+  .detail-toggle.has-detail {
+    color: var(--ja-ink, #1c2430);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .detail-toggle.day {
+    margin: 0;
+    min-height: var(--ja-target-min, 44px);
+    font-size: 0.95rem;
+    text-align: left;
+  }
+  .detail-ro {
+    display: block;
+    margin-top: 0.2rem;
+    font-size: 0.75rem;
+    color: var(--ja-steel, #5b6573);
+    white-space: nowrap;
+  }
+  .week-sheet > summary {
+    justify-content: flex-start;
+  }
+  .detail-panel {
+    display: grid;
+    gap: 0.5rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-line, #d5dbe3);
+    border-radius: var(--ja-radius, 10px);
+    background: var(--ja-surface, #f6f8fa);
+    text-align: left;
+    white-space: normal;
+  }
+  .detail-panel p {
+    margin: 0;
+  }
+  .detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+    gap: 0.5rem;
+  }
+  .detail-panel label {
+    display: grid;
+    gap: 0.2rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  .detail-panel input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: var(--ja-target-min, 44px);
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: 8px;
+    padding: 0 0.5rem;
+    font: inherit;
+    background: var(--ja-white, #fff);
+  }
+  .detail-computed {
+    font-weight: 700;
+    color: #1d6b38;
+  }
+  .detail-actions {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+  }
+  .detail-desktop {
+    max-width: 36rem;
+    margin-top: 0.5rem;
+  }
+  .detail-phone {
+    flex: 1 1 100%;
+    min-width: 0;
+    margin-top: 0.2rem;
+  }
+  .day-line-label {
+    flex: 1 1 8rem;
+  }
+  .day-line .detail-toggle {
+    margin: 0;
+  }
+  .week-sheet {
+    border: 1px dashed var(--ja-control-border, #b8c0cc);
+    border-radius: var(--ja-radius, 10px);
+    padding: 0.6rem 0.9rem;
+    background: var(--ja-white, #fff);
+  }
+  .week-sheet > summary {
+    cursor: pointer;
+    min-height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .week-sheet p {
+    margin: 0.4rem 0;
+  }
+  .sheet-files {
+    list-style: none;
+    margin: 0.25rem 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+  .sheet-files a {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+  }
+  .sheet-upload {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.5rem 0.75rem;
+  }
+  .sheet-upload label {
+    display: grid;
+    gap: 0.2rem;
+    font-weight: 600;
+    font-size: 0.875rem;
+  }
+  .sheet-upload select,
+  .sheet-upload input[type='file'] {
+    min-height: var(--ja-target-min, 44px);
+    max-width: 100%;
+  }
+  .confirm-totals tr.day-long td {
+    color: #8a5300;
+    font-weight: 700;
+  }
+  /* Focused cells scroll above the sticky Save/Submit bar and phone nav. */
+  .time-week input {
+    scroll-margin-bottom: 11rem;
+  }
+
   @media (max-width: 620px) {
     /* Keep the action bar above the fixed phone bottom navigation. */
     .sheet-actions {
@@ -1967,8 +2414,16 @@
     }
   }
 
+  @media (min-width: 761px) {
+    .detail-phone {
+      display: none;
+    }
+  }
   @media (max-width: 760px) {
     .sheet-table-wrap {
+      display: none;
+    }
+    .detail-desktop {
       display: none;
     }
     .sheet-days {

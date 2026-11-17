@@ -1521,7 +1521,7 @@
           </div>
         {/if}
         <label data-ui="field"
-          >{c.summary}<textarea name="summary" required maxlength="2000"
+          >{c.summary}<textarea name="summary" maxlength="2000"
             >{value('createTimeBatch', 'summary')}</textarea
           ></label
         ><button class="primary-button" disabled={selectedWorkerIds.length === 0}
@@ -1744,7 +1744,7 @@
                 >
               {/if}
               <label data-ui="field"
-                >{c.summary}<textarea name="summary" required
+                >{c.summary}<textarea name="summary"
                   >{correctionValue(String(entry.id), 'summary', String(entry.summary))}</textarea
                 ></label
               >
@@ -1904,7 +1904,7 @@
                   </fieldset>
                 {/if}
                 <label data-ui="field"
-                  >{c.summary}<textarea name="summary" required
+                  >{c.summary}<textarea name="summary"
                     >{form?.operation === 'updateTime' && form.values?.id === entry.id
                       ? form.values.summary
                       : String(entry.summary)}</textarea

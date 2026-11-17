@@ -152,8 +152,11 @@ export function validateEffectiveTimeEntry(
       'End time',
       validationError,
     );
-    if (candidateEndMinutes <= candidateStartMinutes)
+    // End at or before start = overnight shift ending the next day (attributed
+    // to the start date). Equal start and end is not a shift.
+    if (candidateEndMinutes === candidateStartMinutes)
       throw validationError('End time must be later on the same day');
+    if (candidateEndMinutes < candidateStartMinutes) candidateEndMinutes += 1440;
     const elapsedMinutes = candidateEndMinutes - candidateStartMinutes;
     if (
       candidate.breakMinutes === null ||
@@ -228,8 +231,9 @@ export function validateEffectiveTimeEntry(
       'Existing start time',
       validationError,
     );
-    const rowEnd = parseClockMinutes(row.end_time as string, 'Existing end time', validationError);
-    if (rowEnd <= rowStart) throw validationError('An existing time entry has an invalid interval');
+    let rowEnd = parseClockMinutes(row.end_time as string, 'Existing end time', validationError);
+    if (rowEnd === rowStart) throw validationError('An existing time entry has an invalid interval');
+    if (rowEnd < rowStart) rowEnd += 1440;
     if (rowStart < candidateEndMinutes && rowEnd > candidateStartMinutes)
       throw validationError('Time intervals cannot overlap for the same worker and date');
   }
@@ -780,7 +784,8 @@ export class TimeEntryRepository {
           input.category?.trim() || null,
           input.activityCode?.trim() || null,
           input.minutes ?? null,
-          input.summary?.trim() || null,
+          // A supplied summary (even empty) replaces the note; omitted keeps it.
+          input.summary === undefined ? null : input.summary.trim().slice(0, 5000),
           input.site?.trim() || null,
           startTime,
           endTime,
@@ -958,7 +963,12 @@ export class TimeEntryRepository {
           );
       }
       if (patch.category !== undefined) this.deps.assertText(patch.category, 'Category', 100);
-      if (patch.summary !== undefined) this.deps.assertText(patch.summary, 'Activity summary');
+      // The activity note is optional everywhere (owner decision); a corrected
+      // empty note clears it, a long one is rejected.
+      const patchSummary =
+        patch.summary === undefined ? undefined : String(patch.summary).trim();
+      if (patchSummary !== undefined && patchSummary.length > 5000)
+        throw this.deps.errors.validation('Activity summary is too long');
       const effectivePatch: Record<string, unknown> = {
         workDate,
         minutes,
@@ -969,10 +979,7 @@ export class TimeEntryRepository {
           patch.category === undefined
             ? original.category
             : this.deps.assertText(patch.category, 'Category', 100),
-        summary:
-          patch.summary === undefined
-            ? original.activity_summary
-            : this.deps.assertText(patch.summary, 'Activity summary'),
+        summary: patchSummary === undefined ? original.activity_summary : patchSummary,
         activityCode: patch.activityCode ?? original.activity_code,
         site: patch.site ?? original.site,
       };
@@ -1043,9 +1050,7 @@ export class TimeEntryRepository {
           patch.activityCode ?? original.activity_code,
           minutes,
           original.project_timezone,
-          patch.summary === undefined
-            ? original.activity_summary
-            : this.deps.assertText(patch.summary, 'Activity summary'),
+          patchSummary === undefined ? original.activity_summary : patchSummary,
           patch.site ?? original.site,
           startTime,
           endTime,

@@ -145,6 +145,14 @@ export function overviewEntries(
       category: String(row.category ?? ''),
       minutes: Number(row.minutes ?? 0),
       approval_state: String(row.approval_state),
+      ...(row.start_time && row.end_time
+        ? {
+            start_time: String(row.start_time),
+            end_time: String(row.end_time),
+            break_minutes: Number(row.break_minutes ?? 0),
+          }
+        : {}),
+      ...(row.activity_summary ? { note: String(row.activity_summary).slice(0, 300) } : {}),
     });
   }
   return {

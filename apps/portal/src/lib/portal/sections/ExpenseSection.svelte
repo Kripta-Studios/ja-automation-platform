@@ -243,6 +243,8 @@
   let mode = $state<Mode | null>(null);
   let formKey = $state(0);
   let editing = $state<Row | null>(null);
+  /** Inline "Delete this draft?" step before the destructive post. */
+  let confirmingDelete = $state(false);
   let fDate = $state('');
   let fProject = $state('');
   let fWorker = $state('');
@@ -365,6 +367,7 @@
     mode = 'create';
   }
   function openEdit(row: Row): void {
+    confirmingDelete = false;
     if (!canEdit(row)) return;
     editing = row;
     fDate = text(row, 'spent_on');
@@ -1338,13 +1341,28 @@
       use:enhance={() =>
         async ({ result, update }) => {
           await update();
+          confirmingDelete = false;
           if (result.type === 'success') closeForm();
         }}
     >
       <input type="hidden" name="recordType" value="expense" />
       <input type="hidden" name="recordId" value={text(editing, 'id')} />
       <input type="hidden" name="version" value={text(editing, 'version')} />
-      <button type="submit" class="destructive-button">{c('deleteDraft')}</button>
+      {#if confirmingDelete}
+        <div class="xp-delete-confirm" role="alertdialog" aria-label={c('deleteConfirm')} data-testid="expense-delete-confirm">
+          <p>{c('deleteConfirm')}</p>
+          <button type="submit" class="destructive-button" data-testid="expense-delete-yes">{c('deleteYes')}</button>
+          <button type="button" class="secondary" onclick={() => (confirmingDelete = false)}>{c('deleteKeep')}</button>
+        </div>
+      {:else}
+        <button type="button" class="destructive-button" onclick={() => {
+            confirmingDelete = true;
+            setTimeout(() => document.querySelector('[data-testid="expense-delete-confirm"]')?.scrollIntoView({ block: 'nearest' }), 0);
+          }}
+          data-testid="expense-delete-draft"
+          >{c('deleteDraft')}</button
+        >
+      {/if}
     </form>
   {/if}
 </ResponsiveSheet>
@@ -1929,6 +1947,26 @@
     background: var(--ja-surface);
     color: var(--ja-red-dark);
     box-shadow: none;
+  }
+  .xp-delete-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    border: 1px solid var(--ja-red);
+    border-radius: 0.6rem;
+    background: #fdecea;
+  }
+  .xp-delete-confirm p {
+    flex-basis: 100%;
+    margin: 0;
+    font-weight: 700;
+    color: var(--ja-red-dark);
+  }
+  .xp-delete-confirm button.secondary {
+    border-color: var(--ja-line, #d5dbe3);
+    color: var(--ja-ink, #1c2430);
   }
   .xp-delete button:hover:not(:disabled) {
     background: #fdecea;

@@ -11613,6 +11613,14 @@ export class V3Repository {
                     'SELECT 1 FROM expense WHERE receipt_document_id=? AND worker_id=? AND project_id=?',
                   )
                   .get(documentId, principal.userId, document.project_id),
+              ) ||
+              // A signed activity sheet the owner attached to this worker's own week.
+              Boolean(
+                this.sqlite
+                  .prepare(
+                    "SELECT 1 FROM document WHERE id=? AND artifact_type='signed_timesheet' AND json_extract(artifact_metadata_json,'$.workerId')=?",
+                  )
+                  .get(documentId, principal.userId),
               )));
       } catch {
         allowed = false;
@@ -13107,6 +13115,8 @@ export class V3Repository {
       description?: string;
       sensitivity?: 'internal' | 'sensitive' | 'customer_private';
       artifactClassification?: ArtifactClassification;
+      /** Optional link metadata (e.g. a signed week sheet's worker and week). */
+      artifactMetadata?: Readonly<Record<string, string>>;
     }>,
   ): { reservationId: string; storageKey: SafeStorageKey } {
     this.assertWritable(principal);
@@ -13136,8 +13146,9 @@ export class V3Repository {
       INSERT INTO document(
         id,project_id,owner_id,sha256,media_type,byte_length,state,storage_key,
         original_filename,description,artifact_type,sensitivity,safe_filename,
-        scan_status,created_at,updated_at,artifact_classification,classification_provenance
-      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        scan_status,created_at,updated_at,artifact_classification,classification_provenance,
+        artifact_metadata_json
+      ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     `,
       )
       .run(
@@ -13163,6 +13174,7 @@ export class V3Repository {
         nowStr,
         artifactClassification,
         'native',
+        input.artifactMetadata ? JSON.stringify(input.artifactMetadata) : null,
       );
 
     return { reservationId, storageKey };

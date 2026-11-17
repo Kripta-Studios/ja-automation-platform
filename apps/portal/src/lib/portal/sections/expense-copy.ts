@@ -145,6 +145,9 @@ const en = {
   saveAnyway: 'Save anyway',
   duplicateReceiptBulk:
     'One of these receipts is already on another expense, or the same photo is used twice. Attach a different photo. Nothing was saved.',
+  deleteConfirm: 'Delete this draft? This cannot be undone.',
+  deleteYes: 'Yes, delete',
+  deleteKeep: 'Keep it',
 };
 
 type Copy = Record<keyof typeof en, string>;
@@ -292,6 +295,9 @@ const es: Copy = {
   saveAnyway: 'Guardar de todos modos',
   duplicateReceiptBulk:
     'Uno de estos tickets ya está en otro gasto o la misma foto se usa dos veces. Adjunta otra foto. No se guardó nada.',
+  deleteConfirm: '¿Eliminar este borrador? No se puede deshacer.',
+  deleteYes: 'Sí, eliminar',
+  deleteKeep: 'Conservar',
 };
 
 const pt: Copy = {
@@ -438,6 +444,9 @@ const pt: Copy = {
   saveAnyway: 'Salvar mesmo assim',
   duplicateReceiptBulk:
     'Um destes recibos já está em outra despesa ou a mesma foto foi usada duas vezes. Anexe outra foto. Nada foi salvo.',
+  deleteConfirm: 'Excluir este rascunho? Não é possível desfazer.',
+  deleteYes: 'Sim, excluir',
+  deleteKeep: 'Manter',
 };
 
 const catalogs: Record<PortalLocale, Copy> = { en, es, pt };

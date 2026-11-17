@@ -206,4 +206,92 @@ describe('saveTimeWeek (week timesheet)', () => {
       }),
     ).toThrow(/outside the selected week/u);
   });
+
+  it('saves any minute value plus optional start/end/break/note detail (overnight on the start date) and submits the week', () => {
+    const value = createB5LifecycleSecurityFixture();
+    fixtures.push(value);
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'time-week-detail');
+    const workerId = value.worker.userId;
+    const projectId = value.project.id;
+    const rows = () =>
+      value.sqlite
+        .prepare(
+          'SELECT id,work_date,minutes,start_time,end_time,break_minutes,activity_summary,approval_state,version FROM time_entry WHERE worker_id=? ORDER BY work_date',
+        )
+        .all(workerId) as Array<Record<string, unknown>>;
+    value.repository.saveTimeWeek(owner, {
+      workerId,
+      weekStart: week,
+      cells: [
+        // 07:00-17:20 with a 60 min break = 9 h 20 min (not a quarter hour).
+        {
+          projectId,
+          category: 'regular',
+          workDate: '2026-08-17',
+          minutes: 560,
+          detail: { startTime: '07:00', endTime: '17:20', breakMinutes: 60, note: 'Robot recalibration' },
+        },
+        // Overnight 12:00-02:00 minus 40 min = 13 h 20 min, kept on Tuesday.
+        {
+          projectId,
+          category: 'regular',
+          workDate: '2026-08-18',
+          minutes: 800,
+          detail: { startTime: '12:00', endTime: '02:00', breakMinutes: 40, note: '' },
+        },
+        // Plain 10:25 h, no detail.
+        { projectId, category: 'regular', workDate: '2026-08-19', minutes: 625 },
+      ],
+    });
+    expect(rows().map((row) => [row.work_date, row.minutes, row.start_time, row.end_time, row.break_minutes, row.activity_summary])).toEqual([
+      ['2026-08-17', 560, '07:00', '17:20', 60, 'Robot recalibration'],
+      ['2026-08-18', 800, '12:00', '02:00', 40, ''],
+      ['2026-08-19', 625, null, null, null, ''],
+    ]);
+    // Minutes that do not match end - start - break are refused.
+    expect(() =>
+      value.repository.saveTimeWeek(owner, {
+        workerId,
+        weekStart: week,
+        cells: [
+          {
+            projectId,
+            category: 'regular',
+            workDate: '2026-08-20',
+            minutes: 480,
+            detail: { startTime: '07:00', endTime: '17:20', breakMinutes: 60, note: '' },
+          },
+        ],
+      }),
+    ).toThrow(/elapsed time less break/u);
+    // Detail-only change (same hours) is saved; clearing the times keeps the hours.
+    const [mon] = rows();
+    const updated = value.repository.saveTimeWeek(owner, {
+      workerId,
+      weekStart: week,
+      cells: [
+        {
+          projectId,
+          category: 'regular',
+          workDate: '2026-08-17',
+          minutes: 560,
+          id: String(mon!.id),
+          version: Number(mon!.version),
+          detail: { startTime: null, endTime: null, breakMinutes: null, note: 'Shift note only' },
+        },
+      ],
+    });
+    expect(updated).toMatchObject({ updated: 1 });
+    expect(rows()[0]).toMatchObject({ minutes: 560, start_time: null, end_time: null, activity_summary: 'Shift note only' });
+    // The whole week (non-quarter values) submits in one go.
+    const result = value.repository.saveTimeWeek(owner, {
+      workerId,
+      weekStart: week,
+      submit: true,
+      expected: rows().map((row) => ({ id: String(row.id), version: Number(row.version) })),
+      cells: [],
+    });
+    expect(result).toMatchObject({ submitted: 3 });
+    expect(rows().every((row) => row.approval_state === 'submitted')).toBe(true);
+  });
 });

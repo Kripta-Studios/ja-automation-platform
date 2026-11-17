@@ -792,6 +792,13 @@ export class WorkforceRepository {
     });
   }
 
+  /** Migration 0081 added the assignment PO; older schemas (upgrade tests) read NULL. */
+  private poColumn(): boolean {
+    return Boolean(
+      this.deps.sqlite.prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'").get(),
+    );
+  }
+
   listAssignments(principal: Principal) {
     this.deps.assertReadable(principal);
     if (
@@ -810,6 +817,7 @@ export class WorkforceRepository {
       .prepare(
         `SELECT pm.id,pm.project_id,pm.user_id,pm.assignment_role,pm.starts_on,pm.ends_on,
                 pm.planned_minutes,pm.can_review,pm.status,pm.version,
+                ${this.poColumn() ? 'pm.po_number' : 'NULL po_number'},
                 p.project_number,p.name project_name,u.name worker_name,u.email worker_email
          FROM project_member pm
          JOIN project p ON p.id=pm.project_id

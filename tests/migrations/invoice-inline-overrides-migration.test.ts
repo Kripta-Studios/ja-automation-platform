@@ -40,7 +40,7 @@ describe('invoice inline overrides migration79', () => {
     f.sqlite.close();
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
-    expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 80 });
+    expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 81 });
     for (const name of names)
       expect(f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all(), name).toEqual(before[name]);
     expect(

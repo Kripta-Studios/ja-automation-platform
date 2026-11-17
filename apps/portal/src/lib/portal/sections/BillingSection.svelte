@@ -2741,6 +2741,9 @@
       periodEnd: date(params.get('periodEnd')),
       billingRuleId: params.get('billingRuleId')?.trim() ?? '',
       replacement: Boolean(params.get('replaces')),
+      replacesInvoiceId: /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u.test(params.get('replaces') ?? '')
+        ? String(params.get('replaces'))
+        : '',
     };
   })();
   onMount(() => {
@@ -3540,6 +3543,7 @@
         initialPeriodEnd={quickInvoicePrefill?.periodEnd ?? ''}
         initialBillingRuleId={quickInvoicePrefill?.billingRuleId ?? ''}
         replacement={quickInvoicePrefill?.replacement ?? false}
+        replacesInvoiceId={quickInvoicePrefill?.replacesInvoiceId ?? ''}
         onAdvancedRecords={openAdvancedComposer}
       />
     </ResponsiveSheet>

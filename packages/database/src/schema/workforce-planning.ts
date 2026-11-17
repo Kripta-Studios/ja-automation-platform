@@ -27,6 +27,8 @@ export const projectMembers = sqliteTable(
     internalCostRuleId: text('internal_cost_rule_id'),
     clientBillRuleId: text('client_bill_rule_id'),
     workerExpenseReimbursementOverride: text('worker_expense_reimbursement_override'),
+    /** PO the client gave for this person's work on the project (migration 0081). */
+    poNumber: text('po_number'),
     allowGlobalCompensationFallback: integer('allow_global_compensation_fallback', {
       mode: 'boolean',
     })

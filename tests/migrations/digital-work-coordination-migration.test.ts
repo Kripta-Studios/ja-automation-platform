@@ -56,7 +56,7 @@ describe('digital work coordination migration77', () => {
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 80,
+      version: 81,
     });
     // Later additive columns (0079 client.tax_id) start empty; existing values are unchanged.
     for (const name of names)

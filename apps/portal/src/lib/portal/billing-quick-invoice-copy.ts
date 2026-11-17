@@ -102,9 +102,9 @@ const copy = {
     'Cria um rascunho com exatamente este valor e o abre. Nada é enviado ao cliente.',
   ],
   amountChanged: [
-    'The amount changed while you were looking (records were updated). Check the new total and press Create invoice again.',
-    'El importe cambió mientras mirabas (se actualizaron registros). Revisa el nuevo total y pulsa Crear factura otra vez.',
-    'O valor mudou enquanto você olhava (registros foram atualizados). Confira o novo total e clique em Criar fatura novamente.',
+    'The amount changed while you were looking (records were updated). Check the new total and press Issue invoice again.',
+    'El importe cambió mientras mirabas (se actualizaron registros). Revisa el nuevo total y pulsa Emitir factura otra vez.',
+    'O valor mudou enquanto você olhava (registros foram atualizados). Confira o novo total e clique em Emitir fatura novamente.',
   ],
   createFailed: [
     'The invoice could not be created. Nothing was saved.',
@@ -478,6 +478,63 @@ const copy = {
   people: ['people', 'personas', 'pessoas'],
   close: ['Close', 'Cerrar', 'Fechar'],
   lines: ['Lines', 'Líneas', 'Linhas'],
+  // Split by assignment PO (owner decision 2026-11-17)
+  splitTitle: ['{count} invoices, one per PO', '{count} facturas, una por PO', '{count} faturas, uma por PO'],
+  splitHelp: [
+    'People on these dates have different POs. Each invoice prints its own PO; they are created together.',
+    'Las personas de estas fechas tienen PO distintos. Cada factura lleva su PO; se crean todas a la vez.',
+    'As pessoas destas datas têm POs diferentes. Cada fatura leva o seu PO; são criadas juntas.',
+  ],
+  splitNoPo: ['Project PO', 'PO del proyecto', 'PO do projeto'],
+  splitIssued: ['{count} invoices issued', '{count} facturas emitidas', '{count} faturas emitidas'],
+  splitDrafts: ['{count} drafts saved', '{count} borradores guardados', '{count} rascunhos salvos'],
+  issueConfirmSplit: [
+    'Issue {count} invoices for {amount} in total?',
+    '¿Emitir {count} facturas por {amount} en total?',
+    'Emitir {count} faturas no total de {amount}?',
+  ],
+  saveDraftsSplit: ['Save {count} drafts', 'Guardar {count} borradores', 'Salvar {count} rascunhos'],
+  issueButtonSplit: ['Issue {count} invoices', 'Emitir {count} facturas', 'Emitir {count} faturas'],
+  // Expenses waiting for approval / a client decision
+  approveExpenseOne: ['1 expense not approved yet', '1 gasto sin aprobar', '1 despesa não aprovada'],
+  approveExpenses: ['{count} expenses not approved yet', '{count} gastos sin aprobar', '{count} despesas não aprovadas'],
+  expenseOne: ['1 expense', '1 gasto', '1 despesa'],
+  expenseMany: ['{count} expenses', '{count} gastos', '{count} despesas'],
+  approveExpenseFirst: [
+    'First decide below how the client pays these expenses.',
+    'Primero decide abajo cómo paga el cliente estos gastos.',
+    'Primeiro defina abaixo como o cliente paga estas despesas.',
+  ],
+  approveConfirmExpenses: [
+    'Approve {count} expenses of {name}?',
+    '¿Aprobar {count} gastos de {name}?',
+    'Aprovar {count} despesas de {name}?',
+  ],
+  rateSavedProject: [
+    'Saved as the project rate from {date} (Rates → Project rate).',
+    'Guardada como tarifa del proyecto desde {date} (Tarifas → Tarifa del proyecto).',
+    'Salva como tarifa do projeto a partir de {date} (Tarifas → Tarifa do projeto).',
+  ],
+  // Foreign-currency expenses: exact conversion entered here
+  convertHelp: [
+    'Recorded in {from}. Enter the exact conversion to {to} from the receipt or bank statement.',
+    'Registrado en {from}. Escribe la conversión exacta a {to} del recibo o del extracto.',
+    'Registrado em {from}. Digite a conversão exata para {to} do recibo ou extrato.',
+  ],
+  convertAmount: ['Amount in {to}', 'Importe en {to}', 'Valor em {to}'],
+  convertRate: ['or rate: 1 {from} = ? {to}', 'o cambio: 1 {from} = ? {to}', 'ou câmbio: 1 {from} = ? {to}'],
+  convertNeeded: [
+    'Enter the {to} amount or the exchange rate of this {from} expense, or leave it out.',
+    'Escribe el importe en {to} o el cambio de este gasto en {from}, o déjalo fuera.',
+    'Digite o valor em {to} ou o câmbio desta despesa em {from}, ou deixe-a de fora.',
+  ],
+  expenseLeaveOut: ['Leave out of this invoice', 'Dejar fuera de esta factura', 'Deixar fora desta fatura'],
+  expenseLeftOut: [
+    'Left out of this invoice ({count})',
+    'Fuera de esta factura ({count})',
+    'Fora desta fatura ({count})',
+  ],
+  expenseInclude: ['Include again', 'Volver a incluir', 'Incluir de novo'],
   ifApproved: ['If approved', 'Si se aprueba', 'Se aprovado'],
 } satisfies Record<string, Triple>;
 

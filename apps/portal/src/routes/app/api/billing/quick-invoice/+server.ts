@@ -30,6 +30,7 @@ import {
   quickInvoiceSetRate,
   quickInvoiceSetupBilling,
   quickInvoiceUpdateClient,
+  linkReplacement,
 } from '$lib/server/billing-quick-invoice-fixes';
 
 const headers = { 'cache-control': 'private, no-store', 'x-content-type-options': 'nosniff' };
@@ -113,7 +114,11 @@ const scopeFields = {
   periodEnd: z.iso.date(),
   billingRuleId: z.string().min(1).max(200).optional(),
   overrides: overridesSchema.optional(),
+  /** Unclassified expenses left out of this invoice (they stay unclassified). */
+  excludedExpenseIds: z.array(idSchema).max(200).optional(),
 };
+/** Split by PO: the parts the user saw ("PO=total|…"); null/absent = one invoice. */
+const splitGuard = z.string().max(8000).nullable().optional();
 const requestKey = z.string().trim().min(8).max(200);
 const refSchema = z
   .object({ type: z.enum(['time', 'expense']), id: z.string().min(1).max(200), version: z.number().int().positive() })
@@ -124,7 +129,16 @@ const createSchema = z
   .strict();
 /** One request per fix; every write re-checks scope server side and returns the new preview. */
 const operationSchema = z.discriminatedUnion('operation', [
-  z.object({ operation: z.literal('create'), ...scopeFields, expectedTotalMinor: z.string().regex(/^\d{1,18}$/u), requestKey }).strict(),
+  z
+    .object({
+      operation: z.literal('create'),
+      ...scopeFields,
+      expectedTotalMinor: z.string().regex(/^\d{1,18}$/u),
+      requestKey,
+      expectedSplit: splitGuard,
+      replacesInvoiceId: idSchema.optional(),
+    })
+    .strict(),
   z
     .object({
       operation: z.literal('issue'),
@@ -133,6 +147,8 @@ const operationSchema = z.discriminatedUnion('operation', [
       requestKey,
       locale: z.enum(['en', 'es', 'pt']).default('en'),
       purchaseNo: z.string().trim().max(200).optional(),
+      expectedSplit: splitGuard,
+      replacesInvoiceId: idSchema.optional(),
     })
     .strict(),
   z.object({ operation: z.literal('includePending'), ...scopeFields, sources: z.array(refSchema).min(1).max(1000), requestKey }).strict(),
@@ -146,6 +162,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       amount: money,
       effectiveFrom: z.iso.date(),
       scope: z.literal('project').default('project'),
+      appliesTo: z.enum(['project', 'person']).default('person'),
     })
     .strict(),
   z
@@ -156,6 +173,13 @@ const operationSchema = z.discriminatedUnion('operation', [
       treatment: z.enum(['reimbursable', 'all_in', 'non_billable']),
       markupBps: z.number().int().min(0).max(10_000).default(0),
       requestKey,
+      conversion: z
+        .object({
+          rate: z.string().trim().max(24).optional(),
+          convertedAmount: z.string().trim().max(24).optional(),
+        })
+        .strict()
+        .optional(),
     })
     .strict(),
   z.object({ operation: z.literal('applyExpenseConditions'), ...scopeFields, source: refSchema, requestKey }).strict(),
@@ -283,6 +307,10 @@ export const GET: RequestHandler = ({ locals, url }) => {
     }
     const detail = raw.detail;
     const offset = Number(raw.offset ?? 0);
+    const excluded = (raw.excluded ?? '').split(',').filter(Boolean);
+    if (excluded.length > 200 || excluded.some((id) => !idSchema.safeParse(id).success))
+      return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+    delete raw.excluded;
     delete raw.overrides;
     delete raw.detail;
     delete raw.offset;
@@ -298,7 +326,10 @@ export const GET: RequestHandler = ({ locals, url }) => {
       );
     }
     return json(
-      { success: true, preview: quickInvoicePreview(context, { ...parsed.data, overrides }) },
+      {
+        success: true,
+        preview: quickInvoicePreview(context, { ...parsed.data, overrides, excludedExpenseIds: excluded }),
+      },
       { headers },
     );
   } catch (caught) {
@@ -339,10 +370,18 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
       periodEnd: command.periodEnd,
       ...(command.billingRuleId ? { billingRuleId: command.billingRuleId } : {}),
       overrides: engineOverrides(command.overrides),
+      excludedExpenseIds: command.excludedExpenseIds ?? [],
     };
     context = openPortalRepository(locals);
     if (command.operation === 'create') {
-      const result = quickInvoiceCreate(context, { ...scope, expectedTotalMinor: command.expectedTotalMinor, requestKey: command.requestKey });
+      const result = quickInvoiceCreate(context, {
+        ...scope,
+        expectedTotalMinor: command.expectedTotalMinor,
+        requestKey: command.requestKey,
+        expectedSplit: command.expectedSplit ?? null,
+      });
+      if (result.ok && command.replacesInvoiceId)
+        linkReplacement(context, command.projectId, result.invoiceId, command.replacesInvoiceId);
       return json({ success: result.ok, ...result }, { status: result.ok ? 200 : 409, headers });
     }
     if (command.operation === 'issue') {
@@ -352,6 +391,8 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         requestKey: command.requestKey,
         locale: command.locale,
         ...(command.purchaseNo ? { purchaseNo: command.purchaseNo } : {}),
+        expectedSplit: command.expectedSplit ?? null,
+        replacesInvoiceId: command.replacesInvoiceId ?? null,
       });
       return json({ success: result.ok, ...result }, { status: result.ok ? 200 : 409, headers });
     }

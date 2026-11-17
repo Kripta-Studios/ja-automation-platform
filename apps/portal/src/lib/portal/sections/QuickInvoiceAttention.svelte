@@ -12,6 +12,8 @@
     fromDate?: string;
     suggestedRateMinor?: string | null;
     sources?: AttentionRef[];
+    expenseCount?: number;
+    unclassifiedExpenseCount?: number;
   };
   export type AttentionItem = {
     kind:
@@ -61,6 +63,8 @@
     markupBps: number;
     locked: boolean;
     policyAvailable: boolean;
+    foreign?: boolean;
+    excluded?: boolean;
   };
   export type AttentionClient = {
     id: string;
@@ -112,6 +116,7 @@
     otherText,
     recordHref,
     onInvoiceRate,
+    onExclude,
   }: {
     locale?: PortalLocale;
     role?: string;
@@ -129,6 +134,8 @@
     recordHref: (workerId: string) => string;
     /** "Save as project rate" unticked: the rate applies to this invoice only (override). */
     onInvoiceRate?: (workerId: string, amount: string) => Promise<boolean>;
+    /** "Leave out of this invoice" for an unclassified expense (true) and its undo (false). */
+    onExclude?: (expenseId: string, excluded: boolean) => void;
   } = $props();
 
   const t = (key: QuickInvoiceCopyKey) => quickInvoiceText(locale, key);
@@ -147,6 +154,7 @@
   const decimal = (minor: string | null | undefined) =>
     minor ? new Intl.NumberFormat(locale, { minimumFractionDigits: 2, useGrouping: false }).format(Number(minor) / 100) : '';
 
+  const zeroAmount = $derived(new Intl.NumberFormat(locale, { minimumFractionDigits: 2 }).format(0));
   let busy = $state('');
   let saved = $state('');
   let errors = $state<Record<string, string>>({});
@@ -155,6 +163,8 @@
   let rates = $state<Record<string, string>>({});
   let saveAsProject = $state<Record<string, boolean>>({});
   let treatments = $state<Record<string, { treatment: string; markup: string }>>({});
+  /** Foreign-currency expenses: the exact rate or converted amount typed by the owner. */
+  let conversions = $state<Record<string, { rate: string; amount: string }>>({});
   let clientForm = $state({ billingAddress: '', billingEmail: '', legalName: '', taxId: '' });
   let clientFormFor = $state('');
   let setup = $state({ legalEntityId: '', tax: 'none', taxName: '', taxPercent: '', cadence: 'manual' });
@@ -237,7 +247,7 @@
     void item;
   }
 
-  async function saveRate(kind: 'client' | 'cost' | 'pay', person: AttentionPerson, alsoCost = false) {
+  async function saveRate(kind: 'client' | 'cost' | 'pay', person: AttentionPerson, alsoCost = false, item?: AttentionItem) {
     const key = `${kind}:${person.workerId}`;
     const amount = (rates[key] ?? '').trim();
     if (!/^\d{1,10}(?:[.,]\d{1,2})?$/u.test(amount) || Number(amount.replace(',', '.')) <= 0) {
@@ -259,16 +269,26 @@
       }
       return;
     }
+    // "Save as this project's rate": the project rate (everyone without a personal rate), from
+    // the earliest work still waiting for a rate, so every un-invoiced hour is priced.
+    const projectRate = kind === 'client' && saveAsProject[person.workerId] !== false;
+    const fromDates = (projectRate ? (item?.people ?? [person]) : [person])
+      .map((candidate) => candidate.fromDate)
+      .filter((date): date is string => Boolean(date))
+      .sort();
     const result = await act(key, 'setRate', {
       kind,
       workerId: person.workerId,
       amount,
-      effectiveFrom: person.fromDate,
+      effectiveFrom: fromDates[0] ?? person.fromDate,
       scope: 'project',
+      ...(kind === 'client' ? { appliesTo: projectRate ? 'project' : 'person' } : {}),
       ...(kind === 'pay' ? { alsoCost } : {}),
     });
     if (result?.success && result.result?.shifted && result.result.effectiveFrom)
       notes = { ...notes, rates: f('rateAfterIssued', { date: dateText(result.result.effectiveFrom) }) };
+    else if (result?.success && projectRate && result.result?.effectiveFrom)
+      notes = { ...notes, rates: f('rateSavedProject', { date: dateText(result.result.effectiveFrom) }) };
     if (result?.success) {
       await tick();
       root?.querySelector<HTMLInputElement>('[data-attention-rate-input]')?.focus();
@@ -278,12 +298,28 @@
   async function saveTreatment(row: ExpenseRow) {
     const choice = treatmentOf(row);
     const markup = Math.round(Number((choice.markup || '0').replace(',', '.')) * 100);
-    await act(`expense:${row.ref.id}`, 'setExpenseTreatment', {
+    const key = `expense:${row.ref.id}`;
+    const conversion = conversions[row.ref.id] ?? { rate: '', amount: '' };
+    if (row.foreign && !conversion.rate.trim() && !conversion.amount.trim()) {
+      errors = { ...errors, [key]: f('convertNeeded', { from: row.currency, to: currency }) };
+      return;
+    }
+    await act(key, 'setExpenseTreatment', {
       source: row.ref,
       treatment: choice.treatment,
       markupBps: Number.isFinite(markup) ? Math.max(0, Math.min(10000, markup)) : 0,
       requestKey: newKey(),
+      ...(row.foreign
+        ? {
+            conversion: conversion.amount.trim()
+              ? { convertedAmount: conversion.amount.trim() }
+              : { rate: conversion.rate.trim() },
+          }
+        : {}),
     });
+  }
+  function setConversion(row: ExpenseRow, patch: Partial<{ rate: string; amount: string }>) {
+    conversions = { ...conversions, [row.ref.id]: { rate: '', amount: '', ...conversions[row.ref.id], ...patch } };
   }
 
   async function applyConditions(rows: ExpenseRow[]) {
@@ -319,9 +355,10 @@
   function onRateKey(event: KeyboardEvent, kind: 'client' | 'cost' | 'pay', person: AttentionPerson, alsoCost = false) {
     if (event.key === 'Enter') {
       event.preventDefault();
-      void saveRate(kind, person, alsoCost);
+      void saveRate(kind, person, alsoCost, rateItem);
     }
   }
+  let rateItem: AttentionItem | undefined;
 
   const peopleOf = (item: AttentionItem) =>
     showAllPeople[item.kind] ? (item.people ?? []) : (item.people ?? []).slice(0, 3);
@@ -341,6 +378,12 @@
     return parts.join(' · ');
   };
   const timeHref = (person: AttentionPerson) => recordHref(person.workerId);
+  /** Only expenses (no hours): expense wording, no "Change hours". */
+  const expenseOnly = (person: AttentionPerson) => Boolean(person.expenseCount) && person.expenseCount === person.count;
+  /** Approving would include nothing: every record is an expense without a client decision. */
+  const blockedByTreatment = (person: AttentionPerson) =>
+    Boolean(person.unclassifiedExpenseCount) && person.unclassifiedExpenseCount === person.count;
+  const excludedRows = $derived(expenseRows.filter((row) => row.excluded && row.classificationState === 'unclassified'));
 </script>
 
 {#snippet status(key: string)}
@@ -369,9 +412,13 @@
           <span class="qa__dot" aria-hidden="true"></span>
           {collapsed
             ? f('approveGroupMany', { people: item.totalCount, hours: hours(item.minutes ?? 0) })
-            : people.reduce((total, person) => total + person.count, 0) === 1
-              ? t('approveGroupOne')
-              : f('approveGroup', { count: people.reduce((total, person) => total + person.count, 0) })}
+            : people.every((person) => expenseOnly(person))
+              ? people.reduce((total, person) => total + person.count, 0) === 1
+                ? t('approveExpenseOne')
+                : f('approveExpenses', { count: people.reduce((total, person) => total + person.count, 0) })
+              : people.reduce((total, person) => total + person.count, 0) === 1
+                ? t('approveGroupOne')
+                : f('approveGroup', { count: people.reduce((total, person) => total + person.count, 0) })}
         </h4>
         <ul class="qa__people">
           {#each peopleOf(item) as person (person.workerId)}
@@ -380,9 +427,12 @@
               <div class="qa__person-main">
                 <strong>{person.name}</strong>
                 <span>
-                  {#if person.minutes}{hours(person.minutes)} h{/if}{#if person.projectedMinor}{person.minutes ? ' · ' : ''}+{money(person.projectedMinor)}{/if}
+                  {#if person.minutes}{hours(person.minutes)} h{:else if person.expenseCount}{person.expenseCount === 1
+                      ? t('expenseOne')
+                      : f('expenseMany', { count: person.expenseCount })}{/if}{#if person.projectedMinor}{person.minutes || person.expenseCount ? ' · ' : ''}+{money(person.projectedMinor)}{/if}
                   <small>· {statesText(person)}</small>
                 </span>
+                {#if blockedByTreatment(person)}<small class="qa__amber" data-attention-approve-blocked>{t('approveExpenseFirst')}</small>{/if}
                 {#if person.returnedReason}<small class="qa__amber">{f('approveReturnedNote', { reason: person.returnedReason })}</small>{/if}
               </div>
               {#if !collapsed}
@@ -391,23 +441,27 @@
                     type="button"
                     class="primary-button qa__btn"
                     aria-expanded={openPop === key}
-                    disabled={disabled || Boolean(busy)}
+                    disabled={disabled || Boolean(busy) || blockedByTreatment(person)}
                     onclick={() => (openPop = openPop === key ? '' : key)}
                     data-attention-approve>{t('approveInclude')}</button
                   >
-                  <button
-                    type="button"
-                    class="qa__link"
-                    aria-expanded={openPop === `fix:${person.workerId}`}
-                    onclick={() => (openPop = openPop === `fix:${person.workerId}` ? '' : `fix:${person.workerId}`)}
-                    >{t('fixRecord')}</button
-                  >
+                  {#if !expenseOnly(person)}
+                    <button
+                      type="button"
+                      class="qa__link"
+                      aria-expanded={openPop === `fix:${person.workerId}`}
+                      onclick={() => (openPop = openPop === `fix:${person.workerId}` ? '' : `fix:${person.workerId}`)}
+                      >{t('fixRecord')}</button
+                    >
+                  {/if}
                 </div>
               {/if}
               {#if openPop === key}
                 <div class="qa__pop" role="dialog" aria-modal="false" aria-labelledby={`qa-pop-${person.workerId}`}>
                   <strong id={`qa-pop-${person.workerId}`}
-                    >{f('approveConfirmTitle', { count: person.count, name: person.name, hours: hours(person.minutes) })}</strong
+                    >{expenseOnly(person)
+                      ? f('approveConfirmExpenses', { count: person.count, name: person.name })
+                      : f('approveConfirmTitle', { count: person.count, name: person.name, hours: hours(person.minutes) })}</strong
                   >
                   <p>{f('approveConfirmBody', { role: roleText })}</p>
                   {#if person.futureCount}<p class="qa__amber">{f('approveFutureNote', { count: person.futureCount })}</p>{/if}
@@ -506,11 +560,14 @@
                     type="text"
                     inputmode="decimal"
                     autocomplete="off"
-                    placeholder={person.suggestedRateMinor ? decimal(person.suggestedRateMinor) : '0,00'}
+                    placeholder={person.suggestedRateMinor ? decimal(person.suggestedRateMinor) : zeroAmount}
                     aria-label={kind === 'client' ? f('rateLabel', { name: person.name }) : `${kind === 'pay' ? t('payLabel') : t('costLabel')} · ${person.name}`}
                     aria-describedby={errors[key] ? `qa-error-${key.replace(/[^a-z0-9]/giu, '-')}` : undefined}
                     bind:value={rates[key]}
-                    onkeydown={(event) => onRateKey(event, kind, person, alsoCost)}
+                    onkeydown={(event) => {
+                      rateItem = item;
+                      onRateKey(event, kind, person, alsoCost);
+                    }}
                     disabled={disabled || busy === key}
                     data-attention-rate-input={kind}
                   />
@@ -519,7 +576,7 @@
                     type="button"
                     class="secondary-button qa__btn"
                     disabled={disabled || Boolean(busy)}
-                    onclick={() => saveRate(kind, person, alsoCost)}>{t('save')}</button
+                    onclick={() => saveRate(kind, person, alsoCost, item)}>{t('save')}</button
                   >
                 </span>
               </label>
@@ -697,6 +754,19 @@
       {/if}
     </section>
   {/each}
+  {#if excludedRows.length && onExclude}
+    <section class="qa__item qa__item--info" data-attention-excluded={excludedRows.length}>
+      <h4><span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>{f('expenseLeftOut', { count: excludedRows.length })}</h4>
+      <ul class="qa__people">
+        {#each excludedRows as row (row.ref.id)}
+          <li class="qa__person">
+            <span>{row.label || '—'} · {dateText(row.date)} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
+            <button type="button" class="qa__link" disabled={disabled} onclick={() => onExclude?.(row.ref.id, false)}>{t('expenseInclude')}</button>
+          </li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
   {#if expenseRows.some((row) => row.classificationState !== 'unclassified')}
     <details class="qa__expenses" data-attention-expense-list>
       <summary>{t('expenseList')} ({expenseRows.length})</summary>
@@ -741,6 +811,38 @@
           >{t('save')}</button
         >
       </div>
+      {#if row.foreign}
+        {@const conversion = conversions[row.ref.id] ?? { rate: '', amount: '' }}
+        <div class="qa__convert" data-attention-convert={row.ref.id}>
+          <small class="qa__muted">{f('convertHelp', { from: row.currency, to: currency })}</small>
+          <label class="qa__field"
+            ><span>{f('convertAmount', { to: currency })}</span><input
+              value={conversion.amount}
+              oninput={(event) => setConversion(row, { amount: (event.currentTarget as HTMLInputElement).value })}
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder={zeroAmount}
+              data-attention-convert-amount
+            /></label
+          >
+          <label class="qa__field"
+            ><span>{f('convertRate', { from: row.currency, to: currency })}</span><input
+              value={conversion.rate}
+              oninput={(event) => setConversion(row, { rate: (event.currentTarget as HTMLInputElement).value })}
+              inputmode="decimal"
+              autocomplete="off"
+              placeholder={new Intl.NumberFormat(locale, { minimumFractionDigits: 4 }).format(1)}
+              disabled={Boolean(conversion.amount.trim())}
+              data-attention-convert-rate
+            /></label
+          >
+        </div>
+      {/if}
+      {#if row.classificationState === 'unclassified' && onExclude}
+        <button type="button" class="qa__link" disabled={disabled || Boolean(busy)} onclick={() => onExclude?.(row.ref.id, true)} data-attention-exclude
+          >{t('expenseLeaveOut')}</button
+        >
+      {/if}
     {/if}
     {@render status(key)}
   </li>
@@ -988,6 +1090,15 @@
   }
   .qa__treatment select {
     min-height: 2.75rem;
+  }
+  .qa__convert {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+    gap: 0.4rem 0.6rem;
+    align-items: end;
+  }
+  .qa__convert small {
+    grid-column: 1 / -1;
   }
   .qa__markup {
     display: flex;

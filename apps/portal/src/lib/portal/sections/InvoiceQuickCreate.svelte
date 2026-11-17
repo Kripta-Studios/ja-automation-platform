@@ -60,7 +60,20 @@
     unbilledMinutes: number;
     unbilledFrom: string | null;
     lastInvoicedThrough: string | null;
+    openFrom?: string | null;
+    openThrough?: string | null;
   };
+  type SplitPart = {
+    poKey: string | null;
+    purchaseNo: string | null;
+    people: Array<{ workerId: string; name: string; minutes: number }>;
+    sourceCount: number;
+    subtotalMinor: string;
+    taxMinor: string;
+    totalMinor: string;
+  };
+  type Split = { parts: SplitPart[]; totalMinor: string; signature: string };
+  type Issued = { invoiceId: string; number: string | null; totalMinor: string; purchaseNo: string | null };
   type Warning = {
     code: string;
     severity: 'blocker' | 'excluded' | 'issue' | 'info';
@@ -146,6 +159,7 @@
     overrides: Overrides | null;
     taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
     streamTaxProfileId: string | null;
+    split?: Split | null;
   };
   type PeriodChoice = { id: string; label: string; start: string; end: string };
 
@@ -157,6 +171,7 @@
     initialPeriodEnd = '',
     initialBillingRuleId = '',
     replacement = false,
+    replacesInvoiceId = '',
     translate,
     onAdvancedRecords,
   }: {
@@ -167,6 +182,8 @@
     initialPeriodEnd?: string;
     initialBillingRuleId?: string;
     replacement?: boolean;
+    /** The voided invoice this one replaces (linked and audited on create/issue). */
+    replacesInvoiceId?: string;
     translate: (value: string) => string;
     onAdvancedRecords?: (scope: AdvancedScope) => void;
   } = $props();
@@ -196,6 +213,11 @@
   let purchaseNo = $state('');
   let issueMessage = $state('');
   let issueFailedInvoice = $state('');
+  /** Unclassified expenses left out of this invoice (sent with every request). */
+  let excludedExpenses = $state<string[]>([]);
+  /** Split by PO: invoices issued (or drafts saved) in the last action. */
+  let doneInvoices = $state<Issued[]>([]);
+  let doneKind = $state<'issued' | 'drafts'>('issued');
   const noOverrides = (): Overrides => ({ people: [], tax: null, purchaseNo: null });
   let overrides = $state<Overrides>(noOverrides());
   /** Open "Change" panel of a labor line (`worker:category`) or 'tax'. */
@@ -302,11 +324,14 @@
       } else {
         // On-demand billing: everything since the last invoice, through today.
         const effectiveFrom = stream?.effectiveFrom ?? project?.unbilledFrom ?? today;
-        const sinceStart = project?.lastInvoicedThrough
+        let sinceStart = project?.lastInvoicedThrough
           ? shiftDate(project.lastInvoicedThrough, 1)
           : effectiveFrom;
+        // Late entries dated before the last invoice, and logged future days, are included.
+        if (project?.openFrom && project.openFrom < sinceStart) sinceStart = project.openFrom;
         const start = sinceStart < effectiveFrom ? effectiveFrom : sinceStart;
-        if (start <= today) choices.push({ id: 'since', label: t('sinceLast'), start, end: today });
+        const end = project?.openThrough && project.openThrough > today ? project.openThrough : today;
+        if (start <= end) choices.push({ id: 'since', label: t('sinceLast'), start, end });
         choices.push({ id: 'last', label: t('lastMonth'), ...monthRange(-1) });
         choices.push({ id: 'current', label: t('thisMonth'), ...monthRange(0) });
       }
@@ -319,6 +344,8 @@
 
   function chooseProject(id: string): void {
     resetOverrides();
+    excludedExpenses = [];
+    doneInvoices = [];
     projectId = id;
     choosingProject = false;
     query = '';
@@ -375,6 +402,7 @@
     if (streamOverride) params.set('billingRuleId', streamOverride);
     const sent = overridesPayload();
     if (sent) params.set('overrides', JSON.stringify(sent));
+    if (excludedExpenses.length) params.set('excluded', excludedExpenses.join(','));
     try {
       const response = await fetch(`${api}?${params}`, {
         signal: current.signal,
@@ -438,16 +466,33 @@
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
-          expectedTotalMinor: preview.totalMinor,
+          ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
+          ...splitGuard(),
+          ...(replacesInvoiceId ? { replacesInvoiceId } : {}),
           requestKey,
         }),
       });
       const body = (await response.json()) as {
         ok?: boolean;
         invoiceId?: string;
+        invoiceIds?: string[];
+        totalMinor?: string;
         reason?: string;
         preview?: Preview;
       };
+      if (body.ok && body.invoiceIds && body.invoiceIds.length > 1) {
+        // One draft per PO: list them here (each opens on its own).
+        const parts = preview.split?.parts ?? [];
+        doneKind = 'drafts';
+        doneInvoices = body.invoiceIds.map((invoiceId, index) => ({
+          invoiceId,
+          number: null,
+          totalMinor: parts[index]?.totalMinor ?? '0',
+          purchaseNo: parts[index]?.purchaseNo ?? null,
+        }));
+        await loadPreview();
+        return;
+      }
       if (body.ok && body.invoiceId) {
         await goto(
           `${base}/app/billing/invoices/${encodeURIComponent(body.invoiceId)}?lang=${locale}&created=1`,
@@ -480,10 +525,15 @@
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
+          ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
           ...payload,
         }),
       });
       const body = (await response.json()) as RunResult & { preview?: Preview; problem?: { message?: string } };
+      if (!response.ok && !body.preview && (response.status === 409 || /CONFLICT|STALE/u.test(body.code ?? ''))) {
+        // A record changed meanwhile: show its current state so the next try uses it.
+        await loadPreview();
+      }
       if (body.preview) {
         preview = body.preview;
         requestKey = newKey();
@@ -528,7 +578,9 @@
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
-          expectedTotalMinor: preview.totalMinor,
+          ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
+          ...splitGuard(),
+          ...(replacesInvoiceId ? { replacesInvoiceId } : {}),
           requestKey,
           locale: locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en',
         }),
@@ -536,10 +588,18 @@
       const body = (await response.json()) as {
         ok?: boolean;
         invoiceId?: string;
+        invoices?: Issued[];
         reason?: string;
         message?: string;
         preview?: Preview;
       };
+      if (body.ok && body.invoices && body.invoices.length > 1) {
+        doneKind = 'issued';
+        doneInvoices = body.invoices;
+        issueOpen = false;
+        await loadPreview();
+        return;
+      }
       if (body.ok && body.invoiceId) {
         await goto(
           `${base}/app/billing/invoices/${encodeURIComponent(body.invoiceId)}?lang=${locale}&issued=1`,
@@ -563,6 +623,20 @@
     } finally {
       issuing = false;
     }
+  }
+
+  /** Create/issue guard: the amount (and, when split by PO, the parts) the user saw. */
+  function splitGuard(): { expectedTotalMinor: string; expectedSplit?: string } {
+    const split = preview?.split;
+    return split
+      ? { expectedTotalMinor: split.totalMinor, expectedSplit: split.signature }
+      : { expectedTotalMinor: preview?.totalMinor ?? '0' };
+  }
+
+  /** "Leave out of this invoice" for an unclassified expense (and undo). */
+  function setExcluded(id: string, value: boolean): void {
+    excludedExpenses = value ? [...new Set([...excludedExpenses, id])] : excludedExpenses.filter((entry) => entry !== id);
+    void loadPreview();
   }
 
   let lastGoodOverrides: Overrides | null = null;
@@ -968,6 +1042,8 @@
       ? preview.projected.includedPendingMinor
       : null,
   );
+  /** One invoice per PO (only when the amount shown is what would be created now). */
+  const split = $derived(preview?.split && shown === preview ? preview.split : null);
   const datesAdjusted = $derived(
     Boolean(preview && (preview.periodStart !== periodStart || preview.periodEnd !== periodEnd)),
   );
@@ -1173,12 +1249,50 @@
                 data-quick-invoice-shown-total={shown.totalMinor}
               >
                 <span>{preview.projected && shown === preview.projected ? t('ifApproved') : t('amountHeading')}</span>
-                <strong>{money(shown.totalMinor)}</strong>
+                <strong>{money(split ? split.totalMinor : shown.totalMinor)}</strong>
                 {#if preview.projected && BigInt(preview.projected.includedPendingMinor) > 0n}
                   <small data-quick-invoice-projected
                     >{quickInvoiceFormat(locale, 'projected', { amount: money(preview.projected.includedPendingMinor) })}</small
                   >
                 {/if}
+              </div>
+            {/if}
+
+            {#if split}
+              <div class="quick-invoice__split" data-quick-invoice-split={split.parts.length}>
+                <strong>{quickInvoiceFormat(locale, 'splitTitle', { count: split.parts.length })}</strong>
+                <small>{t('splitHelp')}</small>
+                <ul>
+                  {#each split.parts as part, index (index)}
+                    <li data-quick-invoice-split-part={part.poKey ?? ''}>
+                      <span
+                        ><b>{part.purchaseNo ? `PO ${part.purchaseNo}` : t('splitNoPo')}</b>
+                        · {part.people.map((person) => person.name).join(', ')}{#if part.people.some((person) => person.minutes)}
+                          · {hours(part.people.reduce((total, person) => total + person.minutes, 0))} h{/if}</span
+                      >
+                      <strong>{money(part.totalMinor)}</strong>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+            {#if doneInvoices.length}
+              <div class="quick-invoice__done" role="status" data-quick-invoice-done={doneInvoices.length}>
+                <strong
+                  >{quickInvoiceFormat(locale, doneKind === 'issued' ? 'splitIssued' : 'splitDrafts', {
+                    count: doneInvoices.length,
+                  })}</strong
+                >
+                <ul>
+                  {#each doneInvoices as done (done.invoiceId)}
+                    <li>
+                      <a href={`${base}/app/billing/invoices/${encodeURIComponent(done.invoiceId)}?lang=${locale}`}
+                        >{done.number ?? t('draft')}</a
+                      >
+                      <span>{done.purchaseNo ? `PO ${done.purchaseNo}` : '—'} · {money(done.totalMinor)}</span>
+                    </li>
+                  {/each}
+                </ul>
               </div>
             {/if}
 
@@ -1196,6 +1310,7 @@
                 {newKey}
                 fixHref={(fix) => fixHref({ code: '', severity: 'info', count: 0, minutes: 0, fix: fix ?? null })}
                 onInvoiceRate={invoiceRate}
+                onExclude={setExcluded}
                 otherText={attentionText}
                 recordHref={(workerId) =>
                   `${base}/app${billingReadinessReviewPath(['pending_time_submission'], projectId, { start: preview!.periodStart, end: preview!.periodEnd })}&worker=${encodeURIComponent(workerId)}&lang=${locale}`}
@@ -1601,7 +1716,9 @@
       {#if issueOpen && preview?.state === 'ready'}
         <div class="quick-invoice__confirm" role="dialog" aria-modal="false" aria-labelledby="quick-invoice-confirm-title" data-quick-invoice-confirm>
           <strong id="quick-invoice-confirm-title"
-            >{quickInvoiceFormat(locale, 'issueConfirmTitle', { amount: money(preview.totalMinor) })}</strong
+            >{split
+              ? quickInvoiceFormat(locale, 'issueConfirmSplit', { count: split.parts.length, amount: money(split.totalMinor) })
+              : quickInvoiceFormat(locale, 'issueConfirmTitle', { amount: money(preview.totalMinor) })}</strong
           >
           <p>
             {quickInvoiceFormat(locale, 'issueConfirmBody', {
@@ -1628,7 +1745,7 @@
         <div class="quick-invoice__actionbar-total">
           {#if shown}
             <span>{t('total')}</span>
-            <strong>{money(canIssue || canSaveDraft ? preview!.totalMinor : shown.totalMinor)}</strong>
+            <strong>{money(split ? split.totalMinor : canIssue || canSaveDraft ? preview!.totalMinor : shown.totalMinor)}</strong>
           {:else if blocking.length}
             <span>{t('attentionHelp')}</span>
           {/if}
@@ -1640,7 +1757,12 @@
               class="quick-invoice__secondary"
               disabled={previewLoading || creating || issuing || fixing}
               onclick={createInvoice}
-              data-quick-invoice-create>{creating ? t('creating') : t('saveDraft')}</button
+              data-quick-invoice-create
+              >{creating
+                ? t('creating')
+                : split
+                  ? quickInvoiceFormat(locale, 'saveDraftsSplit', { count: split.parts.length })
+                  : t('saveDraft')}</button
             >
           {/if}
           {#if canIssue}
@@ -1650,7 +1772,8 @@
               disabled={previewLoading || creating || issuing || fixing}
               aria-expanded={issueOpen}
               onclick={() => (issueOpen = !issueOpen)}
-              data-quick-invoice-issue>{t('issueButton')} ▸</button
+              data-quick-invoice-issue
+              >{split ? quickInvoiceFormat(locale, 'issueButtonSplit', { count: split.parts.length }) : t('issueButton')} ▸</button
             >
           {:else if blocking.length}
             <button
@@ -2038,6 +2161,46 @@
   .quick-invoice__warnings li span {
     flex: 1 1 14rem;
     min-width: 0;
+  }
+  .quick-invoice__split,
+  .quick-invoice__done {
+    display: grid;
+    gap: 0.35rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-border-subdued, #e4e4df);
+    border-radius: 0.6rem;
+    background: var(--ja-canvas, #f4f4f2);
+    min-width: 0;
+  }
+  .quick-invoice__done {
+    border-color: color-mix(in srgb, var(--ja-status-success, #15803d) 45%, white);
+    background: color-mix(in srgb, var(--ja-status-success, #15803d) 6%, white);
+  }
+  .quick-invoice__split ul,
+  .quick-invoice__done ul {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .quick-invoice__split li,
+  .quick-invoice__done li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .quick-invoice__split small {
+    color: var(--ja-text-muted, #6b6b62);
+  }
+  .quick-invoice__done a {
+    font-weight: 600;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
   .quick-invoice__suggestion {
     display: flex;

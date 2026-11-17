@@ -60,6 +60,8 @@ export type HubAssignment = {
   role: string | null;
   startsOn: string;
   endsOn: string | null;
+  /** Assignment PO (migration 0081); null: the project PO applies. */
+  poNumber: string | null;
 };
 export type ProjectHubData = {
   today: string;
@@ -196,7 +198,8 @@ export function projectHubData(
     ? (
         sqlite
           .prepare(
-            `SELECT pm.id,pm.version,pm.user_id workerId,u.name,pm.assignment_role role,pm.starts_on startsOn,pm.ends_on endsOn
+            `SELECT pm.id,pm.version,pm.user_id workerId,u.name,pm.assignment_role role,pm.starts_on startsOn,pm.ends_on endsOn,
+                    ${sqlite.prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'").get() ? 'pm.po_number' : 'NULL'} poNumber
                FROM project_member pm JOIN user u ON u.id=pm.user_id
               WHERE pm.project_id=? AND pm.status='active' ORDER BY u.name`,
           )

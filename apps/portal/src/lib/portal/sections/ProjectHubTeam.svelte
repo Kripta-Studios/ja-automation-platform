@@ -19,6 +19,7 @@
     role: string | null;
     startsOn: string;
     endsOn: string | null;
+    poNumber?: string | null;
   };
   type RatePerson = { id: string; customerRate: string | null; customerRateAmount: string; customerRateBasis: string };
   type Worker = Record<string, unknown>;
@@ -175,6 +176,31 @@
       if (result.type === 'success') {
         notify(h('ended', { name: row.name }), 'success');
         endingId = '';
+        await invalidateAll();
+      } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
+    } catch {
+      notify(describe(null), 'danger');
+    } finally {
+      busy = false;
+    }
+  }
+
+  // ---------- PO per assignment (owner decision 2026-11-17) ----------
+  let poFor = $state('');
+  let poValue = $state('');
+  async function savePo(event: SubmitEvent, row: Assignment) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    try {
+      const result = await post(`${projectHref}?/setAssignmentPo`, {
+        assignmentId: row.id,
+        version: String(row.version),
+        poNumber: poValue.trim(),
+      });
+      if (result.type === 'success') {
+        notify(h('poSaved'), 'success');
+        poFor = '';
         await invalidateAll();
       } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
     } catch {
@@ -381,6 +407,24 @@
               {/if}
             </div>
           {/if}
+          {#if canSetRates || row.poNumber}
+            <div class="hub-team-rate" data-hub-po={row.workerId}>
+              <span class="hub-label">{h('poLabel')}</span>
+              {#if row.poNumber}<strong>{row.poNumber}</strong>{:else}<span class="hub-missing-text">{h('poProjectDefault')}</span>{/if}
+              {#if canSetRates}
+                <button
+                  type="button"
+                  class="quiet-button"
+                  data-hub-po-edit={row.workerId}
+                  aria-expanded={poFor === row.id}
+                  onclick={() => {
+                    poFor = poFor === row.id ? '' : row.id;
+                    poValue = row.poNumber ?? '';
+                  }}>{row.poNumber ? h('poChange') : h('poEdit')}</button
+                >
+              {/if}
+            </div>
+          {/if}
           {#if canManage}
             <button
               type="button"
@@ -391,6 +435,27 @@
                 endReason = h('reasonDefault');
               }}>{h('endAssignment')}</button
             >
+          {/if}
+          {#if poFor === row.id}
+            <div class="hub-row-panel">
+              <form class="hub-inline-form" onsubmit={(event) => savePo(event, row)} data-hub-po-form>
+                <label
+                  >{h('poFor', { name: row.name })}<input
+                    name="poNumber"
+                    maxlength="200"
+                    autocomplete="off"
+                    placeholder="1722812"
+                    bind:value={poValue}
+                    data-hub-po-input
+                  /></label
+                >
+                <small class="surface-intro">{h('poHelp')}</small>
+                <div class="hub-inline-actions">
+                  <button type="button" class="secondary-button" onclick={() => (poFor = '')}>{h('cancel')}</button>
+                  <button type="submit" class="primary-button" disabled={busy} data-hub-po-save>{h('poSave')}</button>
+                </div>
+              </form>
+            </div>
           {/if}
           {#if rateFormFor === row.workerId}
             <div class="hub-row-panel">

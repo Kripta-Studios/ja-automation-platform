@@ -1,3 +1,4 @@
+import { setAssignmentPurchaseOrder } from '$lib/server/assignment-po';
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
@@ -357,7 +358,8 @@ type DetailAction =
   | 'createInvoiceDraft'
   | 'updateProject'
   | 'deleteProject'
-  | 'setClientRate';
+  | 'setClientRate'
+  | 'setAssignmentPo';
 type DetailValues = Record<string, string>;
 type DetailProblemKey = `problem.${string}`;
 type DetailRule = readonly [
@@ -2008,6 +2010,41 @@ export const actions: Actions = {
       return actionSuccess('action.projects.projectUpdated', {}, 'Client rate saved');
     } catch (e) {
       return detailFailure(e, 'setClientRate', values, params.id);
+    } finally {
+      context?.sqlite.close();
+    }
+  },
+  /** PO per assignment (Team tab): printed on that person's invoices; project PO is the fallback. */
+  setAssignmentPo: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const values = detailValues(data);
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+        actionName: 'setAssignmentPo',
+        values,
+        remedies: [{ id: 'sign_in_again' }],
+      });
+    const parsed = z
+      .object({
+        assignmentId: z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u),
+        version: z.coerce.number().int().positive(),
+        poNumber: z.string().trim().max(200),
+      })
+      .safeParse({ assignmentId: values.assignmentId ?? '', version: values.version ?? '', poNumber: values.poNumber ?? '' });
+    if (!parsed.success)
+      return actionFail(400, 'action.error.invalid', {}, 'Enter a PO number of at most 200 characters.', {
+        code: 'PROJECT_ASSIGNMENT_PO_INVALID',
+        actionName: 'setAssignmentPo',
+        values,
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const saved = setAssignmentPurchaseOrder(context, { projectId: params.id, ...parsed.data });
+      return actionSuccess('action.projects.projectUpdated', { poNumber: saved.poNumber ?? '' }, 'PO saved');
+    } catch (e) {
+      return detailFailure(e, 'setAssignmentPo', values, params.id);
     } finally {
       context?.sqlite.close();
     }

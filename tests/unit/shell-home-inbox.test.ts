@@ -117,6 +117,25 @@ describe('home inbox projections', () => {
     });
   });
 
+  it('also lists projects whose logged hours still wait for approval (Approve & include on the invoice)', () => {
+    expect(
+      readyToInvoiceSummary([
+        { projectId: 'p', currency: 'USD', minor: '80000', label: 'P', pendingMinutes: 60 },
+        { projectId: 'm', currency: 'USD', minor: '0', label: 'BBS Mexico', pendingMinutes: 4770 },
+        { projectId: 'z', currency: 'USD', minor: '0', label: 'Z', pendingMinutes: 0 },
+      ]),
+    ).toEqual({
+      projects: 2,
+      totals: [{ currency: 'USD', minor: '80000' }],
+      pendingMinutes: 4830,
+      items: [
+        { projectId: 'p', label: 'P', currency: 'USD', minor: '80000', pendingMinutes: 60 },
+        { projectId: 'm', label: 'BBS Mexico', currency: 'USD', minor: '0', pendingMinutes: 4770 },
+      ],
+      topProjectId: 'p',
+    });
+  });
+
   it("summarises only the signed-in worker's own week", () => {
     const week = workerWeekStatus({
       weekStart: '2026-11-16',

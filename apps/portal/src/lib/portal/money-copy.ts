@@ -1,5 +1,23 @@
 /** Plain-language copy for the owner Money, Payments and Rates screens (EN/ES/PT). */
 const en = {
+  searchLabel: 'Search',
+  searchButton: 'Search',
+  clearSearch: 'Clear',
+  moneySearchPlaceholder: 'Project, number or client',
+  ratesSearchPlaceholder: 'Project, client or person',
+  showMore: 'Show more',
+  showingProjects: 'Showing {shown} of {total} projects',
+  moneyScope: 'Most money waiting first (ready to invoice + unpaid)',
+  noMatches: 'No project matches your search.',
+  onlyMissing: 'Only missing rates',
+  ratesScope: '{people} people in {projects} projects have no client rate',
+  ratesAllSet: 'Every person on an active project has a client rate.',
+  peopleOnProject: '{count} people',
+  missingOnProject: '{count} missing',
+  openProject: 'Open',
+  closeProject: 'Close',
+  showAllPeople: 'Show all {count} people',
+  openForAdvanced: 'Open a project to see its people, rate history and advanced settings.',
   moneyTitle: 'Money',
   moneyIntro: 'What you invoiced, what came in, what is still owed and what the work cost.',
   period: 'Period',
@@ -88,7 +106,8 @@ const en = {
   overdueState: 'Overdue',
   // Rates
   ratesTitle: 'Rates',
-  ratesIntro: 'What you charge clients and what you pay people. Changes start on a date; earlier work keeps its old rate.',
+  ratesIntro:
+    'What you charge clients and what you pay people. Changes start on a date; earlier work keeps its old rate.',
   whichRate: 'Which rate applies',
   whichRateHelp:
     'A personal rate for someone on a project wins. Otherwise the project rate applies. Among rates of the same kind, the one with the latest start date wins.',
@@ -150,7 +169,8 @@ const en = {
   err_invalid_date: 'Choose a valid start date.',
   err_invalid_project: 'Choose a project.',
   err_invalid_person: 'Choose a person.',
-  err_not_on_project: 'This person is not on the project on that date. Add them to the project first.',
+  err_not_on_project:
+    'This person is not on the project on that date. Add them to the project first.',
   err_same_day: 'A rate already starts on that date. Choose a later start date.',
   err_already_invoiced:
     'Work on or after that date is already invoiced. Choose a start date after the last invoice.',
@@ -171,6 +191,25 @@ const en = {
 export type MoneyCopyKey = keyof typeof en;
 
 const es: Record<MoneyCopyKey, string> = {
+  searchLabel: 'Buscar',
+  searchButton: 'Buscar',
+  clearSearch: 'Borrar',
+  moneySearchPlaceholder: 'Proyecto, número o cliente',
+  ratesSearchPlaceholder: 'Proyecto, cliente o persona',
+  showMore: 'Mostrar más',
+  showingProjects: 'Mostrando {shown} de {total} proyectos',
+  moneyScope: 'Primero los que tienen más dinero pendiente (por facturar + sin cobrar)',
+  noMatches: 'Ningún proyecto coincide con la búsqueda.',
+  onlyMissing: 'Solo tarifas que faltan',
+  ratesScope: '{people} personas en {projects} proyectos no tienen tarifa al cliente',
+  ratesAllSet: 'Todas las personas de proyectos activos tienen tarifa al cliente.',
+  peopleOnProject: '{count} personas',
+  missingOnProject: '{count} sin tarifa',
+  openProject: 'Abrir',
+  closeProject: 'Cerrar',
+  showAllPeople: 'Mostrar las {count} personas',
+  openForAdvanced:
+    'Abra un proyecto para ver sus personas, el historial de tarifas y los ajustes avanzados.',
   moneyTitle: 'Dinero',
   moneyIntro: 'Lo facturado, lo cobrado, lo que aún se debe y lo que costó el trabajo.',
   period: 'Periodo',
@@ -292,7 +331,8 @@ const es: Record<MoneyCopyKey, string> = {
   hour: 'Hora',
   day: 'Día',
   startsOn: 'Empieza el',
-  applyEveryone: 'Sustituir también las tarifas personales ({count}) para cobrar a todos esta tarifa',
+  applyEveryone:
+    'Sustituir también las tarifas personales ({count}) para cobrar a todos esta tarifa',
   alsoCost: 'Usar también como nuestro coste de mano de obra para el margen',
   saveRate: 'Guardar tarifa',
   rateSaved: 'Tarifa guardada. Se aplica al trabajo desde el {date}.',
@@ -340,6 +380,25 @@ const es: Record<MoneyCopyKey, string> = {
 };
 
 const pt: Record<MoneyCopyKey, string> = {
+  searchLabel: 'Pesquisar',
+  searchButton: 'Pesquisar',
+  clearSearch: 'Limpar',
+  moneySearchPlaceholder: 'Projeto, número ou cliente',
+  ratesSearchPlaceholder: 'Projeto, cliente ou pessoa',
+  showMore: 'Mostrar mais',
+  showingProjects: 'Mostrando {shown} de {total} projetos',
+  moneyScope: 'Primeiro os que têm mais dinheiro pendente (a faturar + a receber)',
+  noMatches: 'Nenhum projeto corresponde à pesquisa.',
+  onlyMissing: 'Só tarifas em falta',
+  ratesScope: '{people} pessoas em {projects} projetos não têm tarifa ao cliente',
+  ratesAllSet: 'Todas as pessoas em projetos ativos têm tarifa ao cliente.',
+  peopleOnProject: '{count} pessoas',
+  missingOnProject: '{count} sem tarifa',
+  openProject: 'Abrir',
+  closeProject: 'Fechar',
+  showAllPeople: 'Mostrar as {count} pessoas',
+  openForAdvanced:
+    'Abra um projeto para ver as pessoas, o histórico de tarifas e as configurações avançadas.',
   moneyTitle: 'Dinheiro',
   moneyIntro: 'O que foi faturado, o que entrou, o que ainda devem e quanto custou o trabalho.',
   period: 'Período',
@@ -461,7 +520,8 @@ const pt: Record<MoneyCopyKey, string> = {
   hour: 'Hora',
   day: 'Dia',
   startsOn: 'Começa em',
-  applyEveryone: 'Substituir também as tarifas pessoais ({count}) para cobrar todos por esta tarifa',
+  applyEveryone:
+    'Substituir também as tarifas pessoais ({count}) para cobrar todos por esta tarifa',
   alsoCost: 'Usar também como nosso custo de mão de obra para a margem',
   saveRate: 'Salvar tarifa',
   rateSaved: 'Tarifa salva. Vale para o trabalho a partir de {date}.',
@@ -489,12 +549,12 @@ const pt: Record<MoneyCopyKey, string> = {
   err_invalid_date: 'Escolha uma data de início válida.',
   err_invalid_project: 'Escolha um projeto.',
   err_invalid_person: 'Escolha uma pessoa.',
-  err_not_on_project:
-    'Esta pessoa não está no projeto nessa data. Adicione-a ao projeto primeiro.',
+  err_not_on_project: 'Esta pessoa não está no projeto nessa data. Adicione-a ao projeto primeiro.',
   err_same_day: 'Já existe uma tarifa que começa nessa data. Escolha uma data posterior.',
   err_already_invoiced:
     'O trabalho a partir dessa data já foi faturado. Escolha uma data após a última fatura.',
-  err_already_settled: 'O pagamento a partir dessa data já foi liquidado. Escolha uma data posterior.',
+  err_already_settled:
+    'O pagamento a partir dessa data já foi liquidado. Escolha uma data posterior.',
   err_more_specific:
     'Uma regra mais específica (por tipo de hora ou atividade) controla esta pessoa. Use as Configurações avançadas.',
   err_forbidden: 'Você não tem permissão para alterar tarifas.',

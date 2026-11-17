@@ -90,6 +90,9 @@
     active: boolean;
     tone?: 'danger';
     items?: Array<{ id: string; label: string; value: string; note?: string; href: string }>;
+    moreCount?: number;
+    moreHref?: string;
+    moreLabel?: string;
   };
   const inbox = $derived(data.homeInbox);
   const overdueTotals = $derived(
@@ -135,8 +138,20 @@
       rows.push({
         id: 'ready',
         label: h('readyToInvoice'),
-        value: ready.projects ? totalsText(ready.totals) : '—',
-        detail: ready.projects ? plural(ready.projects, 'project', 'projects') : h('noReady'),
+        value: ready.projects
+          ? totalsText(ready.totals) ||
+            (ready.pendingMinutes ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) }) : '—')
+          : '—',
+        detail: ready.projects
+          ? [
+              plural(ready.projects, 'project', 'projects'),
+              ready.totals.length && ready.pendingMinutes
+                ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) })
+                : '',
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : h('noReady'),
         action: h('createInvoice'),
         href:
           ready.topProjectId && canCreateInvoiceDraft
@@ -144,15 +159,28 @@
             : (invoiceDraftHref ?? link('billing')),
         active: ready.projects > 0,
         // Several projects: one "Create invoice" per project, straight from Home.
+        // The rest are one click away on Money, sorted by money waiting.
+        moreCount: canCreateInvoiceDraft ? Math.max(0, ready.items.length - 6) : 0,
+        moreHref: link('finance', { view: 'overview' }),
+        moreLabel: h('viewAllProjects', { count: ready.items.length }),
         items:
           canCreateInvoiceDraft && ready.items.length > 0
             ? ready.items.slice(0, 6).map((item) => ({
                 id: item.projectId,
                 label: item.label,
-                value: money(item.minor, item.currency),
-                note: item.draftMinor
-                  ? h('inDraft', { amount: money(item.draftMinor, item.currency) })
-                  : undefined,
+                value:
+                  BigInt(item.minor) > 0n
+                    ? money(item.minor, item.currency)
+                    : h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes ?? 0) }),
+                note:
+                  [
+                    item.draftMinor ? h('inDraft', { amount: money(item.draftMinor, item.currency) }) : '',
+                    BigInt(item.minor) > 0n && item.pendingMinutes
+                      ? h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes) })
+                      : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' · ') || undefined,
                 href: link('billing', {
                   project: item.projectId,
                   assistantSurface: 'invoice-create',
@@ -214,6 +242,29 @@
     return { detail: parts.join(' · '), href: link('approvals', { approveAll: '1' }) };
   });
   const glance = $derived(new Map((inbox?.projects ?? []).map((item) => [item.projectId, item])));
+  // Top 5 projects that need something (approvals, money ready, alerts), then "View all".
+  const BOARD_LIMIT = 5;
+  const boardProjects = $derived.by(() => {
+    const score = (project: PortalRow): [number, bigint, number] => {
+      const item = glance.get(String(project.id));
+      if (!item) return [0, 0n, 0];
+      return [
+        item.pendingApprovals + (item.missingRate ? 1 : 0) + (item.missingPo ? 1 : 0),
+        BigInt(item.readyMinor || '0'),
+        item.weekMinutes,
+      ];
+    };
+    return activeProjects
+      .map((project) => ({ project, score: score(project) }))
+      .sort(
+        (a, b) =>
+          b.score[0] - a.score[0] ||
+          (a.score[1] === b.score[1] ? 0 : a.score[1] < b.score[1] ? 1 : -1) ||
+          b.score[2] - a.score[2],
+      )
+      .slice(0, BOARD_LIMIT)
+      .map(({ project }) => project);
+  });
   const inboxClear = $derived(inboxRows.length > 0 && inboxRows.every((row) => !row.active));
 
   // Worker week
@@ -326,6 +377,11 @@
                 </li>
               {/each}
             </ul>
+            {#if row.moreCount}
+              <a class="home-inbox-more" href={row.moreHref} data-home-ready-more
+                >{row.moreLabel} <DirectionIcon /></a
+              >
+            {/if}
           {/if}
         </li>
       {/each}
@@ -343,7 +399,7 @@
       <h2>{h('activeProjects')}</h2>
       <span>{plural(activeProjects.length, 'project', 'projects')}</span>
     </div>
-    {#each activeProjects as project}<a
+    {#each boardProjects as project}<a
         class="project-board-row"
         href={`${base}/app/projects/${project.id}`}
         data-home-project={project.id}
@@ -367,6 +423,11 @@
           >{:else}<small>{controlledValue('status', project.status)} · {project.timezone}</small
           >{/if}<i>{h('openProject')}</i></a
       >{/each}
+    {#if activeProjects.length > boardProjects.length}
+      <a class="project-board-all" href={link('projects')} data-home-projects-all
+        >{h('viewAllProjects', { count: activeProjects.length })} <DirectionIcon /></a
+      >
+    {/if}
   </section>
 {:else}
   <div class="worker-agenda" data-worker-agenda>
@@ -560,6 +621,14 @@
     color: var(--ja-text-secondary);
     font-size: 0.8125rem;
   }
+  .project-board-all {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 44px;
+    padding: 0.5rem 0.25rem;
+    font-weight: 600;
+  }
   .project-glance {
     display: flex;
     flex-wrap: wrap;
@@ -616,6 +685,14 @@
     min-width: 0;
     padding: 1rem 1.25rem;
     border-left: 4px solid var(--ja-ink, #24251f);
+  }
+  .home-inbox-more {
+    display: inline-flex;
+    gap: 0.35rem;
+    align-items: center;
+    margin-top: 0.5rem;
+    font-weight: 600;
+    min-height: 44px;
   }
   .home-inbox-row + .home-inbox-row {
     border-top: 1px solid var(--ja-border-subdued);

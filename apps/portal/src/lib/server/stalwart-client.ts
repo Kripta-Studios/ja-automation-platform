@@ -13,6 +13,23 @@ const ACCOUNT_PROPERTIES = [
   'domainId',
   'quotas',
   'usedDiskQuota',
+  'permissions',
+] as const;
+
+/**
+ * Stalwart 0.16 has no "disabled" flag on a User account. Sign-in is a
+ * permission: `authenticate` ("Sign in to the server") plus the per-protocol
+ * IMAP/POP3/ManageSieve ones. Blocking sign-in adds them to the account's
+ * `permissions.disabledPermissions` (which takes precedence over enabled and
+ * inherited permissions). Mail, aliases, credentials and quota are untouched,
+ * so incoming mail keeps arriving and unblocking restores the same password.
+ */
+export const SIGN_IN_PERMISSIONS = [
+  'authenticate',
+  'authenticateWithAlias',
+  'imapAuthenticate',
+  'pop3Authenticate',
+  'sieveAuthenticate',
 ] as const;
 
 export type StalwartMailbox = Readonly<{
@@ -23,6 +40,8 @@ export type StalwartMailbox = Readonly<{
   domainId: string;
   quotaBytes: number | null;
   usedDiskQuotaBytes: number | null;
+  /** True when Stalwart denies the `authenticate` permission to this account. */
+  signInBlocked: boolean;
 }>;
 
 type Fetch = typeof globalThis.fetch;
@@ -37,7 +56,7 @@ export class StalwartUnavailableError extends Error {
 
 export class StalwartOperationRejectedError extends Error {
   constructor(
-    public readonly operation: 'create' | 'update' | 'destroy',
+    public readonly operation: 'create' | 'update' | 'destroy' | 'sign_in',
     public readonly rejectionType: string,
     public readonly properties: readonly string[],
   ) {
@@ -60,6 +79,60 @@ function text(value: unknown): string {
 
 function safeInteger(value: unknown): number | null {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : null;
+}
+
+type PermissionsValue = Readonly<{
+  type: string;
+  enabled: Record<string, boolean>;
+  disabled: Record<string, boolean>;
+}>;
+
+/** Stalwart serializes Set<Permission> as {name: true}; accept an array too. */
+function permissionSet(value: unknown): Record<string, boolean> {
+  if (Array.isArray(value))
+    return Object.fromEntries(
+      value.filter((item): item is string => typeof item === 'string').map((item) => [item, true]),
+    );
+  if (!value || typeof value !== 'object') return {};
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).filter(([, enabled]) => enabled === true),
+  ) as Record<string, boolean>;
+}
+
+function permissionsFrom(value: unknown): PermissionsValue {
+  const raw = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  return {
+    type: text(raw['@type']) || 'Inherit',
+    enabled: permissionSet(raw.enabledPermissions),
+    disabled: permissionSet(raw.disabledPermissions),
+  };
+}
+
+export function signInBlockedFrom(value: unknown): boolean {
+  const permissions = permissionsFrom(value);
+  return permissions.type !== 'Inherit' && permissions.disabled.authenticate === true;
+}
+
+/**
+ * The `permissions` value to store. Blocking keeps any custom permissions and
+ * adds the sign-in ones to the disabled set. Unblocking removes only those;
+ * when nothing custom is left the account goes back to plain inheritance
+ * (how the portal creates mailboxes).
+ */
+export function signInPermissionsPatch(current: unknown, blocked: boolean): Record<string, unknown> {
+  const permissions = permissionsFrom(current);
+  const disabled = { ...permissions.disabled };
+  const enabled = { ...permissions.enabled };
+  for (const permission of SIGN_IN_PERMISSIONS) {
+    if (blocked) {
+      disabled[permission] = true;
+      delete enabled[permission];
+    } else delete disabled[permission];
+  }
+  const type = permissions.type === 'Replace' ? 'Replace' : 'Merge';
+  if (!blocked && type === 'Merge' && !Object.keys(disabled).length && !Object.keys(enabled).length)
+    return { '@type': 'Inherit' };
+  return { '@type': type, enabledPermissions: enabled, disabledPermissions: disabled };
 }
 
 function quotaFrom(value: unknown): number | null {
@@ -190,9 +263,69 @@ export class StalwartClient {
           domainId,
           quotaBytes: quotaFrom(account.quotas),
           usedDiskQuotaBytes: safeInteger(account.usedDiskQuota),
+          signInBlocked: signInBlockedFrom(account.permissions),
         },
       ];
     });
+  }
+
+  /**
+   * Block or unblock sign-in for one account (see SIGN_IN_PERMISSIONS). Reads
+   * the account first so custom permissions survive and the caller can verify
+   * that the id still belongs to the expected email.
+   */
+  async setSignInBlocked(
+    stalwartAccountId: string,
+    blocked: boolean,
+  ): Promise<{ email: string; wasBlocked: boolean }> {
+    const domainId = await this.resolveDomainId();
+    const read = await this.call([
+      [
+        'x:Account/get',
+        { ids: [stalwartAccountId], properties: ['id', 'name', 'emailAddress', 'domainId', 'permissions'] },
+        'account-sign-in-get',
+      ],
+    ]);
+    const list = this.result(read, 'x:Account/get', 'account-sign-in-get').list;
+    const account = Array.isArray(list)
+      ? (list.find((raw) => text((raw as Record<string, unknown>)?.id) === stalwartAccountId) as
+          | Record<string, unknown>
+          | undefined)
+      : undefined;
+    if (!account || text(account.domainId) !== domainId)
+      throw new StalwartUnavailableError('STALWART_ACCOUNT_NOT_FOUND');
+    const username = text(account.name).trim().toLowerCase();
+    const email = (text(account.emailAddress) || `${username}@${this.options.domain}`).toLowerCase();
+    const wasBlocked = signInBlockedFrom(account.permissions);
+    if (wasBlocked === blocked) return { email, wasBlocked };
+    const responses = await this.call([
+      [
+        'x:Account/set',
+        {
+          update: {
+            [stalwartAccountId]: { permissions: signInPermissionsPatch(account.permissions, blocked) },
+          },
+        },
+        'account-sign-in',
+      ],
+    ]);
+    const result = this.result(responses, 'x:Account/set', 'account-sign-in');
+    const updated = result.updated;
+    if (
+      (Array.isArray(updated) && updated.includes(stalwartAccountId)) ||
+      (updated && typeof updated === 'object' && stalwartAccountId in updated)
+    )
+      return { email, wasBlocked };
+    const rejected = (result.notUpdated as Record<string, Record<string, unknown>> | undefined)?.[
+      stalwartAccountId
+    ];
+    if (rejected) {
+      const rawType = text(rejected.type);
+      const rejectionType = /^[a-zA-Z0-9_-]{1,64}$/u.test(rawType) ? rawType : 'unknown';
+      console.error(JSON.stringify({ event: 'stalwart.account.sign_in_rejected', rejectionType }));
+      throw new StalwartOperationRejectedError('sign_in', rejectionType, []);
+    }
+    throw new StalwartUnavailableError('STALWART_UPDATE_NOT_CONFIRMED');
   }
 
   async createMailbox(input: {
@@ -265,6 +398,7 @@ export class StalwartClient {
       domainId,
       quotaBytes: input.quotaBytes,
       usedDiskQuotaBytes: 0,
+      signInBlocked: false,
     };
   }
 

@@ -73,6 +73,7 @@ describe('Stalwart 0.16 JMAP client', () => {
         domainId: 'domain-9',
         quotaBytes: 10,
         usedDiskQuotaBytes: 1,
+        signInBlocked: false,
       },
     ]);
     const getBody = bodies.find((body) => JSON.stringify(body).includes('x:Account/get'));

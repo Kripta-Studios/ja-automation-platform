@@ -23,6 +23,10 @@ export type MailboxAccount = Readonly<{
   portalRole?: string;
   portalUserId?: string;
   portalStatus?: string;
+  /** When the linked portal access was removed (offboarded/archived). */
+  portalOffboardedAt?: string | null;
+  /** Stalwart sign-in state; null when the mail server could not be asked. */
+  signInBlocked: boolean | null;
 }>;
 
 export class MailboxSagaPartialFailureError extends Error {
@@ -187,7 +191,8 @@ export async function listMailboxAccounts(
   const mailboxes = await (await configuredClient(dependencies)).listMailboxes();
   const users = sqlite
     .prepare(
-      `SELECT u.id,u.email,u.role,u.status,mi.stalwart_account_id stalwartAccountId
+      `SELECT u.id,u.email,u.role,u.status,u.offboarded_at offboardedAt,
+              mi.stalwart_account_id stalwartAccountId
      FROM user u JOIN mail_identity mi ON mi.user_id=u.id AND mi.status='active'`,
     )
     .all() as Array<{
@@ -195,6 +200,7 @@ export async function listMailboxAccounts(
     email: string;
     role: string;
     status: string;
+    offboardedAt: string | null;
     stalwartAccountId: string;
   }>;
   const userByIdentity = new Map(
@@ -210,9 +216,278 @@ export async function listMailboxAccounts(
       quotaBytes: mailbox.quotaBytes,
       usedDiskQuotaBytes: mailbox.usedDiskQuotaBytes,
       isProvisioned: Boolean(user),
-      ...(user ? { portalRole: user.role, portalUserId: user.id, portalStatus: user.status } : {}),
+      signInBlocked: mailbox.signInBlocked,
+      ...(user
+        ? {
+            portalRole: user.role,
+            portalUserId: user.id,
+            portalStatus: user.status,
+            portalOffboardedAt: user.offboardedAt,
+          }
+        : {}),
     };
   });
+}
+
+/**
+ * Degraded directory for when Stalwart cannot be reached: the mailboxes the
+ * portal itself knows (active `mail_identity` links). Portal-side actions
+ * (reactivate, role) keep working; sign-in state is unknown (null) and
+ * unlinked mailboxes cannot be listed.
+ */
+export function listPortalLinkedMailboxes(sqlite: DatabaseSync): MailboxAccount[] {
+  const rows = sqlite
+    .prepare(
+      `SELECT mi.stalwart_account_id id,mi.email,COALESCE(NULLIF(trim(u.name),''),mi.email) name,
+              u.id userId,u.role,u.status,u.offboarded_at offboardedAt
+         FROM mail_identity mi JOIN user u ON u.id=mi.user_id
+        WHERE mi.status='active'
+        ORDER BY mi.email`,
+    )
+    .all() as Array<{
+    id: string;
+    email: string;
+    name: string;
+    userId: string;
+    role: string;
+    status: string;
+    offboardedAt: string | null;
+  }>;
+  return rows.map((row) => {
+    const email = row.email.toLowerCase();
+    return {
+      id: row.id,
+      username: email.split('@')[0] ?? email,
+      email,
+      name: row.name,
+      quotaBytes: null,
+      usedDiskQuotaBytes: null,
+      isProvisioned: true,
+      signInBlocked: null,
+      portalRole: row.role,
+      portalUserId: row.userId,
+      portalStatus: row.status,
+      portalOffboardedAt: row.offboardedAt,
+    };
+  });
+}
+
+export type MailboxStatusFilter = 'all' | 'active' | 'offboarded' | 'unlinked' | 'blocked';
+export const MAILBOX_STATUS_FILTERS: readonly MailboxStatusFilter[] = [
+  'all',
+  'active',
+  'offboarded',
+  'unlinked',
+  'blocked',
+];
+export const MAILBOX_PAGE_SIZE = 25;
+
+export type MailboxDirectoryQuery = Readonly<{
+  q: string;
+  status: MailboxStatusFilter;
+  page: number;
+}>;
+
+export type MailboxDirectoryMeta = Readonly<{
+  source: 'live' | 'portal';
+  q: string;
+  status: MailboxStatusFilter;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  total: number;
+  filtered: number;
+  counts: Record<MailboxStatusFilter, number>;
+  /** Offboarded/suspended people whose mailbox still accepts sign-in. */
+  stillSigningIn: number;
+}>;
+
+export function mailboxQueryFrom(url: URL): MailboxDirectoryQuery {
+  const status = url.searchParams.get('mstatus') as MailboxStatusFilter | null;
+  const page = Number.parseInt(url.searchParams.get('mpage') ?? '1', 10);
+  return {
+    q: (url.searchParams.get('mq') ?? '').trim().slice(0, 120),
+    status: status && MAILBOX_STATUS_FILTERS.includes(status) ? status : 'all',
+    page: Number.isSafeInteger(page) && page > 0 ? Math.min(page, 10_000) : 1,
+  };
+}
+
+function fold(value: string): string {
+  return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase().trim();
+}
+
+function portalInactive(account: MailboxAccount): boolean {
+  return account.isProvisioned && (account.portalStatus ?? 'active') !== 'active';
+}
+
+function matchesStatus(account: MailboxAccount, status: MailboxStatusFilter): boolean {
+  switch (status) {
+    case 'active':
+      return account.isProvisioned && !portalInactive(account);
+    case 'offboarded':
+      return portalInactive(account);
+    case 'unlinked':
+      return !account.isProvisioned;
+    case 'blocked':
+      return account.signInBlocked === true;
+    default:
+      return true;
+  }
+}
+
+/**
+ * Server-side search, status filter and pagination for the Mailboxes tab.
+ * People who left but can still sign in to Webmail are listed first.
+ */
+export function pageMailboxDirectory(
+  accounts: readonly MailboxAccount[],
+  query: MailboxDirectoryQuery,
+  source: 'live' | 'portal',
+): { rows: MailboxAccount[]; meta: MailboxDirectoryMeta } {
+  const needle = fold(query.q);
+  const counts = Object.fromEntries(
+    MAILBOX_STATUS_FILTERS.map((status) => [
+      status,
+      accounts.filter((account) => matchesStatus(account, status)).length,
+    ]),
+  ) as Record<MailboxStatusFilter, number>;
+  // Left/suspended people whose mailbox is not known to be blocked come first.
+  const attention = (account: MailboxAccount) =>
+    portalInactive(account) && account.signInBlocked !== true ? 0 : 1;
+  const filtered = accounts
+    .filter((account) => matchesStatus(account, query.status))
+    .filter(
+      (account) =>
+        !needle ||
+        fold(`${account.email} ${account.username} ${account.name}`).includes(needle),
+    )
+    .sort((a, b) => attention(a) - attention(b) || a.email.localeCompare(b.email));
+  const pageCount = Math.max(1, Math.ceil(filtered.length / MAILBOX_PAGE_SIZE));
+  const page = Math.min(query.page, pageCount);
+  return {
+    rows: filtered.slice((page - 1) * MAILBOX_PAGE_SIZE, page * MAILBOX_PAGE_SIZE),
+    meta: {
+      source,
+      q: query.q,
+      status: query.status,
+      page,
+      pageSize: MAILBOX_PAGE_SIZE,
+      pageCount,
+      total: accounts.length,
+      filtered: filtered.length,
+      counts,
+      stillSigningIn: accounts.filter(
+        (account) => portalInactive(account) && account.signInBlocked === false,
+      ).length,
+    },
+  };
+}
+
+export type MailboxSignInOutcome =
+  | 'blocked'
+  | 'unblocked'
+  | 'already_blocked'
+  | 'already_unblocked'
+  | 'no_mailbox'
+  | 'unavailable'
+  | 'rejected'
+  | 'not_allowed';
+
+/**
+ * Block (or unblock) Webmail/IMAP/POP3 sign-in for one Stalwart mailbox, keep
+ * all mail. Canonical Owner only; the Owner mailbox is protected. Audited as
+ * an external mailbox mutation (`mailbox.password_update` with
+ * `operation: sign_in_block|sign_in_unblock`, the reviewed audit action for
+ * mailbox credential changes; no new audit action without a migration).
+ */
+export async function setMailboxSignInBlocked(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  input: { stalwartAccountId: string; email: string; blocked: boolean; reason: string },
+  dependencies?: MailDirectoryDependencies,
+): Promise<'blocked' | 'unblocked' | 'already_blocked' | 'already_unblocked'> {
+  const repository = new MailIdentityRepository(sqlite);
+  repository.assertCanonicalOwner(principal);
+  const email = input.email.trim().toLowerCase();
+  const reason = input.reason.trim();
+  if (!reason) throw new Error('MAILBOX_CHANGE_REASON_REQUIRED');
+  if (!input.stalwartAccountId.trim() || input.stalwartAccountId.length > 254)
+    throw new Error('STALWART_ACCOUNT_ID_INVALID');
+  if (email === CANONICAL_OWNER_EMAIL) throw new Error('CANONICAL_OWNER_MAILBOX_PROTECTED');
+  const linked = repository
+    .list()
+    .find((row) => row.stalwartAccountId === input.stalwartAccountId && row.status === 'active');
+  if (linked && linked.email.toLowerCase() !== email) throw new Error('MAIL_IDENTITY_COLLISION');
+  const stalwart = await configuredClient(dependencies);
+  const result = await stalwart.setSignInBlocked(input.stalwartAccountId, input.blocked);
+  if (result.email !== email) throw new Error('MAILBOX_NOT_FOUND_IN_STALWART');
+  const changed = result.wasBlocked !== input.blocked;
+  repository.recordExternalMutation(principal, 'mailbox.password_update', input.stalwartAccountId, {
+    operation: input.blocked ? 'sign_in_block' : 'sign_in_unblock',
+    outcome: changed
+      ? input.blocked
+        ? 'sign_in_blocked'
+        : 'sign_in_unblocked'
+      : 'unchanged',
+    method: 'stalwart_disabled_permissions',
+    mailPreserved: true,
+    email,
+    linkedUserId: linked?.userId ?? null,
+    reason,
+    before: { signInBlocked: result.wasBlocked },
+    after: { signInBlocked: input.blocked },
+  });
+  if (input.blocked) return changed ? 'blocked' : 'already_blocked';
+  return changed ? 'unblocked' : 'already_unblocked';
+}
+
+/**
+ * Best effort for portal status changes: the portal-side change is already
+ * committed; a mail server outage must never undo or block it. Returns what
+ * happened so the screen can say it plainly (and offer a retry).
+ */
+export async function setLinkedMailboxSignIn(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  userId: string,
+  blocked: boolean,
+  reason: string,
+  dependencies?: MailDirectoryDependencies,
+): Promise<{ outcome: MailboxSignInOutcome; email?: string }> {
+  const identity = sqlite
+    .prepare(
+      "SELECT stalwart_account_id stalwartAccountId,email FROM mail_identity WHERE user_id=? AND status='active'",
+    )
+    .get(userId) as { stalwartAccountId: string; email: string } | undefined;
+  if (!identity) return { outcome: 'no_mailbox' };
+  try {
+    const outcome = await setMailboxSignInBlocked(
+      sqlite,
+      principal,
+      { stalwartAccountId: identity.stalwartAccountId, email: identity.email, blocked, reason },
+      dependencies,
+    );
+    return { outcome, email: identity.email };
+  } catch (error) {
+    const name = error instanceof Error ? error.name : '';
+    console.error(
+      JSON.stringify({
+        event: 'mailbox.sign_in_change_failed',
+        blocked,
+        error: error instanceof Error ? error.message.slice(0, 120) : 'unknown',
+      }),
+    );
+    const message = error instanceof Error ? error.message : '';
+    return {
+      outcome:
+        message === 'CANONICAL_OWNER_REQUIRED' || message === 'CANONICAL_OWNER_MAILBOX_PROTECTED'
+          ? 'not_allowed'
+          : name === 'StalwartOperationRejectedError'
+            ? 'rejected'
+            : 'unavailable',
+      email: identity.email,
+    };
+  }
 }
 
 export async function provisionMailboxUsers(
@@ -304,6 +579,7 @@ export async function createMailboxAccount(
     quotaBytes: created.quotaBytes,
     usedDiskQuotaBytes: created.usedDiskQuotaBytes,
     isProvisioned: Boolean(linked),
+    signInBlocked: false,
     ...(linked
       ? {
           portalRole: input.provisionRole ?? 'worker',

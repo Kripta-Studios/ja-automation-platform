@@ -1,5 +1,5 @@
 import { clientLaborRatesEquivalent } from './client-rate-equivalence.ts';
-import type { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import type { OvertimeMethod } from '@ja/billing-engine';
 import type { Currency } from '@ja/money';
 
@@ -204,6 +204,58 @@ const UNAVAILABLE_ASSIGNMENT_ISSUE = {
   internal: 'unavailable_assignment_internal_cost_rule',
 } as const;
 
+/**
+ * Rule resolution runs once per time entry in finance reads, so compiling the same few SQL
+ * statements again for every entry dominated the Money screen. Statements are cached per
+ * connection; they are read-only and executed synchronously, so reuse cannot interleave.
+ */
+const statementCache = new WeakMap<DatabaseSync, Map<string, StatementSync>>();
+function statement(sqlite: DatabaseSync, sql: string): StatementSync {
+  let cache = statementCache.get(sqlite);
+  if (!cache) {
+    cache = new Map();
+    statementCache.set(sqlite, cache);
+  }
+  let prepared = cache.get(sql);
+  if (!prepared) {
+    prepared = sqlite.prepare(sql);
+    cache.set(sql, prepared);
+  }
+  return prepared;
+}
+
+type MemberSpan = Readonly<{ id: string; starts_on: string; ends_on: string | null }>;
+type RuleSnapshot = {
+  rules: Partial<Record<RuleKind, Map<string, readonly RuleWithScope[]>>>;
+  members: Map<string, readonly MemberSpan[]>;
+  refs: Map<string, AssignmentRuleRefs>;
+  overrides: Map<string, ReadonlyArray<OverrideRow & { effective_to: string | null }>>;
+  projects: Map<string, { currency: Currency } | undefined>;
+};
+const ruleSnapshots = new WeakMap<DatabaseSync, RuleSnapshot>();
+
+/**
+ * Runs `work` with the rule tables of this connection read once and indexed in memory.
+ * Finance reads resolve rules for every time entry; without the snapshot each resolution
+ * scanned the whole compensation and internal-cost tables. Only for synchronous read-only
+ * work: the snapshot is dropped when `work` returns, and nested calls reuse it.
+ */
+export function withCommercialRuleSnapshot<T>(sqlite: DatabaseSync, work: () => T): T {
+  if (ruleSnapshots.has(sqlite)) return work();
+  ruleSnapshots.set(sqlite, {
+    rules: {},
+    members: new Map(),
+    refs: new Map(),
+    overrides: new Map(),
+    projects: new Map(),
+  });
+  try {
+    return work();
+  } finally {
+    ruleSnapshots.delete(sqlite);
+  }
+}
+
 function issue(
   code: CommercialTermsIssue['code'],
   sourceIds: readonly string[] = [],
@@ -212,28 +264,51 @@ function issue(
 }
 
 function assignmentIds(sqlite: DatabaseSync, context: CommercialTermsContext): readonly string[] {
+  const snapshot = ruleSnapshots.get(sqlite);
+  if (snapshot) {
+    const key = JSON.stringify([context.projectId, context.workerId]);
+    let members = snapshot.members.get(key);
+    if (!members) {
+      members = statement(
+        sqlite,
+        `SELECT id,starts_on,ends_on FROM project_member WHERE project_id=? AND user_id=?
+            AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL))
+          ORDER BY starts_on DESC,id`,
+      ).all(context.projectId, context.workerId) as MemberSpan[];
+      snapshot.members.set(key, members);
+    }
+    return members
+      .filter(
+        (row) =>
+          row.starts_on <= context.workDate &&
+          (row.ends_on === null || row.ends_on >= context.workDate),
+      )
+      .map((row) => row.id);
+  }
   return (
-    sqlite
-      .prepare(
-        `SELECT id FROM project_member WHERE project_id=? AND user_id=?
+    statement(
+      sqlite,
+      `SELECT id FROM project_member WHERE project_id=? AND user_id=?
           AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL))
           AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC,id`,
-      )
-      .all(context.projectId, context.workerId, context.workDate, context.workDate) as {
+    ).all(context.projectId, context.workerId, context.workDate, context.workDate) as {
       id: string;
     }[]
   ).map((row) => row.id);
 }
 
 function assignmentRefs(sqlite: DatabaseSync, id: string): AssignmentRuleRefs {
-  const row = sqlite
-    .prepare(
-      `SELECT id,version,client_bill_rule_id,worker_compensation_rule_id,
+  const snapshot = ruleSnapshots.get(sqlite);
+  const cached = snapshot?.refs.get(id);
+  if (cached) return cached;
+  const row = statement(
+    sqlite,
+    `SELECT id,version,client_bill_rule_id,worker_compensation_rule_id,
               internal_cost_rule_id,allow_global_compensation_fallback,
               allow_global_internal_cost_fallback FROM project_member WHERE id=?`,
-    )
-    .get(id) as AssignmentRuleRefs | undefined;
+  ).get(id) as AssignmentRuleRefs | undefined;
   if (!row) throw new Error('Active assignment disappeared while resolving commercial terms');
+  snapshot?.refs.set(id, row);
   return row;
 }
 
@@ -247,16 +322,41 @@ function chooseOverride(
   context: CommercialTermsContext,
   kind: RuleKind,
 ): { selected: OverrideRow | null; ambiguous: readonly string[] } {
-  const rows = sqlite
-    .prepare(
+  const snapshot = ruleSnapshots.get(sqlite);
+  let rows: OverrideRow[];
+  if (snapshot) {
+    const key = `${kind}:${assignmentId}`;
+    let all = snapshot.overrides.get(key);
+    if (!all) {
+      all = statement(
+        sqlite,
+        `SELECT id,version,time_category,activity_code,priority,effective_from,effective_to,
+                ${OVERRIDE_COLUMN[kind]} rule_id FROM assignment_rate_override
+         WHERE project_member_id=? AND ${OVERRIDE_COLUMN[kind]} IS NOT NULL`,
+      ).all(assignmentId) as Array<OverrideRow & { effective_to: string | null }>;
+      snapshot.overrides.set(key, all);
+    }
+    const activityCode = context.activityCode ?? null;
+    rows = all
+      .filter(
+        (row) =>
+          (row.time_category === null || row.time_category === context.category) &&
+          (row.activity_code === null ||
+            (activityCode !== null && row.activity_code === activityCode)) &&
+          row.effective_from <= context.workDate &&
+          (row.effective_to === null || row.effective_to >= context.workDate),
+      )
+      .map(({ effective_to: _effectiveTo, ...row }) => row);
+  } else
+    rows = statement(
+      sqlite,
       `SELECT id,version,time_category,activity_code,priority,effective_from,
               ${OVERRIDE_COLUMN[kind]} rule_id FROM assignment_rate_override
        WHERE project_member_id=? AND ${OVERRIDE_COLUMN[kind]} IS NOT NULL
          AND (time_category=? OR time_category IS NULL)
          AND (activity_code=? OR activity_code IS NULL)
          AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
-    )
-    .all(
+    ).all(
       assignmentId,
       context.category,
       context.activityCode ?? null,
@@ -340,6 +440,66 @@ function validScope(
   );
 }
 
+/** Same rows, by the same predicate, as the SQL lookup below (ISO dates compare as text). */
+function candidateRules<T extends RuleWithScope>(
+  sqlite: DatabaseSync,
+  context: CommercialTermsContext,
+  kind: RuleKind,
+): T[] {
+  const snapshot = ruleSnapshots.get(sqlite);
+  if (!snapshot)
+    return statement(
+      sqlite,
+      kind === 'client'
+        ? `${SELECT.client} WHERE project_id=? AND (worker_id=? OR worker_id IS NULL)
+           AND (category=? OR category IS NULL)
+           AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`
+        : `${SELECT[kind]} WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
+           AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
+    ).all(
+      ...(kind === 'client'
+        ? [context.projectId, context.workerId, context.category]
+        : [context.workerId, context.projectId]),
+      context.workDate,
+      context.workDate,
+    ) as T[];
+  let byKey = snapshot.rules[kind];
+  if (!byKey) {
+    const grouped = new Map<string, RuleWithScope[]>();
+    for (const row of statement(sqlite, SELECT[kind]).all() as RuleWithScope[]) {
+      const key = String(kind === 'client' ? row.project_id : row.worker_id);
+      const list = grouped.get(key);
+      if (list) list.push(row);
+      else grouped.set(key, [row]);
+    }
+    byKey = grouped;
+    snapshot.rules[kind] = byKey;
+  }
+  const candidates = byKey.get(kind === 'client' ? context.projectId : context.workerId) ?? [];
+  return candidates.filter(
+    (row) =>
+      (kind === 'client'
+        ? (row.worker_id === null || row.worker_id === context.workerId) &&
+          (row.category === null || row.category === context.category)
+        : row.project_id === null || row.project_id === context.projectId) &&
+      row.effective_from <= context.workDate &&
+      (row.effective_to === null || row.effective_to >= context.workDate),
+  ) as T[];
+}
+
+function projectCurrency(
+  sqlite: DatabaseSync,
+  projectId: string,
+): { currency: Currency } | undefined {
+  const snapshot = ruleSnapshots.get(sqlite);
+  if (snapshot?.projects.has(projectId)) return snapshot.projects.get(projectId);
+  const row = statement(sqlite, 'SELECT currency FROM project WHERE id=?').get(projectId) as
+    | { currency: Currency }
+    | undefined;
+  snapshot?.projects.set(projectId, row);
+  return row;
+}
+
 function resolveRule<T extends RuleWithScope>(
   sqlite: DatabaseSync,
   context: CommercialTermsContext,
@@ -347,16 +507,14 @@ function resolveRule<T extends RuleWithScope>(
   assignment: AssignmentRuleRefs | null,
 ): CommercialRuleResult<T> {
   const [missingCode, ambiguousCode, unavailableCode] = ISSUE[kind];
-  const project = sqlite
-    .prepare('SELECT currency FROM project WHERE id=?')
-    .get(context.projectId) as { currency: Currency } | undefined;
+  const project = projectCurrency(sqlite, context.projectId);
   if (!project) return { selected: null, issues: [issue(missingCode)] };
   if (assignment !== null) {
     const override = chooseOverride(sqlite, assignment.id, context, kind);
     if (override.ambiguous.length)
       return { selected: null, issues: [issue(ambiguousCode, override.ambiguous)] };
     if (override.selected) {
-      const row = sqlite.prepare(`${SELECT[kind]} WHERE id=?`).get(override.selected.rule_id) as
+      const row = statement(sqlite, `${SELECT[kind]} WHERE id=?`).get(override.selected.rule_id) as
         | T
         | undefined;
       if (!row || !validScope(row, context, kind, project.currency))
@@ -368,7 +526,7 @@ function resolveRule<T extends RuleWithScope>(
     }
     const directId = assignment[ASSIGNMENT_COLUMN[kind]];
     if (directId) {
-      const row = sqlite.prepare(`${SELECT[kind]} WHERE id=?`).get(directId) as T | undefined;
+      const row = statement(sqlite, `${SELECT[kind]} WHERE id=?`).get(directId) as T | undefined;
       if (!row || !validScope(row, context, kind, project.currency))
         return {
           selected: null,
@@ -385,22 +543,7 @@ function resolveRule<T extends RuleWithScope>(
     (kind === 'compensation'
       ? assignment.allow_global_compensation_fallback === 1
       : kind === 'internal' && assignment.allow_global_internal_cost_fallback === 1);
-  const rows = sqlite
-    .prepare(
-      kind === 'client'
-        ? `${SELECT.client} WHERE project_id=? AND (worker_id=? OR worker_id IS NULL)
-           AND (category=? OR category IS NULL)
-           AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`
-        : `${SELECT[kind]} WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
-           AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
-    )
-    .all(
-      ...(kind === 'client'
-        ? [context.projectId, context.workerId, context.category]
-        : [context.workerId, context.projectId]),
-      context.workDate,
-      context.workDate,
-    ) as T[];
+  const rows = candidateRules<T>(sqlite, context, kind);
   const eligible = rows.filter(
     (row) =>
       validScope(row, context, kind, project.currency) &&

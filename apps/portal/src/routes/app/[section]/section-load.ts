@@ -13,8 +13,9 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf } from '$lib/server/portal-week';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
-import { buildMoneyOverview } from '$lib/server/money-overview';
+import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
 import { buildRatesOverview } from '$lib/server/rates-overview';
+import { loadApprovalQueuePage } from '$lib/server/approval-queue';
 import {
   buildTimeOverview,
   overviewEntries,
@@ -33,12 +34,18 @@ import {
 import type { PageServerLoad } from './$types';
 import type { PortalRow } from '$lib/portal/portal-data';
 import {
-  projectManagerApprovalQueueProjection,
   projectManagerMilestoneProjection,
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
-import { listMailboxAccounts } from '$lib/server/mail-directory';
+import {
+  listMailboxAccounts,
+  listPortalLinkedMailboxes,
+  mailboxQueryFrom,
+  pageMailboxDirectory,
+  type MailboxDirectoryMeta,
+} from '$lib/server/mail-directory';
+import { pagePeopleDirectory, peopleQueryFrom } from '$lib/server/team-directory-page';
 import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
 import {
   includesArchivedProjectHistory,
@@ -721,7 +728,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           'finance_admin',
           'project_manager',
         ].includes(context.principal.role);
-        const calendarEntries = canViewClientWorkCalendar
+        const calendarEntries =
+          canViewClientWorkCalendar && url.searchParams.get('view') !== 'team'
           ? context.repository.listClientCalendarEntries(
               context.principal,
               calendarWindow.from,
@@ -742,14 +750,42 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 )
                 .all(...projectIds)
             : [];
+        // People directory (view=team) is scoped on the server: one page of 25
+        // people, or only the opened person. Native assignment workflows on
+        // this route (action=…, ?/action) keep the complete projections.
+        const teamView =
+          url.searchParams.get('view') === 'team' &&
+          !url.searchParams.get('action') &&
+          ![
+            '/createClient',
+            '/updateClient',
+            '/createProject',
+            '/assignWorker',
+            '/updateAssignment',
+            '/removeAssignment',
+          ].some((key) => url.searchParams.has(key));
+        // The live Stalwart directory is read only on the Mailboxes tab.
+        const mailboxTab =
+          url.searchParams.get('view') === 'team' &&
+          url.searchParams.get('directory') === 'mailboxes';
         let mailboxes: Awaited<ReturnType<typeof listMailboxAccounts>> = [];
         let mailboxesUnavailable = false;
-        if (canonicalOwner) {
+        let mailboxDirectory: MailboxDirectoryMeta | null = null;
+        if (canonicalOwner && mailboxTab) {
+          let all: Awaited<ReturnType<typeof listMailboxAccounts>>;
+          let source: 'live' | 'portal' = 'live';
           try {
-            mailboxes = await listMailboxAccounts(context.sqlite);
+            all = await listMailboxAccounts(context.sqlite);
           } catch {
+            // Degrade to the portal-linked mailboxes so portal-side actions
+            // (reactivate, role) never depend on the mail server.
             mailboxesUnavailable = true;
+            source = 'portal';
+            all = listPortalLinkedMailboxes(context.sqlite);
           }
+          const paged = pageMailboxDirectory(all, mailboxQueryFrom(url), source);
+          mailboxes = paged.rows;
+          mailboxDirectory = paged.meta;
         }
         const portalAccessForUser = canonicalOwner
           ? context.sqlite.prepare(
@@ -793,7 +829,32 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     : {}),
                 }))
             : [];
-        const eligibleWorkerIds = projectWorkers
+        const requestedPerson = teamView
+          ? (url.searchParams.get('person') ?? url.searchParams.get('worker') ?? '').trim()
+          : '';
+        const openedPerson = requestedPerson
+          ? projectWorkers.filter((worker) => String(worker.id) === requestedPerson)
+          : [];
+        const peoplePage =
+          teamView && context.principal.role !== 'worker'
+            ? pagePeopleDirectory(
+                projectWorkers as Array<Record<string, unknown>>,
+                authorizedAssignments as Array<Record<string, unknown>>,
+                peopleQueryFrom(url),
+              )
+            : null;
+        const shippedWorkers = !teamView
+          ? projectWorkers
+          : openedPerson.length
+            ? openedPerson
+            : ((peoplePage?.rows ?? projectWorkers) as typeof projectWorkers);
+        const shippedWorkerIds = new Set(shippedWorkers.map((worker) => String(worker.id)));
+        const shippedAssignments = teamView
+          ? authorizedAssignments.filter((assignment) =>
+              shippedWorkerIds.has(String(assignment.worker_id ?? assignment.user_id ?? '')),
+            )
+          : authorizedAssignments;
+        const eligibleWorkerIds = shippedWorkers
           .filter((worker) => worker.status === 'active')
           .map((worker) => String(worker.id));
         const workerExpertise = eligibleWorkerIds.length
@@ -817,12 +878,41 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 projects: directoryProjects as Array<Record<string, unknown>>,
               })
             : null;
+        if (teamView && teamExtras)
+          teamExtras.teamStats = teamExtras.teamStats.filter((row) =>
+            shippedWorkerIds.has(String(row.worker_id)),
+          );
         return {
           ...common,
           ...(teamExtras ?? {}),
+          ...(teamView
+            ? {
+                peopleDirectory: peoplePage?.meta ?? null,
+                nameFixWorkers: canonicalOwner
+                  ? (peoplePage?.nameFixWorkers ?? []).map((worker) => ({
+                      id: worker.id,
+                      name: worker.name,
+                      email: worker.email,
+                      status: worker.status,
+                    }))
+                  : [],
+                // "Add person → existing person" picker: people without a login.
+                existingPeople: canonicalOwner
+                  ? projectWorkers.filter(
+                      (worker) =>
+                        worker.status === 'active' &&
+                        String((worker as Record<string, unknown>).has_portal_access ?? '') !==
+                          '1' &&
+                        String(worker.email ?? '').toLowerCase() !==
+                          'antonny.luty@j-aautomation.com',
+                    )
+                  : [],
+              }
+            : {}),
           projects: directoryProjects,
-          clients:
-            context.principal.role === 'owner_admin' ||
+          clients: teamView
+            ? []
+            : context.principal.role === 'owner_admin' ||
             context.principal.role === 'finance_admin' ||
             context.principal.role === 'auditor_read_only'
               ? context.repository
@@ -832,11 +922,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   (client) => includeArchived || client.status !== 'archived',
                 ),
           contacts:
-            context.principal.role === 'worker'
+            context.principal.role === 'worker' || teamView
               ? []
               : context.repository.listAllClientContacts(context.principal),
-          workers: projectWorkers,
-          calendarEntries,
+          workers: shippedWorkers,
+          calendarEntries: teamView ? [] : calendarEntries,
           calendarMonth,
           canViewWorkCalendar: canViewClientWorkCalendar,
           allSkills:
@@ -850,6 +940,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .all()
             : [],
           mailboxes,
+          mailboxDirectory,
           mailboxesUnavailable,
           mailboxDirectoryStatus: mailboxesUnavailable ? 'unavailable' : 'ready',
           mailboxDirectoryError: mailboxesUnavailable
@@ -863,11 +954,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.v3.listOpenInvitations(context.principal)
               : [],
           assignmentToday: new Date().toISOString().slice(0, 10),
-          assignments: authorizedAssignments.map((assignment) => ({
+          assignments: shippedAssignments.map((assignment) => ({
             ...assignment,
             actual_minutes: actualMinutesByAssignment.get(String(assignment.id ?? '')) ?? 0,
           })),
         };
+
       }
       case 'approvals': {
         const scope = projectVisibility(
@@ -881,152 +973,26 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
              JOIN client c ON c.id=p.client_id
             WHERE p.id=?`,
         );
-        // Titles are operational context, looked up only after queue-row authorization.
-        const dailyApprovalTitle = context.sqlite.prepare(
-          'SELECT summary title FROM daily_report WHERE id=? AND project_id=? AND worker_id=?',
+        // Pending only by default, searched, filtered and paginated on the server.
+        const approvalQueue = loadApprovalQueuePage(
+          context,
+          url,
+          includeArchived,
+          scope as Parameters<typeof loadApprovalQueuePage>[3],
         );
-        const technicalApprovalTitle = context.sqlite.prepare(
-          'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
-        );
-        // Operational report content for the in-queue "Read" preview (no money fields).
-        const dailyApprovalDetail = context.sqlite.prepare(
-          `SELECT tasks_completed tasks,problems_found problems,blockers,next_day_plan next_day,
-                  safety_notes safety,downtime_minutes downtime FROM daily_report
-            WHERE id=? AND project_id=? AND worker_id=?`,
-        );
-        const technicalApprovalDetail = context.sqlite.prepare(
-          `SELECT change_summary change,validation_result validation,open_risk risk,
-                  production_impact impact FROM technical_report
-            WHERE id=? AND project_id=? AND author_id=?`,
-        );
-        const expenseApprovalIdentity = context.sqlite.prepare(
-          `SELECT e.category,e.vendor,e.description,e.amount_minor,e.currency,e.version,
-                  e.receipt_document_id,d.media_type receipt_media_type
-             FROM expense e
-             LEFT JOIN document d ON d.id=e.receipt_document_id
-            WHERE e.id=? AND e.project_id=? AND e.worker_id=?`,
-        );
-        // Operational detail for grouped week review (no rates, cost or billing fields).
-        const timeApprovalDetail = context.sqlite.prepare(
-          'SELECT category,start_time,end_time,break_minutes,activity_summary,version FROM time_entry WHERE id=? AND project_id=? AND worker_id=?',
-        );
-        // The reviewer's latest note explains why a record is waiting for its author.
-        const latestReviewReason = context.sqlite.prepare(
-          "SELECT reason FROM approval_event WHERE entity_type=? AND entity_id=? AND to_state='needs_changes' ORDER BY occurred_at DESC LIMIT 1",
-        );
+        const { projects: approvalProjects, ...approvalPage } = approvalQueue;
         return {
           ...common,
-          projects: scope.projects,
-          records: visibleProjectRecords(
-            isProjectManager
-              ? projectManagerApprovalQueueProjection(
-                  context.repository.listApprovalQueue(context.principal),
-                )
-              : context.repository.listApprovalQueue(context.principal),
-            scope.projectIds,
-          ).map((row) => {
-            // Read identity only for an already-authorized queue row. PMs receive
-            // operational category/vendor context without expense money.
-            const expense =
-              row.type === 'expense'
-                ? (expenseApprovalIdentity.get(
-                    String(row.id),
-                    String(row.project_id),
-                    String(row.worker_id),
-                  ) as
-                    | {
-                        category: string;
-                        vendor: string | null;
-                        description: string | null;
-                        amount_minor: string | number;
-                        currency: string;
-                        version: number;
-                        receipt_document_id: string | null;
-                        receipt_media_type: string | null;
-                      }
-                    | undefined)
-                : undefined;
-            const time =
-              row.type === 'time'
-                ? (timeApprovalDetail.get(
-                    String(row.id),
-                    String(row.project_id),
-                    String(row.worker_id),
-                  ) as
-                    | {
-                        category: string;
-                        start_time: string | null;
-                        end_time: string | null;
-                        break_minutes: number | null;
-                        activity_summary: string | null;
-                        version: number;
-                      }
-                    | undefined)
-                : undefined;
-            const reviewReason =
-              row.approval_state === 'needs_changes' &&
-              ['time', 'expense'].includes(String(row.type))
-                ? (latestReviewReason.get(String(row.type), String(row.id)) as
-                    | { reason: string | null }
-                    | undefined)
-                : undefined;
-            return {
-              ...row,
-              ...(time
-                ? {
-                    time_category: time.category,
-                    start_time: time.start_time,
-                    end_time: time.end_time,
-                    break_minutes: time.break_minutes,
-                    activity_summary: time.activity_summary ?? '',
-                    record_version: time.version,
-                  }
-                : {}),
-              ...(reviewReason?.reason ? { review_reason: reviewReason.reason } : {}),
-              ...(expense
-                ? {
-                    record_version: expense.version,
-                    receipt_document_id: expense.receipt_document_id ?? '',
-                    receipt_media_type: expense.receipt_media_type ?? '',
-                    expense_category: expense.category,
-                    expense_label: expense.vendor?.trim() || expense.description || '',
-                    ...(!isProjectManager
-                      ? {
-                          expense_amount_minor: expense.amount_minor,
-                          expense_currency: expense.currency,
-                        }
-                      : {}),
-                  }
-                : {}),
-              ...(['daily', 'technical'].includes(String(row.type))
-                ? {
-                    report_detail: Object.fromEntries(
-                      Object.entries(
-                        ((row.type === 'daily' ? dailyApprovalDetail : technicalApprovalDetail).get(
-                          String(row.id),
-                          String(row.project_id),
-                          String(row.worker_id),
-                        ) ?? {}) as Record<string, unknown>,
-                      )
-                        .filter(([, detail]) => detail !== null && String(detail).trim() !== '' && String(detail) !== '0')
-                        .map(([key, detail]) => [key, String(detail).slice(0, 2000)]),
-                    ),
-                    report_title: String(
-                      (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
-                        String(row.id),
-                        String(row.project_id),
-                        String(row.worker_id),
-                      )?.title ?? '',
-                    ),
-                  }
-                : {}),
-              worker_name:
-                context.sqlite
-                  .prepare('SELECT name FROM user WHERE id=?')
-                  .get(String(row.worker_id ?? ''))?.name ?? '',
-              ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
-            };
-          }),
+          projects: approvalProjects,
+          approvalQueue: approvalPage,
+          // Every row sent, for failure lookups ("problem with …") in the section.
+          records: [
+            ...approvalPage.groups.flatMap((group) => group.rows),
+            ...approvalPage.reports,
+            ...approvalPage.waiting.rows,
+            ...(approvalPage.approved?.rows ?? []),
+            ...approvalPage.finance.rows,
+          ],
           milestones: visibleProjectRecords(
             isProjectManager
               ? projectManagerMilestoneProjection(
@@ -1313,7 +1279,37 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         );
         const projects = scope.projects;
         const requestedProject = normalizeProjectQuery(scope.projectIds);
-        const selected = requestedProject || (projects[0] as { id?: string } | undefined)?.id || '';
+        // Each finance view loads only its own data. The per-project workspace (rules,
+        // settlements, expenses, reimbursements, legal entities) belongs to "Detailed
+        // analysis" and to a project opened in Rates; Money and the Rates list never build it.
+        const loadsProjectWorkspace =
+          financeView === 'economic' ||
+          (financeView === 'commercial' &&
+            // Rates "Advanced settings" (opened explicitly or through older deep links).
+            ['advanced', 'task', 'asOf', 'category', 'policyPerson', 'expense', 'sourceRecord'].some(
+              (key) => url.searchParams.has(key),
+            ));
+        const selected = loadsProjectWorkspace
+          ? requestedProject || (projects[0] as { id?: string } | undefined)?.id || ''
+          : '';
+        const financeSearch = (url.searchParams.get('find') ?? '').trim().slice(0, 80);
+        const financeShow = Number.parseInt(url.searchParams.get('show') ?? '', 10);
+        const financeListLimit =
+          Number.isInteger(financeShow) && financeShow > 0 ? Math.min(financeShow, 500) : 20;
+        // Rules of the selected project plus the global rules of the people on it.
+        const selectedMemberIds = new Set(
+          selected
+            ? (
+                context.sqlite
+                  .prepare('SELECT DISTINCT user_id FROM project_member WHERE project_id=?')
+                  .all(selected) as Array<{ user_id: string }>
+              ).map((row) => row.user_id)
+            : [],
+        );
+        const inSelectedScope = (rule: Record<string, unknown>) =>
+          rule.project_id
+            ? String(rule.project_id) === selected
+            : selectedMemberIds.has(String(rule.worker_id ?? ''));
         const canManageCanonicalAuthority = ['owner_admin', 'finance_admin'].includes(
           context.principal.role,
         );
@@ -1528,19 +1524,42 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : [],
           // Keep global rules while restricting project-specific configuration to this mode.
           // Settlements, payments and invoice/ledger history retain their authoritative scopes.
-          compensationRules: context.v3
-            .listCompensationRules(context.principal)
-            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
-          clientLaborRates: visibleProjectRecords(
-            context.v3.listClientLaborRates(context.principal),
-            scope.projectIds,
-          ),
-          internalCostRules: context.v3
-            .listInternalCostRules(context.principal)
-            .filter((rule) => !rule.project_id || scope.projectIds.has(String(rule.project_id))),
-          portfolio: context.v3.financePortfolio(context.principal, undefined, undefined, {
-            includeArchived,
-          }),
+          compensationRules: selected
+            ? context.v3
+                .listCompensationRules(context.principal)
+                .filter(
+                  (rule) =>
+                    (!rule.project_id || scope.projectIds.has(String(rule.project_id))) &&
+                    inSelectedScope(rule),
+                )
+            : [],
+          clientLaborRates: selected
+            ? visibleProjectRecords(
+                context.v3.listClientLaborRates(context.principal),
+                scope.projectIds,
+              ).filter(inSelectedScope)
+            : [],
+          internalCostRules: selected
+            ? context.v3
+                .listInternalCostRules(context.principal)
+                .filter(
+                  (rule) =>
+                    (!rule.project_id || scope.projectIds.has(String(rule.project_id))) &&
+                    inSelectedScope(rule),
+                )
+            : [],
+          // Detailed analysis only. Per-project rows keep their summary numbers; the
+          // source-record arrays (time/expense economics) are shown for the selected
+          // project from `finance`, so they are not serialized for every project.
+          ...(financeView === 'economic'
+            ? {
+                portfolio: slimFinancePortfolio(
+                  context.v3.financePortfolio(context.principal, undefined, undefined, {
+                    includeArchived,
+                  }),
+                ),
+              }
+            : {}),
           settlements,
           compensationPayments: settlementIds.size
             ? context.v3
@@ -1555,12 +1574,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           reimbursements: selected
             ? context.v3.listReimbursementQueue(context.principal, selected)
             : [],
-          legalEntities: canManageCanonicalAuthority
-            ? context.repository.listLegalEntities(context.principal)
-            : [],
-          canonicalLegalEntityOptions: canManageCanonicalAuthority
-            ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
-            : [],
+          legalEntities:
+            canManageCanonicalAuthority && selected
+              ? context.repository.listLegalEntities(context.principal)
+              : [],
+          canonicalLegalEntityOptions:
+            canManageCanonicalAuthority && selected
+              ? context.v3.listCanonicalLegalEntityRevisionOptions(context.principal)
+              : [],
           projectLegalEntityAssignments:
             canManageCanonicalAuthority && selected
               ? context.v3.listProjectLegalEntityAssignments(context.principal, selected)
@@ -1582,7 +1603,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   context.v3,
                   context.principal,
                   url.searchParams.get('period'),
-                  { includeArchived },
+                  { includeArchived, search: financeSearch, limit: financeListLimit },
                 ),
               }
             : {}),
@@ -1593,6 +1614,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   context.v3,
                   context.principal,
                   projects as Array<Record<string, unknown>>,
+                  {
+                    openProjectId: requestedProject,
+                    search: financeSearch,
+                    missingOnly: url.searchParams.get('missing') === '1',
+                    limit: financeListLimit,
+                  },
                 ),
               }
             : {}),

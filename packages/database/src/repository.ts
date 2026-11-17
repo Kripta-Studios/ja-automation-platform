@@ -1978,7 +1978,7 @@ export class PortalRepository {
     principal: Principal,
     id: string,
     baseVersion: number,
-    options: Readonly<{ linkedWeekSubmission?: boolean }> = {},
+    options: Readonly<{ linkedWeekSubmission?: boolean; onBehalfForInvoice?: boolean }> = {},
   ) {
     this.assertActive(principal);
     const scope = this.sqlite
@@ -1993,7 +1993,9 @@ export class PortalRepository {
         .get(id)
     )
       throw new ConflictError('Linked time and meal drafts must be submitted together');
-    return this.time.submitTime(principal, id, baseVersion);
+    return this.time.submitTime(principal, id, baseVersion, {
+      onBehalfForInvoice: options.onBehalfForInvoice === true,
+    });
   }
 
   /** Submit the exact drafts the user reviewed for one worker and ISO week.
@@ -5208,8 +5210,17 @@ export class PortalRepository {
       .all(...values) as Record<string, unknown>[];
   }
 
-  submitExpense(principal: Principal, id: string, baseVersion: number) {
+  submitExpense(
+    principal: Principal,
+    id: string,
+    baseVersion: number,
+    options: Readonly<{ onBehalfForInvoice?: boolean }> = {},
+  ) {
     this.assertActive(principal);
+    // Invoice preparation (owner decision 2026-11-17): Finance may submit on the worker's
+    // behalf, only through the audited approvePendingForInvoice path.
+    const financeOnBehalf =
+      options.onBehalfForInvoice === true && principal.role === 'finance_admin';
     return this.transaction(() => {
       const scope = this.sqlite
         .prepare(
@@ -5262,10 +5273,11 @@ export class PortalRepository {
         scope.worker_id !== principal.userId &&
         principal.role !== 'owner_admin' &&
         !delegated &&
-        !financeCorrection
+        !financeCorrection &&
+        !financeOnBehalf
       )
         throw new AccessDeniedError('Expense ownership required');
-      if (financeCorrection) this.assertLiveSession(principal);
+      if (financeCorrection || financeOnBehalf) this.assertLiveSession(principal);
       const linkedTime = this.sqlite
         .prepare(
           `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.approval_state
@@ -5315,11 +5327,16 @@ export class PortalRepository {
           id,
           principal.userId,
           principal.role,
-          delegated || financeCorrection ? 1 : 0,
+          delegated || financeCorrection || financeOnBehalf ? 1 : 0,
           baseVersion,
         );
       if (result.changes !== 1) throw new ConflictError('Expense changed before submission');
-      this.audit(principal, 'expense.submit', 'expense', id, { baseVersion });
+      this.audit(principal, 'expense.submit', 'expense', id, {
+        baseVersion,
+        ...(options.onBehalfForInvoice
+          ? { workerId: scope.worker_id, onBehalfOfWorker: true, origin: 'invoice_prep' }
+          : {}),
+      });
       return { id, version: baseVersion + 1 };
     });
   }
@@ -7214,35 +7231,262 @@ export class PortalRepository {
           input.sources,
           refreshInvoiceId,
         ),
-      approve: (principal, source) => {
-        const table = source.type === 'time' ? 'time_entry' : 'expense';
+      approve: (principal, source) => this.approveSourceForInvoice(principal, source),
+    });
+  }
+
+  /**
+   * "Approve & include" for one invoice source, from whatever pre-approval state the worker
+   * left it in: draft → submitted (on the worker's behalf), reviewer-returned → submitted
+   * (accepted as recorded), submitted → approved, then the Finance acceptance. Owner and
+   * Finance only (owner decisions 2026-11-17: the Owner may approve his own records; Finance
+   * may approve on behalf of workers). Every step is the existing audited lifecycle command.
+   */
+  private approveSourceForInvoice(principal: Principal, source: InvoiceCompositionSourceRef): void {
+    if (!['owner_admin', 'finance_admin'].includes(principal.role))
+      throw new AccessDeniedError('Owner or Finance approval required');
+    const table = source.type === 'time' ? 'time_entry' : 'expense';
+    const read = () =>
+      this.sqlite
+        .prepare(`SELECT approval_state,finance_approved_at,version FROM ${table} WHERE id=?`)
+        .get(source.id) as
+        | { approval_state: string; finance_approved_at: string | null; version: number }
+        | undefined;
+    let row = read();
+    if (!row) throw new ValidationError('Invoice source not found');
+    if (row.approval_state === 'draft') {
+      if (source.type === 'time')
+        this.submitTime(principal, source.id, row.version, { onBehalfForInvoice: true });
+      else this.submitExpense(principal, source.id, row.version, { onBehalfForInvoice: true });
+      row = read()!;
+    } else if (row.approval_state === 'needs_changes') {
+      const reason = 'Accepted as recorded from invoice preparation';
+      if (source.type === 'time') this.time.acceptReturnedTime(principal, source.id, row.version, reason);
+      else this.acceptReturnedExpense(principal, source.id, row.version, reason);
+      row = read()!;
+    }
+    if (row.approval_state === 'submitted') {
+      if (source.type === 'time') this.operationalApproveTime(principal, source.id, 'approved');
+      else this.operationalApproveExpense(principal, source.id, 'approved');
+      row = read()!;
+    }
+    if (row.approval_state !== 'approved')
+      throw new ConflictError('Submitted or operationally approved source required');
+    if (!row.finance_approved_at) {
+      if (principal.role === 'owner_admin') {
+        this.assertCombinedApprovalOwner(principal);
+        if (
+          !acceptOwnerFinanceApproval(this.sqlite, principal, table, source.id, 'invoice_composition')
+        )
+          throw new ConflictError('Approved unlocked source required');
+      } else if (source.type === 'time') this.financeApproveTime(principal, source.id, true);
+      else this.financeApproveExpense(principal, source.id);
+    }
+  }
+
+  /** Reviewer-returned expense accepted exactly as recorded (invoice preparation). */
+  private acceptReturnedExpense(principal: Principal, id: string, baseVersion: number, reason: string) {
+    this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          'SELECT project_id,worker_id,approval_state,version,invoice_id,billing_state,billing_lock_id,receipt_required,receipt_document_id FROM expense WHERE id=?',
+        )
+        .get(id) as Record<string, string | number | null> | undefined;
+      if (!row) throw new ValidationError('Expense not found');
+      this.assertOperationalReviewer(principal, String(row.project_id));
+      if (row.approval_state !== 'needs_changes')
+        throw new ConflictError('Expense is not returned for changes');
+      if (row.version !== baseVersion) throw new ConflictError('Expense changed before acceptance');
+      if (row.invoice_id || row.billing_state !== 'unlocked' || row.billing_lock_id)
+        throw new ConflictError('Expense locked before acceptance');
+      if (Number(row.receipt_required) === 1 && !row.receipt_document_id)
+        throw new ConflictError('Expense receipt required for submission');
+      if (
+        this.sqlite
+          .prepare(
+            "SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=? AND correction.approval_state NOT IN ('rejected','void') LIMIT 1",
+          )
+          .get(id)
+      )
+        throw new ConflictError('The worker is already correcting this expense');
+      const timestamp = now();
+      const changed = this.sqlite
+        .prepare(
+          "UPDATE expense SET approval_state='submitted',submitted_at=?,updated_at=?,version=version+1 WHERE id=? AND approval_state='needs_changes' AND version=? AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL",
+        )
+        .run(timestamp, timestamp, id, baseVersion);
+      if (changed.changes !== 1) throw new ConflictError('Expense changed before acceptance');
+      this.sqlite
+        .prepare(
+          'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+        )
+        .run(newId(), 'expense', id, 'needs_changes', 'submitted', principal.userId, reason, timestamp);
+      this.audit(principal, 'expense.submit', 'expense', id, {
+        baseVersion,
+        workerId: row.worker_id,
+        fromState: 'needs_changes',
+        acceptedAsIs: true,
+        onBehalfOfWorker: true,
+        origin: 'invoice_prep',
+        reason,
+      });
+    });
+  }
+
+  /**
+   * Invoice preparation "Approve & include": approve the reviewed records of one project in
+   * one immediate transaction. All-or-nothing on what the user saw (project, versions,
+   * nothing reserved); records that cannot be approved for a rule reason (receipt missing,
+   * linked meal draft, open worker correction, unclassified expense) are skipped and
+   * reported instead of failing the whole batch. A repeated request key replays.
+   * `simulate` runs the same commands for a projection; the caller rolls them back.
+   */
+  approvePendingForInvoice(
+    principal: Principal,
+    input: Readonly<{
+      projectId: string;
+      sources: readonly InvoiceCompositionSourceRef[];
+      requestKey: string;
+      periodStart?: string;
+      periodEnd?: string;
+      simulate?: boolean;
+    }>,
+  ): {
+    approved: InvoiceCompositionSourceRef[];
+    skipped: Array<{ type: 'time' | 'expense'; id: string; reason: string }>;
+    replayed: boolean;
+  } {
+    this.assertActive(principal);
+    if (!['owner_admin', 'finance_admin'].includes(principal.role))
+      throw new AccessDeniedError('Owner or Finance approval required');
+    this.assertLiveSession(principal);
+    if (!/^[A-Za-z0-9:._-]{8,200}$/u.test(input.requestKey))
+      throw new ValidationError('A valid request key is required');
+    if (!Array.isArray(input.sources) || input.sources.length < 1 || input.sources.length > 1000)
+      throw new ValidationError('Select between 1 and 1000 records');
+    return this.transaction(() => {
+      if (
+        !input.simulate &&
+        this.sqlite
+          .prepare(
+            `SELECT 1 FROM audit_event WHERE action='project.update' AND entity_type='project' AND entity_id=?
+               AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf'
+               AND json_extract(metadata_json,'$.requestKey')=? LIMIT 1`,
+          )
+          .get(input.projectId, input.requestKey)
+      )
+        return { approved: [], skipped: [], replayed: true };
+      const approved: InvoiceCompositionSourceRef[] = [];
+      const skipped: Array<{ type: 'time' | 'expense'; id: string; reason: string }> = [];
+      const seen = new Set<string>();
+      const plan: Array<{ ref: InvoiceCompositionSourceRef; worker: string; minutes: number; linkedExpenseId?: string }> = [];
+      // Validate the entire batch before the first lifecycle mutation.
+      for (const ref of input.sources) {
+        if (!['time', 'expense'].includes(ref?.type) || typeof ref.id !== 'string' || !Number.isSafeInteger(ref.version))
+          throw new ValidationError('Valid typed source IDs and current versions are required');
+        const key = `${ref.type}:${ref.id}`;
+        if (seen.has(key)) throw new ValidationError('Duplicate invoice source');
+        seen.add(key);
+        const time = ref.type === 'time';
         const row = this.sqlite
-          .prepare(`SELECT approval_state,finance_approved_at FROM ${table} WHERE id=?`)
-          .get(source.id)!;
-        if (row.approval_state === 'submitted') {
-          if (principal.role !== 'owner_admin')
-            throw new AccessDeniedError('Owner operational approval required');
-          if (source.type === 'time') this.operationalApproveTime(principal, source.id, 'approved');
-          else this.operationalApproveExpense(principal, source.id, 'approved');
-        } else if (row.approval_state !== 'approved')
-          throw new ConflictError('Submitted or operationally approved source required');
-        else if (!row.finance_approved_at) {
-          if (principal.role === 'owner_admin') {
-            this.assertCombinedApprovalOwner(principal);
-            if (
-              !acceptOwnerFinanceApproval(
-                this.sqlite,
-                principal,
-                table,
-                source.id,
-                'invoice_composition',
-              )
+          .prepare(
+            time
+              ? `SELECT project_id,worker_id,work_date day,approval_state,finance_approved_at,version,invoice_id,billing_status lock_state,minutes,
+                   (SELECT 1 FROM operational_time_expense_request r WHERE r.time_entry_id=time_entry.id LIMIT 1) linked,
+                   (SELECT e.id FROM operational_time_expense_request r JOIN expense e ON e.id=r.expense_id WHERE r.time_entry_id=time_entry.id LIMIT 1) linked_expense,
+                   (SELECT 1 FROM operational_time_expense_request r JOIN expense e ON e.id=r.expense_id WHERE r.time_entry_id=time_entry.id
+                      AND e.receipt_required=1 AND e.receipt_document_id IS NULL AND e.approval_state='draft' LIMIT 1) linked_receipt_missing,
+                   NULL receipt_missing,NULL unclassified FROM time_entry WHERE id=?`
+              : `SELECT project_id,worker_id,spent_on day,approval_state,finance_approved_at,version,invoice_id,billing_state lock_state,0 minutes,
+                   NULL linked,NULL linked_expense,NULL linked_receipt_missing,(receipt_required=1 AND receipt_document_id IS NULL) receipt_missing,
+                   (commercial_classification_state='unclassified') unclassified FROM expense WHERE id=?`,
+          )
+          .get(ref.id) as Record<string, string | number | null> | undefined;
+        if (!row || row.project_id !== input.projectId)
+          throw new AccessDeniedError('Selected record is outside this project');
+        if (
+          input.periodStart &&
+          input.periodEnd &&
+          (String(row.day) < input.periodStart || String(row.day) > input.periodEnd)
+        )
+          throw new ValidationError('Selected record is outside the invoice period');
+        if (row.version !== ref.version)
+          throw new ConflictError('Selected record changed. Reload before approving.');
+        if (
+          row.invoice_id ||
+          this.sqlite
+            .prepare(
+              `SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id WHERE source.source_type=? AND source.source_id=? AND invoice.state NOT IN ('void','cancelled','superseded') LIMIT 1`,
             )
-              throw new ConflictError('Approved unlocked source required');
-          } else if (source.type === 'time') this.financeApproveTime(principal, source.id, true);
-          else this.financeApproveExpense(principal, source.id);
+            .get(ref.type, ref.id)
+        )
+          throw new ConflictError('Reserved source cannot be approved');
+        const state = String(row.approval_state);
+        const skip = (reason: string) => skipped.push({ type: ref.type, id: ref.id, reason });
+        if (!['draft', 'submitted', 'needs_changes', 'approved'].includes(state)) skip('not_approvable');
+        else if (state === 'approved' && row.finance_approved_at) skip('already_approved');
+        else if (principal.role === 'finance_admin' && row.worker_id === principal.userId)
+          skip('own_record');
+        else if (principal.role === 'finance_admin' && time && isSupplierTimeEntry(this.sqlite, ref.id))
+          skip('supplier_owner_only');
+        else if (Number(row.linked_receipt_missing) === 1 && state === 'draft') skip('linked_meal_receipt_missing');
+        else if (Number(row.receipt_missing) === 1 && ['draft', 'needs_changes'].includes(state))
+          skip('receipt_missing');
+        else if (Number(row.unclassified) === 1) skip('missing_expense_classification');
+        else if (
+          ['draft', 'needs_changes', 'approved'].includes(state) &&
+          this.sqlite
+            .prepare(
+              `SELECT 1 FROM record_correction_link link WHERE link.record_type=? AND link.original_id=?
+                 AND EXISTS (SELECT 1 FROM ${time ? 'time_entry' : 'expense'} c WHERE c.id=link.correction_id AND c.approval_state NOT IN ('rejected','void')) LIMIT 1`,
+            )
+            .get(time ? 'time_entry' : 'expense', ref.id)
+        )
+          skip('open_correction');
+        else
+          plan.push({
+            ref: { type: ref.type, id: ref.id, version: ref.version },
+            worker: String(row.worker_id),
+            minutes: Number(row.minutes ?? 0),
+            ...(state === 'draft' && Number(row.linked) === 1 && row.linked_expense
+              ? { linkedExpenseId: String(row.linked_expense) }
+              : {}),
+          });
+      }
+      for (const item of plan) {
+        if (item.linkedExpenseId) {
+          // A day's time and its meal are submitted together (existing rule): submit both
+          // on the worker's behalf; the meal then waits for its own expense invoice.
+          this.submitTime(principal, item.ref.id, item.ref.version, {
+            linkedWeekSubmission: true,
+            onBehalfForInvoice: true,
+          });
+          const meal = this.sqlite
+            .prepare('SELECT approval_state,version FROM expense WHERE id=?')
+            .get(item.linkedExpenseId) as { approval_state: string; version: number } | undefined;
+          if (meal?.approval_state === 'draft')
+            this.submitExpense(principal, item.linkedExpenseId, meal.version, { onBehalfForInvoice: true });
         }
-      },
+        this.approveSourceForInvoice(principal, item.ref);
+        approved.push(item.ref);
+      }
+      if (!input.simulate && plan.length)
+        // Grouped evidence next to the per-record lifecycle events. A dedicated audit action
+        // needs a registry migration; the reviewed project-scoped action carries the event.
+        this.audit(principal, 'project.update', 'project', input.projectId, {
+          event: 'invoice_prep.approve_on_behalf',
+          projectId: input.projectId,
+          actorRole: principal.role,
+          periodStart: input.periodStart ?? null,
+          periodEnd: input.periodEnd ?? null,
+          workerIds: [...new Set(plan.map((item) => item.worker))].sort(),
+          refs: plan.map((item) => item.ref),
+          minutes: plan.reduce((total, item) => total + item.minutes, 0),
+          expenseCount: plan.filter((item) => item.ref.type === 'expense').length,
+          skipped,
+          requestKey: input.requestKey,
+        });
+      return { approved, skipped, replayed: false };
     });
   }
 
@@ -12182,18 +12426,40 @@ export class PortalRepository {
     return this.clients.listClients(principal);
   }
 
-  listApprovalQueue(principal: Principal) {
+  /**
+   * The review queue. `view` narrows it without changing authorization:
+   * - `pending`: records waiting for a reviewer or returned to their author
+   *   (submitted / needs_changes, operational and report stages);
+   * - `approved`: approved records that are not yet invoiced or finalized
+   *   (owner override / correction stage);
+   * - `finance`: the owner/Finance financial-review stage;
+   * - `all` (default): every stage, as before.
+   */
+  listApprovalQueue(
+    principal: Principal,
+    options: { view?: 'all' | 'pending' | 'approved' | 'finance' } = {},
+  ) {
     this.assertReadable(principal);
+    const view = options.view ?? 'all';
+    const wantPending = view === 'all' || view === 'pending';
+    const wantApproved = view === 'all' || view === 'approved';
+    const wantFinance = view === 'all' || view === 'finance';
     if (principal.role === 'owner_admin' || principal.role === 'finance_admin') {
+      const ownerPending =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL ";
+      const ownerApproved =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'owner_override' review_stage FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'owner_override' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'owner_override' FROM daily_report d WHERE d.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'owner_override' FROM technical_report t WHERE t.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') UNION ALL ";
       const operational =
         principal.role === 'owner_admin'
-          ? "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'owner_override' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'owner_override' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'owner_override' FROM daily_report d WHERE d.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'owner_override' FROM technical_report t WHERE t.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') UNION ALL "
+          ? `${wantPending ? ownerPending : ''}${wantApproved ? ownerApproved : ''}`
           : '';
-      const queued = this.sqlite
-        .prepare(
-          `${operational}SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'finance' review_stage FROM time_entry WHERE approval_state='approved' AND billability_state='pending' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'finance' FROM expense WHERE approval_state='approved' AND finance_approved_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) ORDER BY date`,
-        )
-        .all();
+      const financeStage =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'finance' review_stage FROM time_entry WHERE approval_state='approved' AND billability_state='pending' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'finance' FROM expense WHERE approval_state='approved' AND finance_approved_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)";
+      const queuedSql = `${operational}${wantFinance ? financeStage : ''}`.replace(
+        /\s*UNION ALL\s*$/u,
+        '',
+      );
+      const queued = queuedSql ? this.sqlite.prepare(`${queuedSql} ORDER BY date`).all() : [];
       // The Finance review queue must expose the prerequisite for expense
       // approval. Read classification only for already-authorized queue rows.
       const withFinanceExpenseClassification = (rows: Array<Record<string, unknown>>) => {
@@ -12220,9 +12486,11 @@ export class PortalRepository {
         );
       };
       if (principal.role === 'finance_admin') {
-        const retryableTime = this.sqlite
-          .prepare(
-            `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+        const retryableTime = !wantFinance
+          ? []
+          : this.sqlite
+              .prepare(
+                `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                     t.approval_state,'finance' review_stage
                FROM time_entry t
               WHERE t.approval_state='approved' AND t.billability_state='pending'
@@ -12240,11 +12508,13 @@ export class PortalRepository {
                    WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                      AND correction.approval_state<>'rejected'
                 )`,
-          )
-          .all();
-        const retryableExpense = this.sqlite
-          .prepare(
-            `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+              )
+              .all();
+        const retryableExpense = !wantFinance
+          ? []
+          : this.sqlite
+              .prepare(
+                `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                     e.approval_state,'finance' review_stage
                FROM expense e
               WHERE e.approval_state='approved' AND e.finance_approved_at IS NULL
@@ -12262,17 +12532,19 @@ export class PortalRepository {
                    WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                      AND correction.approval_state<>'rejected'
                 )`,
-          )
-          .all();
+              )
+              .all();
         return withFinanceExpenseClassification([
           ...queued,
           ...retryableTime,
           ...retryableExpense,
         ]).sort((left, right) => String(left.date).localeCompare(String(right.date)));
       }
-      const retryableTime = this.sqlite
-        .prepare(
-          `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+      const retryableTime = !wantApproved
+        ? []
+        : this.sqlite
+            .prepare(
+              `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                   t.approval_state,'owner_override' review_stage
              FROM time_entry t
             WHERE t.approval_state='approved' AND t.invoice_id IS NULL
@@ -12291,11 +12563,13 @@ export class PortalRepository {
                  WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                    AND correction.approval_state<>'rejected'
               )`,
-        )
-        .all();
-      const retryableExpense = this.sqlite
-        .prepare(
-          `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+            )
+            .all();
+      const retryableExpense = !wantApproved
+        ? []
+        : this.sqlite
+            .prepare(
+              `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                   e.approval_state,'owner_override' review_stage
              FROM expense e
             WHERE e.approval_state='approved' AND e.invoice_id IS NULL
@@ -12314,8 +12588,8 @@ export class PortalRepository {
                  WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                    AND correction.approval_state<>'rejected'
               )`,
-        )
-        .all();
+            )
+            .all();
       return withFinanceExpenseClassification([
         ...queued,
         ...retryableTime,
@@ -12339,14 +12613,19 @@ export class PortalRepository {
       .filter((projectId) => principal.projectIds.has(projectId));
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
-    const queued = this.sqlite
-      .prepare(
-        `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'correction' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'correction' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'correction' FROM daily_report d WHERE d.approval_state='approved' AND d.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'correction' FROM technical_report t WHERE t.approval_state='approved' AND t.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') ORDER BY date`,
-      )
-      .all(...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids);
-    const retryableTime = this.sqlite
-      .prepare(
-        `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+    const pmPending = `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders})`;
+    const pmApproved = `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'correction' review_stage FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'correction' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'correction' FROM daily_report d WHERE d.approval_state='approved' AND d.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'correction' FROM technical_report t WHERE t.approval_state='approved' AND t.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final')`;
+    const pmParts = [...(wantPending ? [pmPending] : []), ...(wantApproved ? [pmApproved] : [])];
+    const queued = pmParts.length
+      ? this.sqlite
+          .prepare(`${pmParts.join(' UNION ALL ')} ORDER BY date`)
+          .all(...Array.from({ length: pmParts.length * 4 }, () => ids).flat())
+      : [];
+    const retryableTime = !wantApproved
+      ? []
+      : this.sqlite
+          .prepare(
+            `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                 t.approval_state,'correction' review_stage
            FROM time_entry t
           WHERE t.approval_state='approved' AND t.invoice_id IS NULL
@@ -12366,11 +12645,13 @@ export class PortalRepository {
                WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                  AND correction.approval_state<>'rejected'
             )`,
-      )
-      .all(...ids);
-    const retryableExpense = this.sqlite
-      .prepare(
-        `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+          )
+          .all(...ids);
+    const retryableExpense = !wantApproved
+      ? []
+      : this.sqlite
+          .prepare(
+            `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                 e.approval_state,'correction' review_stage
            FROM expense e
           WHERE e.approval_state='approved' AND e.invoice_id IS NULL
@@ -12390,8 +12671,8 @@ export class PortalRepository {
                WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                  AND correction.approval_state<>'rejected'
             )`,
-      )
-      .all(...ids);
+          )
+          .all(...ids);
     return [...queued, ...retryableTime, ...retryableExpense]
       .filter(
         (row) => String(row.type) !== 'time' || !isSupplierTimeEntry(this.sqlite, String(row.id)),

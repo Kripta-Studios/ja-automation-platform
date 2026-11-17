@@ -4,7 +4,6 @@ import { redirect } from '@sveltejs/kit';
 import { base } from '$app/paths';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
-  projectManagerApprovalQueueProjection,
   projectManagerDashboardProjection,
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
@@ -12,9 +11,10 @@ import {
 import type { PageServerLoad } from './$types';
 import { portalLandingForRole } from '$lib/portal-navigation';
 import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
+import { readPendingApprovals } from '$lib/server/approval-queue';
+import { homeProjectFinance } from '$lib/server/home-project-finance';
 import {
   isPendingApproval,
-  pendingApprovalSummary,
   readyToInvoiceSummary,
   splitUnbilledSources,
   workerWeekStatus,
@@ -89,27 +89,10 @@ export const load: PageServerLoad = ({ locals, url }) => {
       };
     }
     const dashboard = context.repository.dashboard(context.principal);
-    const approvalRows = visibleProjectRecords(
-      context.repository.listApprovalQueue(context.principal),
-      visible.projectIds,
-    );
+    // One pending definition for Home, the nav badge and Approvals.
+    const pendingApprovals = readPendingApprovals(context, { visible });
+    const approvalRows = pendingApprovals.rows;
     const isOwner = context.principal.role === 'owner_admin';
-    // Owner money: exact minor units read from the authorized records only.
-    const pendingExpenseIds = isOwner
-      ? approvalRows
-          .filter((row) => row.type === 'expense' && row.approval_state === 'submitted')
-          .map((row) => String(row.id))
-      : [];
-    const expenseMoney = new Map<string, { currency: string; amount_minor: string }>();
-    for (let offset = 0; offset < pendingExpenseIds.length; offset += 500) {
-      const batch = pendingExpenseIds.slice(offset, offset + 500);
-      for (const row of context.sqlite
-        .prepare(
-          `SELECT id,currency,CAST(amount_minor AS TEXT) amount_minor FROM expense WHERE id IN (${batch.map(() => '?').join(',')})`,
-        )
-        .all(...batch) as Array<{ id: string; currency: string; amount_minor: string }>)
-        expenseMoney.set(row.id, row);
-    }
     // Owner: one finance read per open project feeds "Ready to invoice" and the project glance.
     const openProjects = isOwner
       ? visible.projects.filter((project) =>
@@ -119,18 +102,15 @@ export const load: PageServerLoad = ({ locals, url }) => {
     // Who holds each approved source: an unissued draft ("in draft") or a live invoice.
     const holders = new Map<string, string>();
     if (openProjects.length) {
-      const holderQuery = context.sqlite.prepare(
-        `SELECT source.source_type type,source.source_id id,invoice.state state
-           FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
-          WHERE invoice.project_id=? AND invoice.state NOT IN ('void','cancelled','superseded')`,
-      );
-      for (const project of openProjects)
-        for (const row of holderQuery.all(String(project.id)) as Array<{
-          type: string;
-          id: string;
-          state: string;
-        }>)
-          holders.set(`${row.type}:${row.id}`, row.state);
+      const openIds = new Set(openProjects.map((project) => String(project.id)));
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT invoice.project_id projectId,source.source_type type,source.source_id id,invoice.state state
+             FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+            WHERE invoice.state NOT IN ('void','cancelled','superseded')`,
+        )
+        .all() as Array<{ projectId: string; type: string; id: string; state: string }>)
+        if (openIds.has(row.projectId)) holders.set(`${row.type}:${row.id}`, row.state);
     }
     const weekStart = mondayOf(new Date().toISOString().slice(0, 10));
     const weekEndDate = new Date(`${weekStart}T00:00:00Z`);
@@ -146,6 +126,25 @@ export const load: PageServerLoad = ({ locals, url }) => {
         )
         .all(weekStart, weekEnd) as Array<{ projectId: string; minutes: number }>)
         weekMinutes.set(row.projectId, Number(row.minutes) || 0);
+    // Logged hours that still wait for an approval and no invoice holds: the invoice
+    // screen can approve and include them ("Ready to invoice" counts them too).
+    const pendingMinutes = new Map<string, number>();
+    if (openProjects.length)
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
+            WHERE (approval_state IN ('draft','submitted','needs_changes')
+                   OR (approval_state='approved' AND finance_approved_at IS NULL AND billability_state='pending'))
+              AND invoice_id IS NULL AND billability_state<>'non_billable'
+              AND NOT EXISTS (SELECT 1 FROM record_correction_link link JOIN time_entry correction ON correction.id=link.correction_id
+                     WHERE link.record_type='time_entry' AND link.original_id=time_entry.id AND correction.approval_state NOT IN ('rejected','void'))
+              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                     WHERE source.source_type='time' AND source.source_id=time_entry.id
+                       AND invoice.state NOT IN ('void','cancelled','superseded'))
+            GROUP BY project_id`,
+        )
+        .all() as Array<{ projectId: string; minutes: number }>)
+        pendingMinutes.set(row.projectId, Number(row.minutes) || 0);
     const pendingByProject = new Map<string, number>();
     for (const row of approvalRows)
       if (isPendingApproval(row))
@@ -161,11 +160,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
       : null;
     const projectGlance: ProjectGlance[] = openProjects.flatMap((project) => {
       try {
-        const finance = context.v3.projectFinance(context.principal, String(project.id)) as {
-          currency?: string;
-          approvedUnbilledSources?: Array<Record<string, unknown>>;
-          alerts?: string[];
-        };
+        // Reused while the project's finance inputs are unchanged (see home-project-finance.ts).
+        const finance = homeProjectFinance(context, String(project.id));
         const split = splitUnbilledSources(finance.approvedUnbilledSources ?? [], holders);
         return [
           {
@@ -197,14 +193,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       ]),
     );
     const homeInbox: HomeInbox = {
-      approvals: pendingApprovalSummary(
-        approvalRows.map((row) => {
-          const money = expenseMoney.get(String(row.id));
-          return row.type === 'expense' && money
-            ? { ...row, expense_currency: money.currency, expense_amount_minor: money.amount_minor }
-            : row;
-        }),
-      ),
+      approvals: pendingApprovals.summary,
       // Work already on a draft is not "ready" again; it shows as "in a draft" instead.
       readyToInvoice: isOwner
         ? readyToInvoiceSummary(
@@ -214,6 +203,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
               currency: glance.currency,
               minor: glance.readyMinor,
               draftMinor: glance.draftMinor,
+              pendingMinutes: pendingMinutes.get(glance.projectId) ?? 0,
             })),
           )
         : null,
@@ -239,9 +229,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
         : {}),
       dashboard: isProjectManager ? projectManagerDashboardProjection(dashboard) : dashboard,
       projects: visible.projects,
-      records: isProjectManager
-        ? projectManagerApprovalQueueProjection(approvalRows)
-        : approvalRows,
+      // Home shows counts only; the queue itself loads on Approvals.
+      records: [],
     };
   } finally {
     context.sqlite.close();

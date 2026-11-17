@@ -17,6 +17,15 @@ export const AUTH_AUDIT_ACTIONS = {
   passkeyRegister: { action: 'security.passkey.register', entityType: 'passkey' },
   passkeyRevoke: { action: 'security.passkey.revoke', entityType: 'passkey' },
   passkeyLogin: { action: 'security.passkey.login', entityType: 'user' },
+  /**
+   * A normal authenticator-code (TOTP) second-factor sign-in. The reviewed,
+   * immutable audit registry has no dedicated `security.mfa.login` action and
+   * adding one needs a registry migration, so this reuses the closest reviewed
+   * NON-recovery second-factor sign-in action. `details.method` = 'totp'
+   * distinguishes it from a passkey sign-in. Backup codes keep
+   * `security.mfa.recovery_login` (`details.method` = 'backup_code').
+   */
+  mfaTotpLogin: { action: 'security.passkey.login', entityType: 'user' },
 } as const;
 
 /**
@@ -126,7 +135,7 @@ function actionForPath(path: string | undefined): AuthAuditAction | null {
     case '/two-factor/enable':
       return AUTH_AUDIT_ACTIONS.mfaSetupStarted;
     case '/two-factor/verify-totp':
-      return AUTH_AUDIT_ACTIONS.mfaRecoveryLogin;
+      return AUTH_AUDIT_ACTIONS.mfaTotpLogin;
     case '/two-factor/verify-backup-code':
       return AUTH_AUDIT_ACTIONS.mfaRecoveryLogin;
     case '/two-factor/disable':
@@ -412,12 +421,12 @@ async function authAuditBeforeImplementation(context: AuthHookContext): Promise<
   const action = actionForPath(context.path);
   if (!action) return;
   // The same TOTP endpoint is used for both the authenticated enrollment
-  // verification and the sign-in/recovery journey.  Preflight both reviewed
+  // verification and the ordinary second-factor sign-in.  Preflight both reviewed
   // actions before Better Auth can consume a code or rotate a session; the
   // after hook selects the one that matches the resolved session context.
   assertAuthAuditReady(
     path === '/two-factor/verify-totp'
-      ? [AUTH_AUDIT_ACTIONS.mfaRecoveryLogin, AUTH_AUDIT_ACTIONS.mfaEnable]
+      ? [AUTH_AUDIT_ACTIONS.mfaTotpLogin, AUTH_AUDIT_ACTIONS.mfaEnable]
       : [action],
   );
 
@@ -627,7 +636,9 @@ async function authAuditAfterImplementation(context: AuthHookContext): Promise<{
     if (context.context.session?.user?.id) {
       action = AUTH_AUDIT_ACTIONS.mfaEnable;
       details.outcome = 'enrollment_verified';
-    }
+    } else details.method = 'totp';
+  } else if (before.path === '/two-factor/verify-backup-code') {
+    details.method = 'backup_code';
   }
   const synchronizeMfaProjection =
     before.path === '/two-factor/disable' ||

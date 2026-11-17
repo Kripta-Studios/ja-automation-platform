@@ -32,6 +32,7 @@
   import PersonProjectsPanel from './PersonProjectsPanel.svelte';
   import PersonPayPanel from './PersonPayPanel.svelte';
   import FixNamesPanel from './FixNamesPanel.svelte';
+  import { normalizeSelectSearch } from '../searchable-selects';
 
   const CORPORATE_DOMAIN = '@j-aautomation.com';
   const OWNER_EMAIL = 'antonny.luty@j-aautomation.com';
@@ -68,6 +69,15 @@
     canonicalOwner?: boolean;
     currentUserId?: string;
     invitationPath?: string | null;
+    /** Owner only: unused invitation links (pending or recently expired). */
+    invitations?: ReadonlyArray<{
+      id: string;
+      email: string;
+      role: string;
+      expiresAt: string;
+      createdAt: string;
+      expired: boolean;
+    }>;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status' | 'availability' | 'role', value: unknown) => string;
     form?: ActionResult | PortalActionResult;
@@ -96,6 +106,7 @@
     canonicalOwner = false,
     currentUserId = '',
     invitationPath = null,
+    invitations = [],
     translate,
     controlledValue,
     form,
@@ -532,7 +543,8 @@
   type MailboxActionState = { status: MailboxActionStatus; action: string; message: string };
   let mailboxAction = $state<MailboxActionState>({ status: 'idle', action: '', message: '' });
 
-  const normalizedSearch = $derived(search.trim().toLowerCase());
+  // Accent- and case-insensitive: "josé raúl" finds "Jose Raul" and vice versa.
+  const normalizedSearch = $derived(normalizeSelectSearch(search));
   const normalizedMailboxSearch = $derived(mailboxSearch.trim().toLowerCase());
   const mailboxRows = $derived(mailboxes ?? []);
   const mailboxDirectoryState = $derived(
@@ -700,17 +712,16 @@
 
   function matchesWorker(row: PortalRow): boolean {
     if (!normalizedSearch) return true;
-    return [
-      workerName(row),
-      value(row, 'email', 'role', 'availability', 'availability_status'),
-      ...workerAssignments(row).flatMap((assignment) => [
-        value(assignment, 'project_number', 'project_name'),
-        value(assignment, 'assignment_role', 'status'),
-      ]),
-    ]
-      .join(' ')
-      .toLowerCase()
-      .includes(normalizedSearch);
+    return normalizeSelectSearch(
+      [
+        workerName(row),
+        value(row, 'email', 'role', 'availability', 'availability_status'),
+        ...workerAssignments(row).flatMap((assignment) => [
+          value(assignment, 'project_number', 'project_name'),
+          value(assignment, 'assignment_role', 'status'),
+        ]),
+      ].join(' '),
+    ).includes(normalizedSearch);
   }
 
   const relationFilteredWorkers = $derived(
@@ -1009,6 +1020,34 @@
     if (role === 'owner_admin') return translate('Owner');
     return controlledValue?.('role', role) || translate(role);
   }
+  // Pending invitations share the People search so an invitee can be found by email.
+  const shownInvitations = $derived(
+    canManageTeam && canonicalOwner
+      ? invitations.filter(
+          (invitation) =>
+            !normalizedSearch ||
+            normalizeSelectSearch(`${invitation.email} ${roleLabel(invitation.role)}`).includes(
+              normalizedSearch,
+            ),
+        )
+      : [],
+  );
+  let confirmRevokeId = $state('');
+  let invitationBusyId = $state('');
+  function invitationDate(value: string): string {
+    const date = new Date(value);
+    return Number.isNaN(date.getTime())
+      ? value
+      : date.toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+  const submitInvitationAction: SubmitFunction = ({ formData }) => {
+    invitationBusyId = String(formData.get('invitationId') ?? '');
+    return async ({ update }) => {
+      await update();
+      invitationBusyId = '';
+      confirmRevokeId = '';
+    };
+  };
   const statsById = $derived(new Map(teamStats.map((row) => [String(row.worker_id), row])));
   function statsFor(row: PortalRow) {
     const stats = statsById.get(workerId(row));
@@ -1141,17 +1180,16 @@
         if (statusFilter === 'inactive' && status === 'active') return false;
         if (roleFilter && accessRoleForWorker(worker) !== roleFilter) return false;
         if (!normalizedSearch) return true;
-        return [
-          personName(worker),
-          workerName(worker),
-          value(worker, 'email'),
-          ...personAssignments(worker).map((assignment) =>
-            [value(assignment, 'project_number'), value(assignment, 'project_name')].join(' '),
-          ),
-        ]
-          .join(' ')
-          .toLowerCase()
-          .includes(normalizedSearch);
+        return normalizeSelectSearch(
+          [
+            personName(worker),
+            workerName(worker),
+            value(worker, 'email'),
+            ...personAssignments(worker).map((assignment) =>
+              [value(assignment, 'project_number'), value(assignment, 'project_name')].join(' '),
+            ),
+          ].join(' '),
+        ).includes(normalizedSearch);
       })
       .sort((a, b) => personName(a).localeCompare(personName(b))),
   );
@@ -2194,7 +2232,84 @@
           {/if}
         </div>
 
-        <p class="people__count" aria-live="polite">{tc('shown', { count: peopleRows.length })}</p>
+        {#if shownInvitations.length}
+          <section
+            class="people__invitations"
+            aria-labelledby="team-invitations-title"
+            data-pending-invitations
+          >
+            <h3 id="team-invitations-title">
+              {tc('invitesTitle')}
+              <span class="people__invitations-count">{shownInvitations.length}</span>
+            </h3>
+            <p class="person__muted">{tc('invitesIntro')}</p>
+            <ul>
+              {#each shownInvitations as invitation (invitation.id)}
+                <li class="people__invitation" data-invitation-id={invitation.id}>
+                  <span class="people__invitation-who">
+                    <strong>{invitation.email}</strong>
+                    <small>
+                      {roleLabel(invitation.role)} ·
+                      {#if invitation.expired}
+                        <StatusBadge
+                          variant="warning"
+                          text={tc('inviteExpired', { date: invitationDate(invitation.expiresAt) })}
+                        />
+                      {:else}
+                        {tc('inviteExpires', { date: invitationDate(invitation.expiresAt) })}
+                      {/if}
+                    </small>
+                  </span>
+                  <span class="people__invitation-actions">
+                    <form
+                      method="POST"
+                      action="?view=team&/reissueInvitation"
+                      use:enhance={submitInvitationAction}
+                    >
+                      <input type="hidden" name="invitationId" value={invitation.id} />
+                      <button
+                        type="submit"
+                        class="secondary-button"
+                        disabled={invitationBusyId === invitation.id}>{tc('inviteNewLink')}</button
+                      >
+                    </form>
+                    {#if confirmRevokeId === invitation.id}
+                      <form
+                        method="POST"
+                        action="?view=team&/revokeInvitation"
+                        use:enhance={submitInvitationAction}
+                      >
+                        <input type="hidden" name="invitationId" value={invitation.id} />
+                        <button
+                          type="submit"
+                          class="team-directory__action team-directory__action--danger"
+                          disabled={invitationBusyId === invitation.id}
+                          >{tc('inviteRevokeConfirm')}</button
+                        >
+                      </form>
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        onclick={() => (confirmRevokeId = '')}>{tc('closeAdd')}</button
+                      >
+                    {:else}
+                      <button
+                        type="button"
+                        class="secondary-button"
+                        onclick={() => (confirmRevokeId = invitation.id)}
+                        >{tc('inviteRevoke')}</button
+                      >
+                    {/if}
+                  </span>
+                </li>
+              {/each}
+            </ul>
+          </section>
+        {/if}
+
+        <p class="people__count" aria-live="polite">
+          {peopleRows.length === 1 ? tc('shownOne') : tc('shown', { count: peopleRows.length })}
+        </p>
         {#if peopleRows.length === 0}
           <p class="team-directory__empty team-directory__empty--large">{tc('empty')}</p>
         {:else}
@@ -3972,6 +4087,59 @@
   }
   .people__clear {
     min-height: var(--ja-target-min, 2.75rem);
+  }
+  .people__invitations {
+    margin: 0 0 1rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--ja-border-subdued, #d0d5dd);
+    border-radius: 0.75rem;
+    background: var(--ja-surface, #fff);
+  }
+  .people__invitations h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1rem;
+  }
+  .people__invitations-count {
+    display: inline-block;
+    min-width: 1.5rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--ja-surface-raised, #f2f4f7);
+    font-size: 0.8125rem;
+    text-align: center;
+  }
+  .people__invitations ul {
+    margin: 0.5rem 0 0;
+    padding: 0;
+    list-style: none;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .people__invitation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem 1rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--ja-border-subdued, #eaecf0);
+  }
+  .people__invitation-who {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .people__invitation-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .people__invitation-actions form {
+    margin: 0;
+  }
+  .people__invitation-actions button {
+    min-height: 44px;
   }
   .people__count {
     margin: 0 0 0.5rem;

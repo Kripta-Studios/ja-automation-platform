@@ -77,8 +77,12 @@ async function verifyInvitedCredential(userId: string, password: string) {
 
 export const POST: RequestHandler = async ({ request }) => {
   const parsed = invitationAcceptSchema.safeParse(await request.json().catch(() => null));
-  if (!parsed.success)
+  if (!parsed.success) {
+    // A malformed link is not the person's name or password: report it as an
+    // unusable invitation so the page does not blame the wrong fields.
+    if (parsed.error.issues.some((issue) => issue.path[0] === 'token')) return genericFailure();
     return invitationJson({ error: 'Invitation details are invalid' }, { status: 400 });
+  }
 
   const tokenHash = createHash('sha256').update(parsed.data.token).digest('hex');
   const claimStartedAt = Date.now();

@@ -80,6 +80,8 @@ export const sectionActions: Actions = {
   assignWorker: projectActions.assignWorker,
   createLocalPortalUser: accessActions.createLocalPortalUser,
   createInvitation: accessActions.createInvitation,
+  revokeInvitation: accessActions.revokeInvitation,
+  reissueInvitation: accessActions.reissueInvitation,
   provisionMailboxUsers: accessActions.provisionMailboxUsers,
   createMailboxAccount: accessActions.createMailboxAccount,
   bootstrapMailboxUsers: accessActions.bootstrapMailboxUsers,

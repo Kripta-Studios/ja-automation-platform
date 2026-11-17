@@ -78,6 +78,16 @@ for (const [canonical, words] of Object.entries({
 })) {
   for (const word of words.split(' ')) aliases.set(word, canonical);
 }
+/**
+ * People/access verbs and nouns that imply the team domain without being
+ * collapsed into one canonical token, so "suspend" still ranks the suspend task
+ * above the invite task.
+ */
+const domainHints = new Map<string, string>();
+for (const word of 'invite invites invited invitar invita invitado convidar convida convidado suspend suspended suspension suspender suspendido suspenso suspensao offboard offboarding baja desvincular desligar deactivate desactivar desativar reactivate reactivar reativar restore restaurar person persona pessoa people personas pessoas gente access acceso acesso role roles rol roles papel funcao'.split(
+  ' ',
+))
+  domainHints.set(normalizeAssistantText(word), 'team');
 const qualifiers = new Set(['daily', 'technical', 'signoff', 'credit', 'draft']);
 const intents = new Set(['create', 'edit', 'view', 'remove', 'submit', 'issue', 'void']);
 const filler = new Set(
@@ -85,9 +95,10 @@ const filler = new Set(
     ' ',
   ),
 );
-const domainVocabulary = [...aliases.entries()].filter(
-  ([, word]) => !intents.has(word) && !qualifiers.has(word),
-);
+const domainVocabulary = [
+  ...[...aliases.entries()].filter(([, word]) => !intents.has(word) && !qualifiers.has(word)),
+  ...domainHints.entries(),
+];
 const domainFuse = new Fuse(
   domainVocabulary.map(([alias, domain]) => ({ alias, domain })),
   {
@@ -108,7 +119,10 @@ function domainsFor(text: string, fuzzyMatching = true): Set<string> {
   const domains = new Set<string>();
   for (const word of normalizeAssistantText(text).split(' ')) {
     const exact = aliases.get(word);
+    const hinted = domainHints.get(word);
+    if (hinted) domains.add(hinted);
     if (exact && !intents.has(exact) && !qualifiers.has(exact)) domains.add(exact);
+    else if (hinted) continue;
     else if (fuzzyMatching && !exact && word.length >= 4 && !filler.has(word)) {
       const fuzzy = domainFuse.search(word, { limit: 1 })[0];
       if (
@@ -163,6 +177,19 @@ const bareChoices: Record<string, readonly string[]> = {
     'finance-settlement',
   ],
 };
+
+const approveWords = new Set(
+  'approve approves approving approval approvals aprobar aprueba aprobacion aprobaciones aprovar aprova aprovacao aprovacoes'.split(
+    ' ',
+  ),
+);
+function approveIntent(normalized: string): boolean {
+  const words = normalized.split(' ');
+  return (
+    words.some((word) => approveWords.has(word)) &&
+    !words.some((word) => aliases.get(word) === 'submit')
+  );
+}
 
 export function searchAssistantTasks(
   query: string,
@@ -250,6 +277,19 @@ export function searchAssistantTasks(
         return task ? [{ task, score: 0.8 - position * 0.02 }] : [];
       });
       if (matches.length) return { kind: 'matches', matches };
+    }
+  }
+  // "approve" / "aprobar" / "aprovar" from someone who approves means the review
+  // queue, not "submit for approval": rank the review tasks first.
+  if (
+    approveIntent(normalized) &&
+    ['owner_admin', 'project_manager', 'finance_admin'].includes(String(context.role))
+  ) {
+    for (const [id, entry] of scores) scores.set(id, { ...entry, score: entry.score * 0.7 });
+    for (const task of available) {
+      if (!task.id.startsWith('approval-')) continue;
+      const textual = (scores.get(task.id)?.score ?? 0.42) / 0.7;
+      scores.set(task.id, { task, score: 0.75 + Math.min(1, textual) * 0.25 });
     }
   }
   const matches = [...scores.values()]

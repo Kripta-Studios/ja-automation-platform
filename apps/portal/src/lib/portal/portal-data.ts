@@ -117,6 +117,15 @@ export type PortalData = {
   teamWeekStart?: string;
   teamWeekEnd?: string;
   mailboxLinkedIds?: string[];
+  /** Owner People directory: unused invitation links (see V3Repository.listOpenInvitations). */
+  invitations?: Array<{
+    id: string;
+    email: string;
+    role: string;
+    expiresAt: string;
+    createdAt: string;
+    expired: boolean;
+  }>;
   personPayRules?: PortalRow[];
   defaultsProjectIds?: string[];
   personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;

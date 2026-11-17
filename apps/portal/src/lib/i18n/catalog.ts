@@ -311,6 +311,20 @@ const en = {
   Home: 'Home',
   Management: 'Management',
   'Finance & control': 'Finance & control',
+  'problem.session.expired':
+    'Your session expired — sign in again. What you typed is still on this page.',
+  'Sign in again (new tab)': 'Sign in again (new tab)',
+  'After signing in, come back to this tab and save again.':
+    'After signing in, come back to this tab and save again.',
+  'Your session expired. Sign in again to continue.':
+    'Your session expired. Sign in again to continue.',
+  'Close message': 'Close message',
+  'Edit a field': 'Edit a field',
+  'This invitation link is no longer valid': 'This invitation link is no longer valid',
+  'It may have expired, been used already or been replaced. Ask the owner for a new invitation link.':
+    'It may have expired, been used already or been replaced. Ask the owner for a new invitation link.',
+  'If you already activated your account, sign in with your email and password.':
+    'If you already activated your account, sign in with your email and password.',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Manage all company records from your Owner account. Changes apply equally to demo and production records.',
   'Manage record': 'Manage record',
@@ -956,6 +970,20 @@ const esBase: Record<keyof typeof en, string> = {
   Home: 'Inicio',
   Management: 'Gestión',
   'Finance & control': 'Finanzas y control',
+  'problem.session.expired':
+    'Tu sesión ha caducado: vuelve a iniciar sesión. Lo que escribiste sigue en esta página.',
+  'Sign in again (new tab)': 'Volver a iniciar sesión (nueva pestaña)',
+  'After signing in, come back to this tab and save again.':
+    'Después de iniciar sesión, vuelve a esta pestaña y guarda de nuevo.',
+  'Your session expired. Sign in again to continue.':
+    'Tu sesión ha caducado. Vuelve a iniciar sesión para continuar.',
+  'Close message': 'Cerrar mensaje',
+  'Edit a field': 'Editar un campo',
+  'This invitation link is no longer valid': 'Este enlace de invitación ya no es válido',
+  'It may have expired, been used already or been replaced. Ask the owner for a new invitation link.':
+    'Puede que haya caducado, ya se haya usado o se haya sustituido. Pide al propietario un nuevo enlace de invitación.',
+  'If you already activated your account, sign in with your email and password.':
+    'Si ya activaste tu cuenta, inicia sesión con tu correo y tu contraseña.',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Gestiona los registros de la empresa desde tu cuenta Owner. Las acciones se aplican tanto a datos de ejemplo como a datos reales.',
   'Manage record': 'Gestionar registro',
@@ -1593,6 +1621,20 @@ const ptBase: Record<keyof typeof en, string> = {
   Home: 'Início',
   Management: 'Gestão',
   'Finance & control': 'Finanças e controle',
+  'problem.session.expired':
+    'Sua sessão expirou: entre novamente. O que você digitou continua nesta página.',
+  'Sign in again (new tab)': 'Entrar novamente (nova aba)',
+  'After signing in, come back to this tab and save again.':
+    'Depois de entrar, volte para esta aba e salve novamente.',
+  'Your session expired. Sign in again to continue.':
+    'Sua sessão expirou. Entre novamente para continuar.',
+  'Close message': 'Fechar mensagem',
+  'Edit a field': 'Editar um campo',
+  'This invitation link is no longer valid': 'Este link de convite não é mais válido',
+  'It may have expired, been used already or been replaced. Ask the owner for a new invitation link.':
+    'Ele pode ter expirado, já ter sido usado ou ter sido substituído. Peça ao proprietário um novo link de convite.',
+  'If you already activated your account, sign in with your email and password.':
+    'Se você já ativou sua conta, entre com seu e-mail e sua senha.',
   'Manage all company records from your Owner account. Changes apply equally to demo and production records.':
     'Gerencie os registros da empresa com sua conta Owner. As ações se aplicam tanto aos dados de exemplo quanto aos reais.',
   'Manage record': 'Gerenciar registro',

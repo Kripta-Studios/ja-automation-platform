@@ -134,6 +134,7 @@
     contact_project_owner: { label: t('problem.remedy.contactProjectOwner') },
     contact_owner: { label: t('problem.remedy.contactProjectOwner') },
     sign_in_again: { label: t('problem.remedy.signInAgain'), href: `${base}/app/login` },
+    correct_fields: { label: t('Edit a field'), href: '#time-correction-title' },
     enter_reason: {
       label: t('problem.remedy.enterReason'),
       href:

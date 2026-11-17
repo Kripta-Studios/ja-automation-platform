@@ -164,7 +164,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               .listAssignedProjects(context.principal)
               .filter((project) => project.status === 'archived').length
           : 0,
-      user: { ...locals.user, workforceProfile: restrictedProfile?.profile },
+      // canonicalOwner lets the Ctrl+K navigator offer owner-only People actions.
+      user: { ...locals.user, workforceProfile: restrictedProfile?.profile, canonicalOwner },
       section,
       searchQuery,
       searchSuggestions: restrictedProfile
@@ -837,6 +838,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : null,
           canonicalOwner,
           canManageMail: canonicalOwner,
+          // Owner People directory: unused invitation links (pending or recently expired).
+          invitations:
+            canonicalOwner && url.searchParams.get('view') === 'team'
+              ? context.v3.listOpenInvitations(context.principal)
+              : [],
           assignmentToday: new Date().toISOString().slice(0, 10),
           assignments: authorizedAssignments.map((assignment) => ({
             ...assignment,

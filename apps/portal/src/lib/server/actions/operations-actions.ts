@@ -952,6 +952,13 @@ const timeCorrectionCreateAccessProblem: ReportProblem = {
 };
 
 const timeCorrectionCreateValidationProblems: Readonly<Record<string, ReportProblem>> = {
+  'Change at least one operational field before creating a correction': {
+    status: 400,
+    code: 'TIME_CORRECTION_NO_CHANGES',
+    key: 'problem.time.correctionNoChanges',
+    message: 'Nothing changed — edit a field (date, hours, category…) before saving.',
+    remedy: 'correct_fields',
+  },
   'Correction reason is required': {
     status: 400,
     code: 'TIME_CORRECTION_REASON_INVALID',

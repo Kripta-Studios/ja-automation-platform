@@ -281,6 +281,8 @@ function workerProfileFailure(
 
 type DirectoryAction =
   | 'createInvitation'
+  | 'revokeInvitation'
+  | 'reissueInvitation'
   | 'provisionMailboxUsers'
   | 'createMailboxAccount'
   | 'bootstrapMailboxUsers'
@@ -299,6 +301,20 @@ type DirectoryProblem = Readonly<{
 }>;
 
 const directoryProblems: Readonly<Record<string, DirectoryProblem>> = {
+  'Invitation is no longer open': {
+    status: 409,
+    code: 'ACCESS_INVITATION_NOT_OPEN',
+    key: 'problem.access.invitationNotOpen',
+    message: 'This invitation was already used or revoked. The list has been refreshed.',
+    remedy: 'review_user_access',
+  },
+  'Owner role required to manage invitations': {
+    status: 403,
+    code: 'ACCESS_INVITATION_OWNER_REQUIRED',
+    key: 'problem.access.ownerRequired',
+    message: 'Only an owner can invite people. Contact an owner to review access.',
+    remedy: 'contact_owner',
+  },
   'Owner role required to invite users': {
     status: 403,
     code: 'ACCESS_INVITATION_OWNER_REQUIRED',
@@ -1366,6 +1382,88 @@ export const accessActions = {
       );
     } catch (error) {
       return directoryFailure(error, 'createInvitation', values, locals.correlationId);
+    } finally {
+      opened.context.sqlite.close();
+    }
+  },
+  /** Owner: stop an unused invitation link from working (People > Pending invitations). */
+  revokeInvitation: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request).catch(() => null);
+    if (!object) return directoryFormFailure('revokeInvitation', locals.correlationId);
+    const values = { invitationId: String(object.invitationId ?? '').slice(0, 64) };
+    const authorizationFailure = directoryOwnerFailure(event, 'revokeInvitation', values);
+    if (authorizationFailure) return authorizationFailure;
+    if (!uuidSchema.safeParse(values.invitationId).success)
+      return directoryInputFailure(
+        'revokeInvitation',
+        values,
+        { invitationId: ['problem.access.directoryInputInvalid'] },
+        locals.correlationId,
+      );
+    const opened = openAccessContext(locals, 'revokeInvitation', values);
+    if ('failure' in opened) return opened.failure;
+    try {
+      const result = opened.context.v3.revokeInvitation(
+        opened.context.principal,
+        values.invitationId,
+      );
+      return {
+        ...actionSuccess(
+          'action.access.invitation.revoked',
+          { email: result.email },
+          `Invitation for ${result.email} revoked`,
+        ),
+        actionName: 'revokeInvitation',
+      };
+    } catch (error) {
+      return directoryFailure(error, 'revokeInvitation', values, locals.correlationId);
+    } finally {
+      opened.context.sqlite.close();
+    }
+  },
+  /**
+   * Owner: replace a pending or expired invitation with a fresh single-use link
+   * for the same email and role (the old link stops working). Only the hash of
+   * the old token is stored, so the old link itself cannot be shown again.
+   */
+  reissueInvitation: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request).catch(() => null);
+    if (!object) return directoryFormFailure('reissueInvitation', locals.correlationId);
+    const values = { invitationId: String(object.invitationId ?? '').slice(0, 64) };
+    const authorizationFailure = directoryOwnerFailure(event, 'reissueInvitation', values);
+    if (authorizationFailure) return authorizationFailure;
+    if (!uuidSchema.safeParse(values.invitationId).success)
+      return directoryInputFailure(
+        'reissueInvitation',
+        values,
+        { invitationId: ['problem.access.directoryInputInvalid'] },
+        locals.correlationId,
+      );
+    const opened = openAccessContext(locals, 'reissueInvitation', values);
+    if ('failure' in opened) return opened.failure;
+    try {
+      const result = opened.context.v3.reissueInvitation(
+        opened.context.principal,
+        values.invitationId,
+      );
+      const publicBase = process.env.JA_PUBLIC_BASE_PATH ?? '/j-aautomation';
+      return {
+        ...actionSuccess(
+          'action.access.invitation.created',
+          { path: `${publicBase}/app/invite/${result.token}` },
+          `Invite created: ${publicBase}/app/invite/${result.token}`,
+        ),
+        actionName: 'reissueInvitation',
+        reissuedFor: result.email,
+      };
+    } catch (error) {
+      return directoryFailure(error, 'reissueInvitation', values, locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }

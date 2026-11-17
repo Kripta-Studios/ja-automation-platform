@@ -169,6 +169,7 @@ describe('portal locale catalog', () => {
         'problem.time.correctionReturnedChanged',
         'problem.time.correctionAccessRequired',
         'problem.time.correctionReasonInvalid',
+        'problem.time.correctionNoChanges',
         'problem.time.correctionRecordUnavailable',
         'problem.time.correctionDateAssignmentRequired',
         'problem.time.correctionAssignmentAccessChanged',

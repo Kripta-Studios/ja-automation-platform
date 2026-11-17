@@ -123,4 +123,37 @@ describe('deterministic multilingual task matching', () => {
     expect(result).toEqual(searchAssistantTasks('create project', owner, 'en'));
     expect(result.matches.every((match) => match.score >= 0 && match.score <= 1)).toBe(true);
   });
+  it.each([
+    ['invite', 'team-invite'],
+    ['invitar', 'team-invite'],
+    ['convidar', 'team-invite'],
+    ['suspend', 'team-status'],
+    ['suspender usuario', 'team-status'],
+    ['offboard', 'team-status'],
+    ['remove access', 'team-status'],
+    ['add person', 'team-create'],
+    ['new user', 'team-create'],
+    ['change role', 'team-profile'],
+  ])('offers owner People action for %s', (query, task) => {
+    expect(ids(query)[0]).toBe(task);
+  });
+  it('offers resetting a person password next to the own-password task', () => {
+    expect(ids('reset password')).toContain('team-status');
+  });
+  it('keeps owner People actions hidden from non-canonical contexts', () => {
+    for (const query of ['invite', 'suspend', 'offboard'])
+      expect(ids(query, { role: 'owner_admin', canonicalOwner: false })).not.toContain(
+        'team-invite',
+      );
+  });
+  it.each(['approve', 'approvals', 'aprobar', 'aprovar', 'approve hours'])(
+    'ranks review tasks first for approvers on %s',
+    (query) => {
+      for (const role of ['project_manager', 'owner_admin'])
+        expect(ids(query, { role, canonicalOwner: role === 'owner_admin' })[0]).toMatch(
+          /^approval-/u,
+        );
+      expect(ids('approve hours', { role: 'project_manager' })[0]).toBe('approval-time');
+    },
+  );
 });

@@ -26,6 +26,16 @@
     base,
   );
   let menuOpen = $state(false);
+  // An action posted after the session expired or was revoked comes back as a
+  // typed 401 failure (see hooks.server.ts). The page keeps the typed values;
+  // offer sign-in in a new tab so nothing on this page is lost.
+  let dismissedSessionProblem = $state('');
+  const sessionProblem = $derived(
+    ($page.form as { code?: string; correlationId?: string } | null)?.code ===
+      'AUTH_SESSION_EXPIRED'
+      ? String(($page.form as { correlationId?: string }).correlationId ?? 'expired')
+      : '',
+  );
   const section = $derived(
     $page.url.pathname.slice(`${base}/app/`.length).split('/')[0] || 'today',
   );
@@ -220,6 +230,29 @@
   {@render children()}
 {/if}
 
+{#if sessionProblem && sessionProblem !== dismissedSessionProblem}
+  <div class="session-expired" role="alert" data-testid="session-expired">
+    <p>
+      <strong>{translate('problem.session.expired')}</strong>
+      <span>{translate('After signing in, come back to this tab and save again.')}</span>
+    </p>
+    <div class="session-expired__actions">
+      <a
+        class="session-expired__signin"
+        href={`${base}/app/login?reason=session-expired&lang=${locale}`}
+        target="_blank"
+        rel="noopener">{translate('Sign in again (new tab)')}</a
+      >
+      <button
+        type="button"
+        class="session-expired__close"
+        aria-label={translate('Close message')}
+        onclick={() => (dismissedSessionProblem = sessionProblem)}>×</button
+      >
+    </div>
+  </div>
+{/if}
+
 {#if data.chromeUser && !/\/app\/(login|invite|accept-invitation|enrollment)(\/|$)/.test($page.url.pathname)}
   <NavigationAssistant
     context={{
@@ -231,3 +264,59 @@
     data={$page.data}
   />
 {/if}
+
+<style>
+  .session-expired {
+    position: fixed;
+    z-index: 1000;
+    inset: auto 1rem calc(5.5rem + env(safe-area-inset-bottom, 0px)) 1rem;
+    max-width: 40rem;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem 1rem;
+    padding: 0.9rem 1rem;
+    border: 2px solid #b45309;
+    border-radius: 0.75rem;
+    background: #fffbeb;
+    color: #451a03;
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+  }
+  .session-expired p {
+    flex: 1 1 16rem;
+    margin: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+  .session-expired__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .session-expired__signin {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 1rem;
+    border-radius: 0.5rem;
+    background: #92400e;
+    color: #fff;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .session-expired__close {
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    font-size: 1.5rem;
+    cursor: pointer;
+  }
+  @media (min-width: 900px) {
+    .session-expired {
+      inset: auto 1.5rem 1.5rem auto;
+    }
+  }
+</style>

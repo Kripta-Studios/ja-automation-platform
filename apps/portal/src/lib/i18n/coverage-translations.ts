@@ -5019,6 +5019,14 @@ const exact: Record<string, readonly [string, string]> = {
     'Ya no puedes crear una corrección para este registro de horas con tu acceso actual. Consulta al responsable del proyecto para revisar el acceso.',
     'Você não pode mais criar uma correção para este registro de horas com seu acesso atual. Entre em contato com o responsável pelo projeto para revisar o acesso.',
   ],
+  'problem.access.invitationNotOpen': [
+    'Esta invitación ya se usó o se revocó. La lista se ha actualizado.',
+    'Este convite já foi usado ou revogado. A lista foi atualizada.',
+  ],
+  'problem.time.correctionNoChanges': [
+    'No ha cambiado nada: edita un campo (fecha, horas, categoría…) antes de guardar.',
+    'Nada mudou: edite um campo (data, horas, categoria…) antes de salvar.',
+  ],
   'problem.time.correctionReasonInvalid': [
     'Explica la corrección con entre 3 y 2.000 caracteres.',
     'Explique a correção com 3 a 2.000 caracteres.',
@@ -8425,6 +8433,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Status da conta atualizado.',
   ],
   'action.access.invitation.created': ['Invitación creada.', 'Convite criado.'],
+  'action.access.invitation.revoked': [
+    'Invitación para {email} revocada. El enlace ya no funciona.',
+    'Convite para {email} revogado. O link não funciona mais.',
+  ],
   'action.access.workerProfile.updated': [
     'Perfil del trabajador actualizado.',
     'Perfil do colaborador atualizado.',
@@ -9443,6 +9455,7 @@ function englishActionMessage(key: string): string {
     'action.closeout.packagesFinalized': 'Closeout packages finalized.',
     'action.closeout.reopened': 'Closeout reopened.',
     'action.access.invitation.created': 'Invitation created.',
+    'action.access.invitation.revoked': 'Invitation for {email} revoked. The link no longer works.',
     'action.billing.invoiceDraftCreated': 'Invoice draft created.',
     'action.billing.invoiceRecalculated':
       'Invoice recalculated as a draft. Review and approve it again.',
@@ -11536,6 +11549,10 @@ const problemEnglish: Record<string, string> = {
   'problem.time.correctionAccessRequired':
     'You can no longer create a correction for this time entry under your current access. Contact the project owner to review access.',
   'problem.time.correctionReasonInvalid': 'Explain the correction in 3 to 2,000 characters.',
+  'problem.access.invitationNotOpen':
+    'This invitation was already used or revoked. The list has been refreshed.',
+  'problem.time.correctionNoChanges':
+    'Nothing changed — edit a field (date, hours, category…) before saving.',
   'problem.time.correctionRecordUnavailable':
     'This time entry is no longer available. Review the current time register before creating a correction.',
   'problem.time.correctionDateAssignmentRequired':

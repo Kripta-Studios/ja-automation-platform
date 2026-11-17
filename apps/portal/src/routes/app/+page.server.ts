@@ -22,6 +22,7 @@ import {
   type ProjectGlance,
 } from '$lib/portal/home-inbox';
 import { mondayOf } from '$lib/server/portal-week';
+import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
 export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (locals.user.status === 'suspended' || locals.user.status === 'offboarded')
@@ -75,7 +76,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       });
       return {
         workerWeek,
-        user: locals.user,
+        user: { ...locals.user, canonicalOwner: assistantCanonicalOwner(locals.user) },
         section: 'today',
         searchQuery,
         searchResults,
@@ -218,7 +219,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     };
     return {
       homeInbox,
-      user: locals.user,
+      user: { ...locals.user, canonicalOwner: assistantCanonicalOwner(locals.user) },
       section: 'today',
       searchQuery,
       searchResults,

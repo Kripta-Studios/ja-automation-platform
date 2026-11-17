@@ -53,7 +53,9 @@
   const accessMessage = $derived(
     data.reason === 'access-revoked'
       ? t('This account no longer has access to the workspace. Contact your administrator.')
-      : '',
+      : data.reason === 'session-expired'
+        ? t('Your session expired. Sign in again to continue.')
+        : '',
   );
   const authClient = createAuthClient({
     basePath: base + '/app/api/auth',
@@ -64,7 +66,13 @@
       location.assign(`${base}/app/login/two-factor`);
       return;
     }
-    location.assign(`${base}/app/`);
+    location.assign(safeReturnTo() ?? `${base}/app/`);
+  }
+  /** Only same-portal paths are accepted, so the parameter cannot redirect elsewhere. */
+  function safeReturnTo(): string | null {
+    const value = $page.url.searchParams.get('returnTo');
+    if (!value || !value.startsWith(`${base}/app/`) || /[\\\s]|\/\//u.test(value)) return null;
+    return /\/app\/(login|invite)(\/|$)/u.test(value) ? null : value;
   }
   function retryAfterDeadline(header: string | null): number | null {
     if (!header) return null;

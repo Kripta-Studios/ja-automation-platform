@@ -10,7 +10,7 @@
     standaloneText,
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
-  let { data }: { data: { token: string; locale?: PortalLocale } } = $props();
+  let { data }: { data: { token: string; valid?: boolean; locale?: PortalLocale } } = $props();
   let localeOverride = $state<PortalLocale | null>(null);
   const locale = $derived(
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
@@ -110,40 +110,99 @@
 <svelte:head><title>{t('Activate J&A account')}</title></svelte:head>
 <main class="invite-page">
   <p class="portal-kicker">{t('J&A / INVITATION')}</p>
-  <h1>{t('Activate your account')}</h1>
-  <p>{t('Use a password of at least 12 characters. This invitation can be used once.')}</p>
-  <form
-    onsubmit={(event) => {
-      event.preventDefault();
-      void accept();
-    }}
-  >
-    <label
-      >{t('Full name')}<input name="name" bind:value={name} autocomplete="name" required /></label
+  {#if data.valid === false}
+    <h1>{t('This invitation link is no longer valid')}</h1>
+    <p role="alert" data-testid="invite-invalid">
+      {t(
+        'It may have expired, been used already or been replaced. Ask the owner for a new invitation link.',
+      )}
+    </p>
+    <p>{t('If you already activated your account, sign in with your email and password.')}</p>
+  {:else}
+    <h1>{t('Activate your account')}</h1>
+    <p>{t('Use a password of at least 12 characters. This invitation can be used once.')}</p>
+    <form
+      onsubmit={(event) => {
+        event.preventDefault();
+        void accept();
+      }}
     >
-    <label
-      >{t('Password')}<input
-        bind:value={password}
-        name="password"
-        type="password"
-        minlength="12"
-        autocomplete="new-password"
-        required
-      /></label
-    >
-    <button disabled={busy || activated || retrySeconds > 0}
-      >{busy ? t('Activating…') : t('Activate account')}</button
-    >
-    {#if retrySeconds > 0}<p>
-        {standaloneText(locale, 'Try again in {seconds} seconds.', { seconds: retrySeconds })}
+      <label
+        >{t('Full name')}<input name="name" bind:value={name} autocomplete="name" required /></label
+      >
+      <label
+        >{t('Password')}<input
+          bind:value={password}
+          name="password"
+          type="password"
+          minlength="12"
+          autocomplete="new-password"
+          required
+        /></label
+      >
+      <button disabled={busy || activated || retrySeconds > 0}
+        >{busy ? t('Activating…') : t('Activate account')}</button
+      >
+      {#if retrySeconds > 0}<p>
+          {standaloneText(locale, 'Try again in {seconds} seconds.', { seconds: retrySeconds })}
+        </p>{/if}
+    </form>
+    {#if messageKey}<p
+        bind:this={feedbackElement}
+        role={activated ? 'status' : 'alert'}
+        tabindex="-1"
+      >
+        {t(messageKey)}
       </p>{/if}
-  </form>
-  {#if messageKey}<p
-      bind:this={feedbackElement}
-      role={activated ? 'status' : 'alert'}
-      tabindex="-1"
-    >
-      {t(messageKey)}
-    </p>{/if}
+  {/if}
   <a href={`${base}/app/login`}>{t('Return to sign in')}</a>
 </main>
+
+<style>
+  .invite-page {
+    box-sizing: border-box;
+    width: min(100% - 2rem, 32rem);
+    margin: 2.5rem auto;
+    padding: 1.5rem;
+    border: 1px solid var(--ja-border-subdued, #d0d5dd);
+    border-radius: 0.875rem;
+    background: var(--ja-surface, #fff);
+    display: grid;
+    gap: 0.75rem;
+  }
+  .invite-page h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    line-height: 1.25;
+  }
+  .invite-page p {
+    margin: 0;
+  }
+  .invite-page form {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .invite-page label {
+    display: grid;
+    gap: 0.35rem;
+    font-weight: 600;
+  }
+  .invite-page input {
+    min-height: 44px;
+    box-sizing: border-box;
+    width: 100%;
+  }
+  .invite-page button {
+    min-height: 44px;
+  }
+  .invite-page [data-testid='invite-invalid'] {
+    padding: 0.75rem 1rem;
+    border-left: 4px solid #b45309;
+    border-radius: 0.5rem;
+    background: #fffbeb;
+    color: #451a03;
+  }
+  .invite-page > a {
+    font-weight: 600;
+  }
+</style>

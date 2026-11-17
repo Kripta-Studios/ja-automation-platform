@@ -194,68 +194,55 @@ function canonicalPortalAliasRedirect(event: Parameters<Handle>[0]['event']): Re
   return new Response(null, { status: 307, headers: { location: target.toString() } });
 }
 
-function authRateLimit(
-  event: Parameters<Handle>[0]['event'],
-  correlationId: string,
-): Response | null {
-  if (event.request.method === 'GET' || event.request.method === 'HEAD') return null;
-  const address = event.getClientAddress();
-  const endpoint = event.url.pathname.replace(/[^A-Za-z0-9/_-]/g, '_');
-  const bucketKey = createHash('sha256').update(`auth:${address}:${endpoint}`).digest('hex');
-  const { sqlite } = createDatabase();
-  try {
-    const now = Date.now();
-    const windowMs = 15 * 60_000;
-    sqlite.exec('BEGIN IMMEDIATE');
-    const row = sqlite
-      .prepare('SELECT window_started_at,request_count FROM rate_limit_bucket WHERE bucket_key=?')
-      .get(bucketKey) as { window_started_at: string; request_count: number } | undefined;
-    if (!row || now - Date.parse(row.window_started_at) >= windowMs) {
-      sqlite
-        .prepare(
-          'INSERT INTO rate_limit_bucket(bucket_key,window_started_at,request_count) VALUES(?,?,1) ON CONFLICT(bucket_key) DO UPDATE SET window_started_at=excluded.window_started_at,request_count=1',
-        )
-        .run(bucketKey, new Date(now).toISOString());
-      sqlite.exec('COMMIT');
-      return null;
-    }
-    const configuredMaximum = Number.parseInt(process.env.JA_AUTH_RATE_LIMIT_MAX ?? '', 10);
-    const maximumAttempts =
-      Number.isSafeInteger(configuredMaximum) &&
-      configuredMaximum >= 1 &&
-      configuredMaximum <= 10_000
-        ? configuredMaximum
-        : 10;
-    if (row.request_count >= maximumAttempts) {
-      sqlite.exec('COMMIT');
-      const retryAfterSeconds = Math.max(
-        1,
-        Math.ceil((windowMs - (now - Date.parse(row.window_started_at))) / 1000),
-      );
-      const signIn = event.url.pathname.startsWith(`${portalBase}/api/auth/sign-in/`);
-      const problem: ProblemData & { error: string } = {
-        error: 'Too many authentication attempts',
-        code: signIn ? 'AUTH_SIGN_IN_RATE_LIMITED' : 'AUTH_REQUEST_RATE_LIMITED',
-        messageKey: signIn ? 'problem.auth.signInRateLimited' : 'problem.auth.requestRateLimited',
-        params: { retryAfterSeconds },
-        fieldErrors: {},
-        remedies: [{ id: 'wait_and_retry' }],
-        correlationId,
-      };
-      return new Response(JSON.stringify(problem), {
-        status: 429,
-        headers: {
-          'content-type': 'application/json',
-          'cache-control': 'no-store',
-          'retry-after': String(retryAfterSeconds),
-        },
-      });
-    }
+const AUTH_RATE_WINDOW_MS = 15 * 60_000;
+
+function authRateLimitMaximum(): number {
+  const configuredMaximum = Number.parseInt(process.env.JA_AUTH_RATE_LIMIT_MAX ?? '', 10);
+  return Number.isSafeInteger(configuredMaximum) &&
+    configuredMaximum >= 1 &&
+    configuredMaximum <= 10_000
+    ? configuredMaximum
+    : 10;
+}
+
+type AuthRateLimitSqlite = ReturnType<typeof createDatabase>['sqlite'];
+
+/** Returns the live window for a bucket, or null when it is absent or expired. */
+function liveBucket(
+  sqlite: AuthRateLimitSqlite,
+  bucketKey: string,
+  now: number,
+): { startedAt: number; count: number } | null {
+  const row = sqlite
+    .prepare('SELECT window_started_at,request_count FROM rate_limit_bucket WHERE bucket_key=?')
+    .get(bucketKey) as { window_started_at: string; request_count: number } | undefined;
+  if (!row) return null;
+  const startedAt = Date.parse(row.window_started_at);
+  if (!Number.isFinite(startedAt) || now - startedAt >= AUTH_RATE_WINDOW_MS) return null;
+  return { startedAt, count: row.request_count };
+}
+
+function bumpBucket(sqlite: AuthRateLimitSqlite, bucketKey: string, now: number): void {
+  if (liveBucket(sqlite, bucketKey, now)) {
     sqlite
       .prepare('UPDATE rate_limit_bucket SET request_count=request_count+1 WHERE bucket_key=?')
       .run(bucketKey);
+    return;
+  }
+  sqlite
+    .prepare(
+      'INSERT INTO rate_limit_bucket(bucket_key,window_started_at,request_count) VALUES(?,?,1) ON CONFLICT(bucket_key) DO UPDATE SET window_started_at=excluded.window_started_at,request_count=1',
+    )
+    .run(bucketKey, new Date(now).toISOString());
+}
+
+function withRateLimitTransaction<T>(work: (sqlite: AuthRateLimitSqlite) => T): T {
+  const { sqlite } = createDatabase();
+  try {
+    sqlite.exec('BEGIN IMMEDIATE');
+    const result = work(sqlite);
     sqlite.exec('COMMIT');
-    return null;
+    return result;
   } catch (error) {
     try {
       sqlite.exec('ROLLBACK');
@@ -266,6 +253,110 @@ function authRateLimit(
   } finally {
     sqlite.close();
   }
+}
+
+function rateLimitedResponse(
+  event: Parameters<Handle>[0]['event'],
+  correlationId: string,
+  startedAt: number,
+  now: number,
+): Response {
+  const retryAfterSeconds = Math.max(
+    1,
+    Math.ceil((AUTH_RATE_WINDOW_MS - (now - startedAt)) / 1000),
+  );
+  const signIn = event.url.pathname.startsWith(`${portalBase}/api/auth/sign-in/`);
+  const problem: ProblemData & { error: string } = {
+    error: 'Too many authentication attempts',
+    code: signIn ? 'AUTH_SIGN_IN_RATE_LIMITED' : 'AUTH_REQUEST_RATE_LIMITED',
+    messageKey: signIn ? 'problem.auth.signInRateLimited' : 'problem.auth.requestRateLimited',
+    params: { retryAfterSeconds },
+    fieldErrors: {},
+    remedies: [{ id: 'wait_and_retry' }],
+    correlationId,
+  };
+  return new Response(JSON.stringify(problem), {
+    status: 429,
+    headers: {
+      'content-type': 'application/json',
+      'cache-control': 'no-store',
+      'retry-after': String(retryAfterSeconds),
+    },
+  });
+}
+
+/**
+ * Password sign-in counts only FAILED attempts, keyed by client address plus the
+ * normalized email, so people behind one NAT do not lock each other out. A looser
+ * address-only ceiling (5x) still slows password spraying across many accounts.
+ * A successful sign-in clears that account's counter.
+ */
+type SignInRateLimit = Readonly<{ limited: Response | null; record?: (status: number) => void }>;
+
+async function signInRateLimit(
+  event: Parameters<Handle>[0]['event'],
+  correlationId: string,
+): Promise<SignInRateLimit> {
+  const address = event.getClientAddress();
+  const endpoint = event.url.pathname.replace(/[^A-Za-z0-9/_-]/g, '_');
+  const body = (await event.request
+    .clone()
+    .json()
+    .catch(() => null)) as { email?: unknown } | null;
+  const email = typeof body?.email === 'string' ? body.email.trim().toLowerCase() : '';
+  const accountKey = createHash('sha256')
+    .update(`auth-failed:${address}:${email}:${endpoint}`)
+    .digest('hex');
+  const addressKey = createHash('sha256')
+    .update(`auth-failed-ip:${address}:${endpoint}`)
+    .digest('hex');
+  const maximum = authRateLimitMaximum();
+  const addressMaximum = Math.min(maximum * 5, 50_000);
+  const now = Date.now();
+  const blocked = withRateLimitTransaction((sqlite) => {
+    const account = liveBucket(sqlite, accountKey, now);
+    if (account && account.count >= maximum) return account;
+    const perAddress = liveBucket(sqlite, addressKey, now);
+    if (perAddress && perAddress.count >= addressMaximum) return perAddress;
+    return null;
+  });
+  if (blocked)
+    return { limited: rateLimitedResponse(event, correlationId, blocked.startedAt, now) };
+  return {
+    limited: null,
+    record(status: number) {
+      const at = Date.now();
+      if (status >= 200 && status < 300) {
+        withRateLimitTransaction((sqlite) =>
+          sqlite.prepare('DELETE FROM rate_limit_bucket WHERE bucket_key=?').run(accountKey),
+        );
+      } else if (status >= 400 && status < 500 && status !== 429) {
+        withRateLimitTransaction((sqlite) => {
+          bumpBucket(sqlite, accountKey, at);
+          bumpBucket(sqlite, addressKey, at);
+        });
+      }
+    },
+  };
+}
+
+function authRateLimit(
+  event: Parameters<Handle>[0]['event'],
+  correlationId: string,
+): Response | null {
+  if (event.request.method === 'GET' || event.request.method === 'HEAD') return null;
+  const address = event.getClientAddress();
+  const endpoint = event.url.pathname.replace(/[^A-Za-z0-9/_-]/g, '_');
+  const bucketKey = createHash('sha256').update(`auth:${address}:${endpoint}`).digest('hex');
+  const now = Date.now();
+  const maximumAttempts = authRateLimitMaximum();
+  const blocked = withRateLimitTransaction((sqlite) => {
+    const bucket = liveBucket(sqlite, bucketKey, now);
+    if (bucket && bucket.count >= maximumAttempts) return bucket;
+    bumpBucket(sqlite, bucketKey, now);
+    return null;
+  });
+  return blocked ? rateLimitedResponse(event, correlationId, blocked.startedAt, now) : null;
 }
 
 async function denyWebmailPasswordMutation(
@@ -308,6 +399,77 @@ async function denyWebmailPasswordMutation(
   );
 }
 
+/**
+ * Minimal devalue-compatible encoder for the plain JSON-like data of an action
+ * failure (objects, arrays, strings, finite numbers, booleans). SvelteKit's
+ * enhanced forms decode action results with devalue.
+ */
+function encodeActionData(value: unknown): string {
+  const table: unknown[] = [];
+  const add = (item: unknown): number => {
+    const index = table.length;
+    table.push(null);
+    if (Array.isArray(item)) table[index] = item.map(add);
+    else if (item && typeof item === 'object')
+      table[index] = Object.fromEntries(
+        Object.entries(item as Record<string, unknown>).map(([key, entry]) => [key, add(entry)]),
+      );
+    else table[index] = item;
+    return index;
+  };
+  add(value);
+  return JSON.stringify(table);
+}
+
+/**
+ * A page action without a live session (expired, revoked or signed out in
+ * another tab) must not reach the action and become an uncaught 500. Enhanced
+ * forms get a typed 401 failure so the page keeps every typed value and shows
+ * "sign in again"; native form posts go to sign-in with a safe return path.
+ */
+function sessionExpiredActionResponse(
+  event: Parameters<Handle>[0]['event'],
+  correlationId: string,
+): Response | null {
+  if (event.request.method !== 'POST' || event.locals.user) return null;
+  const route = event.url.pathname.slice(portalBase.length);
+  if (/^\/(?:api|login|invite|accept-invitation)(?:\/|$)/u.test(route)) return null;
+  const actionQuery = [...event.url.searchParams.keys()].find((key) => key.startsWith('/'));
+  const actionName = actionQuery ? actionQuery.slice(1) : 'default';
+  const locale = requestLocale(event);
+  if (event.request.headers.get('x-sveltekit-action') === 'true') {
+    const problem = {
+      success: false,
+      actionName,
+      code: 'AUTH_SESSION_EXPIRED',
+      messageKey: 'problem.session.expired',
+      message: portalText(locale, 'problem.session.expired'),
+      params: {},
+      fieldErrors: {},
+      remedies: [{ id: 'sign_in_again' }],
+      correlationId,
+    };
+    return new Response(
+      JSON.stringify({ type: 'failure', status: 401, data: encodeActionData(problem) }),
+      { status: 200, headers: { 'content-type': 'application/json', 'cache-control': 'no-store' } },
+    );
+  }
+  const contentType = event.request.headers.get('content-type') ?? '';
+  if (!/^(?:application\/x-www-form-urlencoded|multipart\/form-data)/u.test(contentType))
+    return null;
+  const returnTo = new URL(event.url);
+  for (const key of [...returnTo.searchParams.keys()])
+    if (key.startsWith('/')) returnTo.searchParams.delete(key);
+  const login = new URL(`${portalBase}/login`, event.url.origin);
+  login.searchParams.set('reason', 'session-expired');
+  login.searchParams.set('returnTo', returnTo.pathname + returnTo.search);
+  login.searchParams.set('lang', locale);
+  return new Response(null, {
+    status: 303,
+    headers: { location: login.pathname + login.search, 'cache-control': 'no-store' },
+  });
+}
+
 export const handle: Handle = async ({ event, resolve }) => {
   const startedAt = Date.now();
   const suppliedCorrelationId = event.request.headers.get('x-correlation-id')?.trim() ?? '';
@@ -327,6 +489,8 @@ export const handle: Handle = async ({ event, resolve }) => {
   // The profile password form verifies the current password, so it shares the
   // authentication rate limit.
   const isPasswordChange = path === `${portalBase}/profile/password`;
+  const isPasswordSignIn = path === `${portalBase}/api/auth/sign-in/email`;
+  let signInLimit: SignInRateLimit | null = null;
   if (path.endsWith('/api/auth/sign-up/email'))
     return applySecurityHeaders(
       new Response(JSON.stringify({ error: 'A valid single-use invitation is required.' }), {
@@ -368,8 +532,14 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.request.method !== 'GET' &&
     event.request.method !== 'HEAD'
   ) {
-    const limited = authRateLimit(event, correlationId);
-    if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
+    if (isPasswordSignIn) {
+      signInLimit = await signInRateLimit(event, correlationId);
+      if (signInLimit.limited)
+        return applySecurityHeaders(signInLimit.limited, isPortal, path, correlationId);
+    } else {
+      const limited = authRateLimit(event, correlationId);
+      if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
+    }
     if (isAuth) {
       const deniedPasswordMutation = await denyWebmailPasswordMutation(event);
       if (deniedPasswordMutation)
@@ -430,6 +600,10 @@ export const handle: Handle = async ({ event, resolve }) => {
     event.locals.session = null;
     event.locals.user = null;
   }
+  if (!building && isPortal) {
+    const expired = sessionExpiredActionResponse(event, correlationId);
+    if (expired) return applySecurityHeaders(expired, true, path, correlationId);
+  }
   let response: Response;
   try {
     response = await withTemporaryOwnerLogin(event.request, portalBase, async (request) => {
@@ -452,6 +626,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       );
     throw caught;
   }
+  signInLimit?.record?.(response.status);
   if (isPortal) response = await applyServerDocumentLocale(response, requestLocale(event));
   applySecurityHeaders(response, isPortal, path, correlationId);
   if (production || process.env.JA_JSON_LOGS === 'true')

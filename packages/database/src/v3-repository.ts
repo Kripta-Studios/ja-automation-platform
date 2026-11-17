@@ -1272,6 +1272,105 @@ export class V3Repository {
     });
   }
 
+  /**
+   * Unused invitations for the owner's People directory: still pending, or
+   * expired within the last 30 days. Revoked invitations (expiry moved back to
+   * their creation time, see revokeInvitation) are not listed.
+   */
+  listOpenInvitations(principal: Principal): Array<{
+    id: string;
+    email: string;
+    role: string;
+    expiresAt: string;
+    createdAt: string;
+    expired: boolean;
+  }> {
+    this.assertLiveSession(principal);
+    if (principal.role !== 'owner_admin')
+      throw new V3AccessDeniedError('Owner role required to manage invitations');
+    const now = Date.now();
+    const rows = this.sqlite
+      .prepare(
+        `SELECT id,email,role,expires_at expiresAt,created_at createdAt FROM invitation
+          WHERE used_at IS NULL AND expires_at>created_at AND expires_at>?
+          ORDER BY created_at DESC LIMIT 100`,
+      )
+      .all(new Date(now - 30 * 86_400_000).toISOString()) as Array<{
+      id: string;
+      email: string;
+      role: string;
+      expiresAt: string;
+      createdAt: string;
+    }>;
+    return rows.map((row) => ({ ...row, expired: Date.parse(row.expiresAt) <= now }));
+  }
+
+  /**
+   * Revoke an unused invitation so its link stops working. The invitation
+   * table has no status column, so revocation moves the expiry back to the
+   * creation time (expires_at = created_at), which the accept API and the
+   * mail outbox already treat as unusable. The reviewed audit registry has no
+   * `invitation.revoke` action, so this records the reviewed `invitation.create`
+   * action for the invitation entity with `operation: 'revoke'`.
+   */
+  revokeInvitation(
+    principal: Principal,
+    invitationId: string,
+    reason: 'revoked' | 'replaced' = 'revoked',
+  ): { id: string; email: string; role: string } {
+    this.assertLiveSession(principal);
+    if (principal.role !== 'owner_admin')
+      throw new V3AccessDeniedError('Owner role required to manage invitations');
+    return this.transaction(() => {
+      const row = this.sqlite
+        .prepare(
+          'SELECT id,email,role,expires_at,created_at FROM invitation WHERE id=? AND used_at IS NULL AND expires_at>created_at',
+        )
+        .get(invitationId) as
+        | { id: string; email: string; role: string; expires_at: string; created_at: string }
+        | undefined;
+      if (!row) throw new V3ConflictError('Invitation is no longer open');
+      this.sqlite
+        .prepare('UPDATE invitation SET expires_at=created_at WHERE id=? AND used_at IS NULL')
+        .run(row.id);
+      this.audit(principal, 'invitation.create', 'invitation', row.id, {
+        operation: 'revoke',
+        reason,
+        email: row.email,
+        role: row.role,
+        previousExpiresAt: row.expires_at,
+      });
+      return { id: row.id, email: row.email, role: row.role };
+    });
+  }
+
+  /** Replace an open (or recently expired) invitation with a fresh link for the same email and role. */
+  reissueInvitation(
+    principal: Principal,
+    invitationId: string,
+    sealToken?: (token: string, invitationId: string) => string,
+    emailConfirmed = false,
+  ): { id: string; token: string; expiresAt: string; email: string } {
+    return this.transaction(() => {
+      const previous = this.revokeInvitation(principal, invitationId, 'replaced');
+      const created = this.createInvitation(
+        principal,
+        {
+          email: previous.email,
+          role: previous.role as
+            | 'owner_admin'
+            | 'finance_admin'
+            | 'project_manager'
+            | 'worker'
+            | 'auditor_read_only',
+          emailConfirmed,
+        },
+        sealToken,
+      );
+      return { ...created, email: previous.email };
+    });
+  }
+
   createClientLaborRate(principal: Principal, input: LaborRateInput): { id: string } {
     this.assertFinance(principal);
     this.assertLiveSession(principal);

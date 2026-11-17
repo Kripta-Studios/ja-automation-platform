@@ -552,9 +552,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     actionNames: ['createLocalPortalUser'],
     requiresCanonicalOwner: true,
     phrases: {
-      en: ['Create portal user access'],
-      es: ['Crear acceso de usuario'],
-      pt: ['Criar acesso de utilizador'],
+      en: ['Create portal user access', 'add person', 'new user', 'create user', 'create account'],
+      es: ['Crear acceso de usuario', 'añadir persona', 'nuevo usuario', 'crear cuenta'],
+      pt: ['Criar acesso de utilizador', 'adicionar pessoa', 'novo usuário', 'criar conta'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -574,9 +574,21 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/projects?view=team&directory=specialists&assistantPane=team-invite#team-create-user-form',
     actionNames: ['createInvitation'],
     phrases: {
-      en: ['invite a worker', 'invite team member', 'send invitation'],
-      es: ['invitar trabajador', 'invitar miembro del equipo', 'enviar invitacion'],
-      pt: ['convidar trabalhador', 'convidar membro da equipa', 'enviar convite'],
+      en: ['invite', 'invite a worker', 'invite person', 'invite team member', 'send invitation'],
+      es: [
+        'invitar',
+        'invitar trabajador',
+        'invitar persona',
+        'invitar miembro del equipo',
+        'enviar invitacion',
+      ],
+      pt: [
+        'convidar',
+        'convidar trabalhador',
+        'convidar pessoa',
+        'convidar membro da equipa',
+        'enviar convite',
+      ],
     },
     requiresCanonicalOwner: true,
     description: {
@@ -598,9 +610,34 @@ export const assistantTasks: readonly AssistantTask[] = [
     actionNames: ['updateUserStatus'],
     requiresCanonicalOwner: true,
     phrases: {
-      en: ['Activate or suspend a team account'],
-      es: ['Activar o suspender cuenta del equipo'],
-      pt: ['Ativar ou suspender conta da equipa'],
+      en: [
+        'Activate or suspend a team account',
+        'suspend',
+        'suspend user',
+        'offboard',
+        'offboard person',
+        'remove access',
+        'restore access',
+        'reset password',
+      ],
+      es: [
+        'Activar o suspender cuenta del equipo',
+        'suspender',
+        'suspender usuario',
+        'dar de baja',
+        'quitar acceso',
+        'restaurar acceso',
+        'restablecer contraseña',
+      ],
+      pt: [
+        'Ativar ou suspender conta da equipa',
+        'suspender',
+        'suspender usuário',
+        'desligar pessoa',
+        'remover acesso',
+        'restaurar acesso',
+        'redefinir senha',
+      ],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -621,9 +658,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     actionNames: ['setWorkforceProfile', 'updateWorkerProfile'],
     requiresCanonicalOwner: true,
     phrases: {
-      en: ['Edit workforce profile and supplier affiliation'],
-      es: ['Editar perfil laboral y proveedor'],
-      pt: ['Editar perfil de trabalho e fornecedor'],
+      en: ['Edit workforce profile and supplier affiliation', 'change role', 'role', 'access role'],
+      es: ['Editar perfil laboral y proveedor', 'cambiar rol', 'rol', 'rol de acceso'],
+      pt: ['Editar perfil de trabalho e fornecedor', 'alterar função', 'função', 'papel de acesso'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -1456,9 +1493,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/approvals?tab=time#approval-queue',
     actionNames: ['approve', 'approveRecord'],
     phrases: {
-      en: ['Review and approve time entries'],
-      es: ['Revisar y aprobar horas'],
-      pt: ['Rever e aprovar horas'],
+      en: ['Review and approve time entries', 'approve', 'approve hours', 'approval queue'],
+      es: ['Revisar y aprobar horas', 'aprobar', 'aprobar horas', 'cola de aprobación'],
+      pt: ['Rever e aprovar horas', 'aprovar', 'aprovar horas', 'fila de aprovação'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -1478,9 +1515,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/approvals?tab=expenses#approval-queue',
     actionNames: ['approve', 'approveRecord'],
     phrases: {
-      en: ['Review and approve operational expenses'],
-      es: ['Revisar y aprobar gastos operativos'],
-      pt: ['Rever e aprovar despesas operacionais'],
+      en: ['Review and approve operational expenses', 'approve expenses'],
+      es: ['Revisar y aprobar gastos operativos', 'aprobar gastos'],
+      pt: ['Rever e aprovar despesas operacionais', 'aprovar despesas'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
@@ -1522,9 +1559,9 @@ export const assistantTasks: readonly AssistantTask[] = [
     href: '/app/approvals?tab=reports#approval-queue',
     actionNames: ['reviewReport', 'reviewTechnicalChange'],
     phrases: {
-      en: ['Review and approve reports'],
-      es: ['Revisar y aprobar informes'],
-      pt: ['Rever e aprovar relatórios'],
+      en: ['Review and approve reports', 'approve reports'],
+      es: ['Revisar y aprobar informes', 'aprobar informes'],
+      pt: ['Rever e aprovar relatórios', 'aprovar relatórios'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',

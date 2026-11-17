@@ -806,6 +806,8 @@
         })
       | null
       | undefined;
+    // An expired session has one shared banner (routes/app/+layout.svelte).
+    if (result?.code === 'AUTH_SESSION_EXPIRED') return undefined;
     const values = result?.values;
     const hasValue = (key: string) => typeof values?.[key] === 'string' && !!values[key];
     const handledInSection =
@@ -2515,7 +2517,10 @@
       items.push({ id, message, variant, title, closeLabel: translate('Dismiss notification') });
     };
 
-    if (actionFeedback) {
+    if (
+      actionFeedback &&
+      (form as { code?: string } | undefined)?.code !== 'AUTH_SESSION_EXPIRED'
+    ) {
       add(
         `action:${String((form as ActionResultWithMessageKey | undefined)?.messageKey ?? actionFeedback)}`,
         actionFeedback,
@@ -3682,6 +3687,16 @@
     return utc ? `${utc.replace('T', ' ').slice(0, 19)} UTC` : String(value ?? '').trim() || '—';
   }
 
+  /** TOTP sign-ins reuse the reviewed passkey sign-in action; show them as MFA sign-ins. */
+  function auditActionLabel(row: Record<string, unknown>): string {
+    const action = String(row.action);
+    if (
+      action === 'security.passkey.login' &&
+      /"method"\s*:\s*"totp"/u.test(String(row.details_json ?? ''))
+    )
+      return 'security.mfa.login (totp)';
+    return action.replaceAll('_', ' ');
+  }
   function auditDetailsDisplay(value: unknown): string {
     const raw = String(value ?? '{}');
     try {
@@ -5015,6 +5030,7 @@
         canManageTeam={canManageTeamDirectory}
         currentUserId={data.user.id}
         {invitationPath}
+        invitations={data.invitations ?? []}
         {translate}
         {controlledValue}
       />
@@ -7731,7 +7747,7 @@
         {/if}
         {#each data.audit ?? [] as row (String(row.id))}<article class="audit-event">
             <div>
-              <strong>{String(row.action).replaceAll('_', ' ')}</strong><small
+              <strong>{auditActionLabel(row)}</strong><small
                 >{String(row.entity_type)} · {String(row.entity_id)} ·
                 <time datetime={auditUtcIso(row.occurred_at)}
                   >{auditTimestampLabel(row.occurred_at)}</time
@@ -7778,7 +7794,9 @@
           ? `${translate(item.label)} · ${pending} ${translate('pending')}`
           : undefined}
         ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span
-        >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true">{pending}</span>{/if}</a
+        >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true"
+            >{pending > 99 ? '99+' : pending}</span
+          >{/if}</a
       >
     {/each}
     <button
@@ -7858,8 +7876,10 @@
     top: 0.35rem;
     left: calc(50% + 0.9rem);
     min-width: 1.25rem;
+    width: max-content;
     padding: 0.05rem 0.3rem;
     border-radius: 999px;
+    white-space: nowrap;
     background: var(--ja-red, #b42318);
     color: #fff;
     font-size: 0.6875rem;

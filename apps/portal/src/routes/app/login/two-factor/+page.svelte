@@ -164,8 +164,18 @@
           minlength={backupCode ? 8 : 6}
           maxlength={backupCode ? 64 : 6}
           required
+          aria-invalid={error ? 'true' : undefined}
         /></label
-      ><button class="login-submit" disabled={busy || retrySeconds > 0}
+      >
+      <p
+        class="login-status"
+        bind:this={statusElement}
+        role={error ? 'alert' : 'status'}
+        tabindex="-1"
+      >
+        {error}
+      </p>
+      <button class="login-submit" disabled={busy || retrySeconds > 0}
         >{t('Verify and continue')} <DirectionIcon /></button
       >
       {#if retrySeconds > 0}<p>
@@ -203,14 +213,6 @@
         <span>{t('Access Company Webmail')}</span>
         <DirectionIcon direction="up-right" class="webmail-btn-arrow" />
       </a>
-      <p
-        class="login-status"
-        bind:this={statusElement}
-        role={error ? 'alert' : 'status'}
-        tabindex="-1"
-      >
-        {error}
-      </p>
     </form>
     <p class="login-footer">J&A Automation · {t('Secure company access.')}</p>
   </section>

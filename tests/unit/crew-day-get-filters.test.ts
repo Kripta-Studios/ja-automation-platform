@@ -31,6 +31,9 @@ vi.mock('@ja/database', async (importOriginal) => {
         scenario.rowCalls.push('grants');
         return [];
       }
+      upcomingDelegations() {
+        return [];
+      }
       assignedWorkers() {
         scenario.rowCalls.push('assigned');
         return [];

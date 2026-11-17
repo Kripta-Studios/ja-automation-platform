@@ -28,7 +28,10 @@ describe('time entry calendar and clock', () => {
     expect(durationMinutes('7,25')).toBe(435);
     expect(durationMinutes('0.5')).toBe(30);
     expect(durationMinutes('24')).toBe(1440);
-    for (const value of ['', '-1', '24.1', 'nope', '1:30'])
+    // Same any-minute parser as the Time screen: hours:minutes is accepted.
+    expect(durationMinutes('1:30')).toBe(90);
+    expect(durationMinutes('8:15')).toBe(495);
+    for (const value of ['', '-1', '24.1', 'nope', '8:75', '25:00'])
       expect(durationMinutes(value)).toBeNull();
   });
 });

@@ -4,6 +4,7 @@ import { approvalDecisionSchema, reportDecisionSchema } from '@ja/schemas';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -688,6 +689,134 @@ describe('Client Essential approval lifecycle', () => {
       reason: 'Owner-authorized correction after client clarification',
       ownerOverride: true,
     });
+  });
+
+  it('lets a live Finance admin create and submit audited time and expense corrections, but not report corrections', () => {
+    const value = fixture();
+    const worker = stepUpB5Principal(value.sqlite, value.worker, 'finance-correction');
+    const manager = stepUpB5Principal(value.sqlite, value.manager, 'finance-correction');
+    // Recent dates keep the worker inside the current operational window.
+    const day = (offset: number) =>
+      new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10);
+    const time0 = value.repository.createTimeEntry(worker, {
+      projectId: value.project.id,
+      workDate: day(2),
+      category: 'regular',
+      minutes: 600,
+      summary: 'Commissioning shift',
+    });
+    value.repository.submitTime(worker, time0.id, time0.version);
+    const timeId = time0.id;
+    const expense0 = value.repository.createExpense(worker, {
+      projectId: value.project.id,
+      spentOn: day(2),
+      vendor: 'Hotel Essential',
+      category: 'hotel',
+      description: 'Project lodging',
+      currency: 'EUR',
+      amountMinor: 10_000n,
+      whoPaid: 'worker',
+      clientTreatment: 'reimbursable',
+      receiptRequired: false,
+    });
+    value.repository.submitExpense(worker, expense0.id, expense0.version);
+    const expenseId = expense0.id;
+    const daily0 = value.repository.createDailyReport(worker, {
+      projectId: value.project.id,
+      workDate: day(2),
+      summary: 'Daily operational truth',
+      tasksCompleted: 'Commissioning tasks',
+      downtimeMinutes: 0,
+      safetyRelated: false,
+    });
+    const dailyId = daily0.id;
+    value.repository.submitReport(worker, 'daily', dailyId, daily0.version);
+    value.repository.operationalApproveTime(manager, timeId, 'approved');
+    value.repository.operationalApproveExpense(manager, expenseId, 'approved');
+    value.repository.reviewReport(manager, 'daily', dailyId, 'approved');
+    const timeBefore = value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(timeId);
+
+    // A stale or missing session cannot correct.
+    expect(() =>
+      value.repository.createCorrectionDraft(value.finance, {
+        recordType: 'time_entry',
+        originalId: timeId,
+        requestId: 'finance-correction-no-session',
+        reason: 'Finance correction without a live session',
+        patch: { minutes: 570 },
+      }),
+    ).toThrow(AccessDeniedError);
+    const finance = authenticatedFinance(value);
+    expect(() =>
+      value.repository.createCorrectionDraft(finance, {
+        recordType: 'daily_report',
+        originalId: dailyId,
+        requestId: 'finance-correction-daily',
+        reason: 'Finance must not rewrite field reports',
+        patch: { summary: 'Rewritten by finance' },
+      }),
+    ).toThrow(AccessDeniedError);
+
+    const time = value.repository.createCorrectionDraft(finance, {
+      recordType: 'time_entry',
+      originalId: timeId,
+      requestId: 'finance-correction-time',
+      reason: 'Client timesheet shows 9.5 h',
+      patch: { minutes: 570 },
+    });
+    const timeDraft = value.sqlite
+      .prepare('SELECT approval_state,minutes,worker_id,version FROM time_entry WHERE id=?')
+      .get(time.id) as { approval_state: string; minutes: number; worker_id: string; version: number };
+    expect(timeDraft).toMatchObject({
+      approval_state: 'draft',
+      minutes: 570,
+      worker_id: value.worker.userId,
+    });
+    value.repository.submitTime(finance, time.id, timeDraft.version);
+    expect(
+      value.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(time.id),
+    ).toEqual({ approval_state: 'submitted' });
+    expect(value.sqlite.prepare('SELECT * FROM time_entry WHERE id=?').get(timeId)).toEqual(
+      timeBefore,
+    );
+
+    const expense = value.repository.createCorrectionDraft(finance, {
+      recordType: 'expense',
+      originalId: expenseId,
+      requestId: 'finance-correction-expense',
+      reason: 'Receipt total is 120.00',
+      patch: { amountMinor: 12_000 },
+    });
+    const expenseDraft = value.sqlite
+      .prepare('SELECT approval_state,amount_minor,version FROM expense WHERE id=?')
+      .get(expense.id) as { approval_state: string; amount_minor: number; version: number };
+    expect(expenseDraft).toMatchObject({ approval_state: 'draft', amount_minor: 12_000 });
+    value.repository.submitExpense(finance, expense.id, expenseDraft.version);
+    expect(
+      value.sqlite.prepare('SELECT approval_state FROM expense WHERE id=?').get(expense.id),
+    ).toEqual({ approval_state: 'submitted' });
+
+    for (const id of [time.id, expense.id]) {
+      const audit = value.sqlite
+        .prepare(
+          "SELECT actor_id,details_json FROM audit_event WHERE action='correction.create' AND entity_id=?",
+        )
+        .get(id) as { actor_id: string; details_json: string };
+      expect(audit.actor_id).toBe(value.finance.userId);
+      expect(JSON.parse(audit.details_json)).toMatchObject({ ownerOverride: false });
+    }
+
+    // Finance still cannot submit an ordinary worker draft it did not create.
+    const workerDraft = value.repository.createTimeEntry(worker, {
+      projectId: value.project.id,
+      workDate: day(1),
+      category: 'regular',
+      minutes: 60,
+      summary: 'Worker draft',
+    });
+    expect(() => value.repository.submitTime(finance, workerDraft.id, workerDraft.version)).toThrow(
+      AccessDeniedError,
+    );
   });
 
   it('keeps an approved time source effective until its correction is approved, then permits a rejected retry', () => {

@@ -259,7 +259,6 @@
   let fPaymentMethod = $state('');
   let fTimeEntryId = $state('');
   let requestId = $state('');
-  let allowSeparate = $state(false);
   let addAnother = $state(false);
   let savedAnother = $state(false);
   let saving = $state(false);
@@ -358,7 +357,6 @@
     fNote = fVendor = fWhoPaid = fPaymentMethod = '';
     fTimeEntryId = url.searchParams.get('timeEntry') ?? '';
     requestId = crypto.randomUUID();
-    allowSeparate = false;
     savedAnother = false;
     amountTouched = false;
     dateTouched = false;
@@ -456,7 +454,6 @@
         fTimeEntryId = '';
         amountTouched = false;
         requestId = crypto.randomUUID();
-        allowSeparate = false;
         formError = '';
         formProblem = null;
         clearReceipt();
@@ -470,6 +467,7 @@
       closeForm();
     },
     offlineHandled: () => mode === 'create' && data.offlineEnabled !== false,
+    inlineProblem: (problem) => problem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE',
   });
   async function handleOffline(event: SubmitEvent): Promise<void> {
     const result = await saveOfflineDraft(event, 'expense');
@@ -1050,7 +1048,13 @@
         <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
           {formProblem?.code === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
             ? c('duplicateReceipt')
-            : formError}
+            : possibleDuplicate
+              ? c('possibleDuplicate', {
+                  category: categoryLabel(fCategory),
+                  amount: `${fAmount.trim()} ${fCurrency}`,
+                  date: dayLabel(fDate),
+                })
+              : formError}
         </p>
       {/if}
       {#if savedAnother && !formError}
@@ -1292,12 +1296,6 @@
         <p class="xp-muted">{c('policyHint')}</p>
       {/if}
 
-      {#if possibleDuplicate}
-        <label class="xp-check">
-          <input type="checkbox" name="allowSeparateExpense" bind:checked={allowSeparate} />
-          <span>{c('separateExpense')}</span>
-        </label>
-      {/if}
 
       <div class="xp-form-actions">
         {#if mode === 'create'}
@@ -1305,6 +1303,17 @@
             <input type="checkbox" bind:checked={addAnother} />
             <span>{c('addAnother')}</span>
           </label>
+        {/if}
+        {#if possibleDuplicate}
+          <!-- Same person, date, category and amount without a receipt: confirm once. -->
+          <button
+            type="submit"
+            class="secondary"
+            name="allowSeparateExpense"
+            value="on"
+            disabled={saving}
+            data-testid="expense-save-anyway">{c('saveAnyway')}</button
+          >
         {/if}
         <button type="submit" disabled={saving}
           >{saving ? c('saving') : mode === 'edit' ? c('saveChanges') : c('save')}</button

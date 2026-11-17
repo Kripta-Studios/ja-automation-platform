@@ -25,7 +25,7 @@ function input(projectId: string): CaptureInput {
     projectId,
     workDate: '2026-10-11',
     workSummary: 'Replaced sensor; wiring test pending.',
-    time: { category: 'service', minutes: 47 },
+    time: { category: 'regular', minutes: 47 },
     report: {
       tasksCompleted: 'Sensor replaced',
       problemsFound: 'Wiring test pending',
@@ -93,9 +93,16 @@ describe('field capture', () => {
     expect(() =>
       createFieldCapture(value.sqlite, value.repository, worker, {
         ...request,
-        time: { category: 'service', minutes: 0 },
+        time: { category: 'regular', minutes: 0 },
       }),
     ).toThrow(/Actual time/);
+    for (const category of ['Work', 'Banana', 'service'])
+      expect(() =>
+        createFieldCapture(value.sqlite, value.repository, worker, {
+          ...request,
+          time: { category, minutes: 47 },
+        }),
+      ).toThrow(/supported time category/);
     expect(() =>
       createFieldCapture(value.sqlite, value.repository, worker, {
         ...request,

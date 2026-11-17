@@ -1,5 +1,6 @@
 import { dailyReportHtml, technicalReportHtml, reportPreviewSnapshot } from '@ja/reporting';
-import { error } from '@sveltejs/kit';
+import { randomUUID } from 'node:crypto';
+import { error, isHttpError } from '@sveltejs/kit';
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { RequestHandler } from './$types';
@@ -9,7 +10,12 @@ export const GET: RequestHandler = ({ locals, params, url, cookies }) => {
   const context = openPortalRepository(locals);
   try {
     // Establish live-session and exact object scope before any identity enrichment.
-    const detail = context.repository.reportDetail(context.principal, params.id);
+    let detail: ReturnType<typeof context.repository.reportDetail>;
+    try {
+      detail = context.repository.reportDetail(context.principal, params.id);
+    } catch {
+      error(404, 'Report preview is unavailable. Review your report access.');
+    }
     const report = detail.report;
     const identity = context.sqlite.prepare(
       `SELECT c.display_name client_name FROM project p
@@ -34,8 +40,20 @@ export const GET: RequestHandler = ({ locals, params, url, cookies }) => {
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'",
     } });
-  } catch {
-    error(404, 'Report preview is unavailable. Review your report access.');
+  } catch (cause) {
+    if (isHttpError(cause)) throw cause;
+    // Access was already confirmed above, so this is a rendering/configuration fault
+    // (for example a missing report logo asset). Log the real cause; do not blame access.
+    const correlationId = locals.correlationId || randomUUID();
+    console.error('Report preview rendering failed', {
+      correlationId,
+      reportId: params.id,
+      error:
+        cause instanceof Error
+          ? { name: cause.name, message: cause.message, stack: cause.stack }
+          : 'unknown error',
+    });
+    error(503, `Report preview could not be generated right now. Try again later. Reference: ${correlationId}`);
   } finally {
     context.sqlite.close();
   }

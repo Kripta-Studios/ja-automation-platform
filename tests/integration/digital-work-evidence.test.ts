@@ -275,7 +275,7 @@ it('backs up and restores durable work, capture retries and private evidence tog
     workDate: '2026-10-11',
     requestKey: 'backup_capture_12345',
     workSummary: 'Actual work only',
-    time: { minutes: 23, category: 'service' },
+    time: { minutes: 23, category: 'regular' },
   });
   const tables = [
     'digital_work_item',

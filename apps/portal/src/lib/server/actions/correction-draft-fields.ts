@@ -90,15 +90,15 @@ export function buildCorrectionPatch(
   if (recordType === 'time_entry') {
     const category = textField(form, 'category', 100, true);
     if (!timeCategories.has(category)) throw new ValidationError('Time category is invalid');
-    const summary = textField(form, 'activitySummary', 5000, true);
-    if (summary.length < 3) throw new ValidationError('Activity summary is too short');
+    // Optional note: an empty note keeps the original summary unchanged.
+    const summary = form.activitySummary === undefined ? '' : textField(form, 'activitySummary', 5000);
     const start = optional(form.startTime === undefined ? '' : textField(form, 'startTime', 5));
     const end = optional(form.endTime === undefined ? '' : textField(form, 'endTime', 5));
     const breakMinutes = start || end ? integerField(form, 'breakMinutes', 0, 1439) : null;
     add('workDate', 'work_date', dateField(form, 'workDate'));
     add('category', 'category', category);
     add('minutes', 'minutes', integerField(form, 'minutes', 0, 1440));
-    add('activitySummary', 'activity_summary', summary);
+    if (summary) add('activitySummary', 'activity_summary', summary);
     add('activityCode', 'activity_code', optional(textField(form, 'activityCode', 100)));
     add('site', 'site', optional(textField(form, 'site', 200)));
     add('startTime', 'start_time', start);

@@ -31,6 +31,7 @@ async function serviceWorker() {
   let identityCookie: string | undefined = token;
   const claim = vi.fn(async () => undefined);
   let network: (request: Request) => Promise<Response> = async () => new Response('authorized');
+  let offlineReads = true;
   const deletes: string[] = [];
   const puts: string[] = [];
   const fetches: (Request | string)[] = [];
@@ -45,6 +46,8 @@ async function serviceWorker() {
           store.set(request.url, response.clone());
         },
         match: async (request: Request) => store.get(request.url)?.clone(),
+        keys: async () => [...store.keys()].map((url) => ({ url })),
+        delete: async (request: { url: string }) => store.delete(request.url),
       };
     },
     delete: async (name: string) => {
@@ -64,6 +67,7 @@ async function serviceWorker() {
         userId: 'worker',
         tenantId: 'tenant',
         deploymentId: 'deployment',
+        offlineReads,
       });
     return network(request);
   };
@@ -116,6 +120,7 @@ async function serviceWorker() {
     setPutGate: (value?: Promise<void>) => (putGate = value),
     setLocaleCookie: (value: string) => (localeCookie = value),
     setNetwork: (value: typeof network) => (network = value),
+    setOfflineReads: (value: boolean) => (offlineReads = value),
     read: (path = 'time/owned', navigate = false) => {
       let response!: Promise<Response>;
       const request = new Request(origin + scope + path);
@@ -181,14 +186,15 @@ describe('executed private service-worker read revocation', () => {
   });
 
   it.each(['documents/private-evidence.svg', 'documents/private-receipt.jpeg'])(
-    'keeps authenticated download %s out of the public cache',
+    'keeps authenticated download %s out of every cache',
     async (path) => {
       const sw = await serviceWorker();
       const url = origin + scope + path;
+      await sw.read('time/owned');
       const event = sw.fetchEvent(url);
       expect((await event.response!).status).toBe(200);
       expect(sw.stores.get('ja-portal-static-v2')?.has(url) ?? false).toBe(false);
-      expect(sw.stores.get(partition)?.has(url)).toBe(true);
+      expect(sw.stores.get(partition)?.has(url) ?? false).toBe(false);
       sw.setNetwork(async () => new Response('Access restricted', { status: 403 }));
       expect((await sw.fetchEvent(url).response!).status).toBe(403);
       expect(sw.stores.has(partition)).toBe(false);
@@ -250,6 +256,89 @@ describe('executed private service-worker read revocation', () => {
       expect(sw.stores.size).toBe(0);
     },
   );
+
+  it.each([
+    'pay',
+    'pay/__data.json',
+    'finance',
+    'finance?view=overview',
+    'finance/__data.json?view=overview',
+    'billing',
+    'ledger',
+    'accounting',
+    'audit',
+    'approvals',
+    'projects',
+    'projects/p1',
+    'manage/team',
+    'documents',
+    'profile',
+    'expenses/export',
+    'reports/period',
+    'reports/review/__data.json',
+    'time/a/b',
+  ])('never stores %s and shows connect-to-check offline', async (path) => {
+    const sw = await serviceWorker();
+    sw.setNetwork(async () => new Response('Approved $2,172.50 rate margin'));
+    const online = await sw.read(path, true);
+    expect(await online.text()).toContain('$2,172.50');
+    expect(sw.puts).toEqual([]);
+    sw.setOffline(true);
+    const offline = await sw.read(path, true);
+    expect(offline.status).toBe(503);
+    expect(await offline.text()).not.toContain('$2,172.50');
+  });
+
+  it.each(['', '__data.json', 'time', 'time/__data.json?day=2026-11-24', 'expenses/e1', 'reports/r1/__data.json'])(
+    'keeps the worker capture page %s readable offline',
+    async (path) => {
+      const sw = await serviceWorker();
+      sw.setNetwork(async () => new Response('own capture page'));
+      await sw.read(path);
+      sw.setOffline(true);
+      expect(await (await sw.read(path)).text()).toBe('own capture page');
+    },
+  );
+
+  it('does not store pages for identities without worker offline reads (owner, finance)', async () => {
+    const sw = await serviceWorker();
+    sw.setOfflineReads(false);
+    sw.setNetwork(async () => new Response('owner home with money'));
+    await sw.read('');
+    await sw.read('time');
+    expect(sw.puts).toEqual([]);
+  });
+
+  it('does not store a redirected response under the requested capture URL', async () => {
+    const sw = await serviceWorker();
+    sw.setNetwork(async () => {
+      const response = new Response('finance landing');
+      Object.defineProperty(response, 'redirected', { value: true });
+      return response;
+    });
+    await sw.read('');
+    expect(sw.puts).toEqual([]);
+  });
+
+  it('never serves and prunes unmarked entries left by the previous cache-everything worker', async () => {
+    const sw = await serviceWorker();
+    const payUrl = origin + scope + 'pay';
+    const timeUrl = origin + scope + 'time';
+    sw.stores.set(
+      otherPartition,
+      new Map([
+        [payUrl, new Response('other user pay')],
+        [timeUrl, new Response('other user legacy time')],
+      ]),
+    );
+    sw.stores.set(partition, new Map([[timeUrl, new Response('legacy unmarked time')]]));
+    sw.setOffline(true);
+    expect((await sw.read('time')).status).toBe(0);
+    sw.setIdentityCookie(undefined);
+    await sw.activate();
+    expect(sw.stores.get(otherPartition)?.size).toBe(0);
+    expect(sw.stores.get(partition)?.size ?? 0).toBe(0);
+  });
 
   it('purges inherited current-identity HTML and loader entries before claiming clients without network', async () => {
     const sw = await serviceWorker();

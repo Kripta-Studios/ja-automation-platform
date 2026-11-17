@@ -436,6 +436,7 @@ const en = {
   'Actual minutes': 'Actual minutes',
   'Operational category': 'Operational category',
   'Activity summary': 'Activity summary',
+  'What changed (optional)': 'What changed (optional)',
   'Back to approvals': 'Back to approvals',
   'Read-only operational review': 'Read-only operational review',
   'Approval actions remain in the Approvals queue.':
@@ -1083,6 +1084,7 @@ const esBase: Record<keyof typeof en, string> = {
   'Actual minutes': 'Minutos reales',
   'Operational category': 'Categoría operativa',
   'Activity summary': 'Resumen de actividad',
+  'What changed (optional)': 'Qué cambió (opcional)',
   'Back to approvals': 'Volver a aprobaciones',
   'Read-only operational review': 'Revisión operativa de solo lectura',
   'Approval actions remain in the Approvals queue.':
@@ -1720,6 +1722,7 @@ const ptBase: Record<keyof typeof en, string> = {
   'Actual minutes': 'Minutos reais',
   'Operational category': 'Categoria operacional',
   'Activity summary': 'Resumo da atividade',
+  'What changed (optional)': 'O que mudou (opcional)',
   'Back to approvals': 'Voltar às aprovações',
   'Read-only operational review': 'Revisão operacional somente leitura',
   'Approval actions remain in the Approvals queue.':

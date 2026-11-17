@@ -319,10 +319,12 @@
           <dt>{t('Operational category')}</dt>
           <dd>{controlled('timeCategory', record.category)}</dd>
         </div>
-        <div>
-          <dt>{t('Activity summary')}</dt>
-          <dd>{record.activity_summary || '—'}</dd>
-        </div>
+        {#if record.activity_summary}
+          <div>
+            <dt>{t('Activity summary')}</dt>
+            <dd>{record.activity_summary}</dd>
+          </div>
+        {/if}
       </dl>
     </section>
   </main>
@@ -405,11 +407,13 @@
       </article>
     </section>
     <section class="detail-panel record-detail-copy">
-      <div class="panel-title">
-        <h2>{t('Activity summary')}</h2>
-        <span>{record.activity_code ?? t('No code')}</span>
-      </div>
-      <p>{record.activity_summary ?? t('No activity summary was recorded.')}</p>
+      {#if record.activity_summary || record.activity_code}
+        <div class="panel-title">
+          <h2>{t('Activity summary')}</h2>
+          {#if record.activity_code}<span>{record.activity_code}</span>{/if}
+        </div>
+        {#if record.activity_summary}<p>{record.activity_summary}</p>{/if}
+      {/if}
       <dl class="record-facts">
         <div>
           <dt>{t('Project timezone')}</dt>
@@ -465,7 +469,12 @@
         {#if data.ownDraft.can_edit === 1}
           <a
             class="primary-button"
-            href={`${base}/app/time?edit=${encodeURIComponent(String(record.id))}`}
+            href={`${base}/app/time?${new URLSearchParams({
+              day: String(record.work_date),
+              project: String(record.project_id),
+              category: String(record.category),
+              lang: locale,
+            })}`}
             >{t('Edit draft')} <DirectionIcon /></a
           >
         {/if}

@@ -15,6 +15,8 @@
   import { expenseCategories } from '$lib/portal/expense-categories';
   import { minutesToProjectHours } from '$lib/portal/sections/project-budget-input';
   import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
+  import { captureTimeCategories, isCaptureTimeCategory } from '$lib/portal/time-categories';
+  import { timeWeekText } from '$lib/portal/sections/time-week-copy';
   import type { PageData, ActionData } from './$types';
 
   export let data: PageData;
@@ -27,7 +29,7 @@
   let workDate = '';
   let workSummary = '';
   let includeTime = false;
-  let timeCategory = '';
+  let timeCategory = 'regular';
   let minutes = '';
   let includeReport = false;
   let tasksCompleted = '';
@@ -222,6 +224,11 @@
     },
   };
   $: t = words[locale];
+  const timeCategoryLabel = (current: Locale, category: string) =>
+    timeWeekText(
+      current,
+      category === 'regular' ? 'work' : isCaptureTimeCategory(category) ? category : 'otherCategory',
+    );
   const payerNames: Record<string, string> = {
     worker: 'Worker',
     company_card: 'Company card',
@@ -294,7 +301,7 @@
     requestKey = String(v.requestKey || cryptoSafeKey());
     workSummary = String(v.workSummary || '');
     includeTime = v.includeTime === true;
-    timeCategory = String(v.timeCategory || '');
+    timeCategory = isCaptureTimeCategory(v.timeCategory) ? v.timeCategory : 'regular';
     minutes = String(v.minutes || '');
     includeReport = v.includeReport === true;
     tasksCompleted = String(v.tasksCompleted || '');
@@ -478,11 +485,11 @@
             </h2>
             {#if includeTime}<div class="grid">
                 <label
-                  >{t.category}<input
-                    name="timeCategory"
-                    bind:value={timeCategory}
-                    required
-                  /></label
+                  >{t.category}<select name="timeCategory" bind:value={timeCategory} required>
+                    {#each captureTimeCategories as category (category)}
+                      <option value={category}>{timeCategoryLabel(locale, category)}</option>
+                    {/each}
+                  </select></label
                 ><label
                   >{t.minutes}<DecimalHoursInput
                     name="minutes"
@@ -609,7 +616,7 @@
               {#if includeTime}<h3>{t.time}</h3>
                 <dl class="review-facts">
                   <dt>{t.category}</dt>
-                  <dd>{timeCategory}</dd>
+                  <dd>{timeCategoryLabel(locale, timeCategory)}</dd>
                   <dt>{t.minutes}</dt>
                   <dd>{minutesToProjectHours(minutes)} h</dd>
                 </dl>{/if}

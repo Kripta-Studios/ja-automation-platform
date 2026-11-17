@@ -70,6 +70,9 @@ export const GET: RequestHandler = ({ cookies, locals }) => {
       tenantId: config.tenantId,
       deploymentId: config.deploymentId,
       userId: locals.user.id,
+      // Offline page reads are a worker capture convenience only. Owner, finance, PM and
+      // auditor pages carry money, rates or other people's data and stay network-only.
+      offlineReads: locals.user.role === 'worker' && !locals.user.workforceProfile,
     },
     { headers: { 'cache-control': 'no-store' } },
   );

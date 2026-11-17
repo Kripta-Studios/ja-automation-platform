@@ -13,6 +13,7 @@ import {
   ConflictError,
   ValidationError,
   assertLiveSession,
+  currentCurrencyConversion,
   type InvoiceCompositionSource,
   type InvoiceCompositionSourceRef,
   type InvoiceOverrideInput,
@@ -118,6 +119,8 @@ export type QuickInvoicePreview = {
   existingInvoice: { id: string; state: string; number: string | null } | null;
   /** Dates with approved, not yet invoiced hours near the chosen period (when nothing is billable). */
   suggestedPeriod: { start: string; end: string } | null;
+  /** Logged work before these dates that no invoice holds yet (late entries in an invoiced period). */
+  lateWork: { minutes: number; from: string; to: string } | null;
   issuerLegalEntityId: string | null;
   /** Unissued drafts of this project overlapping the period (records may already sit there). */
   openDrafts: Array<{ id: string; state: string; periodStart: string; periodEnd: string; totalMinor: string }>;
@@ -216,6 +219,8 @@ export type QuickInvoiceExpenseRow = {
   policyAvailable: boolean;
   /** Recorded in another currency than the invoice: an exact conversion is entered with the choice. */
   foreign: boolean;
+  /** Foreign expense: the confirmed conversion (Money → Currency conversions), prefilled. */
+  conversion?: { rate: string; amountMinor: string; rateSource: string } | null;
   /** Left out of this invoice by the user (stays unclassified, no longer blocks). */
   excluded: boolean;
 };
@@ -239,6 +244,7 @@ export type QuickInvoiceAttention = {
     | 'clientDetails'
     | 'billingSetup'
     | 'issuerBank'
+    | 'issuerAuthority'
     | 'purchaseOrder'
     | 'other';
   /** Engine code for 'other' items (shown with plain text + an Advanced link). */
@@ -251,7 +257,7 @@ export type QuickInvoiceAttention = {
   fix?: QuickInvoiceWarning['fix'];
   message?: string;
   billingSetup?: {
-    legalEntities: Array<{ id: string; code: string; name: string }>;
+    legalEntities: IssuerChoice[];
     taxProfiles: Array<{ id: string; name: string; legalEntityId: string | null; basisPoints: number }>;
   };
   issuer?: {
@@ -261,11 +267,59 @@ export type QuickInvoiceAttention = {
     bankName: string;
     bankAccountNumber: string;
   };
+  /** issuerAuthority: the issuing companies that can issue in the project currency. */
+  issuerAuthority?: { legalEntities: IssuerChoice[]; current: string | null };
   project?: { id: string; version: number; poNumber: string | null };
   /** workerCost: which of the person's internal settings are missing. */
   payMissing?: boolean;
   costMissing?: boolean;
 };
+
+export type IssuerChoice = { id: string; code: string; name: string; canIssue: boolean };
+
+/**
+ * Issuing companies for a currency, the default first: those with a complete company record
+ * (canonical revision) for that currency can issue; the default is the one most projects in
+ * that currency already invoice from.
+ */
+export function issuerChoices(context: Context, currency: string): IssuerChoice[] {
+  const entities = (context.repository.listLegalEntities(context.principal) as unknown as Row[]).filter(
+    (entity) => String(entity.currency) === currency && String(entity.status ?? 'active') === 'active',
+  );
+  const issuing = new Set(
+    (
+      context.sqlite
+        .prepare(
+          `SELECT DISTINCT b.legacy_legal_entity_id id FROM legal_entity_revision_bridge b
+             JOIN legal_entity_revision r ON r.revision_id=b.canonical_revision_id
+            WHERE r.base_currency=? AND r.effective_to IS NULL`,
+        )
+        .all(currency) as Array<{ id: string }>
+    ).map((row) => row.id),
+  );
+  const uses = new Map(
+    (
+      context.sqlite
+        .prepare(
+          `SELECT legal_entity_id id,COUNT(DISTINCT project_id) n FROM billing_rule WHERE currency=? AND enabled=1 GROUP BY legal_entity_id`,
+        )
+        .all(currency) as Array<{ id: string; n: number }>
+    ).map((row) => [row.id, Number(row.n)]),
+  );
+  return entities
+    .map((entity) => ({
+      id: String(entity.id),
+      code: String(entity.code),
+      name: String(entity.legal_name),
+      canIssue: issuing.has(String(entity.id)),
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.canIssue) - Number(a.canIssue) ||
+        (uses.get(b.id) ?? 0) - (uses.get(a.id) ?? 0) ||
+        a.code.localeCompare(b.code),
+    );
+}
 
 function authorize(context: Context): void {
   assertLiveSession(context.sqlite, context.principal, AccessDeniedError);
@@ -730,6 +784,7 @@ function emptyPreview(
     warnings: [],
     existingInvoice: null,
     suggestedPeriod: null,
+    lateWork: null,
     issuerLegalEntityId: null,
     openDrafts: [],
     projected: null,
@@ -828,6 +883,60 @@ function suggestPeriod(
   };
 }
 
+/** The stream's first cadence period (clamped to its window), not later than today. */
+function firstStreamPeriod(stream: QuickInvoiceStream): { start: string; end: string } | null {
+  try {
+    const range = periodForCadence(stream.cadence as BillingCadence, stream.effectiveFrom, {
+      anchorDate: stream.anchorDate ?? undefined,
+      monthlyCutoffDay: stream.monthlyCutoffDay ?? undefined,
+    });
+    if (!range) return null;
+    return {
+      start: range.start < stream.effectiveFrom ? stream.effectiveFrom : range.start,
+      end: stream.effectiveTo && range.end > stream.effectiveTo ? stream.effectiveTo : range.end,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function cyclePeriodAround(stream: QuickInvoiceStream, date: string): { start: string; end: string } | null {
+  try {
+    const range = periodForCadence(stream.cadence as BillingCadence, date < stream.effectiveFrom ? stream.effectiveFrom : date, {
+      anchorDate: stream.anchorDate ?? undefined,
+      monthlyCutoffDay: stream.monthlyCutoffDay ?? undefined,
+    });
+    if (!range) return null;
+    return {
+      start: range.start < stream.effectiveFrom ? stream.effectiveFrom : range.start,
+      end: stream.effectiveTo && range.end > stream.effectiveTo ? stream.effectiveTo : range.end,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Open logged hours dated before `before` inside an already issued period: the "late work" hint. */
+function lateWork(context: Context, projectId: string, before: string): QuickInvoicePreview['lateWork'] {
+  const row = context.sqlite
+    .prepare(
+      `SELECT COALESCE(SUM(minutes),0) minutes,MIN(work_date) first,MAX(work_date) last FROM time_entry
+        WHERE project_id=? AND work_date<?
+          AND approval_state IN ('draft','submitted','needs_changes','approved','locked') AND invoice_id IS NULL
+          AND billability_state IN ('pending','billable')
+          AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                 WHERE source.source_type='time' AND source.source_id=time_entry.id
+                   AND invoice.state NOT IN ('void','cancelled','superseded'))
+          AND EXISTS (SELECT 1 FROM invoice issued WHERE issued.project_id=time_entry.project_id
+                 AND issued.state NOT IN ('draft','void','cancelled','superseded')
+                 AND issued.period_start<=time_entry.work_date AND issued.period_end>=time_entry.work_date)`,
+    )
+    .get(projectId, before) as { minutes: number; first: string | null; last: string | null };
+  return row.first && row.last && Number(row.minutes) > 0
+    ? { minutes: Number(row.minutes), from: row.first, to: row.last }
+    : null;
+}
+
 function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   const project = context.repository
     .listFinanceProjects(context.principal)
@@ -861,6 +970,20 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
         .all(input.projectId) as QuickInvoicePreview['openDrafts']
     ).map((row) => ({ ...row })),
   };
+  if (
+    stream &&
+    (input.periodEnd < stream.effectiveFrom || (stream.effectiveTo !== null && input.periodStart > stream.effectiveTo))
+  ) {
+    // The dates lie outside the stream (e.g. "Last month" for a stream that starts mid-month):
+    // nothing to bill here; suggest the stream's first open period instead of a blocker.
+    const nearby = nearbyForStream(context, stream, input.projectId, input.periodStart, input.periodEnd);
+    return {
+      preview: { ...base, state: 'empty', suggestedPeriod: suggestPeriod(stream, nearby) ?? firstStreamPeriod(stream) },
+      selection: null,
+      reasons: collected,
+      lines: [],
+    };
+  }
   if (!stream)
     return {
       preview: {
@@ -934,6 +1057,10 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
         preview: {
           ...base,
           state: 'blocked',
+          // Dates that don't match the cycle: offer the cycle period around them.
+          suggestedPeriod: globalReasons.some((reason) => reason.code === 'period_cutoff_mismatch')
+            ? (cyclePeriodAround(stream, input.periodStart) ?? null)
+            : null,
           warnings: [
             ...groupedWarnings(context, globalReasons, () => 'blocker'),
             ...groupedWarnings(
@@ -1153,6 +1280,7 @@ const ATTENTION_CODES: Record<string, QuickInvoiceAttention['kind']> = {
   missing_issuer_settings: 'issuerBank',
   missing_purchase_order: 'purchaseOrder',
   missing_billing_stream: 'billingSetup',
+  canonical_legal_entity_revision_required: 'issuerAuthority',
 };
 /** Handled by "Approve & include" (or simply the selection), never listed separately. */
 const APPROVAL_CODES = new Set([
@@ -1176,6 +1304,7 @@ const KIND_ORDER: QuickInvoiceAttention['kind'][] = [
   'expenseTreatment',
   'clientDetails',
   'billingSetup',
+  'issuerAuthority',
   'issuerBank',
   'other',
   'purchaseOrder',
@@ -1386,6 +1515,14 @@ function buildAttention(
         } catch {
           policyAvailable = false;
         }
+      const foreign = String(source.originalCurrency ?? source.currency) !== base.preview.currency;
+      const current = foreign
+        ? currentCurrencyConversion(context.sqlite, 'expense', source.id, base.preview.currency)
+        : null;
+      const confirmed =
+        current && current.sourceAmountMinor === String(source.originalAmountMinor ?? source.amountMinor ?? '')
+          ? current
+          : null;
       expenseRows.push({
         ref: { type: 'expense', id: source.id, version: source.version },
         label: [String(row.category ?? ''), source.summary].filter(Boolean).join(' · '),
@@ -1400,7 +1537,10 @@ function buildAttention(
         markupBps: Number(row.markup_bps ?? 0),
         locked: source.containingInvoice !== null,
         policyAvailable,
-        foreign: String(source.originalCurrency ?? source.currency) !== base.preview.currency,
+        foreign,
+        conversion: confirmed
+          ? { rate: confirmed.rate, amountMinor: confirmed.targetAmountMinor, rateSource: confirmed.rateSource }
+          : null,
         excluded: excluded.has(source.id),
       });
     }
@@ -1429,9 +1569,7 @@ function buildAttention(
   // 6–8. Billing setup, issuer bank details, other engine reasons, PO.
   const warnings = (projected ?? base).preview.warnings;
   if (warnings.some((warning) => warning.code === 'missing_billing_stream')) {
-    const entities = (context.repository.listLegalEntities(context.principal) as unknown as Row[])
-      .filter((entity) => String(entity.currency) === base.preview.currency)
-      .map((entity) => ({ id: String(entity.id), code: String(entity.code), name: String(entity.legal_name) }));
+    const entities = issuerChoices(context, base.preview.currency);
     const taxProfiles = (context.repository.listTaxProfiles(context.principal) as Row[])
       .filter((profile) => String(profile.currency) === base.preview.currency && String(profile.status) === 'active')
       .map((profile) => ({
@@ -1450,6 +1588,23 @@ function buildAttention(
         })(),
       }));
     items.push({ kind: 'billingSetup', blocks: 'create', totalCount: 1, billingSetup: { legalEntities: entities, taxProfiles } });
+  }
+  if (warnings.some((warning) => warning.code === 'canonical_legal_entity_revision_required')) {
+    const streamId = (projected ?? base).preview.stream?.id;
+    const rule = streamId
+      ? (context.sqlite.prepare('SELECT legal_entity_id FROM billing_rule WHERE id=?').get(streamId) as
+          | { legal_entity_id: string | null }
+          | undefined)
+      : undefined;
+    items.push({
+      kind: 'issuerAuthority',
+      blocks: 'issue',
+      totalCount: 1,
+      issuerAuthority: {
+        legalEntities: issuerChoices(context, base.preview.currency),
+        current: rule?.legal_entity_id ?? null,
+      },
+    });
   }
   const issuerId = (projected ?? base).preview.issuerLegalEntityId;
   if (warnings.some((warning) => warning.code === 'missing_issuer_settings') && issuerId) {
@@ -1594,6 +1749,10 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
       client,
       capabilities,
       suggestedPeriod: pending.length ? null : preview.suggestedPeriod,
+      lateWork:
+        preview.state === 'existing' || stream?.streamType !== 'labor'
+          ? null
+          : lateWork(context, input.projectId, preview.periodStart),
       overrides: normalizedOverrides(input),
       ...taxChoices(context, stream?.id ?? null),
       split,

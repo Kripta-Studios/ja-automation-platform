@@ -249,6 +249,54 @@ export class AssignmentExpensePolicyRepository {
       );
   }
 
+  /**
+   * An expense policy window may not cover expenses that are already locked: billed on an
+   * issued invoice, reimbursed to the worker, or part of a finalized settlement with expense
+   * reimbursement. Only expenses this policy would resolve for (same person, payer and
+   * category; a category-less policy covers every category) count. Labor-only invoices and
+   * hour-based settlements never billed or paid these expenses, so they do not block.
+   */
+  private assertPolicyWindowHistory(
+    projectId: string,
+    workerId: string,
+    normalizedPayer: ExpensePayer,
+    category: string | null,
+    effectiveFrom: string,
+    effectiveTo: string | null,
+  ): void {
+    const until = effectiveTo ?? '9999-12-31';
+    const scope = `e.project_id=? AND e.worker_id=? AND e.spent_on>=? AND e.spent_on<=?
+       AND (CASE e.who_paid WHEN 'company' THEN 'company_direct' ELSE e.who_paid END)=?
+       AND (? IS NULL OR e.category=?)`;
+    const args = [projectId, workerId, effectiveFrom, until, normalizedPayer, category, category];
+    const invoiced = this.sqlite
+      .prepare(
+        `SELECT 1 FROM expense e JOIN invoice_source s ON s.source_type='expense' AND s.source_id=e.id
+         JOIN invoice i ON i.id=s.invoice_id
+        WHERE ${scope} AND i.state NOT IN ('draft','void','cancelled','superseded') LIMIT 1`,
+      )
+      .get(...args);
+    const paid = this.sqlite
+      .prepare(
+        `SELECT 1 FROM expense e WHERE ${scope}
+           AND (e.reimbursed_at IS NOT NULL OR e.reimbursement_state='reimbursed') LIMIT 1`,
+      )
+      .get(...args);
+    const settled = this.sqlite
+      .prepare(
+        `SELECT 1 FROM compensation_settlement_revision_v2 r
+          WHERE r.project_id=? AND r.worker_id=? AND r.expense_reimbursement_minor>0
+            AND r.period_end>=? AND r.period_start<=?
+            AND EXISTS(SELECT 1 FROM compensation_settlement_authority_event_v2 a
+                        WHERE a.revision_id=r.id AND a.event_type='finalize') LIMIT 1`,
+      )
+      .get(projectId, workerId, effectiveFrom, until);
+    if (invoiced || paid || settled)
+      throw new ConflictError(
+        'These expense terms would cover expenses that are already invoiced or reimbursed. Choose a later start date.',
+      );
+  }
+
   private insertPreference(
     principal: Principal,
     projectId: string,
@@ -488,7 +536,14 @@ export class AssignmentExpensePolicyRepository {
         );
       if (overlapping)
         throw new ConflictError('Expense policy dates overlap an existing finite window');
-      this.assertPreferenceHistory(assignment.project_id, assignment.user_id, effectiveFrom);
+      this.assertPolicyWindowHistory(
+        assignment.project_id,
+        assignment.user_id,
+        normalizedPayer,
+        category,
+        effectiveFrom,
+        effectiveTo,
+      );
       const id = newId();
       const version = (prior.version ?? 0) + 1;
       this.sqlite

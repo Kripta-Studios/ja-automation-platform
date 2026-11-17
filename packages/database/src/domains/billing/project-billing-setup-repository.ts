@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { newId, type Principal } from '@ja/domain';
 import { currencyMinorDigits, formatMinorPlain, isCurrency, type Currency } from '@ja/money';
+import { clientRecordIdSchema } from '@ja/schemas';
 import { assertActiveAccount, assertLiveSession } from '../../core/authorization.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
@@ -192,7 +193,8 @@ function validate(input: ProjectBillingSetupInput): void {
     throw new ValidationError('Unsupported invoice layout');
   if (!['detail', 'summary', 'by_worker', 'by_day', 'by_category'].includes(input.groupingMode))
     throw new ValidationError('Unsupported invoice grouping');
-  if (input.billingContactId && !uuidPattern.test(input.billingContactId))
+  // Imported contacts keep stable non-UUID ids (e.g. contact-impc-…); the row is checked below.
+  if (input.billingContactId && !clientRecordIdSchema.safeParse(input.billingContactId).success)
     throw new ValidationError('Billing contact is invalid');
   if (input.recipientEmail && !/^\S+@\S+\.\S+$/.test(input.recipientEmail))
     throw new ValidationError('Recipient email is invalid');
@@ -1019,22 +1021,6 @@ export class ProjectBillingSetupRepository {
         throw new ConflictError(
           'Billing rules changed outside this setup. Reload and review before saving.',
         );
-      if (input.effectiveFrom < projectCalendarDate(project.timezone)) {
-        if (currentVersion > 0)
-          throw new ConflictError('Existing billing setup changes must start today or later.');
-        const billed = this.sqlite
-          .prepare('SELECT 1 FROM invoice WHERE project_id=? AND period_end>=? LIMIT 1')
-          .get(input.projectId, input.effectiveFrom);
-        const period = this.sqlite
-          .prepare(
-            'SELECT 1 FROM billing_period bp JOIN billing_rule br ON br.id=bp.billing_rule_id WHERE br.project_id=? AND bp.period_end>=? LIMIT 1',
-          )
-          .get(input.projectId, input.effectiveFrom);
-        if (billed || period)
-          throw new ConflictError(
-            'Existing invoice or billing period history overlaps the backdated setup.',
-          );
-      }
       if (
         input.selectedTemplateId &&
         !this.sqlite
@@ -1108,11 +1094,47 @@ export class ProjectBillingSetupRepository {
         throw new ConflictError(
           'Overlapping billing rules need Finance review before saving this setup',
         );
+      const backdated = input.effectiveFrom < projectCalendarDate(project.timezone);
+      // Adding a separate expense stream for dates whose labor is already invoiced: the labor
+      // stream stays exactly as it is, so only expense billing history can overlap.
+      const keepLabor =
+        backdated && input.mode === 'separate' && labor !== undefined && this.sameLaborTerms(labor, input);
+      if (backdated) {
+        if (currentVersion > 0 && !keepLabor)
+          throw new ConflictError('Existing billing setup changes must start today or later.');
+        const billed = keepLabor
+          ? this.sqlite
+              .prepare(
+                `SELECT 1 FROM invoice i WHERE i.project_id=? AND i.period_end>=?
+                   AND i.state NOT IN ('void','cancelled','superseded')
+                   AND (EXISTS(SELECT 1 FROM invoice_source s WHERE s.invoice_id=i.id AND s.source_type='expense')
+                     OR EXISTS(SELECT 1 FROM billing_rule br WHERE br.id=i.billing_rule_id AND br.stream_type='expense'))
+                 LIMIT 1`,
+              )
+              .get(input.projectId, input.effectiveFrom)
+          : this.sqlite
+              .prepare('SELECT 1 FROM invoice WHERE project_id=? AND period_end>=? LIMIT 1')
+              .get(input.projectId, input.effectiveFrom);
+        const period = this.sqlite
+          .prepare(
+            `SELECT 1 FROM billing_period bp JOIN billing_rule br ON br.id=bp.billing_rule_id
+              WHERE br.project_id=? AND bp.period_end>=? AND (? = 0 OR br.stream_type='expense') LIMIT 1`,
+          )
+          .get(input.projectId, input.effectiveFrom, keepLabor ? 1 : 0);
+        if (billed || period)
+          throw new ConflictError(
+            keepLabor
+              ? 'Expenses on these dates are already invoiced. Choose a later effective date.'
+              : 'Existing invoice or billing period history overlaps the backdated setup.',
+          );
+      }
       if (input.mode === 'combined' && expense)
         this.closeExpenseRule(principal, expense, input.effectiveFrom);
       // createBillingRule supersedes an earlier active rule of the same stream
       // in the same transaction, closing its effective range the day before.
-      const laborRuleId = this.writeRule(principal, project.currency, input, 'labor', labor);
+      const laborRuleId = keepLabor
+        ? labor!.id
+        : this.writeRule(principal, project.currency, input, 'labor', labor);
       let expenseRuleId: string | null = null;
       if (input.mode === 'separate') {
         expenseRuleId = this.writeRule(principal, project.currency, input, 'expense', expense);
@@ -1274,6 +1296,23 @@ export class ProjectBillingSetupRepository {
       includeExpenses,
     });
     return created.id;
+  }
+
+  /** The labor stream would be written with exactly the terms it already has. */
+  private sameLaborTerms(rule: RuleRow, input: ProjectBillingSetupInput): boolean {
+    return (
+      rule.legal_entity_id === input.legalEntityId &&
+      (rule.tax_profile_id || null) === (input.laborTaxProfileId || null) &&
+      rule.cadence_type === input.cadenceType &&
+      (rule.anchor_date || null) === (input.anchorDate || null) &&
+      (rule.template_id || null) === input.invoiceLayout &&
+      (rule.grouping_mode || null) === input.groupingMode &&
+      (rule.billing_contact_id || null) === (input.billingContactId || null) &&
+      (rule.recipient_email || null) === (input.recipientEmail || null) &&
+      Number(rule.payment_terms_days ?? 30) === input.paymentTermsDays &&
+      Number(rule.auto_generate_draft) === (input.autoGenerateDraft ? 1 : 0) &&
+      Number(rule.include_expenses) === 0
+    );
   }
 
   private closeExpenseRule(principal: Principal, rule: RuleRow, effectiveFrom: string): void {

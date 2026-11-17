@@ -13,7 +13,7 @@ vi.mock('$lib/server/auth', () => ({
 }));
 vi.mock('@ja/database', () => ({
   createDatabase: () => ({
-    sqlite: { prepare: () => ({ get: mocks.profile }), close: vi.fn() },
+    sqlite: { prepare: () => ({ get: mocks.profile, all: () => [], run: vi.fn() }), close: vi.fn() },
   }),
 }));
 vi.mock('better-auth/svelte-kit', () => ({

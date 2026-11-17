@@ -154,9 +154,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
           (pendingByProject.get(String(row.project_id)) ?? 0) + 1,
         );
     // Commercial references for the alerts, read for the already-authorized projects only.
-    const projectTerms = context.sqlite.prepare(
-      'SELECT po_number poNumber,billing_model billingModel FROM project WHERE id=?',
-    );
+    const projectTerms = openProjects.length
+      ? context.sqlite.prepare(
+          'SELECT po_number poNumber,billing_model billingModel FROM project WHERE id=?',
+        )
+      : null;
     const projectGlance: ProjectGlance[] = openProjects.flatMap((project) => {
       try {
         const finance = context.v3.projectFinance(context.principal, String(project.id)) as {
@@ -175,7 +177,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
             draftMinor: split.draftMinor,
             missingRate: (finance.alerts ?? []).includes('MISSING_RATE'),
             missingPo: (() => {
-              const terms = projectTerms.get(String(project.id)) as
+              const terms = projectTerms?.get(String(project.id)) as
                 | { poNumber: string | null; billingModel: string | null }
                 | undefined;
               return Boolean(

@@ -184,3 +184,34 @@ SPF/DKIM/DMARC output, external send/receive tests and application notification 
 current Caddy/site checks and Stalwart/SES transition inventory are supporting evidence only; they
 do not close D.1 or D.3. Store no credentials, keys or full message contents in the evidence bundle.
 See [DEPLOYMENT_VPS.md](DEPLOYMENT_VPS.md) for the exact public checks.
+
+## Mailbox sign-in block (Team → Mailboxes, 2026-11-17)
+
+Offboarding or suspending a person asks the Owner what to do with their Stalwart mailbox
+("Block sign-in (keep mail)" is the default, "Keep active" is the alternative). Reactivation
+("Reactivate in portal" on the Mailboxes tab, "Restore access" on the person page) offers
+"Also unblock Webmail sign-in".
+
+- Mechanism: Stalwart 0.16 has no disabled flag on a User account. The portal patches the account's
+  `permissions` through the existing JMAP admin client (`x:Account/set`, `urn:stalwart:jmap`):
+  `{"@type":"Merge","disabledPermissions":{"authenticate":true,"authenticateWithAlias":true,
+  "imapAuthenticate":true,"pop3Authenticate":true,"sieveAuthenticate":true}}`. Disabled permissions
+  take precedence over inherited ones. Unblocking removes only those entries (back to `Inherit` when
+  nothing custom remains). Mail, aliases, quota, the password and app passwords are untouched, so
+  mail keeps arriving and the same password works again after unblocking.
+- The provisioning token needs `sysAccountGet` and `sysAccountUpdate`.
+- Existing IMAP/JMAP sessions or OAuth tokens may survive until they expire or reconnect; new
+  sign-ins are refused. Verify once on a test mailbox after deploying (block it, then try Webmail
+  and IMAP sign-in). If Stalwart rejects the permissions patch, the screen says so and nothing
+  else changes; the fallback is "Change Webmail password" to a random secret (sign-in stops, mail is
+  kept).
+- Order: the portal status change is committed first; the mailbox step is best effort. When the
+  mail server is unreachable the screen says "Portal change saved, but … Try again in Team →
+  Mailboxes", and the Mailboxes list keeps showing "Still signs in" for people who left.
+- Audit: `user.status.update` / `mailbox.role_change` / `mailbox.portal_offboard` for the portal side;
+  the Stalwart change is recorded as `mailbox.password_update` (entity `mailbox`) with
+  `operation: sign_in_block|sign_in_unblock`, because the audit action registry is closed and no
+  migration was added. A dedicated `mailbox.sign_in_block` action would need a migration row in
+  `audit_action_registry`.
+- When Stalwart is unreachable, the Mailboxes tab lists the portal-linked mailboxes from
+  `mail_identity` so reactivation and role changes still work. Sign-in state shows as unknown.

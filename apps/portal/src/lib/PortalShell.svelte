@@ -104,6 +104,7 @@
   import TeamDirectorySection, {
     type MailboxDirectoryStatus,
     type MailboxRow,
+    type TeamDirectoryProps,
   } from './portal/sections/TeamDirectorySection.svelte';
   import { createOfflineController, offlineReviewReasonMessage } from './portal/offline-controller';
   import type {
@@ -164,6 +165,10 @@
     canonicalOwner?: boolean;
     isCanonicalOwner?: boolean;
     owner?: { canonical?: boolean; isCanonical?: boolean; canManageMail?: boolean };
+    mailboxDirectory?: TeamDirectoryProps['mailboxDirectory'];
+    peopleDirectory?: TeamDirectoryProps['peopleDirectory'];
+    nameFixWorkers?: TeamDirectoryProps['nameFixWorkers'];
+    existingPeople?: TeamDirectoryProps['existingPeople'];
   };
   const mailboxData = $derived(data as MailboxPortalData);
   const canonicalOwner = $derived.by(() => {
@@ -5143,6 +5148,10 @@
         mailboxes={mailboxData.mailboxes}
         mailboxDirectoryStatus={mailboxData.mailboxDirectoryStatus}
         mailboxDirectoryError={mailboxData.mailboxDirectoryError}
+        mailboxDirectory={mailboxData.mailboxDirectory ?? null}
+        peopleDirectory={mailboxData.peopleDirectory ?? null}
+        nameFixWorkers={mailboxData.nameFixWorkers ?? null}
+        existingPeople={mailboxData.existingPeople ?? null}
         {canManageMail}
         {canonicalOwner}
         canManageTeam={canManageTeamDirectory}

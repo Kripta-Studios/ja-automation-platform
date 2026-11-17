@@ -26,6 +26,42 @@ import {
   type PasswordChangeFailureCode,
 } from '$lib/server/webmail-password';
 import { normalizeAccessEmail } from '$lib/portal/access-email';
+import type { DatabaseSync } from 'node:sqlite';
+import type { Principal } from '@ja/domain';
+
+/**
+ * What to do with the person's Stalwart mailbox when their portal status
+ * changes. Sent by the offboard/suspend confirmation ("Block sign-in" is the
+ * default there) and by "Restore access" ("unblock"). Missing = leave the
+ * mailbox as it is (older callers).
+ */
+type MailboxChoice = 'block' | 'keep' | 'unblock' | '';
+function mailboxChoice(value: unknown): MailboxChoice {
+  return value === 'block' || value === 'keep' || value === 'unblock' ? value : '';
+}
+
+async function applyMailboxChoice(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  userId: string,
+  choice: MailboxChoice,
+  status: string,
+): Promise<string | null> {
+  const wantsBlock = choice === 'block' && status !== 'active';
+  const wantsUnblock = choice === 'unblock' && status === 'active';
+  if (!wantsBlock && !wantsUnblock) return choice === 'keep' ? 'kept' : null;
+  const { setLinkedMailboxSignIn } = await import('$lib/server/mail-directory');
+  const result = await setLinkedMailboxSignIn(
+    sqlite,
+    principal,
+    userId,
+    wantsBlock,
+    wantsBlock
+      ? `Portal access ${status}; Owner chose to block mailbox sign-in`
+      : 'Portal access restored; Owner chose to unblock mailbox sign-in',
+  );
+  return result.outcome;
+}
 
 const knownAccessRules: Readonly<
   Record<
@@ -75,8 +111,9 @@ const knownAccessRules: Readonly<
     status: 409,
     code: 'ACCESS_PORTAL_USER_INACTIVE',
     messageKey: 'problem.access.userInactive',
-    message: 'This portal account is inactive. Review its status before changing mailbox access.',
-    remedy: 'review_user_status',
+    message:
+      'This person’s portal access was removed. Use “Reactivate in portal” in the same mailbox panel to give access again and choose the role.',
+    remedy: 'review_mailbox_identity',
   },
   MAIL_IDENTITY_NOT_FOUND: {
     status: 409,
@@ -289,7 +326,9 @@ type DirectoryAction =
   | 'changeMailboxRole'
   | 'deprovisionMailboxUser'
   | 'updateMailboxPassword'
-  | 'destroyMailboxAccount';
+  | 'destroyMailboxAccount'
+  | 'reactivateMailboxUser'
+  | 'setMailboxSignIn';
 
 type DirectoryProblem = Readonly<{
   status: number;
@@ -1475,7 +1514,8 @@ export const accessActions = {
     const object = await formObject(request);
     const userId = typeof object.userId === 'string' ? object.userId : '';
     const status = typeof object.status === 'string' ? object.status : '';
-    const values = { userId: userId.slice(0, 64), status: status.slice(0, 64) };
+    const mailbox = mailboxChoice(object.mailbox);
+    const values = { userId: userId.slice(0, 64), status: status.slice(0, 64), mailbox };
     const denied = teamAuthorizationFailure(event, 'updateUserStatus', values);
     if (denied) return denied;
     let context: ReturnType<typeof openPortalRepository>;
@@ -1520,11 +1560,25 @@ export const accessActions = {
         userId,
         status as 'active' | 'suspended' | 'offboarded' | 'archived',
       );
-      return actionSuccess(
-        'action.access.accountStatus.updated',
-        { status },
-        `Account marked ${status}`,
+      // The portal change is committed first; the mailbox step is best effort
+      // and its outcome is reported (never undoes or blocks the status change).
+      const mailboxOutcome = await applyMailboxChoice(
+        context.sqlite,
+        context.principal,
+        userId,
+        mailbox,
+        status,
       );
+      return {
+        ...actionSuccess(
+          'action.access.accountStatus.updated',
+          { status },
+          `Account marked ${status}`,
+        ),
+        actionName: 'updateUserStatus',
+        userId,
+        mailboxOutcome,
+      };
     } catch (error) {
       const accessFailure = knownTeamAuthorizationFailure(
         error,
@@ -1916,7 +1970,8 @@ export const accessActions = {
     const confirmation = String(form.get('confirmation') ?? '')
       .trim()
       .toLowerCase();
-    const values = { portalUserId: userId, email, reason, confirmation };
+    const mailbox = mailboxChoice(form.get('mailbox'));
+    const values = { portalUserId: userId, email, reason, confirmation, mailbox };
     if (!uuidSchema.safeParse(userId).success || confirmation !== email || !reason)
       return actionFail(
         400,
@@ -1949,11 +2004,22 @@ export const accessActions = {
         email,
         reason,
       );
-      return actionSuccess(
-        'action.access.accountStatus.updated',
-        { status: 'offboarded' },
-        'Portal access removed; mailbox preserved.',
+      const mailboxOutcome = await applyMailboxChoice(
+        opened.context.sqlite,
+        opened.context.principal,
+        userId,
+        mailbox,
+        'offboarded',
       );
+      return {
+        ...actionSuccess(
+          'action.access.accountStatus.updated',
+          { status: 'offboarded' },
+          'Portal access removed; mailbox preserved.',
+        ),
+        actionName: 'deprovisionMailboxUser',
+        mailboxOutcome,
+      };
     } catch (error) {
       return (
         knownAccessFailure(
@@ -2086,6 +2152,144 @@ export const accessActions = {
       );
     } catch (error) {
       return directoryFailure(error, 'destroyMailboxAccount', values, event.locals.correlationId);
+    } finally {
+      opened.context.sqlite.close();
+    }
+  },
+  /**
+   * Mailboxes tab, offboarded/suspended person: one flow "Reactivate as [role]"
+   * (+ optionally unblock mailbox sign-in). Reuses the audited portal status
+   * change (user.status.update) and the audited mailbox role change.
+   */
+  reactivateMailboxUser: async (event: PortalActionEvent) => {
+    if (event.params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const form = await event.request.formData().catch(() => null);
+    if (!form) return directoryFormFailure('reactivateMailboxUser', event.locals.correlationId);
+    const userId = String(form.get('portalUserId') ?? '').trim();
+    const email = String(form.get('email') ?? '')
+      .trim()
+      .toLowerCase();
+    const role = String(form.get('role') ?? '');
+    const unblock = form.get('unblock') === '1';
+    const values = { portalUserId: userId, email, role, unblock: unblock ? '1' : '' };
+    const authorizationFailure = directoryOwnerFailure(event, 'reactivateMailboxUser', values);
+    if (authorizationFailure) return authorizationFailure;
+    const roleAllowed = ['worker', 'project_manager', 'finance_admin'].includes(role);
+    if (!uuidSchema.safeParse(userId).success || !email || !roleAllowed)
+      return directoryInputFailure(
+        'reactivateMailboxUser',
+        values,
+        {
+          ...(!uuidSchema.safeParse(userId).success || !email
+            ? { portalUserId: ['problem.access.userSelectionInvalid'] }
+            : {}),
+          ...(!roleAllowed ? { role: ['problem.access.mailboxRoleInvalid'] } : {}),
+        },
+        event.locals.correlationId,
+      );
+    const opened = openAccessContext(event.locals, 'reactivateMailboxUser', values);
+    if ('failure' in opened) return opened.failure;
+    const { context } = opened;
+    try {
+      const target = context.sqlite
+        .prepare(
+          `SELECT u.role,u.status FROM user u JOIN mail_identity mi ON mi.user_id=u.id
+            WHERE u.id=? AND mi.email=? AND mi.status='active'`,
+        )
+        .get(userId, email) as { role: string; status: string } | undefined;
+      if (!target) throw new Error('MAIL_IDENTITY_NOT_FOUND');
+      if (target.status !== 'active')
+        context.repository.updateUserStatus(context.principal, userId, 'active');
+      if (target.role !== role)
+        new MailIdentityRepository(context.sqlite).changePortalRole(
+          context.principal,
+          userId,
+          email,
+          role as 'worker' | 'project_manager' | 'finance_admin',
+          `Reactivated from Mailboxes as ${role}`,
+        );
+      const mailboxOutcome = await applyMailboxChoice(
+        context.sqlite,
+        context.principal,
+        userId,
+        unblock ? 'unblock' : '',
+        'active',
+      );
+      return {
+        ...actionSuccess(
+          'action.access.accountStatus.updated',
+          { status: 'active' },
+          'Portal access restored.',
+        ),
+        actionName: 'reactivateMailboxUser',
+        portalUserId: userId,
+        role,
+        mailboxOutcome,
+      };
+    } catch (error) {
+      return (
+        knownAccessFailure(
+          error,
+          event.locals.correlationId,
+          userId,
+          'reactivateMailboxUser',
+          values,
+        ) ?? directoryFailure(error, 'reactivateMailboxUser', values, event.locals.correlationId)
+      );
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /** Mailboxes tab: block or unblock Webmail sign-in, mail is kept. */
+  setMailboxSignIn: async (event: PortalActionEvent) => {
+    if (event.params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const form = await event.request.formData().catch(() => null);
+    if (!form) return directoryFormFailure('setMailboxSignIn', event.locals.correlationId);
+    const stalwartAccountId = String(form.get('stalwartAccountId') ?? '').trim();
+    const email = String(form.get('email') ?? '')
+      .trim()
+      .toLowerCase();
+    const blocked = String(form.get('blocked') ?? '');
+    const values = { stalwartAccountId, email, blocked };
+    const authorizationFailure = directoryOwnerFailure(event, 'setMailboxSignIn', values);
+    if (authorizationFailure) return authorizationFailure;
+    if (!stalwartAccountId || !email || !['1', '0'].includes(blocked))
+      return directoryInputFailure(
+        'setMailboxSignIn',
+        values,
+        {
+          ...(!stalwartAccountId || !email
+            ? { stalwartAccountId: ['problem.access.mailboxAccountInvalid'] }
+            : {}),
+        },
+        event.locals.correlationId,
+      );
+    const opened = openAccessContext(event.locals, 'setMailboxSignIn', values);
+    if ('failure' in opened) return opened.failure;
+    try {
+      const { setMailboxSignInBlocked } = await import('$lib/server/mail-directory');
+      const outcome = await setMailboxSignInBlocked(
+        opened.context.sqlite,
+        opened.context.principal,
+        {
+          stalwartAccountId,
+          email,
+          blocked: blocked === '1',
+          reason:
+            blocked === '1'
+              ? 'Owner blocked mailbox sign-in from Mailboxes'
+              : 'Owner unblocked mailbox sign-in from Mailboxes',
+        },
+      );
+      return {
+        ...actionSuccess('action.access.mailbox.passwordUpdated', {}, 'Mailbox sign-in updated.'),
+        actionName: 'setMailboxSignIn',
+        mailboxOutcome: outcome,
+      };
+    } catch (error) {
+      return directoryFailure(error, 'setMailboxSignIn', values, event.locals.correlationId);
     } finally {
       opened.context.sqlite.close();
     }

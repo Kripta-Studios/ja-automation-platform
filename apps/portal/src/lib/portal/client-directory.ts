@@ -22,6 +22,8 @@ export type ClientDirectoryPage = {
   pageSize: number;
   find: string;
   includeArchived: boolean;
+  /** Archived clients this person may see (drives the "Include archived" counter). */
+  archivedClients?: number;
 };
 
 export const CLIENT_PAGE_SIZE = 25;

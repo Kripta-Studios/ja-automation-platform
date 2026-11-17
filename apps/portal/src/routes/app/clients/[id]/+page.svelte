@@ -21,6 +21,8 @@
     standaloneText,
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { deserialize } from '$app/forms';
+  import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
 
   type Row = Record<string, unknown>;
   let { data } = $props();
@@ -126,6 +128,74 @@
     };
   };
 
+  // Billing-data checks shared with the project hub and the invoice screen.
+  const billingIssues = $derived(
+    data.financeVisible
+      ? [
+          ...clientBillingIssues(client),
+          ...projects
+            .filter((project) => text(project, 'status') !== 'archived')
+            .flatMap((project) =>
+              clientBillingIssues(null, project).map((issue) => ({
+                issue,
+                project: projectPickLabel({
+                  project_number: project.project_number,
+                  name: project.name,
+                }),
+              })),
+            ),
+        ].map((entry) =>
+          'code' in entry
+            ? { key: entry.code, text: clientBillingIssueText(locale, entry) }
+            : {
+                key: `${entry.issue.code}:${entry.project}`,
+                text: `${entry.project}: ${clientBillingIssueText(locale, entry.issue)}`,
+              },
+        )
+      : [],
+  );
+
+  // ---------- archive / restore (projects ?/transitionClient, audited) ----------
+  const archived = $derived(text(client, 'status') === 'archived');
+  let lifeOpen = $state(false);
+  let lifeReason = $state('');
+  let lifeBusy = $state(false);
+  async function changeLifecycle(event: SubmitEvent) {
+    event.preventDefault();
+    if (lifeBusy || !lifeReason.trim()) return;
+    lifeBusy = true;
+    const body = new FormData();
+    body.set('clientId', clientId);
+    body.set('version', text(client, 'version') || '1');
+    body.set('status', archived ? 'restore' : 'archived');
+    body.set('reason', lifeReason.trim());
+    try {
+      const response = await fetch(`${base}/app/projects?/transitionClient`, {
+        method: 'POST',
+        body,
+        headers: { 'x-sveltekit-action': 'true', accept: 'application/json' },
+      });
+      const result = deserialize(await response.text());
+      if (result.type === 'success') {
+        notify(h(archived ? 'clientRestored' : 'clientArchived'), 'success');
+        lifeOpen = false;
+        lifeReason = '';
+        await invalidateAll();
+      } else
+        notify(
+          standaloneActionMessage(
+            locale,
+            (result.type === 'failure' ? result.data : null) ?? { success: false },
+          ),
+          'danger',
+        );
+    } catch {
+      notify(standaloneActionMessage(locale, { success: false }), 'danger');
+    } finally {
+      lifeBusy = false;
+    }
+  }
+
   onMount(() => {
     localeOverride = resolveStandaloneLocale(page.url.searchParams.get('lang'), data.locale);
   });
@@ -187,6 +257,24 @@
     {/if}
   </section>
 
+  {#if billingIssues.length}
+    <section class="client-card client-checks" aria-labelledby="client-checks-title" data-client-billing-issues>
+      <div class="client-card__head">
+        <h2 id="client-checks-title">{h('billingChecksTitle')}</h2>
+        {#if data.canEdit && !editing}
+          <button type="button" class="client-secondary" onclick={() => (editing = true)}
+            >{h('fixClient')}</button
+          >
+        {/if}
+      </div>
+      <ul class="client-checks__list">
+        {#each billingIssues as issue (issue.key)}
+          <li data-client-billing-issue={issue.key}>{issue.text}</li>
+        {/each}
+      </ul>
+    </section>
+  {/if}
+
   <section class="client-card" aria-labelledby="client-projects-title" data-client-projects>
     <div class="client-card__head">
       <h2 id="client-projects-title">{h('projects')} · {projects.length}</h2>
@@ -220,7 +308,7 @@
         <h2 id="client-invoices-title">{h('tabInvoices')} · {invoices.length}</h2>
       </div>
       {#if invoices.length === 0}
-        <p class="client-muted">{h('noInvoices')}</p>
+        <p class="client-muted">{h('noInvoicesClient')}</p>
       {:else}
         <ul class="client-list">
           {#each invoices as invoice (invoice.id)}
@@ -365,6 +453,55 @@
     {/if}
   </section>
 
+  {#if data.canEdit}
+    <section class="client-card" aria-labelledby="client-life-title" data-client-lifecycle>
+      <div class="client-card__head">
+        <h2 id="client-life-title">{archived ? h('restoreClient') : h('archiveClient')}</h2>
+        {#if !lifeOpen}
+          <button
+            type="button"
+            class="client-secondary"
+            data-client-life-open
+            onclick={() => {
+              lifeOpen = true;
+              lifeReason = '';
+            }}>{archived ? h('restoreClient') : h('archiveClient')}</button
+          >
+        {/if}
+      </div>
+      {#if lifeOpen}
+        <form class="client-life" onsubmit={changeLifecycle} data-client-life-form>
+          <strong
+            >{h(archived ? 'restoreClientTitle' : 'archiveClientTitle', {
+              name: text(client, 'display_name'),
+            })}</strong
+          >
+          <p>{h(archived ? 'restoreClientHelp' : 'archiveClientHelp')}</p>
+          <label
+            >{h('reason')}<input
+              required
+              maxlength="2000"
+              bind:value={lifeReason}
+              data-client-life-reason
+            /></label
+          >
+          <div class="client-form__actions">
+            <button type="button" class="client-secondary" onclick={() => (lifeOpen = false)}
+              >{h('cancel')}</button
+            >
+            <button
+              type="submit"
+              class="client-primary"
+              disabled={lifeBusy || !lifeReason.trim()}
+              data-client-life-confirm
+              >{archived ? h('restoreClient') : h('archiveClient')}</button
+            >
+          </div>
+        </form>
+      {/if}
+    </section>
+  {/if}
+
   {#if data.canDelete}
     <section class="client-danger" aria-label={h('dangerZone')}>
       <h2>{h('dangerZone')}</h2>
@@ -382,6 +519,33 @@
 <ToastRegion {toasts} label={t('Notifications')} ondismiss={(id: string) => (toasts = toasts.filter((toast) => toast.id !== id))} />
 
 <style>
+  .client-checks {
+    border-color: #f5c26b;
+    background: #fffaeb;
+  }
+  .client-checks__list {
+    margin: 0;
+    padding-left: 1.2rem;
+    display: grid;
+    gap: 0.35rem;
+    color: #7a2e0e;
+    font-weight: 600;
+  }
+  .client-life {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .client-life p {
+    margin: 0;
+  }
+  .client-life label {
+    display: grid;
+    gap: 0.25rem;
+    font-weight: 600;
+  }
+  .client-life input {
+    min-height: 2.75rem;
+  }
   .client-page {
     --c-ink: var(--ja-ink, #1f1f1c);
     --c-muted: var(--ja-steel, #77756d);

@@ -69,6 +69,16 @@ export type ProjectHubData = {
   managerName: string | null;
   /** Client default PO (project PO falls back to it on invoices). */
   clientPo: string | null;
+  /**
+   * The client's invoice identity, for the billing-data checks in "What needs you"
+   * (see lib/portal/client-billing-issues.ts). Finance-visible roles only.
+   */
+  clientBilling: {
+    clientId: string;
+    billingAddress: string | null;
+    billingEmail: string | null;
+    taxId: string | null;
+  } | null;
   hours: { monthMinutes: number; totalMinutes: number; people: HubPersonHours[] };
   expenses: { month: HubMoney[]; people: HubPersonExpenses[] };
   pending: { timeCount: number; timeMinutes: number; expenseCount: number; reportCount: number };
@@ -192,9 +202,12 @@ export function projectHubData(
     .prepare(pendingSql('technical_report', 'author_id'))
     .get(projectId, ...scopeArgs) as { count: number };
 
-  const canManageAssignments =
-    principal.role === 'owner_admin' || principal.role === 'project_manager';
-  const assignments: HubAssignment[] = canManageAssignments
+  // Who is on the project (name, role, dates; never pay): every non-worker role that
+  // passed projectOverview sees the list. Finance and auditors read it; only the owner
+  // and project managers get the add/end controls (the UI gates them and the
+  // assignment actions re-check on the server).
+  const canReadAssignments = principal.role !== 'worker';
+  const assignments: HubAssignment[] = canReadAssignments
     ? (
         sqlite
           .prepare(
@@ -228,7 +241,15 @@ export function projectHubData(
 
   let invoices: HubInvoice[] | null = null;
   let finance: ProjectHubData['finance'] = null;
+  let clientBilling: ProjectHubData['clientBilling'] = null;
   if (options.financeVisible) {
+    clientBilling =
+      (sqlite
+        .prepare(
+          `SELECT c.id clientId,c.billing_address billingAddress,c.billing_email billingEmail,c.tax_id taxId
+             FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
+        )
+        .get(projectId) as ProjectHubData['clientBilling'] | undefined) ?? null;
     invoices = context.repository
       .listInvoices(principal)
       .filter((invoice) => String(invoice.project_id) === projectId)
@@ -280,6 +301,7 @@ export function projectHubData(
     monthStart,
     managerName,
     clientPo,
+    clientBilling,
     hours: {
       monthMinutes: people.reduce((sum, row) => sum + row.monthMinutes, 0),
       totalMinutes: people.reduce((sum, row) => sum + row.totalMinutes, 0),
@@ -306,6 +328,7 @@ export function emptyProjectHub(): ProjectHubData {
     monthStart: `${today.slice(0, 7)}-01`,
     managerName: null,
     clientPo: null,
+    clientBilling: null,
     hours: { monthMinutes: 0, totalMinutes: 0, people: [] },
     expenses: { month: [], people: [] },
     pending: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },

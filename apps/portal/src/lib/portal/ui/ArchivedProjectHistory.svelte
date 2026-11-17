@@ -22,6 +22,7 @@
     en: {
       include: 'Include archived',
       projects: 'archived projects',
+      clients: 'archived clients',
       client: 'in client history',
       team: 'in team history',
       on: 'Archived projects included',
@@ -29,6 +30,7 @@
     es: {
       include: 'Incluir archivados',
       projects: 'proyectos archivados',
+      clients: 'clientes archivados',
       client: 'en el historial de clientes',
       team: 'en el historial del equipo',
       on: 'Proyectos archivados incluidos',
@@ -36,6 +38,7 @@
     pt: {
       include: 'Incluir arquivados',
       projects: 'projetos arquivados',
+      clients: 'clientes arquivados',
       client: 'no histórico de clientes',
       team: 'no histórico da equipe',
       on: 'Projetos arquivados incluídos',
@@ -50,7 +53,9 @@
     return `${next.pathname}${next.search}${next.hash}`;
   });
   const description = $derived(
-    [`${archivedCount} ${t.projects}`, context ? t[context] : ''].filter(Boolean).join(' '),
+    context === 'client'
+      ? `${archivedCount} ${t.clients}`
+      : [`${archivedCount} ${t.projects}`, context ? t[context] : ''].filter(Boolean).join(' '),
   );
 </script>
 

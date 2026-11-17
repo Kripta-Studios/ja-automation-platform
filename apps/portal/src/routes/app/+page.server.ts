@@ -1,3 +1,4 @@
+import { invoiceSourceHolders } from '$lib/server/invoice-source-holders';
 import { readCashMovements } from '$lib/server/cash-calendar';
 import { ownerFinanceSummary } from '$lib/portal/owner-finance';
 import { redirect } from '@sveltejs/kit';
@@ -100,18 +101,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
         )
       : [];
     // Who holds each approved source: an unissued draft ("in draft") or a live invoice.
-    const holders = new Map<string, string>();
-    if (openProjects.length) {
-      const openIds = new Set(openProjects.map((project) => String(project.id)));
-      for (const row of context.sqlite
-        .prepare(
-          `SELECT invoice.project_id projectId,source.source_type type,source.source_id id,invoice.state state
-             FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
-            WHERE invoice.state NOT IN ('void','cancelled','superseded')`,
+    const holders = openProjects.length
+      ? invoiceSourceHolders(
+          context.sqlite,
+          new Set(openProjects.map((project) => String(project.id))),
         )
-        .all() as Array<{ projectId: string; type: string; id: string; state: string }>)
-        if (openIds.has(row.projectId)) holders.set(`${row.type}:${row.id}`, row.state);
-    }
+      : new Map<string, string>();
     const weekStart = mondayOf(new Date().toISOString().slice(0, 10));
     const weekEndDate = new Date(`${weekStart}T00:00:00Z`);
     weekEndDate.setUTCDate(weekEndDate.getUTCDate() + 6);
@@ -126,15 +121,20 @@ export const load: PageServerLoad = ({ locals, url }) => {
         )
         .all(weekStart, weekEnd) as Array<{ projectId: string; minutes: number }>)
         weekMinutes.set(row.projectId, Number(row.minutes) || 0);
-    // Logged hours that still wait for an approval and no invoice holds: the invoice
-    // screen can approve and include them ("Ready to invoice" counts them too).
+    // Logged hours no invoice holds yet, split the same way as "Hours to approve":
+    // submitted = waiting for your approval (the invoice screen can approve and include
+    // them); draft / sent back = the worker has not sent them yet (shown apart, never
+    // counted as "to approve").
     const pendingMinutes = new Map<string, number>();
+    const unsentMinutes = new Map<string, number>();
     if (openProjects.length)
       for (const row of context.sqlite
         .prepare(
-          `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
-            WHERE (approval_state IN ('draft','submitted','needs_changes')
-                   OR (approval_state='approved' AND finance_approved_at IS NULL AND billability_state='pending'))
+          `SELECT project_id projectId,
+                  SUM(CASE WHEN approval_state='submitted' THEN minutes ELSE 0 END) minutes,
+                  SUM(CASE WHEN approval_state IN ('draft','needs_changes') THEN minutes ELSE 0 END) unsent
+             FROM time_entry
+            WHERE approval_state IN ('draft','submitted','needs_changes')
               AND invoice_id IS NULL AND billability_state<>'non_billable'
               AND NOT EXISTS (SELECT 1 FROM record_correction_link link JOIN time_entry correction ON correction.id=link.correction_id
                      WHERE link.record_type='time_entry' AND link.original_id=time_entry.id AND correction.approval_state NOT IN ('rejected','void'))
@@ -143,8 +143,10 @@ export const load: PageServerLoad = ({ locals, url }) => {
                        AND invoice.state NOT IN ('void','cancelled','superseded'))
             GROUP BY project_id`,
         )
-        .all() as Array<{ projectId: string; minutes: number }>)
+        .all() as Array<{ projectId: string; minutes: number; unsent: number }>) {
         pendingMinutes.set(row.projectId, Number(row.minutes) || 0);
+        unsentMinutes.set(row.projectId, Number(row.unsent) || 0);
+      }
     const pendingByProject = new Map<string, number>();
     for (const row of approvalRows)
       if (isPendingApproval(row))
@@ -204,6 +206,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
               minor: glance.readyMinor,
               draftMinor: glance.draftMinor,
               pendingMinutes: pendingMinutes.get(glance.projectId) ?? 0,
+              unsentMinutes: unsentMinutes.get(glance.projectId) ?? 0,
             })),
           )
         : null,

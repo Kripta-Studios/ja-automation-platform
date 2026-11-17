@@ -40,7 +40,8 @@ const en = {
   marginHelp: 'On {value} of approved work in this period',
   marginNone: 'No approved work in this period',
   readyToInvoice: 'Ready to invoice',
-  readyToInvoiceHelp: 'Approved work not invoiced yet',
+  readyToInvoiceHelp: 'Approved work not on any invoice yet',
+  inDraft: '{amount} already in a draft',
   currencyNote: 'Amounts in {currency}. Currencies are never added together.',
   projectsTitle: 'By project',
   project: 'Project',
@@ -141,7 +142,10 @@ const en = {
   hour: 'Hour',
   day: 'Day',
   startsOn: 'Starts on',
-  applyEveryone: 'Also replace personal rates ({count}) so everyone is charged this rate',
+  applyEveryone: 'Also replace the {count} personal rates so everyone is charged this rate',
+  keepsPersonal: '{count} people have their own rate and keep it. The new rate applies to everyone else.',
+  applyEveryoneWarning:
+    'Careful: the {count} personal rates will be changed to this rate from the start date. Their individual agreements are lost.',
   alsoCost: 'Also use this as our labor cost for margins',
   saveRate: 'Save rate',
   rateSaved: 'Rate saved. It applies to work from {date}.',
@@ -233,6 +237,7 @@ const es: Record<MoneyCopyKey, string> = {
   marginNone: 'Sin trabajo aprobado en este periodo',
   readyToInvoice: 'Listo para facturar',
   readyToInvoiceHelp: 'Trabajo aprobado aún sin facturar',
+  inDraft: '{amount} ya en un borrador',
   currencyNote: 'Importes en {currency}. Las monedas nunca se suman entre sí.',
   projectsTitle: 'Por proyecto',
   project: 'Proyecto',
@@ -333,6 +338,10 @@ const es: Record<MoneyCopyKey, string> = {
   startsOn: 'Empieza el',
   applyEveryone:
     'Sustituir también las tarifas personales ({count}) para cobrar a todos esta tarifa',
+  keepsPersonal:
+    '{count} personas tienen su propia tarifa y la mantienen. La nueva tarifa se aplica a los demás.',
+  applyEveryoneWarning:
+    'Atención: las {count} tarifas personales pasarán a esta tarifa desde la fecha de inicio. Se pierden los acuerdos individuales.',
   alsoCost: 'Usar también como nuestro coste de mano de obra para el margen',
   saveRate: 'Guardar tarifa',
   rateSaved: 'Tarifa guardada. Se aplica al trabajo desde el {date}.',
@@ -422,6 +431,7 @@ const pt: Record<MoneyCopyKey, string> = {
   marginNone: 'Sem trabalho aprovado neste período',
   readyToInvoice: 'Pronto para faturar',
   readyToInvoiceHelp: 'Trabalho aprovado ainda não faturado',
+  inDraft: '{amount} já em um rascunho',
   currencyNote: 'Valores em {currency}. Moedas nunca são somadas entre si.',
   projectsTitle: 'Por projeto',
   project: 'Projeto',
@@ -522,6 +532,10 @@ const pt: Record<MoneyCopyKey, string> = {
   startsOn: 'Começa em',
   applyEveryone:
     'Substituir também as tarifas pessoais ({count}) para cobrar todos por esta tarifa',
+  keepsPersonal:
+    '{count} pessoas têm a própria tarifa e a mantêm. A nova tarifa vale para os demais.',
+  applyEveryoneWarning:
+    'Atenção: as {count} tarifas pessoais passarão para esta tarifa a partir da data de início. Os acordos individuais serão perdidos.',
   alsoCost: 'Usar também como nosso custo de mão de obra para a margem',
   saveRate: 'Salvar tarifa',
   rateSaved: 'Tarifa salva. Vale para o trabalho a partir de {date}.',

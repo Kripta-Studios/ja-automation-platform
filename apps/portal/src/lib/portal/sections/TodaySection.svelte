@@ -178,6 +178,9 @@
                     BigInt(item.minor) > 0n && item.pendingMinutes
                       ? h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes) })
                       : '',
+                    item.unsentMinutes
+                      ? h('notSentYet', { hours: decimalHoursFromMinutes(item.unsentMinutes) })
+                      : '',
                   ]
                     .filter(Boolean)
                     .join(' · ') || undefined,

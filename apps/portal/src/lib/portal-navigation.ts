@@ -592,7 +592,7 @@ export const portalTitles: Record<string, string> = {
 /** Titles for navigation items that share a route but expose a query view. */
 export const portalViewTitles: Record<string, Record<string, string>> = {
   projects: {
-    clients: 'Client contacts',
+    clients: 'Clients',
     team: 'Team access',
   },
   reports: {

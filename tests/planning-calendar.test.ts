@@ -42,6 +42,17 @@ describe('UTC planning calendar', () => {
     expect(eventOccursOnDate(event('2026-09-18', '2026-09-18'), '2026-09-18')).toBe(true);
   });
 
+  it('shows ongoing events without an end on every day from their start', () => {
+    const ongoing: PlanningEvent = { ...event('2026-11-02'), ongoing: true };
+    expect(
+      ['2026-11-01', '2026-11-02', '2026-11-17', '2027-03-01'].map((day) =>
+        eventOccursOnDate(ongoing, day),
+      ),
+    ).toEqual([false, true, true, true]);
+    // Without `ongoing`, a missing end stays a single-day event.
+    expect(eventOccursOnDate(event('2026-11-02'), '2026-11-17')).toBe(false);
+  });
+
   it('excludes exact-midnight timestamp ends and includes actual midnight overlap', () => {
     expect(
       eventOccursOnDate(event('2026-09-18T08:00:00Z', '2026-09-19T00:00:00Z'), '2026-09-19'),

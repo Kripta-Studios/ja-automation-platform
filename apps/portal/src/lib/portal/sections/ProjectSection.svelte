@@ -1,5 +1,6 @@
 <script lang="ts">
-  import { beforeNavigate } from '$app/navigation';
+  import { beforeNavigate, goto } from '$app/navigation';
+  import { scaleWindowText } from './scale-window-copy';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   import { disclosure } from '../ui/disclosure.js';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
@@ -65,6 +66,9 @@
     assignments?: PortalRow[];
     expertise?: PortalRow[];
     workerExpertise?: PortalRow[];
+    /** False when workers/assignments were not shipped (scale); load on demand. */
+    peopleLoaded?: boolean;
+    assignmentCounts?: Record<string, { active: number; workers: number }>;
     role?: string;
     capabilities?: ProjectSectionCapabilities;
     primaryAction?: ProjectSectionPrimaryAction;
@@ -85,6 +89,8 @@
     assignments = [],
     expertise = [],
     workerExpertise = [],
+    peopleLoaded = true,
+    assignmentCounts = {},
     role = '',
     capabilities = {},
     primaryAction,
@@ -474,7 +480,31 @@
       ),
     ),
   );
+  const activeAssignmentTotal = $derived(
+    peopleLoaded
+      ? activeAssignments.length
+      : [...assignableProjectIds].reduce(
+          (sum, id) => sum + Number(assignmentCounts[id]?.active ?? 0),
+          0,
+        ),
+  );
+  // Workers and assignments load with the workflow URL the first time a panel opens.
+  let peopleLoading = $state(false);
+  async function loadPeopleFor(event: Event, workflow: 'assign-worker' | 'update-assignment') {
+    if (peopleLoaded || peopleLoading || !(event.currentTarget as HTMLDetailsElement).open) return;
+    peopleLoading = true;
+    try {
+      const url = new URL(assignmentPage.url);
+      url.searchParams.set('action', workflow);
+      await goto(url, { replaceState: true, noScroll: true, keepFocus: true });
+    } finally {
+      peopleLoading = false;
+    }
+  }
+  const ASSIGNMENT_RENDER_STEP = 25;
+  let assignmentRenderLimit = $state(ASSIGNMENT_RENDER_STEP);
   function activeWorkerCountForProject(project: PortalRow): number {
+    if (!peopleLoaded) return Number(assignmentCounts[projectId(project)]?.workers ?? 0);
     return new Set(
       (assignments ?? [])
         .filter(
@@ -891,7 +921,7 @@
                                         normalizedLocale,
                                         'problem.remedy.reviewAssignments',
                                       ),
-                                      href: `${base}/app/projects#assignment-history`,
+                                      href: `${base}/app/projects?history=1#assignment-history`,
                                     },
                                   }}
                                 />
@@ -952,8 +982,14 @@
         data-project-workflow="assign-worker"
         open={$page.url.searchParams.get('action') === 'assign-worker' ||
           assignmentFormData?.actionName === 'assignWorker'}
+        ontoggle={(event) => loadPeopleFor(event, 'assign-worker')}
       >
         <summary class="secondary-button">{translate('Assign worker')}</summary>
+        {#if !peopleLoaded}
+          <p class="form-help" role="status" data-people-loading>
+            {scaleWindowText(normalizedLocale, 'loading')}
+          </p>
+        {:else}
         <form
           bind:this={assignmentForm}
           use:formValidation
@@ -1065,9 +1101,10 @@
             >{translate('Assign')}</button
           >
         </form>
+        {/if}
       </details>
 
-      {#if activeAssignments.length > 0}
+      {#if activeAssignmentTotal > 0}
         <details
           use:disclosure
           id="project-assignment-list"
@@ -1076,8 +1113,14 @@
           open={['update-assignment', 'remove-assignment'].includes(
             assignmentPage.url.searchParams.get('action') ?? '',
           ) || Boolean(assignmentRecordProblem)}
+          ontoggle={(event) => loadPeopleFor(event, 'update-assignment')}
         >
           <summary class="secondary-button">{translate('Update assignment')}</summary>
+          {#if !peopleLoaded}
+            <p class="form-help" role="status" data-people-loading>
+              {scaleWindowText(normalizedLocale, 'loading')}
+            </p>
+          {:else}
           <div class="project-section__assignment-list">
             {#if assignmentRecordProblem}
               <ProblemNotice
@@ -1143,7 +1186,7 @@
               })}
             </p>
             {#if filteredActiveAssignments.length > 0}
-              {#each filteredActiveAssignments as assignment (value(assignment, 'id'))}
+              {#each filteredActiveAssignments.slice(0, Math.max(assignmentRenderLimit, filteredActiveAssignments.findIndex((row) => assignmentUpdateRequested(row)) + 1)) as assignment (value(assignment, 'id'))}
                 {@const project = assignmentProjectById.get(value(assignment, 'project_id'))}
                 <div
                   class="project-section__assignment-item"
@@ -1289,7 +1332,23 @@
                 {translate('No assignments match these filters.')}
               </p>
             {/if}
+            {#if filteredActiveAssignments.length > assignmentRenderLimit}
+              <p class="project-section__assignment-count" data-assignment-window>
+                {scaleWindowText(normalizedLocale, 'windowShowing', {
+                  shown: assignmentRenderLimit,
+                  total: filteredActiveAssignments.length,
+                })}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-assignment-show-more
+                  onclick={() => (assignmentRenderLimit += ASSIGNMENT_RENDER_STEP)}
+                  >{scaleWindowText(normalizedLocale, 'showMore')}</button
+                >
+              </p>
+            {/if}
           </div>
+          {/if}
         </details>
       {/if}
     </section>

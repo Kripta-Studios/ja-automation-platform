@@ -125,6 +125,7 @@
   import { decimalHoursFromMinutes } from './portal/minute-hours';
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
+  import { scaleWindowText } from './portal/sections/scale-window-copy';
   import {
     hasControlledValue,
     translateControlledValue,
@@ -303,6 +304,9 @@
       url.searchParams.delete('project');
       url.searchParams.delete('worker');
     }
+    // Assignment history is loaded on demand (scale): ?history=1 ships the rows.
+    if (!workflow && hash === 'assignment-history') url.searchParams.set('history', '1');
+    else url.searchParams.delete('history');
     url.hash =
       hash ||
       (workflow === 'update-assignment' || workflow === 'remove-assignment'
@@ -353,6 +357,27 @@
       navigation.cancel();
   });
   let documentPage = $state<Row[]>([]);
+  // Clients card list on Projects (scale): render a first batch; the Clients directory pages.
+  const CLIENT_CARD_STEP = 10;
+  let clientCardLimit = $state(CLIENT_CARD_STEP);
+  const documentTotal = $derived(data.documentList?.total ?? data.documents?.length ?? 0);
+  // Documents register (scale): the server pages; keep project/lang/archived context.
+  const documentListKeptParams = $derived(
+    [...$page.url.searchParams].filter(
+      ([name]) => !['find', 'order', 'page'].includes(name) && !name.startsWith('/'),
+    ),
+  );
+  function documentListHref(changes: Record<string, string>): string {
+    const url = new URL($page.url);
+    for (const key of [...url.searchParams.keys()])
+      if (key.startsWith('/')) url.searchParams.delete(key);
+    if ('find' in changes || 'order' in changes) url.searchParams.delete('page');
+    for (const [key, value] of Object.entries(changes)) {
+      if (value) url.searchParams.set(key, value);
+      else url.searchParams.delete(key);
+    }
+    return `${url.pathname}${url.search}#document-list`;
+  }
   let documentTransferBusy = $state(false);
   let documentTransferFailure = $state<{
     id: string;
@@ -4202,18 +4227,79 @@
               </p>
             </div>
             <span
-              >{data.documents?.length ?? 0}
-              {translate((data.documents?.length ?? 0) === 1 ? 'file' : 'files')}</span
+              >{documentTotal}
+              {translate(documentTotal === 1 ? 'file' : 'files')}</span
             >
           </div>
-          {#if (data.documents?.length ?? 0) > 0}
+          {#if data.documentList && data.documentList.total > 0}
+            <form
+              method="GET"
+              action="#document-list"
+              class="document-list-search"
+              data-document-search
+              data-sveltekit-keepfocus
+              data-sveltekit-noscroll
+            >
+              {#each documentListKeptParams as [name, value] (name)}<input
+                  type="hidden"
+                  {name}
+                  {value}
+                />{/each}
+              <label
+                >{scaleWindowText(locale, 'docsFind')}<input
+                  type="search"
+                  name="find"
+                  value={data.documentList.find}
+                  placeholder={scaleWindowText(locale, 'docsFindHint')}
+                  autocomplete="off"
+                /></label
+              >
+              <label
+                >{scaleWindowText(locale, 'sortBy')}<select
+                  name="order"
+                  value={data.documentList.order}
+                  onchange={(event) => event.currentTarget.form?.requestSubmit()}
+                  ><option value="newest">{scaleWindowText(locale, 'newest')}</option><option
+                    value="oldest">{scaleWindowText(locale, 'oldest')}</option
+                  ><option value="name">{scaleWindowText(locale, 'name')}</option></select
+                ></label
+              >
+              <button type="submit" class="secondary-button"
+                >{scaleWindowText(locale, 'search')}</button
+              >
+              {#if data.documentList.find}<a class="secondary-button" href={documentListHref({ find: '', page: '' })}
+                  >{scaleWindowText(locale, 'clear')}</a
+                >{/if}
+            </form>
             <RecordBrowser
               rows={data.documents ?? []}
               bind:visible={documentPage}
+              controlled
+              filtersEnabled={false}
+              showEmpty={false}
+              pageSize={data.documentList.pageSize}
               {translate}
               label="Private project documents"
-              contextKey={String(data.selectedDocumentProject?.id ?? 'all')}
-              statusless
+              server={{
+                summary: data.documentList.matched
+                  ? scaleWindowText(locale, 'docsShowing', {
+                      from: (data.documentList.page - 1) * data.documentList.pageSize + 1,
+                      to: Math.min(
+                        data.documentList.matched,
+                        data.documentList.page * data.documentList.pageSize,
+                      ),
+                      total: data.documentList.matched,
+                    })
+                  : scaleWindowText(locale, 'docsNone'),
+                prevHref:
+                  data.documentList.page > 1
+                    ? documentListHref({ page: String(data.documentList.page - 1) })
+                    : undefined,
+                nextHref:
+                  data.documentList.page < data.documentList.pages
+                    ? documentListHref({ page: String(data.documentList.page + 1) })
+                    : undefined,
+              }}
             />
           {/if}
           {#each (data.documents?.length ?? 0) > 0 ? documentPage : [] as document}<article
@@ -4330,7 +4416,7 @@
                 </div>
               {/if}
             </article>{:else}
-            {#if (data.documents?.length ?? 0) === 0}
+            {#if documentTotal === 0}
               <div class="empty">
                 {translate('No private documents are available in your access scope.')}
               </div>
@@ -5175,6 +5261,8 @@
         assignments={data.assignments ?? []}
         expertise={data.allSkills ?? []}
         workerExpertise={data.workerSkills ?? []}
+        peopleLoaded={data.projectPeopleLoaded !== false && data.projectAssignmentsLoaded !== false}
+        assignmentCounts={data.projectAssignmentCounts ?? {}}
         role={data.user.role}
         capabilities={{
           canCreateProject: false,
@@ -5978,7 +6066,7 @@
                                         project: String(row.id),
                                       },
                                     )
-                                  : `${base}/app/projects#assignment-history`,
+                                  : `${base}/app/projects?history=1#assignment-history`,
                               },
                             }}
                           />
@@ -6023,7 +6111,7 @@
                                         project: String(row.id),
                                       },
                                     )
-                                  : `${base}/app/projects#assignment-history`,
+                                  : `${base}/app/projects?history=1#assignment-history`,
                               },
                             }}
                           />
@@ -6219,7 +6307,7 @@
               </div>
               <span>{data.clients?.length ?? 0}</span>
             </div>
-            {#each data.clients ?? [] as client}
+            {#each (data.clients ?? []).filter((client, index) => index < clientCardLimit || $page.url.hash === `#client-controls-${client.id}`) as client}
               <article
                 class="record-card"
                 id={`client-controls-${client.id}`}
@@ -6321,6 +6409,23 @@
                 </div>
               </article>
             {:else}<div class="empty">{translate('No clients recorded.')}</div>{/each}
+            {#if (data.clients?.length ?? 0) > clientCardLimit}
+              <p class="form-help" data-client-card-window>
+                {scaleWindowText(locale, 'windowShowing', {
+                  shown: clientCardLimit,
+                  total: data.clients?.length ?? 0,
+                })}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => (clientCardLimit += CLIENT_CARD_STEP)}
+                  >{scaleWindowText(locale, 'showMore')}</button
+                >
+                <a class="secondary-button" href={href('projects') + '?view=clients'}
+                  >{projectCopy(locale, 'clients')}</a
+                >
+              </p>
+            {/if}
           </SectionCard>
           <details id="client-contact-create" class="admin-details" use:disclosure>
             <summary class="primary-button">{translate('Add Client Contact')}</summary>
@@ -6561,8 +6666,31 @@
                   )}
                 </p>
               </div>
-              <span>{data.assignments?.length ?? 0}</span>
+              <span
+                >{data.projectAssignmentsLoaded === false
+                  ? Object.values(data.projectAssignmentCounts ?? {}).reduce(
+                      (sum, entry) => sum + Number(entry.active ?? 0),
+                      0,
+                    )
+                  : (data.assignments?.length ?? 0)}</span
+              >
             </div>
+            {#if data.projectAssignmentsLoaded === false}
+              <p class="form-help">
+                {scaleWindowText(locale, 'historyHint', {
+                  count: Object.values(data.projectAssignmentCounts ?? {}).reduce(
+                    (sum, entry) => sum + Number(entry.active ?? 0),
+                    0,
+                  ),
+                })}
+              </p>
+              <button
+                type="button"
+                class="secondary-button"
+                data-load-assignment-history
+                onclick={showAssignmentHistory}>{scaleWindowText(locale, 'showHistory')}</button
+              >
+            {:else}
             <RecordBrowser
               rows={data.assignments ?? []}
               bind:visible={assignmentPage}
@@ -6592,6 +6720,7 @@
                 <span class="record-card-open">{translate('Open record')} <DirectionIcon /></span>
               </a>
             {:else}<div class="empty">{translate('No assignments recorded.')}</div>{/each}
+            {/if}
           </SectionCard>
         {/if}
         </details>
@@ -8116,6 +8245,21 @@
     color: var(--ja-ink, #1c2430);
     font-weight: 600;
     background: var(--ja-white, #fff);
+  }
+  .document-list-search {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 0.5rem 0.75rem;
+    margin: 0.5rem 0 0.75rem;
+  }
+  .document-list-search label {
+    display: grid;
+    gap: 0.25rem;
+    flex: 1 1 14rem;
+  }
+  .document-list-search label:nth-of-type(2) {
+    flex: 0 1 12rem;
   }
   .planning-periods a[aria-current='page'] {
     background: var(--ja-ink, #1c2430);

@@ -55,6 +55,13 @@ import {
 } from '$lib/portal/project-visibility';
 import { clientCalendarWindow, normalizeCalendarMonth } from '$lib/portal/client-work-calendar';
 import { publishedAssignmentMatches } from '$lib/portal/sections/published-assignment-filter';
+import {
+  buildReportWindow,
+  isTechnicalReport,
+  reportFiltersFromUrl,
+  reportWindowLimit,
+} from '$lib/portal/sections/report-window';
+import { browseRecords } from '$lib/portal/ui/record-browser';
 
 /** Own recent hours and last daily report, used to prefill a new daily report. */
 function ownReportPrefill(
@@ -102,6 +109,49 @@ function ownReportPrefill(
     }>
   ).find((row) => visible.has(String(row.projectId)));
   return { recentTime, lastDaily: last ?? null };
+}
+
+/** Active assignments and distinct active workers per project, for slim lists. */
+function projectAssignmentCounts(assignments: ReadonlyArray<Record<string, unknown>>) {
+  const counts: Record<string, { active: number; workers: number }> = {};
+  const seen = new Set<string>();
+  for (const assignment of assignments) {
+    if (assignment.status !== 'active') continue;
+    const projectId = String(assignment.project_id ?? '');
+    const workerId = String(assignment.user_id ?? assignment.worker_id ?? '');
+    const entry = (counts[projectId] ??= { active: 0, workers: 0 });
+    entry.active += 1;
+    if (workerId && !seen.has(`${projectId}\u0000${workerId}`)) {
+      seen.add(`${projectId}\u0000${workerId}`);
+      entry.workers += 1;
+    }
+  }
+  return counts;
+}
+
+const DOCUMENT_PAGE_SIZE = 25;
+
+/** Documents register (scale): search + order on the server, one page of 25. */
+function pageDocuments(rows: PortalRow[], params: URLSearchParams) {
+  const find = (params.get('find') ?? '').trim().slice(0, 120);
+  const requestedOrder = params.get('order');
+  const order: 'newest' | 'oldest' | 'name' =
+    requestedOrder === 'oldest' || requestedOrder === 'name' ? requestedOrder : 'newest';
+  const matched = browseRecords(rows, find, '', order);
+  const pages = Math.max(1, Math.ceil(matched.length / DOCUMENT_PAGE_SIZE));
+  const page = Math.min(pages, Math.max(1, Math.trunc(Number(params.get('page'))) || 1));
+  return {
+    documents: matched.slice((page - 1) * DOCUMENT_PAGE_SIZE, page * DOCUMENT_PAGE_SIZE),
+    documentList: {
+      find,
+      order,
+      page,
+      pages,
+      pageSize: DOCUMENT_PAGE_SIZE,
+      total: rows.length,
+      matched: matched.length,
+    },
+  };
 }
 
 const sections = [
@@ -348,22 +398,47 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           includeArchived,
         );
         normalizeProjectQuery(scope.projectIds);
+        // Scale: one bounded, server-filtered window of the register; the worker
+        // picker of the create form loads assignments on demand
+        // (/app/api/reports/eligible-workers).
+        const visibleReports = visibleProjectRecords(
+          context.repository.listOwnReports(context.principal),
+          scope.projectIds,
+        ) as PortalRow[];
+        const reportRegister = buildReportWindow(
+          visibleReports,
+          reportFiltersFromUrl(url.searchParams),
+          reportWindowLimit(url.searchParams),
+        );
+        const canGenerateFromTechnical =
+          !restrictedProfile && ['owner_admin', 'finance_admin'].includes(context.principal.role);
         return {
           ...common,
-          assignments:
-            ['owner_admin', 'project_manager'].includes(context.principal.role) &&
-            !restrictedProfile
-              ? visibleProjectRecords(
-                  context.repository.listAssignments(context.principal),
-                  scope.projectIds,
-                )
-              : [],
           projects: scope.projects,
           reportPrefill: ownReportPrefill(context.sqlite, context.principal.userId, scope.projectIds),
-          records: visibleProjectRecords(
-            context.repository.listOwnReports(context.principal),
-            scope.projectIds,
-          ),
+          records: reportRegister.records,
+          reportWindow: reportRegister.window,
+          // Period generation selects approved technical reports by project/period.
+          periodTechnicalReports: canGenerateFromTechnical
+            ? visibleReports
+                .filter(
+                  (row) =>
+                    isTechnicalReport(row) &&
+                    ['approved', 'locked'].includes(
+                      String(row.approval_state ?? '').trim().toLowerCase(),
+                    ),
+                )
+                .map((row) => ({
+                  id: row.id,
+                  type: row.type,
+                  title: row.title,
+                  date: row.date,
+                  project_id: row.project_id,
+                  project_number: row.project_number,
+                  approval_state: row.approval_state,
+                  author_name: row.author_name,
+                }))
+            : [],
           technicalChanges: restrictedProfile
             ? []
             : visibleProjectRecords(
@@ -515,15 +590,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           projects,
           selectedDocumentProject,
-          documents: context.repository
-            .listDocuments(
-              context.principal,
-              selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
-            )
-            .filter(
-              (document) =>
-                !document.project_id || scope.projectIds.has(String(document.project_id)),
-            ),
+          ...pageDocuments(
+            context.repository
+              .listDocuments(
+                context.principal,
+                selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
+              )
+              .filter(
+                (document) =>
+                  !document.project_id || scope.projectIds.has(String(document.project_id)),
+              ) as PortalRow[],
+            url.searchParams,
+          ),
           // Owner-only: archived documents (bytes retained) listed for restore.
           archivedDocuments:
             includeArchived && context.principal.role === 'owner_admin'
@@ -672,6 +750,19 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           projectHistory,
         );
         const visibleProjects = directoryScope.projects;
+        // Scale: the plain project list ships only what it renders. Workers,
+        // assignments, contacts and expertise load with the workflow that needs
+        // them (?action=…, a native form result, or ?history=1 for Assignment
+        // history); the browser navigates to that URL on demand.
+        const projectPeopleLoaded =
+          url.searchParams.get('view') === 'team' ||
+          projectWorkflowFrom(url) !== null ||
+          url.searchParams.get('history') === '1' ||
+          Boolean(unavailableLinkedProject);
+        // Creating a client or project needs people and contacts, not assignment rows.
+        const projectAssignmentsLoaded =
+          projectPeopleLoaded &&
+          !['new-project', 'new-client', 'update-client'].includes(projectWorkflowFrom(url) ?? '');
         const authorizedAssignments =
           context.principal.role !== 'worker'
             ? visibleProjectRecords(
@@ -679,7 +770,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 directoryScope.projectIds,
               )
             : [];
-        const assignmentIds = authorizedAssignments
+        const assignmentIds = (projectAssignmentsLoaded ? authorizedAssignments : [])
           .map((assignment) => String(assignment.id ?? ''))
           .filter(Boolean);
         const actualMinutesByAssignment = new Map(
@@ -728,8 +819,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           'finance_admin',
           'project_manager',
         ].includes(context.principal.role);
+        // The client work calendar is rendered only by the Clients directory.
         const calendarEntries =
-          canViewClientWorkCalendar && url.searchParams.get('view') !== 'team'
+          canViewClientWorkCalendar && url.searchParams.get('view') === 'clients'
           ? context.repository.listClientCalendarEntries(
               context.principal,
               calendarWindow.from,
@@ -807,7 +899,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             )
           : null;
         const projectWorkers =
-          context.principal.role !== 'worker'
+          context.principal.role !== 'worker' && projectPeopleLoaded
             ? context.repository
                 .listAllWorkers(context.principal)
                 .filter(
@@ -922,7 +1014,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   (client) => includeArchived || client.status !== 'archived',
                 ),
           contacts:
-            context.principal.role === 'worker' || teamView
+            context.principal.role === 'worker' || teamView || !projectPeopleLoaded
               ? []
               : context.repository.listAllClientContacts(context.principal),
           workers: shippedWorkers,
@@ -930,7 +1022,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           calendarMonth,
           canViewWorkCalendar: canViewClientWorkCalendar,
           allSkills:
-            context.principal.role !== 'worker'
+            context.principal.role !== 'worker' && projectPeopleLoaded
               ? context.repository.listSkills(context.principal)
               : [],
           workerSkills: workerExpertise,
@@ -954,7 +1046,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.v3.listOpenInvitations(context.principal)
               : [],
           assignmentToday: new Date().toISOString().slice(0, 10),
-          assignments: shippedAssignments.map((assignment) => ({
+          projectPeopleLoaded,
+          projectAssignmentsLoaded,
+          // Per-project active assignment counts for the list (people load on demand).
+          projectAssignmentCounts: projectAssignmentCounts(authorizedAssignments),
+          assignments: (projectAssignmentsLoaded ? shippedAssignments : []).map((assignment) => ({
             ...assignment,
             actual_minutes: actualMinutesByAssignment.get(String(assignment.id ?? '')) ?? 0,
           })),

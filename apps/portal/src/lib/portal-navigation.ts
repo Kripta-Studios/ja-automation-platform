@@ -138,7 +138,7 @@ export function subsectionsForNavItem(
         ? [
             link('Project calendar', '#project-calendar'),
             link('Project register', '#project-register'),
-            ...(owner ? [link('Assignment history', '#assignment-history')] : []),
+            ...(owner ? [link('Assignment history', '#assignment-history', { history: '1' })] : []),
           ]
         : [];
   if (item.section === 'projects' && item.label === 'Clients')

@@ -57,6 +57,25 @@ export type FinanceReimbursementReview = ReimbursementReviewBase &
       }
   );
 
+export type ReportWindowTab = {
+  shown: number;
+  /** Rows matching the filters. */
+  total: number;
+  /** Draft / submitted / needs-changes rows in the tab (unfiltered). */
+  pending: number;
+  /** Worker filter choices from every visible row of the tab ([id, name]). */
+  workers: Array<[string, string]>;
+};
+
+export type ReportWindow = {
+  /** Filter signature the server applied (see report-window.ts). */
+  key: string;
+  limit: number;
+  daily: ReportWindowTab;
+  technical: ReportWindowTab;
+  clientOptions: string[];
+};
+
 export type PortalData = {
   suppliers?: PortalRow[];
   locale?: 'en' | 'es' | 'pt';
@@ -100,6 +119,24 @@ export type PortalData = {
   clients?: PortalRow[];
   assignments?: PortalRow[];
   assignmentToday?: string;
+  /** Projects list (scale): false when workers/assignments were not shipped (load on demand). */
+  projectPeopleLoaded?: boolean;
+  /** False when assignment rows were not shipped (list, create client/project). */
+  projectAssignmentsLoaded?: boolean;
+  /** Active assignments / distinct active workers per project id. */
+  projectAssignmentCounts?: Record<string, { active: number; workers: number }>;
+  /** Reports register window (scale): the server applied these filters and limit. */
+  reportWindow?: ReportWindow;
+  /** Documents register page (scale). */
+  documentList?: {
+    find: string;
+    order: 'newest' | 'oldest' | 'name';
+    page: number;
+    pages: number;
+    pageSize: number;
+    total: number;
+    matched: number;
+  };
   timeAssignments?: PortalRow[];
   timeWorkers?: Array<{ id: string; name: string }>;
   timeWorkerId?: string;
@@ -152,6 +189,8 @@ export type PortalData = {
   documents?: PortalRow[];
   technicalChanges?: PortalRow[];
   periodReports?: PortalRow[];
+  /** Approved technical reports selectable for a period report (owner / finance). */
+  periodTechnicalReports?: PortalRow[];
   billingRules?: PortalRow[];
   compensationRules?: PortalRow[];
   clientLaborRates?: PortalRow[];

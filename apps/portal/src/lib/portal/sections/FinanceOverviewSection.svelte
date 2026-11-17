@@ -707,7 +707,7 @@
             : 'problem.remedy.reviewAssignmentPolicy',
         ),
         href: assignmentStateFailure
-          ? `${base}/app/projects?project=${encodeURIComponent(assignmentProjectId)}&assignment=${encodeURIComponent(assignmentRemedy.recordId ?? '')}#assignment-history`
+          ? `${base}/app/projects?history=1&project=${encodeURIComponent(assignmentProjectId)}&assignment=${encodeURIComponent(assignmentRemedy.recordId ?? '')}#assignment-history`
           : `${base}/app/finance?view=commercial&project=${encodeURIComponent(assignmentProjectId)}#person-expense-policies`,
         ...(assignmentStateFailure ? { reload: true } : {}),
       };

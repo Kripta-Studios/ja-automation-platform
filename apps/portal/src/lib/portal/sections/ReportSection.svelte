@@ -36,6 +36,13 @@
     writeOperationalRegisterState,
   } from './operational-register';
   import { availableWorkerSelection, recordWorkerOptions } from './operational-record-filters';
+  import {
+    REPORT_WINDOW_STEP,
+    filterFieldReports,
+    reportWindowComplete,
+    reportWindowKey,
+  } from './report-window';
+  import { scaleWindowText } from './scale-window-copy';
   import DecimalHoursInput from '../ui/DecimalHoursInput.svelte';
   import LocalDictation from '../local-dictation/LocalDictation.svelte';
   import { applyAction, deserialize } from '$app/forms';
@@ -194,20 +201,34 @@
   let createDate = $state(nativeReportValue('workDate') || nativeReportValue('reportDate'));
   let createProject = $state(nativeReportValue('projectId'));
   let createWorker = $state(nativeReportValue('workerId'));
-  const eligibleReportWorkers = $derived(
-    createProject && createDate
-      ? (data.workers ?? []).filter((worker) =>
-          (data.assignments ?? []).some(
-            (assignment) =>
-              String(assignment.project_id) === createProject &&
-              String(assignment.user_id) === String(worker.id) &&
-              assignment.status === 'active' &&
-              String(assignment.starts_on) <= createDate &&
-              (!assignment.ends_on || String(assignment.ends_on) >= createDate),
-          ),
-        )
-      : [],
-  );
+  // Worker picker (owner / PM): assignments load on demand for the chosen project and day.
+  let eligibleReportWorkers = $state<Row[]>([]);
+  let eligibleReportWorkersLoading = $state(false);
+  $effect(() => {
+    const projectId = createProject;
+    const date = createDate;
+    if (!['owner_admin', 'project_manager'].includes(String(data.user.role)) || !projectId || !date) {
+      eligibleReportWorkers = [];
+      return;
+    }
+    const controller = new AbortController();
+    eligibleReportWorkersLoading = true;
+    fetch(
+      `${base}/app/api/reports/eligible-workers?projectId=${encodeURIComponent(projectId)}&date=${encodeURIComponent(date)}`,
+      { signal: controller.signal, headers: { accept: 'application/json' } },
+    )
+      .then((response) => (response.ok ? response.json() : { workers: [] }))
+      .then((body: { workers?: Row[] }) => {
+        eligibleReportWorkers = Array.isArray(body.workers) ? body.workers : [];
+        eligibleReportWorkersLoading = false;
+      })
+      .catch((caught: unknown) => {
+        if ((caught as { name?: string })?.name === 'AbortError') return;
+        eligibleReportWorkers = [];
+        eligibleReportWorkersLoading = false;
+      });
+    return () => controller.abort();
+  });
   const emptyWorkerProblem = $derived<ProblemData | null>(
     ['owner_admin', 'project_manager'].includes(String(data.user.role)) &&
       (data.workers ?? []).length === 0
@@ -415,7 +436,7 @@
     records.filter((row) => String(row.type ?? '').toLowerCase() === 'technical'),
   );
   const selectablePeriodTechnicalReports = $derived(
-    technicalReports.filter(
+    ((data.periodTechnicalReports as Row[] | undefined) ?? technicalReports).filter(
       (row) =>
         Boolean(periodProjectId) &&
         rowText(row, 'project_id') === periodProjectId &&
@@ -427,17 +448,14 @@
   const reportGuidance = $derived(
     reportGuidanceFor(reportLocale, String(data.user.role ?? ''), data.user.workforceProfile),
   );
-  const workerOptions = $derived(
-    recordWorkerOptions(
-      activeTab === 'technical' ? technicalReports : dailyReports,
-      projectFilter,
-      ['author_name', 'created_by_name'],
-    ),
-  );
+  const workerOptions = $derived(tabWorkerOptions(activeTab, projectFilter));
   const clientOptions = $derived(
     [
       ...new Set(
-        [...records, ...periodReports].map((row) => rowText(row, 'client_name')).filter(Boolean),
+        [...records, ...periodReports]
+          .map((row) => rowText(row, 'client_name'))
+          .filter(Boolean)
+          .concat(data.reportWindow?.clientOptions ?? []),
       ),
     ].sort(),
   );
@@ -550,9 +568,10 @@
   }
   const statusOptions = $derived(reportStatusOptions(activeTab));
   const pendingReportCount = $derived(
-    fieldReportsForActiveTab.filter((row) =>
-      ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
-    ).length,
+    data.reportWindow?.[activeFieldTab]?.pending ??
+      fieldReportsForActiveTab.filter((row) =>
+        ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
+      ).length,
   );
   const readySignoffCount = $derived(
     signoffScopeRows.filter((report) => signoffState(report) === 'ready_for_signature').length,
@@ -638,11 +657,7 @@
             ? ''
             : availableWorkerSelection(
                 saved.workerFilter,
-                recordWorkerOptions(
-                  tab === 'technical' ? technicalReports : dailyReports,
-                  selectedProject,
-                  ['author_name', 'created_by_name'],
-                ),
+                tabWorkerOptions(tab, selectedProject),
               ),
         order: ['newest', 'oldest', 'name', 'status'].includes(saved.order)
           ? saved.order
@@ -656,80 +671,77 @@
   $effect(() => {
     if (activeTab === 'signoff' && workerFilter) workerFilter = '';
   });
-  const filteredDailyReports = $derived.by(() =>
-    operationalSort(
-      dailyReports.filter(
-        (row) =>
-          (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
-          (!workerFilter || rowText(row, 'worker_id') === workerFilter) &&
-          (!clientFilter || rowText(row, 'client_name') === clientFilter) &&
-          (!fromFilter || rowText(row, 'date') >= fromFilter) &&
-          (!toFilter || rowText(row, 'date') <= toFilter) &&
-          operationalStatusMatches(row.approval_state, statusFilter, [
-            'draft',
-            'submitted',
-            'needs_changes',
-          ]) &&
-          operationalMatches(row, search, [
-            'title',
-            'project_number',
-            'project_name',
-            'client_name',
-            'author_name',
-            'created_by_name',
-            'reviewed_by_name',
-            'date',
-          ]),
-      ),
-      order,
-      ['date'],
-      ['author_name', 'project_name', 'title'],
-      ['approval_state'],
-    ),
-  );
-  const filteredTechnicalReports = $derived.by(() =>
-    operationalSort(
-      technicalReports.filter(
-        (row) =>
-          (!projectFilter || rowText(row, 'project_id') === projectFilter) &&
-          (!workerFilter || rowText(row, 'worker_id') === workerFilter) &&
-          (!clientFilter || rowText(row, 'client_name') === clientFilter) &&
-          (!fromFilter || rowText(row, 'date') >= fromFilter) &&
-          (!toFilter || rowText(row, 'date') <= toFilter) &&
-          operationalStatusMatches(row.approval_state, statusFilter, [
-            'draft',
-            'submitted',
-            'needs_changes',
-          ]) &&
-          operationalMatches(row, search, [
-            'title',
-            'project_number',
-            'project_name',
-            'client_name',
-            'author_name',
-            'created_by_name',
-            'reviewed_by_name',
-            'date',
-          ]),
-      ),
-      order,
-      ['date'],
-      ['author_name', 'project_name', 'title'],
-      ['approval_state'],
-    ),
-  );
+  const reportFilters = $derived({
+    search,
+    project: projectFilter,
+    worker: workerFilter,
+    client: clientFilter,
+    from: fromFilter,
+    to: toFilter,
+    status: statusFilter,
+    order: (['newest', 'oldest', 'name', 'status'].includes(order) ? order : 'newest') as OperationalOrder,
+  });
+  const filteredDailyReports = $derived(filterFieldReports(dailyReports, reportFilters));
+  const filteredTechnicalReports = $derived(filterFieldReports(technicalReports, reportFilters));
+  // Server window (scale): the shipped rows match `reportWindow.key`. When the
+  // viewer's filters change and the window is not complete, ask the server again.
+  const reportWindow = $derived(data.reportWindow);
+  const currentReportWindowKey = $derived(reportWindowKey(reportFilters));
+  $effect(() => {
+    const windowData = reportWindow;
+    const key = currentReportWindowKey;
+    if (!windowData || windowData.key === key || reportWindowComplete(windowData)) return;
+    const timer = setTimeout(() => {
+      // useViewPreferences keeps the filters in the address bar (shallow).
+      void goto(new URL(window.location.href), {
+        replaceState: true,
+        keepFocus: true,
+        noScroll: true,
+      });
+    }, 350);
+    return () => clearTimeout(timer);
+  });
+  function reportTabWindow(tab: 'daily' | 'technical') {
+    return reportWindow && reportWindow.key === currentReportWindowKey ? reportWindow[tab] : null;
+  }
+  async function showMoreReports(): Promise<void> {
+    const url = new URL(window.location.href);
+    url.searchParams.set(
+      'limit',
+      String((reportWindow?.limit ?? REPORT_WINDOW_STEP) + REPORT_WINDOW_STEP),
+    );
+    await goto(url, { replaceState: true, keepFocus: true, noScroll: true });
+  }
+  function tabWorkerOptions(tab: ReportTab, projectId: string): Array<[string, string]> {
+    const local = recordWorkerOptions(
+      tab === 'technical' ? technicalReports : dailyReports,
+      projectId,
+      ['author_name', 'created_by_name'],
+    );
+    if (!reportWindow || tab === 'signoff') return local;
+    let windowProject = '';
+    try {
+      windowProject = String((JSON.parse(reportWindow.key) as unknown[])[1] ?? '');
+    } catch {
+      windowProject = '';
+    }
+    if (windowProject !== projectId) return local;
+    const merged = new Map<string, string>(reportWindow[tab].workers);
+    for (const [id, name] of local) if (!merged.has(id)) merged.set(id, name);
+    return [...merged].sort((a, b) => a[1].localeCompare(b[1]));
+  }
   const pagedDailyReports = $derived(operationalPage(filteredDailyReports, dailyPage));
   const pagedTechnicalReports = $derived(operationalPage(filteredTechnicalReports, technicalPage));
   const activeTabResultCount = $derived(
     activeTab === 'signoff'
       ? signoffRows.length
       : activeTab === 'technical'
-        ? filteredTechnicalReports.length
-        : filteredDailyReports.length,
+        ? (reportTabWindow('technical')?.total ?? filteredTechnicalReports.length)
+        : (reportTabWindow('daily')?.total ?? filteredDailyReports.length),
   );
   const reportTabCounts = $derived({
-    daily: filteredDailyReports.length,
-    technical: filteredTechnicalReports.length,
+    daily: reportTabWindow('daily')?.total ?? filteredDailyReports.length,
+    technical: reportTabWindow('technical')?.total ?? filteredTechnicalReports.length,
     signoff: signoffRows.length,
   });
   const visibleResultCount = $derived(
@@ -925,11 +937,7 @@
         ? ''
         : availableWorkerSelection(
             workerFilter,
-            recordWorkerOptions(
-              tab === 'technical' ? technicalReports : dailyReports,
-              projectFilter,
-              ['author_name', 'created_by_name'],
-            ),
+            tabWorkerOptions(tab, projectFilter),
           );
     dailyPage = 1;
     technicalPage = 1;
@@ -1375,7 +1383,11 @@
         )}
       </p>
     </div>
-    <span class="report-page-count" aria-label={translate('Report count')}>{records.length}</span>
+    <span class="report-page-count" aria-label={translate('Report count')}
+      >{reportWindow
+        ? reportWindow.daily.total + reportWindow.technical.total
+        : records.length}</span
+    >
   </header>
   <ProjectContextNav
     project={availableProjects.find((project) => String(project.id) === projectFilter)}
@@ -1508,11 +1520,7 @@
         onchange={() => {
           workerFilter = availableWorkerSelection(
             workerFilter,
-            recordWorkerOptions(
-              activeTab === 'technical' ? technicalReports : dailyReports,
-              projectFilter,
-              ['author_name', 'created_by_name'],
-            ),
+            tabWorkerOptions(activeTab, projectFilter),
           );
           dailyPage = 1;
           technicalPage = 1;
@@ -1737,6 +1745,19 @@
             onclick={() => (dailyPage += 1)}>{translate('Next')}</button
           >
         </nav>{/if}
+      {#if reportTabWindow('daily') && reportTabWindow('daily')!.shown < reportTabWindow('daily')!.total}
+        <p class="report-window-more" data-report-window="daily">
+          <span
+            >{scaleWindowText(reportLocale, 'windowShowing', {
+              shown: reportTabWindow('daily')!.shown,
+              total: reportTabWindow('daily')!.total,
+            })}</span
+          >
+          <button type="button" class="secondary-button" onclick={showMoreReports}
+            >{scaleWindowText(reportLocale, 'showMore')}</button
+          >
+        </p>
+      {/if}
     </div>
   {:else if activeTab === 'technical'}
     <div
@@ -1848,6 +1869,19 @@
             onclick={() => (technicalPage += 1)}>{translate('Next')}</button
           >
         </nav>{/if}
+      {#if reportTabWindow('technical') && reportTabWindow('technical')!.shown < reportTabWindow('technical')!.total}
+        <p class="report-window-more" data-report-window="technical">
+          <span
+            >{scaleWindowText(reportLocale, 'windowShowing', {
+              shown: reportTabWindow('technical')!.shown,
+              total: reportTabWindow('technical')!.total,
+            })}</span
+          >
+          <button type="button" class="secondary-button" onclick={showMoreReports}
+            >{scaleWindowText(reportLocale, 'showMore')}</button
+          >
+        </p>
+      {/if}
     </div>
   {:else}
     <div
@@ -2506,13 +2540,14 @@
             required
             bind:value={createWorker}
             disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
+            aria-busy={eligibleReportWorkersLoading}
             ><option value="">{translate('Select worker')}</option
             >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
                 >{worker.name} — {worker.email}</option
               >{/each}</select
           ></label
         >
-        {#if createProject && createDate && eligibleReportWorkers.length === 0}
+        {#if createProject && createDate && eligibleReportWorkers.length === 0 && !eligibleReportWorkersLoading}
           <p class="report-entry-help">
             {translate('No assigned worker is available for this project and date.')}
           </p>
@@ -2725,13 +2760,14 @@
               required
               bind:value={createWorker}
               disabled={!createProject || !createDate || eligibleReportWorkers.length === 0}
+              aria-busy={eligibleReportWorkersLoading}
               ><option value="">{translate('Select worker')}</option
               >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
                   >{worker.name} — {worker.email}</option
                 >{/each}</select
             ></label
           >
-          {#if createProject && createDate && eligibleReportWorkers.length === 0}
+          {#if createProject && createDate && eligibleReportWorkers.length === 0 && !eligibleReportWorkersLoading}
             <p class="report-entry-help">
               {translate('No assigned worker is available for this project and date.')}
             </p>

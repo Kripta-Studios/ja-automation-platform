@@ -27,7 +27,7 @@ describe('project lifecycle assignment warnings', () => {
     );
     expect(source).toContain('href: projectHref(project)');
     expect(source).toContain('problem.remedy.reviewAssignments');
-    expect(source).toContain('href: `${base}/app/projects#assignment-history`');
+    expect(source).toContain('href: `${base}/app/projects?history=1#assignment-history`');
   });
 
   it('warns before each owner or finance closing transition with project and assignment review', () => {
@@ -45,7 +45,7 @@ describe('project lifecycle assignment warnings', () => {
     expect(source).toContain('problem.remedy.reviewAssignments');
     expect(source).toContain('id="project-assignment-list"');
     expect(source).toMatch(/href: canManageAssignmentControls\s+\?/);
-    expect(source).toContain('`${base}/app/projects#assignment-history`');
+    expect(source).toContain('`${base}/app/projects?history=1#assignment-history`');
     expect(source).toContain('problem.warning.projectLifecycleAssignments');
   });
 });

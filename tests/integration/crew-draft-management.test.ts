@@ -251,6 +251,14 @@ describe('crew draft management', () => {
     ).toEqual({ actor_id: chief.userId });
   });
 
+  it('accepts an empty "Work performed" note (optional, same as Log time)', () => {
+    const { crew, chief, id } = setup();
+    expect(
+      crew.updateDraft(chief, { id, version: 1, workDate, category: 'regular', minutes: 445, summary: '' }),
+    ).toEqual({ id, version: 2 });
+    expect(crew.entryDetail(chief, id)).toEqual(expect.objectContaining({ minutes: 445, summary: '' }));
+  });
+
   it('discards an unlinked draft without erasing its provenance or audit history', () => {
     const { fixture, crew, chief, id } = setup();
     crew.discardDraft(chief, id, 1);

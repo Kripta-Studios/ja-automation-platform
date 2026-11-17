@@ -12,6 +12,7 @@ import { defaultLookbackPeriod, isRealIsoDate } from '$lib/server/iso-date';
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { mondayOf } from '$lib/server/portal-week';
+import { listSignedWeekSheets } from '$lib/server/signed-week-sheets';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
@@ -369,7 +370,33 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             filters,
             params: url.searchParams,
           });
+          // Signed sheets for the worker/project weeks shown in the drill-down page.
+          if (overview.drill?.entries.length) {
+            const pageEntries = overview.drill.entries;
+            const wanted = new Set(
+              pageEntries.map((entry) => `${entry.worker_id}|${entry.project_id}|${mondayOf(entry.work_date)}`),
+            );
+            const dates = pageEntries.map((entry) => entry.work_date).sort();
+            overview.drill.sheets = listSignedWeekSheets(context.sqlite, {
+              projectIds: [...new Set(pageEntries.map((entry) => entry.project_id))],
+              from: dates[0],
+              to: dates.at(-1),
+            })
+              .filter((sheet) => wanted.has(`${sheet.workerId}|${sheet.projectId}|${sheet.weekStart}`))
+              .map(({ id, projectId, workerId, weekStart, filename }) => ({
+                id,
+                projectId,
+                workerId,
+                weekStart,
+                filename,
+              }));
+          }
         }
+        const weekSheets = listSignedWeekSheets(context.sqlite, {
+          projectIds: timeProjectIds,
+          workerId: timeWorkerId,
+          weekStart,
+        }).map(({ id, projectId, filename, createdAt }) => ({ id, projectId, filename, createdAt }));
         return {
           ...common,
           projects: timeProjects,
@@ -380,6 +407,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           timeView,
           canReviewTime: canReview,
           weekEntries,
+          weekSheets,
           overview,
           timeFilter: {
             category: '',

@@ -2063,6 +2063,12 @@ const exact: Record<string, readonly [string, string]> = {
     'Una entrada diaria tiene datos inválidos de proyecto, fecha, categoría, duración o trabajo. Revisa el lote antes de guardar.',
     'Uma entrada diária tem dados inválidos de projeto, data, categoria, duração ou trabalho. Revise o lote antes de salvar.',
   ],
+  'problem.time.sheetScope': ['Solo puedes adjuntar una hoja firmada a una semana de un proyecto al que la persona está asignada.', 'Só é possível anexar uma folha assinada a uma semana de um projeto ao qual a pessoa está atribuída.'],
+  'problem.time.sheetFile': ['Usa un PDF o una foto de la hoja firmada (hasta 20 MB).', 'Use um PDF ou uma foto da folha assinada (até 20 MB).'],
+  'problem.time.sheetDuplicate': ['Este archivo ya está guardado. Elige la hoja firmada de esta semana.', 'Este arquivo já está salvo. Escolha a folha assinada desta semana.'],
+  'problem.time.cellDetailInvalid': ['Revisa el inicio, el fin y la pausa de este día. Deja inicio y fin vacíos para escribir solo las horas.', 'Confira o início, o fim e a pausa deste dia. Deixe início e fim vazios para digitar só as horas.'],
+  'problem.time.saveApproveOwnerOnly': ['Solo el propietario puede aprobar horas al registrarlas para otra persona.', 'Somente o proprietário pode aprovar horas ao registrá-las para outra pessoa.'],
+  'problem.time.sentNotApproved': ['Las horas se guardaron y enviaron, pero no se pudieron aprobar aquí. Apruébalas en Aprobaciones.', 'As horas foram salvas e enviadas, mas não puderam ser aprovadas aqui. Aprove-as em Aprovações.'],
   'problem.time.batchOwnerRequired': [
     'Solo un propietario puede crear borradores de tiempo para otro trabajador. Contacta con el propietario del proyecto.',
     'Somente um proprietário pode criar rascunhos de tempo para outro trabalhador. Entre em contato com o proprietário do projeto.',
@@ -8965,6 +8971,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Registro de horas excluído ou anulado.',
   ],
   'action.time.submitted': ['Registro de horas enviado.', 'Registro de horas enviado.'],
+  'action.time.sheetAttached': ['Hoja firmada adjuntada a la semana.', 'Folha assinada anexada à semana.'],
+  'action.time.savedAndApproved': ['{count} registros de horas guardados y aprobados ({hours} h).', '{count} registros de horas salvos e aprovados ({hours} h).'],
   'action.time.weekSubmitted': [
     '{timeSubmitted} registros de horas y {mealsSubmitted} gastos de comidas enviados para revisión.',
     '{timeSubmitted} registros de horas e {mealsSubmitted} despesas com refeições enviados para revisão.',
@@ -9455,6 +9463,8 @@ function englishActionMessage(key: string): string {
     'action.time.draftUpdated': 'Time draft updated.',
     'action.validation.timeRecord': 'Invalid time record.',
     'action.time.submitted': 'Time submitted.',
+    'action.time.sheetAttached': 'Signed sheet attached to the week.',
+    'action.time.savedAndApproved': '{count} time entries saved and approved ({hours} h).',
     'action.time.weekSubmitted':
       '{timeSubmitted} time drafts and {mealsSubmitted} linked meal expenses submitted for review.',
     'action.time.removedOrVoided': 'Time entry removed/voided.',
@@ -11140,6 +11150,12 @@ const problemEnglish: Record<string, string> = {
   'problem.time.batchCountInvalid': 'Choose between 1 and 31 daily entries for this batch.',
   'problem.time.batchEntryInvalid':
     'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
+  'problem.time.sheetScope': 'You can attach a signed sheet only to a week of a project the person is assigned to.',
+  'problem.time.sheetFile': 'Use a PDF or photo of the signed sheet (up to 20 MB).',
+  'problem.time.sheetDuplicate': 'This file is already stored. Choose the signed sheet for this week.',
+  'problem.time.cellDetailInvalid': 'Check the start, end and break of this day. Leave start and end empty to type hours only.',
+  'problem.time.saveApproveOwnerOnly': 'Only the owner can approve hours while logging them for another person.',
+  'problem.time.sentNotApproved': 'Hours were saved and sent, but could not be approved here. Approve them in Approvals.',
   'problem.time.batchOwnerRequired':
     'Only an owner can create time drafts for another worker. Contact the project owner to review access.',
   'problem.time.linkedExpenseMealsOnly': 'Only meals can be added in Log time.',

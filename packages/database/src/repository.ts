@@ -2145,6 +2145,19 @@ export class PortalRepository {
         minutes: number | null;
         id?: string;
         version?: number;
+        /**
+         * Optional collapsed "+ detail": start/end (HH:mm, an end before the
+         * start is an overnight shift kept on the start date), break minutes
+         * and a short note. When start/end are given, minutes must equal
+         * end - start - break (validated by the canonical entry checks).
+         * Omitted = keep the stored detail unless the hours change.
+         */
+        detail?: Readonly<{
+          startTime: string | null;
+          endTime: string | null;
+          breakMinutes: number | null;
+          note: string;
+        }>;
       }>[];
       /** Drafts (id + version) the user saw on screen; required to submit. */
       expected?: readonly Readonly<{ id: string; version: number }>[];
@@ -2203,6 +2216,16 @@ export class PortalRepository {
           withCell(cell, () => {
             throw new ValidationError('Minutes must be an integer from 0 to 1440');
           });
+        const detail = cell.detail;
+        const note = detail?.note.trim().slice(0, 500) ?? '';
+        const interval =
+          detail && detail.startTime && detail.endTime
+            ? {
+                startTime: detail.startTime,
+                endTime: detail.endTime,
+                breakMinutes: detail.breakMinutes ?? 0,
+              }
+            : null;
         if (!cell.id) {
           if (!cell.minutes) continue;
           const result = withCell(cell, () =>
@@ -2213,7 +2236,8 @@ export class PortalRepository {
                 workDate: cell.workDate,
                 category: cell.category,
                 minutes: cell.minutes as number,
-                summary: '',
+                summary: note,
+                ...(interval ?? {}),
               },
               workerId,
             ),
@@ -2225,6 +2249,7 @@ export class PortalRepository {
         const current = this.sqlite
           .prepare(
             `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.minutes,t.start_time,
+                    t.end_time,t.break_minutes,t.activity_summary,
                     t.approval_state,t.submitted_at,t.version,
                     EXISTS(SELECT 1 FROM operational_time_expense_request r WHERE r.time_entry_id=t.id) linked_pair,
                     EXISTS(SELECT 1 FROM record_correction_link l WHERE l.record_type='time_entry' AND l.correction_id=t.id) correction_linked
@@ -2239,6 +2264,9 @@ export class PortalRepository {
               category: string;
               minutes: number;
               start_time: string | null;
+              end_time: string | null;
+              break_minutes: number | null;
+              activity_summary: string | null;
               approval_state: string;
               submitted_at: string | null;
               version: number;
@@ -2261,8 +2289,21 @@ export class PortalRepository {
             throw new ConflictError('Week changed. Refresh and review its drafts before submitting');
           });
         const minutes = cell.minutes ?? 0;
-        if (minutes === row.minutes) continue;
-        const interval = row.start_time !== null;
+        const detailChanged =
+          detail !== undefined &&
+          ((interval?.startTime ?? null) !== row.start_time ||
+            (interval?.endTime ?? null) !== row.end_time ||
+            (interval ? interval.breakMinutes : null) !==
+              (row.start_time === null ? null : row.break_minutes) ||
+            note !== (row.activity_summary ?? ''));
+        if (minutes === row.minutes && !detailChanged) continue;
+        const storedInterval = row.start_time !== null;
+        // New detail replaces the stored one; plain hour edits drop a stale interval.
+        const intervalPatch = interval
+          ? interval
+          : detail !== undefined || storedInterval
+            ? { startTime: null, endTime: null, breakMinutes: null }
+            : {};
         if (
           row.approval_state === 'draft' &&
           !row.submitted_at &&
@@ -2279,11 +2320,8 @@ export class PortalRepository {
                 id: row.id,
                 version: row.version,
                 minutes,
-                ...(interval
-                  ? ({ startTime: null, endTime: null, breakMinutes: null } as unknown as {
-                      startTime?: string;
-                    })
-                  : {}),
+                ...(intervalPatch as { startTime?: string; endTime?: string; breakMinutes?: number }),
+                ...(detail !== undefined ? { summary: note } : {}),
               }),
             );
             versions.set(row.id, result.version);
@@ -2295,11 +2333,12 @@ export class PortalRepository {
           const correctionInput = {
             recordType: 'time_entry' as const,
             originalId: row.id,
-            requestId: `week-fix-${row.id}-v${row.version}-m${minutes}`,
+            requestId: `week-fix-${row.id}-v${row.version}-m${minutes}${interval ? `-i${interval.startTime.replace(':', '')}${interval.endTime.replace(':', '')}b${interval.breakMinutes}` : ''}`,
             reason,
             patch: {
               minutes,
-              ...(interval ? { startTime: null, endTime: null, breakMinutes: null } : {}),
+              ...intervalPatch,
+              ...(detail !== undefined && note ? { summary: note } : {}),
             },
           };
           const result = withCell(cell, () =>

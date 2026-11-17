@@ -67,7 +67,18 @@ export const GET: RequestHandler = ({ locals, url }) => {
             : t('statusDraft');
     const category = (value: string) =>
       value === 'regular' ? t('work') : value === 'travel' ? t('travel') : value === 'overtime' ? t('overtime') : value;
-    const header = [t('date'), t('ovWorker'), t('project'), t('type'), t('hours'), t('status')];
+    const header = [
+      t('date'),
+      t('ovWorker'),
+      t('project'),
+      t('type'),
+      t('hours'),
+      t('status'),
+      t('detailStart'),
+      t('detailEnd'),
+      t('detailBreak'),
+      t('detailNote'),
+    ];
     const lines = sortedOverviewEntries(entries).map((entry) =>
       [
         entry.work_date,
@@ -76,6 +87,10 @@ export const GET: RequestHandler = ({ locals, url }) => {
         category(entry.category),
         decimalHoursFromMinutes(entry.minutes),
         status(entry.approval_state),
+        entry.start_time ?? '',
+        entry.end_time ?? '',
+        entry.start_time ? String(entry.break_minutes ?? 0) : '',
+        entry.note ?? '',
       ]
         .map(csvCell)
         .join(','),

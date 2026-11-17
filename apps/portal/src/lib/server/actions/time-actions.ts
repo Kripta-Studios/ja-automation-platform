@@ -12,9 +12,11 @@ import {
 } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
+import { withAssignmentFinanceTransaction } from './assignment-finance';
+import { SignedSheetInputError, storeSignedWeekSheet } from '$lib/server/signed-week-sheets';
 import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
 import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
-import { parseHoursText } from '$lib/portal/sections/time-hours';
+import { parseCellDetail, parseHoursText, type CellDetail } from '$lib/portal/sections/time-hours';
 import type { ZodError } from 'zod';
 
 export const parseTimeUpdateForm = (input: Record<string, unknown>) =>
@@ -650,6 +652,12 @@ const weekCategories = new Set([
  */
 export { parseHoursText as weekCellMinutes } from '$lib/portal/sections/time-hours';
 
+const invalidSheet = () =>
+  actionFail(400, 'problem.time.sheetFile', {}, 'Use a PDF or photo of the signed sheet (up to 20 MB).', {
+    code: 'TIME_SHEET_INVALID',
+    remedies: [{ id: 'review_week' }],
+  });
+
 type WeekCellInput = {
   projectId: string;
   category: string;
@@ -657,6 +665,7 @@ type WeekCellInput = {
   minutes: number | null;
   id?: string;
   version?: number;
+  detail?: CellDetail;
 };
 
 export const timeActions = withOperationalActionNames({
@@ -874,7 +883,23 @@ export const timeActions = withOperationalActionNames({
       const workDate = String(cell.workDate ?? '');
       if (!projectId || projectId.length > 100 || !weekCategories.has(category) || !dates.has(workDate))
         return invalidBatch();
-      const minutes = parseHoursText(cell.hours);
+      const parsedDetail = parseCellDetail(cell.detail);
+      if (!parsedDetail.ok)
+        return actionFail(
+          400,
+          'problem.time.cellDetailInvalid',
+          {},
+          'Check the start, end and break of this day. Leave start and end empty to type hours only.',
+          {
+            code: 'TIME_CELL_DETAIL_INVALID',
+            values,
+            cell: { projectId, category, workDate },
+            fieldErrors: { [`cell:${projectId}:${category}:${workDate}`]: ['problem.time.cellDetailInvalid'] },
+            remedies: [{ id: 'review_week' }],
+          },
+        );
+      // Start/end given: hours are computed (end - start - break), never typed twice.
+      const minutes = parsedDetail.minutes ?? parseHoursText(cell.hours);
       if (minutes === undefined)
         return actionFail(
           400,
@@ -892,7 +917,14 @@ export const timeActions = withOperationalActionNames({
       const id = typeof cell.id === 'string' && cell.id ? cell.id : undefined;
       const version = Number(cell.version);
       if (id && (!Number.isInteger(version) || version < 1)) return invalidBatch();
-      cells.push({ projectId, category, workDate, minutes, ...(id ? { id, version } : {}) });
+      cells.push({
+        projectId,
+        category,
+        workDate,
+        minutes,
+        ...(id ? { id, version } : {}),
+        ...(parsedDetail.detail ? { detail: parsedDetail.detail } : {}),
+      });
     }
     const expected = (rawExpected as unknown[]).flatMap((row) =>
       row &&
@@ -902,17 +934,43 @@ export const timeActions = withOperationalActionNames({
         ? [{ id: (row as { id: string }).id, version: (row as { version: number }).version }]
         : [],
     );
-    const submit = object.intent === 'submit';
+    // "Save & approve" (owner logging for someone else): same save + submit,
+    // then the standard operational approval of exactly those entries.
+    const approve = object.intent === 'submit_approve' || object.intent === 'submit_day_approve';
+    const submit = object.intent === 'submit' || object.intent === 'submit_approve';
     // One day "Save & send": save the day's cells, then submit that day's drafts.
+    const dayIntent = object.intent === 'submit_day' || object.intent === 'submit_day_approve';
     const submitDay =
-      object.intent === 'submit_day' && realIsoDate(object.day) && dates.has(String(object.day))
+      dayIntent && realIsoDate(object.day) && dates.has(String(object.day))
         ? String(object.day)
         : undefined;
-    if (object.intent === 'submit_day' && !submitDay) return invalidBatch();
+    if (dayIntent && !submitDay) return invalidBatch();
     const context = openPortalRepository(locals);
+    const workerId = values.workerId || context.principal.userId;
+    if (approve && (context.principal.role !== 'owner_admin' || workerId === context.principal.userId)) {
+      context.sqlite.close();
+      return actionFail(
+        403,
+        'problem.time.saveApproveOwnerOnly',
+        {},
+        'Only the owner can approve hours while logging them for another person.',
+        { code: 'TIME_SAVE_APPROVE_OWNER_ONLY', values, remedies: [{ id: 'review_week' }] },
+      );
+    }
+    const submittedBefore = approve
+      ? new Set(
+          (
+            context.sqlite
+              .prepare(
+                `SELECT id FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='submitted'`,
+              )
+              .all(workerId, weekStart, [...dates].sort().at(-1)!) as Array<{ id: string }>
+          ).map((row) => row.id),
+        )
+      : new Set<string>();
     try {
       const result = context.repository.saveTimeWeek(context.principal, {
-        workerId: values.workerId || context.principal.userId,
+        workerId,
         weekStart,
         cells,
         expected,
@@ -921,6 +979,46 @@ export const timeActions = withOperationalActionNames({
         correctionReason: typeof object.reason === 'string' ? object.reason : undefined,
       });
       const saved = result.created + result.updated + result.removed + result.corrected;
+      if (approve) {
+        // Approve only what this request just sent (never other pending weeks).
+        const sent = (
+          context.sqlite
+            .prepare(
+              `SELECT id,minutes FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='submitted'${submitDay ? ' AND work_date=?' : ''}`,
+            )
+            .all(
+              workerId,
+              weekStart,
+              [...dates].sort().at(-1)!,
+              ...(submitDay ? [submitDay] : []),
+            ) as Array<{ id: string; minutes: number }>
+        ).filter((row) => !submittedBefore.has(row.id));
+        let approvedMinutes = 0;
+        try {
+          // All or nothing, exactly like the Approvals bulk action.
+          withAssignmentFinanceTransaction(context.sqlite, () => {
+            for (const row of sent) {
+              context.repository.operationalApproveTime(context.principal, row.id, 'approved');
+              approvedMinutes += Number(row.minutes) || 0;
+            }
+          });
+        } catch (error) {
+          approvedMinutes = 0;
+          const failure = timeActionFailure(error, values);
+          if (failure && typeof failure === 'object' && 'data' in failure && failure.data)
+            Object.assign(failure.data as object, {
+              messageKey: 'problem.time.sentNotApproved',
+              message: 'Hours were saved and sent, but could not be approved here. Approve them in Approvals.',
+            });
+          return failure;
+        }
+        const hours = Math.round((approvedMinutes / 60) * 100) / 100;
+        return actionSuccess(
+          'action.time.savedAndApproved',
+          { count: sent.length, hours },
+          `${sent.length} time entries approved (${hours} h).`,
+        );
+      }
       if (submitDay)
         return actionSuccess('action.time.submitted', {}, 'Time submitted.');
       return submit
@@ -940,6 +1038,50 @@ export const timeActions = withOperationalActionNames({
       if (cell && failure && typeof failure === 'object' && 'data' in failure && failure.data)
         Object.assign(failure.data as object, { cell });
       return failure;
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /** Optional signed activity sheet (PDF/photo) for one worker's week on one project. */
+  attachWeekSheet: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const weekStart = object.weekStart;
+    const projectId = String(object.projectId ?? '').trim();
+    const values = { weekStart: String(weekStart ?? ''), projectId };
+    const sheetFail = (status: number, key: `problem.${string}`, message: string, code: string) =>
+      actionFail(status, key, {}, message, {
+        code,
+        values,
+        fieldErrors: { sheet: [key] },
+        remedies: [{ id: 'review_week' }],
+      });
+    if (!realIsoDate(weekStart) || mondayOf(weekStart) !== weekStart || !projectId || projectId.length > 100)
+      return invalidSheet();
+    const context = openPortalRepository(locals);
+    try {
+      const workerId = String(object.workerId ?? '') || context.principal.userId;
+      const worker = context.sqlite.prepare('SELECT name,email FROM user WHERE id=?').get(workerId) as
+        | { name: string | null; email: string }
+        | undefined;
+      if (!worker) return invalidSheet();
+      await storeSignedWeekSheet(context, {
+        projectId,
+        workerId,
+        weekStart,
+        file: object.sheet as File,
+        workerName: worker.name || worker.email,
+      });
+      return actionSuccess('action.time.sheetAttached', {}, 'Signed sheet attached to the week.');
+    } catch (error) {
+      if (error instanceof SignedSheetInputError)
+        return error.code === 'scope'
+          ? sheetFail(403, 'problem.time.sheetScope', error.message, 'TIME_SHEET_SCOPE')
+          : sheetFail(400, 'problem.time.sheetFile', 'Use a PDF or photo of the signed sheet (up to 20 MB).', 'TIME_SHEET_FILE');
+      if (error instanceof ConflictError || (error instanceof Error && /existing content/i.test(error.message)))
+        return sheetFail(409, 'problem.time.sheetDuplicate', 'This file is already stored. Choose the signed sheet for this week.', 'TIME_SHEET_DUPLICATE');
+      return timeActionFailure(error, values);
     } finally {
       context.sqlite.close();
     }

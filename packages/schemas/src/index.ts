@@ -385,13 +385,17 @@ export const timeInputSchema = z
     const startMinutes = Number(startTime.slice(0, 2)) * 60 + Number(startTime.slice(3));
     const endMinutes = Number(endTime.slice(0, 2)) * 60 + Number(endTime.slice(3));
     const breakMinutes = input.breakMinutes ?? 0;
-    if (endMinutes <= startMinutes) {
+    // An end at or before the start is an overnight shift that ends the next
+    // day; it stays attributed to the start date. Equal times are invalid.
+    const elapsedMinutes =
+      endMinutes > startMinutes ? endMinutes - startMinutes : endMinutes + 1440 - startMinutes;
+    if (endMinutes === startMinutes) {
       context.addIssue({
         code: 'custom',
         path: ['endTime'],
         message: 'End time must be later on the same day',
       });
-    } else if (breakMinutes >= endMinutes - startMinutes) {
+    } else if (breakMinutes >= elapsedMinutes) {
       context.addIssue({
         code: 'custom',
         path: ['breakMinutes'],
@@ -424,7 +428,9 @@ export const timeInputSchema = z
       startTime: input.startTime,
       endTime: input.endTime,
       breakMinutes,
-      minutes: endMinutes - startMinutes - breakMinutes,
+      minutes:
+        (endMinutes > startMinutes ? endMinutes - startMinutes : endMinutes + 1440 - startMinutes) -
+        breakMinutes,
     };
   });
 

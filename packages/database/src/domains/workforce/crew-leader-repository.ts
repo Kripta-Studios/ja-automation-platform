@@ -88,6 +88,13 @@ function text(value: string, field: string, max = 5000): string {
   return trimmed;
 }
 
+/** "Work performed" is optional (same as Log time); only the length is limited. */
+function optionalNote(value: string | undefined): string {
+  const trimmed = String(value ?? '').trim();
+  if (trimmed.length > 5000) throw new ValidationError('Work performed is too long');
+  return trimmed;
+}
+
 /** Named, owner-granted project crew time entry. No rate or compensation projection. */
 export class CrewLeaderRepository {
   private readonly sqlite: DatabaseSync;
@@ -652,7 +659,7 @@ export class CrewLeaderRepository {
           workDate: input.workDate,
           category: input.category,
           minutes: input.minutes,
-          summary: text(input.summary, 'Work performed'),
+          summary: optionalNote(input.summary),
           ...(input.startTime ? { startTime: input.startTime } : {}),
           ...(input.endTime ? { endTime: input.endTime } : {}),
           ...(input.breakMinutes !== undefined ? { breakMinutes: input.breakMinutes } : {}),
@@ -691,7 +698,7 @@ export class CrewLeaderRepository {
         throw new ValidationError('Choose a valid time category');
       if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
         throw new ValidationError('Enter 1 to 1440 minutes');
-      const summary = text(input.summary, 'Work performed');
+      const summary = optionalNote(input.summary);
       return this.time.updateTimeEntry(principal, {
         id: input.id,
         version: input.version,

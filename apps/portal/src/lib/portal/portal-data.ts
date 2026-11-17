@@ -1,5 +1,6 @@
 import type { OwnerFinanceSummary } from './owner-finance';
 import type { HomeInbox, WorkerWeekStatus } from './home-inbox';
+import type { ApprovalQueuePage } from './approval-queue-page';
 import type { MoneyOverview, RatesOverview } from './money-overview-types';
 import type { TimeOverviewData } from './time-overview-types';
 import type { ExpenseOverviewData } from './expense-overview-types';
@@ -80,6 +81,8 @@ export type PortalData = {
   archivedProjectCount?: number;
   /** Pending approvals for the navigation badge (layout data). */
   approvalPendingCount?: number;
+  /** Approvals page: pending queue, server-side filters and paging. */
+  approvalQueue?: ApprovalQueuePage;
   moneyOverview?: MoneyOverview;
   ratesOverview?: RatesOverview;
   user: {

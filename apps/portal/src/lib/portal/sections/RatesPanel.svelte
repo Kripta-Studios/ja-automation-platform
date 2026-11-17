@@ -6,6 +6,8 @@
    * old rates stay for history and are never edited or deleted.
    */
   import { enhance } from '$app/forms';
+  import { goto } from '$app/navigation';
+  import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import type { SubmitFunction } from '@sveltejs/kit';
   import type { Snippet } from 'svelte';
@@ -30,34 +32,63 @@
   const t = (key: MoneyCopyKey, params: Record<string, string | number> = {}) =>
     moneyText(locale, key, params);
 
-  let projectFilter = $state(
-    (() => {
-      const requested = $page.url.searchParams.get('project') ?? '';
-      return rates.projects.some((project) => project.id === requested) ? requested : '';
-    })(),
-  );
-  const people = $derived(
-    rates.people.filter((row) => !projectFilter || row.projectId === projectFilter),
-  );
-  const projects = $derived(
-    rates.projects.filter((project) => !projectFilter || project.id === projectFilter),
-  );
-  const history = $derived(
-    rates.rules.filter(
-      (rule) => !projectFilter || rule.projectId === projectFilter || !rule.projectId,
+  // Scale: the server sends one page of projects with counts; people and history
+  // arrive only for the project opened through the URL (?project=…).
+  const openId = $derived(rates.openProjectId);
+  const list = $derived(rates.projectList);
+  // Missing rates first, then by name; long teams show 25 people until asked.
+  const PEOPLE_PAGE = 25;
+  let showAllPeople = $state(false);
+  const sortedPeople = $derived(
+    [...rates.people].sort(
+      (a, b) =>
+        Number(Boolean(a.clientRateMinor)) - Number(Boolean(b.clientRateMinor)) ||
+        a.workerName.localeCompare(b.workerName),
     ),
   );
+  const visiblePeople = $derived(showAllPeople ? sortedPeople : sortedPeople.slice(0, PEOPLE_PAGE));
+  const lang = $derived($page.url.searchParams.get('lang') ?? '');
+  /** Same list (search, filter, page size) with another project opened or closed. */
+  const listHref = (changes: Record<string, string>) => {
+    const query = new URLSearchParams({ view: 'commercial' });
+    if (list.search) query.set('find', list.search);
+    if (list.missingOnly) query.set('missing', '1');
+    if (list.limit !== 20) query.set('show', String(list.limit));
+    if (openId) query.set('project', openId);
+    if (lang) query.set('lang', lang);
+    for (const [key, value] of Object.entries(changes))
+      if (value) query.set(key, value);
+      else query.delete(key);
+    return `?${query.toString()}`;
+  };
   // Deep links into the detailed configuration (sub-navigation, problem remedies) open it.
-  const advancedOpen =
-    ($page.url.hash !== '' && $page.url.hash !== '#rates-people') ||
-    ['task', 'asOf', 'category', 'policyPerson'].some((key) => $page.url.searchParams.has(key)) ||
-    Boolean($page.form && ($page.form as { success?: boolean; rateSave?: unknown }).success === false && !($page.form as { rateSave?: unknown }).rateSave);
-  const missingCount = $derived(people.filter((row) => !row.clientRateMinor).length);
+  const advancedOpen = $derived(
+    ($page.url.hash !== '' &&
+      $page.url.hash !== '#rates-people' &&
+      !$page.url.hash.startsWith('#rates-project-')) ||
+      ['advanced', 'task', 'asOf', 'category', 'policyPerson'].some((key) =>
+        $page.url.searchParams.has(key),
+      ) ||
+      Boolean(
+        $page.form &&
+        ($page.form as { success?: boolean; rateSave?: unknown }).success === false &&
+        !($page.form as { rateSave?: unknown }).rateSave,
+      ),
+  );
+  let advancedToggled = $state(false);
+  const advancedShown = $derived(advancedOpen || advancedToggled);
+  // An older link that points into the detailed configuration (#finance-…, #project-…)
+  // loads it on demand instead of shipping it with every Rates page.
+  onMount(() => {
+    if (advanced || !advancedOpen || $page.url.searchParams.has('advanced')) return;
+    const url = new URL($page.url);
+    url.searchParams.set('advanced', '1');
+    void goto(`${url.pathname}${url.search}${url.hash}`, { replaceState: true });
+  });
 
   const unit = (basis: string | null) =>
     basis === 'daily' ? t('perDay') : basis === 'weekly' ? t('perWeek') : t('perHour');
-  const sourceLabel = (source: string | null) =>
-    source ? t(`src_${source}` as MoneyCopyKey) : '';
+  const sourceLabel = (source: string | null) => (source ? t(`src_${source}` as MoneyCopyKey) : '');
   const decimal = (minor: string | null) => {
     if (!minor) return '';
     const value = BigInt(minor);
@@ -84,7 +115,8 @@
   }
   const personalCount = (projectId: string) =>
     rates.people.filter(
-      (row) => row.projectId === projectId && row.clientSource && row.clientSource !== 'project_default',
+      (row) =>
+        row.projectId === projectId && row.clientSource && row.clientSource !== 'project_default',
     ).length;
 
   const submit =
@@ -94,16 +126,18 @@
       const date = String(formData.get('effectiveFrom') ?? '');
       return async ({ result, update }) => {
         busy = false;
-        const data = (result.type === 'success' || result.type === 'failure' ? result.data : null) as
-          | { rateSave?: { code: string; changed?: number } }
-          | null;
+        const data = (
+          result.type === 'success' || result.type === 'failure' ? result.data : null
+        ) as { rateSave?: { code: string; changed?: number } } | null;
         const save = data?.rateSave;
         if (result.type === 'success' && save?.code === 'saved') {
           await update({ reset: false });
           feedback = {
             key,
             ok: true,
-            text: save.changed ? t('rateSaved', { date: shortDate(date) }) : t('rateUnchanged', { date: shortDate(date) }),
+            text: save.changed
+              ? t('rateSaved', { date: shortDate(date) })
+              : t('rateUnchanged', { date: shortDate(date) }),
           };
           editing = '';
         } else {
@@ -206,39 +240,103 @@
     <p class="rates__ok" role="status" data-rate-feedback>{feedback.text}</p>
   {/if}
 
-  <label class="rates__filter"
-    >{t('filterProject')}
-    <select bind:value={projectFilter} data-rates-project-filter>
-      <option value="">{t('allProjectsFilter')}</option>
-      {#each rates.projects as project (project.id)}
-        <option value={project.id}>{project.label}</option>
-      {/each}
-    </select></label
-  >
+  <form class="rates__toolbar" method="GET" data-rates-search role="search">
+    <input type="hidden" name="view" value="commercial" />
+    {#if lang}<input type="hidden" name="lang" value={lang} />{/if}
+    <label class="rates__search"
+      ><span>{t('searchLabel')}</span>
+      <input
+        type="search"
+        name="find"
+        value={list.search}
+        placeholder={t('ratesSearchPlaceholder')}
+        autocomplete="off"
+        data-rates-find
+      /></label
+    >
+    <label class="rates__check rates__only-missing"
+      ><input
+        type="checkbox"
+        name="missing"
+        value="1"
+        checked={list.missingOnly}
+        onchange={(event) => event.currentTarget.form?.requestSubmit()}
+        data-rates-missing-only
+      />
+      {t('onlyMissing')}</label
+    >
+    <button type="submit" class="secondary-button">{t('searchButton')}</button>
+    {#if list.search || list.missingOnly}
+      <a class="link-button" href={`?view=commercial${lang ? `&lang=${lang}` : ''}`}
+        >{t('clearSearch')}</a
+      >
+    {/if}
+  </form>
+
+  <p class="rates__scope" data-rates-scope>
+    {#if list.peopleMissing > 0}
+      <span class="rates__missing-count"
+        >{t('ratesScope', { people: list.peopleMissing, projects: list.projectsMissing })}</span
+      >
+    {:else}
+      {t('ratesAllSet')}
+    {/if}
+    <span class="rates__muted"
+      >· {t('showingProjects', {
+        shown: Math.min(list.limit, list.matches),
+        total: list.matches,
+      })}</span
+    >
+  </p>
 
   <section id="rates-people" aria-labelledby="rates-people-title" tabindex="-1">
-    <h3 id="rates-people-title">
-      {t('whichRate')}
-      {#if missingCount > 0}<span class="rates__missing-count">{t('missingCount', { count: missingCount })}</span>{/if}
-    </h3>
-    {#each projects as project (project.id)}
-      {@const members = people.filter((row) => row.projectId === project.id)}
-      <article class="rates__project" data-rates-project={project.id}>
+    <h3 id="rates-people-title" class="page-title-hidden">{t('whichRate')}</h3>
+    {#if rates.projects.length === 0}
+      <p class="rates__muted">{list.total ? t('noMatches') : t('noPeople')}</p>
+    {/if}
+    {#each rates.projects as project (project.id)}
+      {@const isOpen = project.id === openId}
+      <article
+        class="rates__project"
+        class:rates__project--open={isOpen}
+        id={`rates-project-${project.id}`}
+        data-rates-project={project.id}
+      >
         <div class="rates__project-line">
-          <div>
-            <strong>{project.label}</strong>
-            <small class="rates__muted">{project.clientName}</small>
-          </div>
+          <a
+            class="rates__project-toggle"
+            href={`${listHref({ project: isOpen ? '' : project.id })}${isOpen ? '' : `#rates-project-${project.id}`}`}
+            aria-expanded={isOpen}
+            data-sveltekit-noscroll={isOpen ? '' : undefined}
+            data-rates-open={project.id}
+          >
+            <span aria-hidden="true" class="rates__caret">{isOpen ? '▾' : '▸'}</span>
+            <span class="rates__project-name">
+              <strong>{project.label}</strong>
+              <small class="rates__muted"
+                >{project.clientName} · {t('peopleOnProject', {
+                  count: project.peopleCount,
+                })}</small
+              >
+            </span>
+          </a>
           <div class="rates__project-rate">
+            {#if project.missingCount > 0}
+              <span class="rates__chip rates__chip--missing" data-rates-project-missing
+                >{t('missingOnProject', { count: project.missingCount })}</span
+              >
+            {/if}
             <small class="rates__muted">{t('src_project_default')}:</small>
             {#if project.defaultRateMinor}
               <span
-                >{money(project.defaultRateMinor, project.currency)}{unit(project.defaultRateBasis)}</span
+                >{money(project.defaultRateMinor, project.currency)}{unit(
+                  project.defaultRateBasis,
+                )}</span
               >
             {:else}
               <span class="rates__muted">{t('noProjectRate')}</span>
             {/if}
-            {#if canEdit}
+            {#if canEdit && isOpen}
               <button
                 type="button"
                 class="secondary-button"
@@ -247,87 +345,135 @@
                 data-rate-edit-project={project.id}
                 >{project.defaultRateMinor ? t('edit') : t('setProjectRate')}</button
               >
+            {:else if !isOpen}
+              <a
+                class="secondary-button rates__open"
+                href={`${listHref({ project: project.id })}#rates-project-${project.id}`}
+                >{t('openProject')}</a
+              >
             {/if}
           </div>
         </div>
-        {#if editing === formKey('client', project.id, '')}
-          {@render rateForm(
-            'client',
-            project.id,
-            '',
-            project.currency,
-            project.defaultRateMinor,
-            project.defaultRateBasis,
-            `${t('chargeForm')} · ${t('everyone')}`,
-          )}
-        {/if}
-        {#if members.length}
-          <div class="rates__table-wrap">
-            <table class="rates__table" data-rates-people>
-              <thead>
-                <tr>
-                  <th scope="col">{t('person')}</th>
-                  <th scope="col">{t('weCharge')}</th>
-                  <th scope="col">{t('wePay')}</th>
-                  <th scope="col">{t('laborCost')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {#each members as row (row.assignmentId)}
-                  {@render personRow(row)}
-                {/each}
-              </tbody>
-            </table>
-          </div>
-        {:else}
-          <p class="rates__muted">{t('noPeople')}</p>
+        {#if isOpen}
+          {#if editing === formKey('client', project.id, '')}
+            {@render rateForm(
+              'client',
+              project.id,
+              '',
+              project.currency,
+              project.defaultRateMinor,
+              project.defaultRateBasis,
+              `${t('chargeForm')} · ${t('everyone')}`,
+            )}
+          {/if}
+          {#if rates.people.length}
+            <div class="rates__table-wrap">
+              <table class="rates__table" data-rates-people>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('person')}</th>
+                    <th scope="col">{t('weCharge')}</th>
+                    <th scope="col">{t('wePay')}</th>
+                    <th scope="col">{t('laborCost')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each visiblePeople as row (row.assignmentId)}
+                    {@render personRow(row)}
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+            {#if sortedPeople.length > visiblePeople.length}
+              <button
+                type="button"
+                class="secondary-button rates__more"
+                onclick={() => (showAllPeople = true)}
+                data-rates-all-people>{t('showAllPeople', { count: sortedPeople.length })}</button
+              >
+            {/if}
+          {:else}
+            <p class="rates__muted">{t('noPeople')}</p>
+          {/if}
+          <details class="rates__history">
+            <summary>{t('history')}</summary>
+            <p class="rates__muted">{t('historyHelp')}</p>
+            <div class="rates__table-wrap">
+              <table class="rates__table rates__table--history" data-rates-history>
+                <thead>
+                  <tr>
+                    <th scope="col">{t('kind')}</th>
+                    <th scope="col">{t('scope')}</th>
+                    <th scope="col">{t('rateAmount')}</th>
+                    <th scope="col">{t('startsOn')}</th>
+                    <th scope="col">{t('ends')}</th>
+                    <th scope="col">{t('status')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {#each rates.rules as rule (rule.kind + rule.id)}
+                    <tr class:rates__ended={rule.status === 'ended'}>
+                      <td data-label={t('kind')}>{t(`kind_${rule.kind}` as MoneyCopyKey)}</td>
+                      <td data-label={t('scope')}
+                        >{rule.workerName || t('allPeople')} · {rule.projectLabel ||
+                          t('allProjects')}{rule.category ? ` · ${rule.category}` : ''}</td
+                      >
+                      <td data-label={t('rateAmount')}
+                        >{money(rule.rateMinor, rule.currency)}{unit(rule.basis)}</td
+                      >
+                      <td data-label={t('startsOn')}>{shortDate(rule.effectiveFrom)}</td>
+                      <td data-label={t('ends')}
+                        >{rule.effectiveTo ? shortDate(rule.effectiveTo) : '—'}</td
+                      >
+                      <td data-label={t('status')}>{t(rule.status)}</td>
+                    </tr>
+                  {/each}
+                </tbody>
+              </table>
+            </div>
+          </details>
         {/if}
       </article>
     {/each}
+    {#if list.matches > list.limit}
+      <a
+        class="secondary-button rates__more"
+        href={listHref({ show: String(list.limit + 20) })}
+        data-sveltekit-noscroll
+        data-rates-show-more>{t('showMore')}</a
+      >
+    {/if}
   </section>
 
-  <details class="rates__history">
-    <summary>{t('history')}</summary>
-    <p class="rates__muted">{t('historyHelp')}</p>
-    <div class="rates__table-wrap">
-      <table class="rates__table rates__table--history" data-rates-history>
-        <thead>
-          <tr>
-            <th scope="col">{t('kind')}</th>
-            <th scope="col">{t('scope')}</th>
-            <th scope="col">{t('rateAmount')}</th>
-            <th scope="col">{t('startsOn')}</th>
-            <th scope="col">{t('ends')}</th>
-            <th scope="col">{t('status')}</th>
-          </tr>
-        </thead>
-        <tbody>
-          {#each history as rule (rule.kind + rule.id)}
-            <tr class:rates__ended={rule.status === 'ended'}>
-              <td data-label={t('kind')}>{t(`kind_${rule.kind}` as MoneyCopyKey)}</td>
-              <td data-label={t('scope')}
-                >{rule.workerName || t('allPeople')} · {rule.projectLabel || t('allProjects')}{rule.category
-                  ? ` · ${rule.category}`
-                  : ''}</td
-              >
-              <td data-label={t('rateAmount')}>{money(rule.rateMinor, rule.currency)}{unit(rule.basis)}</td>
-              <td data-label={t('startsOn')}>{shortDate(rule.effectiveFrom)}</td>
-              <td data-label={t('ends')}>{rule.effectiveTo ? shortDate(rule.effectiveTo) : '—'}</td>
-              <td data-label={t('status')}>{t(rule.status)}</td>
-            </tr>
-          {/each}
-        </tbody>
-      </table>
-    </div>
-  </details>
-
+  {#if !advanced}
+    {#if openId}
+      <a
+        class="rates__advanced rates__advanced-link"
+        href={`${listHref({ advanced: '1' })}#rates-advanced`}
+        data-rates-advanced-load
+        ><strong>{t('advanced')}</strong>
+        <small class="rates__muted">{t('advancedHelp')}</small></a
+      >
+    {:else}
+      <p class="rates__muted" data-rates-advanced-hint>{t('openForAdvanced')}</p>
+    {/if}
+  {/if}
   {#if advanced}
-    <details class="rates__advanced" data-rates-advanced open={advancedOpen}>
+    <details
+      class="rates__advanced"
+      id="rates-advanced"
+      data-rates-advanced
+      open={advancedOpen}
+      ontoggle={(event) => {
+        if (event.currentTarget.open) advancedToggled = true;
+      }}
+    >
       <summary
         ><strong>{t('advanced')}</strong>
         <small class="rates__muted">{t('advancedHelp')}</small></summary
       >
-      {@render advanced()}
+      <!-- The detailed configuration is large; it is rendered only once opened. -->
+      {#if advancedShown}{@render advanced()}{/if}
     </details>
   {/if}
 </section>
@@ -336,10 +482,12 @@
   <tr data-rate-person={row.assignmentId}>
     <th scope="row">
       <strong>{row.workerName}</strong>
-          </th>
+    </th>
     <td data-label={t('weCharge')}>
       {#if row.clientRateMinor}
-        <span class="rates__amount">{money(row.clientRateMinor, row.currency)}{unit(row.clientRateBasis)}</span>
+        <span class="rates__amount"
+          >{money(row.clientRateMinor, row.currency)}{unit(row.clientRateBasis)}</span
+        >
         <span
           class="rates__chip"
           class:rates__chip--personal={row.clientSource !== 'project_default'}
@@ -477,13 +625,76 @@
     color: #b42318;
     font-weight: 600;
   }
-  .rates__filter {
+  .rates__toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    align-items: flex-end;
+  }
+  .rates__search {
     display: grid;
     gap: 0.25rem;
+    flex: 1 1 18rem;
     max-width: 28rem;
     font-weight: 600;
   }
-  .rates__filter select,
+  .rates__toolbar .rates__only-missing {
+    align-items: center;
+    min-height: 44px;
+    font-weight: 600;
+  }
+  .rates__toolbar button,
+  .rates__toolbar .link-button {
+    min-height: 44px;
+  }
+  .rates__toolbar .link-button {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ja-link, #0b5cad);
+  }
+  .rates__scope {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .rates__project-toggle {
+    display: flex;
+    gap: 0.6rem;
+    align-items: center;
+    min-height: 44px;
+    color: inherit;
+    text-decoration: none;
+    flex: 1 1 18rem;
+    min-width: 0;
+  }
+  .rates__project-toggle:hover strong,
+  .rates__project-toggle:focus-visible strong {
+    text-decoration: underline;
+  }
+  .rates__caret {
+    font-size: 1.1rem;
+    color: var(--ja-steel, #5b6573);
+    width: 1rem;
+  }
+  .rates__project-name {
+    display: grid;
+    min-width: 0;
+  }
+  .rates__project-name strong {
+    overflow-wrap: anywhere;
+  }
+  .rates__project--open {
+    border-color: var(--ja-link, #0b5cad);
+  }
+  .rates__more {
+    justify-self: start;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .rates__search input,
   .rates__fields input,
   .rates__fields select {
     min-height: 44px;
@@ -626,9 +837,6 @@
     justify-content: space-between;
     align-items: center;
   }
-  .rates__project-line > div:first-child {
-    display: grid;
-  }
   .rates__project-rate {
     display: flex;
     gap: 0.6rem;
@@ -644,6 +852,15 @@
     border-radius: 12px;
     padding: 0.8rem 1rem;
     background: var(--ja-white, #fff);
+  }
+  .rates__advanced-link {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.8rem;
+    align-items: center;
+    min-height: 44px;
+    color: inherit;
+    text-decoration: none;
   }
   .rates__history summary,
   .rates__advanced summary {

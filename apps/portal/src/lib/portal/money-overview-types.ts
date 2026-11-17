@@ -45,7 +45,9 @@ export type MoneyProjectRow = {
 export type MoneyOverview = {
   period: { key: MoneyPeriodKey; from: string; to: string; today: string };
   currencies: MoneyCurrencyTotals[];
+  /** One page of the projects with activity, most money waiting first. */
   projects: MoneyProjectRow[];
+  projectList: { active: number; quiet: number; matches: number; search: string; limit: number };
 };
 
 /** "Which rate applies today" for one person on one project. */
@@ -88,19 +90,35 @@ export type RateRuleRow = {
   status: 'current' | 'scheduled' | 'ended';
 };
 
+export type RatesProjectRow = {
+  id: string;
+  label: string;
+  clientName: string;
+  currency: string;
+  defaultRateMinor: string | null;
+  defaultRateBasis: string | null;
+  defaultRuleId: string | null;
+  defaultEffectiveFrom: string | null;
+  /** Active people on the project today, and how many of them have no client rate. */
+  peopleCount: number;
+  missingCount: number;
+};
+
 export type RatesOverview = {
   today: string;
+  /** One page of projects (most missing rates first); details only for the open project. */
+  projects: RatesProjectRow[];
+  projectList: {
+    total: number;
+    matches: number;
+    projectsMissing: number;
+    peopleMissing: number;
+    search: string;
+    missingOnly: boolean;
+    limit: number;
+  };
+  openProjectId: string;
+  /** People and rate history of the open project only. */
   people: RatePersonRow[];
   rules: RateRuleRow[];
-  projects: Array<{
-    id: string;
-    label: string;
-    clientName: string;
-    currency: string;
-    defaultRateMinor: string | null;
-    defaultRateBasis: string | null;
-    defaultRuleId: string | null;
-    defaultEffectiveFrom: string | null;
-  }>;
-  workers: Array<{ id: string; name: string }>;
 };

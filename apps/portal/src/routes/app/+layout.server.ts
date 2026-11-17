@@ -1,12 +1,11 @@
 import type { LayoutServerLoad } from './$types';
 import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
-import { pendingApprovalSummary } from '$lib/portal/home-inbox';
+import { readPendingApprovals } from '$lib/server/approval-queue';
 
 /**
- * The navigation "Approve" badge: the same authorized approval queue the
- * Approvals screen reads, reduced to a count. Presentation only; failures
+ * The navigation "Approve" badge: the same pending count Home and the
+ * Approvals screen show (one server function, `readPendingApprovals`). Presentation only; failures
  * never block the page.
  */
 function approvalPendingCount(locals: App.Locals): number {
@@ -15,13 +14,7 @@ function approvalPendingCount(locals: App.Locals): number {
   try {
     const context = openPortalRepository(locals);
     try {
-      const visible = projectVisibility(context.repository.listAssignedProjects(context.principal));
-      return pendingApprovalSummary(
-        visibleProjectRecords(
-          context.repository.listApprovalQueue(context.principal),
-          visible.projectIds,
-        ),
-      ).total;
+      return readPendingApprovals(context).summary.total;
     } finally {
       context.sqlite.close();
     }

@@ -28,8 +28,7 @@
   const big = (value: string | null | undefined) => BigInt(value ?? '0');
   const periodHref = (key: string) =>
     `${base}/app/finance?view=overview&period=${key}${includeArchived ? '&includeArchived=1' : ''}&${lang}`;
-  const projectHref = (id: string) =>
-    `${base}/app/projects/${encodeURIComponent(id)}?${lang}`;
+  const projectHref = (id: string) => `${base}/app/projects/${encodeURIComponent(id)}?${lang}`;
   const invoiceHref = (id: string) =>
     `${base}/app/billing?project=${encodeURIComponent(id)}&assistantSurface=invoice-create&mode=whole-period&${lang}`;
   const rateHref = (id: string) =>
@@ -53,8 +52,18 @@
       row.readyToInvoiceMinor,
     ].some((value) => big(value) !== 0n);
   const currencies = $derived(overview.currencies.filter(hasMoney));
-  const active = $derived(overview.projects.filter((project) => project.hasActivity));
-  const quiet = $derived(overview.projects.length - active.length);
+  // The server sends one page of projects with activity (most money waiting first).
+  const active = $derived(overview.projects);
+  const list = $derived(overview.projectList);
+  const quiet = $derived(list.quiet);
+  const listHref = (show: number) => {
+    const query = new URLSearchParams({ view: 'overview', period: overview.period.key });
+    if (includeArchived) query.set('includeArchived', '1');
+    if (list.search) query.set('find', list.search);
+    query.set('show', String(show));
+    query.set('lang', locale);
+    return `${base}/app/finance?${query.toString()}#money-projects-title`;
+  };
 </script>
 
 <section class="money" aria-labelledby="money-title" data-money-overview>
@@ -110,7 +119,9 @@
           <strong>{money(row.outstandingMinor, row.currency)}</strong>
           <small>
             {#if big(row.overdueMinor) > 0n}
-              <b class="money__overdue">{t('overdue', { amount: money(row.overdueMinor, row.currency) })}</b>
+              <b class="money__overdue"
+                >{t('overdue', { amount: money(row.overdueMinor, row.currency) })}</b
+              >
               ·
             {/if}
             {t('outstandingHelp', { count: row.openCount })}
@@ -159,8 +170,40 @@
 
   <section class="money__projects" aria-labelledby="money-projects-title">
     <h3 id="money-projects-title">{t('projectsTitle')}</h3>
+    {#if list.active > 0}
+      <form
+        class="money__search"
+        method="GET"
+        action={`${base}/app/finance#money-projects-title`}
+        role="search"
+        data-money-search
+      >
+        <input type="hidden" name="view" value="overview" />
+        <input type="hidden" name="period" value={overview.period.key} />
+        {#if includeArchived}<input type="hidden" name="includeArchived" value="1" />{/if}
+        <input type="hidden" name="lang" value={locale} />
+        <label
+          ><span>{t('searchLabel')}</span>
+          <input
+            type="search"
+            name="find"
+            value={list.search}
+            placeholder={t('moneySearchPlaceholder')}
+            autocomplete="off"
+            data-money-find
+          /></label
+        >
+        <button type="submit" class="secondary-button">{t('searchButton')}</button>
+        {#if list.search}
+          <a class="money__clear" href={periodHref(overview.period.key)}>{t('clearSearch')}</a>
+        {/if}
+      </form>
+      <p class="money__muted money__scope" data-money-scope>
+        {t('showingProjects', { shown: active.length, total: list.matches })} · {t('moneyScope')}
+      </p>
+    {/if}
     {#if active.length === 0}
-      <p class="money__muted">{t('noProjects')}</p>
+      <p class="money__muted">{list.search ? t('noMatches') : t('noProjects')}</p>
     {:else}
       <div class="money__table-wrap">
         <table class="money__table" data-money-projects>
@@ -184,15 +227,19 @@
                     <small>{project.clientName} · {project.projectNumber}</small></a
                   >
                   {#if project.missingRates > 0}
-                    <a class="money__badge" href={rateHref(project.projectId)} data-money-rate-missing
-                      >{t('rateMissing')} · {t('setRate')}</a
+                    <a
+                      class="money__badge"
+                      href={rateHref(project.projectId)}
+                      data-money-rate-missing>{t('rateMissing')} · {t('setRate')}</a
                     >
                   {/if}
                 </th>
                 <td class="num" data-label={t('workValue')}
                   >{money(project.workValueMinor, project.currency)}</td
                 >
-                <td class="num" data-label={t('cost')}>{money(project.costMinor, project.currency)}</td>
+                <td class="num" data-label={t('cost')}
+                  >{money(project.costMinor, project.currency)}</td
+                >
                 <td
                   class="num"
                   class:neg={big(project.marginMinor) < 0n}
@@ -222,6 +269,14 @@
           </tbody>
         </table>
       </div>
+    {/if}
+    {#if list.matches > active.length}
+      <a
+        class="secondary-button money__more"
+        href={listHref(list.limit + 20)}
+        data-sveltekit-noscroll
+        data-money-show-more>{t('showMore')}</a
+      >
     {/if}
     {#if quiet > 0}<p class="money__muted">{t('inactiveProjects', { count: quiet })}</p>{/if}
     {#if currencies.length === 1}
@@ -358,6 +413,46 @@
     border: 1px dashed var(--ja-line, #d9dee5);
     border-radius: 12px;
     margin: 0;
+  }
+  .money__search {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem 1rem;
+    align-items: flex-end;
+    margin-bottom: 0.4rem;
+  }
+  .money__search label {
+    display: grid;
+    gap: 0.25rem;
+    flex: 1 1 16rem;
+    max-width: 26rem;
+    font-weight: 600;
+  }
+  .money__search input {
+    min-height: 44px;
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    border-radius: 8px;
+    padding: 0 0.7rem;
+    font: inherit;
+    background: var(--ja-white, #fff);
+  }
+  .money__search button,
+  .money__clear {
+    min-height: 44px;
+  }
+  .money__clear {
+    display: inline-flex;
+    align-items: center;
+    color: var(--ja-link, #0b5cad);
+  }
+  .money__scope {
+    margin: 0 0 0.6rem;
+  }
+  .money__more {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-top: 0.8rem;
   }
   .money__table-wrap {
     overflow-x: auto;

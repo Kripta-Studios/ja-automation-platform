@@ -44,6 +44,7 @@ import {
   resolveClientLaborRule,
   resolveInternalCostRule,
   resolveWorkerCompensationRule,
+  withCommercialRuleSnapshot,
   type CommercialTermsIssue,
 } from './domains/commercial/assignment-commercial-terms.ts';
 import { runDueConfiguredDurableJobsSync, type DurableJobExecutionContext } from './runner.ts';
@@ -4080,7 +4081,9 @@ export class V3Repository {
     this.assertFinanceReadable(principal);
     this.assertProjectAccess(principal, projectId, true);
     if (periodStart && periodEnd) requireOrderedDateRange(periodStart, periodEnd);
-    return this.projectFinanceCore(projectId, periodStart, periodEnd);
+    return withCommercialRuleSnapshot(this.sqlite, () =>
+      this.projectFinanceCore(projectId, periodStart, periodEnd),
+    );
   }
 
   private projectFinanceCore(projectId: string, periodStart?: string, periodEnd?: string) {
@@ -4131,6 +4134,25 @@ export class V3Repository {
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
       .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
+    // Rule resolution is a pure read of the configuration for (project, worker, category,
+    // date, activity). Entries of the same person, day and category share the answer, so it
+    // is resolved once per key for this read; failures are replayed so every entry still
+    // records its own configuration reason.
+    const ruleResolutions = new Map<string, { value: unknown } | { failure: unknown }>();
+    const resolvedRule = <T>(kind: string, args: readonly unknown[], resolve: () => T): T => {
+      const key = `${kind}:${JSON.stringify(args)}`;
+      let cached = ruleResolutions.get(key);
+      if (!cached) {
+        try {
+          cached = { value: resolve() };
+        } catch (failure) {
+          cached = { failure };
+        }
+        ruleResolutions.set(key, cached);
+      }
+      if ('failure' in cached) throw cached.failure;
+      return cached.value as T;
+    };
     const policyByDate = new Map<string, EffectiveTimeCommercialPolicy | null>();
     const commercialSlicesBySource = new Map<string, readonly TimeCommercialSlice[]>();
     for (const workDate of new Set(time.map((row) => row.work_date))) {
@@ -4233,11 +4255,13 @@ export class V3Repository {
       };
       const financeRules = {
         internalCostFor: (...args: Parameters<V3Repository['internalCostFor']>) =>
-          financeRule(() => this.internalCostFor(...args)),
+          financeRule(() => resolvedRule('internal', args, () => this.internalCostFor(...args))),
         compensationRuleFor: (...args: Parameters<V3Repository['compensationRuleFor']>) =>
-          financeRule(() => this.compensationRuleFor(...args)),
+          financeRule(() =>
+            resolvedRule('compensation', args, () => this.compensationRuleFor(...args)),
+          ),
         clientRateFor: (...args: Parameters<V3Repository['clientRateFor']>) =>
-          financeRule(() => this.clientRateFor(...args)),
+          financeRule(() => resolvedRule('client', args, () => this.clientRateFor(...args))),
       };
       const economicRules = economicRows.map((economicRow) => {
         const internalRate =
@@ -5235,6 +5259,18 @@ export class V3Repository {
   }
 
   financePortfolio(
+    principal: Principal,
+    periodStart?: string,
+    periodEnd?: string,
+    options: Readonly<{ includeArchived?: boolean }> = {},
+  ) {
+    // One read-only rule snapshot for every project of the portfolio.
+    return withCommercialRuleSnapshot(this.sqlite, () =>
+      this.financePortfolioCore(principal, periodStart, periodEnd, options),
+    );
+  }
+
+  private financePortfolioCore(
     principal: Principal,
     periodStart?: string,
     periodEnd?: string,

@@ -1300,7 +1300,7 @@
                                     {#each edit.entries as entry (entry.ref.id)}
                                       <li>
                                         <label class="quick-invoice__entry"
-                                          ><span>{dateText(entry.date)}{#if entry.summary}<small> · {entry.summary}</small>{/if}</span><input
+                                          ><span>{dateText(entry.date)}{#if entry.summary}<small>{" · "}{entry.summary}</small>{/if}</span><input
                                             type="text"
                                             inputmode="decimal"
                                             autocomplete="off"
@@ -1680,6 +1680,7 @@
     font-weight: 600;
     text-decoration: underline;
     cursor: pointer;
+    box-shadow: none;
   }
   .quick-invoice__change {
     display: block;
@@ -1694,6 +1695,7 @@
   }
   .quick-invoice__badge {
     display: inline-block;
+    justify-self: start;
     margin-left: 0.4rem;
     padding: 0 0.4rem;
     border-radius: 999px;
@@ -1702,8 +1704,9 @@
     font-size: 0.75rem;
     font-weight: 600;
   }
-  .quick-invoice__edit-row td {
-    padding-top: 0;
+  .quick-invoice__lines .quick-invoice__edit-row td {
+    display: table-cell;
+    padding: 0 0 0.75rem;
   }
   .quick-invoice__edit {
     display: grid;

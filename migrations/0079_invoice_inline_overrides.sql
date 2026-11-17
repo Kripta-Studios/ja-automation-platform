@@ -132,6 +132,21 @@ CREATE TRIGGER invoice_line_override_retained BEFORE DELETE ON invoice_line_over
 WHEN EXISTS(SELECT 1 FROM invoice WHERE id=OLD.invoice_id AND (state<>'draft' OR invoice_number IS NOT NULL OR issued_at IS NOT NULL))
 BEGIN SELECT RAISE(ABORT,'invoice overrides of an approved or issued invoice are retained'); END;
 
+-- Dated pay / internal cost / client rate lookups (assignment commercial terms resolve one
+-- worker on one project for one date; without these every lookup scanned the table).
+CREATE INDEX IF NOT EXISTS compensation_rule_worker_lookup_idx
+  ON compensation_rule(worker_id,project_id,effective_from,effective_to);
+CREATE INDEX IF NOT EXISTS internal_cost_rule_worker_lookup_idx
+  ON internal_cost_rule(worker_id,project_id,effective_from,effective_to);
+CREATE INDEX IF NOT EXISTS client_labor_rate_category_lookup_idx
+  ON client_labor_rate(project_id,worker_id,category,effective_from,effective_to);
+CREATE INDEX IF NOT EXISTS assignment_rate_override_client_rule_idx
+  ON assignment_rate_override(client_labor_rate_id) WHERE client_labor_rate_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS assignment_rate_override_compensation_rule_idx
+  ON assignment_rate_override(compensation_rule_id) WHERE compensation_rule_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS assignment_rate_override_internal_cost_rule_idx
+  ON assignment_rate_override(internal_cost_rule_id) WHERE internal_cost_rule_id IS NOT NULL;
+
 DROP TRIGGER entity_lifecycle_subject_guard;
 CREATE TRIGGER entity_lifecycle_subject_guard BEFORE INSERT ON entity_lifecycle_event WHEN
   (NEW.entity_type='client' AND NOT EXISTS(SELECT 1 FROM client WHERE id=NEW.entity_id)) OR

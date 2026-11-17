@@ -962,7 +962,7 @@
       "version": 79,
       "canonicalName": "invoice_inline_overrides",
       "file": "0079_invoice_inline_overrides.sql",
-      "sha256": "4329f0df864e288f816ea62d6beb59d801224c1b51069ab48f3c0ddee1ec3c45",
+      "sha256": "4f0b5e5cb8c26d1aa1071824d9398cb6467b78f75f4a830ea828519626dc7fe1",
       "descriptor": "J&A B5 migration 79 invoice_inline_overrides",
       "descriptorSha256": "324533b5c634ec73cb0abdf8f4a8d1fe7ce4ea931b4a96ab56a89807b75cad98",
       "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",

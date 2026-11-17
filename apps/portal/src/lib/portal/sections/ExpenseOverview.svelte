@@ -122,6 +122,7 @@
   );
   const submitOnChange = (event: Event) =>
     (event.currentTarget as HTMLSelectElement).form?.requestSubmit();
+  let filtersOpen = $state(false);
   const reveal = (node: HTMLElement) => {
     node.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   };
@@ -165,6 +166,13 @@
         data-expense-overview-search
       />
     </label>
+    <button
+      type="button"
+      class="secondary-button ov-filter-toggle"
+      aria-expanded={filtersOpen}
+      onclick={() => (filtersOpen = !filtersOpen)}>{c('filters')}{hasFilters ? ' •' : ''}</button
+    >
+    <div class="ov-extra" class:is-open={filtersOpen}>
     {#if overview.period === 'custom'}
       <div class="ov-custom">
         <label><span>{c('from')}</span><input type="date" name="from" value={overview.from} /></label>
@@ -220,6 +228,7 @@
           >
         {/if}
       </div>
+    </div>
     </div>
   </form>
 
@@ -725,6 +734,22 @@
     }
     .ov-categories {
       order: -1;
+    }
+  }
+  .ov-extra {
+    display: grid;
+    gap: 0.6rem;
+  }
+  .ov-form .ov-filter-toggle {
+    display: none;
+  }
+  @media (max-width: 760px) {
+    .ov-form .ov-filter-toggle {
+      display: inline-flex;
+      justify-self: start;
+    }
+    .ov-extra:not(.is-open) {
+      display: none;
     }
   }
 </style>

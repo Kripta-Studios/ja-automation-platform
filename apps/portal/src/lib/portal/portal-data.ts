@@ -1,6 +1,8 @@
 import type { OwnerFinanceSummary } from './owner-finance';
 import type { HomeInbox, WorkerWeekStatus } from './home-inbox';
 import type { MoneyOverview, RatesOverview } from './money-overview-types';
+import type { TimeOverviewData } from './time-overview-types';
+import type { ExpenseOverviewData } from './expense-overview-types';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -103,14 +105,7 @@ export type PortalData = {
   timeDay?: string;
   timeView?: 'capture' | 'overview';
   canReviewTime?: boolean;
-  overview?: {
-    period: string;
-    from: string;
-    to: string;
-    workerId: string;
-    status: string;
-    rows: PortalRow[];
-  };
+  overview?: TimeOverviewData;
   contacts?: PortalRow[];
   /** People directory (projects?view=team) projections; see team-directory-load.ts. */
   teamStats?: PortalRow[];
@@ -201,7 +196,9 @@ export type PortalData = {
   payPeriodProblem?: ProblemData | null;
   weekStart?: string;
   weekEnd?: string;
-  calendarRecords?: PortalRow[];
+  expenseView?: 'capture' | 'overview';
+  expenseOverview?: ExpenseOverviewData;
+  expenseCapture?: { weeks: number; from: string; olderCount: number };
   weekDraftRecords?: PortalRow[];
   timeFilter?: {
     category: string;

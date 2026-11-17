@@ -16,10 +16,19 @@ import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-wor
 import { buildMoneyOverview } from '$lib/server/money-overview';
 import { buildRatesOverview } from '$lib/server/rates-overview';
 import {
+  buildTimeOverview,
+  overviewEntries,
+  overviewFilters,
+  overviewPeriod,
+  type TimeOverviewData,
+} from '$lib/server/time-overview';
+import { buildExpenseOverview, captureExpenses } from '$lib/server/expense-overview';
+import {
   reviewFinanceReimbursement,
   withFinanceReimbursementSnapshot,
 } from '$lib/server/finance-reimbursement-review';
 import type { PageServerLoad } from './$types';
+import type { PortalRow } from '$lib/portal/portal-data';
 import {
   projectManagerApprovalQueueProjection,
   projectManagerMilestoneProjection,
@@ -275,87 +284,30 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           context.principal.role,
         );
         const timeView = canReview && url.searchParams.get('view') === 'overview' ? 'overview' : 'capture';
-        let overview:
-          | {
-              period: string;
-              from: string;
-              to: string;
-              workerId: string;
-              status: string;
-              rows: Array<Record<string, unknown>>;
-            }
-          | undefined;
+        let overview: TimeOverviewData | undefined;
         if (timeView === 'overview') {
-          const today = new Date().toISOString().slice(0, 10);
-          const thisMonday = mondayOf(today);
-          const shift = (date: string, days: number) => {
-            const value = new Date(`${date}T00:00:00.000Z`);
-            value.setUTCDate(value.getUTCDate() + days);
-            return value.toISOString().slice(0, 10);
-          };
-          const period = url.searchParams.get('period') ?? 'this_week';
-          let from = thisMonday;
-          let to = shift(thisMonday, 6);
-          if (period === 'last_week') {
-            from = shift(thisMonday, -7);
-            to = shift(thisMonday, -1);
-          } else if (period === 'this_month') {
-            from = `${today.slice(0, 7)}-01`;
-            to = shift(`${shift(`${today.slice(0, 7)}-28`, 4).slice(0, 7)}-01`, -1);
-          } else if (period === 'last_month') {
-            const lastMonthEnd = shift(`${today.slice(0, 7)}-01`, -1);
-            from = `${lastMonthEnd.slice(0, 7)}-01`;
-            to = lastMonthEnd;
-          } else if (period === 'custom') {
-            const f = url.searchParams.get('from') ?? '';
-            const tt = url.searchParams.get('to') ?? '';
-            if (isRealIsoDate(f)) from = f;
-            if (isRealIsoDate(tt) && tt >= from) to = tt;
-            else to = from > to ? from : to;
-          }
-          const overviewWorker = url.searchParams.get('rworker')?.trim() || '';
-          const overviewStatus = url.searchParams.get('status')?.trim() || '';
-          const rows = visibleProjectRecords(
-            context.repository.listTimeForScope(context.principal, {
-              projectId: selectedProject || undefined,
-              from,
-              to,
-            }),
-            timeScope.projectIds,
-          )
-            .filter(
-              (row) =>
-                !['void', 'rejected'].includes(String(row.approval_state)) &&
-                // A returned entry superseded by its correction counts once, as the correction.
-                !row.active_correction_id &&
-                (!overviewWorker || String(row.worker_id) === overviewWorker) &&
-                (!overviewStatus ||
-                  String(row.approval_state) === overviewStatus ||
-                  (overviewStatus === 'approved' && String(row.approval_state) === 'locked')),
-            )
-            .slice(0, 5000)
-            .map((row) => ({
-              id: row.id,
-              worker_id: row.worker_id,
-              worker_name: row.worker_name,
-              project_id: row.project_id,
-              project_number: row.project_number,
-              project_name: row.project_name,
-              work_date: row.work_date,
-              category: row.category,
-              minutes: row.minutes,
-              approval_state: row.approval_state,
-            }));
-          overview = {
-            period: ['this_week', 'last_week', 'this_month', 'last_month', 'custom'].includes(period)
-              ? period
-              : 'this_week',
-            from,
-            to,
-            workerId: overviewWorker,
-            status: overviewStatus,
-            rows,
-          };
+          const ovWindow = overviewPeriod(url.searchParams);
+          const filters = overviewFilters(url.searchParams);
+          const { entries, workers } = overviewEntries(
+            visibleProjectRecords(
+              context.repository.listTimeForScope(context.principal, {
+                projectId: selectedProject || undefined,
+                from: ovWindow.from,
+                to: ovWindow.to,
+              }),
+              timeScope.projectIds,
+            ),
+            filters,
+          );
+          const known = new Map(workers);
+          for (const worker of timeWorkers) if (!known.has(worker.id)) known.set(worker.id, worker.name);
+          overview = buildTimeOverview({
+            entries,
+            workers: [...known.entries()].sort((x, y) => x[1].localeCompare(y[1])),
+            period: ovWindow,
+            filters,
+            params: url.searchParams,
+          });
         }
         return {
           ...common,
@@ -476,7 +428,36 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             return null;
           }
         })();
-        const records = visibleProjectRecords(authorizedRecords, scope.projectIds)
+        const visibleRecords = visibleProjectRecords(authorizedRecords, scope.projectIds);
+        const canReviewExpenses = ['owner_admin', 'finance_admin', 'project_manager'].includes(
+          context.principal.role,
+        );
+        const expenseView =
+          canReviewExpenses && url.searchParams.get('view') === 'overview' ? 'overview' : 'capture';
+        if (expenseView === 'overview') {
+          // Review: aggregates, top groups and one opened group only (never every expense).
+          return {
+            ...common,
+            projects: scope.projects,
+            expenseView,
+            records: [],
+            expenseOverview: buildExpenseOverview(
+              visibleRecords as Array<Record<string, unknown>>,
+              url.searchParams,
+            ),
+            weekStart,
+            weekEnd,
+            weekDraftRecords: [],
+          };
+        }
+        // Capture: only the person's own recent items (drafts and returned items always).
+        const capture = captureExpenses(visibleRecords as Array<Record<string, unknown>>, {
+          userId: context.principal.userId,
+          createdByMe,
+          weeks: Number(url.searchParams.get('weeks')) || 0,
+          editId: url.searchParams.get('edit') ?? undefined,
+        });
+        const records = (capture.records as typeof visibleRecords)
           .map((row) => (createdByMe?.has(String(row.id)) ? { ...row, created_by_me: 1 } : row))
           .map((row) =>
             ['needs_changes', 'rejected'].includes(String(row.approval_state))
@@ -491,10 +472,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         return {
           ...common,
           projects: scope.projects,
+          expenseView,
           records,
+          expenseCapture: {
+            weeks: capture.weeks,
+            from: capture.from,
+            olderCount: capture.olderCount,
+          },
           weekStart,
           weekEnd,
-          calendarRecords: records,
           weekDraftRecords: visibleProjectRecords(
             records,
             projectVisibility(scope.projects).projectIds,
@@ -1054,10 +1040,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         // Published-schedule filters use workers represented in the authorized
         // schedule, including historical rows whose current assignment ended.
         // Derive options before the Worker filter so users can switch workers.
-        const projectRows = visibleProjectRecords(
+        const allRows = visibleProjectRecords(
           context.repository.listPlanning(context.principal),
           scope.projectIds,
-        ).filter((row) => !selectedProjectId || String(row.project_id) === selectedProjectId);
+        );
+        const projectRows = allRows.filter(
+          (row) => !selectedProjectId || String(row.project_id) === selectedProjectId,
+        );
         const representedWorkers = new Map<string, string>();
         for (const row of projectRows) {
           const id = String(row.worker_id ?? '').trim();
@@ -1108,12 +1097,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             : shiftDays(periodFrom, planningPeriod === 'upcoming' ? 13 : 6);
         const planningSearch = (url.searchParams.get('find') ?? '').trim().slice(0, 120);
         const projectById = new Map(
-          scope.projects.map((project) => [String(project.id), project as Record<string, unknown>]),
+          scope.projects.map((project) => [String(project.id), project as unknown as PortalRow]),
         );
         const filtered = projectRows.filter(
           (row) =>
             (!selectedWorkerId || String(row.worker_id) === selectedWorkerId) &&
-            publishedAssignmentMatches(row, projectById.get(String(row.project_id)), {
+            publishedAssignmentMatches(row as PortalRow, projectById.get(String(row.project_id)), {
               search: planningSearch,
               projectId: '',
               workerId: '',

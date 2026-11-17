@@ -159,6 +159,7 @@
   );
   const drillPages = $derived(drill ? Math.ceil(drill.count / drill.pageSize) : 0);
   const nextShow = $derived(Math.min(overview.others?.count ?? 0, 15));
+  let filtersOpen = $state(false);
   /** Bring the drill-down into view when it opens (paging keeps it mounted). */
   const reveal = (node: HTMLElement) => {
     node.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
@@ -226,6 +227,13 @@
         data-testid="ov-search"
       />
     </label>
+    <button
+      type="button"
+      class="secondary ov-filter-toggle"
+      aria-expanded={filtersOpen}
+      onclick={() => (filtersOpen = !filtersOpen)}>{t('ovFilters')}{hasFilters ? ' •' : ''}</button
+    >
+    <div class="ov-extra" class:is-open={filtersOpen}>
     {#if overview.period === 'custom'}
       <label><span>{t('ovFrom')}</span><input type="date" name="from" value={overview.from} /></label>
       <label><span>{t('ovTo')}</span><input type="date" name="to" value={overview.to} /></label>
@@ -259,6 +267,7 @@
         {/each}
       </select>
     </label>
+    </div>
     <button type="submit" class="secondary">{t('apply')}</button>
     {#if hasFilters}
       <a class="clear" href={href({ ...reset, project: null, rworker: null, status: null, find: null })}>{t('clear')}</a>
@@ -960,7 +969,25 @@
     align-items: center;
     font-weight: 600;
   }
+  .ov-extra {
+    display: contents;
+  }
+  .ov-filters .ov-filter-toggle {
+    display: none;
+  }
   @media (max-width: 760px) {
+    .ov-filters .ov-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+    }
+    .ov-extra {
+      display: grid;
+      gap: 0.5rem;
+      width: 100%;
+    }
+    .ov-extra:not(.is-open) {
+      display: none;
+    }
     .ov-matrix-wrap {
       display: none;
     }

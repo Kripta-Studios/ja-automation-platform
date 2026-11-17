@@ -6,8 +6,15 @@
  * widens what a role can see. Money stays exact (bigint minor units, sent as
  * strings, one total per currency).
  */
-import { expenseReceiptState, expenseSearchMatches } from '$lib/portal/expense-evidence';
-import { expenseStatusOf, type ExpenseStatus } from '$lib/portal/sections/expense-status';
+import {
+  expenseReceiptState as receiptStateOf,
+  expenseSearchMatches,
+} from '$lib/portal/expense-evidence';
+import {
+  expenseStatusOf as statusOfRow,
+  type ExpenseStatus,
+} from '$lib/portal/sections/expense-status';
+import type { PortalRow } from '$lib/portal/portal-data';
 import { personDisplayName } from '$lib/portal/display-name';
 import type {
   ExpenseOverviewData,
@@ -18,6 +25,8 @@ import type {
 import { isRealIsoDate } from './iso-date';
 
 type Row = Record<string, unknown>;
+const expenseStatusOf = (row: Row) => statusOfRow(row as PortalRow);
+const expenseReceiptState = (row: Row) => receiptStateOf(row as PortalRow);
 const text = (row: Row, key: string) => (row[key] === null || row[key] === undefined ? '' : String(row[key]));
 
 export const EXPENSE_GROUPS = 15;
@@ -201,7 +210,7 @@ export function buildExpenseOverview(rows: Row[], params: URLSearchParams, today
   const grouped = new Map<string, { id: string; name: string; rows: Row[]; sums: Map<string, bigint> }>();
   for (const row of inPeriod) {
     const id = groupKey(row);
-    const entry = grouped.get(id) ?? { id, name: groupName(row), rows: [], sums: new Map() };
+    const entry = grouped.get(id) ?? { id, name: groupName(row), rows: [] as Row[], sums: new Map<string, bigint>() };
     entry.rows.push(row);
     addSum(entry.sums, row);
     grouped.set(id, entry);
@@ -260,7 +269,7 @@ export function buildExpenseOverview(rows: Row[], params: URLSearchParams, today
       page,
       pageSize: EXPENSE_PAGE,
       count: items.length,
-      items: items.slice((page - 1) * EXPENSE_PAGE, page * EXPENSE_PAGE).map(project),
+      items: items.slice((page - 1) * EXPENSE_PAGE, page * EXPENSE_PAGE).map(project) as PortalRow[],
     };
   }
 

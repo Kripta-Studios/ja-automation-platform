@@ -152,6 +152,7 @@ const en = {
   ovEntriesRange: 'Entries {from}–{to} of {total}',
   ovPrevious: 'Previous',
   ovNext: 'Next',
+  ovFilters: 'Filters',
 } as const;
 
 type CopyKey = keyof typeof en;
@@ -310,6 +311,7 @@ const es: Record<CopyKey, string> = {
   ovEntriesRange: 'Registros {from}–{to} de {total}',
   ovPrevious: 'Anterior',
   ovNext: 'Siguiente',
+  ovFilters: 'Filtros',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -466,6 +468,7 @@ const pt: Record<CopyKey, string> = {
   ovEntriesRange: 'Registros {from}–{to} de {total}',
   ovPrevious: 'Anterior',
   ovNext: 'Próximo',
+  ovFilters: 'Filtros',
 };
 
 export type TimeWeekCopyKey = CopyKey;

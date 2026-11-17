@@ -831,20 +831,8 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   let selection: InvoiceCompositionSourceRef[] | null = null;
   let mode: 'period' | 'selection' = 'period';
   let excluded: QuickInvoiceWarning[] = [];
-  // Invoice-only changes live on a selected draft, so a later refresh keeps them.
-  if (readiness.state !== 'incomplete' && hasOverrides(input) && stream.streamType !== 'milestone') {
-    selection = eligibleSelection(context, {
-      projectId: input.projectId,
-      billingRuleId: stream.id,
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-    });
-    mode = 'selection';
-    if (!selection.length) {
-      selection = null;
-      mode = 'period';
-    }
-  }
+  // Invoice-only changes are recorded on whichever draft the engine builds (period or
+  // selection); a rebuilt draft inherits them, so no special selection is needed here.
   if (readiness.state === 'incomplete') {
     if (globalReasons.length)
       return {

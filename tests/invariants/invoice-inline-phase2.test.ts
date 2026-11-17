@@ -195,7 +195,7 @@ describe('S6: invoice-only overrides', () => {
   });
 
   it('bills fewer hours for this invoice only, keeps pay hours, and bounds write-ups', () => {
-    const { f, owner, time, context } = setup();
+    const { f, owner, time, context, ruleId } = setup();
     const ids = [time('2026-08-03', 60, 'approved'), time('2026-08-04', 60, 'approved'), time('2026-08-05', 60, 'approved')];
     const plain = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
     expect(plain.totalMinor).toBe('30000');
@@ -214,7 +214,7 @@ describe('S6: invoice-only overrides', () => {
         overrides: { people: [{ workerId: f.worker.userId, billedMinutes: 271 }] },
       }),
     ).toThrow(/1.5/);
-    const created = quickInvoiceCreate(context(owner), {
+    let created = quickInvoiceCreate(context(owner), {
       projectId: f.project.id,
       ...period,
       overrides,
@@ -228,10 +228,13 @@ describe('S6: invoice-only overrides', () => {
     ).toEqual({ billed_minutes: 120, worked_minutes: 180 });
     for (const id of ids)
       expect(f.sqlite.prepare('SELECT minutes FROM time_entry WHERE id=?').get(id)).toEqual({ minutes: 60 });
-    // A refresh of the selected draft keeps the override (engine reads it from the draft).
-    const version = Number((f.sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(created.invoiceId) as { version: number }).version);
-    f.repository.refreshSelectedInvoiceDraft(owner, created.invoiceId, version);
-    expect(f.sqlite.prepare('SELECT CAST(total_minor AS TEXT) t FROM invoice WHERE id=?').get(created.invoiceId)).toEqual({ t: '20000' });
+    // Rebuilding the draft (new approved data, period draft recreated) keeps the override.
+    const rebuilt = f.repository.createInvoiceDraft(owner, ruleId, period.periodStart, period.periodEnd);
+    expect(f.sqlite.prepare('SELECT CAST(total_minor AS TEXT) t FROM invoice WHERE id=?').get(rebuilt.id)).toEqual({ t: '20000' });
+    expect(
+      f.sqlite.prepare('SELECT billed_minutes FROM invoice_line_override WHERE invoice_id=? AND superseded_at IS NULL').get(rebuilt.id),
+    ).toEqual({ billed_minutes: 120 });
+    created = { ...created, invoiceId: rebuilt.id };
     // Approve + issue recompute the fingerprint from the stored overrides.
     f.repository.approveInvoiceDraft(owner, created.invoiceId);
     f.repository.issueInvoice(owner, created.invoiceId, 'en');

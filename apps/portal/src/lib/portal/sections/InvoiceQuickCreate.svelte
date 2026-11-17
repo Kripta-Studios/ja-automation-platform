@@ -1704,7 +1704,7 @@
     font-size: 0.75rem;
     font-weight: 600;
   }
-  .quick-invoice__lines .quick-invoice__edit-row td {
+  .quick-invoice__lines .quick-invoice__edit-row td:first-child {
     display: table-cell;
     padding: 0 0 0.75rem;
   }

@@ -1175,7 +1175,7 @@ export type {
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
 export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
-export { InvoiceLineLabels, invoicePersonName } from './domains/billing/invoice-line-labels.ts';
+export { InvoiceLineLabels, expenseCategoryLabel, invoicePersonName } from './domains/billing/invoice-line-labels.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';

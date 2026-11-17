@@ -421,6 +421,23 @@ const copy = {
     'Se guarda en {client}; se usará también en próximas facturas.',
     'Salvo em {client}; usado também nas próximas faturas.',
   ],
+  expenseSetupOne: [
+    '1 expense ({amounts}) is not set up for invoicing on this project',
+    '1 gasto ({amounts}) no está configurado para facturarse en este proyecto',
+    '1 despesa ({amounts}) não está configurada para faturamento neste projeto',
+  ],
+  expenseSetupMany: [
+    '{count} expenses ({amounts}) are not set up for invoicing on this project',
+    '{count} gastos ({amounts}) no están configurados para facturarse en este proyecto',
+    '{count} despesas ({amounts}) não estão configuradas para faturamento neste projeto',
+  ],
+  expenseSetupHelp: [
+    'They get their own invoice, separate from the hours, with the same company, tax and payment terms, from {date}. The hours stay as they are.',
+    'Se facturan aparte de las horas, con la misma empresa, impuesto y condiciones de pago, desde el {date}. Las horas no cambian.',
+    'São faturadas à parte das horas, com a mesma empresa, imposto e condições de pagamento, a partir de {date}. As horas não mudam.',
+  ],
+  expenseSetupAction: ['Set up expense invoicing', 'Configurar facturación de gastos', 'Configurar faturamento de despesas'],
+  poPerWorker: ['PO per worker', 'PO por persona', 'PO por pessoa'],
   setupBilling: ['How to invoice this project', 'Cómo facturar este proyecto', 'Como faturar este projeto'],
   issuer: ['Issuing company', 'Empresa emisora', 'Empresa emissora'],
   taxPick: ['Tax', 'Impuesto', 'Imposto'],

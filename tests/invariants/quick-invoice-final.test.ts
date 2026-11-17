@@ -11,7 +11,9 @@ import {
   expensePolicyWindow,
   quickInvoiceIssue,
   quickInvoiceSetExpenseTreatment,
+  quickInvoiceIncludePending,
   quickInvoiceSetupBilling,
+  quickInvoiceSetupExpenseBilling,
 } from '../../apps/portal/src/lib/server/billing-quick-invoice-fixes.ts';
 
 /**
@@ -95,11 +97,11 @@ function setup(options: { issuer?: boolean; rule?: boolean } = {}) {
     f.repository.financeApproveTime(finance, row.id, true);
     return row.id;
   };
-  const expense = (date: string, currency: string, amountMinor: bigint, category = 'hotel') =>
+  const expense = (date: string, currency: string, amountMinor: bigint, category = 'hotel', vendor = 'Hotel') =>
     f.repository.createExpense(worker, {
       projectId: f.project.id,
       spentOn: date,
-      vendor: 'Hotel',
+      vendor,
       category,
       description: 'Worker paid stay',
       currency,
@@ -299,5 +301,112 @@ describe('F5 stream starting mid-month', () => {
     });
     expect(preview.state).toBe('empty');
     expect(preview.suggestedPeriod).toEqual({ start: '2026-08-17', end: '2026-08-31' });
+  });
+});
+
+describe('expenses on a labor-only project (post-final)', () => {
+  it('offers a one-step expense stream from the earliest expense, next to an issued labor invoice', () => {
+    const env = setup();
+    const { f, owner, worker, time, expense, context, version } = env;
+    time('2026-08-03', 480);
+    issueLabor(env, 'postfix-labor');
+    const labor = f.sqlite.prepare("SELECT * FROM billing_rule WHERE stream_type='labor'").get();
+    const taxi = expense('2026-08-05', 'USD', 125050n, 'ground_transport', 'Taxi');
+    const meal = expense('2026-08-12', 'EUR', 3100n, 'meals', 'Lunch');
+    f.repository.submitExpense(worker, taxi.id, version(taxi.id));
+    f.repository.submitExpense(worker, meal.id, version(meal.id));
+    // A draft (not submitted) expense is not counted.
+    expense('2026-08-02', 'EUR', 999n);
+
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    expect(preview.state).toBe('existing');
+    const item = preview.attention.find((entry) => entry.kind === 'expenseSetup');
+    expect(item?.expenseSetup).toMatchObject({
+      count: 2,
+      effectiveFrom: '2026-08-05',
+      totals: [
+        { currency: 'EUR', amountMinor: '3100' },
+        { currency: 'USD', amountMinor: '125050' },
+      ],
+    });
+
+    const created = quickInvoiceSetupExpenseBilling(context(owner), { projectId: f.project.id });
+    expect(created.effectiveFrom).toBe('2026-08-05');
+    expect(
+      f.sqlite.prepare("SELECT id,effective_from,effective_to,include_expenses FROM billing_rule WHERE stream_type='expense'").all(),
+    ).toEqual([{ id: created.billingRuleId, effective_from: '2026-08-05', effective_to: null, include_expenses: 0 }]);
+    // The labor stream is untouched and the offer is gone; a second click changes nothing.
+    expect(f.sqlite.prepare("SELECT * FROM billing_rule WHERE stream_type='labor'").get()).toEqual(labor);
+    const after = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    expect(after.attention.some((entry) => entry.kind === 'expenseSetup')).toBe(false);
+    expect(() => quickInvoiceSetupExpenseBilling(context(owner), { projectId: f.project.id })).toThrow(ConflictError);
+
+    // Classify (USD converted at 0.9), approve and issue the expense invoice.
+    const scope = { projectId: f.project.id, ...period, billingRuleId: created.billingRuleId };
+    for (const [row, conversion] of [
+      [taxi, { rate: '0.9' }],
+      [meal, undefined],
+    ] as const)
+      quickInvoiceSetExpenseTreatment(context(owner), {
+        projectId: f.project.id,
+        source: { type: 'expense', id: row.id, version: version(row.id) },
+        treatment: 'reimbursable',
+        markupBps: 0,
+        requestKey: `postfix-classify-${row.id}`,
+        ...(conversion ? { conversion } : {}),
+      });
+    const pending = quickInvoicePreview(context(owner), scope);
+    const sources = pending.attention.flatMap((entry) => entry.people ?? []).flatMap((person) => person.sources ?? []);
+    quickInvoiceIncludePending(context(owner), { ...scope, sources, requestKey: 'postfix-approve' });
+    const ready = quickInvoicePreview(context(owner), scope);
+    expect(ready.state).toBe('ready');
+    const issued = quickInvoiceIssue(context(owner), {
+      ...scope,
+      expectedTotalMinor: ready.totalMinor,
+      requestKey: 'postfix-issue',
+      locale: 'en',
+    });
+    if (!issued.ok) throw new Error(`issue failed: ${issued.reason}`);
+    // Category in words (never the code); the foreign expense shows its original amount and rate.
+    expect(
+      f.sqlite.prepare('SELECT description FROM invoice_line WHERE invoice_id=? ORDER BY description').all(issued.invoiceId),
+    ).toEqual([
+      { description: '2026-08-05 · Taxi · Ground transport · USD 1,250.50 @ 0.90000' },
+      { description: '2026-08-12 · Lunch · Meals' },
+    ]);
+  });
+
+  it('never starts the expense stream inside dates an expense invoice already covers', () => {
+    const env = setup();
+    const { f, owner, worker, expense, context, version } = env;
+    // An earlier, closed expense stream that billed expenses until Aug 10.
+    const old = f.repository.createBillingRule(env.finance, {
+      projectId: f.project.id,
+      legalEntityId: env.entity.id,
+      streamType: 'expense',
+      cadenceType: 'custom',
+      currency: 'EUR',
+      effectiveFrom: '2026-08-01',
+    });
+    f.sqlite.prepare("UPDATE billing_rule SET effective_to='2026-08-10' WHERE id=?").run(old.id);
+    const before = expense('2026-08-06', 'EUR', 1000n);
+    const later = expense('2026-08-14', 'EUR', 2000n);
+    f.repository.submitExpense(worker, before.id, version(before.id));
+    f.repository.submitExpense(worker, later.id, version(later.id));
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    expect(preview.attention.find((entry) => entry.kind === 'expenseSetup')?.expenseSetup).toMatchObject({
+      count: 1,
+      effectiveFrom: '2026-08-14',
+    });
+    expect(quickInvoiceSetupExpenseBilling(context(owner), { projectId: f.project.id }).effectiveFrom).toBe('2026-08-14');
+  });
+
+  it('is not offered to roles that cannot set up billing', () => {
+    const env = setup();
+    const { f, worker, expense, context, version } = env;
+    const row = expense('2026-08-06', 'EUR', 1000n);
+    f.repository.submitExpense(worker, row.id, version(row.id));
+    expect(() => quickInvoiceSetupExpenseBilling(context(worker), { projectId: f.project.id })).toThrow();
+    expect(f.sqlite.prepare("SELECT COUNT(*) n FROM billing_rule WHERE stream_type='expense'").get()).toEqual({ n: 0 });
   });
 });

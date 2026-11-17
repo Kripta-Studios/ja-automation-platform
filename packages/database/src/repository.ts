@@ -8598,6 +8598,7 @@ export class PortalRepository {
           commercial_classification_state: string;
           version: number;
         }>;
+        const expenseLabels = new InvoiceLineLabels(this.sqlite, rule.project_id);
         for (const row of rows.filter((row) =>
           invoiceSourceSelected(selection, 'expense', row.id),
         )) {
@@ -8619,10 +8620,9 @@ export class PortalRepository {
             row.billing_amount_minor ?? row.project_currency_amount_minor ?? row.amount_minor,
           );
           subtotal = add(subtotal, money(rule.currency, billedMinor));
-          const expenseLabel = row.vendor?.trim() || row.description?.trim() || row.category;
           this.insertInvoiceLine(
             id,
-            `${row.spent_on} · ${expenseLabel}${expenseLabel === row.category ? '' : ` · ${row.category}`}`,
+            expenseLabels.expenseDescription(row, rule.currency),
             1,
             1,
             safeInteger(billedMinor),

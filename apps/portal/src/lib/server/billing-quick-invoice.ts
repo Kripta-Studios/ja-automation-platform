@@ -205,6 +205,8 @@ export type QuickInvoiceAttentionPerson = {
 export type QuickInvoiceExpenseRow = {
   ref: InvoiceCompositionSourceRef;
   label: string;
+  /** Canonical category code (shown through the localized category label). */
+  category: string;
   date: string;
   workerName: string;
   amountMinor: string;
@@ -241,6 +243,7 @@ export type QuickInvoiceAttention = {
     | 'clientRate'
     | 'workerCost'
     | 'expenseTreatment'
+    | 'expenseSetup'
     | 'clientDetails'
     | 'billingSetup'
     | 'issuerBank'
@@ -270,9 +273,20 @@ export type QuickInvoiceAttention = {
   /** issuerAuthority: the issuing companies that can issue in the project currency. */
   issuerAuthority?: { legalEntities: IssuerChoice[]; current: string | null };
   project?: { id: string; version: number; poNumber: string | null };
+  /** expenseSetup: expenses no billing stream carries yet (one-step inline setup). */
+  expenseSetup?: ExpenseStreamGap;
   /** workerCost: which of the person's internal settings are missing. */
   payMissing?: boolean;
   costMissing?: boolean;
+};
+
+export type ExpenseStreamGap = {
+  /** Submitted/approved expenses no invoice holds that only a separate expense stream could bill. */
+  count: number;
+  totals: Array<{ currency: string; amountMinor: string }>;
+  /** Start of the new expense stream: the earliest such expense (never inside expense invoices). */
+  effectiveFrom: string;
+  laborRuleId: string;
 };
 
 export type IssuerChoice = { id: string; code: string; name: string; canIssue: boolean };
@@ -1302,6 +1316,7 @@ const KIND_ORDER: QuickInvoiceAttention['kind'][] = [
   'clientRate',
   'workerCost',
   'expenseTreatment',
+  'expenseSetup',
   'clientDetails',
   'billingSetup',
   'issuerAuthority',
@@ -1525,7 +1540,9 @@ function buildAttention(
           : null;
       expenseRows.push({
         ref: { type: 'expense', id: source.id, version: source.version },
-        label: [String(row.category ?? ''), source.summary].filter(Boolean).join(' · '),
+        // The screen puts the category in words (localized); never the stored code.
+        label: source.summary ?? '',
+        category: String(row.category ?? ''),
         date: source.date,
         workerName: personDisplayName(source.workerName),
         amountMinor: String(source.originalAmountMinor ?? source.amountMinor ?? '0'),
@@ -1655,6 +1672,75 @@ function buildAttention(
   return { attention: items, expenseRows, expenseRowsTotal: expenses.length };
 }
 
+/**
+ * A project invoiced for labor only (no expense stream, labor stream without expenses) whose
+ * workers submitted expenses: nothing would ever bill them. Returns what a separate expense
+ * stream would cover, starting at the earliest such expense but never inside dates already
+ * billed by an expense invoice or an earlier expense-carrying stream.
+ */
+export function expenseStreamGap(context: Context, projectId: string): ExpenseStreamGap | null {
+  const sqlite = context.sqlite;
+  const labor = sqlite
+    .prepare(
+      `SELECT id,effective_from,include_expenses FROM billing_rule WHERE project_id=? AND enabled=1
+          AND stream_type='labor' AND effective_to IS NULL ORDER BY effective_from DESC LIMIT 1`,
+    )
+    .get(projectId) as { id: string; effective_from: string; include_expenses: number } | undefined;
+  if (!labor || Number(labor.include_expenses) === 1) return null;
+  if (
+    sqlite
+      .prepare(
+        `SELECT 1 FROM billing_rule WHERE project_id=? AND enabled=1 AND stream_type='expense'
+            AND effective_to IS NULL LIMIT 1`,
+      )
+      .get(projectId)
+  )
+    return null;
+  const floor = (
+    sqlite
+      .prepare(
+        `SELECT MAX(d) d FROM (
+           SELECT MAX(i.period_end) d FROM invoice i WHERE i.project_id=?
+              AND i.state NOT IN ('void','cancelled','superseded')
+              AND (EXISTS(SELECT 1 FROM invoice_source s WHERE s.invoice_id=i.id AND s.source_type='expense')
+                OR EXISTS(SELECT 1 FROM billing_rule br WHERE br.id=i.billing_rule_id AND br.stream_type='expense'))
+           UNION ALL
+           SELECT MAX(bp.period_end) FROM billing_period bp JOIN billing_rule br ON br.id=bp.billing_rule_id
+            WHERE br.project_id=? AND br.stream_type='expense'
+           UNION ALL
+           SELECT MAX(effective_to) FROM billing_rule WHERE project_id=? AND enabled=1
+              AND (stream_type='expense' OR (stream_type='labor' AND include_expenses=1)))`,
+      )
+      .get(projectId, projectId, projectId) as { d: string | null }
+  ).d;
+  const next = floor ? shiftDay(floor, 1) : '0000-01-01';
+  const from = next > labor.effective_from ? next : labor.effective_from;
+  const rows = sqlite
+    .prepare(
+      `SELECT e.currency,CAST(SUM(e.amount_minor) AS TEXT) total,COUNT(*) n,MIN(e.spent_on) first
+         FROM expense e
+        WHERE e.project_id=? AND e.approval_state IN ('submitted','approved') AND e.invoice_id IS NULL
+          AND e.spent_on>=?
+          AND (e.commercial_classification_state='unclassified'
+            OR e.billing_treatment LIKE 'reimbursable%' OR e.billing_treatment='allowance_per_diem')
+          AND NOT EXISTS(SELECT 1 FROM invoice_source s JOIN invoice i ON i.id=s.invoice_id
+                WHERE s.source_type='expense' AND s.source_id=e.id
+                  AND i.state NOT IN ('void','cancelled','superseded'))
+        GROUP BY e.currency ORDER BY e.currency`,
+    )
+    .all(projectId, from) as Array<{ currency: string; total: string; n: number; first: string }>;
+  if (!rows.length) return null;
+  return {
+    count: rows.reduce((total, row) => total + Number(row.n), 0),
+    totals: rows.map((row) => ({ currency: row.currency, amountMinor: row.total })),
+    effectiveFrom: rows.map((row) => row.first).sort()[0]!,
+    laborRuleId: labor.id,
+  };
+}
+
+const shiftDay = (value: string, days: number) =>
+  new Date(Date.parse(`${value}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
 function compute(context: Context, input: QuickInvoiceInput): Computed {
   const base = computeCore(context, input);
   const preview = base.preview;
@@ -1717,6 +1803,15 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     pending,
     client,
   );
+  // Expenses that no stream would ever bill (labor-only project): offer the one-step setup,
+  // whatever the state of these dates (also "already on an invoice").
+  if (stream?.streamType === 'labor' && capabilities.canApprove) {
+    const gap = expenseStreamGap(context, input.projectId);
+    if (gap) {
+      attention.push({ kind: 'expenseSetup', blocks: 'none', totalCount: gap.count, expenseSetup: gap });
+      attention.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
+    }
+  }
   const split = splitByPurchaseOrder(context, input, base, inventory);
   const projectedPreview = projected?.preview;
   const zeroIfNotReady = (state: string, value: string) => (state === 'ready' ? value : '0');
@@ -1928,12 +2023,16 @@ function createGuarded(
       return { ok: false, reason: 'not_ready', preview: publicPreview(compute(context, input).preview) };
     }
     // Different assignment POs: one draft per PO, all or nothing, each exactly as previewed.
-    const inventory = context.repository.invoiceCompositionSources(context.principal, {
-      projectId: input.projectId,
-      billingRuleId: preview.stream.id,
-      periodStart: preview.periodStart,
-      periodEnd: preview.periodEnd,
-    }).sources;
+    // Only labor/expense streams have a per-source inventory (and can split by PO);
+    // milestone streams are invoiced whole.
+    const inventory = ['labor', 'expense'].includes(preview.stream.streamType)
+      ? context.repository.invoiceCompositionSources(context.principal, {
+          projectId: input.projectId,
+          billingRuleId: preview.stream.id,
+          periodStart: preview.periodStart,
+          periodEnd: preview.periodEnd,
+        }).sources
+      : [];
     const split = splitByPurchaseOrder(context, input, computed, inventory);
     if (split || input.expectedSplit) {
       if (!split || split.signature !== input.expectedSplit || split.totalMinor !== input.expectedTotalMinor) {

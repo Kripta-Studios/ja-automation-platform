@@ -31,6 +31,7 @@ import {
   quickInvoiceSetProjectPurchaseOrder,
   quickInvoiceSetRate,
   quickInvoiceSetupBilling,
+  quickInvoiceSetupExpenseBilling,
   quickInvoiceUpdateClient,
   linkReplacement,
 } from '$lib/server/billing-quick-invoice-fixes';
@@ -240,6 +241,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       cadence: z.enum(['manual', 'weekly', 'monthly']).default('manual'),
     })
     .strict(),
+  z.object({ operation: z.literal('setupExpenseBilling'), ...scopeFields }).strict(),
   z.object({ operation: z.literal('setIssuer'), ...scopeFields, legalEntityId: idSchema }).strict(),
   z
     .object({
@@ -422,6 +424,9 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
       case 'setupBilling':
         result = quickInvoiceSetupBilling(context, { ...command, effectiveFrom: command.periodStart });
         break;
+      case 'setupExpenseBilling':
+        result = quickInvoiceSetupExpenseBilling(context, { projectId: command.projectId });
+        break;
       case 'setIssuer':
         result = quickInvoiceSetIssuer(context, command);
         break;
@@ -442,7 +447,15 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         break;
     }
     // One round trip: the fix and the recalculated preview.
-    const preview = quickInvoicePreview(context, command.operation === 'setupBilling' ? { ...scope, billingRuleId: undefined } : scope);
+    // A new stream: setupBilling lets the screen pick it; expense setup opens the expense stream.
+    const preview = quickInvoicePreview(
+      context,
+      command.operation === 'setupBilling'
+        ? { ...scope, billingRuleId: undefined }
+        : command.operation === 'setupExpenseBilling'
+          ? { ...scope, billingRuleId: (result as { billingRuleId: string }).billingRuleId }
+          : scope,
+    );
     return json({ success: true, result, preview }, { headers });
   } catch (caught) {
     if (caught instanceof RateSaveError)

@@ -21,6 +21,7 @@
       | 'clientRate'
       | 'workerCost'
       | 'expenseTreatment'
+      | 'expenseSetup'
       | 'clientDetails'
       | 'billingSetup'
       | 'issuerBank'
@@ -51,12 +52,19 @@
       current: string | null;
     };
     project?: { id: string; version: number; poNumber: string | null };
+    expenseSetup?: {
+      count: number;
+      totals: Array<{ currency: string; amountMinor: string }>;
+      effectiveFrom: string;
+    };
     payMissing?: boolean;
     costMissing?: boolean;
   };
   export type ExpenseRow = {
     ref: AttentionRef;
     label: string;
+    /** Canonical category code, shown through its localized label. */
+    category?: string;
     date: string;
     workerName: string;
     amountMinor: string;
@@ -102,6 +110,7 @@
   import type { PortalLocale } from '../../portal-i18n';
   import { journeyMoney } from '../project-invoice-journey';
   import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
+  import { translateControlledValue } from '../../i18n/controlled-values';
   import {
     quickInvoiceFormat,
     quickInvoiceText,
@@ -161,6 +170,12 @@
       : '';
   const decimal = (minor: string | null | undefined) =>
     minor ? new Intl.NumberFormat(locale, { minimumFractionDigits: 2, useGrouping: false }).format(Number(minor) / 100) : '';
+
+  /** "Taxi · Train / bus / taxi / rideshare": what was bought, then the category in words. */
+  const rowTitle = (row: ExpenseRow) =>
+    [row.label, row.category ? translateControlledValue(locale, 'expenseCategory', row.category) : '']
+      .filter(Boolean)
+      .join(' · ') || '—';
 
   const zeroAmount = $derived(new Intl.NumberFormat(locale, { minimumFractionDigits: 2 }).format(0));
   let busy = $state('');
@@ -652,6 +667,26 @@
             >{f('showMore', { count: rows.length - 5 })}</button
           >
         {/if}
+      {:else if item.kind === 'expenseSetup' && item.expenseSetup}
+        {@const gap = item.expenseSetup}
+        <h4 id={`qa-title-${index}`} data-attention-expense-setup={gap.count}>
+          <span class="qa__dot" aria-hidden="true"></span>
+          {f(gap.count === 1 ? 'expenseSetupOne' : 'expenseSetupMany', {
+            count: gap.count,
+            amounts: gap.totals.map((total) => journeyMoney(total.amountMinor, total.currency, locale)).join(' + '),
+          })}
+        </h4>
+        <p class="qa__muted">{f('expenseSetupHelp', { date: dateText(gap.effectiveFrom) })}</p>
+        <div class="qa__actions">
+          <button
+            type="button"
+            class="primary-button qa__btn"
+            disabled={disabled || Boolean(busy)}
+            onclick={() => act('expenseSetup', 'setupExpenseBilling', {})}
+            data-attention-expense-setup-button>{t('expenseSetupAction')}</button
+          >
+          {@render status('expenseSetup')}
+        </div>
       {:else if item.kind === 'clientDetails' && client}
         <h4 id={`qa-title-${index}`}><span class="qa__dot" aria-hidden="true"></span>{f('clientDetails', { client: client.name })}</h4>
         {#each clientBillingIssues(client) as issue, issueIndex (issueIndex)}
@@ -823,7 +858,7 @@
       <ul class="qa__people">
         {#each excludedRows as row (row.ref.id)}
           <li class="qa__person">
-            <span>{row.label || '—'} · {dateText(row.date)} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
+            <span>{rowTitle(row)} · {dateText(row.date)} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
             <button type="button" class="qa__link" disabled={disabled} onclick={() => onExclude?.(row.ref.id, false)}>{t('expenseInclude')}</button>
           </li>
         {/each}
@@ -847,7 +882,7 @@
   {@const choice = treatmentOf(row)}
   <li class="qa__person qa__expense" data-attention-expense={row.ref.id}>
     <div class="qa__person-main">
-      <strong>{row.label || '—'}</strong>
+      <strong>{rowTitle(row)}</strong>
       <span>{dateText(row.date)} · {row.workerName} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
     </div>
     {#if row.locked}
@@ -902,7 +937,7 @@
         <select
           value={choice.treatment}
           onchange={(event) => setTreatment(row, { treatment: (event.currentTarget as HTMLSelectElement).value })}
-          aria-label={`${t('treatmentLabel')} · ${row.label}`} disabled={disabled || busy === key}>
+          aria-label={`${t('treatmentLabel')} · ${rowTitle(row)}`} disabled={disabled || busy === key}>
           <option value="reimbursable">{t('treatment_reimbursable')}</option>
           <option value="all_in">{t('treatment_all_in')}</option>
           <option value="non_billable">{t('treatment_non_billable')}</option>

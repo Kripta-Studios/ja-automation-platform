@@ -1,4 +1,14 @@
 import type { DatabaseSync } from 'node:sqlite';
+import {
+  divideDecimals,
+  formatMinorPlain,
+  impliedRate,
+  isCurrency,
+  money,
+  parseRate,
+  type Currency,
+} from '@ja/money';
+import { currentCurrencyConversion } from '../fx/currency-conversion.ts';
 
 /**
  * Who and which PO stand behind an invoice line (owner decisions 2026-11-17):
@@ -22,6 +32,56 @@ export function invoicePersonName(name: unknown): string {
   return parts.length
     ? parts.map((part) => part.charAt(0).toLocaleUpperCase() + part.slice(1).toLocaleLowerCase()).join(' ')
     : local;
+}
+
+/** Client-facing names of the canonical expense categories (printed on invoice lines). */
+const EXPENSE_CATEGORY_LABELS: Readonly<Record<string, string>> = {
+  hotel: 'Hotel',
+  accommodation: 'Accommodation',
+  rental_car: 'Rental car',
+  fuel: 'Fuel',
+  tolls: 'Tolls',
+  parking: 'Parking',
+  airfare: 'Airfare',
+  ground_transport: 'Ground transport',
+  meals: 'Meals',
+  per_diem: 'Per diem',
+  materials: 'Project materials',
+  project_materials: 'Project materials',
+  tools: 'Tools / consumables',
+  shipping: 'Shipping',
+  phone_data: 'Phone / data',
+  visa_permit: 'Visa / permit',
+  other: 'Other',
+};
+
+/** "ground_transport" → "Ground transport"; unknown codes are humanized, never printed raw. */
+export function expenseCategoryLabel(category: unknown): string {
+  const code = typeof category === 'string' ? category.trim() : '';
+  if (!code) return '';
+  const known = EXPENSE_CATEGORY_LABELS[code] ?? EXPENSE_CATEGORY_LABELS[code.toLowerCase()];
+  if (known) return known;
+  const words = code.replace(/[_-]+/gu, ' ').trim();
+  return words.charAt(0).toLocaleUpperCase() + words.slice(1);
+}
+
+/** "125050" MXN → "1,250.50"; JPY "1500" → "1,500". */
+function groupedMinor(minor: bigint | number | string, currency: string): string {
+  const [whole, fraction] = formatMinorPlain(minor, currency).split('.');
+  const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/gu, ',');
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`;
+}
+
+/** Display form of an exact rate: 5 decimals below 1 ("0.05390"), else 4 ("18.5534"). */
+function displayRate(rate: string): string | null {
+  const parsed = parseRate(rate);
+  if (!parsed) return null;
+  const digits = parsed.units < 10n ** BigInt(parsed.scale) ? 5 : 4;
+  const rounded = divideDecimals(parsed, { units: 1n, scale: 0 }, digits);
+  const scale = 10n ** BigInt(rounded.scale);
+  const whole = rounded.units / scale;
+  const fraction = rounded.scale ? (rounded.units % scale).toString().padStart(rounded.scale, '0') : '';
+  return `${whole}.${fraction.padEnd(digits, '0')}`;
 }
 
 const hasPoColumn = (sqlite: DatabaseSync): boolean =>
@@ -91,6 +151,54 @@ export class InvoiceLineLabels {
       input.category,
       input.summary?.trim() || null,
     ]
+      .filter((part): part is string => Boolean(part))
+      .join(' · ');
+  }
+
+  /**
+   * "2026-11-04 · Taxi · Ground transport · MXN 1,250.50 @ 0.05390": what was bought, the
+   * category in words (never the stored code) and, for an expense recorded in another currency,
+   * the original amount and the exact conversion rate behind the billed amount.
+   */
+  expenseDescription(
+    input: {
+      id: string;
+      spent_on: string;
+      vendor: string | null;
+      description: string | null;
+      category: string;
+      currency: string;
+      amount_minor: number | bigint | string;
+      project_currency_amount_minor: number | bigint | string | null;
+    },
+    invoiceCurrency: string,
+  ): string {
+    const what = input.vendor?.trim() || input.description?.trim() || '';
+    const category = expenseCategoryLabel(input.category);
+    let original: string | null = null;
+    if (input.currency !== invoiceCurrency) {
+      const conversion = currentCurrencyConversion(this.sqlite, 'expense', input.id, invoiceCurrency);
+      let rate =
+        conversion && conversion.sourceAmountMinor === String(input.amount_minor) ? conversion.rate : null;
+      if (
+        !rate &&
+        input.project_currency_amount_minor !== null &&
+        isCurrency(input.currency) &&
+        isCurrency(invoiceCurrency) &&
+        BigInt(input.amount_minor) > 0n
+      )
+        try {
+          rate = impliedRate(
+            money(input.currency as Currency, BigInt(input.amount_minor)),
+            money(invoiceCurrency as Currency, BigInt(input.project_currency_amount_minor)),
+          );
+        } catch {
+          rate = null;
+        }
+      const shown = rate ? displayRate(rate) : null;
+      original = `${input.currency} ${groupedMinor(input.amount_minor, input.currency)}${shown ? ` @ ${shown}` : ''}`;
+    }
+    return [input.spent_on, what && what !== category ? what : null, category || null, original]
       .filter((part): part is string => Boolean(part))
       .join(' · ');
   }

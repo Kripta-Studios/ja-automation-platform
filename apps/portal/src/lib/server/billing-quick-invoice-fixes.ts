@@ -26,6 +26,7 @@ import { saveRateFromDate } from './rates-core';
 import { applyProjectExpenseConditions } from './expense-conditions';
 import { exactExpenseConversion, type ExpenseConversionEntry } from './expense-conversion';
 import {
+  expenseStreamGap,
   quickInvoiceCreate,
   quickInvoicePreview,
   type QuickInvoiceInput,
@@ -468,6 +469,59 @@ export function quickInvoiceSetupBilling(
   // The same choice is the project's issuing company, so New invoice can issue right away.
   const issuer = ensureProjectIssuer(context, input.projectId, input.legalEntityId, currency, false);
   return { ...rule, issuerAssigned: issuer.assigned };
+}
+
+/**
+ * "Set up expense invoicing" on a labor-only project: one separate expense stream with the
+ * labor stream's terms (issuer, tax, cadence, payment terms, contact), backdated to the earliest
+ * expense no stream bills yet and never inside dates an expense invoice already covers. The
+ * labor stream stays exactly as it is. Returns the new stream so New invoice can switch to it.
+ */
+export function quickInvoiceSetupExpenseBilling(context: Context, input: { projectId: string }) {
+  authorize(context);
+  const project = visibleProject(context, input.projectId);
+  const sqlite = context.sqlite;
+  sqlite.exec('BEGIN IMMEDIATE');
+  try {
+    // Recomputed inside the write lock: a second click (or another tab) finds nothing to do.
+    const gap = expenseStreamGap(context, input.projectId);
+    if (!gap) throw new ConflictError('Expense invoicing is already set up for this project');
+    const labor = sqlite.prepare('SELECT * FROM billing_rule WHERE id=?').get(gap.laborRuleId) as
+      | Record<string, unknown>
+      | undefined;
+    if (!labor || !labor.legal_entity_id) throw new ValidationError('Set up how to invoice this project first');
+    const optional = (value: unknown) => (value === null || value === undefined || value === '' ? undefined : String(value));
+    const created = context.repository.createBillingRule(context.principal, {
+      projectId: input.projectId,
+      legalEntityId: String(labor.legal_entity_id),
+      streamType: 'expense',
+      cadenceType: String(labor.cadence_type),
+      currency: String(project.currency) as Currency,
+      effectiveFrom: gap.effectiveFrom,
+      templateId: 'expenses-detailed',
+      anchorDate: optional(labor.anchor_date),
+      taxProfileId: optional(labor.tax_profile_id),
+      recipientEmail: optional(labor.recipient_email),
+      billingContactId: optional(labor.billing_contact_id),
+      poNumberOverride: optional(labor.po_number_override),
+      semiMonthlyRule: optional(labor.semi_monthly_rule),
+      groupingMode: optional(labor.grouping_mode),
+      ...(labor.payment_terms_days !== null && labor.payment_terms_days !== undefined
+        ? { paymentTermsDays: Number(labor.payment_terms_days) }
+        : {}),
+      ...(labor.monthly_cutoff_day ? { monthlyCutoffDay: Number(labor.monthly_cutoff_day) } : {}),
+    });
+    // createBillingRule writes the audited 'billing_rule.create' event (stream + start date).
+    sqlite.exec('COMMIT');
+    return { billingRuleId: created.id, effectiveFrom: gap.effectiveFrom };
+  } catch (error) {
+    try {
+      sqlite.exec('ROLLBACK');
+    } catch {
+      /* keep the original error */
+    }
+    throw error;
+  }
 }
 
 /**

@@ -547,6 +547,14 @@
       if (body.preview) {
         preview = body.preview;
         requestKey = newKey();
+        if (operation === 'setupExpenseBilling' && response.ok) {
+          // The new expense stream: show it right away (Hours / Expenses switch appears).
+          const created = (body as { result?: { billingRuleId?: string } }).result?.billingRuleId;
+          if (created) streamOverride = created;
+          void reloadProjects();
+          const suggested = body.preview.suggestedPeriod;
+          if (body.preview.state === 'empty' && suggested) useSuggested(suggested);
+        }
         if (operation === 'setupBilling') {
           // The new stream now exists: reload the project list so periods follow it, then
           // open the first billable period of its cycle (auto-jump to the work if needed).
@@ -1034,13 +1042,16 @@
     if (!preview?.stream) return [] as Stream[];
     const all = [preview.stream, ...preview.alternatives].filter(
       (stream) =>
-        ['labor', 'expense'].includes(stream.streamType) &&
-        stream.effectiveFrom <= preview!.periodEnd &&
-        (!stream.effectiveTo || stream.effectiveTo >= preview!.periodStart),
+        // Milestones are invoiced by their own dates (suggested), so they are always offered.
+        (stream.streamType === 'milestone' ||
+          (['labor', 'expense'].includes(stream.streamType) &&
+            stream.effectiveFrom <= preview!.periodEnd &&
+            (!stream.effectiveTo || stream.effectiveTo >= preview!.periodStart))),
     );
     const byKind = new Map<string, Stream>();
     for (const stream of all) if (!byKind.has(stream.streamType) || stream.id === preview.stream.id) byKind.set(stream.streamType, stream);
-    return [...byKind.values()].sort((a, b) => (a.streamType === 'labor' ? -1 : b.streamType === 'labor' ? 1 : 0));
+    const order: Record<string, number> = { labor: 0, expense: 1, milestone: 2 };
+    return [...byKind.values()].sort((a, b) => (order[a.streamType] ?? 9) - (order[b.streamType] ?? 9));
   });
   /** What the screen shows: everything logged (projection) when approvals are pending. */
   const shown = $derived.by(() => {
@@ -1063,6 +1074,10 @@
   );
   /** One invoice per PO (only when the amount shown is what would be created now). */
   const split = $derived(preview?.split && shown === preview ? preview.split : null);
+  /** "Already on an invoice" still offers the one-step expense setup (nothing else to fix there). */
+  const existingExpenseSetup = $derived(
+    preview?.state === 'existing' ? preview.attention.filter((item) => item.kind === 'expenseSetup') : [],
+  );
   const datesAdjusted = $derived(
     Boolean(preview && (preview.periodStart !== periodStart || preview.periodEnd !== periodEnd)),
   );
@@ -1316,12 +1331,12 @@
               </div>
             {/if}
 
-            {#if preview.state !== 'existing' && (preview.attention.length || shown)}
+            {#if (preview.state !== 'existing' && (preview.attention.length || shown)) || existingExpenseSetup.length}
               <QuickInvoiceAttention
                 {locale}
                 role={preview.capabilities.role || role}
                 currency={preview.currency}
-                attention={preview.attention}
+                attention={preview.state === 'existing' ? existingExpenseSetup : preview.attention}
                 expenseRows={preview.expenseRows}
                 client={preview.client}
                 disabled={previewLoading || issuing}
@@ -1617,8 +1632,15 @@
                   </div>
                 {/if}
                 <div>
-                  <dt>{t('po')}</dt>
-                  <dd>{purchaseNo || preview.purchaseNo || '—'}</dd>
+                  {#if split && !purchaseNo}
+                    <dt>{t('poPerWorker')}</dt>
+                    <dd data-quick-invoice-po-split
+                      >{[...new Set(split.parts.map((part) => part.purchaseNo ?? t('splitNoPo')))].join(' · ')}</dd
+                    >
+                  {:else}
+                    <dt>{t('po')}</dt>
+                    <dd>{purchaseNo || preview.purchaseNo || '—'}</dd>
+                  {/if}
                 </div>
                 {#if preview.provisionalNumber}
                   <div>

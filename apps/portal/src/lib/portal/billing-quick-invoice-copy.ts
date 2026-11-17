@@ -485,6 +485,7 @@ const copy = {
     'Las personas de estas fechas tienen PO distintos. Cada factura lleva su PO; se crean todas a la vez.',
     'As pessoas destas datas têm POs diferentes. Cada fatura leva o seu PO; são criadas juntas.',
   ],
+  amountHeadingSplit: ['Amount of these invoices', 'Importe de estas facturas', 'Valor destas faturas'],
   splitNoPo: ['Project PO', 'PO del proyecto', 'PO do projeto'],
   splitIssued: ['{count} invoices issued', '{count} facturas emitidas', '{count} faturas emitidas'],
   splitDrafts: ['{count} drafts saved', '{count} borradores guardados', '{count} rascunhos salvos'],

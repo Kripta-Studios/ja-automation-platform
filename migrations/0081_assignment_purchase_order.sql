@@ -88,3 +88,14 @@ CREATE TABLE invoice_replacement_link(
 CREATE INDEX invoice_replacement_link_voided_idx ON invoice_replacement_link(voided_invoice_id);
 CREATE TRIGGER invoice_replacement_link_no_update BEFORE UPDATE ON invoice_replacement_link
 BEGIN SELECT RAISE(ABORT,'invoice replacement link immutable'); END;
+
+DROP TRIGGER audit_action_registry_manifest_guard;
+INSERT INTO audit_action_registry(contract_version,action,entity_type,actor_kind,owner_packet,data_classification) VALUES
+ ('B5-R4','assignment.po_update','project_member','user','WP-INV3','confidential'),
+ ('B5-R4','invoice.replacement_link','invoice','user','WP-INV3','restricted');
+CREATE TRIGGER audit_action_registry_manifest_guard BEFORE INSERT ON audit_action_registry WHEN NOT EXISTS(
+ SELECT 1 FROM audit_action_registry reviewed WHERE reviewed.contract_version=NEW.contract_version
+ AND reviewed.action=NEW.action AND reviewed.entity_type=NEW.entity_type AND reviewed.actor_kind=NEW.actor_kind
+ AND reviewed.owner_packet=NEW.owner_packet AND reviewed.data_classification=NEW.data_classification
+)
+BEGIN SELECT RAISE(ABORT,'audit action is not in the reviewed manifest'); END;

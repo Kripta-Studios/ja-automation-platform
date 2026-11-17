@@ -94,6 +94,7 @@
   import { tick } from 'svelte';
   import type { PortalLocale } from '../../portal-i18n';
   import { journeyMoney } from '../project-invoice-journey';
+  import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
   import {
     quickInvoiceFormat,
     quickInvoiceText,
@@ -634,6 +635,9 @@
         {/if}
       {:else if item.kind === 'clientDetails' && client}
         <h4 id={`qa-title-${index}`}><span class="qa__dot" aria-hidden="true"></span>{f('clientDetails', { client: client.name })}</h4>
+        {#each clientBillingIssues(client) as issue, issueIndex (issueIndex)}
+          <p class="qa__muted" data-attention-client-issue={issue.code}>{clientBillingIssueText(locale, issue)}</p>
+        {/each}
         {@render clientFields()}
       {:else if item.kind === 'billingSetup' && item.billingSetup}
         {@const options = item.billingSetup}

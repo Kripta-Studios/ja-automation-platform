@@ -53,7 +53,8 @@ describe('invoice inline overrides migration79', () => {
       f.sqlite.prepare('SELECT * FROM migration_contract_metadata WHERE migration_version<=78 ORDER BY migration_version').all(),
     ).toEqual(metadata);
     const after = f.sqlite.prepare('SELECT * FROM audit_action_registry ORDER BY 1,2,3,4').all() as Array<{ action: string }>;
-    expect(after.length - registry.length).toBe(13);
+    // 13 reviewed actions in 0079, plus 2 in 0081 (assignment PO, replacement link).
+    expect(after.length - registry.length).toBe(13 + 2);
     for (const action of [
       'invoice.approve_on_behalf',
       'invoice_line_override.create',

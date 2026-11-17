@@ -435,18 +435,26 @@ export function linkReplacement(
     .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='invoice_replacement_link'")
     .get();
   if (!table) return;
-  const inserted = context.sqlite
-    .prepare(
-      `INSERT OR IGNORE INTO invoice_replacement_link(replacement_invoice_id,voided_invoice_id,project_id,created_by,created_at)
-       VALUES(?,?,?,?,?)`,
-    )
-    .run(replacementInvoiceId, voidedInvoiceId, projectId, context.principal.userId, new Date().toISOString());
-  if (inserted.changes === 1)
-    recordAuditEvent(context.sqlite, context.principal, 'invoice.replacement_link', 'invoice', replacementInvoiceId, {
-      projectId,
-      replacesInvoiceId: voidedInvoiceId,
-      replacesInvoiceNumber: voided.invoice_number,
-    });
+  context.sqlite.exec('SAVEPOINT invoice_replacement_link');
+  try {
+    const inserted = context.sqlite
+      .prepare(
+        `INSERT OR IGNORE INTO invoice_replacement_link(replacement_invoice_id,voided_invoice_id,project_id,created_by,created_at)
+         VALUES(?,?,?,?,?)`,
+      )
+      .run(replacementInvoiceId, voidedInvoiceId, projectId, context.principal.userId, new Date().toISOString());
+    if (inserted.changes === 1)
+      recordAuditEvent(context.sqlite, context.principal, 'invoice.replacement_link', 'invoice', replacementInvoiceId, {
+        projectId,
+        replacesInvoiceId: voidedInvoiceId,
+        replacesInvoiceNumber: voided.invoice_number,
+      });
+    context.sqlite.exec('RELEASE invoice_replacement_link');
+  } catch (error) {
+    context.sqlite.exec('ROLLBACK TO invoice_replacement_link');
+    context.sqlite.exec('RELEASE invoice_replacement_link');
+    throw error;
+  }
 }
 
 /**

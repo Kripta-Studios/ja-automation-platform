@@ -550,7 +550,7 @@
   }
   .hub-team-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     gap: 0.5rem 1rem;
     align-items: center;
     padding: 0.75rem 0;

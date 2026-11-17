@@ -597,6 +597,7 @@
         doneKind = 'issued';
         doneInvoices = body.invoices;
         issueOpen = false;
+        void reloadProjects();
         await loadPreview();
         return;
       }
@@ -1248,7 +1249,7 @@
                 data-quick-invoice-total={preview.totalMinor}
                 data-quick-invoice-shown-total={shown.totalMinor}
               >
-                <span>{preview.projected && shown === preview.projected ? t('ifApproved') : t('amountHeading')}</span>
+                <span>{preview.projected && shown === preview.projected ? t('ifApproved') : split ? t('amountHeadingSplit') : t('amountHeading')}</span>
                 <strong>{money(split ? split.totalMinor : shown.totalMinor)}</strong>
                 {#if preview.projected && BigInt(preview.projected.includedPendingMinor) > 0n}
                   <small data-quick-invoice-projected
@@ -1267,8 +1268,9 @@
                     <li data-quick-invoice-split-part={part.poKey ?? ''}>
                       <span
                         ><b>{part.purchaseNo ? `PO ${part.purchaseNo}` : t('splitNoPo')}</b>
-                        · {part.people.map((person) => person.name).join(', ')}{#if part.people.some((person) => person.minutes)}
-                          · {hours(part.people.reduce((total, person) => total + person.minutes, 0))} h{/if}</span
+                        · {part.people.map((person) => person.name).join(', ')}{part.people.some((person) => person.minutes)
+                          ? ` · ${hours(part.people.reduce((total, person) => total + person.minutes, 0))} h`
+                          : ''}</span
                       >
                       <strong>{money(part.totalMinor)}</strong>
                     </li>
@@ -2189,6 +2191,7 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
+    align-items: center;
     gap: 0.25rem 0.75rem;
     min-width: 0;
     overflow-wrap: anywhere;

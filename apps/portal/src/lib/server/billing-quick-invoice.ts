@@ -22,6 +22,7 @@ import { periodForCadence, type BillingCadence } from '@ja/billing-engine';
 import type { openPortalRepository } from './portal-repository';
 import { personDisplayName } from '../portal/display-name';
 import { InvoiceLineLabels } from '@ja/database';
+import { clientBillingIssues } from '../portal/client-billing-issues';
 
 type Context = ReturnType<typeof openPortalRepository>;
 type Row = Record<string, unknown>;
@@ -1040,7 +1041,17 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
     const current = context.sqlite
       .prepare('SELECT CAST(total_minor AS TEXT) total,invoice_number FROM invoice WHERE id=?')
       .get(readiness.existingInvoiceId) as { total: string; invoice_number: string | null } | undefined;
-    if (current?.total === dryRun.totals.totalMinor)
+    // Records no invoice holds yet (e.g. expenses still waiting for a decision) keep the
+    // screen open on this draft so they can be fixed here, instead of "already on an invoice".
+    const waiting =
+      current?.total === dryRun.totals.totalMinor &&
+      openSources(context, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      }).length > 0;
+    if (current?.total === dryRun.totals.totalMinor && !waiting)
       return {
         preview: {
           ...base,
@@ -1412,7 +1423,7 @@ function buildAttention(
     });
 
   // 5. Client details (saved on the client; drafts read it live, issuing freezes it).
-  if (client && (!client.billingAddress || !client.billingEmail || !client.taxId))
+  if (client && clientBillingIssues(client).length)
     items.push({ kind: 'clientDetails', blocks: 'none', totalCount: 1 });
 
   // 6–8. Billing setup, issuer bank details, other engine reasons, PO.
@@ -1630,7 +1641,7 @@ function splitByPurchaseOrder(
     if (!source) return null;
     const poKey = labels.po(source.workerId, source.date);
     const key = poKey ?? '';
-    const group = groups.get(key) ?? { poKey, refs: [], people: new Map() };
+    const group = groups.get(key) ?? { poKey, refs: [] as InvoiceCompositionSourceRef[], people: new Map() };
     group.refs.push(ref);
     const person = group.people.get(source.workerId) ?? {
       workerId: source.workerId,

@@ -68,6 +68,11 @@ describe('digital work coordination migration77', () => {
               expect(copy.tax_id).toBeNull();
               delete copy.tax_id;
             }
+            if (name === 'project_member') {
+              // 0081 assignment PO starts empty.
+              expect(copy.po_number).toBeNull();
+              delete copy.po_number;
+            }
             return copy;
           },
         ),

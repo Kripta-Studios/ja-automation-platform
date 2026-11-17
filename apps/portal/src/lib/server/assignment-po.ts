@@ -27,15 +27,24 @@ export function setAssignmentPurchaseOrder(
   context.repository.projectOverview(context.principal, input.projectId, { includeFinance: false });
   if (Number(row.version) !== input.version) throw new ConflictError('Assignment changed before update');
   if ((row.po_number ?? null) === poNumber) return { poNumber, version: Number(row.version) };
-  const changed = context.sqlite
-    .prepare('UPDATE project_member SET po_number=?,updated_at=?,version=version+1 WHERE id=? AND version=?')
-    .run(poNumber, new Date().toISOString(), input.assignmentId, input.version);
-  if (changed.changes !== 1) throw new ConflictError('Assignment changed before update');
-  recordAuditEvent(context.sqlite, context.principal, 'assignment.po_update', 'project_member', input.assignmentId, {
-    projectId: input.projectId,
-    workerId: row.user_id,
-    before: { poNumber: row.po_number ?? null },
-    after: { poNumber },
-  });
+  // Change and audit row commit together or not at all.
+  context.sqlite.exec('SAVEPOINT assignment_po');
+  try {
+    const changed = context.sqlite
+      .prepare('UPDATE project_member SET po_number=?,updated_at=?,version=version+1 WHERE id=? AND version=?')
+      .run(poNumber, new Date().toISOString(), input.assignmentId, input.version);
+    if (changed.changes !== 1) throw new ConflictError('Assignment changed before update');
+    recordAuditEvent(context.sqlite, context.principal, 'assignment.po_update', 'project_member', input.assignmentId, {
+      projectId: input.projectId,
+      workerId: row.user_id,
+      before: { poNumber: row.po_number ?? null },
+      after: { poNumber },
+    });
+    context.sqlite.exec('RELEASE assignment_po');
+  } catch (error) {
+    context.sqlite.exec('ROLLBACK TO assignment_po');
+    context.sqlite.exec('RELEASE assignment_po');
+    throw error;
+  }
   return { poNumber, version: Number(row.version) + 1 };
 }

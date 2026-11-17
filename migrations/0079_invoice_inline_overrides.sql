@@ -155,7 +155,9 @@ INSERT INTO audit_action_registry(contract_version,action,entity_type,actor_kind
  ('B5-R4','internal_cost.replace_same_day','internal_cost_rule','user','WP-INV2','restricted'),
  ('B5-R4','security.mfa.login','user','user','WP-MFA','restricted'),
  ('B5-R4','invitation.revoke','invitation','user','WP-B5','confidential'),
- ('B5-R4','project.reactivate','project','user','WP-B5','confidential');
+ ('B5-R4','project.reactivate','project','user','WP-B5','confidential'),
+ ('B5-R4','mailbox.sign_in_block','mailbox','user','WP-MAIL-BE','restricted'),
+ ('B5-R4','mailbox.sign_in_unblock','mailbox','user','WP-MAIL-BE','restricted');
 CREATE TRIGGER audit_action_registry_manifest_guard BEFORE INSERT ON audit_action_registry WHEN NOT EXISTS(
  SELECT 1 FROM audit_action_registry reviewed WHERE reviewed.contract_version=NEW.contract_version
  AND reviewed.action=NEW.action AND reviewed.entity_type=NEW.entity_type AND reviewed.actor_kind=NEW.actor_kind

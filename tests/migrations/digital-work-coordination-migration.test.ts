@@ -56,12 +56,23 @@ describe('digital work coordination migration77', () => {
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 78,
+      version: 79,
     });
+    // Later additive columns (0079 client.tax_id) start empty; existing values are unchanged.
     for (const name of names)
-      expect(f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY id`).all(), name).toEqual(
-        before[name],
-      );
+      expect(
+        (f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY id`).all() as Record<string, unknown>[]).map(
+          (row) => {
+            const copy = { ...row };
+            if (name === 'client') {
+              expect(copy.tax_id).toBeNull();
+              delete copy.tax_id;
+            }
+            return copy;
+          },
+        ),
+        name,
+      ).toEqual(before[name]);
     expect(
       f.sqlite
         .prepare(

@@ -227,6 +227,7 @@ const copy = {
   paymentTerms: ['Payment terms', 'Condiciones de pago', 'Condições de pagamento'],
   paymentTermsDays: ['{days} days', '{days} días', '{days} dias'],
   defaultPo: ['Default PO', 'PO por defecto', 'PO padrão'],
+  taxId: ['Client tax ID', 'NIF/CIF del cliente', 'CNPJ/NIF do cliente'],
   timezone: ['Time zone', 'Zona horaria', 'Fuso horário'],
   currency: ['Currency', 'Moneda', 'Moeda'],
   notSet: ['Not set', 'Sin indicar', 'Não informado'],

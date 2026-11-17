@@ -61,9 +61,9 @@ const labels = {
 } as const;
 
 const identifierLabels = {
-  en: { clientNumber: 'Client no.', clientCode: 'Code', project: 'PROJECT', costCenter: 'COST CENTER' },
-  es: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROYECTO', costCenter: 'CENTRO DE COSTE' },
-  pt: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROJETO', costCenter: 'CENTRO DE CUSTO' },
+  en: { clientNumber: 'Client no.', clientCode: 'Code', project: 'PROJECT', costCenter: 'COST CENTER', taxId: 'Tax ID' },
+  es: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROYECTO', costCenter: 'CENTRO DE COSTE', taxId: 'NIF/CIF' },
+  pt: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROJETO', costCenter: 'CENTRO DE CUSTO', taxId: 'CNPJ/NIF' },
 } as const;
 
 /** One browser-safe, escaped presentation contract for the screen and downloaded invoice. */
@@ -165,9 +165,12 @@ export function renderInvoiceDocument(
         `<div>${field(String(name), value, name === 'issuingAuthority' ? fieldContext.address : '')}</div>`,
     )
     .join('');
+  // Client tax ID: drafts read it live; issued invoices print what their snapshot froze.
+  const clientTaxId = text(client.taxId ?? client.tax_id);
   const partyLines = [
     client.billingContactName ?? client.contactName,
     client.billingAddress ?? client.billing_address,
+    clientTaxId ? `${identifierLabels[rendered.locale].taxId} ${clientTaxId}` : '',
     client.billingEmail ?? client.email,
   ]
     .filter((v) => text(v))

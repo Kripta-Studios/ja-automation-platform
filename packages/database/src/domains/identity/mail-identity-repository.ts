@@ -504,7 +504,12 @@ export class MailIdentityRepository {
 
   recordExternalMutation(
     principal: Principal,
-    action: 'mailbox.create' | 'mailbox.password_update' | 'mailbox.destroy',
+    action:
+      | 'mailbox.create'
+      | 'mailbox.password_update'
+      | 'mailbox.destroy'
+      | 'mailbox.sign_in_block'
+      | 'mailbox.sign_in_unblock',
     stalwartAccountId: string,
     details: Record<string, unknown>,
   ): void {

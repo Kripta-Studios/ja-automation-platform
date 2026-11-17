@@ -67,6 +67,7 @@ export function draftInvoiceTemplateSnapshot(
     client: {
       legalName: invoice.client_legal_name ?? invoice.client_name,
       billingAddress: invoice.client_billing_address,
+      taxId: invoice.client_tax_id,
       number: invoice.client_number,
       code: invoice.client_code,
     },

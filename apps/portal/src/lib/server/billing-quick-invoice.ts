@@ -15,6 +15,7 @@ import {
   assertLiveSession,
   type InvoiceCompositionSource,
   type InvoiceCompositionSourceRef,
+  type InvoiceOverrideInput,
   type ReadinessReason,
 } from '@ja/database';
 import { periodForCadence, type BillingCadence } from '@ja/billing-engine';
@@ -71,6 +72,21 @@ export type QuickInvoiceGroup = {
   unitPriceMinor: string | null;
   amountMinor: string;
   count: number;
+  /** Labor lines: who and which commercial category (target of "this invoice only" changes). */
+  workerId?: string;
+  category?: string;
+  unit?: string;
+  /** Hours worked behind the line (differs from `minutes` when billed hours are overridden). */
+  workedMinutes?: number;
+  overrideRate?: boolean;
+  overrideHours?: boolean;
+};
+
+/** Normalized "this invoice only" changes, echoed so the screen sends them back unchanged. */
+export type QuickInvoiceOverrides = {
+  people: Array<{ workerId: string; category: string | null; rateMinor: string | null; billedMinutes: number | null }>;
+  tax: { mode: 'profile'; taxProfileId: string } | { mode: 'exempt' } | null;
+  purchaseNo: string | null;
 };
 
 export type QuickInvoicePreview = {
@@ -113,7 +129,13 @@ export type QuickInvoicePreview = {
   expenseRows: QuickInvoiceExpenseRow[];
   expenseRowsTotal: number;
   client: QuickInvoiceClient | null;
-  capabilities: { canApprove: boolean; role: string };
+  capabilities: { canApprove: boolean; canCorrectHours: boolean; role: string };
+  /** Invoice-only changes in force for this preview (none: null). */
+  overrides: QuickInvoiceOverrides | null;
+  /** Tax profiles the invoice may use (issuer + currency of the stream). */
+  taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
+  /** The stream's own tax profile (null: none). */
+  streamTaxProfileId: string | null;
 };
 
 export type QuickInvoiceProjection = {
@@ -168,6 +190,7 @@ export type QuickInvoiceClient = {
   legalName: string;
   billingAddress: string | null;
   billingEmail: string | null;
+  taxId: string | null;
 };
 
 export type QuickInvoiceAttention = {
@@ -488,6 +511,12 @@ function groupLines(
         unitPriceMinor: line.unitPriceMinor,
         count: 0,
         amount: 0n,
+        workerId: worker,
+        category,
+        unit,
+        workedMinutes: 0,
+        overrideRate: false,
+        overrideHours: false,
       };
     } else if (line.sourceType === 'expense') {
       key = `expense:${line.description}:${groups.size}`;
@@ -515,8 +544,14 @@ function groupLines(
     const current = groups.get(key) ?? { ...group, amountMinor: '0' };
     current.amount += BigInt(line.subtotalMinor);
     current.count += 1;
-    if (line.sourceType === 'time')
+    if (line.sourceType === 'time') {
       current.minutes += Number(snapshot.commercialBilledMinutes ?? snapshot.minutes ?? 0);
+      current.workedMinutes =
+        (current.workedMinutes ?? 0) +
+        Number(snapshot.workedMinutes ?? snapshot.commercialSliceMinutes ?? snapshot.minutes ?? 0);
+      if (snapshot.overrideRateMinor !== undefined) current.overrideRate = true;
+      if (snapshot.overrideBilledMinutes !== undefined) current.overrideHours = true;
+    }
     if (line.sourceType === 'billing_adjustment')
       current.minutes += Number(snapshot.topUpMinutes ?? 0);
     groups.set(key, current);
@@ -525,6 +560,20 @@ function groupLines(
   return [...groups.values()]
     .sort((a, b) => order[a.kind] - order[b.kind] || a.label.localeCompare(b.label))
     .map(({ amount, ...group }) => ({ ...group, amountMinor: amount.toString() }));
+}
+
+/** Billed-hours overrides: the hours worked come from the override (trimmed slices have no line). */
+function withWorkedMinutes(
+  groups: QuickInvoiceGroup[],
+  overrides: ReadonlyArray<{ target: string; workerId: string | null; category: string | null; workedMinutes: number | null }>,
+): QuickInvoiceGroup[] {
+  return groups.map((group) => {
+    if (group.kind !== 'labor' || !group.overrideHours) return group;
+    const row =
+      overrides.find((item) => item.target === 'person' && item.workerId === group.workerId && item.category === group.category) ??
+      overrides.find((item) => item.target === 'person' && item.workerId === group.workerId && item.category === null);
+    return row?.workedMinutes != null ? { ...group, workedMinutes: row.workedMinutes } : group;
+  });
 }
 
 function issuerWarnings(invoice: Row): QuickInvoiceWarning[] {
@@ -544,7 +593,31 @@ export type QuickInvoiceInput = {
   periodStart: string;
   periodEnd: string;
   billingRuleId?: string;
+  /** "Change for this invoice only": applied inside the draft engine, persisted on the draft. */
+  overrides?: InvoiceOverrideInput | null;
 };
+
+function hasOverrides(input: QuickInvoiceInput): boolean {
+  const value = input.overrides;
+  return Boolean(value && ((value.people?.length ?? 0) > 0 || value.tax || value.purchaseNo?.trim()));
+}
+
+function normalizedOverrides(input: QuickInvoiceInput): QuickInvoiceOverrides | null {
+  if (!hasOverrides(input)) return null;
+  const value = input.overrides!;
+  return {
+    people: (value.people ?? [])
+      .filter((person) => person.rateMinor != null || person.billedMinutes != null)
+      .map((person) => ({
+        workerId: person.workerId,
+        category: person.category ?? null,
+        rateMinor: person.rateMinor ?? null,
+        billedMinutes: person.billedMinutes ?? null,
+      })),
+    tax: value.tax ?? null,
+    purchaseNo: value.purchaseNo?.trim() || null,
+  };
+}
 
 type Computed = {
   preview: QuickInvoicePreview;
@@ -590,7 +663,10 @@ function emptyPreview(
     expenseRows: [],
     expenseRowsTotal: 0,
     client: null,
-    capabilities: { canApprove: false, role: '' },
+    capabilities: { canApprove: false, canCorrectHours: false, role: '' },
+    overrides: null,
+    taxOptions: [],
+    streamTaxProfileId: null,
   };
 }
 
@@ -755,6 +831,20 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   let selection: InvoiceCompositionSourceRef[] | null = null;
   let mode: 'period' | 'selection' = 'period';
   let excluded: QuickInvoiceWarning[] = [];
+  // Invoice-only changes live on a selected draft, so a later refresh keeps them.
+  if (readiness.state !== 'incomplete' && hasOverrides(input) && stream.streamType !== 'milestone') {
+    selection = eligibleSelection(context, {
+      projectId: input.projectId,
+      billingRuleId: stream.id,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+    });
+    mode = 'selection';
+    if (!selection.length) {
+      selection = null;
+      mode = 'period';
+    }
+  }
   if (readiness.state === 'incomplete') {
     if (globalReasons.length)
       return {
@@ -891,7 +981,7 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
       state: 'ready',
       mode,
       currency: dryRun.totals.currency,
-      groups: groupLines(context, dryRun.lines),
+      groups: withWorkedMinutes(groupLines(context, dryRun.lines), dryRun.overrides),
       subtotalMinor: dryRun.totals.subtotalMinor,
       taxMinor: dryRun.totals.taxMinor,
       totalMinor: dryRun.totals.totalMinor,
@@ -1010,7 +1100,8 @@ function suggestedRate(context: Context, projectId: string, workerId: string, da
 function clientOf(context: Context, projectId: string): QuickInvoiceClient | null {
   const row = context.sqlite
     .prepare(
-      `SELECT c.id,c.version,c.display_name,c.legal_name,c.billing_address,c.billing_email
+      `SELECT c.id,c.version,c.display_name,c.legal_name,c.billing_address,c.billing_email,
+              ${context.sqlite.prepare("SELECT 1 FROM pragma_table_info('client') WHERE name='tax_id'").get() ? 'c.tax_id' : 'NULL'} tax_id
          FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
     )
     .get(projectId) as Row | undefined;
@@ -1023,6 +1114,7 @@ function clientOf(context: Context, projectId: string): QuickInvoiceClient | nul
     legalName: String(row.legal_name || ''),
     billingAddress: clean(row.billing_address),
     billingEmail: clean(row.billing_email),
+    taxId: clean(row.tax_id),
   };
 }
 
@@ -1197,7 +1289,7 @@ function buildAttention(
     });
 
   // 5. Client details (saved on the client; drafts read it live, issuing freezes it).
-  if (client && (!client.billingAddress || !client.billingEmail))
+  if (client && (!client.billingAddress || !client.billingEmail || !client.taxId))
     items.push({ kind: 'clientDetails', blocks: 'none', totalCount: 1 });
 
   // 6–8. Billing setup, issuer bank details, other engine reasons, PO.
@@ -1278,7 +1370,11 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
   const base = computeCore(context, input);
   const preview = base.preview;
   const client = clientOf(context, input.projectId);
-  const capabilities = { canApprove: ['owner_admin', 'finance_admin'].includes(context.principal.role), role: context.principal.role };
+  const capabilities = {
+    canApprove: ['owner_admin', 'finance_admin'].includes(context.principal.role),
+    canCorrectHours: ['owner_admin', 'finance_admin'].includes(context.principal.role),
+    role: context.principal.role,
+  };
   let inventory: InvoiceCompositionSource[] = [];
   let pending: InvoiceCompositionSource[] = [];
   let projected: Computed | null = null;
@@ -1355,13 +1451,38 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
       client,
       capabilities,
       suggestedPeriod: pending.length ? null : preview.suggestedPeriod,
+      overrides: normalizedOverrides(input),
+      ...taxChoices(context, stream?.id ?? null),
     },
+  };
+}
+
+/** Active tax profiles for the stream's issuer and currency (the tax chip's choices). */
+function taxChoices(
+  context: Context,
+  ruleId: string | null,
+): Pick<QuickInvoicePreview, 'taxOptions' | 'streamTaxProfileId'> {
+  if (!ruleId) return { taxOptions: [], streamTaxProfileId: null };
+  const rule = context.sqlite
+    .prepare('SELECT tax_profile_id,currency,legal_entity_id FROM billing_rule WHERE id=?')
+    .get(ruleId) as { tax_profile_id: string | null; currency: string; legal_entity_id: string } | undefined;
+  if (!rule) return { taxOptions: [], streamTaxProfileId: null };
+  const rows = context.sqlite
+    .prepare(
+      `SELECT tp.id,tp.name,COALESCE((SELECT SUM(basis_points) FROM tax_component tc WHERE tc.tax_profile_id=tp.id),0) bps
+         FROM tax_profile tp WHERE tp.status='active' AND tp.currency=?
+          AND (tp.legal_entity_id IS NULL OR tp.legal_entity_id=?) ORDER BY tp.name,tp.id LIMIT 50`,
+    )
+    .all(rule.currency, rule.legal_entity_id) as Array<{ id: string; name: string; bps: number }>;
+  return {
+    taxOptions: rows.map((row) => ({ id: row.id, name: row.name, basisPoints: Number(row.bps) })),
+    streamTaxProfileId: rule.tax_profile_id,
   };
 }
 
 export function quickInvoicePreview(context: Context, input: QuickInvoiceInput): QuickInvoicePreview {
   authorize(context);
-  return compute(context, input).preview;
+  return context.repository.withInvoiceOverrides(input.overrides, () => compute(context, input).preview);
 }
 
 export type QuickInvoiceCreateResult =
@@ -1377,6 +1498,14 @@ export function quickInvoiceCreate(
   input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string },
 ): QuickInvoiceCreateResult {
   authorize(context);
+  // Overrides are applied by the engine and recorded on the draft it creates.
+  return context.repository.withInvoiceOverrides(input.overrides, () => createGuarded(context, input));
+}
+
+function createGuarded(
+  context: Context,
+  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string },
+): QuickInvoiceCreateResult {
   if (!/^\d+$/u.test(input.expectedTotalMinor)) throw new ValidationError('Expected total required');
   const sqlite = context.sqlite;
   sqlite.exec('BEGIN IMMEDIATE');

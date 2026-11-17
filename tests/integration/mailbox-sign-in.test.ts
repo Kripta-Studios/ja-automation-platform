@@ -211,7 +211,7 @@ describe('mailbox sign-in from the portal (owner only, audited)', () => {
         "SELECT action,entity_type,entity_id,metadata_json FROM audit_event WHERE entity_id='acct-1' ORDER BY occurred_at DESC LIMIT 1",
       )
       .get() as { action: string; entity_type: string; metadata_json: string };
-    expect(audit.action).toBe('mailbox.password_update');
+    expect(audit.action).toBe('mailbox.sign_in_block');
     expect(audit.entity_type).toBe('mailbox');
     expect(JSON.parse(audit.metadata_json)).toMatchObject({
       operation: 'sign_in_block',

@@ -106,6 +106,7 @@ type InvoiceCopy = Readonly<{
   beneficiary: string;
   pastDueNotice: string;
   purchaseNo: string;
+  clientTaxId: string;
 }>;
 
 export type InvoiceTermsAndInstructions = Readonly<{
@@ -195,6 +196,7 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     pastDueNotice:
       'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
     purchaseNo: 'Purchase No.:',
+    clientTaxId: 'Tax ID',
   },
   es: {
     invoice: 'Factura',
@@ -248,6 +250,7 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     pastDueNotice:
       'Cuentas vencidas sujetas a un cargo del 1.5% mensual y/o el máximo permitido por ley',
     purchaseNo: 'Nº de orden / pedido:',
+    clientTaxId: 'NIF/CIF',
   },
   pt: {
     invoice: 'Fatura',
@@ -301,6 +304,7 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     pastDueNotice:
       'Contas vencidas sujeitas a encargo de 1,5% ao mês e/ou máximo permitido por lei',
     purchaseNo: 'Nº do pedido:',
+    clientTaxId: 'CNPJ/NIF',
   },
 };
 
@@ -620,7 +624,9 @@ const party = (
   const name = entity && (entity.legalName ?? entity.legal_name ?? entity.name);
   const address = entity && (entity.billingAddress ?? entity.billing_address ?? entity.address);
   const email = entity && (entity.billingEmail ?? entity.billing_email ?? entity.email);
-  const fields = [name, address, client ? email : undefined]
+  // Client tax ID (issued snapshots since migration 0079; drafts read it live).
+  const taxId = client && entity ? nonEmptyString(entity.taxId ?? entity.tax_id) : undefined;
+  const fields = [name, address, taxId ? `${localized.clientTaxId} ${taxId}` : undefined, client ? email : undefined]
     .map(nonEmptyString)
     .filter((value): value is string => Boolean(value))
     .map((value) => `<div>${escape(value)}</div>`)

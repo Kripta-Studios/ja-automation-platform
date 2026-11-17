@@ -6329,6 +6329,15 @@ export class PortalRepository {
     }
   }
 
+  private clientTaxIdAvailable: boolean | undefined;
+  /** `client.tax_id` (migration 0079), or NULL on an older schema being upgraded. */
+  private clientTaxIdColumn(): string {
+    this.clientTaxIdAvailable ??= Boolean(
+      this.sqlite.prepare("SELECT 1 FROM pragma_table_info('client') WHERE name='tax_id'").get(),
+    );
+    return this.clientTaxIdAvailable ? 'c.tax_id' : 'NULL';
+  }
+
   /** Active invoice-only overrides recorded on an invoice (rows, for display and audit). */
   listInvoiceOverrides(principal: Principal, invoiceId: string) {
     this.assertActive(principal);
@@ -7915,7 +7924,20 @@ export class PortalRepository {
     principal: Principal,
     input: { projectId: string; sources: readonly InvoiceCompositionSourceRef[] },
   ) {
-    return this.invoiceCompositionService().approve(principal, input);
+    return this.transaction(() => {
+      const approved = this.invoiceCompositionService().approve(principal, input);
+      // Same grouped evidence as the one-screen invoice's "Approve & include".
+      if (approved.length)
+        this.audit(principal, 'invoice.approve_on_behalf', 'project', input.projectId, {
+          event: 'invoice_prep.approve_on_behalf',
+          origin: 'composer',
+          projectId: input.projectId,
+          actorRole: principal.role,
+          refs: approved.map((ref) => ({ type: ref.type, id: ref.id })),
+          expenseCount: approved.filter((ref) => ref.type === 'expense').length,
+        });
+      return approved;
+    });
   }
 
   createSelectedInvoiceDraft(
@@ -7977,6 +7999,8 @@ export class PortalRepository {
         }>;
         preview: ReturnType<PortalRepository['invoicePreview']>;
         issue: { ok: true } | { ok: false; reasons: readonly ReadinessReason[]; message: string };
+        /** Invoice-only overrides the engine recorded on the (rolled back) draft. */
+        overrides: ReturnType<typeof invoiceOverrideRows>;
       }
     | { ok: false; reasons: readonly ReadinessReason[] } {
     this.assertActive(principal);
@@ -8023,6 +8047,7 @@ export class PortalRepository {
       const preview = this.invoicePreview(principal, draft.id);
       return {
         ok: true,
+        overrides: invoiceOverrideRows(this.sqlite, draft.id),
         invoiceId: draft.id,
         created: draft.created || draft.refreshed,
         existingState: draft.existingState ?? null,
@@ -10021,7 +10046,7 @@ export class PortalRepository {
                   le.code,le.legal_name,le.billing_address,le.company_identifiers,
                   le.status legal_entity_status,le.currency legal_entity_currency,
                   c.legal_name client_legal_name,c.client_code,c.client_number,c.billing_address client_billing_address,
-                  c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,c.tax_id client_tax_id,
+                  c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,${this.clientTaxIdColumn()} client_tax_id,
                   p.project_number,p.name project_name,p.cost_center_code,p.po_number,
                   tp.id tax_profile_id,tp.name tax_name,tp.currency tax_currency,tp.status tax_profile_status,
                   tp.jurisdiction_label,tp.description tax_description
@@ -11270,7 +11295,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.cost_center_code,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.client_code,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,c.tax_id client_tax_id,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        `SELECT i.*,p.project_number,p.name project_name,p.cost_center_code,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.client_code,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,${this.clientTaxIdColumn()} client_tax_id,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?`,
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');

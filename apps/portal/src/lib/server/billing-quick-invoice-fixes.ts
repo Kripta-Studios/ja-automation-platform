@@ -203,6 +203,7 @@ export function quickInvoiceUpdateClient(
     billingAddress?: string;
     billingEmail?: string;
     legalName?: string;
+    taxId?: string;
   },
 ) {
   authorize(context);
@@ -216,6 +217,7 @@ export function quickInvoiceUpdateClient(
       ...(input.billingAddress !== undefined ? { billingAddress: input.billingAddress } : {}),
       ...(input.billingEmail !== undefined ? { billingEmail: input.billingEmail } : {}),
       ...(input.legalName !== undefined ? { legalName: input.legalName } : {}),
+      ...(input.taxId !== undefined ? { taxId: input.taxId } : {}),
     },
     input.expectedVersion,
   );
@@ -328,7 +330,12 @@ export function quickInvoiceIssue(
   },
 ): QuickInvoiceIssueResult {
   authorize(context);
-  const created = quickInvoiceCreate(context, input);
+  // A PO for this invoice only is an invoice override (engine, frozen at issue).
+  const po = input.purchaseNo?.trim();
+  const created = quickInvoiceCreate(
+    context,
+    po && !input.overrides?.purchaseNo ? { ...input, overrides: { ...(input.overrides ?? {}), purchaseNo: po } } : input,
+  );
   if (!created.ok) {
     const existing = created.preview.existingInvoice;
     if (created.reason === 'not_ready' && existing && existing.state !== 'draft')
@@ -337,15 +344,6 @@ export function quickInvoiceIssue(
   }
   const invoiceId = created.invoiceId;
   try {
-    if (input.purchaseNo !== undefined && input.purchaseNo.trim()) {
-      const draft = context.sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(invoiceId) as
-        | { version: number }
-        | undefined;
-      context.repository.updateInvoiceDraftCustomizations(context.principal, invoiceId, {
-        expectedVersion: Number(draft?.version ?? 0),
-        purchaseNo: input.purchaseNo.trim().slice(0, 200),
-      });
-    }
     const current = context.sqlite.prepare('SELECT state FROM invoice WHERE id=?').get(invoiceId) as
       | { state: string }
       | undefined;
@@ -364,4 +362,97 @@ export function quickInvoiceIssue(
     .prepare('SELECT state,invoice_number,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?')
     .get(invoiceId) as { state: string; invoice_number: string | null; total: string };
   return { ok: true, invoiceId, number: saved.invoice_number, totalMinor: saved.total, state: saved.state };
+}
+
+/**
+ * Tax of the invoice. "This invoice only" is an invoice override chosen on the screen (a new
+ * profile is created here first so it can be picked); "from this period on" changes the
+ * billing stream (updated in place, or split when issued invoices already used it).
+ */
+export function quickInvoiceSetTax(
+  context: Context,
+  input: QuickInvoiceInput & {
+    scope: 'invoice' | 'fromPeriod';
+    tax: { profileId: string } | { none: true } | { name: string; basisPoints: number };
+  },
+) {
+  authorize(context);
+  const project = visibleProject(context, input.projectId);
+  const preview = quickInvoicePreview(context, { ...input, overrides: null });
+  const stream = preview.stream;
+  if (!stream) throw new ValidationError('Set up billing for this project first');
+  const rule = context.sqlite
+    .prepare('SELECT legal_entity_id,currency,project_id FROM billing_rule WHERE id=?')
+    .get(stream.id) as { legal_entity_id: string; currency: string; project_id: string } | undefined;
+  if (!rule || rule.project_id !== input.projectId) throw new AccessDeniedError('Billing stream is outside this project');
+  let taxProfileId: string | null = null;
+  if ('profileId' in input.tax) taxProfileId = input.tax.profileId;
+  else if ('name' in input.tax)
+    taxProfileId = context.repository.createTaxProfile(context.principal, {
+      legalEntityId: rule.legal_entity_id,
+      name: input.tax.name,
+      currency: String(project.currency) as 'EUR' | 'USD' | 'BRL',
+      effectiveFrom: preview.periodStart,
+      components: [{ name: input.tax.name, basisPoints: input.tax.basisPoints }],
+    }).id;
+  if (input.scope === 'invoice') return { scope: 'invoice' as const, taxProfileId };
+  const changed = context.repository.changeBillingStreamTaxProfile(context.principal, {
+    ruleId: stream.id,
+    taxProfileId,
+    effectiveFrom: preview.periodStart,
+  });
+  return { scope: 'fromPeriod' as const, taxProfileId, ...changed };
+}
+
+/** "Fix the worker's record": one audited hour correction (correct + submit + approve). */
+export function quickInvoiceCorrectHours(
+  context: Context,
+  input: QuickInvoiceInput & {
+    source: InvoiceCompositionSourceRef;
+    minutes: number;
+    reason: string;
+    requestKey: string;
+  },
+) {
+  authorize(context);
+  visibleProject(context, input.projectId);
+  return context.repository.correctHoursForInvoice(context.principal, {
+    projectId: input.projectId,
+    source: input.source,
+    minutes: input.minutes,
+    reason: input.reason,
+    requestKey: input.requestKey,
+    periodStart: input.periodStart,
+    periodEnd: input.periodEnd,
+  });
+}
+
+/** One person's time entries in the invoice scope (at most 50), for per-entry corrections. */
+export function quickInvoiceWorkerEntries(
+  context: Context,
+  input: QuickInvoiceInput & { workerId: string; offset?: number },
+) {
+  authorize(context);
+  visibleProject(context, input.projectId);
+  const preview = quickInvoicePreview(context, { ...input, overrides: null });
+  if (!preview.stream) return { entries: [], total: 0 };
+  const sources = context.repository
+    .invoiceCompositionSources(context.principal, {
+      projectId: input.projectId,
+      billingRuleId: preview.stream.id,
+      periodStart: preview.periodStart,
+      periodEnd: preview.periodEnd,
+    })
+    .sources.filter((source) => source.type === 'time' && source.workerId === input.workerId && source.containingInvoice === null);
+  const offset = Math.max(0, Math.trunc(input.offset ?? 0));
+  return {
+    total: sources.length,
+    entries: sources.slice(offset, offset + 50).map((source) => ({
+      ref: { type: source.type, id: source.id, version: source.version },
+      date: source.date,
+      minutes: Number(source.minutes ?? 0),
+      state: source.approvalState,
+      summary: source.summary,
+    })),
+  };
 }

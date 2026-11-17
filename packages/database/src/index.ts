@@ -324,7 +324,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '6536465701e1d99cff39a9b765eef85cb7dd639f90d3ed79925addee5d015149';
+  '99abf3dcfcc30be184cd0bf54353f632fe729e68a9415a6dd9644a2abeccd467';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1171,6 +1171,7 @@ export type {
   InvoiceCompositionSource,
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
+export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';

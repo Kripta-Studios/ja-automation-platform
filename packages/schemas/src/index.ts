@@ -159,6 +159,7 @@ export const clientUpdateInputSchema = z
     billingAddress: z.string().trim().min(5).max(2000).optional(),
     paymentTermsDays: z.coerce.number().int().min(0).max(365).optional(),
     poReference: z.string().trim().max(200).optional(),
+    taxId: z.string().trim().max(64).optional(),
     notes: z.string().trim().max(5000).optional(),
   })
   .strict();

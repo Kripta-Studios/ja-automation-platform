@@ -396,9 +396,8 @@ export type MailboxSignInOutcome =
 /**
  * Block (or unblock) Webmail/IMAP/POP3 sign-in for one Stalwart mailbox, keep
  * all mail. Canonical Owner only; the Owner mailbox is protected. Audited as
- * an external mailbox mutation (`mailbox.password_update` with
- * `operation: sign_in_block|sign_in_unblock`, the reviewed audit action for
- * mailbox credential changes; no new audit action without a migration).
+ * an external mailbox mutation with the reviewed `mailbox.sign_in_block` /
+ * `mailbox.sign_in_unblock` actions (migration 0079).
  */
 export async function setMailboxSignInBlocked(
   sqlite: DatabaseSync,
@@ -422,7 +421,11 @@ export async function setMailboxSignInBlocked(
   const result = await stalwart.setSignInBlocked(input.stalwartAccountId, input.blocked);
   if (result.email !== email) throw new Error('MAILBOX_NOT_FOUND_IN_STALWART');
   const changed = result.wasBlocked !== input.blocked;
-  repository.recordExternalMutation(principal, 'mailbox.password_update', input.stalwartAccountId, {
+  repository.recordExternalMutation(
+    principal,
+    input.blocked ? 'mailbox.sign_in_block' : 'mailbox.sign_in_unblock',
+    input.stalwartAccountId,
+    {
     operation: input.blocked ? 'sign_in_block' : 'sign_in_unblock',
     outcome: changed
       ? input.blocked

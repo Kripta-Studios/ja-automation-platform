@@ -69,6 +69,7 @@
     legalName: string;
     billingAddress: string | null;
     billingEmail: string | null;
+    taxId?: string | null;
   };
   export type RunResult = {
     success?: boolean;
@@ -110,6 +111,7 @@
     fixHref,
     otherText,
     recordHref,
+    onInvoiceRate,
   }: {
     locale?: PortalLocale;
     role?: string;
@@ -125,6 +127,8 @@
     otherText: (item: AttentionItem) => string;
     /** Where the worker's records are fixed with the existing audited correction flow. */
     recordHref: (workerId: string) => string;
+    /** "Save as project rate" unticked: the rate applies to this invoice only (override). */
+    onInvoiceRate?: (workerId: string, amount: string) => Promise<boolean>;
   } = $props();
 
   const t = (key: QuickInvoiceCopyKey) => quickInvoiceText(locale, key);
@@ -151,7 +155,7 @@
   let rates = $state<Record<string, string>>({});
   let saveAsProject = $state<Record<string, boolean>>({});
   let treatments = $state<Record<string, { treatment: string; markup: string }>>({});
-  let clientForm = $state({ billingAddress: '', billingEmail: '', legalName: '' });
+  let clientForm = $state({ billingAddress: '', billingEmail: '', legalName: '', taxId: '' });
   let clientFormFor = $state('');
   let setup = $state({ legalEntityId: '', tax: 'none', taxName: '', taxPercent: '', cadence: 'manual' });
   let bank = $state({ bankName: '', bankAccountNumber: '' });
@@ -170,6 +174,7 @@
         billingAddress: client.billingAddress ?? '',
         billingEmail: client.billingEmail ?? '',
         legalName: client.legalName ?? '',
+        taxId: client.taxId ?? '',
       };
     }
   });
@@ -237,6 +242,21 @@
     const amount = (rates[key] ?? '').trim();
     if (!/^\d{1,10}(?:[.,]\d{1,2})?$/u.test(amount) || Number(amount.replace(',', '.')) <= 0) {
       errors = { ...errors, [key]: t('rateZero') };
+      return;
+    }
+    if (kind === 'client' && saveAsProject[person.workerId] === false && onInvoiceRate) {
+      busy = key;
+      errors = { ...errors, [key]: '' };
+      try {
+        if (await onInvoiceRate(person.workerId, amount)) {
+          saved = key;
+          setTimeout(() => {
+            if (saved === key) saved = '';
+          }, 3000);
+        } else errors = { ...errors, [key]: f('fixFailed', { reason: '—' }) };
+      } finally {
+        busy = '';
+      }
       return;
     }
     const result = await act(key, 'setRate', {
@@ -311,9 +331,12 @@
     const states = person.states;
     if (!states) return '';
     const parts: string[] = [];
-    if (states.draft) parts.push(`${states.draft} ${t('stateDraft')}`);
-    if (states.submitted) parts.push(`${states.submitted} ${t('stateSubmitted')}`);
-    if (states.returned) parts.push(`${states.returned} ${t('stateReturned')}`);
+    // Plural words agree with the number ("6 borradores · 2 enviadas").
+    const word = (count: number, one: QuickInvoiceCopyKey, many: QuickInvoiceCopyKey) =>
+      `${count} ${t(count === 1 ? one : many)}`;
+    if (states.draft) parts.push(word(states.draft, 'stateDraft', 'stateDraftMany'));
+    if (states.submitted) parts.push(word(states.submitted, 'stateSubmitted', 'stateSubmittedMany'));
+    if (states.returned) parts.push(word(states.returned, 'stateReturned', 'stateReturnedMany'));
     if (states.financePending) parts.push(`${states.financePending} ${t('stateFinance')}`);
     return parts.join(' · ');
   };
@@ -402,8 +425,6 @@
                 </div>
               {/if}
               {#if openPop === `fix:${person.workerId}`}
-                <!-- Extension point (phase 2, S6): "Only on the invoice (worker's hours unchanged)"
-                     becomes the default here once invoice-only overrides exist. -->
                 <div class="qa__pop" role="dialog" aria-modal="false" aria-label={t('fixRecord')}>
                   <p>{t('fixRecordHelp')}</p>
                   <div class="qa__pop-actions">
@@ -497,7 +518,7 @@
                   <button
                     type="button"
                     class="secondary-button qa__btn"
-                    disabled={disabled || Boolean(busy) || (kind === 'client' && saveAsProject[person.workerId] === false)}
+                    disabled={disabled || Boolean(busy)}
                     onclick={() => saveRate(kind, person, alsoCost)}>{t('save')}</button
                   >
                 </span>
@@ -733,20 +754,31 @@
       >
       <label class="qa__field"><span>{t('billingEmail')}</span><input type="email" maxlength="254" bind:value={clientForm.billingEmail} /></label>
       <label class="qa__field"><span>{t('legalName')}</span><input maxlength="300" bind:value={clientForm.legalName} /></label>
+      <label class="qa__field"
+        ><span>{t('taxId')}</span><input
+          maxlength="64"
+          autocomplete="off"
+          placeholder="B12345678"
+          bind:value={clientForm.taxId}
+          aria-describedby="qa-taxid-help"
+          data-attention-client-taxid
+        /><small id="qa-taxid-help" class="qa__muted">{t('taxIdHelp')}</small></label
+      >
     </div>
     <p class="qa__muted">{f('clientSavedFuture', { client: client.name })}</p>
     <div class="qa__actions">
       <button
         type="button"
         class="secondary-button qa__btn"
-        disabled={disabled || Boolean(busy) || !clientForm.billingAddress.trim()}
+        disabled={disabled || Boolean(busy) || (!clientForm.billingAddress.trim() && !client.billingAddress)}
         onclick={() =>
           act('client', 'updateClient', {
             clientId: client.id,
             expectedVersion: client.version,
-            billingAddress: clientForm.billingAddress.trim(),
+            ...(clientForm.billingAddress.trim() ? { billingAddress: clientForm.billingAddress.trim() } : {}),
             billingEmail: clientForm.billingEmail.trim(),
             ...(clientForm.legalName.trim() ? { legalName: clientForm.legalName.trim() } : {}),
+            taxId: clientForm.taxId.trim(),
           })}
         data-attention-client-save>{t('save')}</button
       >

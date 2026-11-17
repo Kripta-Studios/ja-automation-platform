@@ -77,7 +77,28 @@
     unitPriceMinor: string | null;
     amountMinor: string;
     count: number;
+    workerId?: string;
+    category?: string;
+    unit?: string;
+    workedMinutes?: number;
+    overrideRate?: boolean;
+    overrideHours?: boolean;
   };
+  /** "Change for this invoice only" (sent with every preview/create/issue; never money math). */
+  type PersonOverride = {
+    workerId: string;
+    category: string | null;
+    rate?: string;
+    rateMinor?: string | null;
+    billedHours?: string;
+    billedMinutes?: number | null;
+  };
+  type Overrides = {
+    people: PersonOverride[];
+    tax: { mode: 'profile'; taxProfileId: string } | { mode: 'exempt' } | null;
+    purchaseNo: string | null;
+  };
+  type Entry = { ref: { type: 'time'; id: string; version: number }; date: string; minutes: number; state: string; summary: string };
   type Preview = {
     state: 'ready' | 'blocked' | 'empty' | 'existing';
     stream: Stream | null;
@@ -121,7 +142,10 @@
     expenseRows: ExpenseRow[];
     expenseRowsTotal: number;
     client: AttentionClient | null;
-    capabilities: { canApprove: boolean; role: string };
+    capabilities: { canApprove: boolean; canCorrectHours?: boolean; role: string };
+    overrides: Overrides | null;
+    taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
+    streamTaxProfileId: string | null;
   };
   type PeriodChoice = { id: string; label: string; start: string; end: string };
 
@@ -172,6 +196,30 @@
   let purchaseNo = $state('');
   let issueMessage = $state('');
   let issueFailedInvoice = $state('');
+  const noOverrides = (): Overrides => ({ people: [], tax: null, purchaseNo: null });
+  let overrides = $state<Overrides>(noOverrides());
+  /** Open "Change" panel of a labor line (`worker:category`) or 'tax'. */
+  let editing = $state('');
+  let edit = $state({
+    rate: '',
+    hours: '',
+    scope: 'invoice' as 'invoice' | 'record',
+    reason: '',
+    entries: [] as Entry[],
+    entryHours: {} as Record<string, string>,
+    loading: false,
+    error: '',
+    saving: false,
+  });
+  let taxEdit = $state({
+    choice: '',
+    scope: 'invoice' as 'invoice' | 'fromPeriod',
+    error: '',
+    saving: false,
+    note: '',
+    newName: '',
+    newPercent: '',
+  });
   let controller: AbortController | null = null;
   // Opening a project tries its default dates; when nothing is billable there but approved,
   // unbilled work exists elsewhere, jump to the suggested dates (at most a few times).
@@ -270,6 +318,7 @@
   });
 
   function chooseProject(id: string): void {
+    resetOverrides();
     projectId = id;
     choosingProject = false;
     query = '';
@@ -283,6 +332,7 @@
   }
 
   function applyChoice(choice: PeriodChoice): void {
+    resetOverrides();
     autoPeriod = false;
     autoAdjusted = false;
     choiceId = choice.id;
@@ -292,6 +342,7 @@
   }
 
   function applyCustom(): void {
+    resetOverrides();
     autoPeriod = false;
     autoAdjusted = false;
     choiceId = 'custom';
@@ -322,14 +373,28 @@
     previewFailed = false;
     const params = new URLSearchParams({ projectId, periodStart, periodEnd });
     if (streamOverride) params.set('billingRuleId', streamOverride);
+    const sent = overridesPayload();
+    if (sent) params.set('overrides', JSON.stringify(sent));
     try {
       const response = await fetch(`${api}?${params}`, {
         signal: current.signal,
         headers: { accept: 'application/json' },
       });
-      const body = (await response.json()) as { success?: boolean; preview?: Preview };
+      const body = (await response.json()) as { success?: boolean; preview?: Preview; detail?: string };
       if (controller !== current) return;
+      if (!response.ok && sent && lastGoodOverrides) {
+        // An invoice-only change the engine refused (e.g. more than 1.5 × the hours worked):
+        // keep the previous changes and say why.
+        overrides = lastGoodOverrides;
+        overrideError = body.detail ?? t('hoursInvalid');
+        controller = null;
+        previewLoading = false;
+        void loadPreview();
+        return;
+      }
       if (!response.ok || !body.preview) throw new Error('preview failed');
+      overrideError = '';
+      syncOverrides(body.preview);
       const suggested = body.preview.suggestedPeriod;
       if (autoPeriod && body.preview.state === 'empty' && suggested) {
         autoVisited.push(`${periodStart}:${periodEnd}`);
@@ -372,6 +437,7 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           expectedTotalMinor: preview.totalMinor,
           requestKey,
         }),
@@ -413,6 +479,7 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...payload,
         }),
       });
@@ -460,10 +527,10 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           expectedTotalMinor: preview.totalMinor,
           requestKey,
           locale: locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en',
-          ...(purchaseNo ? { purchaseNo } : {}),
         }),
       });
       const body = (await response.json()) as {
@@ -497,6 +564,289 @@
       issuing = false;
     }
   }
+
+  let lastGoodOverrides: Overrides | null = null;
+  let overrideError = $state('');
+
+  /** Overrides to send (PO "for this invoice" included), or null when there are none. */
+  function overridesPayload(): Overrides | null {
+    const po = purchaseNo.trim() || overrides.purchaseNo;
+    if (!overrides.people.length && !overrides.tax && !po) return null;
+    return { people: overrides.people, tax: overrides.tax, purchaseNo: po || null };
+  }
+
+  /** Keep the server-normalized form (minor units / minutes) once the engine accepted it. */
+  function syncOverrides(next: Preview): void {
+    const echoed = next.overrides;
+    overrides = echoed
+      ? {
+          people: echoed.people.map((person) => ({
+            workerId: person.workerId,
+            category: person.category,
+            rateMinor: person.rateMinor,
+            billedMinutes: person.billedMinutes,
+          })),
+          tax: echoed.tax,
+          purchaseNo: overrides.purchaseNo,
+        }
+      : { ...noOverrides(), purchaseNo: overrides.purchaseNo };
+    lastGoodOverrides = JSON.parse(JSON.stringify(overrides)) as Overrides;
+  }
+
+  function resetOverrides(): void {
+    overrides = noOverrides();
+    lastGoodOverrides = null;
+    overrideError = '';
+    editing = '';
+  }
+
+  function setPersonOverride(workerId: string, category: string | null, patch: Partial<PersonOverride>): void {
+    const others = overrides.people.filter((person) => !(person.workerId === workerId && person.category === category));
+    const current = overrides.people.find((person) => person.workerId === workerId && person.category === category) ?? {
+      workerId,
+      category,
+    };
+    const next = { ...current, ...patch };
+    const empty =
+      next.rate === undefined &&
+      (next.rateMinor === undefined || next.rateMinor === null) &&
+      next.billedHours === undefined &&
+      (next.billedMinutes === undefined || next.billedMinutes === null);
+    overrides = { ...overrides, people: empty ? others : [...others, next] };
+  }
+
+  /** Attention "Save as project rate" unticked: the rate applies to this invoice only. */
+  async function invoiceRate(workerId: string, amount: string): Promise<boolean> {
+    setPersonOverride(workerId, null, { rate: amount, rateMinor: undefined });
+    await loadPreview();
+    return !overrideError && !previewFailed;
+  }
+
+  const lineKey = (group: Group) => `${group.workerId ?? ''}:${group.category ?? ''}`;
+  const decimalText = (minor: string | null | undefined) =>
+    minor ? new Intl.NumberFormat(locale, { minimumFractionDigits: 2, useGrouping: false }).format(Number(minor) / 100) : '';
+  const hoursText = (minutes: number) =>
+    new Intl.NumberFormat(locale, { maximumFractionDigits: 2, useGrouping: false }).format(minutes / 60);
+  const parseHours = (value: string): number | null => {
+    const text = value.trim().replace(',', '.');
+    if (!/^\d{1,4}(?:\.\d{1,2})?$/u.test(text)) return null;
+    return Math.round(Number(text) * 60);
+  };
+
+  function openLine(group: Group): void {
+    const key = lineKey(group);
+    if (editing === key) {
+      editing = '';
+      return;
+    }
+    editing = key;
+    edit = {
+      rate: decimalText(group.unitPriceMinor),
+      hours: hoursText(group.minutes),
+      scope: 'invoice',
+      reason: '',
+      entries: [],
+      entryHours: {},
+      loading: false,
+      error: '',
+      saving: false,
+    };
+  }
+
+  async function loadEntries(group: Group): Promise<void> {
+    if (!group.workerId) return;
+    edit.loading = true;
+    try {
+      const params = new URLSearchParams({ projectId, periodStart, periodEnd, detail: `worker:${group.workerId}` });
+      if (streamOverride) params.set('billingRuleId', streamOverride);
+      const response = await fetch(`${api}?${params}`, { headers: { accept: 'application/json' } });
+      const body = (await response.json()) as { entries?: Entry[] };
+      edit.entries = body.entries ?? [];
+      edit.entryHours = Object.fromEntries(edit.entries.map((entry) => [entry.ref.id, hoursText(entry.minutes)]));
+    } catch {
+      edit.error = t('previewFailed');
+    } finally {
+      edit.loading = false;
+    }
+  }
+
+  async function applyLine(group: Group): Promise<void> {
+    if (!group.workerId || edit.saving) return;
+    edit.error = '';
+    const rate = edit.rate.trim();
+    if (!/^\d{1,10}(?:[.,]\d{1,2})?$/u.test(rate)) {
+      edit.error = t('rateZero');
+      return;
+    }
+    const rateChanged = rate !== decimalText(group.unitPriceMinor);
+    if (edit.scope === 'invoice') {
+      const billed = parseHours(edit.hours);
+      if (billed === null) {
+        edit.error = t('hoursInvalid');
+        return;
+      }
+      const hoursChanged = billed !== group.minutes;
+      if (!rateChanged && !hoursChanged) {
+        editing = '';
+        return;
+      }
+      setPersonOverride(group.workerId, group.category ?? null, {
+        ...(rateChanged ? { rate, rateMinor: undefined } : {}),
+        ...(hoursChanged ? { billedHours: edit.hours.trim(), billedMinutes: undefined } : {}),
+      });
+      edit.saving = true;
+      await loadPreview();
+      edit.saving = false;
+      if (!overrideError) editing = '';
+      else edit.error = overrideError;
+      return;
+    }
+    // Fix the worker's record: audited corrections and/or the person's project rate.
+    const changes = edit.entries.filter(
+      (entry) => parseHours(edit.entryHours[entry.ref.id] ?? '') !== entry.minutes,
+    );
+    if (changes.some((entry) => (parseHours(edit.entryHours[entry.ref.id] ?? '') ?? 0) <= 0)) {
+      edit.error = t('hoursInvalid');
+      return;
+    }
+    if (changes.length && edit.reason.trim().length < 10) {
+      edit.error = t('correctionReasonShort');
+      return;
+    }
+    edit.saving = true;
+    try {
+      for (const entry of changes) {
+        const result = await run('correctHours', {
+          source: entry.ref,
+          hours: (edit.entryHours[entry.ref.id] ?? '').trim(),
+          reason: edit.reason.trim(),
+          requestKey: newKey(),
+        });
+        if (!result.success) {
+          edit.error = quickInvoiceFormat(locale, 'fixFailed', { reason: result.detail || result.message || result.code || '—' });
+          return;
+        }
+      }
+      if (rateChanged) {
+        const result = await run('setRate', {
+          kind: 'client',
+          workerId: group.workerId,
+          amount: rate,
+          effectiveFrom: preview?.periodStart ?? periodStart,
+          scope: 'project',
+        });
+        if (!result.success) {
+          edit.error = quickInvoiceFormat(locale, 'fixFailed', { reason: result.detail || result.message || result.rateCode || result.code || '—' });
+          return;
+        }
+      }
+      // Any invoice-only change for this line is superseded by the corrected record.
+      setPersonOverride(group.workerId, group.category ?? null, {
+        rate: undefined,
+        rateMinor: undefined,
+        billedHours: undefined,
+        billedMinutes: undefined,
+      });
+      await loadPreview();
+      editing = '';
+    } finally {
+      edit.saving = false;
+    }
+  }
+
+  async function undoLine(group: Group): Promise<void> {
+    if (!group.workerId) return;
+    setPersonOverride(group.workerId, group.category ?? null, {
+      rate: undefined,
+      rateMinor: undefined,
+      billedHours: undefined,
+      billedMinutes: undefined,
+    });
+    // A general (all categories) rate set from Needs attention is undone too.
+    setPersonOverride(group.workerId, null, { rate: undefined, rateMinor: undefined, billedHours: undefined, billedMinutes: undefined });
+    editing = '';
+    await loadPreview();
+  }
+
+  function openTax(): void {
+    if (editing === 'tax') {
+      editing = '';
+      return;
+    }
+    editing = 'tax';
+    const current = overrides.tax
+      ? overrides.tax.mode === 'exempt'
+        ? 'none'
+        : overrides.tax.taxProfileId
+      : (preview?.streamTaxProfileId ?? 'none');
+    taxEdit = { choice: current, scope: 'invoice', error: '', saving: false, note: '', newName: '', newPercent: '' };
+  }
+
+  async function applyTax(): Promise<void> {
+    if (!preview || taxEdit.saving) return;
+    taxEdit.saving = true;
+    taxEdit.error = '';
+    try {
+      if (taxEdit.choice === 'new') {
+        const percent = taxEdit.newPercent.trim().replace(',', '.');
+        if (!taxEdit.newName.trim() || !/^\d{1,3}(?:\.\d{1,2})?$/u.test(percent)) {
+          taxEdit.error = t('taxNewInvalid');
+          return;
+        }
+        // Basis points from the typed percentage (text → integer, no money involved).
+        const [whole, fraction = ''] = percent.split('.');
+        const basisPoints = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+        const created = (await run('setTax', {
+          scope: taxEdit.scope,
+          tax: { name: taxEdit.newName.trim(), basisPoints },
+        })) as RunResult & { result?: { taxProfileId?: string | null; effectiveFrom?: string; split?: boolean } };
+        if (!created.success || !created.result?.taxProfileId) {
+          taxEdit.error = quickInvoiceFormat(locale, 'fixFailed', { reason: created.detail || created.message || created.code || '—' });
+          return;
+        }
+        if (taxEdit.scope === 'invoice') {
+          overrides = { ...overrides, tax: { mode: 'profile', taxProfileId: created.result.taxProfileId } };
+          await loadPreview();
+        } else if (created.result.split && created.result.effectiveFrom)
+          taxEdit.note = quickInvoiceFormat(locale, 'taxSplitDone', { date: dateText(created.result.effectiveFrom) });
+        editing = '';
+        return;
+      }
+      if (taxEdit.scope === 'invoice') {
+        const streamTax = preview.streamTaxProfileId ?? 'none';
+        overrides = {
+          ...overrides,
+          tax:
+            taxEdit.choice === streamTax
+              ? null
+              : taxEdit.choice === 'none'
+                ? { mode: 'exempt' }
+                : { mode: 'profile', taxProfileId: taxEdit.choice },
+        };
+        await loadPreview();
+        editing = '';
+        return;
+      }
+      const result = (await run('setTax', {
+        scope: 'fromPeriod',
+        tax: taxEdit.choice === 'none' ? { none: true } : { profileId: taxEdit.choice },
+      })) as RunResult & { result?: { effectiveFrom?: string; split?: boolean } };
+      if (!result.success) {
+        taxEdit.error = quickInvoiceFormat(locale, 'fixFailed', { reason: result.detail || result.message || result.code || '—' });
+        return;
+      }
+      overrides = { ...overrides, tax: null };
+      taxEdit.note = result.result?.split && result.result.effectiveFrom
+        ? quickInvoiceFormat(locale, 'taxSplitDone', { date: dateText(result.result.effectiveFrom) })
+        : t('saved');
+      await loadPreview();
+      editing = '';
+    } finally {
+      taxEdit.saving = false;
+    }
+  }
+
+  const overrideCount = $derived(overrides.people.length + (overrides.tax ? 1 : 0));
 
   function focusFirstBlocking(): void {
     const target = document.querySelector<HTMLElement>(
@@ -845,6 +1195,7 @@
                 {run}
                 {newKey}
                 fixHref={(fix) => fixHref({ code: '', severity: 'info', count: 0, minutes: 0, fix: fix ?? null })}
+                onInvoiceRate={invoiceRate}
                 otherText={attentionText}
                 recordHref={(workerId) =>
                   `${base}/app${billingReadinessReviewPath(['pending_time_submission'], projectId, { start: preview!.periodStart, end: preview!.periodEnd })}&worker=${encodeURIComponent(workerId)}&lang=${locale}`}
@@ -857,16 +1208,140 @@
                   {#if labor.length}
                     <tr class="quick-invoice__group-row"><th colspan="2">{t('hours')}</th></tr>
                     {#each labor as group, index (index)}
-                      <tr>
+                      {@const key = lineKey(group)}
+                      <tr data-quick-invoice-line={key}>
                         <td>
                           <span class="quick-invoice__line-label">{group.label}</span>
                           <small
                             >{group.detail} · {hours(group.minutes)} h{#if group.unitPriceMinor}{' '}×
-                              {money(group.unitPriceMinor)}{/if}</small
+                              {money(group.unitPriceMinor)}{/if}{#if group.overrideHours && group.workedMinutes !== undefined}
+                              · {quickInvoiceFormat(locale, 'lineWorked', { hours: hours(group.workedMinutes) })}{/if}</small
                           >
+                          {#if group.overrideRate || group.overrideHours}<span class="quick-invoice__badge" data-quick-invoice-override
+                              >{t('invoiceOnlyBadge')}</span
+                            >{/if}
                         </td>
-                        <td class="quick-invoice__money">{money(group.amountMinor)}</td>
+                        <td class="quick-invoice__money">
+                          {money(group.amountMinor)}
+                          {#if group.workerId && group.unit === 'hourly' && shown === preview}
+                            <button
+                              type="button"
+                              class="quick-invoice__change"
+                              aria-expanded={editing === key}
+                              aria-controls={`quick-invoice-edit-${index}`}
+                              disabled={previewLoading || fixing}
+                              onclick={() => openLine(group)}
+                              data-quick-invoice-line-change>{t('lineChange')}</button
+                            >
+                          {/if}
+                        </td>
                       </tr>
+                      {#if editing === key}
+                        <tr class="quick-invoice__edit-row">
+                          <td colspan="2">
+                            <div
+                              class="quick-invoice__edit"
+                              id={`quick-invoice-edit-${index}`}
+                              role="group"
+                              aria-label={quickInvoiceFormat(locale, 'lineChangeTitle', { name: group.label, detail: group.detail })}
+                              data-quick-invoice-edit
+                            >
+                              <fieldset class="quick-invoice__scope">
+                                <legend class="quick-invoice__sr">{t('lineChange')}</legend>
+                                <label
+                                  ><input type="radio" bind:group={edit.scope} value="invoice" data-quick-invoice-scope="invoice" />
+                                  <span><strong>{t('scopeInvoice')}</strong><small>{t('scopeInvoiceHelp')}</small></span></label
+                                >
+                                {#if preview.capabilities.canCorrectHours}
+                                  <label
+                                    ><input
+                                      type="radio"
+                                      bind:group={edit.scope}
+                                      value="record"
+                                      onchange={() => {
+                                        if (!edit.entries.length) void loadEntries(group);
+                                      }}
+                                      data-quick-invoice-scope="record"
+                                    />
+                                    <span><strong>{t('scopeRecord')}</strong><small>{t('scopeRecordHelp')}</small></span></label
+                                  >
+                                {/if}
+                              </fieldset>
+                              <div class="quick-invoice__edit-fields">
+                                <label class="quick-invoice__field"
+                                  ><span>{t('lineRate')} ({preview.currency}{t('perHour')})</span><input
+                                    type="text"
+                                    inputmode="decimal"
+                                    autocomplete="off"
+                                    bind:value={edit.rate}
+                                    data-quick-invoice-edit-rate
+                                  /></label
+                                >
+                                {#if edit.scope === 'invoice'}
+                                  <label class="quick-invoice__field"
+                                    ><span>{t('lineHours')}</span><input
+                                      type="text"
+                                      inputmode="decimal"
+                                      autocomplete="off"
+                                      bind:value={edit.hours}
+                                      aria-describedby={`quick-invoice-worked-${index}`}
+                                      data-quick-invoice-edit-hours
+                                    /><small id={`quick-invoice-worked-${index}`}
+                                      >{quickInvoiceFormat(locale, 'lineWorked', { hours: hours(group.workedMinutes ?? group.minutes) })}</small
+                                    ></label
+                                  >
+                                {/if}
+                              </div>
+                              {#if edit.scope === 'record'}
+                                {#if edit.loading}
+                                  <p class="quick-invoice__muted" role="status">{t('entriesLoading')}</p>
+                                {:else}
+                                  <ul class="quick-invoice__entries">
+                                    {#each edit.entries as entry (entry.ref.id)}
+                                      <li>
+                                        <label class="quick-invoice__entry"
+                                          ><span>{dateText(entry.date)}{#if entry.summary}<small> · {entry.summary}</small>{/if}</span><input
+                                            type="text"
+                                            inputmode="decimal"
+                                            autocomplete="off"
+                                            aria-label={quickInvoiceFormat(locale, 'entryHours', { date: dateText(entry.date) })}
+                                            bind:value={edit.entryHours[entry.ref.id]}
+                                            data-quick-invoice-entry-hours={entry.ref.id}
+                                          /><span aria-hidden="true">h</span></label
+                                        >
+                                      </li>
+                                    {/each}
+                                  </ul>
+                                  <label class="quick-invoice__field"
+                                    ><span>{t('correctionReason')}</span><textarea
+                                      rows="2"
+                                      maxlength="2000"
+                                      bind:value={edit.reason}
+                                      data-quick-invoice-correction-reason
+                                    ></textarea></label
+                                  >
+                                {/if}
+                              {/if}
+                              {#if edit.error}<p class="quick-invoice__error" role="alert">{edit.error}</p>{/if}
+                              <div class="quick-invoice__edit-actions">
+                                <button
+                                  type="button"
+                                  class="primary-button"
+                                  disabled={edit.saving || previewLoading}
+                                  onclick={() => applyLine(group)}
+                                  data-quick-invoice-edit-apply>{edit.saving ? t('saving') : t('apply')}</button
+                                >
+                                <button type="button" class="secondary-button" onclick={() => (editing = '')}>{t('cancel')}</button>
+                                {#if group.overrideRate || group.overrideHours}
+                                  <button type="button" class="quick-invoice__linkbtn" onclick={() => undoLine(group)} data-quick-invoice-edit-undo
+                                    >{t('undoInvoiceChange')}</button
+                                  >
+                                {/if}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      {/if}
                     {/each}
                   {/if}
                   {#if fees.length}
@@ -900,15 +1375,102 @@
                     <td class="quick-invoice__money">{money(shown.subtotalMinor)}</td>
                   </tr>
                   <tr>
-                    <th scope="row">{t('tax')} · {preview.taxProfileName ?? t('noTax')}</th>
-                    <td class="quick-invoice__money">{money(shown.taxMinor)}</td>
+                    <th scope="row"
+                      >{t('tax')} · {preview.taxProfileName ?? t('noTax')}{#if overrides.tax}<span class="quick-invoice__badge"
+                          >{t('invoiceOnlyBadge')}</span
+                        >{/if}</th
+                    >
+                    <td class="quick-invoice__money">
+                      {money(shown.taxMinor)}
+                      {#if shown === preview && preview.stream}
+                        <button
+                          type="button"
+                          class="quick-invoice__change"
+                          aria-expanded={editing === 'tax'}
+                          aria-controls="quick-invoice-tax-edit"
+                          disabled={previewLoading || fixing}
+                          onclick={openTax}
+                          data-quick-invoice-tax-change>{t('lineChange')}</button
+                        >
+                      {/if}
+                    </td>
                   </tr>
+                  {#if editing === 'tax'}
+                    <tr class="quick-invoice__edit-row">
+                      <td colspan="2">
+                        <div class="quick-invoice__edit" id="quick-invoice-tax-edit" role="group" aria-label={t('taxChange')} data-quick-invoice-tax-edit>
+                          <label class="quick-invoice__field"
+                            ><span>{t('taxChange')}</span><select bind:value={taxEdit.choice} data-quick-invoice-tax-select>
+                              <option value="none">{t('noTax')}</option>
+                              {#each preview.taxOptions as option (option.id)}
+                                <option value={option.id}>{option.name} · {option.basisPoints / 100}%</option>
+                              {/each}
+                              <option value="new">{t('taxNew')}</option>
+                            </select></label
+                          >
+                          {#if taxEdit.choice === 'new'}
+                            <div class="quick-invoice__edit-fields">
+                              <label class="quick-invoice__field"
+                                ><span>{t('taxName')}</span><input bind:value={taxEdit.newName} maxlength="160" placeholder="IVA" data-quick-invoice-tax-name /></label
+                              >
+                              <label class="quick-invoice__field"
+                                ><span>{t('taxPercent')}</span><input
+                                  bind:value={taxEdit.newPercent}
+                                  inputmode="decimal"
+                                  placeholder="21"
+                                  data-quick-invoice-tax-percent
+                                /></label
+                              >
+                            </div>
+                          {/if}
+                          <fieldset class="quick-invoice__scope">
+                            <legend class="quick-invoice__sr">{t('taxChange')}</legend>
+                            <label><input type="radio" bind:group={taxEdit.scope} value="invoice" /> <span><strong>{t('taxScopeInvoice')}</strong></span></label>
+                            <label
+                              ><input type="radio" bind:group={taxEdit.scope} value="fromPeriod" data-quick-invoice-tax-future />
+                              <span
+                                ><strong>{t('taxScopeFuture')}</strong><small
+                                  >{quickInvoiceFormat(locale, 'taxScopeFutureHelp', { date: dateText(preview.periodStart) })}</small
+                                ></span
+                              ></label
+                            >
+                          </fieldset>
+                          {#if taxEdit.error}<p class="quick-invoice__error" role="alert">{taxEdit.error}</p>{/if}
+                          <div class="quick-invoice__edit-actions">
+                            <button type="button" class="primary-button" disabled={taxEdit.saving || previewLoading} onclick={applyTax} data-quick-invoice-tax-apply
+                              >{taxEdit.saving ? t('saving') : t('apply')}</button
+                            >
+                            <button type="button" class="secondary-button" onclick={() => (editing = '')}>{t('cancel')}</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  {/if}
                   <tr class="quick-invoice__grand">
                     <th scope="row">{t('total')}</th>
                     <td class="quick-invoice__money">{money(shown.totalMinor)}</td>
                   </tr>
                 </tfoot>
               </table>
+              {#if overrideCount || overrideError || taxEdit.note}
+                <div class="quick-invoice__overrides" role="status" data-quick-invoice-overrides={overrideCount}>
+                  {#if overrideError}<span class="quick-invoice__error">{overrideError}</span>{/if}
+                  {#if taxEdit.note}<span>{taxEdit.note}</span>{/if}
+                  {#if overrideCount}
+                    <span>{quickInvoiceFormat(locale, 'overridesSummary', { count: overrideCount })}</span>
+                    <button
+                      type="button"
+                      class="quick-invoice__linkbtn"
+                      disabled={previewLoading}
+                      onclick={() => {
+                        overrides = { ...noOverrides(), purchaseNo: overrides.purchaseNo };
+                        editing = '';
+                        void loadPreview();
+                      }}>{t('undoAll')}</button
+                    >
+                  {/if}
+                </div>
+              {/if}
               <dl class="quick-invoice__facts">
                 {#if preview.dueDate}
                   <div>
@@ -1107,6 +1669,124 @@
 </div>
 
 <style>
+  .quick-invoice__change,
+  .quick-invoice__linkbtn {
+    min-height: 44px;
+    padding: 0 0.6rem;
+    border: 0;
+    background: none;
+    color: var(--ja-accent, #1d4ed8);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .quick-invoice__change {
+    display: block;
+    margin-left: auto;
+    min-height: 32px;
+    font-size: 0.85rem;
+  }
+  @media (max-width: 600px) {
+    .quick-invoice__change {
+      min-height: 44px;
+    }
+  }
+  .quick-invoice__badge {
+    display: inline-block;
+    margin-left: 0.4rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    background: var(--ja-amber-surface, #fff4d6);
+    color: var(--ja-amber-text, #7a4b00);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .quick-invoice__edit-row td {
+    padding-top: 0;
+  }
+  .quick-invoice__edit {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-border, #d8d6cc);
+    border-radius: 10px;
+    background: var(--ja-surface-muted, #f7f6f1);
+  }
+  .quick-invoice__scope {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+  .quick-invoice__scope label {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    min-height: 44px;
+  }
+  .quick-invoice__scope input {
+    width: 20px;
+    height: 20px;
+    margin-top: 0.15rem;
+    flex: none;
+  }
+  .quick-invoice__scope span {
+    display: grid;
+  }
+  .quick-invoice__scope small,
+  .quick-invoice__edit-fields small {
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .quick-invoice__edit-fields {
+    display: grid;
+    gap: 0.75rem;
+    grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  }
+  .quick-invoice__entries {
+    display: grid;
+    gap: 0.4rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    max-height: 16rem;
+    overflow: auto;
+  }
+  .quick-invoice__entry {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 5rem auto;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .quick-invoice__entry input {
+    min-height: 44px;
+  }
+  .quick-invoice__edit-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .quick-invoice__error {
+    margin: 0;
+    color: var(--ja-danger, #b42318);
+  }
+  .quick-invoice__overrides {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.9rem;
+  }
+  .quick-invoice__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
   .quick-invoice {
     display: grid;
     gap: 1rem;

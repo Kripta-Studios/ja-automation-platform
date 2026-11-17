@@ -11,7 +11,7 @@ import {
 } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { billingActionFailure } from '$lib/server/actions/billing-actions';
-import { RateSaveError } from '$lib/server/rates-core';
+import { RateSaveError, amountMinor } from '$lib/server/rates-core';
 import {
   quickInvoiceCreate,
   quickInvoicePreview,
@@ -19,7 +19,10 @@ import {
 } from '$lib/server/billing-quick-invoice';
 import {
   quickInvoiceApplyExpenseConditions,
+  quickInvoiceCorrectHours,
   quickInvoiceIncludePending,
+  quickInvoiceSetTax,
+  quickInvoiceWorkerEntries,
   quickInvoiceIssue,
   quickInvoiceSetExpenseTreatment,
   quickInvoiceSetIssuerBank,
@@ -39,13 +42,78 @@ const scopeSchema = z
   })
   .strict()
   .refine((value) => value.periodEnd >= value.periodStart, { path: ['periodEnd'] });
+const idSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u);
+const decimal = z.string().trim().regex(/^\d{1,10}(?:[.,]\d{1,2})?$/u);
+/**
+ * "Change for this invoice only". A rate arrives as decimal text (or the minor units the
+ * preview echoed), billed hours as decimal hours (or minutes); the server converts them.
+ */
+const overridesSchema = z
+  .object({
+    people: z
+      .array(
+        z
+          .object({
+            workerId: idSchema,
+            category: z.enum(['regular', 'overtime']).nullable().optional(),
+            rate: decimal.optional(),
+            rateMinor: z.string().regex(/^\d{1,12}$/u).nullable().optional(),
+            billedHours: decimal.optional(),
+            billedMinutes: z.number().int().min(0).max(10_000_000).nullable().optional(),
+          })
+          .strict(),
+      )
+      .max(200)
+      .default([]),
+    tax: z
+      .union([
+        z.object({ mode: z.literal('profile'), taxProfileId: idSchema }).strict(),
+        z.object({ mode: z.literal('exempt') }).strict(),
+      ])
+      .nullable()
+      .optional(),
+    purchaseNo: z.string().trim().max(200).nullable().optional(),
+  })
+  .strict();
+type OverridesInput = z.infer<typeof overridesSchema>;
+
+function engineOverrides(value: OverridesInput | undefined | null) {
+  if (!value) return null;
+  return {
+    people: value.people.map((person) => ({
+      workerId: person.workerId,
+      category: person.category ?? null,
+      rateMinor:
+        person.rate !== undefined ? amountMinorAllowZero(person.rate) : (person.rateMinor ?? null),
+      billedMinutes:
+        person.billedHours !== undefined
+          ? hoursToMinutes(person.billedHours)
+          : (person.billedMinutes ?? null),
+    })),
+    tax: value.tax ?? null,
+    purchaseNo: value.purchaseNo ?? null,
+  };
+}
+
+function amountMinorAllowZero(text: string): string {
+  if (/^0+(?:[.,]0{1,2})?$/u.test(text.trim())) return '0';
+  return amountMinor(text).toString();
+}
+
+/** Decimal hours (up to 2 decimals) to whole minutes, rounded half up. */
+function hoursToMinutes(text: string): number {
+  const [whole, fraction = ''] = text.trim().replace(',', '.').split('.');
+  const hundredths = Number(whole) * 100 + Number(fraction.padEnd(2, '0'));
+  return Math.floor((hundredths * 60 + 50) / 100);
+}
+
 const scopeFields = {
   projectId: z.string().min(1).max(200),
   periodStart: z.iso.date(),
   periodEnd: z.iso.date(),
   billingRuleId: z.string().min(1).max(200).optional(),
+  overrides: overridesSchema.optional(),
 };
-const idSchema = z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u);
 const requestKey = z.string().trim().min(8).max(200);
 const refSchema = z
   .object({ type: z.enum(['time', 'expense']), id: z.string().min(1).max(200), version: z.number().int().positive() })
@@ -100,6 +168,29 @@ const operationSchema = z.discriminatedUnion('operation', [
       billingAddress: z.string().trim().min(1).max(500).optional(),
       billingEmail: z.union([z.email().max(254), z.literal('')]).optional(),
       legalName: z.string().trim().min(1).max(300).optional(),
+      taxId: z.string().trim().max(64).optional(),
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal('setTax'),
+      ...scopeFields,
+      scope: z.enum(['invoice', 'fromPeriod']),
+      tax: z.union([
+        z.object({ profileId: idSchema }).strict(),
+        z.object({ name: z.string().trim().min(1).max(160), basisPoints: z.number().int().min(0).max(100_000) }).strict(),
+        z.object({ none: z.literal(true) }).strict(),
+      ]),
+    })
+    .strict(),
+  z
+    .object({
+      operation: z.literal('correctHours'),
+      ...scopeFields,
+      source: refSchema,
+      hours: decimal,
+      reason: z.string().trim().min(10).max(2000),
+      requestKey,
     })
     .strict(),
   z
@@ -175,12 +266,39 @@ export const GET: RequestHandler = ({ locals, url }) => {
     context = openPortalRepository(locals);
     if (!url.searchParams.has('projectId'))
       return json({ success: true, projects: quickInvoiceProjects(context) }, { headers });
-    const raw = Object.fromEntries(url.searchParams);
+    const raw: Record<string, string> = Object.fromEntries(url.searchParams);
     if (!raw.billingRuleId) delete raw.billingRuleId;
+    let overrides: ReturnType<typeof engineOverrides> = null;
+    if (raw.overrides) {
+      if (raw.overrides.length > 20_000) return denied(413, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(raw.overrides);
+      } catch {
+        return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      }
+      const checked = overridesSchema.safeParse(decoded);
+      if (!checked.success) return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      overrides = engineOverrides(checked.data);
+    }
+    const detail = raw.detail;
+    const offset = Number(raw.offset ?? 0);
+    delete raw.overrides;
+    delete raw.detail;
+    delete raw.offset;
     const parsed = scopeSchema.safeParse(raw);
     if (!parsed.success) return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+    if (detail) {
+      const worker = /^worker:([A-Za-z0-9][A-Za-z0-9_-]{0,199})$/u.exec(detail);
+      if (!worker || !Number.isSafeInteger(offset) || offset < 0)
+        return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      return json(
+        { success: true, ...quickInvoiceWorkerEntries(context, { ...parsed.data, workerId: worker[1]!, offset }) },
+        { headers },
+      );
+    }
     return json(
-      { success: true, preview: quickInvoicePreview(context, parsed.data) },
+      { success: true, preview: quickInvoicePreview(context, { ...parsed.data, overrides }) },
       { headers },
     );
   } catch (caught) {
@@ -213,14 +331,15 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
   if (!parsed.success || parsed.data.periodEnd < parsed.data.periodStart)
     return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
   const command = parsed.data;
-  const scope = {
-    projectId: command.projectId,
-    periodStart: command.periodStart,
-    periodEnd: command.periodEnd,
-    ...(command.billingRuleId ? { billingRuleId: command.billingRuleId } : {}),
-  };
   let context: ReturnType<typeof openPortalRepository> | undefined;
   try {
+    const scope = {
+      projectId: command.projectId,
+      periodStart: command.periodStart,
+      periodEnd: command.periodEnd,
+      ...(command.billingRuleId ? { billingRuleId: command.billingRuleId } : {}),
+      overrides: engineOverrides(command.overrides),
+    };
     context = openPortalRepository(locals);
     if (command.operation === 'create') {
       const result = quickInvoiceCreate(context, { ...scope, expectedTotalMinor: command.expectedTotalMinor, requestKey: command.requestKey });
@@ -261,6 +380,18 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         break;
       case 'setIssuerBank':
         quickInvoiceSetIssuerBank(context, command);
+        break;
+      case 'setTax':
+        result = quickInvoiceSetTax(context, { ...scope, scope: command.scope, tax: command.tax });
+        break;
+      case 'correctHours':
+        result = quickInvoiceCorrectHours(context, {
+          ...scope,
+          source: command.source,
+          minutes: hoursToMinutes(command.hours),
+          reason: command.reason,
+          requestKey: command.requestKey,
+        });
         break;
     }
     // One round trip: the fix and the recalculated preview.

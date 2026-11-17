@@ -306,6 +306,7 @@
             <dd>{h('paymentTermsDays', { days: text(client, 'payment_terms_days') || '30' })}</dd>
           </div>
           <div><dt>{h('defaultPo')}</dt><dd>{text(client, 'po_reference') || h('notSet')}</dd></div>
+          <div><dt>{h('taxId')}</dt><dd data-client-tax-id>{text(client, 'tax_id') || h('notSet')}</dd></div>
           {#if text(client, 'notes')}
             <div class="client-facts__wide"><dt>{h('notes')}</dt><dd class="client-pre">{text(client, 'notes')}</dd></div>
           {/if}
@@ -349,6 +350,7 @@
           /></label
         >
         <label>{h('defaultPo')}<input name="poReference" maxlength="200" value={text(client, 'po_reference')} /></label>
+        <label>{h('taxId')}<input name="taxId" maxlength="64" autocomplete="off" value={text(client, 'tax_id')} placeholder="B12345678" /></label>
         <label class="client-form__wide"
           >{h('notes')}<textarea name="notes" rows="2">{text(client, 'notes')}</textarea></label
         >

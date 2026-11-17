@@ -3731,6 +3731,7 @@ export const PORTAL_ACTION_KEYS = [
   'action.conflict.reportNotEditable',
   'action.documents.deleted',
   'action.documents.archived',
+  'action.documents.restored',
   'action.documents.uploaded',
   'action.validation.documentArchive',
   'action.error.financeRoleRequired',

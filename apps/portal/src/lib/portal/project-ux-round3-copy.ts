@@ -144,6 +144,34 @@ const copy = {
     'Calendário, atribuições, marcos, horários e contatos',
   ],
   closeForm: ['Close', 'Cerrar', 'Fechar'],
+  // Lifecycle: reactivate / close date (B5)
+  reactivateProject: ['Reactivate project', 'Reactivar proyecto', 'Reativar projeto'],
+  reactivateHint: [
+    'Back to Active: people can log hours and expenses again.',
+    'Vuelve a Activo: se pueden registrar horas y gastos otra vez.',
+    'Volta para Ativo: é possível lançar horas e despesas de novo.',
+  ],
+  reactivateReason: [
+    'Why reactivate? (required)',
+    '¿Por qué reactivar? (obligatorio)',
+    'Por que reativar? (obrigatório)',
+  ],
+  closeDate: ['Close date', 'Fecha de cierre', 'Data de encerramento'],
+  issuerOnlyForInvoices: [
+    'You can still continue and set each person’s rates and pay now; the issuer is only needed to save the invoice setup.',
+    'Puedes continuar y fijar ya las tarifas y el pago de cada persona; el emisor solo hace falta para guardar la configuración de facturas.',
+    'Você pode continuar e definir já as tarifas e o pagamento de cada pessoa; o emissor só é necessário para salvar a configuração de faturas.',
+  ],
+  // Archived documents (B8)
+  archivedDocuments: ['Archived documents', 'Documentos archivados', 'Documentos arquivados'],
+  archivedDocumentsEmpty: [
+    'No archived documents.',
+    'No hay documentos archivados.',
+    'Não há documentos arquivados.',
+  ],
+  archivedOn: ['Archived {date} by {name}', 'Archivado el {date} por {name}', 'Arquivado em {date} por {name}'],
+  restoreDocument: ['Restore document', 'Restaurar documento', 'Restaurar documento'],
+  restoreReason: ['Why restore? (required)', '¿Por qué restaurar? (obligatorio)', 'Por que restaurar? (obrigatório)'],
   // Permanent deletion
   dangerTitle: ['Delete permanently', 'Eliminar definitivamente', 'Excluir definitivamente'],
   dangerProjectBody: [

@@ -116,6 +116,40 @@ describe('project commercial policy finance action', () => {
     );
   });
 
+  it('accepts the decimal-hours helper field submitted by the threshold input', async () => {
+    const createProjectCommercialPolicy = vi.fn(() => ({ version: 2 }));
+    openPortalRepository.mockReturnValue({
+      repository: { createProjectCommercialPolicy },
+      principal: { userId: 'finance-1', role: 'finance_admin', projectIds: new Set<string>() },
+      sqlite: { close: vi.fn() },
+    });
+    const result = await financeActions.createProjectCommercialPolicy(
+      event({ ...validForm, overtimeThresholdMinutes: '600', overtimeThresholdMinutesHours: '10' }),
+    );
+    expect(result).toMatchObject({ success: true });
+    expect(createProjectCommercialPolicy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ overtimeThresholdMinutes: 600 }),
+    );
+  });
+
+  it('converts decimal hours to minutes server-side when only the hours text arrives', async () => {
+    const createProjectCommercialPolicy = vi.fn(() => ({ version: 2 }));
+    openPortalRepository.mockReturnValue({
+      repository: { createProjectCommercialPolicy },
+      principal: { userId: 'finance-1', role: 'finance_admin', projectIds: new Set<string>() },
+      sqlite: { close: vi.fn() },
+    });
+    const result = await financeActions.createProjectCommercialPolicy(
+      event({ ...validForm, overtimeThresholdMinutes: '', overtimeThresholdMinutesHours: '9,5' }),
+    );
+    expect(result).toMatchObject({ success: true });
+    expect(createProjectCommercialPolicy).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ overtimeThresholdMinutes: 570 }),
+    );
+  });
+
   it('returns a localized-compatible forbidden result for a role denial', async () => {
     const close = vi.fn();
     openPortalRepository.mockReturnValue({

@@ -12,6 +12,7 @@ import {
   versionedRecordSchema,
   workerSkillInputSchema,
   uuidSchema,
+  projectRecordIdSchema,
 } from '@ja/schemas';
 import { z } from 'zod';
 import { createHash } from 'node:crypto';
@@ -2317,7 +2318,7 @@ export const reportActions = withOperationalActionNames({
     };
     const parsed = accountingPackPeriodSchema
       .extend({
-        projectId: uuidSchema,
+        projectId: projectRecordIdSchema,
         contentMode: z
           .enum([
             'hours_only',

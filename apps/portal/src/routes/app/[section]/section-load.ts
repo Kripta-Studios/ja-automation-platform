@@ -527,6 +527,14 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               (document) =>
                 !document.project_id || scope.projectIds.has(String(document.project_id)),
             ),
+          // Owner-only: archived documents (bytes retained) listed for restore.
+          archivedDocuments:
+            includeArchived && context.principal.role === 'owner_admin'
+              ? context.repository.listArchivedDocuments(
+                  context.principal,
+                  selectedDocumentProject ? String(selectedDocumentProject.id) : undefined,
+                )
+              : [],
         };
       }
       case 'pay': {

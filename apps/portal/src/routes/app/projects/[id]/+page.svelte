@@ -273,7 +273,7 @@
     url: () => page.url,
     panes: ['project-edit'],
     activate: () => {
-      if (isOwner) editOpen = true;
+      if (canEditProjectDetails) editOpen = true;
     },
     deactivate: () => {
       if (!initiallyFailed('updateProject')) editOpen = false;
@@ -283,6 +283,10 @@
   const isAuditor = $derived(role === 'auditor_read_only');
   const canViewCommercial = $derived(isOwner || isFinance || isAuditor);
   const canWriteFinance = $derived(isOwner || isFinance);
+  // Owner edits every project detail; finance_admin edits the commercial fields only
+  // (PO, contract, model, budgets, caps, client minimum). The server accepts both roles.
+  const canEditProjectDetails = $derived(isOwner || isFinance);
+  const commercialOnlyEdit = $derived(isFinance && !isOwner);
   const projectHref = $derived(
     `${base}/app/projects/${encodeURIComponent(String(data.overview.project.id))}`,
   );
@@ -1247,7 +1251,7 @@
     </div>
   </nav>
 
-  {#if problem && (detailForm?.actionName !== 'updateProject' || !isOwner) && (detailForm?.actionName !== 'createInvoiceDraft' || !canWriteFinance)}
+  {#if problem && (detailForm?.actionName !== 'updateProject' || !canEditProjectDetails) && (detailForm?.actionName !== 'createInvoiceDraft' || !canWriteFinance)}
     <div data-project-problem>
       <ProblemNotice
         {problem}
@@ -1284,7 +1288,7 @@
         {:else}
           {display(project.client_name)}
         {/if}
-        · {display(project.site_name, h('noSite'))}
+        · {display(display(project.site_name, '') || project.site_location, h('noSite'))}
         · {h('projectManager')}: {hub.managerName ?? h('noManager')}
       </p>
     </div>
@@ -2307,7 +2311,7 @@
         <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
           <summary>{h('setDetails')}</summary>
           <div class="hub-group__body">
-            {#if isOwner}
+            {#if canEditProjectDetails}
               <button
                 type="button"
                 class="primary-button"
@@ -2472,7 +2476,7 @@
               issuingPrerequisites={billingSetup.issuingPrerequisites}
               requestKey={billingSetup.requestKey}
               canEdit={canWriteFinance}
-              canEditProject={isOwner}
+              canEditProject={canEditProjectDetails}
               onEditProject={() => (editOpen = true)}
               form={visibleForm}
               {t}
@@ -2764,7 +2768,7 @@
       : dismissActionToast()}
 />
 
-{#if isOwner}
+{#if canEditProjectDetails}
   <ResponsiveSheet
     open={editOpen}
     protectChanges
@@ -2815,6 +2819,7 @@
           <p>{t('Keep the authorized client and project references clear and traceable.')}</p>
         </div>
         <div class="edit-field-grid">
+          {#if !commercialOnlyEdit}
           <label
             >{t('Name')}<input
               name="name"
@@ -2848,6 +2853,7 @@
               maxlength="120"
             /></label
           >
+          {/if}
           <label
             >{pc('poLabel')}<input
               name="poNumber"
@@ -2871,6 +2877,7 @@
           <p>{t('Set the operating site, dates and planning assumptions.')}</p>
         </div>
         <div class="edit-field-grid">
+          {#if !commercialOnlyEdit}
           <TimezoneSelect
             name="timezone"
             label={pc('timezone')}
@@ -2928,6 +2935,7 @@
               )}
             /><small>{pc('expectedHint')}</small></label
           >
+          {/if}
           <label
             >{t('Client minimum hours')}<input
               name="clientDailyMinimumHours"
@@ -2948,6 +2956,7 @@
               'Expected hours are planning context. The client daily minimum is a separate commercial top-up applied once per worker, project and day; it never changes actual recorded hours or worker compensation.',
             )}
           </p>
+          {#if !commercialOnlyEdit}
           <ProjectBudgetInput
             name="plannedMinutes"
             label={t('Planned hours')}
@@ -2957,6 +2966,7 @@
           {#if projectFieldError('plannedMinutes')}<p role="alert">
               {projectFieldError('plannedMinutes')}
             </p>{/if}
+          {/if}
         </div>
       </section>
       <section class="edit-form-section" aria-labelledby="edit-commercial-title">
@@ -2966,6 +2976,7 @@
           <p>{t('Review the commercial model, limits and accountable owner.')}</p>
         </div>
         <div class="edit-field-grid">
+          {#if !commercialOnlyEdit}
           <label
             >{t('Project manager')}<select name="projectManagerId"
               ><option value="">{t('Unassigned')}</option
@@ -2983,6 +2994,7 @@
                   >{/if}{/each}</select
             ></label
           >
+          {/if}
           <label
             >{t('Commercial model')}<select name="billingModel"
               >{#each ['tm', 'tm_daily_minimum', 'all_in', 'capped_tm', 'milestone', 'hybrid', 'internal'] as model}<option
@@ -3096,6 +3108,26 @@
             </p>{/if}
         </div>
       </section>
+      {#if commercialOnlyEdit}
+        <!-- Finance edits commercial fields only; keep the other updateProject fields as they are
+             (the action treats an absent manager/checkbox as "clear"). -->
+        <input type="hidden" name="projectManagerId" value={String(project.project_manager_id ?? '')} />
+        {#if Number(project.weekly_close_enabled ?? 0) === 1}<input
+            type="hidden"
+            name="weeklyCloseEnabled"
+            value="on"
+          />{/if}
+        {#if Number(project.daily_report_required ?? 0) === 1}<input
+            type="hidden"
+            name="dailyReportRequired"
+            value="on"
+          />{/if}
+        {#if Number(project.technical_reporting_required ?? 0) === 1}<input
+            type="hidden"
+            name="technicalReportingRequired"
+            value="on"
+          />{/if}
+      {:else}
       <details class="advanced-edit-fields">
         <summary>{t('Advanced reporting and notes')}</summary>
         <div class="edit-field-grid">
@@ -3144,6 +3176,7 @@
           >
         </div>
       </details>
+      {/if}
       <p class="form-help">{pc('editIdentityNote')}</p>
       <div class="sheet-form-actions">
         <button

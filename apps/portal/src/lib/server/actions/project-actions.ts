@@ -1066,7 +1066,8 @@ export const projectActions = {
         siteLocation: text('siteLocation'),
         onsiteContactId: text('onsiteContactId'),
         country: text('country'),
-        projectManagerId: text('projectManagerId') || null,
+        // Absent field (finance commercial-only edit) keeps the current manager.
+        projectManagerId: data.has('projectManagerId') ? text('projectManagerId') || null : undefined,
         // Blank expected hours = no expectation.
         expectedHoursPerDay: text('expectedHoursPerDay')?.trim() === '' ? '' : undefined,
         expectedMinutesPerDay:
@@ -1956,6 +1957,15 @@ export const projectActions = {
         { reason: ['problem.project.transitionReasonRequired'] },
         extras,
       );
+    const closeDate = data.get('closeDate')?.toString().trim() ?? '';
+    if (closeDate && !/^\d{4}-\d{2}-\d{2}$/.test(closeDate))
+      return inputFailure(
+        'PROJECT_CLOSE_DATE_INVALID',
+        'problem.project.transitionStatusInvalid',
+        'Enter a valid close date.',
+        { closeDate: ['problem.project.transitionStatusInvalid'] },
+        extras,
+      );
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.transitionProject(context.principal, {
@@ -1971,6 +1981,7 @@ export const projectActions = {
           | 'restore',
         version,
         reason,
+        ...(status === 'closed' && closeDate ? { closeDate } : {}),
       });
       return actionSuccess(
         'action.projects.projectUpdated',

@@ -8690,6 +8690,7 @@ const actionExact: Record<string, readonly [string, string]> = {
   ],
   'action.documents.deleted': ['Documento eliminado.', 'Documento excluído.'],
   'action.documents.archived': ['Documento archivado.', 'Documento arquivado.'],
+  'action.documents.restored': ['Documento restaurado.', 'Documento restaurado.'],
   'action.validation.documentArchive': [
     'Escribe un motivo de archivo de 3 a 500 caracteres.',
     'Informe um motivo de arquivamento de 3 a 500 caracteres.',
@@ -9294,6 +9295,7 @@ function englishActionMessage(key: string): string {
     'action.validation.documentIdRequired': 'Document ID required.',
     'action.documents.deleted': 'Document deleted.',
     'action.documents.archived': 'Document archived.',
+    'action.documents.restored': 'Document restored.',
     'action.validation.documentArchive': 'Enter an archive reason of 3–500 characters.',
     'action.validation.expenseFields': 'Check expense fields.',
     'action.validation.receiptTypeOrSize': 'Receipt must be JPG, PNG or PDF under 10 MB.',

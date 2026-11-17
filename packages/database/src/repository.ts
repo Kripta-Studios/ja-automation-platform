@@ -491,6 +491,8 @@ type LifecycleTransitionInput = Readonly<{
   status: LifecycleEntityState | 'restore';
   version?: number;
   reason?: string;
+  /** Project only: the actual close date recorded when the project becomes closed. */
+  closeDate?: string;
 }>;
 type DraftRecordType = 'time_entry' | 'expense' | 'daily_report' | 'technical_report';
 type DraftDeleteInput = Readonly<{
@@ -943,8 +945,8 @@ export class PortalRepository {
             planned: ['active', 'paused', 'archived'],
             active: ['paused', 'closing'],
             paused: ['active', 'closing'],
-            closing: ['closed'],
-            closed: ['archived'],
+            closing: ['active', 'closed'],
+            closed: ['active', 'archived'],
             archived: ['draft', 'planned', 'closed'],
           } as const);
     if (!allowed[fromState]?.includes(toState as never))
@@ -3283,6 +3285,20 @@ export class PortalRepository {
         throw new ConflictError('Project changed before lifecycle transition');
       const target = this.lifecycleTarget('project', projectId, current.status, input.status);
       this.assertLifecycleTransition('project', current.status, target);
+      const reactivating =
+        target === 'active' && (current.status === 'closing' || current.status === 'closed');
+      if (reactivating && principal.role !== 'owner_admin')
+        throw new AccessDeniedError('Only the owner can reactivate a closing or closed project');
+      const today = now().slice(0, 10);
+      let closeDate: string | null = null;
+      if (input.closeDate !== undefined && input.closeDate !== '') {
+        if (target !== 'closed')
+          throw new ValidationError('A close date can only be set when closing the project');
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(input.closeDate) || Number.isNaN(Date.parse(input.closeDate)))
+          throw new ValidationError('Close date must be a valid date');
+        if (input.closeDate > today) throw new ValidationError('Close date cannot be in the future');
+        closeDate = input.closeDate;
+      }
       if (target !== 'archived') {
         const client = this.sqlite
           .prepare('SELECT status FROM client WHERE id=?')
@@ -3292,24 +3308,42 @@ export class PortalRepository {
       }
       const changed = this.sqlite
         .prepare(
-          "UPDATE project SET status=?,actual_end_date=CASE WHEN ?='closed' THEN COALESCE(actual_end_date,?) ELSE actual_end_date END,updated_at=?,version=version+1 WHERE id=? AND status=? AND version=?",
+          "UPDATE project SET status=?,actual_end_date=CASE WHEN ?='closed' THEN COALESCE(?,actual_end_date,?) WHEN ?=1 THEN NULL ELSE actual_end_date END,updated_at=?,version=version+1 WHERE id=? AND status=? AND version=?",
         )
-        .run(target, target, now().slice(0, 10), now(), projectId, current.status, current.version);
+        .run(
+          target,
+          target,
+          closeDate,
+          today,
+          reactivating ? 1 : 0,
+          now(),
+          projectId,
+          current.status,
+          current.version,
+        );
       if (changed.changes !== 1)
         throw new ConflictError('Project changed before lifecycle transition');
-      this.appendLifecycleEvent(
-        principal,
-        'project',
-        projectId,
-        current.status,
-        target,
-        current.version,
-        reason,
-      );
+      // The entity_lifecycle_event guard trigger (migration 0019) predates the owner
+      // decision to allow reactivation, so closing/closed -> active cannot be stored
+      // there without a schema migration. Reactivation is recorded in the immutable,
+      // registered audit_event below (reactivated: true) instead.
+      // TODO(migration): extend entity_lifecycle_subject_guard and drop this branch.
+      if (!reactivating)
+        this.appendLifecycleEvent(
+          principal,
+          'project',
+          projectId,
+          current.status,
+          target,
+          current.version,
+          reason,
+        );
       this.audit(principal, 'lifecycle.transition', 'project', projectId, {
         fromState: current.status,
         toState: target,
         reason,
+        ...(closeDate ? { closeDate } : {}),
+        ...(reactivating ? { reactivated: true, previousActualEndDate: current.actual_end_date } : {}),
       });
       return { id: projectId, status: target, version: current.version + 1 };
     });
@@ -5149,6 +5183,28 @@ export class PortalRepository {
           can_archive: owner_id === principal.userId,
         }))
       : rows;
+  }
+
+  /** Owner-only list of archived (bytes retained) committed documents, newest archive first. */
+  listArchivedDocuments(principal: Principal, projectId?: string) {
+    this.assertReadable(principal);
+    if (principal.role !== 'owner_admin') return [];
+    const conditions = ["d.state='committed'", 'd.archived_at IS NOT NULL'];
+    const values: string[] = [];
+    if (projectId) {
+      conditions.push('d.project_id=?');
+      values.push(projectId);
+    }
+    return this.sqlite
+      .prepare(
+        `SELECT d.id,d.project_id,d.owner_id,d.original_filename,d.safe_filename,d.media_type,
+           d.byte_length,d.artifact_type,d.sensitivity,d.created_at,d.archived_at,
+           p.project_number,u.name owner_name,a.name archived_by_name
+         FROM document d LEFT JOIN project p ON p.id=d.project_id JOIN user u ON u.id=d.owner_id
+         LEFT JOIN user a ON a.id=d.archived_by
+         WHERE ${conditions.join(' AND ')} ORDER BY d.archived_at DESC LIMIT 500`,
+      )
+      .all(...values) as Record<string, unknown>[];
   }
 
   submitExpense(principal: Principal, id: string, baseVersion: number) {

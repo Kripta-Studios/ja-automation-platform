@@ -3743,6 +3743,35 @@
   }
 </script>
 
+{#snippet projectReactivateForm(row: Row)}
+  {#if data.user.role === 'owner_admin'}
+    <form
+      use:dirtyFormGuard
+      method="POST"
+      action="?/transitionProject"
+      data-action="transitionProject"
+      data-project-reactivate
+    >
+      <input type="hidden" name="projectId" value={row.id} />
+      <input type="hidden" name="version" value={row.version ?? 1} />
+      <input type="hidden" name="status" value="active" />
+      <p class="lifecycle-hint">{projectCopy(locale, 'reactivateHint')}</p>
+      <label class="sr-only" for={`project-reactivate-reason-${row.id}`}
+        >{projectCopy(locale, 'reactivateReason')}</label
+      >
+      <input
+        id={`project-reactivate-reason-${row.id}`}
+        name="reason"
+        required
+        placeholder={projectCopy(locale, 'reactivateReason')}
+      />
+      <button type="submit" class="secondary-button"
+        >{projectCopy(locale, 'reactivateProject')}</button
+      >
+    </form>
+  {/if}
+{/snippet}
+
 <svelte:head
   ><title>{translate(currentTitle)} | J&A Portal</title><link
     rel="manifest"
@@ -4269,6 +4298,65 @@
               </div>
             {/if}
           {/each}
+          {#if data.user.role === 'owner_admin'}
+            {@const showingArchived = $page.url.searchParams.get('includeArchived') === '1'}
+            {@const archivedToggle = (() => {
+              const next = new URL($page.url);
+              for (const key of [...next.searchParams.keys()])
+                if (key.startsWith('/')) next.searchParams.delete(key);
+              if (showingArchived) next.searchParams.delete('includeArchived');
+              else next.searchParams.set('includeArchived', '1');
+              return `${next.pathname}${next.search}#document-archived`;
+            })()}
+            <p class="document-archived-toggle">
+              <a class="secondary-button" data-document-archived-toggle href={archivedToggle}
+                >{projectCopy(locale, showingArchived ? 'hideArchived' : 'showArchived')}</a
+              >
+            </p>
+            {#if showingArchived}
+              <section id="document-archived" class="document-archived" data-document-archived>
+                <h3>{projectCopy(locale, 'archivedDocuments')}</h3>
+                {#each data.archivedDocuments ?? [] as document (String(document.id))}
+                  <article class="invoice-row document-entry" data-archived-document={String(document.id)}>
+                    <div>
+                      <strong
+                        >{String(
+                          document.safe_filename ?? document.original_filename ?? translate('Document'),
+                        )}</strong
+                      >
+                      <small
+                        >{document.project_number
+                          ? String(document.project_number)
+                          : translate('Private')} · {String(document.artifact_type)} · {projectCopy(
+                          locale,
+                          'archivedOn',
+                          {
+                            date: String(document.archived_at ?? '').slice(0, 10),
+                            name: String(document.archived_by_name ?? '—'),
+                          },
+                        )}</small
+                      >
+                    </div>
+                    <details class="document-archive-control">
+                      <summary>{translate('Restore')}</summary>
+                      <form method="POST" action="?/restoreDocument" class="document-delete-form">
+                        <input type="hidden" name="documentId" value={String(document.id)} />
+                        <label
+                          >{projectCopy(locale, 'restoreReason')}
+                          <input name="reason" minlength="3" maxlength="500" required />
+                        </label>
+                        <button type="submit" class="preview-link"
+                          >{projectCopy(locale, 'restoreDocument')}</button
+                        >
+                      </form>
+                    </details>
+                  </article>
+                {:else}
+                  <div class="empty">{projectCopy(locale, 'archivedDocumentsEmpty')}</div>
+                {/each}
+              </section>
+            {/if}
+          {/if}
         </section>
       </div>
     {:else if data.section === 'pay'}
@@ -5905,11 +5993,25 @@
                             required
                             placeholder={translate('Reason')}
                           />
+                          <label class="lifecycle-close-date"
+                            >{projectCopy(locale, 'closeDate')}
+                            <input
+                              type="date"
+                              name="closeDate"
+                              data-project-close-date
+                              required
+                              max={new Date().toISOString().slice(0, 10)}
+                              value={String(row.actual_end_date ?? '') ||
+                                new Date().toISOString().slice(0, 10)}
+                            /></label
+                          >
                           <button type="submit" class="secondary-button"
                             >{translate('Close project')}</button
                           >
                         </form>
+                        {@render projectReactivateForm(row)}
                       {:else if row.status === 'closed'}
+                        {@render projectReactivateForm(row)}
                         <form
                           use:dirtyFormGuard
                           method="POST"

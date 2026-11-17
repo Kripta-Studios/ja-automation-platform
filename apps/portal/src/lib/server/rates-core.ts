@@ -119,6 +119,42 @@ export function assertNotInvoiced(sqlite: DatabaseSync, projectId: string, date:
   if (billed) throw new RateSaveError('already_invoiced');
 }
 
+/**
+ * Hours already on an issued (non-draft, live) invoice of the project dated on or after
+ * `date`, optionally of one person. A client rate dated before such work would re-price
+ * finalized history, so it is refused; work nobody invoiced yet can always be priced.
+ */
+function issuedWorkFrom(
+  sqlite: DatabaseSync,
+  projectId: string,
+  date: string,
+  workerId: string | null,
+): boolean {
+  return Boolean(
+    sqlite
+      .prepare(
+        `SELECT 1 FROM invoice_line l JOIN invoice i ON i.id=l.invoice_id JOIN time_entry t ON t.id=l.source_id
+          WHERE i.project_id=? AND l.source_type='time' AND t.work_date>=?
+            AND i.state NOT IN ('draft','void','cancelled','superseded')
+            ${workerId ? 'AND t.worker_id=?' : ''} LIMIT 1`,
+      )
+      .get(...(workerId ? [projectId, date, workerId] : [projectId, date])),
+  );
+}
+
+/** Last work date already on an issued invoice (of one person, or of anyone). */
+function lastIssuedWorkDate(sqlite: DatabaseSync, projectId: string, workerId: string | null): string | null {
+  const row = sqlite
+    .prepare(
+      `SELECT MAX(t.work_date) through FROM invoice_line l JOIN invoice i ON i.id=l.invoice_id
+         JOIN time_entry t ON t.id=l.source_id
+        WHERE i.project_id=? AND l.source_type='time' AND i.state NOT IN ('draft','void','cancelled','superseded')
+          ${workerId ? 'AND t.worker_id=?' : ''}`,
+    )
+    .get(...(workerId ? [projectId, workerId] : [projectId])) as { through: string | null } | undefined;
+  return row?.through ?? null;
+}
+
 /** The person's rule that already starts on `date` (set through a dated override), if any. */
 function sameDayOverrideRule(
   sqlite: DatabaseSync,
@@ -270,7 +306,10 @@ export function saveClientRate(
   if (!project) throw new RateSaveError('invalid_project');
   const minor = amountMinor(object.amount, project.currency);
   return withAssignmentFinanceTransaction(sqlite, () => {
-    assertNotInvoiced(sqlite, projectId, date);
+    // A person's rate only re-prices that person's issued hours; a project rate only re-prices
+    // issued hours when a project rate already covered them (otherwise those hours were priced
+    // by personal rates, which stay more specific).
+    if (workerId && issuedWorkFrom(sqlite, projectId, date, workerId)) throw new RateSaveError('already_invoiced');
     if (workerId) {
       const changed = setPersonClientRate(sqlite, v3, principal, {
         projectId,
@@ -292,6 +331,18 @@ export function saveClientRate(
       )
       .get(projectId, date, date) as { id: string } | undefined;
     const currentRule = clientRule(sqlite, current?.id);
+    if (currentRule && issuedWorkFrom(sqlite, projectId, date, null)) throw new RateSaveError('already_invoiced');
+    // A later project rate (e.g. saved earlier from another date) keeps its own dates.
+    const nextStart = currentRule
+      ? null
+      : ((
+          sqlite
+            .prepare(
+              `SELECT MIN(effective_from) start FROM client_labor_rate
+                WHERE project_id=? AND worker_id IS NULL AND category IS NULL AND effective_from>?`,
+            )
+            .get(projectId, date) as { start: string | null } | undefined
+        )?.start ?? null);
     let changed = 0;
     if (!currentRule || currentRule.rate_basis !== basis || clientAmount(currentRule) !== minor) {
       if (currentRule && currentRule.effective_from === date) {
@@ -308,6 +359,7 @@ export function saveClientRate(
         hourlyRateMinor: basis === 'hourly' ? minor : 0n,
         unitRateMinor: basis === 'hourly' ? undefined : minor,
         effectiveFrom: date,
+        ...(nextStart ? { effectiveTo: previousDay(nextStart) } : {}),
       } as never;
       // Close the previous project rate only when no person-specific setting points at it;
       // otherwise keep it open for them and let the newer date win for everyone else.
@@ -494,6 +546,12 @@ export function lastIssuedThrough(sqlite: DatabaseSync, projectId: string): stri
   return row?.through ?? null;
 }
 
+function previousDay(date: string): string {
+  const value = new Date(`${date}T00:00:00Z`);
+  value.setUTCDate(value.getUTCDate() - 1);
+  return value.toISOString().slice(0, 10);
+}
+
 function nextDay(date: string): string {
   const value = new Date(`${date}T00:00:00Z`);
   value.setUTCDate(value.getUTCDate() + 1);
@@ -518,7 +576,12 @@ export function saveRateFromDate(
     return { ...save(sqlite, v3, principal, object), effectiveFrom: object.effectiveFrom, shifted: false };
   } catch (error) {
     if (!(error instanceof RateSaveError) || error.code !== 'already_invoiced') throw error;
-    const through = lastIssuedThrough(sqlite, object.projectId);
+    // Start right after the last issued work (of this person for a person's rate).
+    const workerId = typeof object.workerId === 'string' && object.workerId ? object.workerId : null;
+    const through =
+      kind === 'client'
+        ? lastIssuedWorkDate(sqlite, object.projectId, workerId)
+        : lastIssuedThrough(sqlite, object.projectId);
     if (!through || through < object.effectiveFrom) throw error;
     const effectiveFrom = nextDay(through);
     return { ...save(sqlite, v3, principal, { ...object, effectiveFrom }), effectiveFrom, shifted: true };

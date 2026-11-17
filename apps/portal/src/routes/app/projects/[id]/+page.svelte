@@ -13,6 +13,8 @@
   } from '$lib/portal/project-ux-round3-copy';
   import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
   import ProjectHubTeam from '$lib/portal/sections/ProjectHubTeam.svelte';
+  import ProjectHubLifecycle from '$lib/portal/sections/ProjectHubLifecycle.svelte';
+  import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
   import type { ProjectHubData, HubMoney } from '$lib/server/project-hub';
   import { useAssistantPaneRequest } from '$lib/portal/assistant/surface-request.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -584,6 +586,23 @@
         href: tabHref('invoices'),
         tab: 'invoices',
       });
+    // Billing-data checks (shared with the client page and the invoice screen): which
+    // client fields are missing, a J&A billing email, a PO that is just the project name.
+    if (canWriteFinance && hub.clientBilling)
+      for (const issue of clientBillingIssues(hub.clientBilling, {
+        name: project.name,
+        po_number: project.po_number,
+      }))
+        items.push({
+          id: `billing-${issue.code}`,
+          tone: 'warn',
+          text: clientBillingIssueText(locale, issue),
+          action: issue.code === 'po_equals_project_name' ? h('fixPo') : h('fixClient'),
+          href:
+            issue.code === 'po_equals_project_name'
+              ? tabHref('settings', '&assistantPane=project-edit')
+              : `${base}/app/clients/${encodeURIComponent(hub.clientBilling.clientId)}?lang=${locale}#client-settings-title`,
+        });
     if (isOwner && !display(project.po_number, '') && !display(hub.clientPo, ''))
       items.push({
         id: 'po',
@@ -2735,6 +2754,17 @@
             <summary>{h('setCloseout')}</summary>
             <div class="hub-group__body">
               <p class="surface-intro">{h('setCloseoutHint')}</p>
+              <ProjectHubLifecycle
+                projectId={String(project.id)}
+                projectName={display(project.name, String(project.project_number ?? ''))}
+                status={String(project.status ?? '')}
+                version={Number(project.version ?? 1)}
+                {locale}
+                {role}
+                today={hub.today}
+                describe={(result) => standaloneActionMessage(locale, result ?? { success: false })}
+                notify={hubNotify}
+              />
               <a
                 class="secondary-button"
                 data-project-closeout-link
@@ -4095,16 +4125,19 @@
     }
 
 
+    /* Phones: tabs wrap onto a second row instead of scrolling sideways, so every
+       tab (Invoices, Reports, Settings) is visible without swiping. */
     .project-tabs {
       display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x proximity;
-      scrollbar-width: thin;
+      flex-wrap: wrap;
+      overflow-x: visible;
+      gap: 0 0.1rem;
     }
     .project-tabs button {
+      flex: 1 1 auto;
       min-width: max-content;
-      scroll-snap-align: start;
-      padding-inline: 0.75rem;
+      min-height: 2.75rem;
+      padding: 0.55rem 0.6rem;
     }
     .compact-record,
   .billing-stream {

@@ -39,6 +39,9 @@
   // Missing rates first, then by name; long teams show 25 people until asked.
   const PEOPLE_PAGE = 25;
   let showAllPeople = $state(false);
+  // "Also replace personal rates" is never pre-ticked: a new project rate keeps
+  // individual agreements unless the owner explicitly chooses to replace them.
+  let replacePersonal = $state(false);
   const sortedPeople = $derived(
     [...rates.people].sort(
       (a, b) =>
@@ -112,6 +115,7 @@
     const key = formKey(kind, projectId, workerId);
     editing = editing === key ? '' : key;
     feedback = null;
+    replacePersonal = false;
   }
   const personalCount = (projectId: string) =>
     rates.people.filter(
@@ -196,10 +200,23 @@
       >
     </div>
     {#if kind === 'client' && !workerId && personalCount(projectId) > 0}
+      <p class="rates__note" data-rate-keeps-personal>
+        {t('keepsPersonal', { count: personalCount(projectId) })}
+      </p>
       <label class="rates__check"
-        ><input type="checkbox" name="applyToEveryone" checked />
+        ><input
+          type="checkbox"
+          name="applyToEveryone"
+          bind:checked={replacePersonal}
+          data-rate-apply-everyone
+        />
         {t('applyEveryone', { count: personalCount(projectId) })}</label
       >
+      {#if replacePersonal}
+        <p class="rates__warning" role="alert" data-rate-replace-warning>
+          {t('applyEveryoneWarning', { count: personalCount(projectId) })}
+        </p>
+      {/if}
     {/if}
     {#if kind === 'pay'}
       <label class="rates__check"
@@ -623,6 +640,18 @@
   .rates__error {
     margin: 0;
     color: #b42318;
+    font-weight: 600;
+  }
+  .rates__note {
+    margin: 0;
+    color: var(--ja-muted, #5b6472);
+  }
+  .rates__warning {
+    margin: 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid #b54708;
+    background: #fffaeb;
+    color: #7a2e0e;
     font-weight: 600;
   }
   .rates__toolbar {

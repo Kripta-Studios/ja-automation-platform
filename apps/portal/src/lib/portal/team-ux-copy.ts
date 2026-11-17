@@ -137,6 +137,18 @@ const copy = {
   since: ['{from} → {to}', '{from} → {to}', '{from} → {to}'],
   openEnded: ['open', 'abierto', 'em aberto'],
   endAssignment: ['End assignment', 'Terminar asignación', 'Encerrar alocação'],
+  poShort: ['PO {po}', 'PO {po}', 'PO {po}'],
+  poProject: ['Project PO', 'PO del proyecto', 'PO do projeto'],
+  poEdit: ['Set PO', 'Poner PO', 'Definir PO'],
+  poChange: ['Change PO', 'Cambiar PO', 'Alterar PO'],
+  poLabel: ['PO on this project', 'PO en este proyecto', 'PO neste projeto'],
+  poHelp: [
+    'Printed on invoices of this person’s work; empty = project PO.',
+    'Se imprime en las facturas de su trabajo; vacío = PO del proyecto.',
+    'Impresso nas faturas do trabalho desta pessoa; vazio = PO do projeto.',
+  ],
+  poSave: ['Save PO', 'Guardar PO', 'Salvar PO'],
+  poSaved: ['PO saved', 'PO guardado', 'PO salvo'],
   endTitle: ['End {project}', 'Terminar {project}', 'Encerrar {project}'],
   endHelp: [
     'The person can no longer record time or expenses on this project after the last day. Recorded hours stay.',

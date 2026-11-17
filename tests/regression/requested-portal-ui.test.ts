@@ -28,7 +28,7 @@ describe('requested portal UI regressions (RED characterization)', () => {
     const navigation = readSource('apps/portal/src/lib/portal-navigation.ts');
     const routeSource = `${source}\n${navigation}`;
     expect(navigation).toMatch(
-      /projects:\s*\{[\s\S]*?clients:\s*'Client contacts',[\s\S]*?team:\s*'Team access'/,
+      /projects:\s*\{[\s\S]*?clients:\s*'Clients',[\s\S]*?team:\s*'Team access'/,
     );
     expect(navigation).toMatch(/reports:\s*\{[\s\S]*?technical:\s*'PLC \/ technical reports'/);
     expect(navigation).toMatch(/billing:\s*\{[\s\S]*?invoices:\s*'Invoices'/);

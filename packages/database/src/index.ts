@@ -317,6 +317,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   78: 'void_invoice_source_release',
   79: 'invoice_inline_overrides',
   80: 'scale_indexes',
+  81: 'assignment_purchase_order',
   82: 'multi_currency_fx',
 };
 
@@ -326,7 +327,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '558479fb88891664a245736ec5e725aca0d6f68b7b8ec1d2ab695ae8d51e52ee';
+  'f073be945d3b5f9b400cd33362ff7d85967e3e3f5b9646fc48c4c02e3f47bce9';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1174,6 +1175,7 @@ export type {
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
 export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
+export { InvoiceLineLabels, invoicePersonName } from './domains/billing/invoice-line-labels.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';

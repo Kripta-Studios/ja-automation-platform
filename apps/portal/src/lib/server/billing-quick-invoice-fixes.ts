@@ -14,11 +14,13 @@ import {
   ConflictError,
   ValidationError,
   assertLiveSession,
+  recordAuditEvent,
   type InvoiceCompositionSourceRef,
 } from '@ja/database';
 import type { openPortalRepository } from './portal-repository';
 import { saveRateFromDate } from './rates-core';
 import { applyProjectExpenseConditions } from './expense-conditions';
+import { exactExpenseConversion, type ExpenseConversionEntry } from './expense-conversion';
 import {
   quickInvoiceCreate,
   quickInvoicePreview,
@@ -76,6 +78,11 @@ export function quickInvoiceSetRate(
     /** Phase 1 always saves the rate on the project (invoice-only overrides need S6). */
     scope: 'project';
     alsoCost?: boolean;
+    /**
+     * Client rate only: 'project' saves the project's rate (everyone without a personal rate,
+     * shown on Rates as "Project rate"); 'person' saves this person's rate on the project.
+     */
+    appliesTo?: 'project' | 'person';
   },
 ) {
   authorize(context);
@@ -84,9 +91,10 @@ export function quickInvoiceSetRate(
     .prepare('SELECT 1 FROM project_member WHERE project_id=? AND user_id=? LIMIT 1')
     .get(input.projectId, input.workerId);
   if (!member) throw new ValidationError('Worker is not assigned to this project');
+  const projectRate = input.kind === 'client' && input.appliesTo === 'project';
   return saveRateFromDate(input.kind, context.sqlite, context.v3, context.principal, {
     projectId: input.projectId,
-    workerId: input.workerId,
+    ...(projectRate ? {} : { workerId: input.workerId }),
     amount: input.amount,
     basis: 'hourly',
     effectiveFrom: input.effectiveFrom,
@@ -111,14 +119,16 @@ export function quickInvoiceSetExpenseTreatment(
     treatment: 'reimbursable' | 'all_in' | 'non_billable';
     markupBps: number;
     requestKey: string;
+    /** Foreign-currency expense: the exact rate or converted amount the owner entered. */
+    conversion?: ExpenseConversionEntry | null;
   },
 ) {
   authorize(context);
-  visibleProject(context, input.projectId);
+  const project = visibleProject(context, input.projectId);
   if (input.source.type !== 'expense') throw new ValidationError('Expense required');
   const row = context.sqlite
     .prepare(
-      `SELECT project_id,client_treatment,billing_treatment,markup_bps,tax_amount_minor,
+      `SELECT project_id,currency,amount_minor,client_treatment,billing_treatment,markup_bps,tax_amount_minor,
         (SELECT r.tax_bps FROM expense_classification_series s JOIN expense_classification_authority_event a ON a.id=s.current_authority_event_id
            JOIN expense_classification_revision r ON r.id=a.revision_id WHERE s.expense_id=expense.id) tax_bps
          FROM expense WHERE id=?`,
@@ -128,6 +138,11 @@ export function quickInvoiceSetExpenseTreatment(
     throw new AccessDeniedError('Expense is outside the selected project');
   if (row.tax_bps == null && Number(row.tax_amount_minor ?? 0) !== 0)
     throw new ValidationError('Review the existing expense tax classification in Finance first.');
+  const foreign = String(row.currency) !== String(project.currency);
+  const conversion =
+    foreign && input.conversion && (input.conversion.rate?.trim() || input.conversion.convertedAmount?.trim())
+      ? exactExpenseConversion(Number(row.amount_minor), String(row.currency), String(project.currency), input.conversion)
+      : null;
   const markupBps =
     input.treatment === 'reimbursable' ? Math.max(0, Math.min(10_000, Math.trunc(input.markupBps))) : 0;
   const key = input.treatment === 'reimbursable' && markupBps > 0 ? 'markup' : input.treatment;
@@ -171,7 +186,11 @@ export function quickInvoiceSetExpenseTreatment(
       reason: `Set from invoice preparation by ${context.principal.role}`,
     });
   }
-  const reason = `Changed from invoice by ${context.principal.role}: ${String(row.billing_treatment ?? '—')} → ${pair.billingTreatment}, markup ${markupBps / 100}%`;
+  const reason = `Changed from invoice by ${context.principal.role}: ${String(row.billing_treatment ?? '—')} → ${pair.billingTreatment}, markup ${markupBps / 100}%${
+    conversion
+      ? `; converted ${String(row.currency)}→${String(project.currency)} ${conversion.rate ? `at ${conversion.rate}` : 'by entered amount'} = ${conversion.projectCurrencyAmountMinor} minor`
+      : ''
+  }`;
   return context.repository.classifyExpenseCommercially(context.principal, {
     expenseId: input.source.id,
     expectedVersion: input.source.version,
@@ -182,6 +201,7 @@ export function quickInvoiceSetExpenseTreatment(
     reason,
     idempotencyKey: input.requestKey,
     overrideExpensePolicy: true,
+    conversion,
   });
 }
 
@@ -307,7 +327,15 @@ export function quickInvoiceSetIssuerBank(
 }
 
 export type QuickInvoiceIssueResult =
-  | { ok: true; invoiceId: string; number: string | null; totalMinor: string; state: string }
+  | {
+      ok: true;
+      invoiceId: string;
+      number: string | null;
+      totalMinor: string;
+      state: string;
+      /** Split by PO: every invoice issued in this action. */
+      invoices?: Array<{ invoiceId: string; number: string | null; totalMinor: string; purchaseNo: string | null }>;
+    }
   | {
       ok: false;
       reason: 'amount_changed' | 'not_ready' | 'already_invoiced' | 'issue_failed';
@@ -328,6 +356,8 @@ export function quickInvoiceIssue(
     requestKey: string;
     locale: 'en' | 'es' | 'pt';
     purchaseNo?: string;
+    expectedSplit?: string | null;
+    replacesInvoiceId?: string | null;
   },
 ): QuickInvoiceIssueResult {
   authorize(context);
@@ -343,26 +373,89 @@ export function quickInvoiceIssue(
       return { ok: false, reason: 'already_invoiced', preview: created.preview, invoiceId: existing.id };
     return { ok: false, reason: created.reason, preview: created.preview };
   }
-  const invoiceId = created.invoiceId;
-  try {
-    const current = context.sqlite.prepare('SELECT state FROM invoice WHERE id=?').get(invoiceId) as
-      | { state: string }
-      | undefined;
-    if (current?.state === 'draft') context.repository.approveInvoiceDraft(context.principal, invoiceId);
-    context.repository.issueInvoice(context.principal, invoiceId, input.locale);
-  } catch (error) {
-    return {
-      ok: false,
-      reason: 'issue_failed',
-      invoiceId,
-      message: error instanceof Error ? error.message.slice(0, 300) : 'Issue failed',
-      preview: quickInvoicePreview(context, input),
-    };
+  const ids = created.invoiceIds ?? [created.invoiceId];
+  if (input.replacesInvoiceId) linkReplacement(context, input.projectId, ids[0]!, input.replacesInvoiceId);
+  for (const invoiceId of ids) {
+    try {
+      const current = context.sqlite.prepare('SELECT state FROM invoice WHERE id=?').get(invoiceId) as
+        | { state: string }
+        | undefined;
+      if (current?.state === 'draft') context.repository.approveInvoiceDraft(context.principal, invoiceId);
+      context.repository.issueInvoice(context.principal, invoiceId, input.locale);
+    } catch (error) {
+      return {
+        ok: false,
+        reason: 'issue_failed',
+        invoiceId,
+        message: error instanceof Error ? error.message.slice(0, 300) : 'Issue failed',
+        preview: quickInvoicePreview(context, input),
+      };
+    }
   }
-  const saved = context.sqlite
-    .prepare('SELECT state,invoice_number,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?')
-    .get(invoiceId) as { state: string; invoice_number: string | null; total: string };
-  return { ok: true, invoiceId, number: saved.invoice_number, totalMinor: saved.total, state: saved.state };
+  const read = context.sqlite.prepare(
+    'SELECT state,invoice_number,CAST(total_minor AS TEXT) total,snapshot_json FROM invoice WHERE id=?',
+  );
+  const invoices = ids.map((invoiceId) => {
+    const row = read.get(invoiceId) as { state: string; invoice_number: string | null; total: string; snapshot_json: string | null };
+    let purchaseNo: string | null = null;
+    try {
+      const snapshot = JSON.parse(row.snapshot_json ?? '{}') as { purchaseNo?: unknown; purchase_no?: unknown };
+      const value = snapshot.purchaseNo ?? snapshot.purchase_no;
+      purchaseNo = typeof value === 'string' && value !== '—' ? value : null;
+    } catch {
+      purchaseNo = null;
+    }
+    return { invoiceId, number: row.invoice_number, totalMinor: row.total, state: row.state, purchaseNo };
+  });
+  const first = invoices[0]!;
+  return {
+    ok: true,
+    invoiceId: first.invoiceId,
+    number: first.number,
+    totalMinor: created.totalMinor,
+    state: first.state,
+    ...(ids.length > 1 ? { invoices: invoices.map(({ state: _state, ...rest }) => rest) } : {}),
+  };
+}
+
+/**
+ * "Create replacement invoice" after a void: the new invoice records which voided invoice it
+ * replaces (append-only link + audit). Only a void invoice of the same project qualifies.
+ */
+export function linkReplacement(
+  context: Context,
+  projectId: string,
+  replacementInvoiceId: string,
+  voidedInvoiceId: string,
+): void {
+  const voided = context.sqlite
+    .prepare('SELECT project_id,state,invoice_number FROM invoice WHERE id=?')
+    .get(voidedInvoiceId) as { project_id: string; state: string; invoice_number: string | null } | undefined;
+  if (!voided || voided.project_id !== projectId || voided.state !== 'void') return;
+  const table = context.sqlite
+    .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='invoice_replacement_link'")
+    .get();
+  if (!table) return;
+  context.sqlite.exec('SAVEPOINT invoice_replacement_link');
+  try {
+    const inserted = context.sqlite
+      .prepare(
+        `INSERT OR IGNORE INTO invoice_replacement_link(replacement_invoice_id,voided_invoice_id,project_id,created_by,created_at)
+         VALUES(?,?,?,?,?)`,
+      )
+      .run(replacementInvoiceId, voidedInvoiceId, projectId, context.principal.userId, new Date().toISOString());
+    if (inserted.changes === 1)
+      recordAuditEvent(context.sqlite, context.principal, 'invoice.replacement_link', 'invoice', replacementInvoiceId, {
+        projectId,
+        replacesInvoiceId: voidedInvoiceId,
+        replacesInvoiceNumber: voided.invoice_number,
+      });
+    context.sqlite.exec('RELEASE invoice_replacement_link');
+  } catch (error) {
+    context.sqlite.exec('ROLLBACK TO invoice_replacement_link');
+    context.sqlite.exec('RELEASE invoice_replacement_link');
+    throw error;
+  }
 }
 
 /**

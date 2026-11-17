@@ -7,7 +7,7 @@
    * Rates are inherited: project defaults → the person's saved rates → (only if
    * neither exists) the owner types them once here. The server decides again.
    */
-  import { enhance } from '$app/forms';
+  import { deserialize, enhance } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
   import { base } from '$app/paths';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -108,6 +108,40 @@
     endReason = c('reasonDefault');
   }
   const currency = $derived(selectedProject ? text(selectedProject, 'currency') : '');
+
+  // PO per assignment (owner decision 2026-11-17): saved through the project's action.
+  let poFor = $state<string | null>(null);
+  let poValue = $state('');
+  async function savePo(event: SubmitEvent, row: PortalRow): Promise<void> {
+    event.preventDefault();
+    if (status === 'saving') return;
+    status = 'saving';
+    message = '';
+    const body = new FormData();
+    body.set('assignmentId', text(row, 'id'));
+    body.set('version', text(row, 'version') || '1');
+    body.set('poNumber', poValue.trim());
+    try {
+      const response = await fetch(`${base}/app/projects/${encodeURIComponent(text(row, 'project_id'))}?/setAssignmentPo`, {
+        method: 'POST',
+        body,
+        headers: { 'x-sveltekit-action': 'true', accept: 'application/json' },
+      });
+      const result = deserialize(await response.text());
+      if (result.type === 'success') {
+        poFor = null;
+        await invalidateAll();
+        status = 'done';
+        message = c('poSaved');
+      } else {
+        status = 'error';
+        message = c('failed', { message: result.type === 'failure' ? failureMessage(result.data) : '' });
+      }
+    } catch {
+      status = 'error';
+      message = c('failed', { message: '' });
+    }
+  }
 </script>
 
 <div class="person-projects" data-person-projects>
@@ -134,15 +168,49 @@
                   >{c('since', {
                     from: text(row, 'starts_on') || '—',
                     to: text(row, 'ends_on') || c('openEnded'),
-                  })}</small
+                  })} · {text(row, 'po_number') ? c('poShort', { po: text(row, 'po_number') }) : c('poProject')}</small
                 >
               </span>
+              {#if isOwner && poFor !== text(row, 'id')}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-person-po-edit={text(row, 'project_id')}
+                  onclick={() => {
+                    poFor = text(row, 'id');
+                    poValue = text(row, 'po_number');
+                  }}>{c(text(row, 'po_number') ? 'poChange' : 'poEdit')}</button
+                >
+              {/if}
               {#if canManage && endingId !== text(row, 'id')}
                 <button type="button" class="secondary-button" onclick={() => openEnd(row)}
                   >{c('endAssignment')}</button
                 >
               {/if}
             </div>
+            {#if isOwner && poFor === text(row, 'id')}
+              <form class="pp-end" onsubmit={(event) => savePo(event, row)} data-person-po-form>
+                <div class="pp-fields">
+                  <label
+                    >{c('poLabel')}<input
+                      name="poNumber"
+                      maxlength="200"
+                      autocomplete="off"
+                      placeholder="1722812"
+                      bind:value={poValue}
+                      data-person-po-input
+                    /></label
+                  >
+                </div>
+                <p class="pp-muted">{c('poHelp')}</p>
+                <div class="pp-actions">
+                  <button type="button" class="secondary-button" onclick={() => (poFor = null)}>{c('cancel')}</button>
+                  <button type="submit" class="primary-button" disabled={status === 'saving'} data-person-po-save
+                    >{c('poSave')}</button
+                  >
+                </div>
+              </form>
+            {/if}
             {#if canManage && endingId === text(row, 'id')}
               <form
                 method="POST"

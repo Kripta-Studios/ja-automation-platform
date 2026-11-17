@@ -12,9 +12,6 @@
 --    record amount into another currency (rate, source, rate date, confirmer).
 -- The contract metadata table is rebuilt only to admit version 82 in its reviewed
 -- CHECK lists, exactly like every previous migration.
---
--- MERGE NOTE: when 0081 exists, add its canonical name before 'multi_currency_fx'
--- in the list below (the copy of the 0081 metadata row would otherwise fail closed).
 
 DROP TRIGGER migration_contract_metadata_no_update;
 DROP TRIGGER migration_contract_metadata_no_delete;
@@ -37,7 +34,7 @@ CREATE TABLE migration_contract_metadata(
     'astra_period_followup','supplier_workforce','supplier_directory_lifecycle','owner_record_management',
     'supplier_contact_directory','worker_compensation_payments','supplier_time_batch_idempotency',
     'accounting_pack_signed_credit_balances','availability_calendar_edits',
-    'expense_occurrence_time_shift_link','crew_leader_time','crew_expense_recorder','assignment_commercial_fallback','assignment_expense_policy','operational_time_expense_request','crew_shared_expense_allocation','combined_time_expense_billing','project_billing_setup_templates','approved_invoice_supersession','project_expense_budget','invoiced_expense_reimbursement','credit_note_overdue_repair','planning_assignment_actions','legacy_fx_reimbursement_settlement','correction_draft_withdrawal','default_ja_usd_invoice_issuer','project_worker_reimbursement_default','optional_planning_publication','invoice_preview_edit_defaults','issuer_document_settings','project_person_defaults','dated_reimbursement_preferences','unused_issuing_authority_replacement','client_labor_billing_units','project_site_client_crm','invoice_composition_selection','digital_work_coordination','void_invoice_source_release','invoice_inline_overrides','scale_indexes','multi_currency_fx'
+    'expense_occurrence_time_shift_link','crew_leader_time','crew_expense_recorder','assignment_commercial_fallback','assignment_expense_policy','operational_time_expense_request','crew_shared_expense_allocation','combined_time_expense_billing','project_billing_setup_templates','approved_invoice_supersession','project_expense_budget','invoiced_expense_reimbursement','credit_note_overdue_repair','planning_assignment_actions','legacy_fx_reimbursement_settlement','correction_draft_withdrawal','default_ja_usd_invoice_issuer','project_worker_reimbursement_default','optional_planning_publication','invoice_preview_edit_defaults','issuer_document_settings','project_person_defaults','dated_reimbursement_preferences','unused_issuing_authority_replacement','client_labor_billing_units','project_site_client_crm','invoice_composition_selection','digital_work_coordination','void_invoice_source_release','invoice_inline_overrides','scale_indexes','assignment_purchase_order','multi_currency_fx'
   )),
   descriptor_version TEXT NOT NULL CHECK(descriptor_version='ja-migration-contract-v1'),
   descriptor_sha256 TEXT NOT NULL CHECK(length(descriptor_sha256)=64 AND descriptor_sha256 NOT GLOB '*[^0-9a-f]*'),

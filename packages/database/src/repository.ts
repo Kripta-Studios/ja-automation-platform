@@ -68,6 +68,7 @@ import {
   ClientLaborChargeAllocator,
   clientBillingUnit,
 } from './domains/commercial/client-labor-charge.ts';
+import { InvoiceLineLabels } from './domains/billing/invoice-line-labels.ts';
 import { CanonicalProjectLegalEntityRepository } from './domains/finance/canonical-project-legal-entity-repository.ts';
 import {
   ExpenseCommercialClassificationRepository,
@@ -7269,6 +7270,7 @@ export class PortalRepository {
             currency: rule.rule_currency,
             unit: this.billingSliceClientUnit(rule.project_id, slice),
             rateMinor: rate,
+            groupKey: `${row.worker_id}:${slice.category}`,
           }).amountMinor,
         });
         const key = `${row.worker_id}:${row.work_date}`;
@@ -8399,6 +8401,7 @@ export class PortalRepository {
         >();
         const reservedSources = new Set<string>();
         const charges = new ClientLaborChargeAllocator(this.sqlite, id);
+        const labels = new InvoiceLineLabels(this.sqlite, rule.project_id);
         let includedRemaining =
           rule.billing_model === 'hybrid' ? Math.max(0, rule.included_minutes ?? 0) : 0;
         billedPlan = this.billedMinutesPlan(rule.project_id, slices);
@@ -8447,6 +8450,7 @@ export class PortalRepository {
             currency: rule.currency,
             unit,
             rateMinor: rate,
+            groupKey: `${row.worker_id}:${slice.category}`,
           });
           const amount = money(rule.currency, charge.amountMinor);
           subtotal = add(subtotal, amount);
@@ -8464,7 +8468,12 @@ export class PortalRepository {
           if (unit === 'hourly') daily.set(workerDayKey, day);
           this.insertInvoiceLine(
             id,
-            `${row.work_date} · ${row.category}${slice.category === 'overtime' && row.category !== 'overtime' ? ' → overtime' : ''} · ${row.activity_summary}`,
+            labels.laborDescription({
+              workerId: row.worker_id,
+              workDate: row.work_date,
+              category: `${row.category}${slice.category === 'overtime' && row.category !== 'overtime' ? ' → overtime' : ''}`,
+              summary: row.activity_summary,
+            }),
             charge.numerator,
             charge.denominator,
             safeInteger(rate),
@@ -8757,6 +8766,11 @@ export class PortalRepository {
           'SELECT p.po_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?',
         )
         .get(rule.project_id);
+      // Everyone on this invoice shares one assignment PO: that PO is printed (owner decision
+      // 2026-11-17). An invoice-only PO still wins; otherwise the stream/project PO applies.
+      const assignmentPurchaseNo = overrides?.purchaseNo
+        ? null
+        : new InvoiceLineLabels(this.sqlite, rule.project_id).sharedPurchaseOrder(id);
       this.sqlite
         .prepare(
           'UPDATE invoice SET subtotal_minor=?,tax_minor=?,total_minor=?,snapshot_json=?,planned_issue_on=?,updated_at=? WHERE id=?',
@@ -8768,12 +8782,14 @@ export class PortalRepository {
           JSON.stringify({
             purchaseNo:
               overrides?.purchaseNo ??
+              assignmentPurchaseNo ??
               effectivePurchaseReference(
                 rule.po_number_override,
                 projectReference?.po_number,
                 projectReference?.po_reference,
               ),
-            ...(overrides?.purchaseNo ? { draftOnlyOverrides: ['purchaseNo'] } : {}),
+            ...(overrides?.purchaseNo || assignmentPurchaseNo ? { draftOnlyOverrides: ['purchaseNo'] } : {}),
+            ...(assignmentPurchaseNo ? { purchaseNoSource: 'assignment' } : {}),
             ...(overrides && hasInvoiceOverrides(overrides)
               ? { invoiceOverrides: describeInvoiceOverrides(overrides) }
               : {}),

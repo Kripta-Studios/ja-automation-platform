@@ -13,6 +13,12 @@ export type CustomerChargeSource = {
   currency: Currency;
   unit: ClientBillingUnit;
   rateMinor: bigint;
+  /**
+   * Hourly lines of one invoice line group (person × category × rate). Amounts are allocated
+   * from the group's running minute total, so the group sums to exactly
+   * round(total minutes × rate / 60) instead of accumulating per-entry rounding.
+   */
+  groupKey?: string;
 };
 
 export function clientBillingUnit(value: unknown): ClientBillingUnit {
@@ -24,19 +30,25 @@ export function clientBillingUnit(value: unknown): ClientBillingUnit {
 export class ClientLaborChargeAllocator {
   private readonly used = new Set<string>();
   private readonly anchors = new Map<string, string | null>();
+  private readonly runningMinutes = new Map<string, number>();
   constructor(
     private readonly sqlite: DatabaseSync,
     private readonly invoiceId = '',
   ) {}
   charge(input: CustomerChargeSource) {
-    if (input.unit === 'hourly')
-      return {
-        amountMinor: hourlyRateForMinutes(money(input.currency, input.rateMinor), input.minutes)
-          .minorUnits,
-        numerator: input.minutes,
-        denominator: 60,
-        bucketKey: null,
-      };
+    if (input.unit === 'hourly') {
+      const rate = money(input.currency, input.rateMinor);
+      let amountMinor = hourlyRateForMinutes(rate, input.minutes).minorUnits;
+      if (input.groupKey !== undefined) {
+        const key = JSON.stringify([input.groupKey, input.currency, input.rateMinor.toString()]);
+        const before = this.runningMinutes.get(key) ?? 0;
+        const after = before + input.minutes;
+        this.runningMinutes.set(key, after);
+        amountMinor =
+          hourlyRateForMinutes(rate, after).minorUnits - hourlyRateForMinutes(rate, before).minorUnits;
+      }
+      return { amountMinor, numerator: input.minutes, denominator: 60, bucketKey: null };
+    }
     const start = input.unit === 'daily' ? input.workDate : weeklyPeriod(input.workDate).start;
     const end = input.unit === 'daily' ? input.workDate : weeklyPeriod(input.workDate).end;
     const key = JSON.stringify([

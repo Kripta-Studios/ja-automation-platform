@@ -41,7 +41,7 @@ describe('scale indexes migration80', () => {
       .prepare("SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name<>'migration_contract_metadata' ORDER BY type,name")
       .all();
     f.sqlite.close();
-    // Upgrade to exactly schema 80: later migrations change the schema on purpose.
+    // Upgrade exactly to 80 (later migrations have their own upgrade tests).
     const target = mkdtempSync(join(tmpdir(), 'ja-scale-schema80-'));
     directories.push(target);
     for (const entry of readdirSync(resolve('migrations')))

@@ -19,6 +19,7 @@
     role: string | null;
     startsOn: string;
     endsOn: string | null;
+    poNumber?: string | null;
   };
   type RatePerson = { id: string; customerRate: string | null; customerRateAmount: string; customerRateBasis: string };
   type Worker = Record<string, unknown>;
@@ -67,6 +68,16 @@
 
   const rateFor = (workerId: string) => ratePeople?.find((person) => person.id === workerId);
   const anyRate = $derived((ratePeople ?? []).some((person) => person.customerRate !== null));
+  // People on the team with no client rate at all. The project-wide rate stays on offer
+  // while anyone is missing one, even when others already have a personal rate.
+  const missingRateCount = $derived(
+    ratePeople
+      ? assignments.filter((row) => {
+          const rate = rateFor(row.workerId);
+          return !rate || rate.customerRate === null;
+        }).length
+      : 0,
+  );
 
   // ---------- add people ----------
   let addOpen = $state(false);
@@ -175,6 +186,31 @@
       if (result.type === 'success') {
         notify(h('ended', { name: row.name }), 'success');
         endingId = '';
+        await invalidateAll();
+      } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
+    } catch {
+      notify(describe(null), 'danger');
+    } finally {
+      busy = false;
+    }
+  }
+
+  // ---------- PO per assignment (owner decision 2026-11-17) ----------
+  let poFor = $state('');
+  let poValue = $state('');
+  async function savePo(event: SubmitEvent, row: Assignment) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    try {
+      const result = await post(`${projectHref}?/setAssignmentPo`, {
+        assignmentId: row.id,
+        version: String(row.version),
+        poNumber: poValue.trim(),
+      });
+      if (result.type === 'success') {
+        notify(h('poSaved'), 'success');
+        poFor = '';
         await invalidateAll();
       } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
     } catch {
@@ -336,9 +372,11 @@
     </form>
   {/if}
 
-  {#if canSetRates && ratePeople && !anyRate && assignments.length > 0}
+  {#if canSetRates && ratePeople && assignments.length > 0 && (!anyRate || missingRateCount > 0)}
     <div class="hub-rate-banner" data-hub-project-rate>
-      <p>{h('attMissingRate')}</p>
+      <p>
+        {anyRate ? h('projectRateSome', { count: missingRateCount }) : h('attMissingRate')}
+      </p>
       {#if rateFormFor === ''}
         {@render rateForm(h('rateForProject', { currency }))}
       {:else}
@@ -381,6 +419,24 @@
               {/if}
             </div>
           {/if}
+          {#if canSetRates || row.poNumber}
+            <div class="hub-team-rate" data-hub-po={row.workerId}>
+              <span class="hub-label">{h('poLabel')}</span>
+              {#if row.poNumber}<strong>{row.poNumber}</strong>{:else}<span class="hub-missing-text">{h('poProjectDefault')}</span>{/if}
+              {#if canSetRates}
+                <button
+                  type="button"
+                  class="quiet-button"
+                  data-hub-po-edit={row.workerId}
+                  aria-expanded={poFor === row.id}
+                  onclick={() => {
+                    poFor = poFor === row.id ? '' : row.id;
+                    poValue = row.poNumber ?? '';
+                  }}>{row.poNumber ? h('poChange') : h('poEdit')}</button
+                >
+              {/if}
+            </div>
+          {/if}
           {#if canManage}
             <button
               type="button"
@@ -391,6 +447,27 @@
                 endReason = h('reasonDefault');
               }}>{h('endAssignment')}</button
             >
+          {/if}
+          {#if poFor === row.id}
+            <div class="hub-row-panel">
+              <form class="hub-inline-form" onsubmit={(event) => savePo(event, row)} data-hub-po-form>
+                <label
+                  >{h('poFor', { name: row.name })}<input
+                    name="poNumber"
+                    maxlength="200"
+                    autocomplete="off"
+                    placeholder="1722812"
+                    bind:value={poValue}
+                    data-hub-po-input
+                  /></label
+                >
+                <small class="surface-intro">{h('poHelp')}</small>
+                <div class="hub-inline-actions">
+                  <button type="button" class="secondary-button" onclick={() => (poFor = '')}>{h('cancel')}</button>
+                  <button type="submit" class="primary-button" disabled={busy} data-hub-po-save>{h('poSave')}</button>
+                </div>
+              </form>
+            </div>
           {/if}
           {#if rateFormFor === row.workerId}
             <div class="hub-row-panel">
@@ -473,7 +550,7 @@
   }
   .hub-team-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     gap: 0.5rem 1rem;
     align-items: center;
     padding: 0.75rem 0;

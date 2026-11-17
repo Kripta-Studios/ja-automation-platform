@@ -38,6 +38,18 @@ export type ExpenseCommercialClassificationInput = Readonly<{
   reason: string;
   idempotencyKey: string;
   overrideExpensePolicy?: boolean;
+  /**
+   * Exact conversion of a foreign-currency expense into the project currency, entered by
+   * Finance/Owner (the rate the bank used, or the converted amount). Recorded on the
+   * classification revision and in the audit event; never guessed.
+   */
+  conversion?: Readonly<{
+    projectCurrencyAmountMinor: number;
+    /** Decimal text "1 source unit = rate project units", when entered as a rate. */
+    rate: string | null;
+    /** Rate in basis points when it is exactly representable (else null). */
+    rateBps: number | null;
+  }> | null;
 }>;
 
 export type ExpenseCommercialClassificationResult = Readonly<{
@@ -187,6 +199,24 @@ export class ExpenseCommercialClassificationRepository {
       reason: this.text(input.reason, 'Reason', 2000),
       idempotencyKey: this.text(input.idempotencyKey, 'Idempotency key', 240),
       overrideExpensePolicy: input.overrideExpensePolicy === true,
+      conversion: (() => {
+        const conversion = input.conversion;
+        if (!conversion) return null;
+        if (
+          !Number.isSafeInteger(conversion.projectCurrencyAmountMinor) ||
+          conversion.projectCurrencyAmountMinor <= 0
+        )
+          return this.failValidation('Converted amount is invalid');
+        if (conversion.rate !== null && !/^\d{1,6}(?:\.\d{1,8})?$/u.test(conversion.rate))
+          return this.failValidation('Conversion rate is invalid');
+        if (conversion.rateBps !== null && (!Number.isSafeInteger(conversion.rateBps) || conversion.rateBps <= 0))
+          return this.failValidation('Conversion rate is invalid');
+        return {
+          projectCurrencyAmountMinor: conversion.projectCurrencyAmountMinor,
+          rate: conversion.rate,
+          rateBps: conversion.rateBps,
+        };
+      })(),
     };
   }
 
@@ -419,11 +449,14 @@ export class ExpenseCommercialClassificationRepository {
           return this.failValidation('Expense policy override requires a reason');
         if (firstPolicyClassification) {
           if (policy.workerReimbursement === 'at_cost') {
-            if (sourceCurrency !== projectCurrency)
+            if (sourceCurrency !== projectCurrency && !normalized.conversion)
               return this.failValidation(
                 'Expense reimbursement requires an exact currency conversion',
               );
-            workerReimbursementMinor = sourceAmountMinor as number;
+            workerReimbursementMinor =
+              sourceCurrency !== projectCurrency
+                ? normalized.conversion!.projectCurrencyAmountMinor
+                : (sourceAmountMinor as number);
             reimbursementState = 'pending';
           } else {
             workerReimbursementMinor = 0;
@@ -434,11 +467,11 @@ export class ExpenseCommercialClassificationRepository {
       let projectCurrencyAmountMinor: number | null = null;
       let billingAmountMinor: number | null = null;
       let taxAmountMinor: number | null = null;
-      if (sourceCurrency === authorityCurrency) {
-        const sourceMoney = money(
-          authorityCurrency as Currency,
-          BigInt(sourceAmountMinor as number),
-        );
+      const conversion = sourceCurrency === authorityCurrency ? null : (normalized.conversion ?? null);
+      if (sourceCurrency === authorityCurrency || conversion) {
+        // Foreign currency: every amount below is derived from the entered exact conversion.
+        const baseMinor = conversion ? conversion.projectCurrencyAmountMinor : (sourceAmountMinor as number);
+        const sourceMoney = money(authorityCurrency as Currency, BigInt(baseMinor));
         const billingMoney =
           normalized.billingTreatment === 'reimbursable_plus_markup'
             ? add(sourceMoney, applyBasisPoints(sourceMoney, normalized.markupBps))
@@ -452,7 +485,7 @@ export class ExpenseCommercialClassificationRepository {
             return this.failValidation(`${field} is outside the supported exact-money range`);
           return converted;
         };
-        projectCurrencyAmountMinor = sourceAmountMinor as number;
+        projectCurrencyAmountMinor = baseMinor;
         billingAmountMinor = toSafeMinor(billingMoney.minorUnits, 'Billing amount');
         taxAmountMinor = toSafeMinor(taxMoney.minorUnits, 'Tax amount');
       }
@@ -519,6 +552,9 @@ export class ExpenseCommercialClassificationRepository {
           projectCurrencyAmountMinor === null ? null : String(projectCurrencyAmountMinor),
         billing_amount_minor: billingAmountMinor === null ? null : String(billingAmountMinor),
         tax_amount_minor: taxAmountMinor === null ? null : String(taxAmountMinor),
+        ...(conversion
+          ? { conversion: { rate: conversion.rate, rate_bps: conversion.rateBps, entered_by: principal.userId } }
+          : {}),
         reason: normalized.reason,
       };
       const command = ensureCommand(
@@ -623,6 +659,7 @@ export class ExpenseCommercialClassificationRepository {
             projectCurrencyAmountMinor === null ? null : String(projectCurrencyAmountMinor),
           billing_amount_minor: billingAmountMinor === null ? null : String(billingAmountMinor),
           tax_amount_minor: taxAmountMinor === null ? null : String(taxAmountMinor),
+          ...(conversion ? { conversion_rate: conversion.rate, conversion_rate_bps: conversion.rateBps } : {}),
           effective_at: spentOn,
           expected_version: normalized.expectedVersion,
           reason: normalized.reason,
@@ -777,7 +814,7 @@ export class ExpenseCommercialClassificationRepository {
           `UPDATE expense
               SET client_treatment=?,billing_treatment=?,markup_bps=?,
                   billing_amount_minor=?,project_currency_amount_minor=?,
-                  tax_amount_minor=?,fx_rate_bps=NULL,
+                  tax_amount_minor=?,fx_rate_bps=?,
                   assignment_expense_policy_id=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE assignment_expense_policy_id END,
                   reimbursement_amount_minor=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE reimbursement_amount_minor END,
                   reimbursement_state=CASE WHEN expense_policy_required=1 AND commercial_classification_state<>'classified' THEN ? ELSE reimbursement_state END,
@@ -793,6 +830,7 @@ export class ExpenseCommercialClassificationRepository {
           billingAmountMinor,
           projectCurrencyAmountMinor,
           taxAmountMinor,
+          conversion?.rateBps ?? null,
           selectedPolicyId,
           workerReimbursementMinor,
           reimbursementState,
@@ -838,7 +876,18 @@ export class ExpenseCommercialClassificationRepository {
             billingAmountMinor,
             projectCurrencyAmountMinor,
             taxAmountMinor,
-            fxRateBps: null,
+            fxRateBps: conversion?.rateBps ?? null,
+            ...(conversion
+              ? {
+                  conversion: {
+                    from: sourceCurrency,
+                    to: projectCurrency,
+                    sourceAmountMinor: String(sourceAmountMinor),
+                    projectCurrencyAmountMinor: String(conversion.projectCurrencyAmountMinor),
+                    rate: conversion.rate,
+                  },
+                }
+              : {}),
             version: normalized.expectedVersion + 1,
             classificationState: 'classified',
             revisionId,

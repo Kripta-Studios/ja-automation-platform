@@ -21,6 +21,8 @@ import {
 import { periodForCadence, type BillingCadence } from '@ja/billing-engine';
 import type { openPortalRepository } from './portal-repository';
 import { personDisplayName } from '../portal/display-name';
+import { InvoiceLineLabels } from '@ja/database';
+import { clientBillingIssues } from '../portal/client-billing-issues';
 
 type Context = ReturnType<typeof openPortalRepository>;
 type Row = Record<string, unknown>;
@@ -51,6 +53,9 @@ export type QuickInvoiceProject = {
   unbilledFrom: string | null;
   /** Last day covered by a live (not void/superseded) invoice. */
   lastInvoicedThrough: string | null;
+  /** Oldest / newest logged work (approved or still pending) that no live invoice holds. */
+  openFrom: string | null;
+  openThrough: string | null;
 };
 
 export type QuickInvoiceWarning = {
@@ -136,6 +141,31 @@ export type QuickInvoicePreview = {
   taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
   /** The stream's own tax profile (null: none). */
   streamTaxProfileId: string | null;
+  /**
+   * People on this invoice have different assignment POs: one invoice per PO, created and
+   * issued together (owner decision 2026-11-17). Each part is an exact engine dry run.
+   */
+  split: QuickInvoiceSplit | null;
+};
+
+export type QuickInvoiceSplitPart = {
+  /** Assignment PO of the people in this part; null: the project/stream PO applies. */
+  poKey: string | null;
+  /** PO printed on the invoice (assignment PO, else the project/stream fallback). */
+  purchaseNo: string | null;
+  people: Array<{ workerId: string; name: string; minutes: number }>;
+  sourceCount: number;
+  subtotalMinor: string;
+  taxMinor: string;
+  totalMinor: string;
+};
+
+export type QuickInvoiceSplit = {
+  parts: QuickInvoiceSplitPart[];
+  /** Sum of the parts (each part is taxed on its own). */
+  totalMinor: string;
+  /** Guard echoed by create/issue: the parts the user saw (PO and amount). */
+  signature: string;
 };
 
 export type QuickInvoiceProjection = {
@@ -162,6 +192,9 @@ export type QuickInvoiceAttentionPerson = {
   futureCount?: number;
   /** Oldest affected date: a saved rate/cost starts here so it covers the invoice. */
   fromDate?: string;
+  /** Approve item: how many of the records are expenses, and how many still need a client decision. */
+  expenseCount?: number;
+  unclassifiedExpenseCount?: number;
   suggestedRateMinor?: string | null;
   sources?: InvoiceCompositionSourceRef[];
 };
@@ -181,6 +214,10 @@ export type QuickInvoiceExpenseRow = {
   /** Treatment cannot change: the expense sits on an unissued draft or live invoice. */
   locked: boolean;
   policyAvailable: boolean;
+  /** Recorded in another currency than the invoice: an exact conversion is entered with the choice. */
+  foreign: boolean;
+  /** Left out of this invoice by the user (stays unclassified, no longer blocks). */
+  excluded: boolean;
 };
 
 export type QuickInvoiceClient = {
@@ -297,6 +334,21 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
         .all() as Array<{ projectId: string; minutes: number; firstDate: string }>
     ).map((row) => [row.projectId, row]),
   );
+  const open = new Map(
+    (
+      context.sqlite
+        .prepare(
+          `SELECT project_id projectId,MIN(work_date) openFrom,MAX(work_date) openThrough FROM time_entry
+            WHERE approval_state IN ('draft','submitted','needs_changes','approved','locked') AND invoice_id IS NULL
+              AND billability_state IN ('pending','billable')
+              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                     WHERE source.source_type='time' AND source.source_id=time_entry.id
+                       AND invoice.state NOT IN ('void','cancelled','superseded'))
+            GROUP BY project_id`,
+        )
+        .all() as Array<{ projectId: string; openFrom: string; openThrough: string }>
+    ).map((row) => [row.projectId, row]),
+  );
   const invoicedThrough = new Map(
     (
       context.sqlite
@@ -314,6 +366,8 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
       unbilledMinutes: Number(unbilled.get(String(project.id))?.minutes ?? 0),
       unbilledFrom: unbilled.get(String(project.id))?.firstDate ?? null,
       lastInvoicedThrough: invoicedThrough.get(String(project.id)) ?? null,
+      openFrom: open.get(String(project.id))?.openFrom ?? null,
+      openThrough: open.get(String(project.id))?.openThrough ?? null,
       id: String(project.id),
       number: String(project.project_number),
       name: String(project.name),
@@ -465,6 +519,22 @@ function eligibleSelection(
     .map((source) => ({ type: source.type, id: source.id, version: source.version }));
 }
 
+/** Records of the period that no invoice (draft or issued) holds and that can be billed. */
+function openSources(
+  context: Context,
+  scope: { projectId: string; billingRuleId: string; periodStart: string; periodEnd: string },
+): InvoiceCompositionSource[] {
+  const hard = new Set(['source_not_billable', 'source_already_reserved', 'source_requires_remaining_period_billing']);
+  return context.repository
+    .invoiceCompositionSources(context.principal, scope)
+    .sources.filter(
+      (source) =>
+        source.containingInvoice === null &&
+        !source.blockers.some((reason) => hard.has(reason.code)) &&
+        !['void', 'rejected', 'cancelled'].includes(source.approvalState),
+    );
+}
+
 function parseSnapshot(value: unknown): Row {
   if (typeof value !== 'string') return {};
   try {
@@ -595,6 +665,10 @@ export type QuickInvoiceInput = {
   billingRuleId?: string;
   /** "Change for this invoice only": applied inside the draft engine, persisted on the draft. */
   overrides?: InvoiceOverrideInput | null;
+  /** Unclassified expenses the user left out of this invoice (they no longer block it). */
+  excludedExpenseIds?: readonly string[];
+  /** Internal: price only records no invoice holds yet (never rebuild a same-dates draft). */
+  forceSelection?: boolean;
 };
 
 function hasOverrides(input: QuickInvoiceInput): boolean {
@@ -667,6 +741,7 @@ function emptyPreview(
     overrides: null,
     taxOptions: [],
     streamTaxProfileId: null,
+    split: null,
   };
 }
 
@@ -676,12 +751,13 @@ function nearbyApprovedDates(
   periodStart: string,
   periodEnd: string,
 ): Array<{ workDate: string }> {
-  // Approved hours outside the period that no live invoice holds yet.
+  // Logged hours outside the period that no live invoice holds yet: approved ones, and also
+  // those still waiting for an approval ("Approve & include" handles them on that screen).
   return context.sqlite
     .prepare(
       `SELECT DISTINCT work_date workDate FROM time_entry
         WHERE project_id=? AND (work_date<? OR work_date>?)
-          AND approval_state IN ('approved','locked') AND invoice_id IS NULL
+          AND approval_state IN ('draft','submitted','needs_changes','approved','locked') AND invoice_id IS NULL
           AND billability_state IN ('pending','billable')
           AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
                  WHERE source.source_type='time' AND source.source_id=time_entry.id
@@ -724,7 +800,7 @@ function nearbyForStream(
     : nearbyApprovedDates(context, projectId, periodStart, periodEnd);
 }
 
-/** Oldest unbilled approved work first, aligned to the stream cadence and window. */
+/** Oldest unbilled (approved or pending) work first, aligned to the stream cadence and window. */
 function suggestPeriod(
   stream: QuickInvoiceStream,
   nearby: ReadonlyArray<{ workDate: string }>,
@@ -808,7 +884,26 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   const globalReasons = readinessReasons.filter(
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );
+  let forceSelection = Boolean(input.forceSelection) && stream.streamType !== 'milestone';
   if (readiness.existingInvoiceId && readiness.existingInvoiceState && readiness.existingInvoiceState !== 'draft') {
+    // Work logged later inside an already invoiced period (late entries, new people) is still
+    // billable: price only what no invoice holds yet instead of pointing at the old invoice.
+    const late =
+      stream.streamType !== 'milestone' &&
+      openSources(context, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      }).length > 0;
+    if (late) forceSelection = true;
+  }
+  if (
+    !forceSelection &&
+    readiness.existingInvoiceId &&
+    readiness.existingInvoiceState &&
+    readiness.existingInvoiceState !== 'draft'
+  ) {
     const existing = context.repository.invoicePreview(context.principal, readiness.existingInvoiceId);
     const invoice = existing.invoice as Row;
     return {
@@ -878,6 +973,28 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
       reasons: collected,
       lines: [],
       };
+  } else if (forceSelection) {
+    selection = eligibleSelection(context, {
+      projectId: input.projectId,
+      billingRuleId: stream.id,
+      periodStart: input.periodStart,
+      periodEnd: input.periodEnd,
+    });
+    mode = 'selection';
+    if (!selection.length)
+      return {
+        preview: {
+          ...base,
+          state: 'empty',
+          suggestedPeriod: suggestPeriod(
+            stream,
+            nearbyForStream(context, stream, input.projectId, input.periodStart, input.periodEnd),
+          ),
+        },
+        selection: null,
+        reasons: collected,
+        lines: [],
+      };
   }
 
   const dryRun = context.repository.invoiceDraftDryRun(
@@ -924,7 +1041,17 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
     const current = context.sqlite
       .prepare('SELECT CAST(total_minor AS TEXT) total,invoice_number FROM invoice WHERE id=?')
       .get(readiness.existingInvoiceId) as { total: string; invoice_number: string | null } | undefined;
-    if (current?.total === dryRun.totals.totalMinor)
+    // Records no invoice holds yet (e.g. expenses still waiting for a decision) keep the
+    // screen open on this draft so they can be fixed here, instead of "already on an invoice".
+    const waiting =
+      current?.total === dryRun.totals.totalMinor &&
+      openSources(context, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      }).length > 0;
+    if (current?.total === dryRun.totals.totalMinor && !waiting)
       return {
         preview: {
           ...base,
@@ -1169,6 +1296,11 @@ function buildAttention(
       person.returnedReason =
         mine.map((source) => returned.get(source.id)).find((reason) => Boolean(reason)) ?? null;
       person.futureCount = mine.filter((source) => source.date > today).length;
+      person.expenseCount = mine.filter((source) => source.type === 'expense').length;
+      // Approving cannot include an expense until the client treatment is decided.
+      person.unclassifiedExpenseCount = mine.filter(
+        (source) => source.type === 'expense' && source.classificationState === 'unclassified',
+      ).length;
       const amount = projectedByWorker.get(person.workerId);
       if (amount !== undefined) person.projectedMinor = amount.toString();
     }
@@ -1206,7 +1338,11 @@ function buildAttention(
   for (const kind of ['clientRate', 'workerCost'] as const) {
     const ids = perKind.get(kind);
     if (!ids?.size) continue;
-    const sources = [...ids].map((id) => byId.get(id)).filter((source): source is InvoiceCompositionSource => Boolean(source));
+    // Records another draft already holds are priced there, not here.
+    const sources = [...ids]
+      .map((id) => byId.get(id))
+      .filter((source): source is InvoiceCompositionSource => Boolean(source) && source!.containingInvoice === null);
+    if (!sources.length) continue;
     const grouped = [...people(context, sources).values()].sort((a, b) => b.minutes - a.minutes);
     for (const person of grouped) {
       if (kind === 'clientRate')
@@ -1228,7 +1364,10 @@ function buildAttention(
       minutes: grouped.reduce((total, person) => total + person.minutes, 0),
     });
   }
-  const unclassified = [...(perKind.get('expenseTreatment') ?? [])];
+  const excluded = new Set(input.excludedExpenseIds ?? []);
+  const unclassified = [...(perKind.get('expenseTreatment') ?? [])].filter(
+    (id) => !excluded.has(id) && byId.get(id)?.containingInvoice == null,
+  );
   const expenses = inventory.filter((source) => source.type === 'expense');
   const expenseRows: QuickInvoiceExpenseRow[] = [];
   if (expenses.length) {
@@ -1261,12 +1400,19 @@ function buildAttention(
         markupBps: Number(row.markup_bps ?? 0),
         locked: source.containingInvoice !== null,
         policyAvailable,
+        foreign: String(source.originalCurrency ?? source.currency) !== base.preview.currency,
+        excluded: excluded.has(source.id),
       });
     }
   }
   // Unclassified expenses always need a decision before approval, even without an engine reason.
   for (const source of expenses)
-    if (source.classificationState === 'unclassified' && source.containingInvoice === null && !unclassified.includes(source.id))
+    if (
+      source.classificationState === 'unclassified' &&
+      source.containingInvoice === null &&
+      !excluded.has(source.id) &&
+      !unclassified.includes(source.id)
+    )
       unclassified.push(source.id);
   if (unclassified.length)
     items.push({
@@ -1277,7 +1423,7 @@ function buildAttention(
     });
 
   // 5. Client details (saved on the client; drafts read it live, issuing freezes it).
-  if (client && (!client.billingAddress || !client.billingEmail || !client.taxId))
+  if (client && clientBillingIssues(client).length)
     items.push({ kind: 'clientDetails', blocks: 'none', totalCount: 1 });
 
   // 6–8. Billing setup, issuer bank details, other engine reasons, PO.
@@ -1390,7 +1536,15 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           periodEnd: preview.periodEnd,
           simulate: true,
         });
-        projected = computeCore(context, { ...input, periodStart: preview.periodStart, periodEnd: preview.periodEnd, billingRuleId: stream.id });
+        // Same selection rules as the amount shown now: records that another draft (also a
+        // draft for exactly these dates) already holds are never counted a second time.
+        projected = computeCore(context, {
+          ...input,
+          periodStart: preview.periodStart,
+          periodEnd: preview.periodEnd,
+          billingRuleId: stream.id,
+          forceSelection: true,
+        });
       } catch {
         projected = null;
       } finally {
@@ -1408,6 +1562,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     pending,
     client,
   );
+  const split = splitByPurchaseOrder(context, input, base, inventory);
   const projectedPreview = projected?.preview;
   const zeroIfNotReady = (state: string, value: string) => (state === 'ready' ? value : '0');
   return {
@@ -1441,8 +1596,104 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
       suggestedPeriod: pending.length ? null : preview.suggestedPeriod,
       overrides: normalizedOverrides(input),
       ...taxChoices(context, stream?.id ?? null),
+      split,
     },
   };
+}
+
+/**
+ * One invoice per assignment PO. Runs only when the invoice could be created now, the people
+ * on it have different POs and no PO was typed for this invoice. Every part is priced by the
+ * canonical engine (rolled-back dry run) with exactly its own records, so the amounts shown
+ * are the amounts the drafts will carry.
+ */
+function splitByPurchaseOrder(
+  context: Context,
+  input: QuickInvoiceInput,
+  base: Computed,
+  inventory: readonly InvoiceCompositionSource[],
+): QuickInvoiceSplit | null {
+  const preview = base.preview;
+  const stream = preview.stream;
+  if (!stream || preview.state !== 'ready' || !['labor', 'expense'].includes(stream.streamType)) return null;
+  if (input.overrides?.purchaseNo?.trim()) return null;
+  const labels = new InvoiceLineLabels(context.sqlite, input.projectId);
+  if (!labels.assignmentPos) return null;
+  const model = context.sqlite.prepare('SELECT billing_model FROM project WHERE id=?').get(input.projectId) as
+    | { billing_model: string }
+    | undefined;
+  // Fixed fees, caps and included hours belong to the project as a whole: never split them.
+  if (model && ['hybrid', 'capped_tm'].includes(model.billing_model)) return null;
+  if (base.lines.some((line) => !['time', 'expense', 'billing_adjustment'].includes(line.sourceType))) return null;
+  const refs =
+    base.selection ??
+    eligibleSelection(context, {
+      projectId: input.projectId,
+      billingRuleId: stream.id,
+      periodStart: preview.periodStart,
+      periodEnd: preview.periodEnd,
+    });
+  const byId = new Map(inventory.map((source) => [`${source.type}:${source.id}`, source]));
+  const billed = new Set(base.lines.map((line) => `${line.sourceType}:${line.sourceId}`));
+  const groups = new Map<string, { poKey: string | null; refs: InvoiceCompositionSourceRef[]; people: Map<string, { workerId: string; name: string; minutes: number }> }>();
+  for (const ref of refs) {
+    const source = byId.get(`${ref.type}:${ref.id}`);
+    if (!source) return null;
+    const poKey = labels.po(source.workerId, source.date);
+    const key = poKey ?? '';
+    const group = groups.get(key) ?? { poKey, refs: [] as InvoiceCompositionSourceRef[], people: new Map() };
+    group.refs.push(ref);
+    const person = group.people.get(source.workerId) ?? {
+      workerId: source.workerId,
+      name: personDisplayName(source.workerName) || '—',
+      minutes: 0,
+    };
+    if (source.type === 'time' && billed.has(`time:${source.id}`)) person.minutes += Number(source.minutes ?? 0);
+    group.people.set(source.workerId, person);
+    groups.set(key, group);
+  }
+  if (groups.size < 2) return null;
+  const parts: QuickInvoiceSplitPart[] = [];
+  for (const group of [...groups.values()].sort((a, b) =>
+    a.poKey === null ? 1 : b.poKey === null ? -1 : a.poKey.localeCompare(b.poKey),
+  )) {
+    const dryRun = context.repository.invoiceDraftDryRun(
+      context.principal,
+      stream.id,
+      preview.periodStart,
+      preview.periodEnd,
+      group.refs,
+    );
+    if (!dryRun.ok) return null;
+    const invoice = dryRun.preview.invoice as Row;
+    parts.push({
+      poKey: group.poKey,
+      purchaseNo: invoice.purchase_no && invoice.purchase_no !== '—' ? String(invoice.purchase_no) : null,
+      people: [...group.people.values()].sort((a, b) => a.name.localeCompare(b.name)),
+      sourceCount: dryRun.lines.filter((line) => ['time', 'expense'].includes(line.sourceType)).length,
+      subtotalMinor: dryRun.totals.subtotalMinor,
+      taxMinor: dryRun.totals.taxMinor,
+      totalMinor: dryRun.totals.totalMinor,
+      refs: group.refs,
+    } as QuickInvoiceSplitPart & { refs: InvoiceCompositionSourceRef[] });
+  }
+  const totalMinor = parts.reduce((sum, part) => sum + BigInt(part.totalMinor), 0n).toString();
+  return {
+    parts,
+    totalMinor,
+    signature: parts.map((part) => `${part.poKey ?? '-'}=${part.totalMinor}`).join('|'),
+  };
+}
+
+/** Server-side record selection of each split part (never sent to the browser). */
+function splitRefs(part: QuickInvoiceSplitPart): InvoiceCompositionSourceRef[] {
+  return (part as QuickInvoiceSplitPart & { refs?: InvoiceCompositionSourceRef[] }).refs ?? [];
+}
+
+function publicSplit(split: QuickInvoiceSplit | null): QuickInvoiceSplit | null {
+  return split
+    ? { ...split, parts: split.parts.map((part) => { const { refs: _refs, ...rest } = part as QuickInvoiceSplitPart & { refs?: unknown }; return rest; }) }
+    : null;
 }
 
 /** Active tax profiles for the stream's issuer and currency (the tax chip's choices). */
@@ -1470,11 +1721,22 @@ function taxChoices(
 
 export function quickInvoicePreview(context: Context, input: QuickInvoiceInput): QuickInvoicePreview {
   authorize(context);
-  return context.repository.withInvoiceOverrides(input.overrides, () => compute(context, input).preview);
+  return context.repository.withInvoiceOverrides(input.overrides, () => publicPreview(compute(context, input).preview));
+}
+
+function publicPreview(preview: QuickInvoicePreview): QuickInvoicePreview {
+  return { ...preview, split: publicSplit(preview.split) };
 }
 
 export type QuickInvoiceCreateResult =
-  | { ok: true; invoiceId: string; totalMinor: string; created: boolean }
+  | {
+      ok: true;
+      invoiceId: string;
+      totalMinor: string;
+      created: boolean;
+      /** Split by PO: every draft created in this action (first = invoiceId). */
+      invoiceIds?: string[];
+    }
   | { ok: false; reason: 'amount_changed' | 'not_ready'; preview: QuickInvoicePreview };
 
 /**
@@ -1483,7 +1745,7 @@ export type QuickInvoiceCreateResult =
  */
 export function quickInvoiceCreate(
   context: Context,
-  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string },
+  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string; expectedSplit?: string | null },
 ): QuickInvoiceCreateResult {
   authorize(context);
   // Overrides are applied by the engine and recorded on the draft it creates.
@@ -1492,23 +1754,59 @@ export function quickInvoiceCreate(
 
 function createGuarded(
   context: Context,
-  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string },
+  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string; expectedSplit?: string | null },
 ): QuickInvoiceCreateResult {
   if (!/^\d+$/u.test(input.expectedTotalMinor)) throw new ValidationError('Expected total required');
   const sqlite = context.sqlite;
   sqlite.exec('BEGIN IMMEDIATE');
   let committed = false;
   try {
-    const { preview, selection } = computeCore(context, input);
+    const computed = computeCore(context, input);
+    const { preview, selection } = computed;
     if (preview.state !== 'ready' || !preview.stream) {
       sqlite.exec('ROLLBACK');
       committed = true;
-      return { ok: false, reason: 'not_ready', preview: compute(context, input).preview };
+      return { ok: false, reason: 'not_ready', preview: publicPreview(compute(context, input).preview) };
+    }
+    // Different assignment POs: one draft per PO, all or nothing, each exactly as previewed.
+    const inventory = context.repository.invoiceCompositionSources(context.principal, {
+      projectId: input.projectId,
+      billingRuleId: preview.stream.id,
+      periodStart: preview.periodStart,
+      periodEnd: preview.periodEnd,
+    }).sources;
+    const split = splitByPurchaseOrder(context, input, computed, inventory);
+    if (split || input.expectedSplit) {
+      if (!split || split.signature !== input.expectedSplit || split.totalMinor !== input.expectedTotalMinor) {
+        sqlite.exec('ROLLBACK');
+        committed = true;
+        return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
+      }
+      const ids: string[] = [];
+      split.parts.forEach((part, index) => {
+        const created = context.repository.createSelectedInvoiceDraft(context.principal, {
+          projectId: input.projectId,
+          billingRuleId: preview.stream!.id,
+          periodStart: preview.periodStart,
+          periodEnd: preview.periodEnd,
+          sources: splitRefs(part),
+          requestKey: `${input.requestKey}:po:${index}`,
+        });
+        const saved = sqlite
+          .prepare("SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?")
+          .get(created.id) as { state: string; total: string } | undefined;
+        if (!saved || saved.state !== 'draft' || saved.total !== part.totalMinor)
+          throw new ConflictError('Invoice amount changed while creating');
+        ids.push(created.id);
+      });
+      sqlite.exec('COMMIT');
+      committed = true;
+      return { ok: true, invoiceId: ids[0]!, invoiceIds: ids, totalMinor: split.totalMinor, created: true };
     }
     if (preview.totalMinor !== input.expectedTotalMinor) {
       sqlite.exec('ROLLBACK');
       committed = true;
-      return { ok: false, reason: 'amount_changed', preview: compute(context, input).preview };
+      return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
     }
     const result = selection
       ? context.repository.createSelectedInvoiceDraft(context.principal, {
@@ -1532,7 +1830,7 @@ function createGuarded(
     if (!saved || saved.state !== 'draft' || saved.total !== input.expectedTotalMinor) {
       sqlite.exec('ROLLBACK');
       committed = true;
-      return { ok: false, reason: 'amount_changed', preview: compute(context, input).preview };
+      return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
     }
     sqlite.exec('COMMIT');
     committed = true;

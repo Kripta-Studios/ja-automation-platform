@@ -70,7 +70,7 @@ export function buildClientDirectory(
           .all(...projectIds)
       : []
   ) as Row[];
-  const allClients = (
+  const readableClients = (
     financeVisible
       ? (repository.listClients(principal) as Row[])
       : (projectIds.length
@@ -84,7 +84,11 @@ export function buildClientDirectory(
               )
               .all(...projectIds)
           : []) as Row[]
-  ).filter((client) => includeArchived || client.status !== 'archived');
+  );
+  const archivedClients = readableClients.filter((client) => client.status === 'archived').length;
+  const allClients = readableClients.filter(
+    (client) => includeArchived || client.status !== 'archived',
+  );
   const contacts = (role === 'worker' ? [] : repository.listAllClientContacts(principal)) as Row[];
   const byClient = <T extends Row>(rows: T[]) => {
     const map = new Map<string, T[]>();
@@ -125,6 +129,7 @@ export function buildClientDirectory(
         pageSize: CLIENT_PAGE_SIZE,
         find,
         includeArchived,
+        archivedClients,
       },
       clients: [focused],
       contacts: contactsByClient.get(clientId) ?? [],
@@ -246,6 +251,7 @@ export function buildClientDirectory(
       pageSize: CLIENT_PAGE_SIZE,
       find,
       includeArchived,
+      archivedClients,
     },
     clients: [],
     contacts: [],

@@ -989,10 +989,25 @@
       "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
     },
     {
+      "version": 81,
+      "canonicalName": "assignment_purchase_order",
+      "file": "0081_assignment_purchase_order.sql",
+      "sha256": "6d264468487af9b2d7ce9c3d2bc8fec8d4ac067cf918908f61a0dd8094212647",
+      "descriptor": "J&A B5 migration 81 assignment_purchase_order",
+      "descriptorSha256": "2f5b280e12c5310ce0beea1341e1a6072743426a4052710147a859acfced33bc",
+      "projectionSha256": "e22a9cdd515dd792511adcb5196f0bdb766bc3f528ce9067907bf80108f787ba",
+      "vectorSha256": "d4858296e2cfb8effa44e259ae486fe92cc18d0dc49c884b5b2bfff4340c2b35",
+      "encoderSha256": "12be481a875866d0e2fa5c5a2f78cdfb29e5eaf5326970e7cf8cea9ca9403bd4",
+      "runnerSha256": "78fba226693f6be9abc007255d14fdd0ddabb3be5fa67cf896d094a10d3a1d19",
+      "heartbeatWorkerSha256": "63b8815d9352247888430340eb30d11b67db2a59f490eb7c95f02a27bee24502",
+      "preProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56",
+      "postProjectionSha256": "d858e235b08c5b6f8f51a7cc41bb3fcca9f50de76fbc252d6ceef67ce98b4e56"
+    },
+    {
       "version": 82,
       "canonicalName": "multi_currency_fx",
       "file": "0082_multi_currency_fx.sql",
-      "sha256": "4c435ee5b976296d425d56ed8133d1911e32c43577488af16d2701d93c22f624",
+      "sha256": "ec0d7781d274c89a6f702512ddcd7b844cb30532d168edbfdc006edc1da98fc3",
       "descriptor": "J&A B5 migration 82 multi_currency_fx",
       "descriptorSha256": "50b4e9b5acf47a9afc9fb655167bc7bd6a52fccd932d1396aa5d97a621573c9c",
       "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",

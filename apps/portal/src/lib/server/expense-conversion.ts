@@ -1,10 +1,12 @@
 import { ValidationError } from '@ja/database';
-
-/** Positive integer division rounded half up (same rule as @ja/money divideRounded). */
-function divideRounded(numerator: bigint, denominator: bigint): bigint {
-  const quotient = numerator / denominator;
-  return quotient + ((numerator % denominator) * 2n >= denominator ? 1n : 0n);
-}
+import {
+  convertExact,
+  currencyMinorDigits,
+  exactMoney,
+  isCurrency,
+  parseMajorToMinor,
+  type Currency,
+} from '@ja/billing-engine';
 
 /**
  * Exact conversion of a foreign-currency expense, entered at the point of need (invoice
@@ -12,13 +14,13 @@ function divideRounded(numerator: bigint, denominator: bigint): bigint {
  * the converted amount from the statement; nothing is fetched or guessed. Integer math only:
  * minor units × rate digits, rounded half away from zero once.
  *
- * Both sides are assumed to use 2 decimals (USD, EUR, BRL, MXN …); a currency list with other
- * exponents can replace `minorDigits` without changing callers.
+ * Minor-unit exponents come from the curated currency list in @ja/money (JPY has 0
+ * decimals); the arithmetic is the shared `convertExact` (round half away from zero once).
  */
 export type ExpenseConversionEntry = { rate?: string | null; convertedAmount?: string | null };
 export type ExactConversion = { projectCurrencyAmountMinor: number; rate: string | null; rateBps: number | null };
 
-const minorDigits = (_currency: string) => 2;
+const minorDigits = (currency: string) => (isCurrency(currency) ? currencyMinorDigits(currency) : 2);
 
 export function exactExpenseConversion(
   sourceAmountMinor: number,
@@ -31,9 +33,12 @@ export function exactExpenseConversion(
   const amountText = entry.convertedAmount?.trim().replace(/\s/gu, '').replace(',', '.');
   if (amountText) {
     const digits = minorDigits(projectCurrency);
-    const match = new RegExp(`^(\\d{1,10})(?:\\.(\\d{1,${digits}}))?$`, 'u').exec(amountText);
-    if (!match) throw new ValidationError('Enter the converted amount like 21.67');
-    const minor = BigInt(match[1]!) * 10n ** BigInt(digits) + BigInt((match[2] ?? '').padEnd(digits, '0') || '0');
+    const parsed = isCurrency(projectCurrency)
+      ? parseMajorToMinor(amountText, projectCurrency, { maxWholeDigits: 10 })
+      : null;
+    if (parsed === null)
+      throw new ValidationError(digits === 0 ? 'Enter the converted amount like 2167' : 'Enter the converted amount like 21.67');
+    const minor = parsed;
     if (minor <= 0n || minor > BigInt(Number.MAX_SAFE_INTEGER)) throw new ValidationError('Converted amount is invalid');
     return { projectCurrencyAmountMinor: Number(minor), rate: null, rateBps: null };
   }
@@ -44,10 +49,13 @@ export function exactExpenseConversion(
   const fraction = match[2] ?? '';
   const scaled = BigInt(`${match[1]}${fraction}`);
   if (scaled <= 0n) throw new ValidationError('Exchange rate must be above 0');
-  const shift = minorDigits(projectCurrency) - minorDigits(sourceCurrency);
-  const numerator = BigInt(sourceAmountMinor) * scaled * 10n ** BigInt(Math.max(0, shift));
-  const denominator = 10n ** BigInt(fraction.length) * 10n ** BigInt(Math.max(0, -shift));
-  const minor = divideRounded(numerator, denominator);
+  if (!isCurrency(sourceCurrency) || !isCurrency(projectCurrency) || sourceCurrency === projectCurrency)
+    throw new ValidationError('Choose a supported currency');
+  const minor = convertExact(
+    exactMoney(sourceCurrency as Currency, BigInt(sourceAmountMinor)),
+    { units: scaled, scale: fraction.length },
+    projectCurrency as Currency,
+  ).target.minorUnits;
   if (minor <= 0n || minor > BigInt(Number.MAX_SAFE_INTEGER)) throw new ValidationError('Converted amount is invalid');
   const normalized = fraction ? `${BigInt(match[1]!)}.${fraction}` : String(BigInt(match[1]!));
   const bps = fraction.length <= 4 ? scaled * 10n ** BigInt(4 - fraction.length) : null;

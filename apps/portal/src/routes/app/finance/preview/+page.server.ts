@@ -1,3 +1,4 @@
+import { CURRENCIES } from '@ja/billing-engine';
 import { error, isHttpError, redirect } from '@sveltejs/kit';
 import { z } from 'zod';
 import { assertLiveSession, AccessDeniedError } from '@ja/database';
@@ -118,7 +119,7 @@ const multiplier = z
   .transform((value) => Math.round(Number(value) * 10_000))
   .refine((value) => value <= 100_000);
 const schema = z.object({
-  currency: z.enum(['USD', 'EUR', 'BRL']),
+  currency: z.enum(CURRENCIES),
   pricing: z.enum(['hourly', 'fixed']),
   expenseTreatment: z.enum(['included', 'recoverable', 'customer_direct']),
   workHours: hours,

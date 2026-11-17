@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   import { round2Text } from '../ux-round2-copy';
   import ProjectInvoiceComposer from './ProjectInvoiceComposer.svelte';
   import InvoiceQuickCreate, { type AdvancedScope } from './InvoiceQuickCreate.svelte';
@@ -6433,9 +6434,7 @@
               >
               <label>
                 <span>{translate('Currency')}</span>
-                <select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                >
+                <select name="currency">{#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}</select>
               </label>
               <label
                 ><span>{translate('Issuer address and phone')}</span><textarea
@@ -6489,9 +6488,7 @@
               <label><span>{translate('Name')}</span><input name="name" required /></label>
               <label>
                 <span>{translate('Currency')}</span>
-                <select name="currency"
-                  ><option>USD</option><option>BRL</option><option>EUR</option></select
-                >
+                <select name="currency">{#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}</select>
               </label>
               <label
                 ><span>{translate('Effective from')}</span><input

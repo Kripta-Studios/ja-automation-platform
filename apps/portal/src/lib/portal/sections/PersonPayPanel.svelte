@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   /**
    * Person page → Pay (Owner only; the server sends pay rules only to the
    * Owner for the viewed person). Default rates are set once for all projects
@@ -91,9 +92,7 @@
         <input type="hidden" name="workerId" value={personId} />
         <label
           >{c('payCurrency')}<select name="currency" bind:value={currency}>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="BRL">BRL</option>
+            {#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}
           </select></label
         >
         <label

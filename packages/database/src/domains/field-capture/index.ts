@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
+import { isCurrency, type Currency } from '@ja/money';
 import {
   AccessDeniedError,
   ConflictError,
@@ -135,7 +136,7 @@ export function validateCapture(input: CaptureInput): CaptureInput {
     text(input.expense.description, 'Expense description', true);
     if (input.expense.description.length > 5000)
       throw new ValidationError('Expense description must be 5000 characters or fewer');
-    if (!['EUR', 'USD', 'BRL'].includes(input.expense.currency))
+    if (!isCurrency(input.expense.currency))
       throw new ValidationError('Supported currency required');
     if (!/^[1-9]\d{0,14}$/u.test(input.expense.amountMinor))
       throw new ValidationError('Expense amount must be positive');
@@ -267,7 +268,7 @@ export function createFieldCapture(
         timeEntryId,
         category: input.expense.category,
         description: input.expense.description,
-        currency: input.expense.currency as 'EUR' | 'USD' | 'BRL',
+        currency: input.expense.currency as Currency,
         amountMinor: BigInt(input.expense.amountMinor),
         whoPaid: input.expense.whoPaid,
         vendor: input.expense.vendor,

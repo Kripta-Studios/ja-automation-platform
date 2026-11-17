@@ -1,3 +1,4 @@
+import { currencyMinorDigits, isCurrency, parseMajorToMinor } from '@ja/billing-engine';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export type PortalActionEvent = RequestEvent<Record<string, string | undefined>>;
@@ -5,7 +6,19 @@ export type PortalActionEvent = RequestEvent<Record<string, string | undefined>>
 export const formObject = (request: Request): Promise<Record<string, unknown>> =>
   request.formData().then((data) => Object.fromEntries(data) as Record<string, unknown>);
 
-export const decimalToMinor = (value: unknown): string | undefined => {
+/**
+ * Typed major units to exact minor units. With a supported `currency` the
+ * currency's exponent is used (JPY: whole yen only); without it, two decimals.
+ */
+export const decimalToMinor = (value: unknown, currency?: unknown): string | undefined => {
+  if (typeof currency === 'string' && isCurrency(currency)) {
+    if (typeof value !== 'string' || currencyMinorDigits(currency) !== 0) {
+      // fall through to the historical two-decimal contract
+    } else {
+      const minor = parseMajorToMinor(value, currency, { maxWholeDigits: 15 });
+      return minor === null ? undefined : minor.toString();
+    }
+  }
   if (typeof value !== 'string' || !/^\d+(?:\.\d{1,2})?$/.test(value)) return undefined;
   const [whole, fraction = ''] = value.split('.');
   return `${whole}${fraction.padEnd(2, '0')}`.replace(/^0+(?=\d)/, '');

@@ -1,3 +1,4 @@
+import { minorToInputText } from '$lib/portal/payment-money';
 /**
  * Expenses on the server at scale: the capture list gets only the person's
  * recent items, and the review overview gets per-currency totals, the top
@@ -169,7 +170,7 @@ export function buildExpenseOverview(rows: Row[], params: URLSearchParams, today
     if (!/^-?\d+$/u.test(minor)) return '';
     const value = BigInt(minor);
     const abs = value < 0n ? -value : value;
-    return `${abs / 100n}.${String(abs % 100n).padStart(2, '0')}`;
+    return minorToInputText(abs.toString(), text(row, 'currency') || 'USD');
   };
   const matches = (row: Row) =>
     expenseSearchMatches(row, filters.find) ||

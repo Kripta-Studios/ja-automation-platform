@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { minorDigitsFor } from '$lib/portal/payment-money';
   import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
   import { journeyText } from '$lib/portal/project-invoice-journey';
   import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
@@ -856,15 +857,17 @@
     }
     const negative = value < 0n;
     const absolute = negative ? -value : value;
-    const major = absolute / 100n;
-    const cents = (absolute % 100n).toString().padStart(2, '0');
+    const digits = minorDigitsFor(currency);
+    const scale = 10n ** BigInt(digits);
+    const major = absolute / scale;
+    const cents = (absolute % scale).toString().padStart(digits, '0');
     const numberLocale = locale === 'pt' ? 'pt-BR' : locale;
     const numberFormat = new Intl.NumberFormat(numberLocale, { useGrouping: true });
     const group =
       numberFormat.formatToParts(1234567).find((part) => part.type === 'group')?.value ?? ',';
     const groupedMajor = major.toString().replace(/\B(?=(\d{3})+(?!\d))/g, group);
     const decimal = locale === 'en' ? '.' : ',';
-    return (negative ? '-' : '') + currency + ' ' + groupedMajor + decimal + cents;
+    return (negative ? '-' : '') + currency + ' ' + groupedMajor + (digits ? decimal + cents : '');
   }
 
   function hours(minutes: unknown): string {

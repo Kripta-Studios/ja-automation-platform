@@ -2,7 +2,7 @@ import { cashFilters, matchesCashFilter, type CashFilter } from '$lib/portal/own
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { assertLiveSession, AccessDeniedError } from '@ja/database';
-import { isStrictIsoCalendarDate } from '@ja/billing-engine';
+import { isCurrency, isStrictIsoCalendarDate } from '@ja/billing-engine';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { readCashMovements, groupCashMovements } from '$lib/server/cash-calendar';
 import type { ProblemData } from '$lib/problem/contract';
@@ -38,7 +38,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
       error(403, 'Finance access required');
     const currency = url.searchParams.get('currency') ?? '';
-    const currencyValid = !currency || ['USD', 'EUR', 'BRL'].includes(currency);
+    const currencyValid = !currency || isCurrency(currency);
     const requestedFilter = url.searchParams.get('filter') ?? 'all';
     const filterValid = cashFilters.includes(requestedFilter as CashFilter);
     const today = new Date().toISOString().slice(0, 10);
@@ -70,7 +70,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       ? cashFilterProblem(
           'FINANCE_CASH_CURRENCY_INVALID',
           'problem.finance.cashCurrencyInvalid',
-          'Choose USD, EUR, or BRL for the cash currency filter.',
+          'Choose a supported currency for the cash currency filter.',
           fieldErrors,
           locals.correlationId,
         )

@@ -13,6 +13,9 @@ import {
 import { dirname, relative, resolve } from 'node:path';
 import {
   createDatabase,
+  exchangeRateRefreshDue,
+  fxRefreshConfig,
+  refreshExchangeRates,
   LocalizedPdfRepository,
   PortalRepository,
   V3Repository,
@@ -206,6 +209,20 @@ function sleep(ms) {
   });
 }
 
+async function refreshDueExchangeRates(sqlite) {
+  const config = fxRefreshConfig(process.env);
+  if (!config.enabled) return { outcome: 'disabled' };
+  try {
+    if (!exchangeRateRefreshDue(sqlite)) return { outcome: 'not_due' };
+    const refreshed = await refreshExchangeRates(sqlite, { trigger: 'scheduled', config });
+    log(refreshed.outcome === 'failed' ? 'warn' : 'info', 'fx.refresh', refreshed);
+    return refreshed;
+  } catch (error) {
+    log('warn', 'fx.refresh.error', { error: diagnosticError(error) });
+    return { outcome: 'failed', errorCode: 'FX_REFRESH_ERROR' };
+  }
+}
+
 async function runCycle() {
   let sqlite;
   try {
@@ -281,6 +298,10 @@ async function runCycle() {
       localizedPdf,
       workerStatement,
     });
+    // ECB reference rates: once per business day after 16:30 CET (plus on demand in
+    // the portal). Runs after the durable jobs; a network failure is logged and
+    // retried on a later cycle, never failing the cycle or blocking other work.
+    const fx = await refreshDueExchangeRates(sqlite);
     const webhookUrl = process.env.JA_OUTBOX_WEBHOOK_URL;
     const webhookSecret = process.env.JA_OUTBOX_WEBHOOK_SECRET;
     const pendingOutbox = Number(
@@ -342,7 +363,7 @@ async function runCycle() {
             });
             if (!response.ok) throw new Error(`Outbox webhook returned HTTP ${response.status}`);
           });
-    const combined = { ...result, outbox };
+    const combined = { ...result, outbox, fx };
     log(
       result.failed > 0 || outbox.failed > 0 || outbox.permanentlyFailed > 0 ? 'error' : 'info',
       'jobs.cycle',

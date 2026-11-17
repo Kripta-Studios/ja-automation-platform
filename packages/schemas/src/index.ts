@@ -61,7 +61,8 @@ export const offlineMutationSchema = z.object({
   attachments: z.array(z.uuid()).max(20),
 });
 
-export const currencySchema = z.enum(['USD', 'BRL', 'EUR']);
+/** Keep aligned with CURRENCIES in @ja/money (curated ISO 4217 list). */
+export const currencySchema = z.enum(['USD', 'EUR', 'MXN', 'BRL', 'CAD', 'GBP', 'CHF', 'ARS', 'CNY', 'JPY']);
 export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
 export const isValidIanaTimeZone = (value: string): boolean => {

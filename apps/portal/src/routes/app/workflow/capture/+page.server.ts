@@ -59,7 +59,7 @@ export const actions: Actions = {
         (entry): entry is [string, string] => typeof entry[1] === 'string',
       ),
     );
-    const amountMinor = decimalToMinor(str(form, 'amount'));
+    const amountMinor = decimalToMinor(str(form, 'amount').replace(',', '.'), str(form, 'currency'));
     const input: CaptureInput = {
       requestKey: str(form, 'requestKey'),
       projectId: str(form, 'projectId'),

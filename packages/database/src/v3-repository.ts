@@ -3723,6 +3723,101 @@ export class V3Repository {
     };
   }
 
+  /**
+   * Subcontractor settlement preview (Money → Subcontractors): approved time of
+   * the given workers in a period, each entry priced with the worker's
+   * effective compensation (pay/cost) rule. Owner / finance only. Amounts are
+   * per-entry estimates in the project currency; the authoritative amounts are
+   * the compensation settlements created by settleCompensation.
+   */
+  subcontractorSettlementPreview(
+    principal: Principal,
+    input: Readonly<{ workerIds: readonly string[]; periodStart: string; periodEnd: string }>,
+  ) {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    requireOrderedDateRange(input.periodStart, input.periodEnd);
+    const ids = [...new Set(input.workerIds)].slice(0, 500);
+    if (!ids.length) return [];
+    const placeholders = ids.map(() => '?').join(',');
+    const rows = this.sqlite
+      .prepare(
+        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+                t.approval_state,t.billability_state,p.currency project_currency,
+                p.project_number,p.name project_name,u.name worker_name
+           FROM time_entry t JOIN project p ON p.id=t.project_id JOIN user u ON u.id=t.worker_id
+          WHERE t.worker_id IN (${placeholders}) AND t.work_date BETWEEN ? AND ?
+            AND t.approval_state IN ('approved','locked')
+            AND NOT EXISTS (
+              SELECT 1 FROM record_correction_link rcl
+              JOIN time_entry correction ON correction.id=rcl.correction_id
+              WHERE rcl.record_type='time_entry'
+                AND ((rcl.original_id=t.id AND correction.approval_state='approved')
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+            )
+          ORDER BY u.name,t.worker_id,t.work_date,p.project_number,t.id`,
+      )
+      .all(...ids, input.periodStart, input.periodEnd) as Array<
+      TimeRow & { project_number: string; project_name: string; worker_name: string }
+    >;
+    return rows.map((row) => {
+      let rule: CompensationRuleRow | null = null;
+      try {
+        rule = this.compensationRuleFor(
+          row.project_id,
+          row.worker_id,
+          row.category,
+          row.work_date,
+          row.activity_code,
+        );
+      } catch {
+        rule = null;
+      }
+      let amount: bigint | null = null;
+      if (rule && rule.currency === row.project_currency) {
+        try {
+          const clientRate = this.clientRateFor(
+            row.project_id,
+            row.worker_id,
+            row.category,
+            row.work_date,
+            row.activity_code,
+          );
+          amount =
+            rule.rule_type === 'Daily' || rule.rate_basis === 'daily'
+              ? null
+              : this.compensationAmount(row, rule, clientRate);
+        } catch {
+          amount = null;
+        }
+      }
+      return {
+        timeEntryId: row.id,
+        workerId: row.worker_id,
+        workerName: row.worker_name,
+        projectId: row.project_id,
+        projectNumber: row.project_number,
+        projectName: row.project_name,
+        workDate: row.work_date,
+        category: row.category,
+        minutes: row.minutes,
+        currency: row.project_currency,
+        ruleId: rule?.id ?? null,
+        ruleType: rule?.rule_type ?? null,
+        rateBasis: rule?.rate_basis ?? null,
+        rateMinor: rule ? String(rule.rate_minor) : null,
+        amountMinor: amount === null ? null : amount.toString(),
+        issue: !rule
+          ? ('missing_rule' as const)
+          : rule.currency !== row.project_currency
+            ? ('currency_mismatch' as const)
+            : amount === null
+              ? ('not_hourly' as const)
+              : null,
+      };
+    });
+  }
+
   /** Owner review of one worker's current estimate, using the self-service calculation. */
   ownerWorkerPay(principal: Principal, workerId: string, periodStart: string, periodEnd: string) {
     this.assertOwnerWorkerPayAccess(principal);

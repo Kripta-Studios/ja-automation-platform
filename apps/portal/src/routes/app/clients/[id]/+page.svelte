@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { minorDigitsFor } from '$lib/portal/payment-money';
+  import { CURRENCIES } from '$lib/portal/currencies';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import type { ActionResult } from '@sveltejs/kit';
@@ -75,15 +77,17 @@
     const value = BigInt(raw);
     const negative = value < 0n;
     const absolute = negative ? -value : value;
-    const major = absolute / 100n;
-    const cents = (absolute % 100n).toString().padStart(2, '0');
+    const digits = minorDigitsFor(currency);
+    const scale = 10n ** BigInt(digits);
+    const major = absolute / scale;
+    const cents = (absolute % scale).toString().padStart(digits, '0');
     const numberLocale = locale === 'pt' ? 'pt-BR' : locale;
     const group =
       new Intl.NumberFormat(numberLocale, { useGrouping: true })
         .formatToParts(1234567)
         .find((part) => part.type === 'group')?.value ?? ',';
     const decimal = locale === 'en' ? '.' : ',';
-    return `${negative ? '-' : ''}${currency} ${major.toString().replace(/\B(?=(\d{3})+(?!\d))/g, group)}${decimal}${cents}`;
+    return `${negative ? '-' : ''}${currency} ${major.toString().replace(/\B(?=(\d{3})+(?!\d))/g, group)}${digits ? `${decimal}${cents}` : ''}`;
   }
   const outstandingLabel = $derived(
     balances && balances.length
@@ -415,9 +419,7 @@
         <label>{h('clientCode')}<input name="clientCode" maxlength="40" value={text(client, 'client_code')} /></label>
         <label
           >{h('currency')}<select name="currency" value={text(client, 'currency') || 'USD'}>
-            <option value="USD">USD</option>
-            <option value="EUR">EUR</option>
-            <option value="BRL">BRL</option>
+            {#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}
           </select></label
         >
         <TimezoneSelect name="timezone" label={h('timezone')} value={text(client, 'timezone')} {locale} />

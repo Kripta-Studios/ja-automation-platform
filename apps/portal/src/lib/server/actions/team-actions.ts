@@ -11,6 +11,7 @@
  *   (exact minor units, `*_rule.create` audit); an open default is superseded
  *   instead of overlapped.
  */
+import { isCurrency, type Currency } from '@ja/billing-engine';
 import {
   CANONICAL_OWNER_EMAIL,
   SYNTHETIC_OWNER_DEPLOYMENT_ID,
@@ -146,7 +147,7 @@ export const teamActions = {
     const values = { workerId, currency, internalCostHourlyRate: cost, compensationRate: pay, compensationBasis: basis, effectiveFrom };
     const fieldErrors: Record<string, string[]> = {};
     if (!uuidSchema.safeParse(workerId).success) fieldErrors.workerId = ['Choose a person.'];
-    if (!['EUR', 'USD', 'BRL'].includes(currency)) fieldErrors.currency = ['Choose a currency.'];
+    if (!isCurrency(currency)) fieldErrors.currency = ['Choose a currency.'];
     if (!decimalPattern.test(cost)) fieldErrors.internalCostHourlyRate = ['Use an amount like 25 or 25.50.'];
     if (!decimalPattern.test(pay)) fieldErrors.compensationRate = ['Use an amount like 20 or 20.50.'];
     if (!/^\d{4}-\d{2}-\d{2}$/u.test(effectiveFrom)) fieldErrors.effectiveFrom = ['Choose a date.'];
@@ -192,7 +193,7 @@ export const teamActions = {
       withAssignmentFinanceTransaction(context.sqlite, () => {
         const costInput = {
           workerId,
-          currency: currency as 'EUR' | 'USD' | 'BRL',
+          currency: currency as Currency,
           hourlyRateMinor: rateMinor(cost),
           effectiveFrom,
           costMethod: 'loaded_hourly',
@@ -203,7 +204,7 @@ export const teamActions = {
         else context.v3.createInternalCostRule(context.principal, costInput);
         const payInput = {
           workerId,
-          currency: currency as 'EUR' | 'USD' | 'BRL',
+          currency: currency as Currency,
           ruleType: basis === 'daily' ? ('Daily' as const) : ('Hourly' as const),
           rateBasis: basis as 'hourly' | 'daily',
           rateMinor: rateMinor(pay),

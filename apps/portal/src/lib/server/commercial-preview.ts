@@ -5,7 +5,7 @@ import {
   periodForCadence,
   type BillingCadence,
 } from '@ja/billing-engine';
-import type { Currency } from '@ja/money';
+import { isCurrency, type Currency } from '@ja/billing-engine';
 
 /** Explicit single-worker example, not a replacement for effective project rate resolution. */
 export type CommercialExample = {
@@ -41,7 +41,7 @@ function minutes(value: number, label: string): number {
 }
 
 export function previewCommercialExample(input: CommercialExample) {
-  if (!['USD', 'EUR', 'BRL'].includes(input.currency)) throw new RangeError('Select a currency.');
+  if (!isCurrency(input.currency)) throw new RangeError('Select a currency.');
   if (!['hourly', 'fixed'].includes(input.pricing)) throw new RangeError('Select a pricing basis.');
   if (!['included', 'recoverable', 'customer_direct'].includes(input.expenseTreatment))
     throw new RangeError('Select the expense responsibility.');

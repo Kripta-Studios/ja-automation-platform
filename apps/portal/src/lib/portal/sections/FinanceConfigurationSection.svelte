@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   import { moneyText } from '../money-copy';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import TimeCategorySelect from '../ui/TimeCategorySelect.svelte';
@@ -3245,7 +3246,7 @@
               </Field>
               <Field id="finance-comp-currency" label={translate('Currency')} data-field="currency">
                 <select id="finance-comp-currency" name="currency">
-                  {#each ['USD', 'BRL', 'EUR'] as currency}
+                  {#each CURRENCIES as currency}
                     <option
                       value={currency}
                       selected={currency ===
@@ -3645,7 +3646,7 @@
                 data-field="currency"
               >
                 <select id="finance-client-currency" name="currency">
-                  {#each ['USD', 'BRL', 'EUR'] as currency}
+                  {#each CURRENCIES as currency}
                     <option
                       value={currency}
                       selected={currency ===
@@ -3867,7 +3868,7 @@
                 data-field="currency"
               >
                 <select id="finance-internal-currency" name="currency">
-                  {#each ['USD', 'BRL', 'EUR'] as currency}
+                  {#each CURRENCIES as currency}
                     <option
                       value={currency}
                       selected={currency === internalCostValue('currency', selectedProjectCurrency)}

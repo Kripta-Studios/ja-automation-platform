@@ -286,6 +286,19 @@ export class TimeEntryRepository {
       }
       return;
     }
+    if (ownerAdminBypass && principal.role === 'finance_admin') {
+      const finance = this.deps.sqlite
+        .prepare('SELECT role,status FROM user WHERE id=?')
+        .get(principal.userId);
+      if (finance?.role !== 'finance_admin' || finance.status !== 'active')
+        throw this.deps.errors.accessDenied('Finance administration required');
+      try {
+        assertLiveSession(this.deps.sqlite, principal, Error);
+      } catch {
+        throw this.deps.errors.accessDenied('Live authenticated session required');
+      }
+      return;
+    }
     if (workerId !== principal.userId) {
       if (!this.deps.assertDelegatedTimeAccess)
         throw this.deps.errors.accessDenied('Time entry ownership required');
@@ -477,8 +490,9 @@ export class TimeEntryRepository {
           }
         | undefined;
       if (!current) throw this.deps.errors.validation('Time entry not found');
+      // Owner and Finance submit the audited correction drafts they created themselves.
       const ownerCorrection =
-        principal.role === 'owner_admin' &&
+        (principal.role === 'owner_admin' || principal.role === 'finance_admin') &&
         Boolean(
           this.deps.sqlite
             .prepare(

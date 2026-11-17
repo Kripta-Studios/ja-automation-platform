@@ -247,16 +247,6 @@
   </p>
 
   {#if recordType === 'time_entry'}
-    <label>
-      <span>{translate('Activity summary')}</span>
-      <textarea
-        name="activitySummary"
-        minlength="3"
-        maxlength="5000"
-        required
-        value={fieldValue('activitySummary', 'activity_summary')}
-      ></textarea>
-    </label>
     <div class="correction-form__grid">
       <label
         ><span>{translate('Date')}</span><input
@@ -486,6 +476,17 @@
     </div>
   {/if}
 
+  {#if recordType === 'time_entry'}
+    <!-- Time entries no longer carry a required activity summary; a note is optional. -->
+    <label>
+      <span>{translate('What changed (optional)')}</span>
+      <textarea
+        name="activitySummary"
+        maxlength="5000"
+        value={String(values.activitySummary ?? '')}
+      ></textarea>
+    </label>
+  {/if}
   <label>
     <span>{translate('Correction reason')}</span>
     <textarea

@@ -1558,6 +1558,29 @@ export const expenseActions = withOperationalActionNames({
       const created = expenseWeekTransaction(context, () => {
         const replayed = priorResult();
         if (replayed) return replayed;
+        if (!allowSeparateExpense && !parsed.data.receiptDocumentId) {
+          // Same person, date, category and amount with no receipt usually means the same
+          // cost was typed twice. Ask once ("Save anyway?"); the crew-chief path keeps its
+          // own stricter check inside the repository.
+          const duplicate = context.sqlite
+            .prepare(
+              `SELECT id FROM expense
+                WHERE worker_id=? AND spent_on=? AND category=? AND currency=? AND amount_minor=?
+                  AND receipt_document_id IS NULL
+                  AND approval_state NOT IN ('void','rejected')
+                  AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl
+                    WHERE rcl.record_type='expense' AND rcl.correction_id=expense.id)
+                ORDER BY created_at DESC, id DESC LIMIT 1`,
+            )
+            .get(
+              workerId || context.principal.userId,
+              parsed.data.spentOn,
+              parsed.data.category,
+              parsed.data.currency,
+              parsed.data.amountMinor,
+            ) as { id: string } | undefined;
+          if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
+        }
         const created = context.repository.createExpense(
           context.principal,
           parsed.data,

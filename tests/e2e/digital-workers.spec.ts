@@ -297,7 +297,7 @@ test('worker reviews one capture, recovers local facts, and creates linked draft
   ).toBeVisible();
   await expect(page.getByLabel('What work happened?')).toHaveValue(summary);
   await page.getByLabel('Create time draft').check();
-  await page.getByLabel('Category').fill('regular');
+  await page.getByLabel('Category').selectOption('regular');
   const actualHours = page.getByLabel('Actual hours worked', { exact: true });
   await expect(actualHours).toHaveValue('8');
   await actualHours.fill('0');

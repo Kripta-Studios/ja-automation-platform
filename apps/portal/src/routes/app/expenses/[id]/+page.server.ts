@@ -270,6 +270,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       !status.reimbursed_at &&
       status.shared_receipt !== 1 &&
       (context.principal.role === 'owner_admin' ||
+        context.principal.role === 'finance_admin' ||
         context.principal.role === 'project_manager' ||
         context.principal.role === 'worker');
     return {
@@ -312,7 +313,9 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
         !status.linked_pair_time_id &&
         (context.principal.role === 'owner_admin' ||
           String(record.worker_id) === context.principal.userId ||
-          context.principal.role === 'worker'),
+          context.principal.role === 'worker' ||
+          (context.principal.role === 'finance_admin' &&
+            status.correction_actor === context.principal.userId)),
     };
   } catch (caught) {
     if (caught instanceof AccessDeniedError) {

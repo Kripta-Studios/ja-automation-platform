@@ -11,7 +11,7 @@ export function ownerCorrectionDraftVersion(input: {
   lockedAt: string | null;
   version: number;
 }): number | null {
-  return input.role === 'owner_admin' &&
+  return (input.role === 'owner_admin' || input.role === 'finance_admin') &&
     input.correctionActor === input.userId &&
     input.approvalState === 'draft' &&
     input.invoiceId === null &&

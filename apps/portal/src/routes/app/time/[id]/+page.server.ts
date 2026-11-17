@@ -126,6 +126,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
       !correctionStatus.billing_lock_id &&
       !correctionStatus.locked_at &&
       (context.principal.role === 'owner_admin' ||
+        context.principal.role === 'finance_admin' ||
         context.principal.role === 'project_manager' ||
         (context.principal.role === 'worker' &&
           String(record.worker_id) === context.principal.userId));

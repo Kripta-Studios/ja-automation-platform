@@ -74,6 +74,8 @@ type OperationalSubmitOptions = {
   setProblem?: (problem: ProblemData | null) => void;
   onSuccess: (data?: Record<string, unknown>) => void;
   offlineHandled: () => boolean;
+  /** Problems the form answers inline (e.g. "Save anyway?"), without the recovery dialog. */
+  inlineProblem?: (problem: ProblemData) => boolean;
 };
 
 /** Keep the live form (including File inputs) mounted until an explicit successful response. */
@@ -160,7 +162,10 @@ export function createOperationalSubmit(options: OperationalSubmitOptions): Subm
           );
           applyFieldErrors(formElement, result.data);
           const problem = problemFromResult(result.data);
-          if (problem) requestGuidedRecovery({ problem, form: formElement, source: formElement });
+          if (problem && options.inlineProblem?.(problem)) {
+            /* The form shows its own inline confirmation. */
+          } else if (problem)
+            requestGuidedRecovery({ problem, form: formElement, source: formElement });
           else requestRecoveryMessage(message, formElement);
           await focusError(formElement);
           return;

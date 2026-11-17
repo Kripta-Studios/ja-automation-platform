@@ -62,6 +62,8 @@ function canonicalJson(value: unknown): string {
 }
 
 const isoDate = /^\d{4}-\d{2}-\d{2}$/u;
+/** Same choices as the portal Time screen (apps/portal/src/lib/portal/time-categories.ts). */
+const captureTimeCategories = new Set(['regular', 'travel', 'overtime', 'standby']);
 const expenseCategories = new Set([
   'hotel',
   'rental_car',
@@ -104,8 +106,8 @@ export function validateCapture(input: CaptureInput): CaptureInput {
     throw new ValidationError('Select at least one draft');
   if (input.time) {
     text(input.time.category, 'Time category', true);
-    if (input.time.category.length > 100)
-      throw new ValidationError('Time category must be 100 characters or fewer');
+    if (!captureTimeCategories.has(input.time.category))
+      throw new ValidationError('Choose a supported time category');
     if (
       !Number.isInteger(input.time.minutes) ||
       input.time.minutes < 1 ||

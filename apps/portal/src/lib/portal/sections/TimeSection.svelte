@@ -23,6 +23,12 @@
   import { weekDates, weekStartForDate } from './time-entry-actions';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
   import {
+    captureTimeCategories,
+    isCaptureTimeCategory,
+    moreTimeCategories,
+    quickTimeCategories,
+  } from '../time-categories';
+  import {
     DAY_MAX_MINUTES,
     DAY_WARN_MINUTES,
     hoursAndMinutesText,
@@ -54,9 +60,9 @@
   type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned';
   type SheetRow = { key: string; projectId: string; category: string };
 
-  const quickCategories = ['regular', 'travel', 'overtime'] as const;
+  const quickCategories = quickTimeCategories;
   const categoryOrder = (category: string) => {
-    const index = (quickCategories as readonly string[]).indexOf(category);
+    const index = (captureTimeCategories as readonly string[]).indexOf(category);
     return index < 0 ? 9 : index;
   };
 
@@ -87,7 +93,9 @@
         ? t('travel')
         : category === 'overtime'
           ? t('overtime')
-          : controlledValue('timeCategory', category);
+          : category === 'standby'
+            ? t('standby')
+            : controlledValue('timeCategory', category);
 
   const assigned = (projectId: string, date: string): boolean =>
     assignments.some(
@@ -497,6 +505,12 @@
   );
   let dayProjectChoice = $state('');
   let dayCategory = $state<string>('regular');
+  let showMoreTypes = $state(false);
+  const dayCategoryChoices = $derived<readonly string[]>(
+    showMoreTypes || (moreTimeCategories as readonly string[]).includes(dayCategory)
+      ? captureTimeCategories
+      : quickCategories,
+  );
   const dayProject = $derived(
     dayProjects.some((project) => String(project.id) === dayProjectChoice)
       ? dayProjectChoice
@@ -541,12 +555,16 @@
           category?: unknown;
         } | null;
         if (saved && typeof saved.projectId === 'string') dayProjectChoice = saved.projectId;
-        if (saved && typeof saved.category === 'string' && (quickCategories as readonly string[]).includes(saved.category))
-          dayCategory = saved.category;
+        if (saved && isCaptureTimeCategory(saved.category)) dayCategory = saved.category;
       } catch {
         /* Ignore unreadable preferences. */
       }
     }
+    // "Edit draft" links open the draft's own project and type (the day comes from ?day=).
+    const linkedProject = $page.url.searchParams.get('project');
+    const linkedCategory = $page.url.searchParams.get('category');
+    if (linkedProject) dayProjectChoice = linkedProject;
+    if (isCaptureTimeCategory(linkedCategory)) dayCategory = linkedCategory;
   });
   // Home "Log hours" opens One day for today with the cursor in Hours (after
   // navigation, so the router's focus reset does not steal it).
@@ -888,7 +906,7 @@
           {#if dayProject}
             <fieldset class="day-field segmented">
               <legend>{t('type')}</legend>
-              {#each quickCategories as category (category)}
+              {#each dayCategoryChoices as category (category)}
                 <label class:is-selected={dayCategory === category}>
                   <input
                     type="radio"
@@ -900,6 +918,15 @@
                   {categoryLabel(category)}
                 </label>
               {/each}
+              {#if dayCategoryChoices.length < captureTimeCategories.length}
+                <button
+                  type="button"
+                  class="more-types"
+                  aria-expanded="false"
+                  data-testid="time-more-types"
+                  onclick={() => (showMoreTypes = true)}>{t('moreTypes')}</button
+                >
+              {/if}
             </fieldset>
             <label class="day-field day-hours">
               <span>{t('hours')}</span>
@@ -1007,7 +1034,7 @@
                   {#if dayStatus(date) !== 'empty'}
                     <span class="dot" data-status={dayStatus(date)} title={statusLabel(dayStatus(date))}></span>
                   {/if}
-                  <span class="sr-only">{dayTotals[index]}</span>
+                  <span class="sr-only">{`${decimalHoursFromMinutes(dayTotals[index] ?? 0)} ${t('hoursUnit')}`}</span>
                 </th>
               {/each}
               <th scope="col" class="col-total">{t('total')}</th>
@@ -1094,7 +1121,7 @@
               <label
                 >{t('type')}
                 <select bind:value={newRowCategory}>
-                  {#each quickCategories as category (category)}
+                  {#each captureTimeCategories as category (category)}
                     <option value={category}>{categoryLabel(category)}</option>
                   {/each}
                 </select>
@@ -1376,6 +1403,17 @@
     border-radius: 0.75rem;
     padding: 0.5rem 1rem;
     overflow-wrap: anywhere;
+  }
+  .segmented .more-types {
+    min-height: var(--ja-target-min, 44px);
+    padding: 0 1rem;
+    border: 1px dashed var(--ja-control-border, #b8c0cc);
+    border-radius: 999px;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
   }
   .segmented label:focus-within {
     outline: 3px solid var(--ja-focus-ring, #1f6feb);

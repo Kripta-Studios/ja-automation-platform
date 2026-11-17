@@ -46,9 +46,16 @@ function ownReportPrefill(
   const recentTime = (
     sqlite
       .prepare(
+        // Effective hours only, as on the Time screen: an entry superseded by a live
+        // correction counts once, as the correction.
         `SELECT project_id projectId, work_date workDate, SUM(minutes) minutes
            FROM time_entry
-          WHERE worker_id=? AND work_date>=? AND approval_state<>'void'
+          WHERE worker_id=? AND work_date>=? AND approval_state NOT IN ('void','rejected')
+            AND NOT EXISTS (
+              SELECT 1 FROM record_correction_link rcl
+                JOIN time_entry correction ON correction.id=rcl.correction_id
+               WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                 AND correction.approval_state NOT IN ('rejected','void'))
           GROUP BY project_id, work_date
           ORDER BY work_date DESC`,
       )

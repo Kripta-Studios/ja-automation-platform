@@ -3588,8 +3588,16 @@ export class PortalRepository {
   createCorrectionDraft(principal: Principal, input: CorrectionDraftInput) {
     if (principal.role === 'owner_admin')
       throw new AccessDeniedError('Owners must use the audited override correction path');
-    if (principal.role === 'finance_admin' || principal.role === 'auditor_read_only')
+    if (principal.role === 'auditor_read_only')
       throw new AccessDeniedError('Operational correction access required');
+    if (principal.role === 'finance_admin') {
+      // Admin/Finance may correct worker time and expenses (reason + audit + approval);
+      // reports stay with the people who wrote and review them.
+      if (input.recordType !== 'time_entry' && input.recordType !== 'expense')
+        throw new AccessDeniedError('Operational correction access required');
+      this.assertActive(principal);
+      this.assertLiveSession(principal);
+    }
     return this.createCorrectionDraftInternal(principal, input, false);
   }
 
@@ -3616,6 +3624,8 @@ export class PortalRepository {
       this.assertLiveSession(principal);
     } else if (principal.role === 'owner_admin') {
       throw new AccessDeniedError('Owners must use the audited override correction path');
+    } else if (principal.role === 'finance_admin') {
+      this.assertLiveSession(principal);
     } else if (!['worker', 'project_manager'].includes(principal.role)) {
       throw new AccessDeniedError('Operational correction access required');
     }
@@ -5181,8 +5191,24 @@ export class PortalRepository {
           scope.spent_on,
           scope.worker_id,
         );
-      if (scope.worker_id !== principal.userId && principal.role !== 'owner_admin' && !delegated)
+      // Finance submits only the correction drafts it created itself.
+      const financeCorrection =
+        principal.role === 'finance_admin' &&
+        Boolean(
+          this.sqlite
+            .prepare(
+              "SELECT 1 FROM record_correction_link WHERE record_type='expense' AND correction_id=? AND actor_user_id=? LIMIT 1",
+            )
+            .get(id, principal.userId),
+        );
+      if (
+        scope.worker_id !== principal.userId &&
+        principal.role !== 'owner_admin' &&
+        !delegated &&
+        !financeCorrection
+      )
         throw new AccessDeniedError('Expense ownership required');
+      if (financeCorrection) this.assertLiveSession(principal);
       const linkedTime = this.sqlite
         .prepare(
           `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.approval_state
@@ -5232,7 +5258,7 @@ export class PortalRepository {
           id,
           principal.userId,
           principal.role,
-          delegated ? 1 : 0,
+          delegated || financeCorrection ? 1 : 0,
           baseVersion,
         );
       if (result.changes !== 1) throw new ConflictError('Expense changed before submission');

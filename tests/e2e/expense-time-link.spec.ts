@@ -78,7 +78,7 @@ test('worker links an expense with a local occurrence time to saved hours', asyn
     await page.goto(portal(`/time/${time.id}?lang=en`));
     await expect(page.getByRole('link', { name: 'Edit draft' })).toHaveAttribute(
       'href',
-      `/j-aautomation/app/time?edit=${time.id}`,
+      /^\/j-aautomation\/app\/time\?day=\d{4}-\d{2}-\d{2}&project=/,
     );
     await page.getByRole('link', { name: 'Edit draft' }).click();
     await expect(page.locator('form[data-time-entry-surface]')).toBeVisible();

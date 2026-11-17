@@ -130,6 +130,9 @@ const en = {
   pickReceipts: 'Choose several receipt photos — one row each',
   duplicateReceipt:
     'This receipt is already on another expense. Is this a different expense? Attach another photo.',
+  possibleDuplicate:
+    'This looks like a duplicate of your {category} expense of {amount} on {date}. Save anyway?',
+  saveAnyway: 'Save anyway',
   duplicateReceiptBulk:
     'One of these receipts is already on another expense, or the same photo is used twice. Attach a different photo. Nothing was saved.',
 };
@@ -264,6 +267,9 @@ const es: Copy = {
   noReceiptHint: '¿Sin ticket? Rellena los datos y añade una nota.',
   pickReceipts: 'Elige varias fotos de tickets: una fila por cada una',
   duplicateReceipt: 'Este ticket ya está en otro gasto. ¿Es un gasto distinto? Adjunta otra foto.',
+  possibleDuplicate:
+    'Parece un duplicado de tu gasto de {category} de {amount} del {date}. ¿Guardarlo de todos modos?',
+  saveAnyway: 'Guardar de todos modos',
   duplicateReceiptBulk:
     'Uno de estos tickets ya está en otro gasto o la misma foto se usa dos veces. Adjunta otra foto. No se guardó nada.',
 };
@@ -397,6 +403,9 @@ const pt: Copy = {
   pickReceipts: 'Escolha várias fotos de recibos — uma linha para cada',
   duplicateReceipt:
     'Este recibo já está em outra despesa. É uma despesa diferente? Anexe outra foto.',
+  possibleDuplicate:
+    'Parece uma duplicata da sua despesa de {category} de {amount} em {date}. Salvar mesmo assim?',
+  saveAnyway: 'Salvar mesmo assim',
   duplicateReceiptBulk:
     'Um destes recibos já está em outra despesa ou a mesma foto foi usada duas vezes. Anexe outra foto. Nada foi salvo.',
 };

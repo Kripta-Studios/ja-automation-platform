@@ -4285,8 +4285,8 @@ const exact: Record<string, readonly [string, string]> = {
     'A conta do proprietário designado não pode ser alterada por esta ação de caixa de correio.',
   ],
   'problem.access.userInactive': [
-    'Esta cuenta del portal está inactiva. Revisa su estado antes de cambiar el acceso al buzón.',
-    'Esta conta do portal está inativa. Revise o estado antes de alterar o acesso à caixa de correio.',
+    'El acceso al portal de esta persona fue retirado. Usa “Reactivar en el portal” en el mismo panel del buzón para darle acceso de nuevo y elegir el rol.',
+    'O acesso ao portal desta pessoa foi removido. Use “Reativar no portal” no mesmo painel da caixa de correio para dar acesso de novo e escolher a função.',
   ],
   'problem.access.mailIdentityStale': [
     'Este vínculo de buzón cambió o se eliminó. Revisa la cuenta actualizada antes de intentarlo de nuevo.',
@@ -11254,7 +11254,7 @@ const problemEnglish: Record<string, string> = {
   'problem.access.ownerRequired':
     'Only an owner can change invitation or mailbox access. Contact an owner.',
   'problem.access.userInactive':
-    'This portal account is inactive. Review its status before changing mailbox access.',
+    'This person’s portal access was removed. Use “Reactivate in portal” in the same mailbox panel to give access again and choose the role.',
   'problem.access.mailIdentityStale':
     'This mailbox link changed or was removed. Review the updated account before retrying.',
   'problem.access.reasonRequired': 'Enter a reason for this account access change.',

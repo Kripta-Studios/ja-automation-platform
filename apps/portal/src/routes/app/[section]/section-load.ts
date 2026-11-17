@@ -35,7 +35,14 @@ import {
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
 } from './role-projections';
-import { listMailboxAccounts } from '$lib/server/mail-directory';
+import {
+  listMailboxAccounts,
+  listPortalLinkedMailboxes,
+  mailboxQueryFrom,
+  pageMailboxDirectory,
+  type MailboxDirectoryMeta,
+} from '$lib/server/mail-directory';
+import { pagePeopleDirectory, peopleQueryFrom } from '$lib/server/team-directory-page';
 import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
 import {
   includesArchivedProjectHistory,
@@ -704,7 +711,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           'finance_admin',
           'project_manager',
         ].includes(context.principal.role);
-        const calendarEntries = canViewClientWorkCalendar
+        const calendarEntries =
+          canViewClientWorkCalendar && url.searchParams.get('view') !== 'team'
           ? context.repository.listClientCalendarEntries(
               context.principal,
               calendarWindow.from,
@@ -725,14 +733,42 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 )
                 .all(...projectIds)
             : [];
+        // People directory (view=team) is scoped on the server: one page of 25
+        // people, or only the opened person. Native assignment workflows on
+        // this route (action=…, ?/action) keep the complete projections.
+        const teamView =
+          url.searchParams.get('view') === 'team' &&
+          !url.searchParams.get('action') &&
+          ![
+            '/createClient',
+            '/updateClient',
+            '/createProject',
+            '/assignWorker',
+            '/updateAssignment',
+            '/removeAssignment',
+          ].some((key) => url.searchParams.has(key));
+        // The live Stalwart directory is read only on the Mailboxes tab.
+        const mailboxTab =
+          url.searchParams.get('view') === 'team' &&
+          url.searchParams.get('directory') === 'mailboxes';
         let mailboxes: Awaited<ReturnType<typeof listMailboxAccounts>> = [];
         let mailboxesUnavailable = false;
-        if (canonicalOwner) {
+        let mailboxDirectory: MailboxDirectoryMeta | null = null;
+        if (canonicalOwner && mailboxTab) {
+          let all: Awaited<ReturnType<typeof listMailboxAccounts>>;
+          let source: 'live' | 'portal' = 'live';
           try {
-            mailboxes = await listMailboxAccounts(context.sqlite);
+            all = await listMailboxAccounts(context.sqlite);
           } catch {
+            // Degrade to the portal-linked mailboxes so portal-side actions
+            // (reactivate, role) never depend on the mail server.
             mailboxesUnavailable = true;
+            source = 'portal';
+            all = listPortalLinkedMailboxes(context.sqlite);
           }
+          const paged = pageMailboxDirectory(all, mailboxQueryFrom(url), source);
+          mailboxes = paged.rows;
+          mailboxDirectory = paged.meta;
         }
         const portalAccessForUser = canonicalOwner
           ? context.sqlite.prepare(
@@ -776,7 +812,32 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     : {}),
                 }))
             : [];
-        const eligibleWorkerIds = projectWorkers
+        const requestedPerson = teamView
+          ? (url.searchParams.get('person') ?? url.searchParams.get('worker') ?? '').trim()
+          : '';
+        const openedPerson = requestedPerson
+          ? projectWorkers.filter((worker) => String(worker.id) === requestedPerson)
+          : [];
+        const peoplePage =
+          teamView && context.principal.role !== 'worker'
+            ? pagePeopleDirectory(
+                projectWorkers as Array<Record<string, unknown>>,
+                authorizedAssignments as Array<Record<string, unknown>>,
+                peopleQueryFrom(url),
+              )
+            : null;
+        const shippedWorkers = !teamView
+          ? projectWorkers
+          : openedPerson.length
+            ? openedPerson
+            : ((peoplePage?.rows ?? projectWorkers) as typeof projectWorkers);
+        const shippedWorkerIds = new Set(shippedWorkers.map((worker) => String(worker.id)));
+        const shippedAssignments = teamView
+          ? authorizedAssignments.filter((assignment) =>
+              shippedWorkerIds.has(String(assignment.worker_id ?? assignment.user_id ?? '')),
+            )
+          : authorizedAssignments;
+        const eligibleWorkerIds = shippedWorkers
           .filter((worker) => worker.status === 'active')
           .map((worker) => String(worker.id));
         const workerExpertise = eligibleWorkerIds.length
@@ -800,12 +861,41 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 projects: directoryProjects as Array<Record<string, unknown>>,
               })
             : null;
+        if (teamView && teamExtras)
+          teamExtras.teamStats = teamExtras.teamStats.filter((row) =>
+            shippedWorkerIds.has(String(row.worker_id)),
+          );
         return {
           ...common,
           ...(teamExtras ?? {}),
+          ...(teamView
+            ? {
+                peopleDirectory: peoplePage?.meta ?? null,
+                nameFixWorkers: canonicalOwner
+                  ? (peoplePage?.nameFixWorkers ?? []).map((worker) => ({
+                      id: worker.id,
+                      name: worker.name,
+                      email: worker.email,
+                      status: worker.status,
+                    }))
+                  : [],
+                // "Add person → existing person" picker: people without a login.
+                existingPeople: canonicalOwner
+                  ? projectWorkers.filter(
+                      (worker) =>
+                        worker.status === 'active' &&
+                        String((worker as Record<string, unknown>).has_portal_access ?? '') !==
+                          '1' &&
+                        String(worker.email ?? '').toLowerCase() !==
+                          'antonny.luty@j-aautomation.com',
+                    )
+                  : [],
+              }
+            : {}),
           projects: directoryProjects,
-          clients:
-            context.principal.role === 'owner_admin' ||
+          clients: teamView
+            ? []
+            : context.principal.role === 'owner_admin' ||
             context.principal.role === 'finance_admin' ||
             context.principal.role === 'auditor_read_only'
               ? context.repository
@@ -815,11 +905,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   (client) => includeArchived || client.status !== 'archived',
                 ),
           contacts:
-            context.principal.role === 'worker'
+            context.principal.role === 'worker' || teamView
               ? []
               : context.repository.listAllClientContacts(context.principal),
-          workers: projectWorkers,
-          calendarEntries,
+          workers: shippedWorkers,
+          calendarEntries: teamView ? [] : calendarEntries,
           calendarMonth,
           canViewWorkCalendar: canViewClientWorkCalendar,
           allSkills:
@@ -833,6 +923,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 .all()
             : [],
           mailboxes,
+          mailboxDirectory,
           mailboxesUnavailable,
           mailboxDirectoryStatus: mailboxesUnavailable ? 'unavailable' : 'ready',
           mailboxDirectoryError: mailboxesUnavailable
@@ -846,11 +937,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               ? context.v3.listOpenInvitations(context.principal)
               : [],
           assignmentToday: new Date().toISOString().slice(0, 10),
-          assignments: authorizedAssignments.map((assignment) => ({
+          assignments: shippedAssignments.map((assignment) => ({
             ...assignment,
             actual_minutes: actualMinutesByAssignment.get(String(assignment.id ?? '')) ?? 0,
           })),
         };
+
       }
       case 'approvals': {
         const scope = projectVisibility(

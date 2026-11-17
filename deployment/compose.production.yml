@@ -14,7 +14,7 @@ services:
     build:
       context: ..
       dockerfile: deployment/Dockerfile.site
-    image: local-security/deployment-site-1:20261022
+    image: ja-automation-site:${JA_RELEASE_TAG:-local}
     restart: unless-stopped
     ports:
       - 127.0.0.1:5101:3000
@@ -38,7 +38,7 @@ services:
     build:
       context: ..
       dockerfile: deployment/Dockerfile.portal
-    image: jaautomation/portal:mailbox-20261029
+    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
     restart: unless-stopped
     env_file:
       - path: /etc/jaautomation/jaautomation.env
@@ -91,7 +91,7 @@ services:
       timeout: 60s
       retries: 3
   jobs:
-    image: local-security/deployment-jobs-1:20261022
+    image: ja-automation-portal:${JA_RELEASE_TAG:-local}
     restart: unless-stopped
     # Keep the worker environment allowlisted. In particular, never inject the
     # retired JA_JOB_ACTOR_ID from an older host environment: the authoritative

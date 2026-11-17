@@ -348,10 +348,13 @@
         method="POST"
         action="?/markAllNotificationsRead"
         class="inbox-mark-all"
-        use:enhance={() =>
-          async ({ update }) => {
+        use:enhance={() => {
+          feedback = '';
+          enhancedProblem = null;
+          return async ({ update }) => {
             await update({ reset: false });
-          }}
+          };
+        }}
       >
         <button type="submit" class="secondary-button" data-mark-all-read
           >{sc('markAllRead')}</button
@@ -369,7 +372,7 @@
     />
   {/if}
   <p bind:this={feedbackElement} class="inbox-feedback" role="status" tabindex="-1">
-    {feedback || nativeSuccess || markedAll}
+    {markedAll || feedback || nativeSuccess}
   </p>
   <RecordBrowser
     rows={filtered}

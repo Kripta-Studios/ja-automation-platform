@@ -530,16 +530,36 @@
               href={`${base}/app/projects?action=update-client&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
               >{translate('Edit client')}</a
             >
-            <a
-              class="secondary-button"
-              href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
-              >{translate('New Project')}</a
-            >
-            <a
-              class="secondary-button"
-              href={`${base}/app/projects?lang=${encodeURIComponent(problemLocale)}#client-controls-${clientId}`}
-              >{translate('Archive')}</a
-            >
+            {#if value(client, 'status') === 'archived'}
+              <details class="client-directory__restore" data-client-restore>
+                <summary class="secondary-button">{translate('Restore client')}</summary>
+                <form method="POST" action="?view=clients&/transitionClient">
+                  <input type="hidden" name="clientId" value={clientId} />
+                  <input type="hidden" name="version" value={value(client, 'version') || '1'} />
+                  <input type="hidden" name="status" value="restore" />
+                  <label
+                    >{translate('Reason')}<input
+                      name="reason"
+                      required
+                      maxlength="2000"
+                      autocomplete="off"
+                    /></label
+                  >
+                  <button type="submit" class="primary-button">{translate('Restore client')}</button>
+                </form>
+              </details>
+            {:else}
+              <a
+                class="secondary-button"
+                href={`${base}/app/projects?action=new-project&client=${encodeURIComponent(clientId)}&lang=${encodeURIComponent(problemLocale)}`}
+                >{translate('New Project')}</a
+              >
+              <a
+                class="secondary-button"
+                href={`${base}/app/projects?lang=${encodeURIComponent(problemLocale)}#client-controls-${clientId}`}
+                >{translate('Archive')}</a
+              >
+            {/if}
             {#if canDeletePermanently && clientId}
               <PermanentDeleteDialog
                 kind="client"
@@ -1575,5 +1595,18 @@
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
     }
+  }
+  .client-directory__restore {
+    flex-basis: 100%;
+  }
+  .client-directory__restore summary {
+    display: inline-flex;
+    width: auto;
+  }
+  .client-directory__restore form {
+    display: grid;
+    gap: 0.5rem;
+    max-width: 32rem;
+    margin-top: 0.5rem;
   }
 </style>

@@ -7,6 +7,7 @@
   import type { ProjectPersonDefaults } from '@ja/database';
   import { StatusBadge } from '$lib/portal/ui';
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
+  import { projectCopy } from '$lib/portal/project-ux-round3-copy';
   import { requestFinanceGuidedRecovery } from '../finance-guided-recovery';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
@@ -1288,6 +1289,9 @@
                 >{t('Configure invoice issuers')}</a
               >
             </p>
+            <p class="hint" data-issuer-only-for-invoices>
+              {projectCopy(locale, 'issuerOnlyForInvoices')}
+            </p>
           {/if}
         </fieldset>
       {/if}
@@ -1963,6 +1967,17 @@
           </p>
         </fieldset>
       {/if}
+      {#if step === 4 && entityChoices.length === 0}
+        <p class="warning" role="alert" data-issuer-required-to-save>
+          {t(
+            'An active invoice issuer in the project currency is required before invoices can be configured.',
+          )}
+          <a
+            href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(projectId)}`}
+            >{t('Configure invoice issuers')}</a
+          >
+        </p>
+      {/if}
       <div class="actions">
         {#if step > 1}<button type="button" class="secondary-button" onclick={previous}
             >{t('Back')}</button
@@ -1970,10 +1985,12 @@
         {#if step < 4}<button
             type="button"
             class="primary-button"
-            onclick={next}
-            disabled={step === 2 && entityChoices.length === 0}>{t('Continue')}</button
+            onclick={next}>{t('Continue')}</button
           >
-        {:else}<button type="submit" class="primary-button" disabled={submitted}
+        {:else}<button
+            type="submit"
+            class="primary-button"
+            disabled={submitted || entityChoices.length === 0}
             >{submitted ? t('Saving…') : t('Save billing setup')}</button
           >{/if}
       </div>

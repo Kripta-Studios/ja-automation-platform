@@ -1,4 +1,4 @@
-import { accountingPackPeriodSchema, uuidSchema } from '@ja/schemas';
+import { accountingPackPeriodSchema, projectRecordIdSchema, uuidSchema } from '@ja/schemas';
 import { error, redirect } from '@sveltejs/kit';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
@@ -1098,7 +1098,7 @@ export const actions: Actions = {
     };
     const parsed = accountingPackPeriodSchema
       .extend({
-        projectId: uuidSchema,
+        projectId: projectRecordIdSchema,
         contentMode: z
           .enum([
             'hours_only',

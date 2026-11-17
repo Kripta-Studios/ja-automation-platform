@@ -11190,6 +11190,41 @@ export class V3Repository {
     });
   }
 
+  /** Owner-only undo of archiveDocument: the bytes were retained, so the row returns to the list. */
+  restoreDocument(principal: Principal, documentId: string, reason: string): void {
+    this.assertActive(principal);
+    this.assertLiveSession(principal);
+    if (principal.role !== 'owner_admin')
+      throw new V3AccessDeniedError('Only the owner can restore archived documents');
+    const cleanReason = reason.trim();
+    if (cleanReason.length < 3 || cleanReason.length > 500)
+      throw new V3ValidationError('Document restore reason must be 3–500 characters');
+    this.transaction(() => {
+      const document = this.sqlite
+        .prepare('SELECT project_id,state,archived_at FROM document WHERE id=?')
+        .get(documentId) as
+        | { project_id: string | null; state: string; archived_at: string | null }
+        | undefined;
+      if (!document) throw new V3NotFoundError('Document not found');
+      if (document.state !== 'committed' || !document.archived_at)
+        throw new V3ConflictError('Only an archived committed document can be restored');
+      const restoredAt = timestamp();
+      const changed = this.sqlite
+        .prepare(
+          "UPDATE document SET archived_at=NULL,archived_by=NULL,updated_at=?,version=version+1 WHERE id=? AND state='committed' AND archived_at IS NOT NULL",
+        )
+        .run(restoredAt, documentId);
+      if (changed.changes !== 1) throw new V3ConflictError('Document changed before restoring');
+      // Same registered action the owner Data management restore uses.
+      this.audit(principal, 'owner.catalog.restore', 'document', documentId, {
+        projectId: document.project_id,
+        reason: cleanReason,
+        disposition: 'restored',
+        previousArchivedAt: document.archived_at,
+      });
+    });
+  }
+
   deleteDocument(principal: Principal, documentId: string): { storageKey: SafeStorageKey } {
     this.assertWritable(principal);
     const document = this.sqlite

@@ -186,7 +186,7 @@ export const projectInputSchema = z
     siteName: z.string().trim().max(200).optional(),
     onsiteManager: z.string().trim().max(200).optional(),
     siteLocation: z.string().trim().max(500).optional(),
-    onsiteContactId: z.union([z.literal(''), uuidSchema]).optional(),
+    onsiteContactId: z.union([z.literal(''), clientRecordIdSchema]).optional(),
     onsiteContactName: z.string().trim().max(160).optional(),
     onsiteContactEmail: z.union([z.literal(''), z.email().max(254)]).optional(),
     onsiteContactPhone: z.string().trim().max(60).optional(),
@@ -256,7 +256,7 @@ export const clientContactInputSchema = z.object({
 });
 
 export const milestoneInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   name: z.string().trim().min(2).max(200),
   description: z.string().trim().max(5000).optional(),
   amountMinor: minorUnitsSchema.transform((value) => BigInt(value)),
@@ -264,7 +264,7 @@ export const milestoneInputSchema = z.object({
 });
 
 export const scheduleInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   timezone: z.string().trim().min(1).max(100),
   mondayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
   tuesdayMinutes: z.coerce.number().int().min(0).max(1440).default(600),
@@ -786,7 +786,7 @@ export const invoiceIdSchema = z.object({
 
 export const compensationSettlementInputSchema = z.object({
   workerId: uuidSchema,
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   periodStart: z.iso.date(),
   periodEnd: z.iso.date(),
 });
@@ -799,7 +799,7 @@ export const reimbursementInputSchema = z.object({
 
 export const compensationRuleInputSchema = z.object({
   workerId: uuidSchema,
-  projectId: z.union([z.literal(''), uuidSchema]).optional(),
+  projectId: z.union([z.literal(''), projectRecordIdSchema]).optional(),
   currency: currencySchema,
   ruleType: z.enum([
     'Hourly',
@@ -856,7 +856,7 @@ export const clientLaborRateInputSchema = z.object({
   unitRateMinor: minorUnitsSchema
     .optional()
     .transform((value) => (value === undefined ? undefined : BigInt(value))),
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   workerId: z.union([z.literal(''), uuidSchema]).optional(),
   category: z.string().trim().max(100).optional(),
   currency: currencySchema,
@@ -876,7 +876,7 @@ export const clientLaborRateInputSchema = z.object({
 
 export const internalCostRuleInputSchema = z.object({
   workerId: uuidSchema,
-  projectId: z.union([z.literal(''), uuidSchema]).optional(),
+  projectId: z.union([z.literal(''), projectRecordIdSchema]).optional(),
   currency: currencySchema,
   hourlyRateMinor: minorUnitsSchema.transform((value) => BigInt(value)),
   effectiveFrom: z.iso.date(),
@@ -1150,7 +1150,7 @@ export const technicalChangeDecisionSchema = z.object({
 });
 
 export const planningAssignmentInputSchema = z.object({
-  projectId: uuidSchema,
+  projectId: projectRecordIdSchema,
   workerId: uuidSchema,
   startsAt: z.iso.datetime(),
   endsAt: z.preprocess(

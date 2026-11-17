@@ -30,6 +30,7 @@ import { z } from 'zod';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
+import { projectHoursToMinutes } from '$lib/portal/sections/project-budget-input';
 
 function parseRuleId(value: FormDataEntryValue | null): string | undefined {
   const parsed = uuidSchema.safeParse(value?.toString() ?? '');
@@ -248,7 +249,7 @@ const financeReferenceProblems: Readonly<Record<string, FinanceInputProblem>> = 
 };
 
 function safeFinanceValues(object: Record<string, unknown>): Record<string, string> {
-  return Object.fromEntries(
+  const values: Record<string, string> = Object.fromEntries(
     Object.entries(object).filter(
       (entry): entry is [string, string] =>
         /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(entry[0]) &&
@@ -257,6 +258,27 @@ function safeFinanceValues(object: Record<string, unknown>): Record<string, stri
         entry[1].length <= 10_000,
     ),
   );
+  return foldDecimalHoursFields(values);
+}
+
+/**
+ * DecimalHoursInput submits the visible decimal-hours text as `<name>Hours` next to the
+ * canonical `<name>` minutes field. Strict finance schemas reject the helper key, so
+ * fold it back: keep the canonical minutes, or convert the decimal hours server-side
+ * when the minutes field is missing/empty (for example without client-side scripting).
+ */
+export function foldDecimalHoursFields(values: Record<string, string>): Record<string, string> {
+  for (const key of Object.keys(values)) {
+    if (!key.endsWith('MinutesHours')) continue;
+    const base = key.slice(0, -'Hours'.length);
+    const hoursText = values[key] ?? '';
+    delete values[key];
+    if ((values[base] ?? '').trim() === '' && hoursText.trim() !== '') {
+      const minutes = projectHoursToMinutes(hoursText);
+      values[base] = minutes === '' ? hoursText : minutes;
+    }
+  }
+  return values;
 }
 
 function financeRemediesWithContext(remedies: unknown, values: Record<string, string>): unknown {

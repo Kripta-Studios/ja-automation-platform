@@ -391,6 +391,43 @@ export const documentActions = {
       context.sqlite.close();
     }
   },
+  restoreDocument: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'documents')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const documentId = String(object.documentId ?? '').trim();
+    const reason = String(object.reason ?? '').trim();
+    const values = documentValues(object);
+    if (!documentId)
+      return documentInputFailure(
+        400,
+        'DOCUMENT_ID_REQUIRED',
+        'problem.document.idRequired',
+        'Select a document before continuing.',
+        'restoreDocument',
+        values,
+        ['documentId'],
+      );
+    if (reason.length < 3 || reason.length > 500)
+      return documentInputFailure(
+        400,
+        'DOCUMENT_ARCHIVE_REASON_REQUIRED',
+        'problem.document.archiveReasonRequired',
+        'Enter a reason of 3 to 500 characters.',
+        'restoreDocument',
+        values,
+        ['reason'],
+      );
+    const context = openPortalRepository(locals);
+    try {
+      context.v3.restoreDocument(context.principal, documentId, reason);
+      return actionSuccess('action.documents.restored', {}, 'Document restored');
+    } catch (error) {
+      return documentActionFailure(error, 'restoreDocument', values);
+    } finally {
+      context.sqlite.close();
+    }
+  },
   deleteDocument: async ({ locals, request, params }: PortalActionEvent) => {
     if (
       params.section !== 'documents' &&

@@ -140,6 +140,7 @@ const copy = {
   poShort: ['PO {po}', 'PO {po}', 'PO {po}'],
   poProject: ['Project PO', 'PO del proyecto', 'PO do projeto'],
   poEdit: ['Set PO', 'Poner PO', 'Definir PO'],
+  poChange: ['Change PO', 'Cambiar PO', 'Alterar PO'],
   poLabel: ['PO on this project', 'PO en este proyecto', 'PO neste projeto'],
   poHelp: [
     'Printed on invoices of this person’s work; empty = project PO.',

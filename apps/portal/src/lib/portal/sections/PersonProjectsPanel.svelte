@@ -179,7 +179,7 @@
                   onclick={() => {
                     poFor = text(row, 'id');
                     poValue = text(row, 'po_number');
-                  }}>{c('poEdit')}</button
+                  }}>{c(text(row, 'po_number') ? 'poChange' : 'poEdit')}</button
                 >
               {/if}
               {#if canManage && endingId !== text(row, 'id')}

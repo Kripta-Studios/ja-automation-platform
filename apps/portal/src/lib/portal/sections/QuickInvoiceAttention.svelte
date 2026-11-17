@@ -794,27 +794,6 @@
     {#if row.locked}
       <small class="qa__muted">{t('expenseLocked')}</small>
     {:else}
-      <div class="qa__treatment">
-        <select
-          value={choice.treatment}
-          onchange={(event) => setTreatment(row, { treatment: (event.currentTarget as HTMLSelectElement).value })}
-          aria-label={`${t('treatmentLabel')} · ${row.label}`} disabled={disabled || busy === key}>
-          <option value="reimbursable">{t('treatment_reimbursable')}</option>
-          <option value="all_in">{t('treatment_all_in')}</option>
-          <option value="non_billable">{t('treatment_non_billable')}</option>
-        </select>
-        {#if choice.treatment === 'reimbursable'}
-          <label class="qa__markup"
-            ><span>{t('markup')}</span><input
-              value={choice.markup}
-              oninput={(event) => setTreatment(row, { markup: (event.currentTarget as HTMLInputElement).value })}
-              inputmode="decimal" placeholder="0" aria-label={t('markup')} /></label
-          >
-        {/if}
-        <button type="button" class="secondary-button qa__btn" disabled={disabled || Boolean(busy)} onclick={() => saveTreatment(row)}
-          >{t('save')}</button
-        >
-      </div>
       {#if row.foreign}
         {@const conversion = conversions[row.ref.id] ?? { rate: '', amount: '' }}
         <div class="qa__convert" data-attention-convert={row.ref.id}>
@@ -842,6 +821,27 @@
           >
         </div>
       {/if}
+      <div class="qa__treatment">
+        <select
+          value={choice.treatment}
+          onchange={(event) => setTreatment(row, { treatment: (event.currentTarget as HTMLSelectElement).value })}
+          aria-label={`${t('treatmentLabel')} · ${row.label}`} disabled={disabled || busy === key}>
+          <option value="reimbursable">{t('treatment_reimbursable')}</option>
+          <option value="all_in">{t('treatment_all_in')}</option>
+          <option value="non_billable">{t('treatment_non_billable')}</option>
+        </select>
+        {#if choice.treatment === 'reimbursable'}
+          <label class="qa__markup"
+            ><span>{t('markup')}</span><input
+              value={choice.markup}
+              oninput={(event) => setTreatment(row, { markup: (event.currentTarget as HTMLInputElement).value })}
+              inputmode="decimal" placeholder="0" aria-label={t('markup')} /></label
+          >
+        {/if}
+        <button type="button" class="secondary-button qa__btn" disabled={disabled || Boolean(busy)} onclick={() => saveTreatment(row)}
+          >{t('save')}</button
+        >
+      </div>
       {#if row.classificationState === 'unclassified' && onExclude}
         <button type="button" class="qa__link" disabled={disabled || Boolean(busy)} onclick={() => onExclude?.(row.ref.id, true)} data-attention-exclude
           >{t('expenseLeaveOut')}</button

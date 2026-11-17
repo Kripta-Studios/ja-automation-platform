@@ -307,3 +307,39 @@ describe('exact expense conversion entry', () => {
     expect(() => exactExpenseConversion(2000, 'EUR', 'USD', { rate: '0' })).toThrow();
   });
 });
+
+describe('replacement invoice after a void', () => {
+  it('links the new invoice to the voided original with an audit row', () => {
+    const env = setup();
+    const { f, owner, finance, time, context } = env;
+    time('2026-08-04', 120, 'approved');
+    const first = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    const original = quickInvoiceIssue(context(owner), {
+      projectId: f.project.id,
+      ...period,
+      expectedTotalMinor: first.totalMinor,
+      requestKey: 'round3-original',
+      locale: 'en',
+    });
+    if (!original.ok) throw new Error('issued expected');
+    f.v3.voidInvoice(finance, original.invoiceId, 'Wrong rate on the invoice', 'round3-void-0001');
+    const again = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    const replacement = quickInvoiceIssue(context(owner), {
+      projectId: f.project.id,
+      ...period,
+      expectedTotalMinor: again.totalMinor,
+      requestKey: 'round3-replacement',
+      locale: 'en',
+      replacesInvoiceId: original.invoiceId,
+    });
+    if (!replacement.ok) throw new Error(`replacement expected: ${replacement.reason}`);
+    expect(
+      f.sqlite.prepare('SELECT voided_invoice_id FROM invoice_replacement_link WHERE replacement_invoice_id=?').get(replacement.invoiceId),
+    ).toEqual({ voided_invoice_id: original.invoiceId });
+    expect(
+      f.sqlite
+        .prepare("SELECT json_extract(metadata_json,'$.replacesInvoiceId') replaces FROM audit_event WHERE action='invoice.replacement_link' AND entity_id=?")
+        .get(replacement.invoiceId),
+    ).toEqual({ replaces: original.invoiceId });
+  });
+});

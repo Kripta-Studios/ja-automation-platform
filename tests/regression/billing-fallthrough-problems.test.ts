@@ -44,9 +44,35 @@ describe('billing fallthrough problems', () => {
     expect(result.status).toBe(409);
     expect(result.data).toMatchObject({
       code: 'ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP',
-      remedies: [{ id: 'contact_support' }],
+      remedies: [{ id: 'review_issuer' }],
       values: { periodStart: '2026-10-01', periodEnd: '2026-10-05' },
     });
+    expect(JSON.stringify(result.data)).not.toMatch(/contact support/i);
+  });
+  it('names the issuer and the covered dates so the owner can fix the gap', () => {
+    const error = new AccountingPackRevisionError(
+      'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
+      {
+        legalEntityId: 'issuer-eur',
+        issuerName: 'J&A Europe',
+        currency: 'EUR',
+        periodEnd: '2026-10-31',
+        coveredFrom: '2026-10-01',
+        coveredUntil: '2026-10-05',
+        archived: 'yes',
+      },
+    );
+    const result = billingActionFailure(error, 'createAccountingPack', 'owner_admin', {
+      periodStart: '2026-10-01',
+      periodEnd: '2026-10-31',
+      reportLocale: 'en',
+    });
+    expect(result.data).toMatchObject({
+      messageKey: 'problem.billing.packIssuerCoverageEnds',
+      remedies: [{ id: 'review_issuer' }],
+      params: { issuerName: 'J&A Europe', currency: 'EUR', coveredUntil: '2026-10-05', legalEntityId: 'issuer-eur' },
+    });
+    expect(String((result.data as { message?: string }).message)).toContain('2026-10-05');
   });
   it.each([
     [

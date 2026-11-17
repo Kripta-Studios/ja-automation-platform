@@ -718,13 +718,22 @@ export function billingProblemFor(
     message ===
       'No legal-entity revision is effective at the deterministic period cut (effective-date gap)'
   )
+  {
+    const gap = (error as AccountingPackRevisionError).details ?? {};
+    const issuerName = gap.issuerName || 'An invoice issuer';
+    const currency = gap.currency || '';
+    const coveredUntil = gap.coveredUntil || gap.coveredFrom || '—';
+    const periodEnd = gap.periodEnd || '—';
     return known(
       409,
       'ACCOUNTING_PACK_ISSUER_EFFECTIVE_DATE_GAP',
-      'problem.billing.packIssuerEffectiveDateGap',
-      'An invoice issuer has no legal revision covering this Accounting Pack’s period end. Contact support to review the dated issuer history. Your selected period is retained; changing current issuer details does not repair historical coverage.',
-      'contact_support',
+      'problem.billing.packIssuerCoverageEnds',
+      `Issuer “${issuerName}” (${currency}) only has legal details until ${coveredUntil}, so a pack ending ${periodEnd} cannot include its ${currency} invoices and expenses. Choose dates ending on or before ${coveredUntil}, or open Company and numbering and give this issuer legal details for the whole period (or move its projects to an active ${currency} issuer).`,
+      'review_issuer',
+      undefined,
+      { issuerName, currency, coveredUntil, periodEnd, legalEntityId: gap.legalEntityId ?? '' },
     );
+  }
   if (
     operation === 'createAccountingPack' &&
     error instanceof V3ConflictError &&
@@ -732,15 +741,41 @@ export function billingProblemFor(
       message,
     )
   )
+  {
+    const expense =
+      (error as V3ConflictError & { details?: Record<string, string> }).details ?? {};
+    const expenseId = message.split(' ')[1]!;
+    if (!expense.currency || !expense.projectCurrency)
+      return known(
+        409,
+        'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
+        'problem.billing.packExpenseCurrencyReviewRequired',
+        "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Open the expense and correct its currency or amount (or return it to the worker), then generate the pack again. Your selected period is retained.",
+        'open_expense',
+        undefined,
+        { expenseId },
+      );
+    const amountMinor = /^\d+$/u.test(expense.amountMinor ?? '') ? BigInt(expense.amountMinor!) : 0n;
+    const amount = `${amountMinor / 100n}.${String(amountMinor % 100n).padStart(2, '0')} ${expense.currency}`;
+    const params = {
+      expenseId,
+      amount,
+      currency: expense.currency,
+      spentOn: expense.spentOn ?? '',
+      projectNumber: expense.projectNumber ?? '',
+      projectCurrency: expense.projectCurrency,
+      projectId: expense.projectId ?? '',
+    };
     return known(
       409,
       'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
-      'problem.billing.packExpenseCurrencyReviewRequired',
-      "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Currency conversion cannot currently be entered here. Review its expense classification and any reimbursement classification in Finance review. Your selected period is retained.",
-      'review_expense_finance',
+      'problem.billing.packExpenseNeedsProjectCurrency',
+      `The ${amount} expense of ${params.spentOn} (project ${params.projectNumber}) has no verified amount in ${params.projectCurrency}, the project's currency. Open the expense and correct its currency or amount (or return it to the worker), then generate the pack again — or choose dates that leave out ${params.spentOn}.`,
+      'open_expense',
       undefined,
-      { expenseId: message.split(' ')[1]! },
+      params,
     );
+  }
   if (
     operation === 'createAccountingPack' &&
     error instanceof V3ConflictError &&
@@ -2162,7 +2197,7 @@ export const billingActions = {
     if (!object) return billingInvalidFormFailure('issueInvoice');
     const parsed = invoiceIdSchema.safeParse(object);
     const expectedTotalMinor = String(object.expectedTotalMinor ?? '');
-    if (!parsed.success || !/^\d{1,18}$/u.test(expectedTotalMinor))
+    if (!parsed.success || !/^-?\d{1,18}$/u.test(expectedTotalMinor))
       return billingInputFailure(
         'invoiceId',
         'issueInvoice',
@@ -2715,6 +2750,7 @@ export const billingActions = {
         ? { paymentTermsDays: formData.get('paymentTermsDays')!.toString() }
         : {}),
       purchaseNo,
+      applyToFutureInvoices: formData.get('applyToFutureInvoices')?.toString() === 'on',
       termsAndInstructions: Object.keys(termsAndInstructions).length
         ? termsAndInstructions
         : undefined,
@@ -2748,16 +2784,22 @@ export const billingActions = {
     }
     const context = openPortalRepository(locals);
     try {
-      context.repository.updateInvoiceDraftCustomizations(
+      const saved = context.repository.updateInvoiceDraftCustomizations(
         context.principal,
         parsedInvoiceId.data,
         parsedDetails.data,
       );
-      return actionSuccess(
-        'action.billing.invoiceSourcesUpdated',
-        {},
-        'Invoice details and changed source settings saved.',
-      );
+      return saved.sourceSettingsChanged
+        ? actionSuccess(
+            'action.billing.invoiceSourcesUpdated',
+            {},
+            'Invoice details and changed source settings saved.',
+          )
+        : actionSuccess(
+            'action.billing.invoiceDraftDetailsSaved',
+            {},
+            'Saved on this draft only. Future invoices keep the project defaults.',
+          );
     } catch (error) {
       const previewProblems: Record<
         string,

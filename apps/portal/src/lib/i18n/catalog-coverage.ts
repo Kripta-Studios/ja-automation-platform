@@ -2264,6 +2264,7 @@ export const PORTAL_LITERAL_KEYS = [
 export const PORTAL_ACTION_KEYS = [
   'action.approval.ownerDecisionRecorded',
   'action.billing.invoiceSourcesUpdated',
+  'action.billing.invoiceDraftDetailsSaved',
   'action.billing.issuerSettingsSaved',
   'action.finance.unusedIssuerReplaced',
 
@@ -3101,6 +3102,10 @@ export const PORTAL_ACTION_KEYS = [
   'problem.billing.creditRestoreChanged',
   'problem.billing.packDeploymentIdentityMissing',
   'problem.billing.packIssuerEffectiveDateGap',
+  'problem.billing.packIssuerCoverageEnds',
+  'problem.billing.packExpenseNeedsProjectCurrency',
+  'problem.remedy.reviewIssuer',
+  'problem.remedy.openExpense',
   'problem.billing.packSourceReconciliationRequired',
   'problem.billing.packExpenseCurrencyReviewRequired',
   'problem.billing.streamSelectionRequired',

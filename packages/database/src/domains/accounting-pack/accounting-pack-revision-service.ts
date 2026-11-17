@@ -136,7 +136,14 @@ export type AccountingPackRevisionResult = Readonly<{
   idempotent: boolean;
 }>;
 
-export class AccountingPackRevisionError extends Error {}
+export class AccountingPackRevisionError extends Error {
+  /** Safe, non-secret facts naming what blocks the pack, for an actionable message. */
+  readonly details?: Readonly<Record<string, string>>;
+  constructor(message: string, details?: Readonly<Record<string, string>>) {
+    super(message);
+    if (details) this.details = details;
+  }
+}
 
 type Deployment = Readonly<{ tenantId: string; deploymentId: string }>;
 type DbRow = Record<string, unknown>;
@@ -458,6 +465,30 @@ function asObject(value: unknown): Readonly<Record<string, unknown>> {
   return isRecord(value) ? value : {};
 }
 
+function issuerGapDetails(
+  sqlite: DatabaseSync,
+  seriesId: string,
+  legalEntityId: string,
+  legacy: DbRow,
+  currency: string,
+  periodEnd: string,
+): Record<string, string> {
+  const covered = sqlite
+    .prepare(
+      'SELECT MIN(effective_from) first_from,MAX(COALESCE(effective_to,\'\')) last_to FROM legal_entity_revision WHERE series_id=?',
+    )
+    .get(seriesId) as { first_from: string | null; last_to: string | null } | undefined;
+  return {
+    legalEntityId,
+    issuerName: String(legacy.legal_name ?? legacy.code ?? legalEntityId),
+    currency,
+    periodEnd,
+    coveredFrom: String(covered?.first_from ?? '').slice(0, 10),
+    coveredUntil: String(covered?.last_to ?? '').slice(0, 10),
+    archived: legacy.status === 'archived' ? 'yes' : 'no',
+  };
+}
+
 function ensureLegalEntityRevision(
   sqlite: DatabaseSync,
   deployment: Deployment,
@@ -542,6 +573,7 @@ function ensureLegalEntityRevision(
     else if (seriesCount > 0)
       throw new AccountingPackRevisionError(
         'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
+        issuerGapDetails(sqlite, entitySeriesId, input.legacyLegalEntityId, legacy, currency, periodEnd),
       );
     else
       revisionId = `fp-entity-revision-${sha256(`${deployment.tenantId}:${deployment.deploymentId}:${input.legacyLegalEntityId}`).slice(0, 40)}`;
@@ -679,6 +711,7 @@ function ensureLegalEntityRevision(
   if (effective.length === 0)
     throw new AccountingPackRevisionError(
       'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
+        issuerGapDetails(sqlite, entitySeriesId, input.legacyLegalEntityId, legacy, currency, periodEnd),
     );
   if (effective.length > 1)
     throw new AccountingPackRevisionError(

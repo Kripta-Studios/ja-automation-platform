@@ -122,7 +122,7 @@ const cases = [
     code: 'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
     messageKey: 'problem.billing.packExpenseCurrencyReviewRequired',
     field: null,
-    remedy: 'review_expense_finance',
+    remedy: 'open_expense',
   })),
 ] as const;
 

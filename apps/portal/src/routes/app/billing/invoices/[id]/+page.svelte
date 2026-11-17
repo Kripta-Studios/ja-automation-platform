@@ -1249,6 +1249,41 @@
       {/if}
     </section>
   {/if}
+  {#if canManageInvoice && invoiceState === 'void' && invoice.stream_type !== 'adjustment' && invoice.project_id && invoice.period_start && invoice.period_end}
+    <section
+      class="invoice-lifecycle no-print"
+      aria-labelledby="invoice-void-heading"
+      data-invoice-lifecycle="void"
+    >
+      <div class="invoice-lifecycle__row">
+        <div class="invoice-lifecycle__summary">
+          <p id="invoice-void-heading" class="invoice-lifecycle__eyebrow">
+            {q('voidTitle')} · {invoice.invoice_number}
+          </p>
+          <strong>{invoiceTotalText}</strong>
+          <span
+            >{invoice.client_legal_name || invoice.client_name} · {invoice.period_start} → {invoice.period_end}</span
+          >
+        </div>
+        <div class="invoice-lifecycle__actions">
+          <a
+            class="primary-button"
+            href={`${base}/app/billing?${new URLSearchParams({
+              project: String(invoice.project_id),
+              newInvoice: '1',
+              periodStart: String(invoice.period_start),
+              periodEnd: String(invoice.period_end),
+              ...(invoice.billing_rule_id ? { billingRuleId: String(invoice.billing_rule_id) } : {}),
+              replaces: invoiceId,
+              lang: locale,
+            })}`}
+            data-invoice-create-replacement>{q('createReplacement')}</a
+          >
+        </div>
+      </div>
+      <p class="invoice-lifecycle__help">{q('voidHelp')}</p>
+    </section>
+  {/if}
   {#if hasDraftPreview}
     <section class="invoice-pdf-panel no-print" aria-labelledby="invoice-pdf-heading">
       <div class="invoice-pdf-panel__heading">
@@ -1570,6 +1605,17 @@
                   placeholder={t('For example: BBS Mexico')}
                 />
               </div>
+              <div class="draft-field full-width">
+                <label class="draft-checkbox">
+                  <input type="checkbox" name="applyToFutureInvoices" data-apply-future-invoices />
+                  <span>{t('Also use for future invoices of this project')}</span>
+                </label>
+                <small
+                  >{t(
+                    'Unchecked: the purchase number and payment terms change on this draft only.',
+                  )}</small
+                >
+              </div>
               <div class="draft-field">
                 <label for="edit-discount">{t('Discount Amount')}</label>
                 <input
@@ -1654,14 +1700,6 @@
               {/each}
             </div>
             <div class="invoice-source-guidance" aria-label={t('invoice.sourceSaveTitle')}>
-              <p>
-                {t(
-                  invoice.purchase_no_source === 'billing_stream'
-                    ? 'invoice.sourceSaveStreamPo'
-                    : 'invoice.sourceSaveProjectPo',
-                )}
-              </p>
-              <p>{t('invoice.sourceSaveTerms')}</p>
               <p>{t('invoice.sourceSaveIssuer')}</p>
             </div>
             <p>

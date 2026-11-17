@@ -56,7 +56,7 @@ describe('digital work coordination migration77', () => {
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 77,
+      version: 78,
     });
     for (const name of names)
       expect(f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY id`).all(), name).toEqual(

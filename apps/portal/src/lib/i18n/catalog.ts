@@ -168,6 +168,8 @@ const en = {
   'invoice.sourceSaveIssuer':
     'Changing bank or company contact details updates the actual issuer settings for this currency, shared across its projects. Only changed fields are saved to their sources.',
   'action.billing.invoiceSourcesUpdated': 'Invoice details and changed source settings saved.',
+  'action.billing.invoiceDraftDetailsSaved':
+    'Saved on this draft only. Future invoices keep the project defaults.',
   'action.billing.issuerSettingsSaved': 'Issuer payment and contact settings saved.',
   'problem.billing.issuerSettingsInvalid':
     'Check the issuer payment and contact fields before saving.',
@@ -809,6 +811,8 @@ const esBase: Record<keyof typeof en, string> = {
     'Cambiar los datos bancarios o de contacto de la empresa actualiza la configuración real del emisor para esta moneda, compartida entre sus proyectos. Solo se guardan los campos modificados en su origen.',
   'action.billing.invoiceSourcesUpdated':
     'Se guardaron los detalles de la factura y los cambios en su configuración de origen.',
+  'action.billing.invoiceDraftDetailsSaved':
+    'Guardado solo en este borrador. Las próximas facturas mantienen los valores del proyecto.',
   'action.billing.issuerSettingsSaved': 'Se guardó la configuración de pago y contacto del emisor.',
   'problem.billing.issuerSettingsInvalid':
     'Revise los campos de pago y contacto del emisor antes de guardar.',
@@ -1448,6 +1452,8 @@ const ptBase: Record<keyof typeof en, string> = {
     'Alterar dados bancários ou de contato da empresa atualiza as configurações reais do emissor nesta moeda, compartilhadas pelos seus projetos. Somente os campos alterados são salvos nas fontes.',
   'action.billing.invoiceSourcesUpdated':
     'Detalhes da fatura e alterações nas configurações de origem salvos.',
+  'action.billing.invoiceDraftDetailsSaved':
+    'Salvo só neste rascunho. As próximas faturas mantêm os padrões do projeto.',
   'action.billing.issuerSettingsSaved': 'Configurações de pagamento e contato do emissor salvas.',
   'problem.billing.issuerSettingsInvalid':
     'Revise os campos de pagamento e contato do emissor antes de salvar.',

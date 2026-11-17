@@ -2128,7 +2128,7 @@
       ? ($page.url.searchParams.get('numberingEntity') ?? '')
       : '',
   );
-  const canVoidInvoice = $derived(data.user.role === 'owner_admin');
+  const canVoidInvoice = $derived(['owner_admin', 'finance_admin'].includes(String(data.user.role)));
 
   useViewPreferences({
     scope: 'billing',
@@ -2731,6 +2731,21 @@
     clearInvoiceSetupWarning();
     quickInvoiceOpen = true;
   }
+  /** "Create replacement invoice" on a void invoice opens New invoice with its scope. */
+  const quickInvoicePrefill = (() => {
+    const params = $page.url.searchParams;
+    if (params.get('newInvoice') !== '1') return null;
+    const date = (value: string | null) => (value && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : '');
+    return {
+      periodStart: date(params.get('periodStart')),
+      periodEnd: date(params.get('periodEnd')),
+      billingRuleId: params.get('billingRuleId')?.trim() ?? '',
+      replacement: Boolean(params.get('replaces')),
+    };
+  })();
+  onMount(() => {
+    if (quickInvoicePrefill && canManageBilling) openQuickInvoice();
+  });
   /** Advanced: the record-by-record composer, pre-set to the quick screen's scope. */
   function openAdvancedComposer(scope: AdvancedScope): void {
     quickInvoiceOpen = false;
@@ -3521,6 +3536,10 @@
         {translate}
         role={String(data.user?.role ?? '')}
         initialProjectId={projectFilter}
+        initialPeriodStart={quickInvoicePrefill?.periodStart ?? ''}
+        initialPeriodEnd={quickInvoicePrefill?.periodEnd ?? ''}
+        initialBillingRuleId={quickInvoicePrefill?.billingRuleId ?? ''}
+        replacement={quickInvoicePrefill?.replacement ?? false}
         onAdvancedRecords={openAdvancedComposer}
       />
     </ResponsiveSheet>
@@ -8160,6 +8179,24 @@
                         {/if}
                       </details>
                     {/if}
+                  {:else if invoiceStateValue === 'void' && canManageBilling && !isCreditNote && rowValue(invoice, 'period_start') && rowValue(invoice, 'period_end')}
+                    <p>{quickInvoiceText(locale, 'voidHelp')}</p>
+                    <a
+                      class="primary-button"
+                      data-invoice-create-replacement
+                      href={`${base}/app/billing?${new URLSearchParams({
+                        project: rowValue(invoice, 'project_id'),
+                        newInvoice: '1',
+                        periodStart: rowValue(invoice, 'period_start'),
+                        periodEnd: rowValue(invoice, 'period_end'),
+                        ...(rowValue(invoice, 'billing_rule_id')
+                          ? { billingRuleId: rowValue(invoice, 'billing_rule_id') }
+                          : {}),
+                        replaces: invoiceId,
+                        lang: locale,
+                      })}`}
+                      data-sveltekit-reload>{quickInvoiceText(locale, 'createReplacement')}</a
+                    >
                   {:else}
                     <span class="billing-section__read-only"
                       >{translate('No lifecycle action available')}</span
@@ -8276,36 +8313,30 @@
     white-space: normal;
     overflow-wrap: anywhere;
   }
+  /* 7 columns: Invoice · Client/Project · Service period · Total · Status · Due · Actions */
   .billing-section__invoice-register th:nth-child(1) {
-    width: 11%;
-  }
-  .billing-section__invoice-register th:nth-child(2) {
-    width: 10%;
-  }
-  .billing-section__invoice-register th:nth-child(3) {
-    width: 16%;
-  }
-  .billing-section__invoice-register th:nth-child(4) {
     width: 15%;
   }
-  .billing-section__invoice-register th:nth-child(5),
-  .billing-section__invoice-register th:nth-child(6) {
+  .billing-section__invoice-register th:nth-child(3) {
+    width: 17%;
+  }
+  .billing-section__invoice-register th:nth-child(4) {
     width: 11%;
   }
-  .billing-section__invoice-register th:nth-child(7) {
+  .billing-section__invoice-register th:nth-child(5) {
+    width: 10%;
+  }
+  .billing-section__invoice-register th:nth-child(6) {
     width: 9%;
   }
-  .billing-section__invoice-register th:nth-child(8) {
-    width: 7%;
+  .billing-section__invoice-register th:nth-child(7) {
+    width: 8%;
   }
   .billing-section__invoice-register td:nth-child(5),
   .billing-section__invoice-register td:nth-child(6) {
     white-space: nowrap;
     overflow-wrap: normal;
     padding-inline: 0.5rem;
-  }
-  .billing-section__invoice-register th:nth-child(9) {
-    width: 10%;
   }
   .billing-section__invoice-register td {
     font-size: 0.8125rem;
@@ -10037,10 +10068,12 @@
   .billing-section__invoice-register td:nth-child(2),
   .billing-section__invoice-register th:nth-child(2) {
     min-width: 16rem;
-    width: 34%;
+    width: 30%;
   }
   .billing-section__invoice-register td:first-child {
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .billing-section__client {
     display: block;

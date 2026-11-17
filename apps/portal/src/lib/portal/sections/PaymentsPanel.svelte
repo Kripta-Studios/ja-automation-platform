@@ -6,6 +6,7 @@
   import { base } from '$app/paths';
   import { moneyText, type MoneyCopyKey } from '../money-copy';
   import RecordPaymentForm from './RecordPaymentForm.svelte';
+  import { collectionSummaries } from '../collections-analysis';
 
   type Row = Record<string, unknown>;
   let {
@@ -42,17 +43,29 @@
       })
       .sort((a, b) => b.late - a.late || a.due.localeCompare(b.due)),
   );
+  // "Still owed" nets issued credit notes exactly like the ledger's customer balance.
   const totals = $derived.by(() => {
-    const byCurrency = new Map<string, { owed: bigint; overdue: bigint; count: number }>();
-    for (const item of open) {
-      const currency = String(item.row.currency);
-      const entry = byCurrency.get(currency) ?? { owed: 0n, overdue: 0n, count: 0 };
-      entry.owed += big(item.row.outstandingMinor);
-      if (item.late > 0) entry.overdue += big(item.row.outstandingMinor);
-      entry.count += 1;
-      byCurrency.set(currency, entry);
+    const byCurrency = new Map<
+      string,
+      { owed: bigint; overdue: bigint; credits: bigint; count: number }
+    >();
+    for (const summary of collectionSummaries(ledger, `${today}T23:59:59.999Z`)) {
+      if (summary.netOutstanding === 0n && summary.credits === 0n && summary.outstanding === 0n)
+        continue;
+      byCurrency.set(summary.currency, {
+        owed: summary.netOutstanding,
+        overdue: summary.overdue,
+        credits: summary.credits,
+        count: 0,
+      });
     }
-    return [...byCurrency.entries()].sort(([a], [b]) => a.localeCompare(b));
+    for (const item of open) {
+      const entry = byCurrency.get(String(item.row.currency));
+      if (entry) entry.count += 1;
+    }
+    return [...byCurrency.entries()]
+      .filter(([, entry]) => entry.count > 0 || entry.owed !== 0n)
+      .sort(([a], [b]) => a.localeCompare(b));
   });
 
   let editing = $state('');
@@ -91,7 +104,7 @@
           <small
             >{entry.overdue > 0n
               ? t('overdue', { amount: money(entry.overdue.toString(), currency) })
-              : t('noOverdue')} · {t('outstandingHelp', { count: entry.count })}</small
+              : t('noOverdue')} · {t('outstandingHelp', { count: entry.count })}{#if entry.credits < 0n}{' · '}<span data-payments-credits>{t('creditsNetted', { amount: money((-entry.credits).toString(), currency) })}</span>{/if}</small
           >
         </div>
       {/each}

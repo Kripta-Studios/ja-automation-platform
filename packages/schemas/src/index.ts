@@ -711,6 +711,8 @@ export const invoiceDraftDetailsInputSchema = z
       .strict()
       .optional(),
     discountMinor: z.string().regex(/^\d+$/u).optional(),
+    /** PO / payment terms edits apply to this draft only unless explicitly carried forward. */
+    applyToFutureInvoices: z.boolean().optional(),
   })
   .strict();
 

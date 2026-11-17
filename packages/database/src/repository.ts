@@ -2,6 +2,7 @@ import {
   projectSiteSettings,
   type ProjectSiteInput,
 } from './domains/projects/project-site-settings.ts';
+import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
 import {
   executePurge,
   planPurge,
@@ -6483,7 +6484,7 @@ export class PortalRepository {
           | undefined)
       : (this.sqlite
           .prepare(
-            "SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state<>'superseded' ORDER BY created_at DESC,id DESC LIMIT 1",
+            "SELECT id,state FROM invoice WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state NOT IN ('superseded','void') AND stream_type<>'adjustment' ORDER BY created_at DESC,id DESC LIMIT 1",
           )
           .get(billingRuleId, periodStart, periodEnd) as { id: string; state: string } | undefined);
     const reasons: ReadinessReason[] = [];
@@ -7352,7 +7353,7 @@ export class PortalRepository {
           : (this.sqlite
               .prepare(
                 `SELECT id,state FROM invoice
-           WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state<>'superseded'
+           WHERE billing_rule_id=? AND period_start=? AND period_end=? AND source_selection_json IS NULL AND state NOT IN ('superseded','void') AND stream_type<>'adjustment'
            ORDER BY created_at DESC,id DESC LIMIT 1`,
               )
               .get(billingRuleId, periodStart, periodEnd) as
@@ -9074,7 +9075,8 @@ export class PortalRepository {
     this.assertActive(principal);
     if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
     this.assertLiveSession(principal);
-    if (!/^\d{1,18}$/u.test(expectedTotalMinor))
+    // Credit notes carry a negative total; the exact-total guard below still applies.
+    if (!/^-?\d{1,18}$/u.test(expectedTotalMinor))
       throw new ValidationError('Confirmed invoice total is required');
     return this.transaction(() => {
       const current = this.sqlite
@@ -9372,6 +9374,8 @@ export class PortalRepository {
             .filter(Boolean)
             .join(' · '),
         },
+        // New documents print client number/code, project and cost center in the header.
+        documentHeaderVersion: 2,
         client: {
           code: context.client_code,
           legalName: context.client_legal_name,
@@ -9801,7 +9805,8 @@ export class PortalRepository {
 
   voidInvoice(principal: Principal, invoiceId: string, reason: string, idempotencyKey: string) {
     this.assertActive(principal);
-    if (principal.role !== 'owner_admin') throw new AccessDeniedError('Owner role required');
+    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
+      throw new AccessDeniedError('Finance role required');
     this.assertLiveSession(principal);
     if (idempotencyKey.trim().length < 8)
       throw new ValidationError('Void idempotency key is required');
@@ -9838,17 +9843,29 @@ export class PortalRepository {
           'Invoice collections must be fully reversed before the invoice can be voided',
         );
       const timestamp = now();
+      const voidEventId = newId();
       this.sqlite
         .prepare(
           "INSERT INTO invoice_event(id,invoice_id,event_type,reason,actor_id,occurred_at,idempotency_key) VALUES(?,?,'void',?,?,?,?)",
         )
-        .run(newId(), invoiceId, cleanReason, principal.userId, timestamp, idempotencyKey);
+        .run(voidEventId, invoiceId, cleanReason, principal.userId, timestamp, idempotencyKey);
       this.sqlite
         .prepare(
           "UPDATE invoice SET state='void',voided_at=?,updated_at=?,version=version+1 WHERE id=?",
         )
         .run(timestamp, timestamp, invoiceId);
-      this.audit(principal, 'invoice.void', 'invoice', invoiceId, { reason: cleanReason });
+      const released = releaseVoidInvoiceSources(this.sqlite, {
+        invoiceId,
+        voidEventId,
+        actorId: principal.userId,
+        releasedAt: timestamp,
+        newId,
+      });
+      this.audit(principal, 'invoice.void', 'invoice', invoiceId, {
+        reason: cleanReason,
+        role: principal.role,
+        releasedSources: released,
+      });
     });
   }
 
@@ -10384,7 +10401,7 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoice = this.sqlite
       .prepare(
-        'SELECT i.*,p.project_number,p.name project_name,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
+        'SELECT i.*,p.project_number,p.name project_name,p.cost_center_code,p.po_number project_po_number,p.version project_version,c.id client_id,c.client_number,c.client_code,c.display_name client_name,c.legal_name client_legal_name,c.billing_address client_billing_address,c.billing_email,c.po_reference client_po_reference,br.template_id invoice_template_id,br.version billing_rule_version,br.payment_terms_days,br.past_due_notice,br.po_number_override,br.legal_entity_id issuer_legal_entity_id,le.code issuer_code,le.legal_name issuer_name,le.billing_address issuer_address,le.company_identifiers,tp.name tax_profile_name,rev.revision_id resolved_legal_entity_revision_id,rev.legal_name canonical_issuer_name,rev.tax_identifier canonical_tax_identifier,rev.registration_identifier canonical_registration_identifier,rev.address_line1 canonical_address_line1,rev.address_line2 canonical_address_line2,rev.locality canonical_locality,rev.region canonical_region,rev.postal_code canonical_postal_code,rev.country_code canonical_country_code,rev.base_currency canonical_currency,(SELECT COUNT(*) FROM project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.legal_entity_revision_id=rev.revision_id AND a.tenant_id=rev.tenant_id AND a.deployment_id=rev.deployment_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) AND rev.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (rev.effective_to IS NULL OR rev.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10)))) canonical_assignment_matches FROM invoice i JOIN project p ON p.id=i.project_id JOIN client c ON c.id=p.client_id LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN tax_profile tp ON tp.id=br.tax_profile_id LEFT JOIN legal_entity_revision rev ON rev.revision_id=COALESCE(i.legal_entity_revision_id,(SELECT a.legal_entity_revision_id FROM effective_project_legal_entity_assignment a WHERE a.project_id=i.project_id AND a.effective_from<=COALESCE(i.period_start,substr(i.created_at,1,10)) AND (a.effective_to IS NULL OR a.effective_to>=COALESCE(i.period_start,substr(i.created_at,1,10))) ORDER BY a.effective_from DESC LIMIT 1)) WHERE i.id=?',
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
@@ -10562,6 +10579,12 @@ export class PortalRepository {
       source_version: invoice.version,
       discount_minor: customSnapshot.discountMinor ?? customSnapshot.discount_minor ?? '0',
     };
+    // Values the user set for this draft only are intentional, not stale source settings.
+    const draftOnlyOverrides = new Set(
+      Array.isArray(customSnapshot.draftOnlyOverrides)
+        ? (customSnapshot.draftOnlyOverrides as unknown[]).map(String)
+        : [],
+    );
     const sourceSettingsChanged =
       ['draft', 'approved'].includes(String(invoice.state)) &&
       (Object.entries(presentation.termsAndInstructions).some(
@@ -10578,15 +10601,18 @@ export class PortalRepository {
               enrichedInvoice.company_info[name as keyof typeof enrichedInvoice.company_info] ?? '',
             ) !== value,
         ) ||
-        enrichedInvoice.payment_terms_days !== invoice.payment_terms_days ||
-        enrichedInvoice.purchase_no !==
-          (effectivePurchaseReference(
-            invoice.po_number_override,
-            invoice.project_po_number,
-            invoice.client_po_reference,
-          ) ?? '—') ||
-        String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !==
-          String(invoice.past_due_notice ?? ''));
+        (!draftOnlyOverrides.has('paymentTermsDays') &&
+          enrichedInvoice.payment_terms_days !== invoice.payment_terms_days) ||
+        (!draftOnlyOverrides.has('purchaseNo') &&
+          enrichedInvoice.purchase_no !==
+            (effectivePurchaseReference(
+              invoice.po_number_override,
+              invoice.project_po_number,
+              invoice.client_po_reference,
+            ) ?? '—')) ||
+        (!draftOnlyOverrides.has('pastDueNotice') &&
+          String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !==
+            String(invoice.past_due_notice ?? '')));
     let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
         'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id,snapshot_json FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
@@ -10660,6 +10686,7 @@ export class PortalRepository {
       termsAndInstructions?: Record<string, string>;
       companyInfo?: Record<string, string>;
       discountMinor?: string;
+      applyToFutureInvoices?: boolean;
     },
   ) {
     return updateInvoiceDraftDetails(

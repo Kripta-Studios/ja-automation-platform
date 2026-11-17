@@ -153,8 +153,12 @@ export function updateInvoiceDraftDetails(
       data.termsAndInstructions.pastDueNotice !== String(baselineTerms.pastDueNotice ?? '');
     const poIsStream =
       typeof invoice.po_number_override === 'string' && invoice.po_number_override.trim() !== '';
-    const streamChanged = changedDays || changedNotice || (changedPo && poIsStream);
-    const projectChanged = changedPo && !poIsStream;
+    // Owner decision: editing a draft never silently changes the stream/project defaults.
+    // Only an explicit "Also use for future invoices of this project" carries them forward.
+    const carryForward = data.applyToFutureInvoices === true;
+    const streamChanged =
+      carryForward && (changedDays || changedNotice || (changedPo && poIsStream));
+    const projectChanged = carryForward && changedPo && !poIsStream;
     const issuerPatch: Record<string, string> = {};
     for (const name of [
       'bankSwiftNumber',
@@ -293,7 +297,8 @@ export function updateInvoiceDraftDetails(
       });
       invalidateDraftPresentation(sqlite, 'project_id=?', [String(invoice.project_id)], invoiceId);
     }
-    if (changedPo)
+    if (changedPo && !carryForward) after.purchaseNo = data.purchaseNo ?? '';
+    else if (changedPo)
       after.purchaseNo = poIsStream
         ? effectivePurchaseReference(
             data.purchaseNo,
@@ -334,6 +339,17 @@ export function updateInvoiceDraftDetails(
       after.issuerDocumentSettingsVersion = result.settings.version;
     } else if (before.issuerDocumentSettingsVersion === undefined)
       after.issuerDocumentSettingsVersion = settings.version;
+    if (!carryForward) {
+      // Remember which values belong to this draft only, so they are not reported as
+      // changed source settings.
+      const draftOnly = new Set(
+        Array.isArray(before.draftOnlyOverrides) ? (before.draftOnlyOverrides as string[]) : [],
+      );
+      if (changedPo) draftOnly.add('purchaseNo');
+      if (changedDays) draftOnly.add('paymentTermsDays');
+      if (changedNotice) draftOnly.add('pastDueNotice');
+      if (draftOnly.size) after.draftOnlyOverrides = [...draftOnly].sort();
+    }
     if (streamChanged || projectChanged || Object.keys(issuerPatch).length) {
       after.billingCalculationFingerprint = calculation.refreshCalculationFingerprint(invoice);
       after.billingRuleVersion = Number(invoice.stream_version) + (streamChanged ? 1 : 0);
@@ -380,6 +396,10 @@ export function updateInvoiceDraftDetails(
         issuer: Object.keys(issuerPatch),
       },
     });
-    return { success: true, version: data.expectedVersion + 1 };
+    return {
+      success: true,
+      version: data.expectedVersion + 1,
+      sourceSettingsChanged: streamChanged || projectChanged || Object.keys(issuerPatch).length > 0,
+    };
   });
 }

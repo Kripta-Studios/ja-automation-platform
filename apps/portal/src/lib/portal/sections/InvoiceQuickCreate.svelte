@@ -107,12 +107,20 @@
     locale = 'en',
     role = '',
     initialProjectId = '',
+    initialPeriodStart = '',
+    initialPeriodEnd = '',
+    initialBillingRuleId = '',
+    replacement = false,
     translate,
     onAdvancedRecords,
   }: {
     locale?: PortalLocale;
     role?: string;
     initialProjectId?: string;
+    initialPeriodStart?: string;
+    initialPeriodEnd?: string;
+    initialBillingRuleId?: string;
+    replacement?: boolean;
     translate: (value: string) => string;
     onAdvancedRecords?: (scope: AdvancedScope) => void;
   } = $props();
@@ -461,8 +469,21 @@
       const body = (await response.json()) as { projects?: Project[] };
       if (!response.ok || !body.projects) throw new Error('projects failed');
       projects = body.projects;
-      if (initialProjectId && projects.some((candidate) => candidate.id === initialProjectId))
+      if (initialProjectId && projects.some((candidate) => candidate.id === initialProjectId)) {
         chooseProject(initialProjectId);
+        // Prefilled scope (e.g. replacing a void invoice): exactly these dates and stream.
+        if (initialPeriodStart && initialPeriodEnd && initialPeriodStart <= initialPeriodEnd) {
+          const stream = projects
+            .find((candidate) => candidate.id === initialProjectId)
+            ?.streams.find((candidate) => candidate.id === initialBillingRuleId);
+          streamOverride = stream ? stream.id : '';
+          autoPeriod = false;
+          choiceId = 'custom';
+          periodStart = initialPeriodStart;
+          periodEnd = initialPeriodEnd;
+          schedulePreview(0);
+        }
+      }
     } catch {
       projectsFailed = true;
     } finally {
@@ -477,6 +498,7 @@
 
 <div class="quick-invoice" data-quick-invoice>
   <p class="quick-invoice__intro">{t('intro')}</p>
+  {#if replacement}<p class="quick-invoice__muted" role="status" data-quick-invoice-replacement>{t('replacementPrefilled')}</p>{/if}
   <div class="quick-invoice__layout">
     <div class="quick-invoice__inputs">
       <section class="quick-invoice__step" aria-labelledby="quick-invoice-project">

@@ -1171,13 +1171,23 @@ const exact: Record<string, readonly [string, string]> = {
     'Un emisor no tiene una revisión legal vigente al final del periodo de este paquete contable. Contacta con soporte para revisar el historial fechado del emisor. Se conserva el periodo elegido; cambiar los datos actuales del emisor no repara la cobertura histórica.',
     'Um emissor não possui uma revisão legal vigente no fim do período deste pacote contábil. Contate o suporte para revisar o histórico datado do emissor. O período escolhido é mantido; alterar os dados atuais do emissor não corrige a cobertura histórica.',
   ],
+  'problem.billing.packIssuerCoverageEnds': [
+    'El emisor “{issuerName}” ({currency}) solo tiene datos legales hasta el {coveredUntil}, así que un paquete que termina el {periodEnd} no puede incluir sus facturas y gastos en {currency}. Elige fechas que terminen el {coveredUntil} o antes, o abre Empresa y numeración y dale a este emisor datos legales para todo el periodo (o pasa sus proyectos a un emisor activo en {currency}).',
+    'O emissor “{issuerName}” ({currency}) só tem dados legais até {coveredUntil}, então um pacote que termina em {periodEnd} não pode incluir suas faturas e despesas em {currency}. Escolha datas que terminem em {coveredUntil} ou antes, ou abra Empresa e numeração e dê a este emissor dados legais para todo o período (ou mova seus projetos para um emissor ativo em {currency}).',
+  ],
+  'problem.billing.packExpenseNeedsProjectCurrency': [
+    'El gasto de {amount} del {spentOn} (proyecto {projectNumber}) no tiene un importe verificado en {projectCurrency}, la moneda del proyecto. Abre el gasto y corrige su moneda o importe (o devuélvelo al trabajador) y vuelve a generar el paquete, o elige fechas que no incluyan el {spentOn}.',
+    'A despesa de {amount} de {spentOn} (projeto {projectNumber}) não tem um valor verificado em {projectCurrency}, a moeda do projeto. Abra a despesa e corrija a moeda ou o valor (ou devolva ao trabalhador) e gere o pacote novamente, ou escolha datas que deixem de fora {spentOn}.',
+  ],
+  'problem.remedy.reviewIssuer': ['Abrir emisores', 'Abrir emissores'],
+  'problem.remedy.openExpense': ['Abrir el gasto', 'Abrir a despesa'],
   'problem.billing.packSourceReconciliationRequired': [
     'Este paquete contable no concilia con sus fuentes financieras conservadas. Contacta con soporte para revisar las obligaciones y su historial. Se conservan las fechas elegidas; revertir un pago o cambiar registros históricos no resuelve el problema.',
     'Este pacote contábil não concilia com suas fontes financeiras preservadas. Contate o suporte para revisar as obrigações e o histórico. As datas escolhidas são mantidas; reverter um pagamento ou alterar registros históricos não resolve o problema.',
   ],
   'problem.billing.packExpenseCurrencyReviewRequired': [
-    'Un gasto aprobado necesita importes verificados en la moneda del proyecto para crear este paquete contable. Actualmente no se puede introducir una conversión de moneda aquí. Revisa la clasificación del gasto y la del reembolso, si corresponde, en Revisión financiera. Se conserva el periodo seleccionado.',
-    'Uma despesa aprovada precisa de valores verificados na moeda do projeto para criar este pacote contábil. Atualmente não é possível informar uma conversão de moeda aqui. Revise a classificação da despesa e do reembolso, se houver, em Revisão financeira. O período selecionado é mantido.',
+    'Un gasto aprobado necesita importes verificados en la moneda del proyecto para crear este paquete contable. Abre el gasto y corrige su moneda o importe (o devuélvelo al trabajador) y vuelve a generar el paquete. Se conserva el periodo seleccionado.',
+    'Uma despesa aprovada precisa de valores verificados na moeda do projeto para criar este pacote contábil. Abra a despesa e corrija a moeda ou o valor (ou devolva ao trabalhador) e gere o pacote novamente. O período selecionado é mantido.',
   ],
   'problem.remedy.contactSupport': ['Contactar con soporte', 'Contactar o suporte'],
   'problem.billing.streamSelectionRequired': [
@@ -10707,10 +10717,16 @@ const problemEnglish: Record<string, string> = {
     'The Accounting Pack cannot be created because this deployment is missing its identity configuration. Contact support to restore the configuration before creating the pack.',
   'problem.billing.packIssuerEffectiveDateGap':
     'An invoice issuer has no legal revision covering this Accounting Pack’s period end. Contact support to review the dated issuer history. Your selected period is retained; changing current issuer details does not repair historical coverage.',
+  'problem.billing.packIssuerCoverageEnds':
+    'Issuer “{issuerName}” ({currency}) only has legal details until {coveredUntil}, so a pack ending {periodEnd} cannot include its {currency} invoices and expenses. Choose dates ending on or before {coveredUntil}, or open Company and numbering and give this issuer legal details for the whole period (or move its projects to an active {currency} issuer).',
+  'problem.billing.packExpenseNeedsProjectCurrency':
+    "The {amount} expense of {spentOn} (project {projectNumber}) has no verified amount in {projectCurrency}, the project's currency. Open the expense and correct its currency or amount (or return it to the worker), then generate the pack again — or choose dates that leave out {spentOn}.",
+  'problem.remedy.reviewIssuer': 'Open issuers',
+  'problem.remedy.openExpense': 'Open the expense',
   'problem.billing.packSourceReconciliationRequired':
     'This Accounting Pack does not reconcile with its preserved financial sources. Contact support to review the affected obligations and source history. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
   'problem.billing.packExpenseCurrencyReviewRequired':
-    "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Currency conversion cannot currently be entered here. Review its expense classification and any reimbursement classification in Finance review. Your selected period is retained.",
+    "An approved expense needs verified amounts in the project's currency before this Accounting Pack can be created. Open the expense and correct its currency or amount (or return it to the worker), then generate the pack again. Your selected period is retained.",
   'problem.remedy.contactSupport': 'Contact support',
   'problem.billing.streamSelectionRequired':
     'Choose a billing stream before changing or archiving it.',

@@ -12034,18 +12034,40 @@ export class PortalRepository {
     return this.clients.listClients(principal);
   }
 
-  listApprovalQueue(principal: Principal) {
+  /**
+   * The review queue. `view` narrows it without changing authorization:
+   * - `pending`: records waiting for a reviewer or returned to their author
+   *   (submitted / needs_changes, operational and report stages);
+   * - `approved`: approved records that are not yet invoiced or finalized
+   *   (owner override / correction stage);
+   * - `finance`: the owner/Finance financial-review stage;
+   * - `all` (default): every stage, as before.
+   */
+  listApprovalQueue(
+    principal: Principal,
+    options: { view?: 'all' | 'pending' | 'approved' | 'finance' } = {},
+  ) {
     this.assertReadable(principal);
+    const view = options.view ?? 'all';
+    const wantPending = view === 'all' || view === 'pending';
+    const wantApproved = view === 'all' || view === 'approved';
+    const wantFinance = view === 'all' || view === 'finance';
     if (principal.role === 'owner_admin' || principal.role === 'finance_admin') {
+      const ownerPending =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL ";
+      const ownerApproved =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'owner_override' review_stage FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'owner_override' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'owner_override' FROM daily_report d WHERE d.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'owner_override' FROM technical_report t WHERE t.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') UNION ALL ";
       const operational =
         principal.role === 'owner_admin'
-          ? "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'owner_override' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'owner_override' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'owner_override' FROM daily_report d WHERE d.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'owner_override' FROM technical_report t WHERE t.approval_state='approved' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') UNION ALL "
+          ? `${wantPending ? ownerPending : ''}${wantApproved ? ownerApproved : ''}`
           : '';
-      const queued = this.sqlite
-        .prepare(
-          `${operational}SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'finance' review_stage FROM time_entry WHERE approval_state='approved' AND billability_state='pending' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'finance' FROM expense WHERE approval_state='approved' AND finance_approved_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) ORDER BY date`,
-        )
-        .all();
+      const financeStage =
+        "SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'finance' review_stage FROM time_entry WHERE approval_state='approved' AND billability_state='pending' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'finance' FROM expense WHERE approval_state='approved' AND finance_approved_at IS NULL AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id)";
+      const queuedSql = `${operational}${wantFinance ? financeStage : ''}`.replace(
+        /\s*UNION ALL\s*$/u,
+        '',
+      );
+      const queued = queuedSql ? this.sqlite.prepare(`${queuedSql} ORDER BY date`).all() : [];
       // The Finance review queue must expose the prerequisite for expense
       // approval. Read classification only for already-authorized queue rows.
       const withFinanceExpenseClassification = (rows: Array<Record<string, unknown>>) => {
@@ -12072,9 +12094,11 @@ export class PortalRepository {
         );
       };
       if (principal.role === 'finance_admin') {
-        const retryableTime = this.sqlite
-          .prepare(
-            `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+        const retryableTime = !wantFinance
+          ? []
+          : this.sqlite
+              .prepare(
+                `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                     t.approval_state,'finance' review_stage
                FROM time_entry t
               WHERE t.approval_state='approved' AND t.billability_state='pending'
@@ -12092,11 +12116,13 @@ export class PortalRepository {
                    WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                      AND correction.approval_state<>'rejected'
                 )`,
-          )
-          .all();
-        const retryableExpense = this.sqlite
-          .prepare(
-            `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+              )
+              .all();
+        const retryableExpense = !wantFinance
+          ? []
+          : this.sqlite
+              .prepare(
+                `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                     e.approval_state,'finance' review_stage
                FROM expense e
               WHERE e.approval_state='approved' AND e.finance_approved_at IS NULL
@@ -12114,17 +12140,19 @@ export class PortalRepository {
                    WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                      AND correction.approval_state<>'rejected'
                 )`,
-          )
-          .all();
+              )
+              .all();
         return withFinanceExpenseClassification([
           ...queued,
           ...retryableTime,
           ...retryableExpense,
         ]).sort((left, right) => String(left.date).localeCompare(String(right.date)));
       }
-      const retryableTime = this.sqlite
-        .prepare(
-          `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+      const retryableTime = !wantApproved
+        ? []
+        : this.sqlite
+            .prepare(
+              `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                   t.approval_state,'owner_override' review_stage
              FROM time_entry t
             WHERE t.approval_state='approved' AND t.invoice_id IS NULL
@@ -12143,11 +12171,13 @@ export class PortalRepository {
                  WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                    AND correction.approval_state<>'rejected'
               )`,
-        )
-        .all();
-      const retryableExpense = this.sqlite
-        .prepare(
-          `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+            )
+            .all();
+      const retryableExpense = !wantApproved
+        ? []
+        : this.sqlite
+            .prepare(
+              `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                   e.approval_state,'owner_override' review_stage
              FROM expense e
             WHERE e.approval_state='approved' AND e.invoice_id IS NULL
@@ -12166,8 +12196,8 @@ export class PortalRepository {
                  WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                    AND correction.approval_state<>'rejected'
               )`,
-        )
-        .all();
+            )
+            .all();
       return withFinanceExpenseClassification([
         ...queued,
         ...retryableTime,
@@ -12191,14 +12221,19 @@ export class PortalRepository {
       .filter((projectId) => principal.projectIds.has(projectId));
     if (ids.length === 0) return [];
     const placeholders = ids.map(() => '?').join(',');
-    const queued = this.sqlite
-      .prepare(
-        `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'time',id,project_id,worker_id,work_date,minutes,approval_state,'correction' FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'correction' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'correction' FROM daily_report d WHERE d.approval_state='approved' AND d.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'correction' FROM technical_report t WHERE t.approval_state='approved' AND t.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final') ORDER BY date`,
-      )
-      .all(...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids, ...ids);
-    const retryableTime = this.sqlite
-      .prepare(
-        `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
+    const pmPending = `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'operational' review_stage FROM time_entry WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'operational' FROM expense WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'daily',id,project_id,worker_id,work_date,0,approval_state,'report' FROM daily_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders}) UNION ALL SELECT 'technical',id,project_id,author_id,report_date,0,approval_state,'report' FROM technical_report WHERE approval_state IN ('submitted','needs_changes') AND project_id IN (${placeholders})`;
+    const pmApproved = `SELECT 'time' type,id,project_id,worker_id,work_date date,minutes amount,approval_state,'correction' review_stage FROM time_entry WHERE approval_state='approved' AND invoice_id IS NULL AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id) UNION ALL SELECT 'expense',id,project_id,worker_id,spent_on,amount_minor,approval_state,'correction' FROM expense WHERE approval_state='approved' AND invoice_id IS NULL AND billing_state='unlocked' AND billing_lock_id IS NULL AND project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='expense' AND rcl.original_id=expense.id) UNION ALL SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,0,d.approval_state,'correction' FROM daily_report d WHERE d.approval_state='approved' AND d.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='daily_report' AND rcl.original_id=d.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='daily_report' AND rs.source_id=d.id AND pr.state='final') UNION ALL SELECT 'technical',t.id,t.project_id,t.author_id,t.report_date,0,t.approval_state,'correction' FROM technical_report t WHERE t.approval_state='approved' AND t.project_id IN (${placeholders}) AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl WHERE rcl.record_type='technical_report' AND rcl.original_id=t.id) AND NOT EXISTS (SELECT 1 FROM report_source rs JOIN period_report pr ON pr.id=rs.report_id WHERE rs.source_type='technical_report' AND rs.source_id=t.id AND pr.state='final')`;
+    const pmParts = [...(wantPending ? [pmPending] : []), ...(wantApproved ? [pmApproved] : [])];
+    const queued = pmParts.length
+      ? this.sqlite
+          .prepare(`${pmParts.join(' UNION ALL ')} ORDER BY date`)
+          .all(...Array.from({ length: pmParts.length * 4 }, () => ids).flat())
+      : [];
+    const retryableTime = !wantApproved
+      ? []
+      : this.sqlite
+          .prepare(
+            `SELECT 'time' type,t.id,t.project_id,t.worker_id,t.work_date date,t.minutes amount,
                 t.approval_state,'correction' review_stage
            FROM time_entry t
           WHERE t.approval_state='approved' AND t.invoice_id IS NULL
@@ -12218,11 +12253,13 @@ export class PortalRepository {
                WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
                  AND correction.approval_state<>'rejected'
             )`,
-      )
-      .all(...ids);
-    const retryableExpense = this.sqlite
-      .prepare(
-        `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
+          )
+          .all(...ids);
+    const retryableExpense = !wantApproved
+      ? []
+      : this.sqlite
+          .prepare(
+            `SELECT 'expense' type,e.id,e.project_id,e.worker_id,e.spent_on date,e.amount_minor amount,
                 e.approval_state,'correction' review_stage
            FROM expense e
           WHERE e.approval_state='approved' AND e.invoice_id IS NULL
@@ -12242,8 +12279,8 @@ export class PortalRepository {
                WHERE rcl.record_type='expense' AND rcl.original_id=e.id
                  AND correction.approval_state<>'rejected'
             )`,
-      )
-      .all(...ids);
+          )
+          .all(...ids);
     return [...queued, ...retryableTime, ...retryableExpense]
       .filter(
         (row) => String(row.type) !== 'time' || !isSupplierTimeEntry(this.sqlite, String(row.id)),

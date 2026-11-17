@@ -10,7 +10,7 @@
    * existing audited correction path.
    */
   import { enhance } from '$app/forms';
-  import { replaceState } from '$app/navigation';
+  import { goto, replaceState } from '$app/navigation';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -21,8 +21,9 @@
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
   import { ProblemNotice, StatusBadge, formValidation } from '../ui';
-  import { weekStartForDate } from './time-entry-actions';
   import { approvalQueueText, type ApprovalQueueCopyKey } from './approval-queue-copy';
+  import type { QueueTotals } from '../approval-queue-page';
+  import type { CurrencyTotal } from '../home-inbox';
   import { personDisplayName } from '../display-name';
 
   type Tab = 'time' | 'expenses' | 'reports';
@@ -232,27 +233,47 @@
     return `${item.type}:${item.id}:${item.version}`;
   }
 
-  // ---------- queue model ----------
+  // ---------- queue model (server: pending only, searched, filtered, paginated) ----------
+  const emptyTotals: QueueTotals = { timeCount: 0, minutes: 0, expenseCount: 0, expenseTotals: [] };
+  const queue = $derived(
+    data.approvalQueue ?? {
+      query: {
+        tab: 'time',
+        search: '',
+        worker: '',
+        project: '',
+        week: '',
+        show: 20,
+        view: 'pending',
+      },
+      pageSize: 20,
+      summary: {
+        time: { count: 0, minutes: 0 },
+        expenses: { count: 0, totals: [] },
+        reports: 0,
+        total: 0,
+      },
+      options: { workers: [], projects: [], weeks: [] },
+      filtersActive: false,
+      matching: { ...emptyTotals, reports: 0, groups: 0 },
+      groups: [],
+      reports: [],
+      waiting: { count: 0, rows: [] },
+      approveAll: {
+        matching: emptyTotals,
+        batch: emptyTotals,
+        workers: [],
+        tokens: [],
+        ownExcluded: 0,
+      },
+      approved: null,
+      finance: { count: 0, rows: [] },
+    },
+  );
+  /** Every row the server sent (for "problem with …" lookups). */
   const rows = $derived((data.records ?? []) as Row[]);
   const milestones = $derived((data.milestones ?? []) as Row[]);
-  const operationalRows = $derived(rows.filter((row) => value(row, 'review_stage') !== 'finance'));
-  const pendingRows = $derived(
-    operationalRows.filter(
-      (row) =>
-        value(row, 'approval_state') === 'submitted' &&
-        ['operational', 'report'].includes(value(row, 'review_stage')),
-    ),
-  );
   const ownerOverrideAllowed = $derived(isOwner && role === 'owner_admin' && !isAuditor);
-
-  function matchesTab(row: Row, tab: Tab): boolean {
-    const type = value(row, 'type');
-    return tab === 'time'
-      ? type === 'time'
-      : tab === 'expenses'
-        ? type === 'expense'
-        : type === 'daily' || type === 'technical';
-  }
 
   function toItem(row: Row): Item {
     const type: Kind = value(row, 'type') === 'expense' ? 'expense' : 'time';
@@ -271,122 +292,116 @@
     };
   }
 
-  function buildGroups(kind: Kind): Group[] {
-    const groups = new Map<string, Group>();
-    for (const row of filteredPending) {
-      if (value(row, 'type') !== kind) continue;
-      const item = toItem(row);
-      const weekStart = weekStartForDate(item.date) ?? item.date;
-      const key = `${kind}:${item.workerId}:${weekStart}`;
-      let group = groups.get(key);
-      if (!group) {
-        group = {
-          key,
-          kind,
-          workerName: item.workerName,
-          weekStart,
-          items: [],
-          actionable: [],
-          minutes: 0,
-          projects: [],
-        };
-        groups.set(key, group);
-      }
-      group.items.push(item);
-      group.minutes += item.minutes;
-      if (!item.own && item.version) group.actionable.push(item);
-      if (!group.projects.includes(item.projectName)) group.projects.push(item.projectName);
-    }
-    for (const group of groups.values())
-      group.items.sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id));
-    return [...groups.values()].sort(
-      (a, b) => a.weekStart.localeCompare(b.weekStart) || a.workerName.localeCompare(b.workerName),
-    );
-  }
-
-  // Visible filters: worker, project and week. A project filter narrows the
-  // groups to that project's entries, so "Approve week" never approves hidden work.
-  let workerFilter = $state('');
-  let projectFilter = $state($page.url.searchParams.get('project')?.trim() ?? '');
-  let weekFilter = $state('');
-  const rowWeek = (row: Row): string => weekStartForDate(value(row, 'date')) ?? value(row, 'date');
-  const filteredPending = $derived(
-    pendingRows.filter(
-      (row) =>
-        (!workerFilter || value(row, 'worker_id') === workerFilter) &&
-        (!projectFilter || value(row, 'project_id') === projectFilter) &&
-        (!weekFilter || rowWeek(row) === weekFilter),
-    ),
+  const pageGroups = $derived(
+    queue.groups.map((source): Group => {
+      const items = source.rows.map((row) => toItem(row as Row));
+      const projects: string[] = [];
+      for (const item of items)
+        if (!projects.includes(item.projectName)) projects.push(item.projectName);
+      return {
+        key: source.key,
+        kind: source.kind,
+        workerName:
+          personDisplayName(source.workerName) || items[0]?.workerName || translate('Worker'),
+        weekStart: source.weekStart,
+        items,
+        actionable: items.filter((item) => !item.own && item.version),
+        minutes: sumMinutes(items),
+        projects,
+      };
+    }),
   );
-  const filterOptions = $derived.by(() => {
-    const tabRows = pendingRows.filter((row) => matchesTab(row, activeTab));
-    const workers = new Map<string, string>();
-    const projects = new Map<string, string>();
-    const weeks = new Set<string>();
-    for (const row of tabRows) {
-      workers.set(value(row, 'worker_id'), workerName(row));
-      projects.set(value(row, 'project_id'), projectName(row));
-      weeks.add(rowWeek(row));
-    }
-    const byLabel = (a: [string, string], b: [string, string]) => a[1].localeCompare(b[1]);
-    return {
-      workers: [...workers].sort(byLabel),
-      projects: [...projects].sort(byLabel),
-      weeks: [...weeks].sort().reverse(),
-    };
+
+  // Search and filters live in the URL; the server applies them before paging,
+  // so "Approve week" / "Approve all visible" never include hidden work.
+  // svelte-ignore state_referenced_locally
+  let searchText = $state(queue.query.search);
+  // svelte-ignore state_referenced_locally
+  let workerFilter = $state(queue.query.worker);
+  // svelte-ignore state_referenced_locally
+  let projectFilter = $state(queue.query.project);
+  // svelte-ignore state_referenced_locally
+  let weekFilter = $state(queue.query.week);
+  $effect(() => {
+    searchText = queue.query.search;
+    workerFilter = queue.query.worker;
+    projectFilter = queue.query.project;
+    weekFilter = queue.query.week;
   });
-  const filtersActive = $derived(Boolean(workerFilter || projectFilter || weekFilter));
+  let filtersOpen = $state(false);
+  const filterOptions = $derived(queue.options);
+  const filtersActive = $derived(queue.filtersActive);
+
+  /** Current URL with changed query parameters (empty values removed). */
+  function queueHref(changes: Record<string, string | number | null>): string {
+    const next = new URL($page.url);
+    next.searchParams.delete('approveAll');
+    for (const [key, raw] of Object.entries(changes)) {
+      const text = raw === null ? '' : String(raw).trim();
+      if (text) next.searchParams.set(key, text);
+      else next.searchParams.delete(key);
+    }
+    return `${next.pathname}${next.search}#approval-queue`;
+  }
+  function navigate(changes: Record<string, string | number | null>): void {
+    selected = {};
+    confirmOpen = false;
+    void goto(queueHref(changes), { keepFocus: true, noScroll: true });
+  }
+  function applyFilters(event?: Event): void {
+    event?.preventDefault();
+    navigate({
+      search: searchText,
+      worker: workerFilter,
+      project: projectFilter,
+      week: weekFilter,
+      show: null,
+    });
+  }
   function clearFilters(): void {
+    searchText = '';
     workerFilter = '';
     projectFilter = '';
     weekFilter = '';
+    applyFilters();
   }
-  const timeGroups = $derived(buildGroups('time'));
-  const expenseGroups = $derived(buildGroups('expense'));
-  const reportRows = $derived(
-    filteredPending
-      .filter((row) => matchesTab(row, 'reports'))
-      .sort((a, b) => value(a, 'date').localeCompare(value(b, 'date'))),
-  );
-  const tabCount = (tab: Tab): number => pendingRows.filter((row) => matchesTab(row, tab)).length;
+  const tabCount = (tab: Tab): number =>
+    tab === 'time'
+      ? queue.summary.time.count
+      : tab === 'expenses'
+        ? queue.summary.expenses.count
+        : queue.summary.reports;
 
   // ---------- approve all hours and expenses (one transaction via approveBatch) ----------
   const APPROVE_ALL_LIMIT = 200; // matches the server batch limit
-  const allDecidable = $derived(
-    pendingRows
-      .filter((row) => ['time', 'expense'].includes(value(row, 'type')))
-      .map(toItem)
-      .filter((item) => !item.own && item.version)
-      .sort((a, b) => a.date.localeCompare(b.date) || a.id.localeCompare(b.id)),
-  );
-  const approveAllItems = $derived(allDecidable.slice(0, APPROVE_ALL_LIMIT));
-  type WorkerSummary = {
-    workerId: string;
-    workerName: string;
-    time: Item[];
-    expenses: Item[];
-    projects: string[];
-  };
-  const approveAllWorkers = $derived.by((): WorkerSummary[] => {
-    const byWorker = new Map<string, WorkerSummary>();
-    for (const item of approveAllItems) {
-      let entry = byWorker.get(item.workerId);
-      if (!entry) {
-        entry = { workerId: item.workerId, workerName: item.workerName, time: [], expenses: [], projects: [] };
-        byWorker.set(item.workerId, entry);
-      }
-      (item.type === 'time' ? entry.time : entry.expenses).push(item);
-      if (!entry.projects.includes(item.projectName)) entry.projects.push(item.projectName);
-    }
-    return [...byWorker.values()].sort((a, b) => a.workerName.localeCompare(b.workerName));
-  });
+  const approveAllTokens = $derived(queue.approveAll.tokens);
+  const approveAllWorkers = $derived(queue.approveAll.workers);
+  function totalsSummary(totals: QueueTotals): string {
+    return [
+      totals.timeCount
+        ? `${hoursText(totals.minutes)} (${countLabel('time', totals.timeCount)})`
+        : '',
+      totals.expenseCount
+        ? [countLabel('expense', totals.expenseCount), currencyText(totals.expenseTotals)]
+            .filter(Boolean)
+            .join(' · ')
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' · ');
+  }
+  function currencyText(totals: readonly CurrencyTotal[]): string {
+    return totals.map((total) => money(total.minor, total.currency, language)).join(' + ');
+  }
   function mixedSummary(items: readonly Item[]): string {
     const time = items.filter((item) => item.type === 'time');
     const expenses = items.filter((item) => item.type === 'expense');
     return [
       time.length ? `${hoursText(sumMinutes(time))} (${countLabel('time', time.length)})` : '',
       expenses.length
-        ? [countLabel('expense', expenses.length), moneyTotals(expenses)].filter(Boolean).join(' · ')
+        ? [countLabel('expense', expenses.length), moneyTotals(expenses)]
+            .filter(Boolean)
+            .join(' · ')
         : '',
     ]
       .filter(Boolean)
@@ -410,10 +425,14 @@
     replaceState(url, $page.state);
   }
 
-  const visibleGroups = $derived(
-    activeTab === 'time' ? timeGroups : activeTab === 'expenses' ? expenseGroups : [],
+  const visibleGroups = $derived(activeTab === 'reports' ? [] : pageGroups);
+  const visibleReports = $derived(queue.reports as Row[]);
+  const shownCount = $derived(
+    activeTab === 'reports' ? visibleReports.length : visibleGroups.length,
   );
-  const visibleReports = $derived(reportRows);
+  const totalCount = $derived(
+    activeTab === 'reports' ? queue.matching.reports : queue.matching.groups,
+  );
   // Filters appear only when the tab has enough work to need them.
   const showFilters = $derived(
     filtersActive ||
@@ -421,45 +440,26 @@
       filterOptions.projects.length > 1 ||
       filterOptions.weeks.length > 1,
   );
-  const waitingRows = $derived(
-    operationalRows.filter(
-      (row) => value(row, 'approval_state') === 'needs_changes' && matchesTab(row, activeTab),
-    ),
-  );
+  const waitingRows = $derived(queue.waiting.rows as Row[]);
+  const approvedView = $derived(queue.query.view === 'approved');
   const approvedRows = $derived(
-    operationalRows
-      .filter(
-        (row) =>
-          value(row, 'approval_state') === 'approved' &&
-          ['correction', 'owner_override'].includes(value(row, 'review_stage')) &&
-          matchesTab(row, activeTab),
-      )
-      .sort((a, b) => value(b, 'date').localeCompare(value(a, 'date'))),
+    ((queue.approved?.rows ?? []) as Row[]).filter(
+      (row) =>
+        value(row, 'approval_state') === 'approved' &&
+        ['correction', 'owner_override'].includes(value(row, 'review_stage')),
+    ),
   );
 
   // ---------- tabs ----------
-  const initialFailureType = String(
-    (($page.form as { values?: Record<string, unknown> } | null)?.values ?? {}).type ?? '',
-  );
-  const initialTab = $page.url.searchParams.get('tab');
-  let activeTab = $state<Tab>(
-    initialFailureType === 'expense'
-      ? 'expenses'
-      : initialFailureType === 'daily' || initialFailureType === 'technical'
-        ? 'reports'
-        : tabs.includes(initialTab as Tab)
-          ? (initialTab as Tab)
-          : 'time',
-  );
+  const activeTab = $derived<Tab>(queue.query.tab);
   onMount(() => {
     // Home "Approve all hours and expenses" lands here with the summary already open.
-    if ($page.url.searchParams.get('approveAll') === '1' && canDecide && allDecidable.length > 0)
+    if (
+      $page.url.searchParams.get('approveAll') === '1' &&
+      canDecide &&
+      approveAllTokens.length > 0
+    )
       void openApproveAll();
-    // Open the first tab that has work when the URL does not name one.
-    if (!initialTab && !initialFailureType && tabCount('time') === 0) {
-      const next = tabs.find((tab) => tabCount(tab) > 0);
-      if (next) activeTab = next;
-    }
   });
 
   function tabId(tab: Tab): string {
@@ -472,13 +472,14 @@
     return tab === 'time' ? t('tabTime') : tab === 'expenses' ? t('tabExpenses') : t('tabReports');
   }
   function focusTab(tab: Tab): void {
-    activeTab = tab;
     confirmOpen = false;
+    selected = {};
     if (typeof document === 'undefined') return;
-    const url = new URL(location.href);
-    url.searchParams.set('tab', tab);
-    replaceState(url, $page.state);
-    void tick().then(() => document.getElementById(tabId(tab))?.focus());
+    // Filters belong to one tab's people/projects; switching tabs starts clean.
+    void goto(queueHref({ tab, show: null, worker: null, project: null, week: null, view: null }), {
+      keepFocus: true,
+      noScroll: true,
+    }).then(() => tick().then(() => document.getElementById(tabId(tab))?.focus()));
   }
   function handleTabKeydown(event: KeyboardEvent, tab: Tab): void {
     const currentIndex = tabs.indexOf(tab);
@@ -513,6 +514,9 @@
   let lastAction = $state<{ text: string; tone: 'success' | 'info' } | null>(null);
 
   const selectableGroups = $derived(visibleGroups.filter((group) => group.actionable.length > 0));
+  const visibleActionableCount = $derived(
+    selectableGroups.reduce((total, group) => total + group.actionable.length, 0),
+  );
   const selectedGroups = $derived(selectableGroups.filter((group) => selected[group.key]));
   const selectedItems = $derived(selectedGroups.flatMap((group) => group.actionable));
   const allSelected = $derived(
@@ -620,10 +624,6 @@
     const problem = approvalProblem;
     if (!problem?.correlationId || problem.correlationId === focusedProblemId) return;
     focusedProblemId = problem.correlationId;
-    const type = String(failedApprovalValues.type ?? '');
-    if (type === 'time') activeTab = 'time';
-    else if (type === 'expense') activeTab = 'expenses';
-    else if (type === 'daily' || type === 'technical') activeTab = 'reports';
     void tick().then(() => {
       const notice = document.querySelector<HTMLElement>('[data-approval-problem]');
       notice?.focus({ preventScroll: true });
@@ -644,7 +644,7 @@
       const decision = String(formData.get('decision') ?? '');
       // Batch forms are re-rendered as rows change; describe exactly what is being sent.
       const tokens = formData.getAll('item').map(String);
-      if (tokens.length) summary = tokensSummary(tokens) || summary;
+      if (tokens.length && key !== 'all') summary = tokensSummary(tokens) || summary;
       const banner: ApprovalQueueCopyKey =
         decision === 'rejected'
           ? 'rejectedBanner'
@@ -672,7 +672,7 @@
   }
   function tokensSummary(tokens: readonly string[]): string {
     const ids = new Set(tokens.map((entry) => entry.split(':')[1] ?? ''));
-    const sent = [...timeGroups, ...expenseGroups]
+    const sent = pageGroups
       .map((group) => ({ group, items: group.actionable.filter((item) => ids.has(item.id)) }))
       .filter((part) => part.items.length > 0);
     if (sent.length === 0) return '';
@@ -716,8 +716,7 @@
     return Object.entries(reportLabels).flatMap(([key, label]) => {
       const raw = detail[key];
       if (raw === null || raw === undefined || String(raw).trim() === '') return [];
-      const text =
-        key === 'downtime' ? `${String(raw)} min` : String(raw);
+      const text = key === 'downtime' ? `${String(raw)} min` : String(raw);
       return [[t(label), text] as [string, string]];
     });
   }
@@ -737,9 +736,7 @@
   const financeReviewVisible = $derived(
     canSeeFinanceReview && ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(role),
   );
-  const financeRows = $derived(
-    financeReviewVisible ? rows.filter((row) => value(row, 'review_stage') === 'finance') : [],
-  );
+  const financeRows = $derived(financeReviewVisible ? (queue.finance.rows as Row[]) : []);
   function rowType(row: Row): Kind {
     return value(row, 'type') === 'expense' ? 'expense' : 'time';
   }
@@ -748,7 +745,7 @@
       ? String(failedApprovalValues.billable ?? '')
       : '';
   }
-  const queueEmpty = $derived(pendingRows.length === 0);
+  const queueEmpty = $derived(queue.summary.total === 0);
 </script>
 
 <div class="aq">
@@ -775,7 +772,10 @@
     </p>
   {/if}
 
-  {#if canDecide && allDecidable.length > 0}
+  {#if canDecide && approveAllTokens.length > 0}
+    {@const allMatching = queue.approveAll.matching}
+    {@const allBatch = queue.approveAll.batch}
+    {@const allCount = allMatching.timeCount + allMatching.expenseCount}
     {#if !approveAllOpen}
       <div class="aq-all-row">
         <button
@@ -785,9 +785,9 @@
           data-approve-all-open
           disabled={busyKey !== null}
         >
-          {t('approveAll')}
+          {filtersActive ? t('approveAllMatching') : t('approveAll')}
         </button>
-        <span class="aq-muted">{mixedSummary(approveAllItems)}</span>
+        <span class="aq-muted" data-approve-all-summary>{totalsSummary(allMatching)}</span>
       </div>
     {:else}
       <form
@@ -797,7 +797,7 @@
         method="POST"
         action="?/approveBatch"
         data-approve-all-confirm
-        use:enhance={decide('all', mixedSummary(approveAllItems), 'approved')}
+        use:enhance={decide('all', totalsSummary(allBatch), 'approved')}
       >
         <strong class="aq-confirm-title">{t('approveAllTitle')}</strong>
         <p>{t('approveAllIntro')}</p>
@@ -814,22 +814,27 @@
               {#each approveAllWorkers as worker (worker.workerId)}
                 <tr data-approve-all-worker={worker.workerId}>
                   <th scope="row">
-                    {worker.workerName}
-                    <small>{worker.projects.length > 2
+                    {personDisplayName(worker.workerName) || translate('Worker')}
+                    <small
+                      >{worker.projects.length > 2
                         ? t('projects', { count: worker.projects.length })
-                        : worker.projects.join(', ')}</small>
+                        : worker.projects.join(', ')}</small
+                    >
                   </th>
                   <td class="aq-num">
-                    {#if worker.time.length}
-                      <strong>{hoursText(sumMinutes(worker.time))}</strong>
-                      <small>{countLabel('time', worker.time.length)}</small>
+                    {#if worker.timeCount}
+                      <strong>{hoursText(worker.minutes)}</strong>
+                      <small>{countLabel('time', worker.timeCount)}</small>
                     {:else}—{/if}
                   </td>
                   <td class="aq-num">
-                    {#if worker.expenses.length}
-                      <strong>{moneyTotals(worker.expenses) || countLabel('expense', worker.expenses.length)}</strong>
-                      {#if moneyTotals(worker.expenses)}<small
-                          >{countLabel('expense', worker.expenses.length)}</small
+                    {#if worker.expenseCount}
+                      <strong
+                        >{currencyText(worker.expenseTotals) ||
+                          countLabel('expense', worker.expenseCount)}</strong
+                      >
+                      {#if worker.expenseTotals.length}<small
+                          >{countLabel('expense', worker.expenseCount)}</small
                         >{/if}
                     {:else}—{/if}
                   </td>
@@ -840,46 +845,51 @@
               <tr>
                 <th scope="row">{t('confirmTotal')}</th>
                 <td class="aq-num">
-                  {#if approveAllItems.some((item) => item.type === 'time')}
-                    <strong
-                      >{hoursText(
-                        sumMinutes(approveAllItems.filter((item) => item.type === 'time')),
-                      )}</strong
-                    >
+                  {#if allBatch.timeCount}
+                    <strong>{hoursText(allBatch.minutes)}</strong>
+                    <small>{countLabel('time', allBatch.timeCount)}</small>
                   {:else}—{/if}
                 </td>
                 <td class="aq-num">
-                  <strong
-                    >{moneyTotals(approveAllItems.filter((item) => item.type === 'expense')) ||
-                      countLabel(
-                        'expense',
-                        approveAllItems.filter((item) => item.type === 'expense').length,
-                      )}</strong
-                  >
+                  {#if allBatch.expenseCount}
+                    <strong
+                      >{currencyText(allBatch.expenseTotals) ||
+                        countLabel('expense', allBatch.expenseCount)}</strong
+                    >
+                    {#if allBatch.expenseTotals.length}<small
+                        >{countLabel('expense', allBatch.expenseCount)}</small
+                      >{/if}
+                  {:else}—{/if}
                 </td>
               </tr>
             </tfoot>
           </table>
         </div>
-        {#if allDecidable.length > approveAllItems.length}
-          <p class="aq-muted">
-            {t('approveAllLimit', { shown: approveAllItems.length, count: allDecidable.length })}
+        {#if allCount > approveAllTokens.length}
+          <p class="aq-muted" data-approve-all-batch-note>
+            {t('approveAllBatch', {
+              shown: approveAllTokens.length,
+              count: allCount,
+              limit: APPROVE_ALL_LIMIT,
+            })}
           </p>
+        {/if}
+        {#if queue.approveAll.ownExcluded > 0}
+          <p class="aq-muted">{t('ownExcluded', { count: queue.approveAll.ownExcluded })}</p>
         {/if}
         {#if ownerApprovalIncludesFinance}
           <p class="aq-muted">{t('confirmOwnerNote')}</p>
         {/if}
-        {#each approveAllItems as item (item.id)}
-          <input type="hidden" name="item" value={token(item)} />
+        {#each approveAllTokens as item (item)}
+          <input type="hidden" name="item" value={item} />
         {/each}
         <div class="aq-sendback-actions">
           <button type="submit" class="aq-primary" disabled={busyKey !== null}>
             {busyKey === 'all'
               ? t('approving')
-              : t('approveAllButton', { count: approveAllItems.length })}
+              : t('approveAllButton', { count: approveAllTokens.length })}
           </button>
-          <button type="button" class="aq-secondary" onclick={closeApproveAll}
-            >{t('cancel')}</button
+          <button type="button" class="aq-secondary" onclick={closeApproveAll}>{t('cancel')}</button
           >
         </div>
       </form>
@@ -912,43 +922,100 @@
     aria-labelledby={tabId(activeTab)}
     tabindex="-1"
   >
-    {#if showFilters}
-      <div class="aq-filters" role="group" aria-label={t('filters')}>
-        <label>
-          <span>{t('filterWorker')}</span>
-          <select bind:value={workerFilter} onchange={() => (selected = {})}>
-            <option value="">{t('allWorkers')}</option>
-            {#each filterOptions.workers as [id, label] (id)}<option value={id}>{label}</option
-              >{/each}
-          </select>
-        </label>
-        <label>
-          <span>{t('filterProject')}</span>
-          <select bind:value={projectFilter} onchange={() => (selected = {})}>
-            <option value="">{t('allProjects')}</option>
-            {#each filterOptions.projects as [id, label] (id)}<option value={id}>{label}</option
-              >{/each}
-          </select>
-        </label>
-        <label>
-          <span>{t('filterWeek')}</span>
-          <select bind:value={weekFilter} onchange={() => (selected = {})}>
-            <option value="">{t('allWeeks')}</option>
-            {#each filterOptions.weeks as week (week)}<option value={week}>{weekRange(week)}</option
-              >{/each}
-          </select>
-        </label>
+    <form
+      class="aq-filters"
+      role="search"
+      aria-label={t('filters')}
+      method="GET"
+      onsubmit={applyFilters}
+      data-approval-filters
+    >
+      <label class="aq-search">
+        <span>{t('searchLabel')}</span>
+        <input
+          type="search"
+          name="search"
+          bind:value={searchText}
+          autocomplete="off"
+          maxlength="100"
+          enterkeyhint="search"
+        />
+      </label>
+      {#if showFilters}
+        <button
+          type="button"
+          class="aq-secondary aq-filter-toggle"
+          aria-expanded={filtersOpen || filtersActive}
+          aria-controls={`aq-filter-fields-${componentId}`}
+          onclick={() => (filtersOpen = !filtersOpen)}>{t('filters')}</button
+        >
+        <div
+          class="aq-filter-fields"
+          id={`aq-filter-fields-${componentId}`}
+          class:is-open={filtersOpen || filtersActive}
+        >
+          <label>
+            <span>{t('filterWeek')}</span>
+            <select name="week" bind:value={weekFilter} onchange={() => applyFilters()}>
+              <option value="">{t('allWeeks')}</option>
+              {#each filterOptions.weeks as week (week)}<option value={week}
+                  >{weekRange(week)}</option
+                >{/each}
+            </select>
+          </label>
+          <label>
+            <span>{t('filterProject')}</span>
+            <select name="project" bind:value={projectFilter} onchange={() => applyFilters()}>
+              <option value="">{t('allProjects')}</option>
+              {#each filterOptions.projects as [id, label] (id)}<option value={id}>{label}</option
+                >{/each}
+            </select>
+          </label>
+          <label>
+            <span>{t('filterWorker')}</span>
+            <select name="worker" bind:value={workerFilter} onchange={() => applyFilters()}>
+              <option value="">{t('allWorkers')}</option>
+              {#each filterOptions.workers as [id, label] (id)}<option value={id}
+                  >{personDisplayName(label) || label}</option
+                >{/each}
+            </select>
+          </label>
+        </div>
+      {/if}
+      <div class="aq-filter-actions">
+        <button type="submit" class="aq-secondary">{t('searchButton')}</button>
         {#if filtersActive}
           <button type="button" class="aq-link" onclick={clearFilters}>{t('clearFilters')}</button>
         {/if}
       </div>
+    </form>
+    {#if totalCount > 0}
+      <p class="aq-scope" role="status" data-approval-scope>
+        {activeTab === 'reports'
+          ? t('showingReports', { shown: shownCount, count: totalCount })
+          : t('showingWeeks', { shown: shownCount, count: totalCount })}
+        {#if activeTab !== 'reports'}
+          · {activeTab === 'time'
+            ? `${hoursText(queue.matching.minutes)} · ${countLabel('time', queue.matching.timeCount)}`
+            : [
+                countLabel('expense', queue.matching.expenseCount),
+                currencyText(queue.matching.expenseTotals),
+              ]
+                .filter(Boolean)
+                .join(' · ')}
+        {/if}
+      </p>
     {/if}
 
     {#if activeTab !== 'reports'}
       {@const kind = activeTab === 'time' ? 'time' : 'expense'}
       {#if visibleGroups.length === 0}
         <p class="aq-empty" role="status">
-          {activeTab === 'time' ? t('emptyTime') : t('emptyExpenses')}
+          {filtersActive
+            ? t('noMatches')
+            : activeTab === 'time'
+              ? t('emptyTime')
+              : t('emptyExpenses')}
         </p>
       {:else}
         {#if canDecide && selectableGroups.length > 1}
@@ -957,9 +1024,25 @@
               <input type="checkbox" checked={allSelected} onchange={toggleAll} />
               <span>{t('selectAll')}</span>
             </label>
-            <button type="button" class="aq-secondary" onclick={approveAllVisible}
-              >{t('approveAllVisible', { count: selectableGroups.length })}</button
+            <!-- Only the weeks loaded on this page (after search/filters), never hidden ones. -->
+            <button
+              type="button"
+              class="aq-secondary"
+              onclick={approveAllVisible}
+              disabled={visibleActionableCount > APPROVE_ALL_LIMIT}
+              data-approve-visible
+              >{t('approveAllVisible', {
+                count: countLabel(kind, visibleActionableCount),
+              })}</button
             >
+            {#if visibleActionableCount > APPROVE_ALL_LIMIT}
+              <small class="aq-muted"
+                >{t('visibleTooMany', {
+                  count: visibleActionableCount,
+                  limit: APPROVE_ALL_LIMIT,
+                })}</small
+              >
+            {/if}
           </div>
         {/if}
         <ul class="aq-groups" aria-live="polite">
@@ -1158,7 +1241,9 @@
         </ul>
       {/if}
     {:else if visibleReports.length === 0}
-      <p class="aq-empty" role="status">{t('emptyReports')}</p>
+      <p class="aq-empty" role="status">
+        {filtersActive ? t('noMatches') : t('emptyReports')}
+      </p>
     {:else}
       <ul class="aq-groups" aria-live="polite">
         {#each visibleReports as row (value(row, 'id'))}
@@ -1214,7 +1299,10 @@
                 {#if detail.length}
                   <dl>
                     {#each detail as [label, text] (label)}
-                      <div><dt>{label}</dt><dd>{text}</dd></div>
+                      <div>
+                        <dt>{label}</dt>
+                        <dd>{text}</dd>
+                      </div>
                     {/each}
                   </dl>
                 {:else}
@@ -1254,11 +1342,28 @@
       </ul>
     {/if}
 
-    {#if waitingRows.length > 0}
+    {#if shownCount < totalCount}
+      <p class="aq-more-row">
+        <a
+          class="aq-secondary aq-show-more"
+          href={queueHref({ show: shownCount + queue.pageSize })}
+          data-sveltekit-noscroll
+          data-sveltekit-keepfocus
+          data-approval-show-more>{t('showMore')}</a
+        >
+        <span class="aq-muted"
+          >{activeTab === 'reports'
+            ? t('showingReports', { shown: shownCount, count: totalCount })
+            : t('showingWeeks', { shown: shownCount, count: totalCount })}</span
+        >
+      </p>
+    {/if}
+
+    {#if queue.waiting.count > 0}
       <details class="aq-more">
-        <summary>{t('waiting', { count: waitingRows.length })}</summary>
+        <summary>{t('waiting', { count: queue.waiting.count })}</summary>
         <ul class="aq-plain">
-          {#each waitingRows.slice(0, 50) as row (value(row, 'id'))}
+          {#each waitingRows as row (value(row, 'id'))}
             <li>
               <a href={recordHref(row)}>{rowSummary(row)}</a>
               <StatusBadge
@@ -1274,24 +1379,68 @@
       </details>
     {/if}
 
-    {#if approvedRows.length > 0}
-      <details class="aq-more">
-        <summary>{t('alreadyApproved', { count: approvedRows.length })}</summary>
+    {#if waitingRows.length < queue.waiting.count}
+      <p class="aq-muted">
+        {t('showing', { shown: waitingRows.length, count: queue.waiting.count })}
+      </p>
+    {/if}
+
+    <!-- Approved, not invoiced: a separate list, loaded only on request. -->
+    {#if !approvedView}
+      <p class="aq-more-row">
+        <a
+          class="aq-link"
+          href={queueHref({ view: 'approved', show: null })}
+          data-sveltekit-noscroll
+          data-approved-open>{t('approvedOpen')}</a
+        >
+      </p>
+    {:else}
+      <section
+        class="aq-more aq-approved"
+        data-approved-list
+        aria-labelledby={`aq-approved-${componentId}`}
+      >
+        <div class="aq-approved-head">
+          <strong id={`aq-approved-${componentId}`}
+            >{t('alreadyApproved', { count: queue.approved?.count ?? 0 })}</strong
+          >
+          <a class="aq-link" href={queueHref({ view: null, show: null })} data-sveltekit-noscroll
+            >{t('approvedClose')}</a
+          >
+        </div>
         <p class="aq-muted">{t('alreadyApprovedHelp')}</p>
-        <ul class="aq-plain">
-          {#each approvedRows.slice(0, 25) as row (value(row, 'id'))}
-            <li>
-              <a href={recordHref(row)}>{rowSummary(row)} · {projectName(row)}</a>
-              {#if canDecide && (value(row, 'review_stage') === 'correction' || ownerOverrideAllowed)}
-                <a class="aq-link" href={correctionHref(row)}>{t('correct')}</a>
-              {/if}
-            </li>
-          {/each}
-        </ul>
-        {#if approvedRows.length > 25}
-          <p class="aq-muted">{t('showing', { shown: 25, count: approvedRows.length })}</p>
+        {#if approvedRows.length === 0}
+          <p class="aq-muted">{t('approvedEmpty')}</p>
+        {:else}
+          <ul class="aq-plain">
+            {#each approvedRows as row (value(row, 'id'))}
+              <li>
+                <a href={recordHref(row)}>{rowSummary(row)} · {projectName(row)}</a>
+                {#if canDecide && (value(row, 'review_stage') === 'correction' || ownerOverrideAllowed)}
+                  <a class="aq-link" href={correctionHref(row)}>{t('correct')}</a>
+                {/if}
+              </li>
+            {/each}
+          </ul>
+          {#if approvedRows.length < (queue.approved?.count ?? 0)}
+            <p class="aq-more-row">
+              <a
+                class="aq-secondary aq-show-more"
+                href={queueHref({ show: approvedRows.length + queue.pageSize })}
+                data-sveltekit-noscroll
+                data-sveltekit-keepfocus>{t('showMore')}</a
+              >
+              <span class="aq-muted"
+                >{t('showing', {
+                  shown: approvedRows.length,
+                  count: queue.approved?.count ?? 0,
+                })}</span
+              >
+            </p>
+          {/if}
         {/if}
-      </details>
+      </section>
     {/if}
   </div>
 
@@ -1463,8 +1612,17 @@
           {#each selectedItems as item (item.id)}
             <input type="hidden" name="item" value={token(item)} />
           {/each}
+          {#if selectedItems.length > APPROVE_ALL_LIMIT}
+            <p class="aq-muted">
+              {t('visibleTooMany', { count: selectedItems.length, limit: APPROVE_ALL_LIMIT })}
+            </p>
+          {/if}
           <div class="aq-sendback-actions">
-            <button type="submit" class="aq-primary" disabled={busyKey !== null}>
+            <button
+              type="submit"
+              class="aq-primary"
+              disabled={busyKey !== null || selectedItems.length > APPROVE_ALL_LIMIT}
+            >
               {busyKey === 'bulk'
                 ? t('approving')
                 : t('confirmButton', {
@@ -1597,6 +1755,7 @@
     gap: 0.75rem;
   }
   .aq-filters select,
+  .aq-filters input[type='search'],
   .aq-sendback input,
   .aq-finance-form select {
     width: 100%;
@@ -1620,6 +1779,45 @@
     max-width: 18rem;
     font-size: 0.875rem;
     font-weight: 600;
+  }
+  .aq-filters .aq-search {
+    flex: 2 1 16rem;
+    max-width: 24rem;
+  }
+  .aq-filter-fields {
+    display: contents;
+  }
+  .aq-filter-toggle {
+    display: none;
+  }
+  .aq-filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .aq-scope {
+    margin: 0;
+    color: var(--ja-steel, #5b6573);
+    font-size: 0.875rem;
+  }
+  .aq-more-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0;
+  }
+  .aq-show-more {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
+  }
+  .aq-approved-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
   .aq-select-row {
     display: flex;
@@ -2059,6 +2257,22 @@
   }
 
   @media (max-width: 760px) {
+    .aq-filter-toggle {
+      display: inline-flex;
+      align-items: center;
+    }
+    .aq-filter-fields {
+      display: none;
+      width: 100%;
+    }
+    .aq-filter-fields.is-open {
+      display: grid;
+      gap: 0.75rem;
+    }
+    .aq-filters label,
+    .aq-filters .aq-search {
+      max-width: none;
+    }
     .aq-group-head {
       flex-wrap: wrap;
       padding: 0.75rem;

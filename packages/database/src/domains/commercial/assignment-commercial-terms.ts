@@ -1,5 +1,5 @@
 import { clientLaborRatesEquivalent } from './client-rate-equivalence.ts';
-import type { DatabaseSync } from 'node:sqlite';
+import type { DatabaseSync, StatementSync } from 'node:sqlite';
 import type { OvertimeMethod } from '@ja/billing-engine';
 import type { Currency } from '@ja/money';
 
@@ -204,6 +204,26 @@ const UNAVAILABLE_ASSIGNMENT_ISSUE = {
   internal: 'unavailable_assignment_internal_cost_rule',
 } as const;
 
+/**
+ * Rule resolution runs once per time entry and category (finance views resolve
+ * thousands of entries per request). Preparing the same SQL each time dominated
+ * that cost, so statements are prepared once per connection and reused.
+ */
+const statementCache = new WeakMap<DatabaseSync, Map<string, StatementSync>>();
+function prepared(sqlite: DatabaseSync, sql: string): StatementSync {
+  let statements = statementCache.get(sqlite);
+  if (!statements) {
+    statements = new Map();
+    statementCache.set(sqlite, statements);
+  }
+  let statement = statements.get(sql);
+  if (!statement) {
+    statement = sqlite.prepare(sql);
+    statements.set(sql, statement);
+  }
+  return statement;
+}
+
 function issue(
   code: CommercialTermsIssue['code'],
   sourceIds: readonly string[] = [],
@@ -213,26 +233,24 @@ function issue(
 
 function assignmentIds(sqlite: DatabaseSync, context: CommercialTermsContext): readonly string[] {
   return (
-    sqlite
-      .prepare(
-        `SELECT id FROM project_member WHERE project_id=? AND user_id=?
+    prepared(
+      sqlite,
+      `SELECT id FROM project_member WHERE project_id=? AND user_id=?
           AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL))
           AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC,id`,
-      )
-      .all(context.projectId, context.workerId, context.workDate, context.workDate) as {
+    ).all(context.projectId, context.workerId, context.workDate, context.workDate) as {
       id: string;
     }[]
   ).map((row) => row.id);
 }
 
 function assignmentRefs(sqlite: DatabaseSync, id: string): AssignmentRuleRefs {
-  const row = sqlite
-    .prepare(
-      `SELECT id,version,client_bill_rule_id,worker_compensation_rule_id,
+  const row = prepared(
+    sqlite,
+    `SELECT id,version,client_bill_rule_id,worker_compensation_rule_id,
               internal_cost_rule_id,allow_global_compensation_fallback,
               allow_global_internal_cost_fallback FROM project_member WHERE id=?`,
-    )
-    .get(id) as AssignmentRuleRefs | undefined;
+  ).get(id) as AssignmentRuleRefs | undefined;
   if (!row) throw new Error('Active assignment disappeared while resolving commercial terms');
   return row;
 }
@@ -247,22 +265,21 @@ function chooseOverride(
   context: CommercialTermsContext,
   kind: RuleKind,
 ): { selected: OverrideRow | null; ambiguous: readonly string[] } {
-  const rows = sqlite
-    .prepare(
-      `SELECT id,version,time_category,activity_code,priority,effective_from,
+  const rows = prepared(
+    sqlite,
+    `SELECT id,version,time_category,activity_code,priority,effective_from,
               ${OVERRIDE_COLUMN[kind]} rule_id FROM assignment_rate_override
        WHERE project_member_id=? AND ${OVERRIDE_COLUMN[kind]} IS NOT NULL
          AND (time_category=? OR time_category IS NULL)
          AND (activity_code=? OR activity_code IS NULL)
          AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
-    )
-    .all(
-      assignmentId,
-      context.category,
-      context.activityCode ?? null,
-      context.workDate,
-      context.workDate,
-    ) as OverrideRow[];
+  ).all(
+    assignmentId,
+    context.category,
+    context.activityCode ?? null,
+    context.workDate,
+    context.workDate,
+  ) as OverrideRow[];
   rows.sort(
     (left, right) =>
       precedence(right) - precedence(left) ||
@@ -347,16 +364,16 @@ function resolveRule<T extends RuleWithScope>(
   assignment: AssignmentRuleRefs | null,
 ): CommercialRuleResult<T> {
   const [missingCode, ambiguousCode, unavailableCode] = ISSUE[kind];
-  const project = sqlite
-    .prepare('SELECT currency FROM project WHERE id=?')
-    .get(context.projectId) as { currency: Currency } | undefined;
+  const project = prepared(sqlite, 'SELECT currency FROM project WHERE id=?').get(
+    context.projectId,
+  ) as { currency: Currency } | undefined;
   if (!project) return { selected: null, issues: [issue(missingCode)] };
   if (assignment !== null) {
     const override = chooseOverride(sqlite, assignment.id, context, kind);
     if (override.ambiguous.length)
       return { selected: null, issues: [issue(ambiguousCode, override.ambiguous)] };
     if (override.selected) {
-      const row = sqlite.prepare(`${SELECT[kind]} WHERE id=?`).get(override.selected.rule_id) as
+      const row = prepared(sqlite, `${SELECT[kind]} WHERE id=?`).get(override.selected.rule_id) as
         | T
         | undefined;
       if (!row || !validScope(row, context, kind, project.currency))
@@ -368,7 +385,7 @@ function resolveRule<T extends RuleWithScope>(
     }
     const directId = assignment[ASSIGNMENT_COLUMN[kind]];
     if (directId) {
-      const row = sqlite.prepare(`${SELECT[kind]} WHERE id=?`).get(directId) as T | undefined;
+      const row = prepared(sqlite, `${SELECT[kind]} WHERE id=?`).get(directId) as T | undefined;
       if (!row || !validScope(row, context, kind, project.currency))
         return {
           selected: null,
@@ -385,22 +402,21 @@ function resolveRule<T extends RuleWithScope>(
     (kind === 'compensation'
       ? assignment.allow_global_compensation_fallback === 1
       : kind === 'internal' && assignment.allow_global_internal_cost_fallback === 1);
-  const rows = sqlite
-    .prepare(
-      kind === 'client'
-        ? `${SELECT.client} WHERE project_id=? AND (worker_id=? OR worker_id IS NULL)
+  const rows = prepared(
+    sqlite,
+    kind === 'client'
+      ? `${SELECT.client} WHERE project_id=? AND (worker_id=? OR worker_id IS NULL)
            AND (category=? OR category IS NULL)
            AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`
-        : `${SELECT[kind]} WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
+      : `${SELECT[kind]} WHERE worker_id=? AND (project_id=? OR project_id IS NULL)
            AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)`,
-    )
-    .all(
-      ...(kind === 'client'
-        ? [context.projectId, context.workerId, context.category]
-        : [context.workerId, context.projectId]),
-      context.workDate,
-      context.workDate,
-    ) as T[];
+  ).all(
+    ...(kind === 'client'
+      ? [context.projectId, context.workerId, context.category]
+      : [context.workerId, context.projectId]),
+    context.workDate,
+    context.workDate,
+  ) as T[];
   const eligible = rows.filter(
     (row) =>
       validScope(row, context, kind, project.currency) &&

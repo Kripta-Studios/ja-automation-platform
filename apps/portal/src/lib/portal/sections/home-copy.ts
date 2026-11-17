@@ -40,6 +40,7 @@ export const homeCopy = {
     pendingCount: '{count} to approve',
     missingRate: 'Rate missing',
     missingPo: 'No PO',
+    viewAllProjects: 'View all {count} projects',
     // Worker
     workerTitle: 'Your week',
     logHours: 'Log hours',
@@ -97,6 +98,7 @@ export const homeCopy = {
     pendingCount: '{count} por aprobar',
     missingRate: 'Falta la tarifa',
     missingPo: 'Sin OC',
+    viewAllProjects: 'Ver los {count} proyectos',
     workerTitle: 'Tu semana',
     logHours: 'Registrar horas',
     addExpense: 'Añadir gasto',
@@ -153,6 +155,7 @@ export const homeCopy = {
     pendingCount: '{count} para aprovar',
     missingRate: 'Falta a tarifa',
     missingPo: 'Sem PO',
+    viewAllProjects: 'Ver os {count} projetos',
     workerTitle: 'Sua semana',
     logHours: 'Registrar horas',
     addExpense: 'Adicionar despesa',

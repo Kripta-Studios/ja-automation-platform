@@ -15,13 +15,13 @@ import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import { buildMoneyOverview } from '$lib/server/money-overview';
 import { buildRatesOverview } from '$lib/server/rates-overview';
+import { loadApprovalQueuePage } from '$lib/server/approval-queue';
 import {
   reviewFinanceReimbursement,
   withFinanceReimbursementSnapshot,
 } from '$lib/server/finance-reimbursement-review';
 import type { PageServerLoad } from './$types';
 import {
-  projectManagerApprovalQueueProjection,
   projectManagerMilestoneProjection,
   projectManagerSearchProjection,
   projectManagerSearchSuggestionsProjection,
@@ -877,152 +877,26 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
              JOIN client c ON c.id=p.client_id
             WHERE p.id=?`,
         );
-        // Titles are operational context, looked up only after queue-row authorization.
-        const dailyApprovalTitle = context.sqlite.prepare(
-          'SELECT summary title FROM daily_report WHERE id=? AND project_id=? AND worker_id=?',
+        // Pending only by default, searched, filtered and paginated on the server.
+        const approvalQueue = loadApprovalQueuePage(
+          context,
+          url,
+          includeArchived,
+          scope as Parameters<typeof loadApprovalQueuePage>[3],
         );
-        const technicalApprovalTitle = context.sqlite.prepare(
-          'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
-        );
-        // Operational report content for the in-queue "Read" preview (no money fields).
-        const dailyApprovalDetail = context.sqlite.prepare(
-          `SELECT tasks_completed tasks,problems_found problems,blockers,next_day_plan next_day,
-                  safety_notes safety,downtime_minutes downtime FROM daily_report
-            WHERE id=? AND project_id=? AND worker_id=?`,
-        );
-        const technicalApprovalDetail = context.sqlite.prepare(
-          `SELECT change_summary change,validation_result validation,open_risk risk,
-                  production_impact impact FROM technical_report
-            WHERE id=? AND project_id=? AND author_id=?`,
-        );
-        const expenseApprovalIdentity = context.sqlite.prepare(
-          `SELECT e.category,e.vendor,e.description,e.amount_minor,e.currency,e.version,
-                  e.receipt_document_id,d.media_type receipt_media_type
-             FROM expense e
-             LEFT JOIN document d ON d.id=e.receipt_document_id
-            WHERE e.id=? AND e.project_id=? AND e.worker_id=?`,
-        );
-        // Operational detail for grouped week review (no rates, cost or billing fields).
-        const timeApprovalDetail = context.sqlite.prepare(
-          'SELECT category,start_time,end_time,break_minutes,activity_summary,version FROM time_entry WHERE id=? AND project_id=? AND worker_id=?',
-        );
-        // The reviewer's latest note explains why a record is waiting for its author.
-        const latestReviewReason = context.sqlite.prepare(
-          "SELECT reason FROM approval_event WHERE entity_type=? AND entity_id=? AND to_state='needs_changes' ORDER BY occurred_at DESC LIMIT 1",
-        );
+        const { projects: approvalProjects, ...approvalPage } = approvalQueue;
         return {
           ...common,
-          projects: scope.projects,
-          records: visibleProjectRecords(
-            isProjectManager
-              ? projectManagerApprovalQueueProjection(
-                  context.repository.listApprovalQueue(context.principal),
-                )
-              : context.repository.listApprovalQueue(context.principal),
-            scope.projectIds,
-          ).map((row) => {
-            // Read identity only for an already-authorized queue row. PMs receive
-            // operational category/vendor context without expense money.
-            const expense =
-              row.type === 'expense'
-                ? (expenseApprovalIdentity.get(
-                    String(row.id),
-                    String(row.project_id),
-                    String(row.worker_id),
-                  ) as
-                    | {
-                        category: string;
-                        vendor: string | null;
-                        description: string | null;
-                        amount_minor: string | number;
-                        currency: string;
-                        version: number;
-                        receipt_document_id: string | null;
-                        receipt_media_type: string | null;
-                      }
-                    | undefined)
-                : undefined;
-            const time =
-              row.type === 'time'
-                ? (timeApprovalDetail.get(
-                    String(row.id),
-                    String(row.project_id),
-                    String(row.worker_id),
-                  ) as
-                    | {
-                        category: string;
-                        start_time: string | null;
-                        end_time: string | null;
-                        break_minutes: number | null;
-                        activity_summary: string | null;
-                        version: number;
-                      }
-                    | undefined)
-                : undefined;
-            const reviewReason =
-              row.approval_state === 'needs_changes' &&
-              ['time', 'expense'].includes(String(row.type))
-                ? (latestReviewReason.get(String(row.type), String(row.id)) as
-                    | { reason: string | null }
-                    | undefined)
-                : undefined;
-            return {
-              ...row,
-              ...(time
-                ? {
-                    time_category: time.category,
-                    start_time: time.start_time,
-                    end_time: time.end_time,
-                    break_minutes: time.break_minutes,
-                    activity_summary: time.activity_summary ?? '',
-                    record_version: time.version,
-                  }
-                : {}),
-              ...(reviewReason?.reason ? { review_reason: reviewReason.reason } : {}),
-              ...(expense
-                ? {
-                    record_version: expense.version,
-                    receipt_document_id: expense.receipt_document_id ?? '',
-                    receipt_media_type: expense.receipt_media_type ?? '',
-                    expense_category: expense.category,
-                    expense_label: expense.vendor?.trim() || expense.description || '',
-                    ...(!isProjectManager
-                      ? {
-                          expense_amount_minor: expense.amount_minor,
-                          expense_currency: expense.currency,
-                        }
-                      : {}),
-                  }
-                : {}),
-              ...(['daily', 'technical'].includes(String(row.type))
-                ? {
-                    report_detail: Object.fromEntries(
-                      Object.entries(
-                        ((row.type === 'daily' ? dailyApprovalDetail : technicalApprovalDetail).get(
-                          String(row.id),
-                          String(row.project_id),
-                          String(row.worker_id),
-                        ) ?? {}) as Record<string, unknown>,
-                      )
-                        .filter(([, detail]) => detail !== null && String(detail).trim() !== '' && String(detail) !== '0')
-                        .map(([key, detail]) => [key, String(detail).slice(0, 2000)]),
-                    ),
-                    report_title: String(
-                      (row.type === 'daily' ? dailyApprovalTitle : technicalApprovalTitle).get(
-                        String(row.id),
-                        String(row.project_id),
-                        String(row.worker_id),
-                      )?.title ?? '',
-                    ),
-                  }
-                : {}),
-              worker_name:
-                context.sqlite
-                  .prepare('SELECT name FROM user WHERE id=?')
-                  .get(String(row.worker_id ?? ''))?.name ?? '',
-              ...(approvalIdentity.get(String(row.project_id ?? '')) ?? {}),
-            };
-          }),
+          projects: approvalProjects,
+          approvalQueue: approvalPage,
+          // Every row sent, for failure lookups ("problem with …") in the section.
+          records: [
+            ...approvalPage.groups.flatMap((group) => group.rows),
+            ...approvalPage.reports,
+            ...approvalPage.waiting.rows,
+            ...(approvalPage.approved?.rows ?? []),
+            ...approvalPage.finance.rows,
+          ],
           milestones: visibleProjectRecords(
             isProjectManager
               ? projectManagerMilestoneProjection(

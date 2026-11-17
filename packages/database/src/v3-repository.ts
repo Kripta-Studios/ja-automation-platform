@@ -4180,6 +4180,27 @@ export class V3Repository {
       { workerId: string; workDate: string; minutes: number; rate: bigint }
     >();
     const dailyMinimumAdjustments: Array<Record<string, unknown>> = [];
+    // The same rule lookup (worker, category, date, activity) repeats for every
+    // slice and economic view of an entry; resolve it once per calculation. A
+    // configuration error is remembered and re-thrown so each entry still
+    // records its own finance reason.
+    const ruleMemo = new Map<string, { value: unknown } | { error: unknown }>();
+    const memoRule = <T>(kind: string, args: readonly unknown[], resolve: () => T): T => {
+      const key = JSON.stringify([kind, ...args.map((arg) => arg ?? null)]);
+      const hit = ruleMemo.get(key);
+      if (hit) {
+        if ('error' in hit) throw hit.error;
+        return hit.value as T;
+      }
+      try {
+        const value = resolve();
+        ruleMemo.set(key, { value });
+        return value;
+      } catch (error) {
+        ruleMemo.set(key, { error });
+        throw error;
+      }
+    };
     for (const row of time) {
       const policy = policyByDate.get(row.work_date) ?? null;
       const derivedSlices = commercialSlicesBySource.get(row.id);
@@ -4234,11 +4255,13 @@ export class V3Repository {
       };
       const financeRules = {
         internalCostFor: (...args: Parameters<V3Repository['internalCostFor']>) =>
-          financeRule(() => this.internalCostFor(...args)),
+          financeRule(() => memoRule('internal', args, () => this.internalCostFor(...args))),
         compensationRuleFor: (...args: Parameters<V3Repository['compensationRuleFor']>) =>
-          financeRule(() => this.compensationRuleFor(...args)),
+          financeRule(() =>
+            memoRule('compensation', args, () => this.compensationRuleFor(...args)),
+          ),
         clientRateFor: (...args: Parameters<V3Repository['clientRateFor']>) =>
-          financeRule(() => this.clientRateFor(...args)),
+          financeRule(() => memoRule('client', args, () => this.clientRateFor(...args))),
       };
       const economicRules = economicRows.map((economicRow) => {
         const internalRate =

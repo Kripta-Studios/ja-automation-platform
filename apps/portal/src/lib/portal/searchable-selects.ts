@@ -3,6 +3,54 @@ export function normalizeSelectSearch(value: string): string {
   return value.normalize('NFD').replace(/\p{M}/gu, '').toLocaleLowerCase().trim();
 }
 
+/**
+ * Suggested-first order for long pickers: the empty "All / none" choice, then
+ * the person's recent picks (most recent first), then options the page marks
+ * with `data-priority` (e.g. assigned people), then everything else in the
+ * original order. Pure so it can be tested; returns indexes into `options`.
+ */
+export function suggestedOrder(
+  options: ReadonlyArray<{ value: string; priority?: boolean }>,
+  recent: readonly string[],
+): { order: number[]; suggested: number } {
+  const rank = (option: { value: string; priority?: boolean }) => {
+    if (option.value === '') return [0, 0];
+    const position = recent.indexOf(option.value);
+    if (position >= 0) return [1, position];
+    return option.priority ? [2, 0] : [3, 0];
+  };
+  const order = options
+    .map((option, index) => ({ index, rank: rank(option) }))
+    .sort((a, b) => a.rank[0]! - b.rank[0]! || a.rank[1]! - b.rank[1]! || a.index - b.index);
+  return {
+    order: order.map((item) => item.index),
+    suggested: order.filter((item) => item.rank[0] === 1 || item.rank[0] === 2).length,
+  };
+}
+
+const RECENT_LIMIT = 5;
+const recentKey = (select: HTMLSelectElement) =>
+  `ja-picker-recent:${location.pathname.split('/').slice(0, 4).join('/')}:${select.name || select.id}`;
+function readRecent(select: HTMLSelectElement): string[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(recentKey(select)) ?? '[]');
+    return Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+function rememberRecent(select: HTMLSelectElement, value: string): void {
+  if (!value) return;
+  try {
+    const next = [value, ...readRecent(select).filter((item) => item !== value)].slice(0, RECENT_LIMIT);
+    localStorage.setItem(recentKey(select), JSON.stringify(next));
+  } catch {
+    /* private mode: no memory, normal order */
+  }
+}
+/** Only long, flat pickers are reordered (short lists and grouped lists keep their order). */
+const SUGGEST_MIN_OPTIONS = 15;
+
 const entityName =
   /project|client|worker|user|supplier|technician|email|mailbox|recipient|contact|coordinator|assignee|proyecto|cliente|trabajador|correo|proveedor|projeto|trabalhador|fornecedor/i;
 let nextId = 0;
@@ -101,6 +149,8 @@ export function installSearchableSelects(root: HTMLElement): () => void {
             result: 'resultado',
             empty: 'No hay coincidencias. Prueba con otro nombre.',
             unavailable: 'No hay coincidencias disponibles.',
+            suggested: 'Recientes y asignados',
+            everyone: 'Todos',
           }
         : language === 'pt'
           ? {
@@ -110,6 +160,8 @@ export function installSearchableSelects(root: HTMLElement): () => void {
               result: 'resultado',
               empty: 'Nenhum resultado. Tente outro nome.',
               unavailable: 'Nenhum resultado disponível.',
+              suggested: 'Recentes e atribuídos',
+              everyone: 'Todos',
             }
           : {
               search: 'Search',
@@ -118,6 +170,8 @@ export function installSearchableSelects(root: HTMLElement): () => void {
               result: 'result',
               empty: 'No matches. Try another name.',
               unavailable: 'No available matches.',
+              suggested: 'Recent and assigned',
+              everyone: 'Everyone',
             };
     };
     const position = () => {
@@ -160,10 +214,31 @@ export function installSearchableSelects(root: HTMLElement): () => void {
           !option.parentElement?.hidden &&
           normalizeSelectSearch(`${option.label} ${option.value}`).includes(query),
       );
+      // Long flat pickers (e.g. 100+ workers): recent and assigned choices first.
+      let suggested = 0;
+      if (
+        select.options.length >= SUGGEST_MIN_OPTIONS &&
+        !select.querySelector('optgroup')
+      ) {
+        const ranked = suggestedOrder(
+          options.map((option) => ({ value: option.value, priority: 'priority' in option.dataset })),
+          readRecent(select),
+        );
+        options = ranked.order.map((index) => options[index]!);
+        suggested = ranked.suggested;
+      }
+      const firstSuggested = options.findIndex((option) => option.value !== '');
       list.replaceChildren();
       optionNodes = [];
       let lastGroup: HTMLElement | null = null;
       for (const [index, option] of options.entries()) {
+        if (suggested && (index === firstSuggested || index === firstSuggested + suggested)) {
+          const heading = document.createElement('div');
+          heading.className = 'searchable-select-group';
+          heading.setAttribute('role', 'presentation');
+          heading.textContent = index === firstSuggested ? text.suggested : text.everyone;
+          list.append(heading);
+        }
         if (
           option.parentElement instanceof HTMLOptGroupElement &&
           lastGroup !== option.parentElement
@@ -223,6 +298,7 @@ export function installSearchableSelects(root: HTMLElement): () => void {
       if (!option || disabled(option) || select.disabled) return;
       const changed = select.value !== option.value;
       select.value = option.value;
+      if (select.options.length >= SUGGEST_MIN_OPTIONS) rememberRecent(select, option.value);
       close(true);
       if (changed) {
         select.dispatchEvent(new Event('input', { bubbles: true }));

@@ -1,21 +1,28 @@
 <script lang="ts">
   import { cssWidth } from '../ui/css-width';
   /**
-   * Hours overview (review): registered hours by worker x project for a period,
-   * with totals per row/column, status breakdown, drill-down to entries and a
-   * CSV of the entries on screen. Operational data only (no money fields);
-   * rows are already scoped by the server for the viewer's role.
+   * Hours overview (review): registered hours by worker x project for a period.
+   * The server sends totals, the top 15 rows (more on request), the top 10
+   * columns plus "Other", and one page of drill-down entries; filters, search,
+   * grouping and the selected cell live in the URL. Operational data only (no
+   * money fields); rows are already scoped by the server for the viewer's role.
    */
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { StatusBadge } from '../ui';
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { documentLanguage, type PortalLocale } from '../../portal-i18n';
-  import type { PortalData, PortalRow as Row } from '../portal-data';
+  import type { PortalData } from '../portal-data';
+  import {
+    OTHER_KEY,
+    OTHERS_ROW,
+    type OverviewBucket as Bucket,
+    type OverviewEntry,
+    type OverviewStatus as Status,
+  } from '../time-overview-types';
   import { decimalHoursFromMinutes } from '../minute-hours';
   import { weekStartForDate } from './time-entry-actions';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
-  import { DAY_WARN_MINUTES, personName } from './time-hours';
   import { localToday } from '../ui/time-entry-clock';
 
   let {
@@ -31,25 +38,13 @@
   const t = (key: TimeWeekCopyKey, params: Record<string, string | number> = {}) =>
     timeWeekText(locale, key, params);
 
-  type Status = 'draft' | 'submitted' | 'approved' | 'needs_changes';
   const statuses: Status[] = ['approved', 'submitted', 'needs_changes', 'draft'];
-  type Bucket = { minutes: number; by: Record<Status, number>; rows: Row[] };
-  const emptyBucket = (): Bucket => ({
-    minutes: 0,
-    by: { draft: 0, submitted: 0, approved: 0, needs_changes: 0 },
-    rows: [],
-  });
-
   const overview = $derived(data.overview!);
-  const rows = $derived((overview?.rows ?? []) as Row[]);
+  const group = $derived(overview.group);
   const delegating = $derived(['owner_admin', 'project_manager'].includes(String(data.user.role)));
-
-  let groupBy = $state<'worker' | 'project' | 'day'>('worker');
   const today = localToday();
-  let selected = $state<{ a: string; b: string } | null>(null);
 
-  const statusOf = (row: Row): Status => {
-    const state = String(row.approval_state);
+  const statusOf = (state: string): Status => {
     if (state === 'approved' || state === 'locked') return 'approved';
     if (state === 'submitted') return 'submitted';
     if (state === 'needs_changes') return 'needs_changes';
@@ -79,146 +74,23 @@
         : category === 'overtime'
           ? t('overtime')
           : controlledValue('timeCategory', category);
-  const projectName = (row: Row) =>
-    [row.project_number, row.project_name].filter(Boolean).map(String).join(' · ');
-  const workerName = (row: Row) => personName(row.worker_name ?? row.worker_id ?? '');
+  const projectName = (entry: OverviewEntry) =>
+    [entry.project_number, entry.project_name].filter(Boolean).join(' · ');
   const hours = (minutes: number) => decimalHoursFromMinutes(minutes);
 
-  const add = (bucket: Bucket, row: Row) => {
-    const minutes = Number(row.minutes ?? 0);
-    bucket.minutes += minutes;
-    bucket.by[statusOf(row)] += minutes;
-    bucket.rows.push(row);
-  };
-
   const language = $derived(documentLanguage(locale));
-  const periodDates = $derived.by(() => {
-    const dates: string[] = [];
-    if (!overview) return dates;
-    const cursor = new Date(`${overview.from}T00:00:00.000Z`);
-    while (dates.length < 62) {
-      const iso = cursor.toISOString().slice(0, 10);
-      if (iso > overview.to) break;
-      dates.push(iso);
-      cursor.setUTCDate(cursor.getUTCDate() + 1);
-    }
-    return dates;
-  });
   const isWeekend = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay());
-  /** Per worker-day anomalies: >12 h, weekend work, missing past weekdays (future days are allowed). */
-  const anomalies = $derived.by(() => {
-    const perDay = new Map<string, number>();
-    const workers = new Set<string>();
-    for (const row of rows) {
-      const key = `${row.worker_id}|${row.work_date}`;
-      perDay.set(key, (perDay.get(key) ?? 0) + Number(row.minutes ?? 0));
-      workers.add(String(row.worker_id));
-    }
-    let over12 = 0;
-    let weekend = 0;
-    let missing = 0;
-    for (const [key, minutes] of perDay) {
-      const date = key.split('|')[1]!;
-      if (minutes > DAY_WARN_MINUTES) over12 += 1;
-      if (minutes > 0 && isWeekend(date)) weekend += 1;
-    }
-    for (const worker of workers)
-      for (const date of periodDates)
-        if (date <= today && !isWeekend(date) && !perDay.get(`${worker}|${date}`)) missing += 1;
-    return { perDay, over12, weekend, missing };
-  });
-  const cellFlags = (worker: string, date: string) => {
-    const minutes = anomalies.perDay.get(`${worker}|${date}`) ?? 0;
-    return {
-      over12: minutes > DAY_WARN_MINUTES,
-      weekend: minutes > 0 && isWeekend(date),
-      missing: minutes === 0 && date <= today && !isWeekend(date),
-    };
-  };
   const dayHead = (date: string) =>
     new Intl.DateTimeFormat(language, { weekday: 'short', day: 'numeric', timeZone: 'UTC' }).format(
       new Date(`${date}T00:00:00.000Z`),
     );
-
-  const matrix = $derived.by(() => {
-    const byWorker = groupBy !== 'project';
-    const keyA = (row: Row) => String(byWorker ? row.worker_id : row.project_id);
-    const keyB = (row: Row) =>
-      String(groupBy === 'day' ? row.work_date : byWorker ? row.project_id : row.worker_id);
-    const labelA = (row: Row) => (byWorker ? workerName(row) : projectName(row));
-    const labelB = (row: Row) =>
-      groupBy === 'day' ? dayHead(String(row.work_date)) : byWorker ? projectName(row) : workerName(row);
-    const aLabels = new Map<string, string>();
-    const bLabels = new Map<string, string>();
-    const cells = new Map<string, Bucket>();
-    const aTotals = new Map<string, Bucket>();
-    const bTotals = new Map<string, Bucket>();
-    const total = emptyBucket();
-    for (const row of rows) {
-      const a = keyA(row);
-      const b = keyB(row);
-      aLabels.set(a, labelA(row));
-      bLabels.set(b, labelB(row));
-      const cellKey = `${a}|${b}`;
-      if (!cells.has(cellKey)) cells.set(cellKey, emptyBucket());
-      if (!aTotals.has(a)) aTotals.set(a, emptyBucket());
-      if (!bTotals.has(b)) bTotals.set(b, emptyBucket());
-      add(cells.get(cellKey)!, row);
-      add(aTotals.get(a)!, row);
-      add(bTotals.get(b)!, row);
-      add(total, row);
-    }
-    const sortKeys = (labels: Map<string, string>) =>
-      [...labels.keys()].sort((x, y) => labels.get(x)!.localeCompare(labels.get(y)!));
-    if (groupBy === 'day') for (const date of periodDates) if (!bLabels.has(date)) bLabels.set(date, dayHead(date));
-    return {
-      as: sortKeys(aLabels).map((key) => ({ key, label: aLabels.get(key)! })),
-      bs:
-        groupBy === 'day'
-          ? [...bLabels.keys()].sort().map((key) => ({ key, label: bLabels.get(key)! }))
-          : sortKeys(bLabels).map((key) => ({ key, label: bLabels.get(key)! })),
-      cells,
-      aTotals,
-      bTotals,
-      total,
-    };
-  });
-
-  const selectedBucket = $derived.by(() => {
-    if (!selected) return null;
-    const { a, b } = selected;
-    if (a === '*' && b === '*') return matrix.total;
-    if (b === '*') return matrix.aTotals.get(a) ?? null;
-    if (a === '*') return matrix.bTotals.get(b) ?? null;
-    return matrix.cells.get(`${a}|${b}`) ?? null;
-  });
-  const selectedTitle = $derived.by(() => {
-    if (!selected) return '';
-    const a = matrix.as.find((item) => item.key === selected!.a)?.label;
-    const b = matrix.bs.find((item) => item.key === selected!.b)?.label;
-    return [a, b].filter(Boolean).join(' · ') || t('ovTotal');
-  });
-  const selectedRows = $derived(
-    [...(selectedBucket?.rows ?? [])].sort(
-      (x, y) =>
-        String(x.work_date).localeCompare(String(y.work_date)) ||
-        workerName(x).localeCompare(workerName(y)),
-    ),
+  const columnLabel = (label: string) => (group === 'day' ? dayHead(label) : label);
+  const periodDays = $derived(
+    Math.round((Date.parse(`${overview.to}T00:00:00Z`) - Date.parse(`${overview.from}T00:00:00Z`)) / 86400000) + 1,
   );
-  const selectedWorker = $derived.by(() => {
-    const ids = new Set(selectedRows.map((row) => String(row.worker_id)));
-    return ids.size === 1 ? [...ids][0]! : '';
-  });
-
-  const pick = (a: string, b: string) => {
-    selected = selected && selected.a === a && selected.b === b ? null : { a, b };
-  };
-  $effect(() => {
-    // Selection is per grouping; reset when the grouping or data changes.
-    void groupBy;
-    void rows;
-    selected = null;
-  });
+  const missingDay = (row: string, date: string) =>
+    group === 'day' && !overview.cells[`${row}|${date}`] && date <= today && !isWeekend(date);
+  const over12 = (bucket: Bucket | undefined) => group === 'day' && (bucket?.minutes ?? 0) > 12 * 60;
 
   const formatDate = (date: string) =>
     new Intl.DateTimeFormat(language, {
@@ -228,7 +100,7 @@
       timeZone: 'UTC',
     }).format(new Date(`${date}T00:00:00.000Z`));
   const rangeLabel = $derived(
-    overview ? `${formatDate(overview.from)} – ${formatDate(overview.to)} ${overview.to.slice(0, 4)}` : '',
+    `${formatDate(overview.from)} – ${formatDate(overview.to)} ${overview.to.slice(0, 4)}`,
   );
 
   const href = (changes: Record<string, string | null>) => {
@@ -240,6 +112,17 @@
       else query.set(key, value);
     return `${base}/app/time?${query.toString()}`;
   };
+  /** Filters changed: start again from the top rows and close the drill-down. */
+  const reset = { cell: null, cpage: null, show: null };
+  const selectedCell = $derived(overview.drill ? `${overview.drill.a}|${overview.drill.b}` : '');
+  const cellHref = (a: string, b: string) =>
+    selectedCell === `${a}|${b}` ? href({ cell: null, cpage: null }) : href({ cell: `${a}|${b}`, cpage: null });
+  const exportHref = $derived.by(() => {
+    const query = new URLSearchParams($page.url.searchParams);
+    for (const key of ['view', 'cell', 'cpage', 'show', 'group']) query.delete(key);
+    query.set('lang', locale);
+    return `${base}/app/time/overview-export?${query.toString()}`;
+  });
   const periods = [
     ['this_week', 'ovThisWeek'],
     ['last_week', 'ovLastWeek'],
@@ -247,13 +130,6 @@
     ['last_month', 'ovLastMonth'],
     ['custom', 'ovCustom'],
   ] as const;
-
-  const filterWorkers = $derived.by(() => {
-    const map = new Map<string, string>();
-    for (const worker of data.timeWorkers ?? []) map.set(worker.id, worker.name);
-    for (const row of rows) map.set(String(row.worker_id), workerName(row));
-    return [...map.entries()].sort((x, y) => x[1].localeCompare(y[1]));
-  });
 
   const bar = (bucket: Bucket) =>
     statuses
@@ -265,39 +141,31 @@
       .map((status) => `${statusLabel(status)} ${hours(bucket.by[status])} h`)
       .join(' · ');
 
-  const csvCell = (value: unknown) => {
-    let text = String(value ?? '');
-    if (/^[=+\-@\t\r]/u.test(text)) text = `'${text}`;
-    return /[",\n;]/u.test(text) ? `"${text.replace(/"/gu, '""')}"` : text;
+  const rowLabel = (key: string) =>
+    key === '*'
+      ? ''
+      : key === OTHERS_ROW
+        ? t('ovOthers', { n: overview.others?.count ?? 0 })
+        : (overview.rows.find((row) => row.key === key)?.label ?? '');
+  const colLabel = (key: string) =>
+    key === '*'
+      ? ''
+      : key === OTHER_KEY
+        ? t('ovOtherColumn', { n: overview.otherColumn?.count ?? 0 })
+        : columnLabel(overview.columns.find((column) => column.key === key)?.label ?? '');
+  const drill = $derived(overview.drill);
+  const drillTitle = $derived(
+    drill ? [rowLabel(drill.a), colLabel(drill.b)].filter(Boolean).join(' · ') || t('ovTotal') : '',
+  );
+  const drillPages = $derived(drill ? Math.ceil(drill.count / drill.pageSize) : 0);
+  const nextShow = $derived(Math.min(overview.others?.count ?? 0, 15));
+  /** Bring the drill-down into view when it opens (paging keeps it mounted). */
+  const reveal = (node: HTMLElement) => {
+    node.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
   };
-  const download = () => {
-    const header = [t('date'), t('ovWorker'), t('project'), t('type'), t('hours'), t('status')];
-    const lines = [...rows]
-      .sort((x, y) => String(x.work_date).localeCompare(String(y.work_date)))
-      .map((row) =>
-        [
-          row.work_date,
-          workerName(row),
-          projectName(row),
-          categoryLabel(String(row.category)),
-          hours(Number(row.minutes ?? 0)),
-          statusLabel(statusOf(row)),
-        ]
-          .map(csvCell)
-          .join(','),
-      );
-    const blob = new Blob([`﻿${[header.map(csvCell).join(','), ...lines].join('\r\n')}`], {
-      type: 'text/csv;charset=utf-8',
-    });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `hours-${overview.from}-to-${overview.to}.csv`;
-    document.body.append(link);
-    link.click();
-    link.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-  };
+  const hasFilters = $derived(
+    Boolean(data.timeFilter?.projectId || overview.workerId || overview.status || overview.find),
+  );
 </script>
 
 {#snippet statusBar(bucket: Bucket)}
@@ -308,13 +176,28 @@
   </span>
 {/snippet}
 
+{#snippet cellLink(a: string, b: string, bucket: Bucket, label: string, strong = false)}
+  <a
+    class="ov-cell"
+    class:is-selected={selectedCell === `${a}|${b}`}
+    href={cellHref(a, b)}
+    data-sveltekit-noscroll
+    data-sveltekit-replacestate
+    title={breakdownText(bucket)}
+    aria-label={`${label}: ${hours(bucket.minutes)} h. ${breakdownText(bucket)}`}
+  >
+    {#if strong}<strong>{hours(bucket.minutes)}</strong>{:else}<span>{hours(bucket.minutes)}</span>{/if}
+    {@render statusBar(bucket)}
+  </a>
+{/snippet}
+
 <section class="time-overview" aria-labelledby="time-overview-title" data-testid="time-overview">
   <h2 id="time-overview-title" class="sr-only">{t('tabOverview')}</h2>
 
   <div class="ov-periods" role="group" aria-label={t('ovPeriod')}>
     {#each periods as [value, key] (value)}
       <a
-        href={href({ period: value, from: value === 'custom' ? overview.from : null, to: value === 'custom' ? overview.to : null })}
+        href={href({ ...reset, period: value, from: value === 'custom' ? overview.from : null, to: value === 'custom' ? overview.to : null })}
         aria-current={overview.period === value ? 'page' : undefined}
         data-sveltekit-noscroll
         data-testid={`ov-period-${value}`}>{t(key)}</a
@@ -322,12 +205,27 @@
     {/each}
   </div>
 
-  <form method="GET" action={`${base}/app/time`} class="ov-filters" data-sveltekit-noscroll>
+  <form method="GET" action={`${base}/app/time`} class="ov-filters" data-sveltekit-noscroll data-testid="ov-filters">
     <input type="hidden" name="view" value="overview" />
     <input type="hidden" name="period" value={overview.period} />
+    {#if group !== 'worker'}<input type="hidden" name="group" value={group} />{/if}
     {#if $page.url.searchParams.get('lang')}
       <input type="hidden" name="lang" value={$page.url.searchParams.get('lang')} />
     {/if}
+    {#if $page.url.searchParams.get('includeArchived') === '1'}
+      <input type="hidden" name="includeArchived" value="1" />
+    {/if}
+    <label class="ov-search"
+      ><span>{t('ovSearch')}</span>
+      <input
+        type="search"
+        name="find"
+        value={overview.find}
+        placeholder={t('ovSearch')}
+        autocomplete="off"
+        data-testid="ov-search"
+      />
+    </label>
     {#if overview.period === 'custom'}
       <label><span>{t('ovFrom')}</span><input type="date" name="from" value={overview.from} /></label>
       <label><span>{t('ovTo')}</span><input type="date" name="to" value={overview.to} /></label>
@@ -347,7 +245,7 @@
       ><span>{t('ovWorker')}</span>
       <select name="rworker" value={overview.workerId}>
         <option value="">{t('allWorkers')}</option>
-        {#each filterWorkers as [id, name] (id)}
+        {#each overview.workers as [id, name] (id)}
           <option value={id}>{name}</option>
         {/each}
       </select>
@@ -362,151 +260,147 @@
       </select>
     </label>
     <button type="submit" class="secondary">{t('apply')}</button>
-    {#if data.timeFilter?.projectId || overview.workerId || overview.status}
-      <a class="clear" href={href({ project: null, rworker: null, status: null })}>{t('clear')}</a>
+    {#if hasFilters}
+      <a class="clear" href={href({ ...reset, project: null, rworker: null, status: null, find: null })}>{t('clear')}</a>
     {/if}
   </form>
 
   <div class="ov-summary" data-testid="ov-summary">
     <div class="ov-total">
-      <span class="muted">{rangeLabel}</span>
-      <strong data-testid="ov-grand-total">{hours(matrix.total.minutes)} h</strong>
+      <span class="muted" data-testid="ov-scope"
+        >{t('ovScope', { range: rangeLabel, entries: overview.total.entries, groups: overview.rowCount })}</span
+      >
+      <strong data-testid="ov-grand-total">{hours(overview.total.minutes)} h</strong>
     </div>
     <ul class="ov-status-list">
       {#each statuses as status (status)}
         <li data-status={status}>
           <span class="dot" data-status={status}></span>{statusLabel(status)}
-          <strong>{hours(matrix.total.by[status])} h</strong>
+          <strong>{hours(overview.total.by[status])} h</strong>
         </li>
       {/each}
     </ul>
     <div class="ov-tools">
       <div class="seg" role="group" aria-label={t('ovGroupBy')}>
-        <button type="button" aria-pressed={groupBy === 'worker'} onclick={() => (groupBy = 'worker')}
-          >{t('ovByWorker')}</button
+        <a
+          href={href({ ...reset, group: null })}
+          aria-current={group === 'worker' ? 'true' : undefined}
+          data-sveltekit-noscroll
+          data-testid="ov-by-worker">{t('ovByWorker')}</a
         >
-        <button type="button" aria-pressed={groupBy === 'project'} onclick={() => (groupBy = 'project')}
-          >{t('ovByProject')}</button
+        <a
+          href={href({ ...reset, group: 'project' })}
+          aria-current={group === 'project' ? 'true' : undefined}
+          data-sveltekit-noscroll
+          data-testid="ov-by-project">{t('ovByProject')}</a
         >
-        <button
-          type="button"
-          aria-pressed={groupBy === 'day'}
-          onclick={() => (groupBy = 'day')}
-          disabled={periodDates.length > 42}
-          data-testid="ov-by-day">{t('ovByDay')}</button
-        >
+        {#if periodDays <= 42}
+          <a
+            href={href({ ...reset, group: 'day' })}
+            aria-current={group === 'day' ? 'true' : undefined}
+            data-sveltekit-noscroll
+            data-testid="ov-by-day">{t('ovByDay')}</a
+          >
+        {/if}
       </div>
-      {#if rows.length}
-        <button type="button" class="secondary" onclick={download} data-testid="ov-export">{t('ovExport')}</button>
+      {#if overview.total.entries}
+        <a class="secondary button-link" href={exportHref} download data-testid="ov-export">{t('ovExport')}</a>
       {/if}
     </div>
   </div>
 
-  {#if anomalies.over12 || anomalies.weekend || anomalies.missing}
+  {#if overview.anomalies.over12 || overview.anomalies.weekend || overview.anomalies.missing}
+    {@const dayHref = periodDays <= 42 ? href({ ...reset, group: 'day' }) : undefined}
     <div class="ov-anomalies" role="status" data-testid="ov-anomalies">
       <strong>{t('ovCheck')}</strong>
-      {#if anomalies.over12}<button type="button" class="chip" data-flag="over12" onclick={() => (groupBy = 'day')}>{t('ovOver12', { n: anomalies.over12 })}</button>{/if}
-      {#if anomalies.weekend}<button type="button" class="chip" data-flag="weekend" onclick={() => (groupBy = 'day')}>{t('ovWeekend', { n: anomalies.weekend })}</button>{/if}
-      {#if anomalies.missing}<button type="button" class="chip" data-flag="missing" onclick={() => (groupBy = 'day')}>{t('ovMissing', { n: anomalies.missing })}</button>{/if}
+      {#if overview.anomalies.over12}<a class="chip" data-flag="over12" href={dayHref} data-sveltekit-noscroll>{t('ovOver12', { n: overview.anomalies.over12 })}</a>{/if}
+      {#if overview.anomalies.weekend}<a class="chip" data-flag="weekend" href={dayHref} data-sveltekit-noscroll>{t('ovWeekend', { n: overview.anomalies.weekend })}</a>{/if}
+      {#if overview.anomalies.missing}<a class="chip" data-flag="missing" href={dayHref} data-sveltekit-noscroll>{t('ovMissing', { n: overview.anomalies.missing })}</a>{/if}
     </div>
   {/if}
 
-  {#if rows.length === 0}
+  {#if overview.total.entries === 0}
     <p class="ov-empty" data-testid="ov-empty">{t('ovEmpty')}</p>
   {:else}
-    {#if rows.length >= 5000}<p class="muted small">{t('ovTooMany')}</p>{/if}
     <p class="muted small">{t('ovSelectCell')}</p>
 
     <div class="ov-matrix-wrap">
       <table class="ov-matrix" data-testid="ov-matrix">
         <thead>
           <tr>
-            <th scope="col" class="ov-a">{groupBy === 'project' ? t('project') : t('ovWorker')}</th>
-            {#each matrix.bs as b (b.key)}
-              <th scope="col" class:is-weekend={groupBy === 'day' && isWeekend(b.key)}><span class="ov-b">{b.label}</span></th>
+            <th scope="col" class="ov-a">{group === 'project' ? t('project') : t('ovWorker')}</th>
+            {#each overview.columns as b (b.key)}
+              <th scope="col" class:is-weekend={group === 'day' && isWeekend(b.key)} title={group === 'worker' ? b.label : undefined}><span class="ov-b">{group === 'worker' ? b.label.split(' · ')[0] : columnLabel(b.label)}</span></th>
             {/each}
+            {#if overview.otherColumn}
+              <th scope="col"><span class="ov-b">{t('ovOtherColumn', { n: overview.otherColumn.count })}</span></th>
+            {/if}
             <th scope="col" class="ov-sum">{t('ovTotal')}</th>
           </tr>
         </thead>
         <tbody>
-          {#each matrix.as as a (a.key)}
+          {#each overview.rows as a (a.key)}
             <tr>
               <th scope="row" class="ov-a">{a.label}</th>
-              {#each matrix.bs as b (b.key)}
-                {@const cell = matrix.cells.get(`${a.key}|${b.key}`)}
-                {@const flags = groupBy === 'day' ? cellFlags(a.key, b.key) : null}
+              {#each overview.columns as b (b.key)}
+                {@const cell = overview.cells[`${a.key}|${b.key}`]}
+                {@const missing = missingDay(a.key, b.key)}
                 <td
-                  class:is-weekend={groupBy === 'day' && isWeekend(b.key)}
-                  class:flag-over12={flags?.over12}
-                  class:flag-missing={flags?.missing}
-                  title={flags
-                    ? [flags.over12 ? t('over12Short') : '', flags.missing ? t('ovMissingDay') : '']
-                        .filter(Boolean)
-                        .join(' · ')
-                    : undefined}
+                  class:is-weekend={group === 'day' && isWeekend(b.key)}
+                  class:flag-over12={over12(cell)}
+                  class:flag-missing={missing}
+                  title={over12(cell) ? t('over12Short') : missing ? t('ovMissingDay') : undefined}
                 >
                   {#if cell}
-                    <button
-                      type="button"
-                      class="ov-cell"
-                      class:is-selected={selected?.a === a.key && selected?.b === b.key}
-                      title={breakdownText(cell)}
-                      aria-label={`${a.label} · ${b.label}: ${hours(cell.minutes)} h. ${breakdownText(cell)}`}
-                      onclick={() => pick(a.key, b.key)}
-                    >
-                      <span>{hours(cell.minutes)}</span>
-                      {@render statusBar(cell)}
-                    </button>
-                  {:else if flags?.missing}
+                    {@render cellLink(a.key, b.key, cell, `${a.label} · ${columnLabel(b.label)}`)}
+                  {:else if missing}
                     <span class="ov-none ov-missing" aria-label={t('ovMissingDay')}>0</span>
                   {:else}
                     <span class="ov-none">·</span>
                   {/if}
                 </td>
               {/each}
-              <td class="ov-sum">
-                <button
-                  type="button"
-                  class="ov-cell"
-                  class:is-selected={selected?.a === a.key && selected?.b === '*'}
-                  title={breakdownText(matrix.aTotals.get(a.key)!)}
-                  onclick={() => pick(a.key, '*')}
-                >
-                  <span>{hours(matrix.aTotals.get(a.key)!.minutes)}</span>
-                  {@render statusBar(matrix.aTotals.get(a.key)!)}
-                </button>
-              </td>
+              {#if overview.otherColumn}
+                {@const cell = overview.cells[`${a.key}|${OTHER_KEY}`]}
+                <td>
+                  {#if cell}
+                    {@render cellLink(a.key, OTHER_KEY, cell, `${a.label} · ${t('ovOtherColumn', { n: overview.otherColumn.count })}`)}
+                  {:else}
+                    <span class="ov-none">·</span>
+                  {/if}
+                </td>
+              {/if}
+              <td class="ov-sum">{@render cellLink(a.key, '*', a.bucket, a.label)}</td>
             </tr>
           {/each}
+          {#if overview.others}
+            <tr class="ov-others-row">
+              <th scope="row" class="ov-a">{t('ovOthers', { n: overview.others.count })}</th>
+              <td colspan={overview.columns.length + (overview.otherColumn ? 1 : 0)}>
+                <a class="ov-more" href={href({ show: String(overview.show + 15), cell: null, cpage: null })} data-sveltekit-noscroll data-testid="ov-show-more"
+                  >{t('ovShowMore', { n: nextShow })}</a
+                >
+              </td>
+              <td class="ov-sum">{@render cellLink(OTHERS_ROW, '*', overview.others.bucket, t('ovOthers', { n: overview.others.count }))}</td>
+            </tr>
+          {/if}
         </tbody>
         <tfoot>
           <tr>
             <th scope="row" class="ov-a">{t('ovTotal')}</th>
-            {#each matrix.bs as b (b.key)}
-              {@const column = matrix.bTotals.get(b.key)}
-              <td class:is-weekend={groupBy === 'day' && isWeekend(b.key)}>
-                {#if column}
-                  <button
-                    type="button"
-                    class="ov-cell"
-                    class:is-selected={selected?.a === '*' && selected?.b === b.key}
-                    title={breakdownText(column)}
-                    onclick={() => pick('*', b.key)}
-                  >
-                    <span>{hours(column.minutes)}</span>
-                    {@render statusBar(column)}
-                  </button>
+            {#each overview.columns as b (b.key)}
+              <td class:is-weekend={group === 'day' && isWeekend(b.key)}>
+                {#if b.bucket.entries}
+                  {@render cellLink('*', b.key, b.bucket, columnLabel(b.label))}
                 {:else}
                   <span class="ov-none">·</span>
                 {/if}
               </td>
             {/each}
-            <td class="ov-sum">
-              <button type="button" class="ov-cell" onclick={() => pick('*', '*')}>
-                <strong>{hours(matrix.total.minutes)}</strong>
-                {@render statusBar(matrix.total)}
-              </button>
-            </td>
+            {#if overview.otherColumn}
+              <td>{@render cellLink('*', OTHER_KEY, overview.otherColumn.bucket, t('ovOtherColumn', { n: overview.otherColumn.count }))}</td>
+            {/if}
+            <td class="ov-sum">{@render cellLink('*', '*', overview.total, t('ovTotal'), true)}</td>
           </tr>
         </tfoot>
       </table>
@@ -514,29 +408,29 @@
 
     <!-- Phone: grouped cards -->
     <ol class="ov-groups" data-testid="ov-groups">
-      {#each matrix.as as a (a.key)}
-        {@const totalA = matrix.aTotals.get(a.key)!}
+      {#each overview.rows as a (a.key)}
         <li class="ov-group">
-          <button type="button" class="ov-group-head" onclick={() => pick(a.key, '*')}>
+          <a class="ov-group-head" href={cellHref(a.key, '*')} data-sveltekit-noscroll data-sveltekit-replacestate>
             <strong>{a.label}</strong>
-            <span class="ov-group-total">{hours(totalA.minutes)} h</span>
-            {@render statusBar(totalA)}
-          </button>
+            <span class="ov-group-total">{hours(a.bucket.minutes)} h</span>
+            {@render statusBar(a.bucket)}
+          </a>
           <ul>
-            {#each matrix.bs as b (b.key)}
-              {@const cell = matrix.cells.get(`${a.key}|${b.key}`)}
+            {#each [...overview.columns, ...(overview.otherColumn ? [{ key: OTHER_KEY, label: t('ovOtherColumn', { n: overview.otherColumn.count }) }] : [])] as b (b.key)}
+              {@const cell = overview.cells[`${a.key}|${b.key}`]}
               {#if cell}
                 <li>
-                  <button
-                    type="button"
+                  <a
                     class="ov-line"
-                    class:is-selected={selected?.a === a.key && selected?.b === b.key}
-                    onclick={() => pick(a.key, b.key)}
+                    class:is-selected={selectedCell === `${a.key}|${b.key}`}
+                    href={cellHref(a.key, b.key)}
+                    data-sveltekit-noscroll
+                    data-sveltekit-replacestate
                   >
-                    <span class="ov-line-label">{b.label}</span>
+                    <span class="ov-line-label">{b.key === OTHER_KEY ? b.label : columnLabel(b.label)}</span>
                     <span class="ov-line-hours">{hours(cell.minutes)} h</span>
                     {@render statusBar(cell)}
-                  </button>
+                  </a>
                 </li>
               {/if}
             {/each}
@@ -545,38 +439,68 @@
       {/each}
     </ol>
 
-    {#if selected && selectedBucket}
-      <div class="ov-drill" data-testid="ov-drill" role="region" aria-label={t('ovEntries')}>
+    <p class="ov-count muted small" data-testid="ov-count">
+      {t('ovShowing', { shown: overview.rows.length, total: overview.rowCount })}
+      {#if overview.others}
+        · <a href={href({ show: String(overview.show + 15), cell: null, cpage: null })} data-sveltekit-noscroll
+          >{t('ovShowMore', { n: nextShow })}</a
+        >
+      {/if}
+    </p>
+
+    {#if drill}
+      <div class="ov-drill" data-testid="ov-drill" role="region" aria-label={t('ovEntries')} use:reveal>
         <div class="ov-drill-head">
-          <h3>{selectedTitle} · {hours(selectedBucket.minutes)} h</h3>
-          <button type="button" class="secondary" onclick={() => (selected = null)}>{t('ovClose')}</button>
+          <h3>{drillTitle} · {hours(drill.bucket.minutes)} h</h3>
+          <a class="secondary button-link" href={href({ cell: null, cpage: null })} data-sveltekit-noscroll data-sveltekit-replacestate
+            >{t('ovClose')}</a
+          >
         </div>
-        <p class="muted small">{breakdownText(selectedBucket)}</p>
+        <p class="muted small">{breakdownText(drill.bucket)}</p>
         <ul class="ov-entries">
-          {#each selectedRows as row (row.id)}
+          {#each drill.entries as row (row.id)}
             <li>
-              <a href={`${base}/app/time/${String(row.id)}`}>
-                <span class="ov-entry-date">{formatDate(String(row.work_date))}</span>
+              <a href={`${base}/app/time/${row.id}`}>
+                <span class="ov-entry-date">{formatDate(row.work_date)}</span>
                 <span class="ov-entry-main">
-                  <span>{groupBy === 'project' ? workerName(row) : projectName(row)}</span>
+                  <span>{group === 'project' ? row.worker_name : projectName(row)}</span>
                   <span class="muted"
-                    >{groupBy === 'project' ? projectName(row) : workerName(row)} · {categoryLabel(String(row.category))}</span
+                    >{group === 'project' ? projectName(row) : row.worker_name} · {categoryLabel(row.category)}</span
                   >
                 </span>
-                <span class="ov-entry-hours">{hours(Number(row.minutes ?? 0))} h</span>
-                <StatusBadge variant={variant(statusOf(row))} text={statusLabel(statusOf(row))} />
+                <span class="ov-entry-hours">{hours(row.minutes)} h</span>
+                <StatusBadge variant={variant(statusOf(row.approval_state))} text={statusLabel(statusOf(row.approval_state))} />
               </a>
             </li>
           {/each}
         </ul>
+        <div class="ov-pager">
+          <span class="muted small" data-testid="ov-drill-range"
+            >{t('ovEntriesRange', {
+              from: (drill.page - 1) * drill.pageSize + 1,
+              to: Math.min(drill.count, drill.page * drill.pageSize),
+              total: drill.count,
+            })}</span
+          >
+          {#if drillPages > 1}
+            {#if drill.page > 1}
+              <a href={href({ cpage: String(drill.page - 1) })} data-sveltekit-noscroll data-sveltekit-replacestate>← {t('ovPrevious')}</a>
+            {/if}
+            {#if drill.page < drillPages}
+              <a href={href({ cpage: String(drill.page + 1) })} data-sveltekit-noscroll data-sveltekit-replacestate data-testid="ov-drill-next"
+                >{t('ovNext')} →</a
+              >
+            {/if}
+          {/if}
+        </div>
         <div class="ov-drill-actions">
-          {#if delegating && selectedWorker && data.user.role !== 'auditor_read_only'}
+          {#if delegating && drill.workerId && data.user.role !== 'auditor_read_only'}
             <a
-              href={`${base}/app/time?mode=week&worker=${encodeURIComponent(selectedWorker)}&week=${weekStartForDate(String(selectedRows[0]?.work_date ?? overview.from)) ?? ''}`}
+              href={`${base}/app/time?mode=week&worker=${encodeURIComponent(drill.workerId)}&week=${weekStartForDate(drill.firstDate) ?? ''}`}
               >{t('ovOpenWeek')} →</a
             >
           {/if}
-          {#if delegating && selectedRows.some((row) => statusOf(row) === 'submitted')}
+          {#if delegating && drill.hasSubmitted}
             <a href={`${base}/app/approvals`}>{t('ovApprovals')} →</a>
           {/if}
         </div>
@@ -654,7 +578,11 @@
   .ov-filters .clear {
     align-self: center;
   }
-  button.secondary {
+  button.secondary,
+  a.button-link {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
     min-height: var(--ja-target-min, 44px);
     padding: 0 1.1rem;
     border-radius: var(--ja-control-radius, 8px);
@@ -706,15 +634,18 @@
     border-radius: var(--ja-control-radius, 8px);
     overflow: hidden;
   }
-  .time-overview .seg button {
+  .time-overview .seg a {
     color: var(--ja-ink, #1c2430);
     box-shadow: none;
     border-radius: 0;
   }
-  .time-overview .seg button[aria-pressed='true'] {
+  .time-overview .seg a[aria-current='true'] {
     color: #fff;
   }
-  .seg button {
+  .seg a {
+    display: inline-flex;
+    align-items: center;
+    text-decoration: none;
     min-height: var(--ja-target-min, 44px);
     padding: 0 0.9rem;
     border: 0;
@@ -723,7 +654,7 @@
     font-weight: 600;
     cursor: pointer;
   }
-  .seg button[aria-pressed='true'] {
+  .seg a[aria-current='true'] {
     background: var(--ja-ink, #1c2430);
     color: #fff;
   }
@@ -994,6 +925,40 @@
   .time-overview :global([data-ui='status-badge'][data-variant='info']) {
     background: #eaf2fd;
     color: #1d4f91;
+  }
+  .ov-cell,
+  .ov-group-head,
+  .ov-line {
+    text-decoration: none;
+    color: inherit;
+    box-sizing: border-box;
+  }
+  .ov-filters .ov-search {
+    flex: 2 1 16rem;
+  }
+  .ov-others-row th,
+  .ov-others-row td {
+    color: var(--ja-steel, #5b6573);
+    font-style: italic;
+  }
+  .ov-more {
+    font-weight: 600;
+  }
+  .ov-count {
+    margin: 0;
+  }
+  .ov-pager {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-top: 0.6rem;
+  }
+  .ov-pager a {
+    min-height: var(--ja-target-min, 44px);
+    display: inline-flex;
+    align-items: center;
+    font-weight: 600;
   }
   @media (max-width: 760px) {
     .ov-matrix-wrap {

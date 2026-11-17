@@ -142,6 +142,16 @@ const en = {
   ovWeekend: '{n} weekend days',
   ovMissing: '{n} weekdays without hours',
   ovMissingDay: 'Weekday without hours',
+  ovSearch: 'Search worker or project',
+  ovSearchButton: 'Search',
+  ovScope: '{range} · {entries} entries · {groups} rows',
+  ovShowing: 'Showing {shown} of {total}',
+  ovShowMore: 'Show {n} more',
+  ovOthers: '{n} others',
+  ovOtherColumn: 'Other ({n})',
+  ovEntriesRange: 'Entries {from}–{to} of {total}',
+  ovPrevious: 'Previous',
+  ovNext: 'Next',
 } as const;
 
 type CopyKey = keyof typeof en;
@@ -290,6 +300,16 @@ const es: Record<CopyKey, string> = {
   ovWeekend: '{n} días de fin de semana',
   ovMissing: '{n} días laborables sin horas',
   ovMissingDay: 'Día laborable sin horas',
+  ovSearch: 'Buscar trabajador o proyecto',
+  ovSearchButton: 'Buscar',
+  ovScope: '{range} · {entries} registros · {groups} filas',
+  ovShowing: 'Mostrando {shown} de {total}',
+  ovShowMore: 'Mostrar {n} más',
+  ovOthers: '{n} más',
+  ovOtherColumn: 'Otros ({n})',
+  ovEntriesRange: 'Registros {from}–{to} de {total}',
+  ovPrevious: 'Anterior',
+  ovNext: 'Siguiente',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -436,6 +456,16 @@ const pt: Record<CopyKey, string> = {
   ovWeekend: '{n} dias de fim de semana',
   ovMissing: '{n} dias úteis sem horas',
   ovMissingDay: 'Dia útil sem horas',
+  ovSearch: 'Buscar trabalhador ou projeto',
+  ovSearchButton: 'Buscar',
+  ovScope: '{range} · {entries} registros · {groups} linhas',
+  ovShowing: 'Mostrando {shown} de {total}',
+  ovShowMore: 'Mostrar mais {n}',
+  ovOthers: 'Mais {n}',
+  ovOtherColumn: 'Outros ({n})',
+  ovEntriesRange: 'Registros {from}–{to} de {total}',
+  ovPrevious: 'Anterior',
+  ovNext: 'Próximo',
 };
 
 export type TimeWeekCopyKey = CopyKey;

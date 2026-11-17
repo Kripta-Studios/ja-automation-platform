@@ -10,7 +10,7 @@
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import { personDisplayName } from '../display-name';
-  import { replaceState } from '$app/navigation';
+  import { goto } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
@@ -89,11 +89,16 @@
   function chooseView(next: 'capture' | 'overview'): void {
     view = next;
     if (typeof window === 'undefined') return;
+    // Each view is loaded on the server (capture: own recent items; overview: aggregates).
     const url = new URL(window.location.href);
+    for (const key of [...url.searchParams.keys()])
+      if (!['lang', 'includeArchived'].includes(key)) url.searchParams.delete(key);
     if (next === 'overview') url.searchParams.set('view', 'overview');
-    else url.searchParams.delete('view');
-    replaceState(url, $page.state);
+    void goto(url, { noScroll: true, keepFocus: true });
   }
+  $effect(() => {
+    view = data.expenseView === 'overview' && canReview ? 'overview' : 'capture';
+  });
 
   const statusOf = expenseStatusOf;
   const statusLabel = expenseStatusLabel;
@@ -110,21 +115,14 @@
         Number(row.created_by_me ?? 0) === 1,
     ),
   );
-  let showAll = $state(false);
-  const recentFrom = $derived.by(() => {
-    const today = new Date(`${localToday()}T00:00:00Z`);
-    today.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7) - 28);
-    return today.toISOString().slice(0, 10);
-  });
-  const visible = $derived(
-    showAll
-      ? mine
-      : mine.filter(
-          (row) =>
-            text(row, 'spent_on') >= recentFrom ||
-            ['draft', 'needs_changes'].includes(text(row, 'approval_state')),
-        ),
-  );
+  // The server already limits this to the last few weeks plus open items.
+  const visible = $derived(mine);
+  const capture = $derived(data.expenseCapture ?? { weeks: 4, from: '', olderCount: 0 });
+  function showOlder(): void {
+    const url = new URL($page.url);
+    url.searchParams.set('weeks', String(capture.weeks + 4));
+    void goto(url, { noScroll: true, keepFocus: true });
+  }
 
   /* --------------------------------------------------------------- weeks */
   function mondayOf(date: string): string {
@@ -217,8 +215,7 @@
         return { start, rows, people: blocks };
       });
   });
-  let weekLimit = $state(6);
-  const shownWeeks = $derived(weeks.slice(0, weekLimit));
+  const shownWeeks = $derived(weeks);
   const showPersonHeaders = $derived(mine.some((row) => text(row, 'worker_id') !== me));
   const canSubmitBlock = (block: PersonBlock): boolean =>
     !isAuditor && block.drafts.length > 0 && (block.workerId === me || isOwner);
@@ -683,13 +680,24 @@
 {/if}
 
 {#if view === 'overview' && canReview}
-  <ExpenseOverview {records} projects={availableProjects} {people} {locale} {translate} />
+  {#if data.expenseOverview}
+    <ExpenseOverview
+      overview={data.expenseOverview}
+      projects={availableProjects}
+      {people}
+      {locale}
+      {translate}
+    />
+  {/if}
 {:else}
   <div class="xp">
     <header class="xp-head">
       <div>
         <h2>{isOwner ? c('recentOwner') : c('mine')}</h2>
         <p>{c('intro')}</p>
+        <p class="xp-muted" data-expense-scope>
+          {c('captureScope', { weeks: capture.weeks, n: visible.length })}
+        </p>
       </div>
       {#if canRecord && projects.length > 0}
         <div class="xp-head-actions">
@@ -830,14 +838,12 @@
       </section>
     {/each}
 
-    {#if weeks.length > shownWeeks.length || (!showAll && mine.length > visible.length)}
+    {#if capture.olderCount > 0}
       <button
         type="button"
         class="secondary-button xp-older"
-        onclick={() => {
-          if (weeks.length > shownWeeks.length) weekLimit += 6;
-          else showAll = true;
-        }}>{c('showOlder')}</button
+        data-expense-show-older
+        onclick={showOlder}>{c('showOlder')}</button
       >
     {/if}
   </div>

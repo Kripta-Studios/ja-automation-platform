@@ -227,9 +227,10 @@ const expenseUpdateSchema = versionedRecordSchema
 /** Normalize the browser's decimal controls into the exact minor-unit update contract. */
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   const payload = { ...object };
-  const amountMinor = decimalToMinor(normalizeExpenseAmount(payload.amount));
+  const amountMinor = decimalToMinor(normalizeExpenseAmount(payload.amount), payload.amountCurrency);
   payload.amountMinor = amountMinor ?? payload.amount;
   delete payload.amount;
+  delete payload.amountCurrency;
 
   // Empty optional controls should be omitted rather than coerced to zero.
   for (const key of ['paymentMethod', 'receiptDocumentId']) {
@@ -1114,7 +1115,7 @@ export const expenseActions = withOperationalActionNames({
         category: row.category,
         description: row.description,
         currency: object.currency,
-        amountMinor: decimalToMinor(row.amount),
+        amountMinor: decimalToMinor(row.amount, object.currency),
         whoPaid: object.whoPaid,
         receiptRequired: false,
       }),
@@ -1302,7 +1303,7 @@ export const expenseActions = withOperationalActionNames({
         spentOn: object[`spentOn_${index}`],
         category: object[`category_${index}`],
         currency: object.currency,
-        amountMinor: decimalToMinor(normalizeExpenseAmount(amount)),
+        amountMinor: decimalToMinor(normalizeExpenseAmount(amount), object.currency),
         description: String(object[`note_${index}`] ?? '').trim(),
         whoPaid: 'worker',
         receiptRequired: Boolean(receiptFile),
@@ -1471,7 +1472,7 @@ export const expenseActions = withOperationalActionNames({
     delete object.receipt;
     object.receiptRequired =
       object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
-    object.amountMinor = decimalToMinor(normalizeExpenseAmount(object.amount));
+    object.amountMinor = decimalToMinor(normalizeExpenseAmount(object.amount), object.currency);
     delete object.amount;
     for (const key of ['paymentMethod', 'receiptDocumentId', 'vendor']) {
       if (object[key] === '') object[key] = undefined;

@@ -95,6 +95,7 @@ export {
   periodReportHtml,
   projectFinanceXlsx,
   renderAccountingPackArtifacts,
+  renderHtmlToPdf,
   technicalReportPdf,
   technicalReportHtml,
   workerStatementCsv,

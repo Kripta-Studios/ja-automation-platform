@@ -91,6 +91,7 @@
   import ProjectSetupNextSteps from './portal/sections/ProjectSetupNextSteps.svelte';
   import ProjectCreateForm from './portal/sections/ProjectCreateForm.svelte';
   import TimezoneSelect from './portal/ui/TimezoneSelect.svelte';
+  import CurrencySelect from './portal/ui/CurrencySelect.svelte';
   import PermanentDeleteDialog from './portal/ui/PermanentDeleteDialog.svelte';
   import { projectCopy, projectPickLabel } from '$lib/portal/project-ux-round3-copy';
   import { projectUxText } from '$lib/portal/project-ux-copy';
@@ -5369,15 +5370,7 @@
                     value={clientFormValue('clientCode')}
                   /><small>{projectCopy(locale, 'clientCodeHint')}</small></label
                 ><label
-                  >{translate('Currency')}<select name="currency" required
-                    ><option value="USD" selected={clientFormValue('currency', 'USD') === 'USD'}
-                      >USD</option
-                    ><option value="BRL" selected={clientFormValue('currency', 'USD') === 'BRL'}
-                      >BRL</option
-                    ><option value="EUR" selected={clientFormValue('currency', 'USD') === 'EUR'}
-                      >EUR</option
-                    ></select
-                  ></label
+                  >{translate('Currency')}<CurrencySelect value={clientFormValue('currency', 'USD')} {locale} /></label
                 ><TimezoneSelect
                   name="timezone"
                   label={projectCopy(locale, 'clientTimezone')}
@@ -5475,11 +5468,7 @@
                     /><small>{projectCopy(locale, 'clientCodeHint')}</small></label
                   >
                   <label
-                    >{translate('Currency')}<select name="currency" required>
-                      <option value="USD" selected={client.currency === 'USD'}>USD</option>
-                      <option value="BRL" selected={client.currency === 'BRL'}>BRL</option>
-                      <option value="EUR" selected={client.currency === 'EUR'}>EUR</option>
-                    </select></label
+                    >{translate('Currency')}<CurrencySelect value={String(client.currency ?? 'USD')} {locale} /></label
                   >
                   <TimezoneSelect
                     name="timezone"

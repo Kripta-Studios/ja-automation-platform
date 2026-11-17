@@ -8,6 +8,27 @@ import {
   type Money,
 } from '@ja/money';
 
+// Currency helpers re-exported for the portal (client and server), which does not
+// depend on @ja/money directly.
+export {
+  CURRENCIES,
+  CURRENCY_MINOR_DIGITS,
+  convertExact,
+  crossRate,
+  currencyMinorDigits,
+  divideDecimals,
+  formatDecimal,
+  formatMinorPlain,
+  impliedRate,
+  isCurrency,
+  money as exactMoney,
+  parseMajorToMinor,
+  parseRate,
+  totalsByCurrency,
+  type Currency,
+  type ExactConversion,
+} from '@ja/money';
+
 export type DateRange = Readonly<{ start: string; end: string }>;
 const DAY = 86_400_000;
 

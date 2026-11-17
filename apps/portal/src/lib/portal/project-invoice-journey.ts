@@ -1,3 +1,4 @@
+import { minorDigitsFor } from './payment-money';
 import type { PortalLocale } from '$lib/portal-i18n';
 
 const copy = {
@@ -391,8 +392,11 @@ export function journeyMoney(minor: string, currency: string, locale: PortalLoca
   try {
     const value = BigInt(minor);
     const absolute = value < 0n ? -value : value;
-    const whole = new Intl.NumberFormat(locale).format(absolute / 100n);
-    return `${value < 0n ? '−' : ''}${whole}${locale === 'en' ? '.' : ','}${String(absolute % 100n).padStart(2, '0')} ${currency}`;
+    const digits = minorDigitsFor(currency);
+    const scale = 10n ** BigInt(digits);
+    const whole = new Intl.NumberFormat(locale).format(absolute / scale);
+    const fraction = digits ? `${locale === 'en' ? '.' : ','}${String(absolute % scale).padStart(digits, '0')}` : '';
+    return `${value < 0n ? '−' : ''}${whole}${fraction} ${currency}`;
   } catch {
     return '—';
   }

@@ -1,3 +1,4 @@
+import { isCurrency } from '@ja/billing-engine';
 import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 import { AccessDeniedError, V3AccessDeniedError, assertLiveSession } from '@ja/database';
@@ -94,7 +95,7 @@ const definitions = {
   currencyInvalid: [
     'CURRENCY_INVALID',
     400,
-    'Choose USD, EUR, or BRL for the currency filter.',
+    'Choose a supported currency for the currency filter.',
     'review_ledger_filters',
   ],
   agingInvalid: [
@@ -213,7 +214,7 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
     if (report && !(collectionReports as readonly string[]).includes(report))
       invalid('report', 'reportInvalid');
     if (report && format !== 'csv') invalid('report', 'reportCsvOnly');
-    if (currency && !['USD', 'EUR', 'BRL'].includes(currency))
+    if (currency && !isCurrency(currency))
       invalid('currency', 'currencyInvalid');
     if (aging && !(agingBuckets as readonly string[]).includes(aging))
       invalid('aging', 'agingInvalid');

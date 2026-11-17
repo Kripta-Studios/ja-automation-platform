@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { recordAuditEvent, type V3Repository } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import { currencyMinorDigits, isCurrency } from '@ja/billing-engine';
 import { withAssignmentFinanceTransaction } from './actions/assignment-finance';
 
 /**
@@ -31,11 +32,18 @@ export class RateSaveError extends Error {
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u;
 const datePattern = /^\d{4}-\d{2}-\d{2}$/u;
 
-export function amountMinor(value: unknown): bigint {
+export function amountMinor(value: unknown, currency?: string): bigint {
   const text = String(value ?? '')
     .trim()
     .replace(/\s/gu, '')
     .replace(',', '.');
+  if (currency && isCurrency(currency) && currencyMinorDigits(currency) === 0) {
+    // Zero-decimal currency (JPY): whole units are minor units.
+    if (!/^\d{1,12}$/u.test(text)) throw new RateSaveError('invalid_amount');
+    const whole = BigInt(text);
+    if (whole <= 0n) throw new RateSaveError('invalid_amount');
+    return whole;
+  }
   if (!/^\d{1,10}(?:\.\d{1,2})?$/u.test(text)) throw new RateSaveError('invalid_amount');
   const [whole, fraction = ''] = text.split('.');
   const minor = BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, '0'));
@@ -254,13 +262,13 @@ export function saveClientRate(
   const workerId = String(object.workerId ?? '');
   if (!idPattern.test(projectId)) throw new RateSaveError('invalid_project');
   if (workerId && !idPattern.test(workerId)) throw new RateSaveError('invalid_person');
-  const minor = amountMinor(object.amount);
   const basis = object.basis === 'daily' ? 'daily' : 'hourly';
   const date = validDate(object.effectiveFrom);
   const project = sqlite.prepare('SELECT currency FROM project WHERE id=?').get(projectId) as
     | { currency: string }
     | undefined;
   if (!project) throw new RateSaveError('invalid_project');
+  const minor = amountMinor(object.amount, project.currency);
   return withAssignmentFinanceTransaction(sqlite, () => {
     assertNotInvoiced(sqlite, projectId, date);
     if (workerId) {
@@ -374,7 +382,6 @@ export function saveWorkerPay(
   const workerId = String(object.workerId ?? '');
   if (!idPattern.test(projectId)) throw new RateSaveError('invalid_project');
   if (!idPattern.test(workerId)) throw new RateSaveError('invalid_person');
-  const minor = amountMinor(object.amount);
   const basis = object.basis === 'daily' ? 'daily' : 'hourly';
   const date = validDate(object.effectiveFrom);
   const alsoCost = object.alsoCost === 'on' && basis === 'hourly';
@@ -382,6 +389,7 @@ export function saveWorkerPay(
     | { currency: string }
     | undefined;
   if (!project) throw new RateSaveError('invalid_project');
+  const minor = amountMinor(object.amount, project.currency);
   return withAssignmentFinanceTransaction(sqlite, () => {
     const member = activeMember(sqlite, projectId, workerId, date);
     if (!member) throw new RateSaveError('not_on_project');
@@ -528,12 +536,12 @@ export function saveWorkerCost(
   const workerId = String(object.workerId ?? '');
   if (!idPattern.test(projectId)) throw new RateSaveError('invalid_project');
   if (!idPattern.test(workerId)) throw new RateSaveError('invalid_person');
-  const minor = amountMinor(object.amount);
   const date = validDate(object.effectiveFrom);
   const project = sqlite.prepare('SELECT currency FROM project WHERE id=?').get(projectId) as
     | { currency: string }
     | undefined;
   if (!project) throw new RateSaveError('invalid_project');
+  const minor = amountMinor(object.amount, project.currency);
   return withAssignmentFinanceTransaction(sqlite, () => {
     const member = activeMember(sqlite, projectId, workerId, date);
     if (!member) throw new RateSaveError('not_on_project');

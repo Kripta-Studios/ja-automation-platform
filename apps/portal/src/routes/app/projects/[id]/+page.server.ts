@@ -1,6 +1,6 @@
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { lastCompletePeriodForCadence, type BillingCadence } from '@ja/billing-engine';
+import { lastCompletePeriodForCadence, type BillingCadence, type Currency } from '@ja/billing-engine';
 import { invoicePeriodSchema, isValidIanaTimeZone, projectRecordIdSchema, clientRecordIdSchema } from '@ja/schemas';
 import { newId } from '@ja/domain';
 import { z } from 'zod';
@@ -232,7 +232,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
               : [],
             templates: billingSetup.listTemplates(
               context.principal,
-              String(overview.project.currency) as 'EUR' | 'USD' | 'BRL',
+              String(overview.project.currency) as Currency,
             ),
             people: billingSetup.peopleReview(
               context.principal,

@@ -317,6 +317,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   78: 'void_invoice_source_release',
   79: 'invoice_inline_overrides',
   80: 'scale_indexes',
+  82: 'multi_currency_fx',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -325,7 +326,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '73b22c5fc874d2f55361b539ef044e52e949de6e55d65206906021e092057597';
+  '558479fb88891664a245736ec5e725aca0d6f68b7b8ec1d2ab695ae8d51e52ee';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1240,4 +1241,6 @@ export {
 
 export * from './domains/field-capture/index.ts';
 export * from './domains/digital-workers/index.ts';
+export * from './domains/fx/exchange-rates.ts';
+export * from './domains/fx/currency-conversion.ts';
 export type { PurgeSummary } from './domains/projects/project-purge.ts';

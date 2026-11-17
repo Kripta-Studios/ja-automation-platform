@@ -10,6 +10,7 @@ export { default as ResponsiveSheet } from './ResponsiveSheet.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as ToastRegion } from './ToastRegion.svelte';
 export { default as ProblemNotice } from './ProblemNotice.svelte';
+export { default as CurrencySelect } from './CurrencySelect.svelte';
 export { default as LocalizedPdfPanel } from './localized-pdf/LocalizedPdfPanel.svelte';
 export { default as formValidation } from './form-validation';
 export {

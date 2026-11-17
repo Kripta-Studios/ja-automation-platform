@@ -1,3 +1,4 @@
+import { isCurrency } from '@ja/billing-engine';
 import { randomUUID } from 'node:crypto';
 import {
   AccessDeniedError,
@@ -98,7 +99,7 @@ const definitions = {
   currencyInvalid: [
     400,
     'CURRENCY_INVALID',
-    'Choose USD, EUR, or BRL for the currency filter.',
+    'Choose a supported currency for the currency filter.',
     'review_expense_filters',
   ],
   statusInvalid: [
@@ -246,7 +247,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
     })) {
       if (value.length > 500) invalid(field, 'filterTooLong');
     }
-    if (currency && !['USD', 'EUR', 'BRL'].includes(currency))
+    if (currency && !isCurrency(currency))
       invalid('currency', 'currencyInvalid');
     if (
       status &&

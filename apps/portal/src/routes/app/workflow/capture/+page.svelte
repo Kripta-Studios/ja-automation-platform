@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
@@ -594,9 +595,7 @@
                   /></label
                 ><label
                   >{t.currency}<select name="currency" bind:value={currency} required
-                    ><option value="">—</option><option>EUR</option><option>USD</option><option
-                      >BRL</option
-                    ></select
+                    ><option value="">—</option>{#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}</select
                   ></label
                 ><label
                   >{t.payer}<select name="whoPaid" bind:value={whoPaid} required

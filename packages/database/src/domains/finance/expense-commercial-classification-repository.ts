@@ -1,6 +1,10 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { canManageBilling, type Principal } from '@ja/domain';
-import { add, applyBasisPoints, money, type Currency } from '@ja/money';
+import { add, applyBasisPoints, isCurrency, money, type Currency } from '@ja/money';
+import {
+  convertedExpenseProjection,
+  currentCurrencyConversion,
+} from '../fx/currency-conversion.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { canonicalJson, sha256 } from '../../core/canonical-json.ts';
 import {
@@ -451,6 +455,37 @@ export class ExpenseCommercialClassificationRepository {
         projectCurrencyAmountMinor = sourceAmountMinor as number;
         billingAmountMinor = toSafeMinor(billingMoney.minorUnits, 'Billing amount');
         taxAmountMinor = toSafeMinor(taxMoney.minorUnits, 'Tax amount');
+      }
+      if (sourceCurrency !== authorityCurrency && isCurrency(authorityCurrency)) {
+        // A foreign-currency expense is projected only through an explicit,
+        // audited conversion into the project currency (migration 0082).
+        const conversion = currentCurrencyConversion(
+          this.deps.sqlite,
+          'expense',
+          normalized.expenseId,
+          authorityCurrency,
+        );
+        if (conversion && conversion.sourceAmountMinor === String(sourceAmountMinor)) {
+          const projection = convertedExpenseProjection(
+            BigInt(conversion.targetAmountMinor),
+            authorityCurrency,
+            {
+              client_treatment: normalized.clientTreatment,
+              billing_treatment: normalized.billingTreatment,
+              markup_bps: normalized.markupBps,
+            },
+            normalized.taxBps,
+          );
+          const safe = (value: bigint, field: string): number => {
+            const converted = Number(value);
+            if (!Number.isSafeInteger(converted) || converted < 0)
+              return this.failValidation(`${field} is outside the supported exact-money range`);
+            return converted;
+          };
+          projectCurrencyAmountMinor = safe(projection.projectCurrencyAmountMinor, 'Converted amount');
+          billingAmountMinor = safe(projection.billingAmountMinor, 'Billing amount');
+          taxAmountMinor = safe(projection.taxAmountMinor, 'Tax amount');
+        }
       }
       const seriesId = `ce-expense-classification-series-${sha256(
         `${deployment.tenantId}:${deployment.deploymentId}:${normalized.expenseId}`,

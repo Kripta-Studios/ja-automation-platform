@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { minorDigitsFor } from '$lib/portal/payment-money';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
@@ -275,11 +276,13 @@
     const value = BigInt(raw);
     const negative = value < 0n;
     const absolute = negative ? -value : value;
-    const whole = absolute / 100n;
-    const fraction = (absolute % 100n).toString().padStart(2, '0');
+    const digits = minorDigitsFor(String(project.currency));
+    const scale = 10n ** BigInt(digits);
+    const whole = absolute / scale;
+    const fraction = (absolute % scale).toString().padStart(digits, '0');
     const regional = locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US';
     const separator = locale === 'en' ? '.' : ',';
-    return `${negative ? '-' : ''}${project.currency} ${whole.toLocaleString(regional)}${separator}${fraction}`;
+    return `${negative ? '-' : ''}${project.currency} ${whole.toLocaleString(regional)}${digits ? `${separator}${fraction}` : ''}`;
   }
 
   function hours(minutes: unknown): string {

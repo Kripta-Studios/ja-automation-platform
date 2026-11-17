@@ -1,3 +1,4 @@
+import { CURRENCIES } from '@ja/billing-engine';
 import { randomUUID } from 'node:crypto';
 import { json, type RequestHandler } from '@sveltejs/kit';
 import { z } from 'zod';
@@ -219,7 +220,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       operation: z.literal('setIssuerBank'),
       ...scopeFields,
       legalEntityId: idSchema,
-      currency: z.enum(['EUR', 'USD', 'BRL']),
+      currency: z.enum(CURRENCIES),
       expectedVersion: z.number().int().nonnegative(),
       bankName: z.string().trim().min(1).max(300),
       bankAccountNumber: z.string().trim().min(1).max(160),

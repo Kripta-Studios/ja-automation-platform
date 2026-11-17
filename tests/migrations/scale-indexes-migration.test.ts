@@ -41,7 +41,13 @@ describe('scale indexes migration80', () => {
       .prepare("SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' AND name<>'migration_contract_metadata' ORDER BY type,name")
       .all();
     f.sqlite.close();
-    process.env.JA_MIGRATIONS_PATH = resolve('migrations');
+    // Upgrade to exactly schema 80: later migrations change the schema on purpose.
+    const target = mkdtempSync(join(tmpdir(), 'ja-scale-schema80-'));
+    directories.push(target);
+    for (const entry of readdirSync(resolve('migrations')))
+      if (entry === 'contracts' || (/^\d{4}_.+\.sql$/.test(entry) && Number(entry.slice(0, 4)) <= 80))
+        cpSync(join(resolve('migrations'), entry), join(target, entry), { recursive: true });
+    process.env.JA_MIGRATIONS_PATH = target;
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 80 });
     for (const name of names)

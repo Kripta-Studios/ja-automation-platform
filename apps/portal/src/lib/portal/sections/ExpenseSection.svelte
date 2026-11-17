@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   /*
    * Simplified expense screen (owner request 2026-11-16: "simple as possible").
    * One "Add expense" form, one list grouped by week, one "Submit for approval"
@@ -23,6 +24,7 @@
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
+  import { amountPattern, inputTextToMinor, minorDigitsFor, minorToInputText } from '../payment-money';
   import { expenseCategories, primaryExpenseCategories } from '../expense-categories';
   import { expenseReceiptState } from '../expense-evidence';
   import ExpenseOverview from './ExpenseOverview.svelte';
@@ -372,10 +374,8 @@
     fCategory = text(row, 'category') || 'other';
     moreCategories = !primaryExpenseCategories.some((item) => item.value === fCategory);
     const minor = text(row, 'amount_minor');
-    fAmount = /^\d+$/u.test(minor)
-      ? `${minor.padStart(3, '0').slice(0, -2)}.${minor.padStart(3, '0').slice(-2)}`
-      : '';
     fCurrency = text(row, 'currency');
+    fAmount = minorToInputText(minor, fCurrency);
     // The server fills "<Category> expense" when no note was typed; show it as empty.
     const englishLabel = expenseCategories.find(([key]) => key === fCategory)?.[1] ?? '';
     fNote = text(row, 'description') === `${englishLabel} expense` ? '' : text(row, 'description');
@@ -602,8 +602,7 @@
   }
   /** Exact decimal-to-minor parsing for the live total (no floating point). */
   function decimalMinor(value: string): bigint | null {
-    const match = /^(\d+)(?:[.,](\d{1,2}))?$/u.exec(value.trim());
-    return match ? BigInt(`${match[1]}${(match[2] ?? '').padEnd(2, '0')}`) : null;
+    return inputTextToMinor(value, bulkCurrency);
   }
   const bulkFilled = $derived(bulkRows.filter((row) => row.amount.trim() || row.file));
   const bulkTotal = $derived(
@@ -933,7 +932,7 @@
         <label class="xp-field xp-currency">
           <span>{c('currency')}</span>
           <select name="currency" bind:value={bulkCurrency} required>
-            {#each ['USD', 'EUR', 'BRL'] as code (code)}
+            {#each CURRENCIES as code (code)}
               <option value={code}>{code}</option>
             {/each}
           </select>
@@ -967,8 +966,8 @@
                 name={`amount_${index}`}
                 inputmode="decimal"
                 autocomplete="off"
-                placeholder="0.00"
-                pattern={'^\\d+([.,]\\d{1,2})?$'}
+                placeholder={minorDigitsFor(bulkCurrency) === 0 ? '0' : '0.00'}
+                pattern={amountPattern(bulkCurrency)}
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('amount')}`}
                 bind:value={row.amount}
               />
@@ -1245,8 +1244,8 @@
             required
             inputmode="decimal"
             autocomplete="off"
-            pattern={'^\\d+([.,]\\d{1,2})?$'}
-            placeholder="0.00"
+            pattern={amountPattern(fCurrency)}
+            placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : '0.00'}
             data-expense-amount
             bind:value={fAmount}
             oninput={() => (amountTouched = true)}
@@ -1256,9 +1255,10 @@
           <span>{c('currency')}</span>
           {#if mode === 'edit'}
             <input value={fCurrency} readonly aria-readonly="true" />
+            <input type="hidden" name="amountCurrency" value={fCurrency} />
           {:else}
             <select name="currency" bind:value={fCurrency} required>
-              {#each ['USD', 'EUR', 'BRL'] as code (code)}
+              {#each CURRENCIES as code (code)}
                 <option value={code}>{code}</option>
               {/each}
             </select>

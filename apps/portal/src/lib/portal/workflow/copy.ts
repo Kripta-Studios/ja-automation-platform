@@ -194,7 +194,7 @@ const en: Copy = {
   'Capture expense category invalid': 'Choose a supported expense category.',
   'Capture expense description invalid':
     'Enter an expense description of no more than 5,000 characters.',
-  'Capture expense currency invalid': 'Choose EUR, USD, or BRL.',
+  'Capture expense currency invalid': 'Choose a currency from the list.',
   'Capture expense amount invalid': 'Enter an amount greater than zero.',
   'Capture expense payer invalid': 'Choose who paid for the expense.',
   'Capture vendor invalid': 'Enter a vendor name of no more than 200 characters.',
@@ -488,7 +488,7 @@ const es: Copy = {
   'Capture expense category invalid': 'Elige una categoría de gasto admitida.',
   'Capture expense description invalid':
     'Escribe una descripción del gasto de hasta 5.000 caracteres.',
-  'Capture expense currency invalid': 'Elige EUR, USD o BRL.',
+  'Capture expense currency invalid': 'Elige una moneda de la lista.',
   'Capture expense amount invalid': 'Introduce un importe mayor que cero.',
   'Capture expense payer invalid': 'Indica quién pagó el gasto.',
   'Capture vendor invalid': 'Escribe el nombre del proveedor en un máximo de 200 caracteres.',
@@ -781,7 +781,7 @@ const pt: Copy = {
   'Capture expense category invalid': 'Selecione uma categoria de despesa suportada.',
   'Capture expense description invalid':
     'Escreva uma descrição da despesa com até 5.000 caracteres.',
-  'Capture expense currency invalid': 'Selecione EUR, USD ou BRL.',
+  'Capture expense currency invalid': 'Selecione uma moeda da lista.',
   'Capture expense amount invalid': 'Introduza um valor superior a zero.',
   'Capture expense payer invalid': 'Indique quem pagou a despesa.',
   'Capture vendor invalid': 'Escreva o nome do fornecedor com até 200 caracteres.',

@@ -38,7 +38,7 @@ import {
   periodForCadence,
   type OvertimeMethod,
 } from '@ja/billing-engine';
-import { add, hourlyRateForMinutes, money, type Currency } from '@ja/money';
+import { add, hourlyRateForMinutes, isCurrency, money, type Currency } from '@ja/money';
 import { decodeTechnicalReportChange, isValidIanaTimeZone } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
 import { ProjectCloseoutService } from './domains/closeout/project-closeout-service.ts';
@@ -1251,7 +1251,7 @@ export class PortalRepository {
         | { client_number: string; client_code: string | null; currency: Currency }
         | undefined;
       if (!client) throw new ValidationError('Active client not found');
-      if (!['USD', 'EUR', 'BRL'].includes(input.currency))
+      if (!isCurrency(input.currency))
         throw new ValidationError('Invalid project currency');
       if (input.onsiteContactName?.trim() && input.onsiteContactId)
         throw new ValidationError('Choose an existing on-site contact or create a new one');
@@ -13691,7 +13691,7 @@ export class PortalRepository {
       if (companyIdentifiers.length > 1000)
         throw new ValidationError('Tax or registration identifier is too long');
       const currency = input.currency === undefined ? existing.currency : String(input.currency);
-      if (!['USD', 'BRL', 'EUR'].includes(currency))
+      if (!isCurrency(currency))
         throw new ValidationError('Unsupported legal entity currency');
       this.assertLegalEntityCurrencyChangeAllowed(
         entityId,

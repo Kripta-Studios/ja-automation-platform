@@ -7,6 +7,7 @@
  * it) and translates owner-language inputs into those commands. Money arrives as decimal
  * text and is converted to integer minor units by the rates core; nothing here sums money.
  */
+import { type Currency } from '@ja/billing-engine';
 import {
   AccessDeniedError,
   AssignmentExpensePolicyRepository,
@@ -250,7 +251,7 @@ export function quickInvoiceSetupBilling(
 ) {
   authorize(context);
   const project = visibleProject(context, input.projectId);
-  const currency = String(project.currency) as 'EUR' | 'USD' | 'BRL';
+  const currency = String(project.currency) as Currency;
   const existing = context.repository
     .listBillingRules(context.principal)
     .some((rule) => String(rule.project_id) === input.projectId && Number(rule.enabled) === 1);
@@ -391,7 +392,7 @@ export function quickInvoiceSetTax(
     taxProfileId = context.repository.createTaxProfile(context.principal, {
       legalEntityId: rule.legal_entity_id,
       name: input.tax.name,
-      currency: String(project.currency) as 'EUR' | 'USD' | 'BRL',
+      currency: String(project.currency) as Currency,
       effectiveFrom: preview.periodStart,
       components: [{ name: input.tax.name, basisPoints: input.tax.basisPoints }],
     }).id;

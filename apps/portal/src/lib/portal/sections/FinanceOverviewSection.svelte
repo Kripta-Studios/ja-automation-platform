@@ -1,4 +1,9 @@
 <script lang="ts">
+  const moneyLinks = {
+    en: { subcontractors: 'Subcontractor settlement', conversions: 'Currency conversions', convert: 'Convert the expense currency' },
+    es: { subcontractors: 'Liquidación de subcontratistas', conversions: 'Conversiones de moneda', convert: 'Convertir la moneda del gasto' },
+    pt: { subcontractors: 'Acerto de subcontratados', conversions: 'Conversões de moeda', convert: 'Converter a moeda da despesa' },
+  } as const;
   import { round2Text } from '../ux-round2-copy';
   import { centerNavigationTarget } from '../ui/navigation-target';
   import { uxText } from '../ux-refresh-copy';
@@ -1981,6 +1986,10 @@
     <div class="finance-overview__utilities">
       {#if canWriteFinance}<a href={`${base}/app/finance/cash?lang=${locale}`}
           >{translate('Cash calendar')}</a
+        ><a href={`${base}/app/finance/subcontractors?lang=${locale}`} data-finance-subcontractors-link
+          >{moneyLinks[locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en'].subcontractors}</a
+        ><a href={`${base}/app/finance/conversions?lang=${locale}`} data-finance-conversions-link
+          >{moneyLinks[locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en'].conversions}</a
         >{/if}
       {#if finance && data.selectedProjectId}
         <a data-project-calculation-link href={projectCalculationHref()}
@@ -2072,8 +2081,8 @@
                     >{translate('Review expense classification')}</a
                   >
                 {:else if canWriteFinance && reason.code === 'missing_expense_currency_conversion'}
-                  <a href={projectionExpenseSourceHref(reason)}
-                    >{translate('Review source expense')}</a
+                  <a href={`${base}/app/finance/conversions?expense=${encodeURIComponent(String(reason.sourceId ?? ''))}&lang=${locale}#convert`}
+                    >{moneyLinks[locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en'].convert}</a
                   >
                 {/if}
               </li>

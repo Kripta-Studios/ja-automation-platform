@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { CURRENCIES } from '$lib/portal/currencies';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
@@ -334,7 +335,7 @@
       <FieldGroup>
         <Field id="example-currency" label={t.currency}
           ><select id="example-currency" name="currency" value={value('currency')}
-            >{#each ['USD', 'EUR', 'BRL'] as currency}<option>{currency}</option>{/each}</select
+            >{#each CURRENCIES as currency}<option>{currency}</option>{/each}</select
           ></Field
         >
         <Field id="example-pricing" label={t.pricing}

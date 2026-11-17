@@ -3,6 +3,7 @@
   import { formValidation } from '../ui';
   import { dirtyFormGuard } from '../dirty-form-guard';
   import TimezoneSelect from '../ui/TimezoneSelect.svelte';
+  import CurrencySelect from '../ui/CurrencySelect.svelte';
   import ProjectSiteFields from './ProjectSiteFields.svelte';
   import ProjectCreationAssignments from './ProjectCreationAssignments.svelte';
   import ProjectBudgetInput from './ProjectBudgetInput.svelte';
@@ -214,14 +215,11 @@
     <div class="project-create-simple__rate">
       <label
           >{translate('Currency')}
-          <select
-            name="currency"
+          <CurrencySelect
             value={currency}
-            onchange={(event) => (currencyOverride = event.currentTarget.value)}
-            ><option value="USD">USD</option><option value="EUR">EUR</option><option value="BRL"
-              >BRL</option
-            ></select
-          >
+            {locale}
+            onchange={(code) => (currencyOverride = code)}
+          />
         </label>
       <label
         >{c('clientRate', { currency })}

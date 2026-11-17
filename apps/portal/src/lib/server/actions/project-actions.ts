@@ -1,3 +1,4 @@
+import { type Currency } from '@ja/billing-engine';
 import {
   assignmentInputSchema,
   clientContactInputSchema,
@@ -1595,7 +1596,7 @@ export const projectActions = {
           throw new ValidationError('Worker assignment start date must be within project dates');
         const project = context.sqlite
           .prepare('SELECT currency FROM project WHERE id=?')
-          .get(parsed.data.projectId) as { currency: 'EUR' | 'USD' | 'BRL' } | undefined;
+          .get(parsed.data.projectId) as { currency: Currency } | undefined;
         if (!project) throw new ValidationError('Project not found');
         if (object.useProjectDefaults === 'on') {
           new ProjectPersonDefaultsRepository(

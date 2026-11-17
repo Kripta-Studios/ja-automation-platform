@@ -1,3 +1,4 @@
+import { minorToInputText } from '$lib/portal/payment-money';
 import { fail, isActionFailure } from '@sveltejs/kit';
 import {
   AccessDeniedError,
@@ -756,7 +757,7 @@ export function billingProblemFor(
         { expenseId },
       );
     const amountMinor = /^\d+$/u.test(expense.amountMinor ?? '') ? BigInt(expense.amountMinor!) : 0n;
-    const amount = `${amountMinor / 100n}.${String(amountMinor % 100n).padStart(2, '0')} ${expense.currency}`;
+    const amount = `${minorToInputText(amountMinor.toString(), expense.currency)} ${expense.currency}`;
     const params = {
       expenseId,
       amount,

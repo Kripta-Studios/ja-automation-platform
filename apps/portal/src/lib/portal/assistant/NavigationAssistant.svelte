@@ -264,7 +264,7 @@
       </div>
       <button class="assistant-close" type="button" onclick={close} aria-label={t.close}>×</button>
     </header>
-    <div class="assistant-body">
+    {#if open}<div class="assistant-body">
       {#if selectedTask}
         <button
           type="button"
@@ -352,7 +352,7 @@
           {/each}
         </ul>
       {/if}
-    </div>
+    </div>{/if}
   </dialog>
 </div>
 

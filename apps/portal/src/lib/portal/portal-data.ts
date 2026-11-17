@@ -180,9 +180,15 @@ export type PortalData = {
   packs?: Array<Record<string, unknown>>;
   audit?: PortalRow[];
   auditView?: 'all' | 'business' | 'service';
-  auditHasMore?: boolean;
-  auditNextCursor?: { occurredAt: string; id: string } | null;
-  auditOlderPage?: boolean;
+  auditFilter?: import('$lib/portal/audit-log').AuditFilter;
+  auditTotal?: number;
+  auditPage?: number;
+  auditPages?: number;
+  auditPageSize?: number;
+  auditActors?: Array<{ id: string; name: string }>;
+  auditEntityTypes?: string[];
+  notificationPage?: { total: number; all: number; unread: number; page: number; pages: number; pageSize: number; unreadOnly: boolean };
+  clientDirectory?: import('$lib/portal/client-directory').ClientDirectoryPage;
   legalEntities?: PortalRow[];
   canonicalLegalEntityOptions?: PortalRow[];
   projectLegalEntityAssignments?: PortalRow[];

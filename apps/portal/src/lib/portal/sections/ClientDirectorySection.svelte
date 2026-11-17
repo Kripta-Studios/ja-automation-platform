@@ -11,7 +11,7 @@
     formValidation,
     reportFormFieldErrors,
   } from '../ui';
-  import { onMount, tick } from 'svelte';
+  import { onMount, tick, untrack } from 'svelte';
   import { pendingWorkspaceTargetIds } from '../ui/workspace-navigation';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import { projectUxRound2Text } from '$lib/portal/project-ux-round2-copy';
@@ -27,6 +27,11 @@
   import ClientWorkCalendar from './ClientWorkCalendar.svelte';
   import PermanentDeleteDialog from '../ui/PermanentDeleteDialog.svelte';
   import type { ClientCalendarEntry } from '../client-work-calendar';
+  import type { ClientDirectoryPage } from '../client-directory';
+  import { goto } from '$app/navigation';
+  import { paymentMoney } from '../payment-money';
+  import { documentLanguage } from '$lib/i18n/context';
+  import { scaleCopy, scaleLocaleTag } from './scale-shell-copy';
 
   /**
    * An authorized directory projection. The route owns authorization and only
@@ -47,6 +52,8 @@
     form?: unknown;
     translate: (value: string) => string;
     controlledValue?: (domain: 'status', value: unknown) => string;
+    /** Server-paged list (scale). Absent or mode 'focus' renders the full cards. */
+    directory?: ClientDirectoryPage;
   };
 
   let {
@@ -62,7 +69,9 @@
     form,
     translate,
     controlledValue,
+    directory,
   }: ClientDirectoryProps = $props();
+  const listMode = $derived(directory?.mode === 'list');
 
   let search = $state('');
   let addingForClientId = $state<string | null>(null);
@@ -318,7 +327,9 @@
   );
   let clientPage = $state<typeof visibleClients>([]);
 
-  useViewPreferences({
+  // The server-paged list keeps its search in ?find=; saved preferences only
+  // apply to the focused (full card) view.
+  if (untrack(() => directory?.mode) !== 'list') useViewPreferences({
     scope: 'client-directory',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
@@ -408,6 +419,53 @@
     const compact = phone.replace(/[^0-9+*#;,]/gu, '');
     return compact ? `tel:${compact}` : `tel:${encodeURIComponent(phone)}`;
   }
+  const sc = (key: Parameters<typeof scaleCopy>[1], params?: Record<string, string | number>) =>
+    scaleCopy(problemLocale, key, params);
+  const fmt = (value: number) => new Intl.NumberFormat(scaleLocaleTag[problemLocale]).format(value);
+  let findValue = $state(untrack(() => directory?.find ?? ''));
+  let findTimer: ReturnType<typeof setTimeout> | undefined;
+  $effect(() => {
+    // Follow the URL (Clear, back button) unless the person is typing.
+    const next = directory?.find ?? '';
+    untrack(() => {
+      const active = document.activeElement as HTMLInputElement | null;
+      if (active?.name !== 'find' && findValue !== next) findValue = next;
+    });
+  });
+  function listHref(changes: Record<string, string | null>): string {
+    const url = new URL($page.url);
+    url.hash = '';
+    for (const [key, next] of Object.entries(changes)) {
+      if (next === null || next === '') url.searchParams.delete(key);
+      else url.searchParams.set(key, next);
+    }
+    url.searchParams.set('view', 'clients');
+    url.searchParams.set('lang', problemLocale);
+    return `${url.pathname}${url.search}`;
+  }
+  function findChanged(next: string): void {
+    findValue = next;
+    clearTimeout(findTimer);
+    findTimer = setTimeout(() => {
+      void goto(listHref({ find: next.trim() || null, page: null }), {
+        keepFocus: true,
+        noScroll: true,
+        replaceState: true,
+      });
+    }, 300);
+  }
+  function owedLabel(owed: Array<{ currency: string; minor: string }>): string {
+    return owed
+      .map((row) => paymentMoney(row.minor, row.currency, documentLanguage(problemLocale)))
+      .join(' + ');
+  }
+  function projectsLabel(count: number): string {
+    return count === 0
+      ? sc('noOpenProjects')
+      : count === 1
+        ? sc('oneOpenProject')
+        : sc('openProjects', { count: fmt(count) });
+  }
 </script>
 
 <div
@@ -417,6 +475,130 @@
   data-workspace-target="client-directory"
   tabindex="-1"
 >
+  {#if listMode && directory}
+    <header class="client-directory__header">
+      <div>
+        <h2>{translate('Clients')}</h2>
+        <p class="client-directory__scope" data-client-scope>
+          {sc('clientsScope', {
+            status: directory.includeArchived ? sc('clientsWithArchived') : sc('clientsActive'),
+            total: fmt(directory.total),
+          })}
+        </p>
+      </div>
+      {#if canManageContacts}
+        <a
+          class="primary-button client-directory__new"
+          href={`${base}/app/projects?view=clients&action=new-client&lang=${encodeURIComponent(problemLocale)}`}
+        >
+          {translate('Create client')}
+        </a>
+      {/if}
+    </header>
+    <form
+      id="client-directory-filters"
+      class="client-directory__filter client-directory__finder"
+      method="GET"
+      action={`${base}/app/projects`}
+      aria-label={translate('Filter clients')}
+      data-sveltekit-keepfocus
+      data-sveltekit-noscroll
+    >
+      <input type="hidden" name="view" value="clients" />
+      <input type="hidden" name="lang" value={problemLocale} />
+      {#if directory.includeArchived}<input type="hidden" name="includeArchived" value="1" />{/if}
+      <label>
+        <span>{sc('clientsFind')}</span>
+        <input
+          name="find"
+          value={findValue}
+          oninput={(event) => findChanged(event.currentTarget.value)}
+          type="search"
+          autocomplete="off"
+          placeholder={sc('clientsFindHint')}
+        />
+      </label>
+      <button type="submit" class="secondary-button">{sc('search')}</button>
+      {#if directory.find}
+        <a class="secondary-button" href={listHref({ find: null, page: null })}>{sc('clear')}</a>
+      {/if}
+    </form>
+    <div id="client-directory-list" class="client-directory__list">
+      <RecordBrowser
+        rows={directory.rows}
+        controlled
+        {translate}
+        label="ClientDirectory"
+        filtersEnabled={false}
+        showEmpty={false}
+        server={{
+          summary: directory.total
+            ? sc('showing', {
+                from: fmt((directory.page - 1) * directory.pageSize + 1),
+                to: fmt(Math.min(directory.total, directory.page * directory.pageSize)),
+                total: fmt(directory.total),
+              })
+            : sc('showingNone'),
+          prevHref: directory.page > 1 ? listHref({ page: String(directory.page - 1) }) : undefined,
+          nextHref:
+            directory.page < directory.pages
+              ? listHref({ page: String(directory.page + 1) })
+              : undefined,
+          prevLabel: sc('previous'),
+          nextLabel: sc('next'),
+        }}
+      >
+        {#snippet children(rows)}
+          {#if rows.length === 0}
+            <p class="client-directory__empty client-directory__empty--large" role="status">
+              {directory.find ? ux('noClientMatches') : ux('noAuthorizedClients')}
+            </p>
+          {:else}
+            <ul class="client-directory__rows" data-client-rows>
+              {#each rows as row (row.id)}
+                <li
+                  id={`client-directory-client-${row.id}`}
+                  class="client-row"
+                  data-client-id={row.id}
+                  data-workspace-target={`client-directory-client-${row.id}`}
+                  tabindex="-1"
+                >
+                  <a
+                    class="client-row__main"
+                    data-client-open-page
+                    href={`${base}/app/clients/${encodeURIComponent(row.id)}?lang=${encodeURIComponent(problemLocale)}`}
+                  >
+                    <strong>{row.name || translate('Unnamed client')}</strong>
+                    <small
+                      >{row.code || translate('No client number')}{#if row.primaryContact?.name}
+                        · {row.primaryContact.name}{/if}</small
+                    >
+                  </a>
+                  <span class="client-row__projects">{projectsLabel(row.openProjects)}</span>
+                  {#if row.owed}
+                    <span class="client-row__owed" class:is-owed={row.owed.length > 0}
+                      >{row.owed.length ? `${sc('owed')}: ${owedLabel(row.owed)}` : sc('nothingOwed')}</span
+                    >
+                  {/if}
+                  {#if row.status !== 'active'}
+                    <StatusBadge
+                      variant={row.status === 'archived' ? 'neutral' : 'warning'}
+                      text={controlledValue?.('status', row.status) || translate(row.status)}
+                    />
+                  {/if}
+                  <a
+                    class="client-row__contacts"
+                    href={listHref({ client: row.id, find: null, page: null })}
+                    >{sc('manageContacts')} · {fmt(row.contacts)}</a
+                  >
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        {/snippet}
+      </RecordBrowser>
+    </div>
+  {:else}
   <header class="client-directory__header">
     <div>
       <p class="client-directory__eyebrow">{translate('AUTHORIZED DIRECTORY')}</p>
@@ -622,7 +804,7 @@
                 data-workspace-target={`client-contact-new-${clientId}`}
                 tabindex="-1"
                 method="POST"
-                action="?view=clients&/createClientContact"
+                action={`?view=clients&client=${encodeURIComponent(clientId)}&/createClientContact`}
                 class="client-directory__contact-form"
                 use:formValidation
                 use:dirtyFormGuard={{
@@ -849,7 +1031,7 @@
                         data-workspace-target={`client-contact-delete-${value(contact, 'id')}`}
                         tabindex="-1"
                         method="POST"
-                        action="?view=clients&/deleteClientContact"
+                        action={`?view=clients&client=${encodeURIComponent(clientId)}&/deleteClientContact`}
                         onsubmit={(event) => {
                           if (!confirm(translate('Delete this contact?'))) event.preventDefault();
                         }}
@@ -868,7 +1050,7 @@
                         data-workspace-target={`client-contact-edit-${value(contact, 'id')}`}
                         tabindex="-1"
                         method="POST"
-                        action="?view=clients&/updateClientContact"
+                        action={`?view=clients&client=${encodeURIComponent(clientId)}&/updateClientContact`}
                         class="client-directory__contact-form"
                         use:formValidation
                         use:dirtyFormGuard={{
@@ -1127,9 +1309,104 @@
       </p>
     {/each}
   </div>
+  {/if}
 </div>
 
 <style>
+  .client-directory__new {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0.5rem 1.1rem;
+    white-space: nowrap;
+  }
+  .client-directory__finder {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.6rem;
+  }
+  .client-directory__finder label {
+    flex: 1 1 18rem;
+    display: grid;
+    gap: 0.3rem;
+  }
+  .client-directory__finder input {
+    min-height: 44px;
+  }
+  .client-directory__finder > a {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .client-directory__scope {
+    margin: 0.25rem 0 0;
+    font-weight: 600;
+  }
+  .client-directory__rows {
+    list-style: none;
+    margin: 0.5rem 0 0;
+    padding: 0;
+    border: 1px solid #dfe3e8;
+    border-radius: 10px;
+    background: #fff;
+  }
+  .client-row {
+    display: grid;
+    grid-template-columns: minmax(12rem, 2fr) minmax(8rem, 1fr) minmax(9rem, 1.2fr) auto auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    min-height: 52px;
+  }
+  .client-row + .client-row {
+    border-top: 1px solid #eceff2;
+  }
+  .client-row__main {
+    display: grid;
+    gap: 0.1rem;
+    min-width: 0;
+    min-height: 44px;
+    align-content: center;
+    text-decoration: none;
+    color: inherit;
+  }
+  .client-row__main strong {
+    color: #183247;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .client-row__main small,
+  .client-row__projects,
+  .client-row__owed {
+    color: #56574f;
+    font-size: 0.88rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .client-row__owed.is-owed {
+    color: #8a3b12;
+    font-weight: 650;
+  }
+  .client-row__contacts {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.88rem;
+    white-space: nowrap;
+  }
+  @media (max-width: 720px) {
+    .client-row {
+      grid-template-columns: 1fr auto;
+      gap: 0.1rem 0.75rem;
+      padding: 0.5rem 0.75rem;
+    }
+    .client-row__main {
+      grid-column: 1 / -1;
+    }
+  }
+
   .client-directory {
     display: grid;
     gap: 1rem;

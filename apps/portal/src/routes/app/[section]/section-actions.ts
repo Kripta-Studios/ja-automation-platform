@@ -147,6 +147,7 @@ export const sectionActions: Actions = {
   saveClientRate: ratesActions.saveClientRate,
   saveWorkerPay: ratesActions.saveWorkerPay,
   markNotificationRead: notificationActions.markNotificationRead,
+  markAllNotificationsRead: notificationActions.markAllNotificationsRead,
   archiveDocument: documentActions.archiveDocument,
   restoreDocument: documentActions.restoreDocument,
   deleteDocument: documentActions.deleteDocument,

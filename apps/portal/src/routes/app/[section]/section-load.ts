@@ -23,6 +23,9 @@ import {
   type TimeOverviewData,
 } from '$lib/server/time-overview';
 import { buildExpenseOverview, captureExpenses } from '$lib/server/expense-overview';
+import { buildAuditPage } from '$lib/server/audit-page';
+import { buildClientDirectory } from '$lib/server/client-directory';
+import { projectWorkflowFrom } from '$lib/portal/assignment-form-action';
 import {
   reviewFinanceReimbursement,
   withFinanceReimbursementSnapshot,
@@ -615,6 +618,20 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       // those authorized ids; this keeps the directory useful without
       // widening the worker/PM projection to finance data.
       case 'projects': {
+        // Clients directory (scale): one server page of compact rows, or one
+        // focused client for contact management. Project workflows opened from
+        // the directory (?action=...) keep the full Projects payload below.
+        if (
+          url.searchParams.get('view') === 'clients' &&
+          projectWorkflowFrom(url) === null &&
+          context.principal.role !== 'worker'
+        )
+          return {
+            ...common,
+            ...buildClientDirectory(context, url, includeArchived),
+            canonicalOwner,
+            canManageMail: canonicalOwner,
+          };
         const authorizedProjects = context.repository.listAssignedProjects(context.principal);
         // A direct assignment link must retain a project that became unavailable
         // after the link was created. Expose only the normal project-list columns,
@@ -1232,8 +1249,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ),
         };
       }
-      case 'notifications':
-        return { ...common, records: context.repository.listNotifications(context.principal) };
+      case 'notifications': {
+        // Scale: one page of 25, unread first, counts from SQL.
+        const unreadOnly = url.searchParams.get('read') === 'unread';
+        const inbox = context.repository.listNotificationPage(context.principal, {
+          unreadOnly,
+          page: Number(url.searchParams.get('page')) || 1,
+          pageSize: 25,
+        });
+        return {
+          ...common,
+          records: inbox.rows,
+          notificationPage: {
+            total: inbox.total,
+            all: inbox.all,
+            unread: inbox.unread,
+            page: inbox.page,
+            pages: inbox.pages,
+            pageSize: inbox.pageSize,
+            unreadOnly,
+          },
+        };
+      }
       case 'billing': {
         const scope = projectVisibility(
           context.repository.listFinanceProjects(context.principal),
@@ -1580,36 +1617,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         };
       }
       case 'audit': {
-        const requestedView = url.searchParams.get('view');
-        const auditView =
-          requestedView === 'all' || requestedView === 'service' ? requestedView : 'business';
-        const beforeAt = url.searchParams.get('beforeAt');
-        const beforeId = url.searchParams.get('beforeId');
-        if (
-          Boolean(beforeAt) !== Boolean(beforeId) ||
-          (beforeAt &&
-            (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(beforeAt) ||
-              Number.isNaN(Date.parse(beforeAt)))) ||
-          (beforeId && !/^[0-9a-f-]{36}$/iu.test(beforeId))
-        )
-          error(400, 'Invalid audit history cursor');
-        const pageSize = 50;
-        const rows = context.repository.listAuditEvents(context.principal, {
-          view: auditView,
-          ...(beforeAt && beforeId ? { before: { occurredAt: beforeAt, id: beforeId } } : {}),
-          limit: pageSize + 1,
-        });
-        const audit = rows.slice(0, pageSize);
-        const last = audit.at(-1);
-        return {
-          ...common,
-          audit,
-          auditView,
-          auditHasMore: rows.length > pageSize,
-          auditNextCursor:
-            rows.length > pageSize && last ? { occurredAt: last.occurred_at, id: last.id } : null,
-          auditOlderPage: Boolean(beforeAt),
-        };
+        // Scale: the log holds hundreds of thousands of events. Filters are
+        // server-side (date range, actor, entity type, search) and one page of
+        // 25 is returned with an exact count for the current filter.
+        const audit = buildAuditPage(context, url.searchParams);
+        return { ...common, ...audit };
       }
       default:
         return { ...common, records: [] };

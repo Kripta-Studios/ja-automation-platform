@@ -194,7 +194,7 @@ function consumerSchema() {
       created_at TEXT,updated_at TEXT,version INTEGER);
     ALTER TABLE daily_report ADD COLUMN summary TEXT;
     CREATE TABLE notification(id TEXT,user_id TEXT,kind TEXT,subject_id TEXT,read_at TEXT,created_at TEXT);
-    CREATE TABLE audit_event(id TEXT,actor_id TEXT,action TEXT,entity_id TEXT,details_json TEXT,occurred_at TEXT);
+    CREATE TABLE audit_event(id TEXT,actor_id TEXT,action TEXT,entity_id TEXT,details_json TEXT,occurred_at TEXT,entity_type TEXT);
     CREATE TABLE time_entry(id TEXT,project_id TEXT,worker_id TEXT,work_date TEXT,activity_summary TEXT);
     CREATE TABLE expense(id TEXT,project_id TEXT,worker_id TEXT,spent_on TEXT,description TEXT);
     CREATE TABLE technical_report(id TEXT,project_id TEXT,author_id TEXT,report_date TEXT,created_at TEXT,change_summary TEXT);
@@ -403,7 +403,7 @@ describe('real Worker planning and technical-change list methods', () => {
 
 function reportNotice(kind = 'report_daily_updated', source = 'secret-report') {
   sqlite.exec(
-    "INSERT INTO daily_report(id,project_id,worker_id,work_date,created_at,summary) VALUES('secret-report','assigned','worker','2026-09-20','2026-09-20','private report title'); INSERT INTO audit_event VALUES('audit','other','report.daily_update','secret-report','{\"changedFields\":[\"summary\"]}','2026-09-30')",
+    "INSERT INTO daily_report(id,project_id,worker_id,work_date,created_at,summary) VALUES('secret-report','assigned','worker','2026-09-20','2026-09-20','private report title'); INSERT INTO audit_event VALUES('audit','other','report.daily_update','secret-report','{\"changedFields\":[\"summary\"]}','2026-09-30','daily_report')",
   );
   sqlite
     .prepare('INSERT INTO notification VALUES(?,?,?,?,NULL,?)')
@@ -553,7 +553,6 @@ function ownReportsSchema() {
     CREATE TABLE client(id TEXT,display_name TEXT);
     INSERT INTO client VALUES('client','Operational client');
     UPDATE project SET client_id='client';
-    ALTER TABLE audit_event ADD COLUMN entity_type TEXT;
     ALTER TABLE daily_report ADD COLUMN approval_state TEXT;
     ALTER TABLE daily_report ADD COLUMN version INTEGER;
     ALTER TABLE daily_report ADD COLUMN safety_related INTEGER;

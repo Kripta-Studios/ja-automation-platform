@@ -499,6 +499,39 @@ function nearbyApprovedDates(
     .all(projectId, periodStart, periodEnd) as Array<{ workDate: string }>;
 }
 
+/** Approved milestones that no live invoice holds yet, dated by due date (or approval). */
+function nearbyApprovedMilestones(
+  context: Context,
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ workDate: string }> {
+  return context.sqlite
+    .prepare(
+      `SELECT DISTINCT COALESCE(due_on,substr(approved_at,1,10)) workDate FROM project_milestone
+        WHERE project_id=? AND approval_state='approved' AND invoice_id IS NULL
+          AND COALESCE(due_on,substr(approved_at,1,10)) IS NOT NULL
+          AND (COALESCE(due_on,substr(approved_at,1,10))<? OR COALESCE(due_on,substr(approved_at,1,10))>?)
+          AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                 WHERE source.source_type='milestone' AND source.source_id=project_milestone.id
+                   AND invoice.state NOT IN ('void','cancelled','superseded'))
+        ORDER BY workDate`,
+    )
+    .all(projectId, periodStart, periodEnd) as Array<{ workDate: string }>;
+}
+
+function nearbyForStream(
+  context: Context,
+  stream: QuickInvoiceStream,
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ workDate: string }> {
+  return stream.streamType === 'milestone'
+    ? nearbyApprovedMilestones(context, projectId, periodStart, periodEnd)
+    : nearbyApprovedDates(context, projectId, periodStart, periodEnd);
+}
+
 /** Oldest unbilled approved work first, aligned to the stream cadence and window. */
 function suggestPeriod(
   stream: QuickInvoiceStream,
@@ -636,7 +669,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           warnings: excluded,
           suggestedPeriod: suggestPeriod(
             stream,
-            nearbyApprovedDates(context, input.projectId, input.periodStart, input.periodEnd),
+            nearbyForStream(context, stream, input.projectId, input.periodStart, input.periodEnd),
           ),
         },
         selection: null,
@@ -654,7 +687,13 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     const nothing = dryRun.reasons.every((reason) =>
       ['no_billable_sources', 'no_new_client_unit_charges'].includes(reason.code),
     );
-    const nearby = nearbyApprovedDates(context, input.projectId, input.periodStart, input.periodEnd);
+    const nearby = nearbyForStream(
+      context,
+      stream,
+      input.projectId,
+      input.periodStart,
+      input.periodEnd,
+    );
     return {
       preview: {
         ...base,

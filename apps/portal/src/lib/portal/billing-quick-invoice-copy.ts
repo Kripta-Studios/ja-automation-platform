@@ -176,6 +176,22 @@ const copy = {
     'Rascunho criado. Confira abaixo e depois emita.',
   ],
   issuedTitle: ['Invoice issued', 'Factura emitida', 'Fatura emitida'],
+  voidTitle: ['Invoice voided', 'Factura anulada', 'Fatura cancelada'],
+  voidHelp: [
+    'This invoice stays on record as void. Its hours and expenses were released for a replacement invoice.',
+    'Esta factura queda registrada como anulada. Sus horas y gastos quedaron libres para una factura de reemplazo.',
+    'Esta fatura fica registrada como cancelada. Suas horas e despesas foram liberadas para uma fatura substituta.',
+  ],
+  createReplacement: [
+    'Create replacement invoice',
+    'Crear factura de reemplazo',
+    'Criar fatura substituta',
+  ],
+  replacementPrefilled: [
+    'Replacing a void invoice: same project and dates.',
+    'Reemplazo de una factura anulada: mismo proyecto y fechas.',
+    'Substituindo uma fatura cancelada: mesmo projeto e datas.',
+  ],
   issuedHelp: [
     'Download the PDF and send it to the client, then mark it as sent.',
     'Descarga el PDF y envíalo al cliente; después márcala como enviada.',

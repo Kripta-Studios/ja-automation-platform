@@ -115,6 +115,24 @@
           : {}),
       }).toString()}#finance-review`,
     },
+    review_issuer: {
+      label: translate('problem.remedy.reviewIssuer'),
+      href: `${base}/app/billing?${new URLSearchParams({
+        view: 'setup',
+        lang: locale,
+        ...(typeof createPackProblem?.params.legalEntityId === 'string' &&
+        createPackProblem.params.legalEntityId
+          ? { issuerSettings: createPackProblem.params.legalEntityId }
+          : {}),
+      }).toString()}`,
+    },
+    open_expense: {
+      label: translate('problem.remedy.openExpense'),
+      href:
+        typeof createPackProblem?.params.expenseId === 'string'
+          ? `${base}/app/expenses/${encodeURIComponent(createPackProblem.params.expenseId)}?lang=${encodeURIComponent(locale)}`
+          : `${base}/app/approvals?stage=finance&lang=${encodeURIComponent(locale)}#finance-review`,
+    },
     contact_finance: { label: translate('Contact a finance administrator') },
     contact_owner: { label: translate('Contact an owner') },
     contact_support: { label: translate('problem.remedy.contactSupport') },

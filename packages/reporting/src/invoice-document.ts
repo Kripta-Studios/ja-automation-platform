@@ -60,6 +60,12 @@ const labels = {
   ],
 } as const;
 
+const identifierLabels = {
+  en: { clientNumber: 'Client no.', clientCode: 'Code', project: 'PROJECT', costCenter: 'COST CENTER' },
+  es: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROYECTO', costCenter: 'CENTRO DE COSTE' },
+  pt: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROJETO', costCenter: 'CENTRO DE CUSTO' },
+} as const;
+
 /** One browser-safe, escaped presentation contract for the screen and downloaded invoice. */
 export function renderInvoiceDocument(
   snapshot: InvoiceTemplateSnapshot,
@@ -167,6 +173,36 @@ export function renderInvoiceDocument(
     .filter((v) => text(v))
     .map((v) => `<p>${escape(v)}</p>`)
     .join('');
+  // Client number/code, project and cost center: shown on drafts and on invoices issued with
+  // header version 2. Older issued invoices keep exactly the header their PDF was frozen with.
+  const showIdentifiers = draft || Number(snapshot.documentHeaderVersion ?? 0) >= 2;
+  const id = identifierLabels[rendered.locale];
+  const clientNumber = text(client.number ?? client.clientNumber);
+  const clientCode = text(client.code ?? client.clientCode);
+  const clientIdentity = showIdentifiers
+    ? [
+        clientNumber ? `${id.clientNumber} ${clientNumber}` : '',
+        clientCode && clientCode !== clientNumber ? `${id.clientCode} ${clientCode}` : '',
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  const projectReference = text(
+    [project.number, project.name].filter((v) => text(v)).join(' · '),
+  );
+  const costCenter = text(project.costCenterCode ?? project.cost_center_code);
+  const identifierMeta = showIdentifiers
+    ? `<section class="invoice-references">${[
+        [id.project, projectReference],
+        [id.costCenter, costCenter],
+      ]
+        .filter(([, value]) => text(value))
+        .map(
+          ([label, value]) =>
+            `<div data-invoice-reference><span>${escape(label)}</span><strong>${escape(value)}</strong></div>`,
+        )
+        .join('')}</section>`
+    : '';
   const metadata = [
     [l[4], field('purchaseNo', snapshot.purchaseNo ?? snapshot.purchase_no ?? project.poNumber)],
     [l[5], field('invoiceNumber', number, fieldContext.details) + numberNotice],
@@ -197,7 +233,7 @@ export function renderInvoiceDocument(
         'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,
@@ -235,6 +271,11 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document .invoice-parties p{margin:0;white-space:pre-line}
 .invoice-canonical#ja-invoice-document .invoice-meta{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px;padding:22px 0;border-block:1px solid #e8e8e6;break-inside:avoid}
 .invoice-canonical#ja-invoice-document .invoice-meta strong{font-size:13px}
+.invoice-canonical#ja-invoice-document .invoice-client-identity{margin:0;font-size:12px;color:#575650}
+.invoice-canonical#ja-invoice-document .invoice-references{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;padding:14px 0;border-bottom:1px solid #e8e8e6;break-inside:avoid}
+.invoice-canonical#ja-invoice-document .invoice-references>div{display:grid;gap:7px;min-width:0}
+.invoice-canonical#ja-invoice-document .invoice-references span{color:#67675f;font:700 10px 'Geist Mono',Consolas,monospace;letter-spacing:.06em}
+.invoice-canonical#ja-invoice-document .invoice-references strong{font-size:13px}
 .invoice-canonical#ja-invoice-document .invoice-payment-terms{font-size:12px;margin:12px 0}
 .invoice-canonical#ja-invoice-document h2{font-size:14px;margin:24px 0 8px;break-after:avoid}
 .invoice-canonical#ja-invoice-document table{width:100%;table-layout:fixed;margin:14px 0 24px;border-collapse:collapse}

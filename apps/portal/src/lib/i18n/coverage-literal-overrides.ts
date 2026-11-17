@@ -1,5 +1,14 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  // Billing fixes: draft-only PO / payment terms (2026-11-17).
+  'Also use for future invoices of this project': [
+    'Usar también en las próximas facturas de este proyecto',
+    'Usar também nas próximas faturas deste projeto',
+  ],
+  'Unchecked: the purchase number and payment terms change on this draft only.': [
+    'Sin marcar: el número de compra y las condiciones de pago cambian solo en este borrador.',
+    'Desmarcado: o número de compra e as condições de pagamento mudam só neste rascunho.',
+  ],
   // Owner money screens: Money, Payments, Rates (2026-11-16).
   Money: ['Dinero', 'Dinheiro'],
   Payments: ['Cobros', 'Recebimentos'],

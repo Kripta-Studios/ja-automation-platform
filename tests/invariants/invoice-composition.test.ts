@@ -89,7 +89,7 @@ function fixture() {
 }
 
 describe('selected invoice historical and allocation invariants', () => {
-  it('excludes a voided invoice link while retaining the historical billed source state', () => {
+  it('excludes a voided invoice link and releases the source for a replacement, keeping history', () => {
     const { f, finance, owner, source, rule } = fixture();
     const chosen = source('2026-08-20');
     const scope = {
@@ -115,12 +115,20 @@ describe('selected invoice historical and allocation invariants', () => {
       f.repository
         .invoiceCompositionSources(finance, scope)
         .sources.find((row) => row.id === chosen.id),
-    ).toMatchObject({ containingInvoice: null, billingState: 'invoiced' });
+    ).toMatchObject({ containingInvoice: null, billingState: 'unlocked' });
+    // Owner decision 2026-11-17: a void releases its sources; the link is archived, not lost.
     expect(f.sqlite.prepare('SELECT invoice_id FROM time_entry WHERE id=?').get(chosen.id)).toEqual(
       {
-        invoice_id: draft.id,
+        invoice_id: null,
       },
     );
+    expect(
+      f.sqlite
+        .prepare(
+          "SELECT invoice_id FROM invoice_void_source_release WHERE source_type='time' AND source_id=?",
+        )
+        .get(chosen.id),
+    ).toEqual({ invoice_id: draft.id });
   });
 
   it('issues only selected sources, keeps retry identity and issued selection immutable, and allows the next same-period invoice', () => {

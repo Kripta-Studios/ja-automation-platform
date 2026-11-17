@@ -94,6 +94,7 @@ import type {
   UnusedIssuingAuthorityReplacementInput,
   UnusedIssuingAuthorityReplacementResult,
 } from './domains/finance/unused-issuing-authority-replacement.ts';
+import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
 import { resolveAccountingPackProjectLegalEntity } from './domains/finance/accounting-pack-revision-service.ts';
 import {
   deriveTimeCommercialSlices,
@@ -6708,7 +6709,9 @@ export class V3Repository {
     idempotencyKey: string,
   ): void {
     this.assertActive(principal);
-    if (principal.role !== 'owner_admin') throw new V3AccessDeniedError('Owner role required');
+    // Owner and finance admins may void (spec CORE-11.7); the reason is mandatory and audited.
+    if (principal.role !== 'owner_admin' && principal.role !== 'finance_admin')
+      throw new V3AccessDeniedError('Finance role required');
     this.assertLiveSession(principal);
     const normalizedReason = requireText(reason, 'Void reason', 2000);
     const normalizedKey = idempotencyKey.trim();
@@ -6742,18 +6745,29 @@ export class V3Repository {
           'Invoice collections must be fully reversed before the invoice can be voided',
         );
       const now = timestamp();
+      const voidEventId = newId();
       this.sqlite
         .prepare(
           "INSERT INTO invoice_event(id,invoice_id,event_type,reason,actor_id,occurred_at,idempotency_key) VALUES(?,?,'void',?,?,?,?)",
         )
-        .run(newId(), invoiceId, normalizedReason, principal.userId, now, normalizedKey);
+        .run(voidEventId, invoiceId, normalizedReason, principal.userId, now, normalizedKey);
       this.sqlite
         .prepare(
           "UPDATE invoice SET state='void',voided_at=?,updated_at=?,version=version+1 WHERE id=?",
         )
         .run(now, now, invoiceId);
+      // The void invoice keeps its snapshot; its hours/expenses/milestones become billable again.
+      const released = releaseVoidInvoiceSources(this.sqlite, {
+        invoiceId,
+        voidEventId,
+        actorId: principal.userId,
+        releasedAt: now,
+        newId,
+      });
       this.audit(principal, 'invoice.void', 'invoice', invoiceId, {
         reason: normalizedReason,
+        role: principal.role,
+        releasedSources: released,
       });
     });
   }
@@ -9138,8 +9152,21 @@ export class V3Repository {
           expense.currency !== expense.project_currency &&
           expense.project_currency_amount_minor === null
         )
-          throw new V3ConflictError(
-            `Expense ${expense.id} is missing its authoritative project-currency projection`,
+          throw Object.assign(
+            new V3ConflictError(
+              `Expense ${expense.id} is missing its authoritative project-currency projection`,
+            ),
+            {
+              details: {
+                expenseId: expense.id,
+                spentOn: expense.spent_on,
+                currency: expense.currency,
+                amountMinor: expense.amount_minor,
+                projectCurrency: expense.project_currency,
+                projectNumber: expense.project_number,
+                projectId: expense.project_id,
+              },
+            },
           );
         if (
           expense.who_paid === 'worker' &&

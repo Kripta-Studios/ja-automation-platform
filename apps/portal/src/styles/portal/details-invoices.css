@@ -1134,3 +1134,20 @@
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+.draft-field .draft-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 44px;
+  font-size: 0.9rem;
+  text-transform: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.draft-field .draft-checkbox input {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+}

@@ -68,10 +68,12 @@ export function draftInvoiceTemplateSnapshot(
       legalName: invoice.client_legal_name ?? invoice.client_name,
       billingAddress: invoice.client_billing_address,
       number: invoice.client_number,
+      code: invoice.client_code,
     },
     project: {
       number: invoice.project_number,
       name: invoice.project_name,
+      costCenterCode: invoice.cost_center_code,
       poNumber: invoice.project_po_number,
     },
     purchaseNo: invoice.purchase_no,
@@ -152,5 +154,7 @@ export function invoiceDocumentSnapshot(
     termsAndInstructions: object(frozen.termsAndInstructions),
     companyInfo: object(frozen.companyInfo),
     discountMinor: frozen.discountMinor ?? '0',
+    // Older issued invoices keep exactly the header their PDF was rendered with.
+    documentHeaderVersion: frozen.documentHeaderVersion,
   };
 }

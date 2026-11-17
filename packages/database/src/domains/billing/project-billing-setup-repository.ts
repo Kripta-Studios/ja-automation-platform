@@ -2,7 +2,7 @@ import { clientBillingUnit } from '../commercial/client-labor-charge.ts';
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { newId, type Principal } from '@ja/domain';
-import type { Currency } from '@ja/money';
+import { currencyMinorDigits, formatMinorPlain, isCurrency, type Currency } from '@ja/money';
 import { assertActiveAccount, assertLiveSession } from '../../core/authorization.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
@@ -88,6 +88,25 @@ function decimalFromHundredths(value: string | number | bigint | null | undefine
   if (value == null) return '';
   const amount = BigInt(value);
   return `${amount / 100n}.${(amount % 100n).toString().padStart(2, '0')}`;
+}
+
+/** Money amount typed in the project currency's own decimals (JPY: whole yen). */
+function decimalMinor(value: string, field: string, currency: string): bigint {
+  if (!isCurrency(currency) || currencyMinorDigits(currency) !== 0)
+    return decimalHundredths(value, field);
+  const normalized = value.trim();
+  if (!/^\d{1,12}$/.test(normalized))
+    throw new ValidationError(`${field} must be a non-negative whole amount`);
+  return BigInt(normalized);
+}
+
+/** Display text of a money amount in the project currency's own decimals. */
+function decimalFromMinor(
+  value: string | number | bigint | null | undefined,
+  currency: string,
+): string {
+  if (value == null) return '';
+  return isCurrency(currency) ? formatMinorPlain(value, currency) : decimalFromHundredths(value);
 }
 
 type PayInput = Parameters<V3Repository['createCompensationRule']>[1];
@@ -349,6 +368,12 @@ export class ProjectBillingSetupRepository {
     issues: string[];
   }> {
     this.assertReadable(principal);
+    const projectCurrency =
+      (
+        this.sqlite.prepare('SELECT currency FROM project WHERE id=?').get(projectId) as
+          | { currency: string }
+          | undefined
+      )?.currency ?? 'USD';
     const rows = this.sqlite
       .prepare(
         `SELECT pm.id,pm.user_id,pm.starts_on,pm.worker_expense_reimbursement_override,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
@@ -457,10 +482,13 @@ export class ProjectBillingSetupRepository {
           customerRate:
             rate == null
               ? null
-              : `${terms.clientLaborRate?.rule.currency ?? ''} ${(BigInt(rate) / 100n).toString()}.${(BigInt(rate) % 100n).toString().padStart(2, '0')}/${basis === 'daily' ? 'day' : basis === 'weekly' ? 'week' : 'h'}`,
-          customerRateAmount: decimalFromHundredths(rate),
+              : `${terms.clientLaborRate?.rule.currency ?? ''} ${decimalFromMinor(rate, terms.clientLaborRate?.rule.currency ?? projectCurrency)}/${basis === 'daily' ? 'day' : basis === 'weekly' ? 'week' : 'h'}`,
+          customerRateAmount: decimalFromMinor(rate, projectCurrency),
           customerRateBasis: basis,
-          internalCostAmount: decimalFromHundredths(terms.internalCost?.rule.hourly_rate_minor),
+          internalCostAmount: decimalFromMinor(
+            terms.internalCost?.rule.hourly_rate_minor,
+            projectCurrency,
+          ),
           scheduledRateDates: (
             this.sqlite
               .prepare(
@@ -488,7 +516,7 @@ export class ProjectBillingSetupRepository {
           payAmount:
             pay?.rule_type === 'PercentageOfEligibleClientLabor'
               ? decimalFromHundredths(pay.percentage_bps)
-              : decimalFromHundredths(pay?.rate_minor),
+              : decimalFromMinor(pay?.rate_minor, projectCurrency),
           percentageBasis: pay?.percentage_basis ?? 'CLIENT_LABOR_BEFORE_TAX',
           expenseConfigured: Boolean(policy),
           activeExpensePayers,
@@ -580,15 +608,24 @@ export class ProjectBillingSetupRepository {
       throw new ValidationError('Person terms reference is invalid');
     if (!dayPattern.test(input.effectiveFrom) || Number.isNaN(Date.parse(input.effectiveFrom)))
       throw new ValidationError('Person terms effective date is invalid');
-    const customerMinor = decimalHundredths(input.customerHourlyRate, 'Customer rate');
+    const termsCurrency =
+      (
+        this.sqlite.prepare('SELECT currency FROM project WHERE id=?').get(input.projectId) as
+          | { currency: string }
+          | undefined
+      )?.currency ?? 'USD';
+    const customerMinor = decimalMinor(input.customerHourlyRate, 'Customer rate', termsCurrency);
     const customerBasis = input.customerRateBasis ?? 'hourly';
     if (!['hourly', 'daily', 'weekly'].includes(customerBasis))
       throw new ValidationError('Choose a valid customer billing unit');
     const internalMinor =
       input.internalCostHourlyRate === undefined
         ? undefined
-        : decimalHundredths(input.internalCostHourlyRate, 'Internal hourly cost');
-    const payHundredths = decimalHundredths(input.workerPayAmount, 'Worker compensation');
+        : decimalMinor(input.internalCostHourlyRate, 'Internal hourly cost', termsCurrency);
+    const payHundredths =
+      input.workerPayType === 'PercentageOfEligibleClientLabor'
+        ? decimalHundredths(input.workerPayAmount, 'Worker compensation')
+        : decimalMinor(input.workerPayAmount, 'Worker compensation', termsCurrency);
     const markupBps = Number(decimalHundredths(input.markupPercent || '0', 'Expense markup'));
     if (input.workerPayType === 'PercentageOfEligibleClientLabor' && payHundredths > 10_000n)
       throw new ValidationError('Worker compensation percentage cannot exceed 100%');

@@ -13,6 +13,7 @@
   "dependencies": {
     "@ja/domain": "workspace:*",
     "@ja/invoice-templates": "workspace:*",
+    "@ja/money": "workspace:*",
     "playwright": "catalog:"
   },
   "devDependencies": {

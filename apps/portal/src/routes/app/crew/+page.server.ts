@@ -15,6 +15,7 @@ import {
   type ActionMessageKey,
 } from '$lib/server/actions/action-message';
 import type { Actions, PageServerLoad } from './$types';
+import { parseHoursText } from '$lib/portal/sections/time-hours';
 
 type CrewOperation = 'grant' | 'revoke' | 'createBatch' | 'submit' | 'allocateReceipt';
 type CrewProblem = {
@@ -597,15 +598,11 @@ function resolveCrewDayFilter(
   };
 }
 
+/** Same any-minute parser as the Time screen: "7.5", "7,5", "8:15", "7h30". */
 function minutesFromHours(value: string, label: string): number {
-  const normalized = value.trim().replace(',', '.');
-  if (!/^\d{1,2}(?:\.\d{1,4})?$/u.test(normalized))
-    throw new ValidationError(`${label}: enter hours such as 7.5`);
-  const hours = Number(normalized);
-  if (!Number.isFinite(hours) || hours <= 0 || hours > 24)
-    throw new ValidationError(`${label}: enter more than zero and no more than 24 hours`);
-  const minutes = Math.round(hours * 60);
-  if (!Number.isSafeInteger(minutes) || minutes < 1 || minutes > 1440)
+  const minutes = parseHoursText(value);
+  if (minutes === undefined) throw new ValidationError(`${label}: enter hours such as 7.5`);
+  if (minutes === null || minutes < 1 || minutes > 1440)
     throw new ValidationError(`${label}: enter more than zero and no more than 24 hours`);
   return minutes;
 }
@@ -629,17 +626,24 @@ export const load: PageServerLoad = ({ locals, url }) => {
     // projects() checks live account, session, and role before URL filter facts
     // are returned. Only this authorized list may determine selected scope.
     const projects = crew.projects(context.principal);
-    const { projectId, workDate, filterProblem } = resolveCrewDayFilter(
-      url,
-      projects,
-      owner,
-      locals.correlationId,
-    );
+    const resolved = resolveCrewDayFilter(url, projects, owner, locals.correlationId);
+    const { projectId, workDate } = resolved;
+    // Delegations that start after today: hours can be entered from that day
+    // (the domain requires an active delegation), so explain it instead of
+    // showing an access error.
+    const upcoming = owner ? [] : crew.upcomingDelegations(context.principal);
+    const waitingForDelegation =
+      upcoming.length > 0 &&
+      (resolved.filterProblem?.code === 'CREW_DAY_PROJECT_REQUIRED_CHIEF' ||
+        (resolved.filterProblem?.code === 'CREW_DAY_PROJECT_UNAVAILABLE_CHIEF' &&
+          upcoming.some((delegation) => delegation.projectId === projectId)));
+    const filterProblem = waitingForDelegation ? null : resolved.filterProblem;
     const emptyRows = (
       currentProjects = projects,
       currentProblem: ProblemData | null = filterProblem,
     ) => ({
       owner,
+      upcoming,
       projects: currentProjects,
       projectId,
       workDate,
@@ -653,7 +657,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       receipts: [],
       allocatedReceipts: [],
     });
-    if (filterProblem) return emptyRows();
+    if (filterProblem || waitingForDelegation) return emptyRows();
     let assigned: ReturnType<CrewLeaderRepository['assignedWorkers']> = [];
     if (!owner && projectId) {
       try {
@@ -710,6 +714,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
     }
     const pageData = {
       owner,
+      upcoming,
       projects,
       projectId,
       workDate,

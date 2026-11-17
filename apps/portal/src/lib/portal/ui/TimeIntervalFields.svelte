@@ -130,7 +130,7 @@
       : `${decimalHours(enteredMinutes)} h`}
   </p>
   <p class="time-range-help">
-    {translate('Enter decimal hours, for example 7.5.')}
+    {translate('Enter hours, for example 7.5 or 7:30.')}
   </p>
 {/if}
 

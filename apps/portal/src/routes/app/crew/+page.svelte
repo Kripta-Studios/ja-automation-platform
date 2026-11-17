@@ -14,6 +14,7 @@
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { decimalToMinor } from '$lib/portal/portal-format';
   import { paymentMoney } from '$lib/portal/payment-money';
+  import { personDisplayName } from '$lib/portal/display-name';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -30,6 +31,14 @@
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
   const status = (value: string) => translateControlledValue(locale, 'status', value);
+  const longDate = (value: string) =>
+    new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${value}T00:00:00Z`));
   function canonicalCrewDate(value: unknown): value is string {
     if (typeof value !== 'string' || !/^\d{4}-\d{2}-\d{2}$/u.test(value)) return false;
     const [year, month, day] = value.split('-').map(Number);
@@ -304,8 +313,14 @@
     clearReceiptAllocation();
     rememberFilterScroll(event);
   }
-  beforeNavigate(({ cancel, to }) => {
+  beforeNavigate(({ cancel, to, type }) => {
     if (confirmedActionRedirect && to?.url.href === confirmedActionRedirect) return;
+    // Closing or reloading the tab: browsers block confirm() during beforeunload,
+    // so let cancel() trigger the browser's own "leave site?" prompt instead.
+    if (type === 'leave') {
+      if (pendingOperation || hasUnsavedCrewChanges()) cancel();
+      return;
+    }
     if (
       pendingOperation ||
       (hasUnsavedCrewChanges() &&
@@ -421,14 +436,21 @@
     },
     contact_project_owner: { label: t('Contact the project owner to review access.') },
   });
-  function showFieldProblems(result: Record<string, unknown> | null | undefined): void {
+  function showFieldProblems(
+    result: Record<string, unknown> | null | undefined,
+    status: number,
+  ): void {
     if (!result?.operation) return;
     const operation = String(result.operation);
     const target = document.querySelector<HTMLFormElement>(`[data-crew-operation="${operation}"]`);
     const fields = result.fieldErrors;
     if (target && fields && typeof fields === 'object' && !Array.isArray(fields))
       reportFormFieldErrors(target, fields as Record<string, readonly string[]>);
-    if (target && result.code && result.messageKey)
+    // Validation and conflict problems (4xx except sign-in/permission) are shown
+    // inline next to the form and its fields, like operational-submit.ts; only
+    // access and server problems open the step-by-step dialog.
+    const inlineOnly = status !== 401 && status !== 403 && status < 500;
+    if (target && result.code && result.messageKey && !inlineOnly)
       requestGuidedRecovery({ problem: result as ProblemData, form: target, source: target });
     (
       target?.querySelector<HTMLElement>('[data-validation-summary]') ??
@@ -489,7 +511,7 @@
         await update({ reset: false });
         if (result.type === 'failure') {
           await tick();
-          showFieldProblems(result.data);
+          showFieldProblems(result.data, result.status);
           window.scrollTo({ top: scrollTop, behavior: 'instant' });
           requestAnimationFrame(revealCrewProblem);
         }
@@ -531,7 +553,7 @@
     applyStandaloneDocumentLocale(locale);
     if (problem)
       void tick().then(() => {
-        showFieldProblems(form);
+        showFieldProblems(form, $page.status);
         if (savedScroll) {
           sessionStorage.removeItem(scrollKey);
           try {
@@ -582,6 +604,21 @@
     </div>
   {:else if form?.message}
     <div class="notice error" role="alert">{form.message}</div>
+  {/if}
+
+  {#if !data.owner && data.upcoming?.length}
+    <div class="notice info" role="status" data-crew-upcoming>
+      {#each data.upcoming as delegation}
+        <p>
+          {t('Your crew delegation for {project} ({worker}) starts on {date}.', {
+            project: delegation.projectName,
+            worker: personDisplayName(delegation.workerName),
+            date: longDate(delegation.startsOn),
+          })}
+        </p>
+      {/each}
+      <p>{t('You can record their hours from that day.')}</p>
+    </div>
   {/if}
 
   {#if filterProblem}
@@ -800,7 +837,7 @@
         </ul>
       {:else}<p class="empty">{t('No crew delegations for this project.')}</p>{/if}
     </SectionCard>
-  {:else if !filterProblem}
+  {:else if !filterProblem && data.projects.length}
     <SectionCard title={t('Log team hours')} id="crew-hours">
       <p>
         {t('Use one worker for a single entry, or select several. Shared hours apply')}
@@ -889,7 +926,7 @@
                   required
                 />
                 <small id="crew-shared-hours-help"
-                  >{t('Enter decimal hours, for example 7.5.')}</small
+                  >{t('Enter hours, for example 7.5 or 7:30.')}</small
                 >
               </label>
             {/if}
@@ -1508,6 +1545,16 @@
   .notice {
     padding: 0.8rem;
     border-radius: 0.5rem;
+  }
+  .info {
+    display: grid;
+    gap: 0.25rem;
+    background: #e8f1f8;
+    color: #183247;
+    border: 1px solid #b9d2e6;
+  }
+  .info p {
+    margin: 0;
   }
   .error {
     background: #fce8e8;

@@ -286,6 +286,44 @@ export class CrewLeaderRepository {
     return [...permitted.values()];
   }
 
+  /**
+   * Read-only notice data: the chief's active delegations that start after
+   * today (project time zone). Hours can only be entered once a delegation is
+   * active (see assertScope), so the page explains when that will be.
+   */
+  upcomingDelegations(
+    principal: Principal,
+  ): { projectId: string; projectName: string; startsOn: string; workerName: string }[] {
+    this.assertChief(principal);
+    const rows = this.sqlite
+      .prepare(
+        `SELECT p.id projectId,p.name projectName,p.timezone,g.starts_on startsOn,worker.name workerName
+         FROM crew_leader_grant g JOIN project p ON p.id=g.project_id
+         JOIN user worker ON worker.id=g.worker_user_id
+         WHERE g.chief_user_id=? AND g.status='active'
+           AND p.status IN ('active','planned','paused')
+         ORDER BY g.starts_on,p.name,worker.name`,
+      )
+      .all(principal.userId) as Array<{
+      projectId: string;
+      projectName: string;
+      timezone: string;
+      startsOn: string;
+      workerName: string;
+    }>;
+    return rows
+      .filter((row) => {
+        const date = todayInProjectZone(row.timezone);
+        return Boolean(date && row.startsOn > date);
+      })
+      .map(({ projectId, projectName, startsOn, workerName }) => ({
+        projectId,
+        projectName,
+        startsOn,
+        workerName,
+      }));
+  }
+
   candidateWorkers(principal: Principal, projectId: string): CrewPerson[] {
     this.assertOwner(principal);
     return this.sqlite

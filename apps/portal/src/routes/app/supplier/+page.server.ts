@@ -817,10 +817,8 @@ function batchDuration(values: Record<string, string>): {
     const minutes = Number(submittedMinutes);
     if (minutes >= 1 && minutes <= 1440) return { minutes };
   }
-  const normalizedHours = (values.durationHours ?? '').trim().replace(',', '.');
-  if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalizedHours))
-    throw new ValidationError('Enter hours, or a start and end time');
-  const minutes = Math.round(Number(normalizedHours) * 60);
+  const minutes = durationMinutes(values.durationHours ?? '');
+  if (minutes === null) throw new ValidationError('Enter hours, or a start and end time');
   if (minutes < 1 || minutes > 1440)
     throw new ValidationError('Duration must be greater than zero and no more than 24 hours');
   return { minutes };
@@ -1120,12 +1118,11 @@ function action(operation: string): Actions[string] {
               throw new ValidationError('Enter hours for every selected technician');
             workerMinutes = {};
             for (const workerId of selected) {
-              const normalized = String((hours as Record<string, unknown>)[workerId] ?? '')
-                .trim()
-                .replace(',', '.');
-              if (!/^\d{1,2}(?:\.\d{1,2})?$/u.test(normalized))
+              const minutes = durationMinutes(
+                String((hours as Record<string, unknown>)[workerId] ?? ''),
+              );
+              if (minutes === null)
                 throw new ValidationError('Enter valid hours for every selected technician');
-              const minutes = Math.round(Number(normalized) * 60);
               if (minutes < 1 || minutes > 1440)
                 throw new ValidationError(
                   'Individual hours must be greater than zero and no more than 24',

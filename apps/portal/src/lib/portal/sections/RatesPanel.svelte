@@ -14,6 +14,7 @@
   import type { PortalLocale } from '../../portal-i18n';
   import type { RatePersonRow, RatesOverview } from '../money-overview-types';
   import { moneyText, type MoneyCopyKey } from '../money-copy';
+  import { minorToInputText } from '../payment-money';
 
   let {
     rates,
@@ -92,11 +93,9 @@
   const unit = (basis: string | null) =>
     basis === 'daily' ? t('perDay') : basis === 'weekly' ? t('perWeek') : t('perHour');
   const sourceLabel = (source: string | null) => (source ? t(`src_${source}` as MoneyCopyKey) : '');
-  const decimal = (minor: string | null) => {
-    if (!minor) return '';
-    const value = BigInt(minor);
-    return `${value / 100n}.${(value % 100n).toString().padStart(2, '0')}`;
-  };
+  /** Input text in the project currency's own decimals (JPY has none). */
+  const decimal = (minor: string | null, currency: string) =>
+    minor ? minorToInputText(minor, currency) : '';
   const shortDate = (value: string) =>
     new Intl.DateTimeFormat(locale, {
       day: 'numeric',
@@ -183,7 +182,7 @@
           inputmode="decimal"
           autocomplete="off"
           required
-          value={decimal(currentMinor)}
+          value={decimal(currentMinor, currency)}
           data-rate-amount
         /></label
       >

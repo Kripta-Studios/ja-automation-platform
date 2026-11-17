@@ -2247,7 +2247,7 @@ export const billingActions = {
       viewportScrollY: retainedScrollPosition(object.viewportScrollY),
       drawerScrollTop: retainedScrollPosition(object.drawerScrollTop),
     };
-    object.amountMinor = decimalToMinor(object.amount);
+    object.amountMinor = decimalToMinor(object.amount, object.currency);
     object.receivedAt = dateOnlyToEffectiveInstant(object.receivedOn);
     const parsed = paymentInputSchema.safeParse(object);
     if (!parsed.success)

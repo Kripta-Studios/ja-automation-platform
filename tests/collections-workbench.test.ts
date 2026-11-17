@@ -168,4 +168,11 @@ describe('Collection planning from canonical remaining balances', () => {
     expect(translate('pt', 'Pagination')).toBe('Paginação');
     expect(translate('es', 'Records')).toBe('Registros');
   });
+
+  it('exports zero-decimal currencies (JPY) in whole units', () => {
+    const jpy = { ...row, currency: 'JPY', outstandingMinor: '1500' };
+    const priorities = new TextDecoder().decode(collectionsWorkbenchCsv([jpy], asOf, 'priorities'));
+    expect(priorities).toContain(',1500');
+    expect(priorities).not.toContain('15.00');
+  });
 });

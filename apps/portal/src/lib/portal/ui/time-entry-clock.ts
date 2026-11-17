@@ -1,3 +1,5 @@
+import { parseHoursText } from '../sections/time-hours';
+
 /** The form's current calendar day, in the user's local timezone (not UTC). */
 export function localToday(now = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
@@ -11,11 +13,12 @@ export function intervalMinutes(start: string, end: string, pause = 0): number |
   return result > 0 ? result : null;
 }
 
-/** Convert a visible decimal-hour amount into the canonical whole minutes. */
+/**
+ * Convert visible hours into canonical whole minutes with the same any-minute
+ * parser as the Time screen: "7.5", "7,5", "8:15", "7h30" (0–24 h). Null when
+ * empty or invalid.
+ */
 export function durationMinutes(hours: string): number | null {
-  const normalized = hours.trim().replace(',', '.');
-  if (!/^(?:\d{1,2})(?:\.\d{1,4})?$/u.test(normalized)) return null;
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value < 0 || value > 24) return null;
-  return Math.round(value * 60);
+  const minutes = parseHoursText(hours);
+  return minutes === undefined ? null : minutes;
 }

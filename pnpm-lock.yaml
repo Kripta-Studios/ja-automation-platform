@@ -346,6 +346,9 @@ importers:
       '@ja/invoice-templates':
         specifier: workspace:*
         version: link:../invoice-templates
+      '@ja/money':
+        specifier: workspace:*
+        version: link:../money
       playwright:
         specifier: 'catalog:'
         version: 1.62.1

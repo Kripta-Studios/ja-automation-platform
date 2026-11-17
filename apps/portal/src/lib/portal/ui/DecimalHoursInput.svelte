@@ -1,6 +1,6 @@
 <script lang="ts">
   import { decimalHoursFromMinutes } from '../minute-hours';
-  import { projectHoursToMinutes } from '../sections/project-budget-input';
+  import { HOURS_INPUT_PATTERN, projectHoursToMinutes } from '../sections/project-budget-input';
 
   let {
     name,
@@ -72,7 +72,7 @@
   name={`${name}Hours`}
   type="text"
   inputmode="decimal"
-  pattern={'[0-9]+([.,][0-9]{1,4})?'}
+  pattern={HOURS_INPUT_PATTERN}
   aria-label={label}
   data-field={dataField}
   {required}

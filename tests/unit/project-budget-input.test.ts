@@ -29,3 +29,19 @@ describe('project budget form display', () => {
     expect(projectHoursToMinutes('')).toBe('');
   });
 });
+
+describe('project budget amounts follow the currency minor units', () => {
+  it('shows and parses JPY as whole yen', () => {
+    expect(minorToProjectAmount('1500', 'JPY')).toBe('1500');
+    expect(projectAmountToMinor('1500', 'JPY')).toBe('1500');
+    expect(projectAmountToMinor('1500.50', 'JPY')).toBe('');
+    expect(minorToProjectAmount('1500', 'USD')).toBe('15.00');
+  });
+
+  it('accepts hours:minutes like the Time screen', () => {
+    expect(projectHoursToMinutes('8:15')).toBe('495');
+    expect(projectHoursToMinutes('2:40')).toBe('160');
+    expect(projectHoursToMinutes('120:30')).toBe('7230');
+    expect(projectHoursToMinutes('8:75')).toBe('');
+  });
+});

@@ -1,6 +1,8 @@
 <script lang="ts">
   import {
+    HOURS_INPUT_PATTERN,
     minorToProjectAmount,
+    projectAmountPattern,
     minutesToProjectHours,
     projectAmountToMinor,
     projectHoursToMinutes,
@@ -23,7 +25,7 @@
   } = $props();
 
   const initialDisplay = $derived(
-    kind === 'money' ? minorToProjectAmount(value) : minutesToProjectHours(value),
+    kind === 'money' ? minorToProjectAmount(value, currency || 'USD') : minutesToProjectHours(value),
   );
   let editedDisplay = $state<string | null>(null);
   $effect(() => {
@@ -33,7 +35,9 @@
   });
   const display = $derived(editedDisplay ?? initialDisplay);
   const storedValue = $derived(
-    kind === 'money' ? projectAmountToMinor(display) : projectHoursToMinutes(display),
+    kind === 'money'
+      ? projectAmountToMinor(display, currency || 'USD')
+      : projectHoursToMinutes(display),
   );
 </script>
 
@@ -41,8 +45,8 @@
   {label}{currency ? ` (${currency})` : ''}
   <input
     inputmode="decimal"
-    pattern={kind === 'money' ? '[0-9]+([.,][0-9]{1,2})?' : '[0-9]+([.,][0-9]{1,4})?'}
-    placeholder={kind === 'money' ? '0.00' : '0'}
+    pattern={kind === 'money' ? projectAmountPattern(currency || 'USD') : HOURS_INPUT_PATTERN}
+    placeholder={kind === 'money' ? minorToProjectAmount('0', currency || 'USD') : '0'}
     aria-label={label}
     {required}
     value={display}

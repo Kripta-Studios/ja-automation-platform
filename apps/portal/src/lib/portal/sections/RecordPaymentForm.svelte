@@ -7,6 +7,7 @@
   import { enhance } from '$app/forms';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { moneyText, type MoneyCopyKey } from '../money-copy';
+  import { inputTextToMinor, minorToInputText } from '../payment-money';
 
   let {
     invoiceId,
@@ -38,17 +39,11 @@
     cash: 'Cash',
     other: 'Other',
   };
-  const toDecimal = (minor: string) => {
-    const value = BigInt(minor);
-    return `${value / 100n}.${(value % 100n).toString().padStart(2, '0')}`;
-  };
+  /** Plain amount text in the invoice currency's own decimals (JPY has none). */
+  const toDecimal = (minor: string) => minorToInputText(minor, currency);
   /** Exact parse of a typed amount into minor units (comma or dot decimals). */
-  const toMinor = (text: string): bigint | null => {
-    const normalized = text.trim().replace(/\s/gu, '').replace(',', '.');
-    if (!/^\d{1,12}(?:\.\d{1,2})?$/u.test(normalized)) return null;
-    const [whole, fraction = ''] = normalized.split('.');
-    return BigInt(whole!) * 100n + BigInt(fraction.padEnd(2, '0'));
-  };
+  const toMinor = (text: string): bigint | null =>
+    inputTextToMinor(text.trim().replace(/\s/gu, ''), currency);
   const localToday = () => {
     const now = new Date();
     return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);

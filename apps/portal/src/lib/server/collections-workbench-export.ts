@@ -1,3 +1,4 @@
+import { formatMinorPlain, isCurrency } from '@ja/billing-engine';
 import { toCsv } from '@ja/reporting';
 import {
   agingBuckets,
@@ -16,8 +17,9 @@ import {
 export const collectionReports = ['customers', 'forecast', 'priorities'] as const;
 export type CollectionReport = (typeof collectionReports)[number];
 
-/** Keep decimal display exact for every supported two-decimal ledger currency. */
-function currencyAmount(minor: bigint): string {
+/** Exact major-unit display using each ledger currency's own minor units (JPY has none). */
+function currencyAmount(minor: bigint, currency: string): string {
+  if (isCurrency(currency)) return formatMinorPlain(minor, currency);
   const negative = minor < 0n;
   const absolute = negative ? -minor : minor;
   return `${negative ? '-' : ''}${absolute / 100n}.${String(absolute % 100n).padStart(2, '0')}`;
@@ -57,19 +59,19 @@ export function collectionsWorkbenchCsv(
       clientName: row.clientName,
       currency: row.currency,
       openDocuments: row.openDocuments,
-      'Gross receivables (currency units)': currencyAmount(row.outstanding),
+      'Gross receivables (currency units)': currencyAmount(row.outstanding, row.currency),
       grossReceivablesMinor: row.outstanding.toString(),
-      'Credit balances (currency units)': currencyAmount(row.credits),
+      'Credit balances (currency units)': currencyAmount(row.credits, row.currency),
       creditBalancesMinor: row.credits.toString(),
-      'Net outstanding (currency units)': currencyAmount(row.netOutstanding),
+      'Net outstanding (currency units)': currencyAmount(row.netOutstanding, row.currency),
       netOutstandingMinor: row.netOutstanding.toString(),
-      'Overdue (currency units)': currencyAmount(row.overdue),
+      'Overdue (currency units)': currencyAmount(row.overdue, row.currency),
       overdueMinor: row.overdue.toString(),
       oldestDaysOverdue: row.oldestDaysOverdue,
       ...Object.fromEntries(
         agingBuckets.map((bucket) => [
           `${agingLabels[bucket]} (currency units)`,
-          currencyAmount(row.buckets[bucket]),
+          currencyAmount(row.buckets[bucket], row.currency),
         ]),
       ),
       ...Object.fromEntries(
@@ -92,16 +94,16 @@ export function collectionsWorkbenchCsv(
     records = collectionForecast(rows, asOf).map((row) => ({
       balanceAsOf: asOf,
       currency: row.currency,
-      'Gross receivables (currency units)': currencyAmount(row.total),
+      'Gross receivables (currency units)': currencyAmount(row.total, row.currency),
       grossReceivablesMinor: row.total.toString(),
-      'Explicit collection date (currency units)': currencyAmount(row.explicit),
+      'Explicit collection date (currency units)': currencyAmount(row.explicit, row.currency),
       explicitCollectionDateMinor: row.explicit.toString(),
-      'Due date fallback (currency units)': currencyAmount(row.dueFallback),
+      'Due date fallback (currency units)': currencyAmount(row.dueFallback, row.currency),
       dueDateFallbackMinor: row.dueFallback.toString(),
       ...Object.fromEntries(
         forecastBuckets.map((bucket) => [
           `${forecastLabels[bucket]} (currency units)`,
-          currencyAmount(row.buckets[bucket]),
+          currencyAmount(row.buckets[bucket], row.currency),
         ]),
       ),
       ...Object.fromEntries(
@@ -126,7 +128,10 @@ export function collectionsWorkbenchCsv(
     records = collectionPriorities(rows, asOf).map((row) => ({
       ...Object.fromEntries(headers.map((key) => [key, collectionText(row, key)])),
       'Outstanding (currency units)': /^-?\d+$/u.test(collectionText(row, 'outstandingMinor'))
-        ? currencyAmount(BigInt(collectionText(row, 'outstandingMinor')))
+        ? currencyAmount(
+            BigInt(collectionText(row, 'outstandingMinor')),
+            collectionText(row, 'currency'),
+          )
         : '',
     }));
   }

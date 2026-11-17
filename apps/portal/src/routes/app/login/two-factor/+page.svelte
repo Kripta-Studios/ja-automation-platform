@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
@@ -73,9 +72,16 @@
     } finally {
       busy = false;
       if (error) {
+        // Inline only (role="alert" announces it): keep the code field ready to
+        // retype instead of opening the blocking step-by-step dialog.
         await tick();
-        statusElement?.focus();
-        requestRecoveryMessage(error, statusElement);
+        const codeInput = statusElement
+          ?.closest('form')
+          ?.querySelector<HTMLInputElement>('input[name="code"]');
+        if (codeInput && !codeInput.disabled) {
+          codeInput.focus();
+          codeInput.select();
+        } else statusElement?.focus();
       }
     }
   }

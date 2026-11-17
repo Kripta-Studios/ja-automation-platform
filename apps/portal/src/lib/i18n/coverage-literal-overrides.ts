@@ -1936,6 +1936,18 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
     'Indica una pausa válida en horas decimales, inferior a 24 horas.',
     'Informe uma pausa válida em horas decimais, inferior a 24 horas.',
   ],
+  'Your crew delegation for {project} ({worker}) starts on {date}.': [
+    'Tu delegación de cuadrilla en {project} ({worker}) empieza el {date}.',
+    'A sua delegação de equipe em {project} ({worker}) começa em {date}.',
+  ],
+  'You can record their hours from that day.': [
+    'Podrás registrar sus horas a partir de ese día.',
+    'Poderá registrar as horas a partir desse dia.',
+  ],
+  'Enter hours, for example 7.5 or 7:30.': [
+    'Indica las horas, por ejemplo 7,5 o 7:30.',
+    'Informe as horas, por exemplo 7,5 ou 7:30.',
+  ],
   'Enter decimal hours, for example 7.5.': [
     'Indica horas decimales, por ejemplo 7,5.',
     'Informe horas decimais, por exemplo 7,5.',

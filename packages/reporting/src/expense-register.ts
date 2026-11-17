@@ -1,3 +1,4 @@
+import { formatMinorPlain, isCurrency } from '@ja/money';
 import { renderHtmlToPdf, toCsv, xlsxFromSheets } from './exports.ts';
 
 type Row = Record<string, unknown>;
@@ -7,8 +8,12 @@ const escape = (value: unknown) =>
     (character) =>
       ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!,
   );
-const decimal = (value: unknown) => {
+/** Plain major-unit amount using the currency's own minor units (JPY 1500 → "1500"). */
+const decimal = (value: unknown, currency: unknown) => {
   const amount = BigInt(String(value ?? '0'));
+  const code = String(currency ?? '');
+  if (isCurrency(code)) return formatMinorPlain(amount, code);
+  // Unknown legacy code: keep the historical two-decimal rendering.
   const sign = amount < 0n ? '-' : '';
   const absolute = amount < 0n ? -amount : amount;
   return `${sign}${absolute / 100n}.${String(absolute % 100n).padStart(2, '0')}`;
@@ -22,7 +27,7 @@ export function expenseRegisterRows(records: readonly Row[]): Record<string, str
       ['approved', 'locked'].includes(String(row.approval_state));
     const reimbursementAmount =
       reimbursementVisible && row.reimbursement_amount_minor != null
-        ? decimal(row.reimbursement_amount_minor)
+        ? decimal(row.reimbursement_amount_minor, row.currency)
         : '';
     const reimbursed = reimbursementVisible && row.reimbursement_state === 'reimbursed';
     return {
@@ -34,7 +39,7 @@ export function expenseRegisterRows(records: readonly Row[]): Record<string, str
       Category: String(row.category ?? ''),
       Description: String(row.description ?? ''),
       Currency: String(row.currency ?? ''),
-      'Recorded amount': decimal(row.amount_minor),
+      'Recorded amount': decimal(row.amount_minor, row.currency),
       Payer: String(row.who_paid ?? ''),
       Status: String(row.approval_state ?? ''),
       ...('reimbursement_state' in row
@@ -79,7 +84,7 @@ export function expenseRegisterExport(
     );
   const summary = [...totals].map(([Currency, Amount]) => ({
     Currency,
-    'Recorded total': decimal(Amount),
+    'Recorded total': decimal(Amount, Currency),
   }));
   const amountColumns = ['Recorded amount', 'Reimbursement amount', 'Reimbursed amount'];
   // Amounts are plain numbers so spreadsheets can sum them; text cells keep the

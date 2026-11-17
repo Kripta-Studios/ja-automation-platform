@@ -7,11 +7,15 @@
  * it) and translates owner-language inputs into those commands. Money arrives as decimal
  * text and is converted to integer minor units by the rates core; nothing here sums money.
  */
-import { type Currency } from '@ja/billing-engine';
+import { exactMoney, impliedRate, type Currency } from '@ja/billing-engine';
 import {
   AccessDeniedError,
   AssignmentExpensePolicyRepository,
   ConflictError,
+  CurrencyConversionError,
+  currentCurrencyConversion,
+  proposeExchangeRate,
+  recordCurrencyConversion,
   ValidationError,
   assertLiveSession,
   recordAuditEvent,
@@ -110,6 +114,70 @@ const TREATMENTS = {
   non_billable: { clientTreatment: 'non_billable', billingTreatment: 'internal_non_billable' },
 } as const;
 
+/**
+ * One conversion for a foreign-currency expense, shared by billing and worker reimbursement:
+ * the audited `currency_conversion` row (Money → Currency conversions). A value typed on New
+ * invoice is recorded there (superseding a different earlier one); with nothing typed, the
+ * confirmed conversion is used as is.
+ */
+/** The classification audit keeps a short rate text; the exact rate stays on the conversion row. */
+const shortRate = (rate: string | null | undefined) => (rate && /^\d{1,6}(?:\.\d{1,8})?$/u.test(rate) ? rate : null);
+
+function confirmedExpenseConversion(
+  context: Context,
+  input: {
+    expenseId: string;
+    sourceCurrency: string;
+    sourceAmountMinor: number;
+    targetCurrency: string;
+    entry: ExpenseConversionEntry | null;
+    requestKey: string;
+  },
+) {
+  const current = currentCurrencyConversion(context.sqlite, 'expense', input.expenseId, input.targetCurrency);
+  const usable = current && current.sourceAmountMinor === String(input.sourceAmountMinor) ? current : null;
+  const typed =
+    input.entry && (input.entry.rate?.trim() || input.entry.convertedAmount?.trim())
+      ? exactExpenseConversion(input.sourceAmountMinor, input.sourceCurrency, input.targetCurrency, input.entry)
+      : null;
+  if (!typed) {
+    if (!usable)
+      throw new ValidationError(`Enter the ${input.targetCurrency} amount or the exchange rate for this expense`);
+    return { projectCurrencyAmountMinor: Number(usable.targetAmountMinor), rate: shortRate(usable.rate), rateBps: null };
+  }
+  if (usable && Number(usable.targetAmountMinor) === typed.projectCurrencyAmountMinor && (!typed.rate || typed.rate === usable.rate))
+    return { projectCurrencyAmountMinor: typed.projectCurrencyAmountMinor, rate: shortRate(usable.rate), rateBps: typed.rateBps };
+  const source = input.sourceCurrency as Currency;
+  const target = input.targetCurrency as Currency;
+  const rate =
+    typed.rate ??
+    impliedRate(exactMoney(source, BigInt(input.sourceAmountMinor)), exactMoney(target, BigInt(typed.projectCurrencyAmountMinor)));
+  const spentOn = (context.sqlite.prepare('SELECT spent_on FROM expense WHERE id=?').get(input.expenseId) as { spent_on: string })
+    .spent_on;
+  const proposal = proposeExchangeRate(context.sqlite, source, target, spentOn);
+  try {
+    const record = recordCurrencyConversion(context.sqlite, context.principal, {
+      sourceKind: 'expense',
+      sourceId: input.expenseId,
+      targetCurrency: target,
+      rate,
+      rateSource: typed.rate && proposal?.rate === typed.rate ? 'ECB' : 'manual',
+      targetAmountMinor: typed.rate ? null : BigInt(typed.projectCurrencyAmountMinor),
+      note: 'Entered on New invoice',
+      idempotencyKey: `quick-invoice-conversion:${input.requestKey}`,
+      expectedCurrentId: current?.id ?? null,
+    });
+    return { projectCurrencyAmountMinor: Number(record.targetAmountMinor), rate: shortRate(record.rate), rateBps: typed.rateBps };
+  } catch (caught) {
+    if (caught instanceof CurrencyConversionError) {
+      if (caught.code === 'access_denied') throw new AccessDeniedError(caught.message);
+      if (caught.code === 'invalid') throw new ValidationError(caught.message);
+      throw new ConflictError(caught.message);
+    }
+    throw caught;
+  }
+}
+
 /** Reimbursable / All-in / Not charged (+ markup) for one expense, recorded with a reason. */
 export function quickInvoiceSetExpenseTreatment(
   context: Context,
@@ -139,49 +207,46 @@ export function quickInvoiceSetExpenseTreatment(
   if (row.tax_bps == null && Number(row.tax_amount_minor ?? 0) !== 0)
     throw new ValidationError('Review the existing expense tax classification in Finance first.');
   const foreign = String(row.currency) !== String(project.currency);
-  const conversion =
-    foreign && input.conversion && (input.conversion.rate?.trim() || input.conversion.convertedAmount?.trim())
-      ? exactExpenseConversion(Number(row.amount_minor), String(row.currency), String(project.currency), input.conversion)
-      : null;
+  const conversion = foreign
+    ? confirmedExpenseConversion(context, {
+        expenseId: input.source.id,
+        sourceCurrency: String(row.currency),
+        sourceAmountMinor: Number(row.amount_minor),
+        targetCurrency: String(project.currency),
+        entry: input.conversion ?? null,
+        requestKey: input.requestKey,
+      })
+    : null;
   const markupBps =
     input.treatment === 'reimbursable' ? Math.max(0, Math.min(10_000, Math.trunc(input.markupBps))) : 0;
   const key = input.treatment === 'reimbursable' && markupBps > 0 ? 'markup' : input.treatment;
   const pair = TREATMENTS[key];
   // Projects that require dated expense conditions: when the person has none yet for this
-  // kind of expense, the choice is saved as their condition on the project (from the start
-  // of the assignment), like a rate. Existing conditions are never rewritten here; a
-  // different choice is recorded as an explained override on this expense only.
+  // kind of expense, the choice is saved as their condition on the project, from the earliest
+  // un-invoiced expense it affects (never over expenses already billed or reimbursed), like a
+  // rate. Existing conditions are never rewritten here; a different choice is recorded as an
+  // explained override on this expense only.
   const policies = new AssignmentExpensePolicyRepository(context.sqlite);
   const policy = policies.preview(context.principal, input.source.id);
   if (policy.issues.includes('missing_policy')) {
-    const expense = context.sqlite
-      .prepare(
-        `SELECT e.category,e.who_paid,pm.id member_id,pm.starts_on,pm.ends_on FROM expense e
-           JOIN project_member pm ON pm.project_id=e.project_id AND pm.user_id=e.worker_id AND pm.status='active'
-             AND pm.starts_on<=e.spent_on AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
-          WHERE e.id=? LIMIT 1`,
-      )
-      .get(input.source.id) as
-      | { category: string; who_paid: string; member_id: string; starts_on: string; ends_on: string | null }
-      | undefined;
-    if (!expense) throw new ValidationError('The worker is not assigned to this project on that date');
-    const clientPaid = expense.who_paid === 'client';
+    const window = expensePolicyWindow(context, input.source.id);
     policies.create(context.principal, {
-      projectMemberId: expense.member_id,
-      payer: (expense.who_paid === 'company' ? 'company_card' : expense.who_paid) as never,
-      category: expense.category,
-      effectiveFrom: expense.starts_on,
-      effectiveTo: expense.ends_on,
-      workerReimbursement: expense.who_paid === 'worker' ? 'at_cost' : 'none',
-      clientRecovery: clientPaid
-        ? 'client_direct'
-        : key === 'markup'
-          ? 'markup'
-          : key === 'reimbursable'
-            ? 'at_cost'
-            : key === 'all_in'
-              ? 'included'
-              : 'non_billable',
+      projectMemberId: window.memberId,
+      payer: window.payer as never,
+      category: window.category,
+      effectiveFrom: window.effectiveFrom,
+      effectiveTo: window.effectiveTo,
+      workerReimbursement: window.payer === 'worker' ? 'at_cost' : 'none',
+      clientRecovery:
+        window.payer === 'client'
+          ? 'client_direct'
+          : key === 'markup'
+            ? 'markup'
+            : key === 'reimbursable'
+              ? 'at_cost'
+              : key === 'all_in'
+                ? 'included'
+                : 'non_billable',
       markupBps,
       reason: `Set from invoice preparation by ${context.principal.role}`,
     });
@@ -203,6 +268,96 @@ export function quickInvoiceSetExpenseTreatment(
     overrideExpensePolicy: true,
     conversion,
   });
+}
+
+const addDays = (value: string, days: number) =>
+  new Date(Date.parse(`${value}T00:00:00Z`) + days * 86_400_000).toISOString().slice(0, 10);
+
+/**
+ * The dated window for a new expense condition (person × payer × category) that must cover
+ * one unclassified expense: it starts at the earliest un-invoiced expense of that kind (not
+ * before the assignment, a previous condition or an expense already billed on an issued
+ * invoice or reimbursed) and ends before the next condition / locked expense, if any. Labor
+ * invoices do not matter: they never billed these expenses.
+ */
+export function expensePolicyWindow(context: Context, expenseId: string) {
+  const expense = context.sqlite
+    .prepare(
+      `SELECT e.project_id,e.worker_id,e.spent_on,e.category,
+              CASE e.who_paid WHEN 'company' THEN 'company_direct' ELSE e.who_paid END payer,
+              pm.id member_id,pm.starts_on,pm.ends_on FROM expense e
+         JOIN project_member pm ON pm.project_id=e.project_id AND pm.user_id=e.worker_id AND pm.status='active'
+           AND pm.starts_on<=e.spent_on AND (pm.ends_on IS NULL OR pm.ends_on>=e.spent_on)
+        WHERE e.id=? LIMIT 1`,
+    )
+    .get(expenseId) as
+    | {
+        project_id: string;
+        worker_id: string;
+        spent_on: string;
+        category: string;
+        payer: string;
+        member_id: string;
+        starts_on: string;
+        ends_on: string | null;
+      }
+    | undefined;
+  if (!expense) throw new ValidationError('The worker is not assigned to this project on that date');
+  const sameKind = `e.project_id=? AND e.worker_id=? AND e.category=?
+      AND (CASE e.who_paid WHEN 'company' THEN 'company_direct' ELSE e.who_paid END)=?`;
+  const kindArgs = [expense.project_id, expense.worker_id, expense.category, expense.payer];
+  const locked = `(EXISTS(SELECT 1 FROM invoice_source s JOIN invoice i ON i.id=s.invoice_id
+        WHERE s.source_type='expense' AND s.source_id=e.id AND i.state NOT IN ('draft','void','cancelled','superseded'))
+      OR e.reimbursed_at IS NOT NULL OR e.reimbursement_state='reimbursed')`;
+  const one = (sql: string, ...args: Array<string | null>) =>
+    (context.sqlite.prepare(sql).get(...args) as { d: string | null } | undefined)?.d ?? null;
+  const lockedBefore = one(
+    `SELECT MAX(e.spent_on) d FROM expense e WHERE ${sameKind} AND e.spent_on<? AND ${locked}`,
+    ...kindArgs,
+    expense.spent_on,
+  );
+  const lockedAfter = one(
+    `SELECT MIN(e.spent_on) d FROM expense e WHERE ${sameKind} AND e.spent_on>? AND ${locked}`,
+    ...kindArgs,
+    expense.spent_on,
+  );
+  const policyBefore = one(
+    `SELECT MAX(effective_to) d FROM assignment_expense_policy WHERE project_member_id=? AND payer=?
+       AND COALESCE(category,'')=? AND effective_to IS NOT NULL AND effective_to<?`,
+    expense.member_id,
+    expense.payer,
+    expense.category,
+    expense.spent_on,
+  );
+  const policyAfter = one(
+    `SELECT MIN(effective_from) d FROM assignment_expense_policy WHERE project_member_id=? AND payer=?
+       AND COALESCE(category,'')=? AND effective_from>?`,
+    expense.member_id,
+    expense.payer,
+    expense.category,
+    expense.spent_on,
+  );
+  const floor = [expense.starts_on, lockedBefore && addDays(lockedBefore, 1), policyBefore && addDays(policyBefore, 1)]
+    .filter((value): value is string => Boolean(value))
+    .sort()
+    .at(-1)!;
+  const effectiveFrom =
+    one(
+      `SELECT MIN(e.spent_on) d FROM expense e WHERE ${sameKind} AND e.spent_on>=? AND e.spent_on<=? AND NOT ${locked}`,
+      ...kindArgs,
+      floor,
+      expense.spent_on,
+    ) ?? expense.spent_on;
+  const ceilings = [expense.ends_on, lockedAfter && addDays(lockedAfter, -1), policyAfter && addDays(policyAfter, -1)]
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  return {
+    memberId: expense.member_id,
+    payer: expense.payer,
+    category: expense.category,
+    effectiveFrom,
+    effectiveTo: ceilings[0] ?? null,
+  };
 }
 
 export function quickInvoiceApplyExpenseConditions(
@@ -276,6 +431,21 @@ export function quickInvoiceSetupBilling(
     .listBillingRules(context.principal)
     .some((rule) => String(rule.project_id) === input.projectId && Number(rule.enabled) === 1);
   if (existing) throw new ConflictError('This project already has billing set up');
+  // The stream covers the oldest work no invoice holds yet, so nothing logged before the
+  // chosen dates is left without billing terms.
+  const oldestOpen = (
+    context.sqlite
+      .prepare(
+        `SELECT MIN(d) d FROM (
+           SELECT MIN(work_date) d FROM time_entry t WHERE t.project_id=? AND t.invoice_id IS NULL
+             AND t.approval_state IN ('draft','submitted','needs_changes','approved','locked')
+           UNION ALL
+           SELECT MIN(spent_on) d FROM expense e WHERE e.project_id=? AND e.invoice_id IS NULL
+             AND e.approval_state IN ('draft','submitted','needs_changes','approved'))`,
+      )
+      .get(input.projectId, input.projectId) as { d: string | null }
+  ).d;
+  const effectiveFrom = oldestOpen && oldestOpen < input.effectiveFrom ? oldestOpen : input.effectiveFrom;
   let taxProfileId: string | undefined;
   if ('profileId' in input.tax) taxProfileId = input.tax.profileId;
   else if ('name' in input.tax)
@@ -283,18 +453,93 @@ export function quickInvoiceSetupBilling(
       legalEntityId: input.legalEntityId,
       name: input.tax.name,
       currency,
-      effectiveFrom: input.effectiveFrom,
+      effectiveFrom,
       components: [{ name: input.tax.name, basisPoints: input.tax.basisPoints }],
     }).id;
-  return context.repository.createBillingRule(context.principal, {
+  const rule = context.repository.createBillingRule(context.principal, {
     projectId: input.projectId,
     legalEntityId: input.legalEntityId,
     streamType: 'labor',
     cadenceType: input.cadence,
     currency,
-    effectiveFrom: input.effectiveFrom,
+    effectiveFrom,
     ...(taxProfileId ? { taxProfileId } : {}),
   });
+  // The same choice is the project's issuing company, so New invoice can issue right away.
+  const issuer = ensureProjectIssuer(context, input.projectId, input.legalEntityId, currency, false);
+  return { ...rule, issuerAssigned: issuer.assigned };
+}
+
+/**
+ * Make `legalEntityId` the project's issuing company (canonical assignment), from the start
+ * of that company's current record, unless the project already has one. Without a complete
+ * company record nothing is assigned (`strict` throws instead).
+ */
+export function ensureProjectIssuer(
+  context: Context,
+  projectId: string,
+  legalEntityId: string,
+  currency: string,
+  strict: boolean,
+): { assigned: boolean } {
+  const revision = context.sqlite
+    .prepare(
+      `SELECT r.revision_id,r.effective_from FROM legal_entity_revision_bridge b
+         JOIN legal_entity_revision r ON r.revision_id=b.canonical_revision_id
+        WHERE b.legacy_legal_entity_id=? AND r.base_currency=? AND r.effective_to IS NULL
+        ORDER BY r.effective_from DESC,r.revision_number DESC LIMIT 1`,
+    )
+    .get(legalEntityId, currency) as { revision_id: string; effective_from: string } | undefined;
+  if (!revision) {
+    if (strict)
+      throw new ValidationError(
+        'This issuing company has no complete company record yet. Complete it in Money → Issuing companies.',
+      );
+    return { assigned: false };
+  }
+  const open = context.sqlite
+    .prepare(
+      `SELECT legal_entity_revision_id,effective_from FROM effective_project_legal_entity_assignment
+        WHERE project_id=? AND effective_to IS NULL ORDER BY effective_from DESC LIMIT 1`,
+    )
+    .get(projectId) as { legal_entity_revision_id: string; effective_from: string } | undefined;
+  if (open) {
+    if (open.legal_entity_revision_id === revision.revision_id) return { assigned: false };
+    if (strict)
+      throw new ConflictError(
+        'This project already has another issuing company. Change it in Project → Rates, pay and invoicing.',
+      );
+    return { assigned: false };
+  }
+  const lastEnd = (
+    context.sqlite
+      .prepare('SELECT MAX(effective_to) d FROM effective_project_legal_entity_assignment WHERE project_id=?')
+      .get(projectId) as { d: string | null }
+  ).d;
+  const effectiveFrom = [revision.effective_from, lastEnd ? addDays(lastEnd, 1) : '']
+    .sort()
+    .at(-1)!;
+  context.v3.assignCanonicalLegalEntityToProject(context.principal, {
+    projectId,
+    legalEntityRevisionId: revision.revision_id,
+    effectiveFrom,
+    reason: `Issuing company set from New invoice by ${context.principal.role}`,
+    idempotencyKey: `quick-invoice-issuer:${projectId}:${revision.revision_id}:${effectiveFrom}`,
+  });
+  return { assigned: true };
+}
+
+/** "Issuing company" picker on New invoice for a project that has billing but no issuer. */
+export function quickInvoiceSetIssuer(context: Context, input: { projectId: string; legalEntityId: string }) {
+  authorize(context);
+  const project = visibleProject(context, input.projectId);
+  const currency = String(project.currency);
+  const entity = context.sqlite
+    .prepare(`SELECT currency,status FROM legal_entity WHERE id=?`)
+    .get(input.legalEntityId) as { currency: string; status: string } | undefined;
+  if (!entity || entity.status !== 'active' || entity.currency !== currency)
+    throw new ValidationError('Choose an issuing company in the project currency');
+  return ensureProjectIssuer(context, input.projectId, input.legalEntityId, currency, true);
 }
 
 /** Bank name + account printed on the invoice (issuer document settings). */

@@ -26,6 +26,7 @@ import {
   quickInvoiceWorkerEntries,
   quickInvoiceIssue,
   quickInvoiceSetExpenseTreatment,
+  quickInvoiceSetIssuer,
   quickInvoiceSetIssuerBank,
   quickInvoiceSetProjectPurchaseOrder,
   quickInvoiceSetRate,
@@ -239,6 +240,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       cadence: z.enum(['manual', 'weekly', 'monthly']).default('manual'),
     })
     .strict(),
+  z.object({ operation: z.literal('setIssuer'), ...scopeFields, legalEntityId: idSchema }).strict(),
   z
     .object({
       operation: z.literal('setIssuerBank'),
@@ -419,6 +421,9 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         break;
       case 'setupBilling':
         result = quickInvoiceSetupBilling(context, { ...command, effectiveFrom: command.periodStart });
+        break;
+      case 'setIssuer':
+        result = quickInvoiceSetIssuer(context, command);
         break;
       case 'setIssuerBank':
         quickInvoiceSetIssuerBank(context, command);

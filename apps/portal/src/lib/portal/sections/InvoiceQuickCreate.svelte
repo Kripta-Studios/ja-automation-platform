@@ -133,6 +133,7 @@
     warnings: Warning[];
     existingInvoice: { id: string; state: string; number: string | null } | null;
     suggestedPeriod: { start: string; end: string } | null;
+    lateWork?: { minutes: number; from: string; to: string } | null;
     issuerLegalEntityId: string | null;
     openDrafts: Array<{
       id: string;
@@ -319,11 +320,18 @@
       } else if (cadence === 'monthly') {
         const last = lastCompletePeriodForCadence(cadence, today, options);
         const current = periodForCadence(cadence, today, options);
-        if (last) choices.push({ id: 'last', label: t('lastMonth'), ...last });
+        // A stream that starts mid-month has nothing to bill in "Last month": offer it last.
+        const lastBillable = last && (!stream || last.end >= stream.effectiveFrom);
+        if (last && lastBillable) choices.push({ id: 'last', label: t('lastMonth'), ...last });
         if (current) choices.push({ id: 'current', label: t('thisMonth'), ...current });
+        if (last && !lastBillable) choices.push({ id: 'last', label: t('lastMonth'), ...last });
       } else {
         // On-demand billing: everything since the last invoice, through today.
-        const effectiveFrom = stream?.effectiveFrom ?? project?.unbilledFrom ?? today;
+        // No stream yet: start at the oldest logged work, not today (it would hide that work).
+        const effectiveFrom =
+          stream?.effectiveFrom ??
+          [project?.openFrom, project?.unbilledFrom].filter((date): date is string => Boolean(date)).sort()[0] ??
+          today;
         let sinceStart = project?.lastInvoicedThrough
           ? shiftDate(project.lastInvoicedThrough, 1)
           : effectiveFrom;
@@ -424,7 +432,9 @@
       overrideError = '';
       syncOverrides(body.preview);
       const suggested = body.preview.suggestedPeriod;
-      if (autoPeriod && body.preview.state === 'empty' && suggested) {
+      // Auto-jump also from a blocked period that a suggestion fixes (e.g. "Last month" before
+      // a stream that starts mid-month).
+      if (autoPeriod && ['empty', 'blocked'].includes(body.preview.state) && suggested) {
         autoVisited.push(`${periodStart}:${periodEnd}`);
         const key = `${suggested.start}:${suggested.end}`;
         if (!autoVisited.includes(key) && autoVisited.length <= 3) {
@@ -538,8 +548,16 @@
         preview = body.preview;
         requestKey = newKey();
         if (operation === 'setupBilling') {
-          // The new stream now exists: reload the project list so periods follow it.
-          void reloadProjects();
+          // The new stream now exists: reload the project list so periods follow it, then
+          // open the first billable period of its cycle (auto-jump to the work if needed).
+          void reloadProjects().then(() => {
+            const choice = periodChoices[0];
+            if (choice) {
+              applyChoice(choice);
+              autoPeriod = true;
+              autoVisited = [];
+            }
+          });
         }
       }
       return {
@@ -1639,6 +1657,28 @@
               {/if}
             {:else if !preview.attention.length}
               <p class="quick-invoice__plain" role="alert">{t('blocked')}</p>
+            {/if}
+            {#if preview.state === 'blocked' && preview.suggestedPeriod}
+              <div class="quick-invoice__suggestion" data-quick-invoice-suggested>
+                <span>{t('suggested')}: {rangeText(preview.suggestedPeriod.start, preview.suggestedPeriod.end)}</span>
+                <button type="button" class="secondary-button" onclick={() => useSuggested(preview!.suggestedPeriod!)}
+                  >{t('useDates')}</button
+                >
+              </div>
+            {/if}
+            {#if preview.lateWork && preview.state !== 'existing'}
+              {@const late = preview.lateWork}
+              <div class="quick-invoice__suggestion" data-quick-invoice-late-work>
+                <span
+                  >{quickInvoiceFormat(locale, 'lateWork', {
+                    hours: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(late.minutes / 60),
+                    dates: late.from === late.to ? dateText(late.from) : rangeText(late.from, late.to),
+                  })}</span
+                >
+                <button type="button" class="secondary-button" onclick={() => useSuggested({ start: late.from, end: late.to })}
+                  >{t('lateWorkInclude')}</button
+                >
+              </div>
             {/if}
 
             {#if preview.openDrafts.length}

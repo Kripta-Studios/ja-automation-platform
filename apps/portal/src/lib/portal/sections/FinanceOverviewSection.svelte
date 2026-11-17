@@ -1830,6 +1830,15 @@
       {money}
       includeArchived={$page.url.searchParams.get('includeArchived') === '1'}
     />
+    {#if canWriteFinance}
+      <nav class="finance-overview__utilities" data-money-overview-links>
+        <a href={`${base}/app/finance/subcontractors?lang=${locale}`} data-money-subcontractors-link
+          >{moneyLinks[locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en'].subcontractors}</a
+        ><a href={`${base}/app/finance/conversions?lang=${locale}`} data-money-conversions-link
+          >{moneyLinks[locale === 'es' ? 'es' : locale === 'pt' ? 'pt' : 'en'].conversions}</a
+        >
+      </nav>
+    {/if}
   {:else if activeView === 'commercial' && data.ratesOverview}
     <RatesPanel
       rates={data.ratesOverview}

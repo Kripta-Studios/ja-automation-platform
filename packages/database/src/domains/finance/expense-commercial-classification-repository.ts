@@ -449,13 +449,23 @@ export class ExpenseCommercialClassificationRepository {
           return this.failValidation('Expense policy override requires a reason');
         if (firstPolicyClassification) {
           if (policy.workerReimbursement === 'at_cost') {
-            if (sourceCurrency !== projectCurrency && !normalized.conversion)
+            // One conversion for billing and reimbursement: the confirmed, audited
+            // currency_conversion row wins over an inline value (same rule as billing below).
+            const stored =
+              sourceCurrency !== projectCurrency && isCurrency(projectCurrency)
+                ? currentCurrencyConversion(this.deps.sqlite, 'expense', normalized.expenseId, projectCurrency)
+                : null;
+            const reimbursedMinor =
+              stored && stored.sourceAmountMinor === String(sourceAmountMinor)
+                ? Number(stored.targetAmountMinor)
+                : (normalized.conversion?.projectCurrencyAmountMinor ?? null);
+            if (sourceCurrency !== projectCurrency && reimbursedMinor === null)
               return this.failValidation(
                 'Expense reimbursement requires an exact currency conversion',
               );
             workerReimbursementMinor =
               sourceCurrency !== projectCurrency
-                ? normalized.conversion!.projectCurrencyAmountMinor
+                ? reimbursedMinor!
                 : (sourceAmountMinor as number);
             reimbursementState = 'pending';
           } else {

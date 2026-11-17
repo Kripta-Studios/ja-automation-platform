@@ -24,6 +24,7 @@
       | 'clientDetails'
       | 'billingSetup'
       | 'issuerBank'
+      | 'issuerAuthority'
       | 'purchaseOrder'
       | 'other';
     code?: string;
@@ -35,7 +36,7 @@
     fix?: string | null;
     message?: string;
     billingSetup?: {
-      legalEntities: Array<{ id: string; code: string; name: string }>;
+      legalEntities: Array<{ id: string; code: string; name: string; canIssue?: boolean }>;
       taxProfiles: Array<{ id: string; name: string; legalEntityId: string | null; basisPoints: number }>;
     };
     issuer?: {
@@ -44,6 +45,10 @@
       version: number;
       bankName: string;
       bankAccountNumber: string;
+    };
+    issuerAuthority?: {
+      legalEntities: Array<{ id: string; code: string; name: string; canIssue?: boolean }>;
+      current: string | null;
     };
     project?: { id: string; version: number; poNumber: string | null };
     payMissing?: boolean;
@@ -64,6 +69,8 @@
     locked: boolean;
     policyAvailable: boolean;
     foreign?: boolean;
+    /** Confirmed conversion (Money → Currency conversions): used unless changed here. */
+    conversion?: { rate: string; amountMinor: string; rateSource: string } | null;
     excluded?: boolean;
   };
   export type AttentionClient = {
@@ -166,10 +173,13 @@
   let treatments = $state<Record<string, { treatment: string; markup: string }>>({});
   /** Foreign-currency expenses: the exact rate or converted amount typed by the owner. */
   let conversions = $state<Record<string, { rate: string; amount: string }>>({});
+  /** Foreign expenses with a confirmed conversion whose inputs the owner opened to change it. */
+  let changingConversion = $state<Record<string, boolean>>({});
   let clientForm = $state({ billingAddress: '', billingEmail: '', legalName: '', taxId: '' });
   let clientFormFor = $state('');
   let setup = $state({ legalEntityId: '', tax: 'none', taxName: '', taxPercent: '', cadence: 'manual' });
   let bank = $state({ bankName: '', bankAccountNumber: '' });
+  let issuerPick = $state('');
   let poScope = $state<'invoice' | 'project'>('invoice');
   let poDraft = $state('');
   let showAllPeople = $state<Record<string, boolean>>({});
@@ -193,11 +203,20 @@
     const setupItem = attention.find((item) => item.kind === 'billingSetup');
     if (setupItem?.billingSetup && !setup.legalEntityId && setupItem.billingSetup.legalEntities[0])
       setup.legalEntityId = setupItem.billingSetup.legalEntities[0].id;
+    const authority = attention.find((item) => item.kind === 'issuerAuthority')?.issuerAuthority;
+    if (authority && !issuerPick) {
+      const usable = authority.legalEntities.filter((entity) => entity.canIssue !== false);
+      issuerPick = usable.find((entity) => entity.id === authority.current)?.id ?? usable[0]?.id ?? '';
+    }
   });
 
   function failText(result: RunResult): string {
     if (result.rateCode === 'already_invoiced' || result.code === 'RATE_ALREADY_INVOICED')
       return t('rateAfterIssued').replace('{date}', '—');
+    const detail = result.detail ?? '';
+    if (/already invoiced or reimbursed|overlaps invoice/i.test(detail)) return t('expenseTermsLocked');
+    // Only a real concurrent edit is "a record changed"; any other conflict says what is wrong.
+    if (detail && !/changed|stale|version|reload/i.test(detail)) return f('fixFailed', { reason: detail });
     if (result.code?.includes('CONFLICT') || /changed/i.test(result.message ?? '')) return t('staleSource');
     return f('fixFailed', { reason: result.detail || result.message || result.rateCode || result.code || '—' });
   }
@@ -301,7 +320,7 @@
     const markup = Math.round(Number((choice.markup || '0').replace(',', '.')) * 100);
     const key = `expense:${row.ref.id}`;
     const conversion = conversions[row.ref.id] ?? { rate: '', amount: '' };
-    if (row.foreign && !conversion.rate.trim() && !conversion.amount.trim()) {
+    if (row.foreign && !row.conversion && !conversion.rate.trim() && !conversion.amount.trim()) {
       errors = { ...errors, [key]: f('convertNeeded', { from: row.currency, to: currency }) };
       return;
     }
@@ -310,7 +329,7 @@
       treatment: choice.treatment,
       markupBps: Number.isFinite(markup) ? Math.max(0, Math.min(10000, markup)) : 0,
       requestKey: newKey(),
-      ...(row.foreign
+      ...(row.foreign && (conversion.rate.trim() || conversion.amount.trim())
         ? {
             conversion: conversion.amount.trim()
               ? { convertedAmount: conversion.amount.trim() }
@@ -646,12 +665,22 @@
           <p class="qa__muted">{t('noIssuer')}</p>
         {:else}
           <div class="qa__grid">
-            <label class="qa__field">
-              <span>{t('issuer')}</span>
-              <select bind:value={setup.legalEntityId}>
-                {#each options.legalEntities as entity (entity.id)}<option value={entity.id}>{entity.code} · {entity.name}</option>{/each}
-              </select>
-            </label>
+            {#if options.legalEntities.length === 1}
+              {@const only = options.legalEntities[0]!}
+              <p class="qa__field" data-setup-issuer={only.id}>
+                <span>{t('issuer')}</span>
+                <strong>{only.code} · {only.name}</strong>{#if only.canIssue === false}<small class="qa__muted"> · {t('issuerIncomplete')}</small>{/if}
+              </p>
+            {:else}
+              <label class="qa__field">
+                <span>{t('issuer')}</span>
+                <select bind:value={setup.legalEntityId} data-setup-issuer-select>
+                  {#each options.legalEntities as entity (entity.id)}<option value={entity.id}
+                      >{entity.code} · {entity.name}{entity.canIssue === false ? ` (${t('issuerIncomplete')})` : ''}</option
+                    >{/each}
+                </select>
+              </label>
+            {/if}
             <label class="qa__field">
               <span>{t('taxPick')}</span>
               <select bind:value={setup.tax}>
@@ -695,6 +724,36 @@
                 })}>{t('createSetup')}</button
             >
             {@render status('setup')}
+          </div>
+        {/if}
+      {:else if item.kind === 'issuerAuthority' && item.issuerAuthority}
+        {@const authority = item.issuerAuthority}
+        {@const usable = authority.legalEntities.filter((entity) => entity.canIssue !== false)}
+        <h4 id={`qa-title-${index}`}><span class="qa__dot" aria-hidden="true"></span>{t('issuerAuthorityTitle')}</h4>
+        {#if !usable.length}
+          {@const href = fixHref('issuer_authority')}
+          <p class="qa__muted">{t('noIssuer')}</p>
+          {#if href}<a class="qa__link" {href}>{t('advancedLink')} ↗</a>{/if}
+        {:else}
+          <p class="qa__muted">{t('issuerAuthorityHint')}</p>
+          <div class="qa__actions" data-attention-issuer>
+            {#if usable.length > 1}
+              <label class="qa__field">
+                <span>{t('issuer')}</span>
+                <select bind:value={issuerPick}>
+                  {#each usable as entity (entity.id)}<option value={entity.id}>{entity.code} · {entity.name}</option>{/each}
+                </select>
+              </label>
+            {:else}
+              <strong>{usable[0]!.code} · {usable[0]!.name}</strong>
+            {/if}
+            <button
+              type="button"
+              class="primary-button qa__btn"
+              disabled={disabled || Boolean(busy) || !issuerPick}
+              onclick={() => act('issuer', 'setIssuer', { legalEntityId: issuerPick })}>{t('issuerUse')}</button
+            >
+            {@render status('issuer')}
           </div>
         {/if}
       {:else if item.kind === 'issuerBank' && item.issuer}
@@ -794,7 +853,25 @@
     {#if row.locked}
       <small class="qa__muted">{t('expenseLocked')}</small>
     {:else}
-      {#if row.foreign}
+      {#if row.foreign && row.conversion && !changingConversion[row.ref.id]}
+        <div class="qa__convert" data-attention-convert-confirmed={row.ref.id}>
+          <small class="qa__muted"
+            >{f('convertConfirmed', {
+              amount: money(row.conversion.amountMinor),
+              from: row.currency,
+              to: currency,
+              rate: row.conversion.rate,
+              source: row.conversion.rateSource === 'ECB' ? t('convertSourceEcb') : t('convertSourceManual'),
+            })}</small
+          >
+          <button
+            type="button"
+            class="qa__link"
+            disabled={disabled}
+            onclick={() => (changingConversion = { ...changingConversion, [row.ref.id]: true })}>{t('convertChange')}</button
+          >
+        </div>
+      {:else if row.foreign}
         {@const conversion = conversions[row.ref.id] ?? { rate: '', amount: '' }}
         <div class="qa__convert" data-attention-convert={row.ref.id}>
           <small class="qa__muted">{f('convertHelp', { from: row.currency, to: currency })}</small>

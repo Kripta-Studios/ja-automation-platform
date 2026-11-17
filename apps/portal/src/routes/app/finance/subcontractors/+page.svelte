@@ -204,8 +204,8 @@
           </form>
         {/if}
         <div class="sub__exports">
-          <a class="sub__btn sub__btn--ghost" href={exportHref('pdf')} data-settlement-pdf>{t('pdf')}</a>
-          <a class="sub__btn sub__btn--ghost" href={exportHref('csv')} data-settlement-csv>{t('csv')}</a>
+          <a class="sub__btn sub__btn--ghost" href={exportHref('pdf')} data-sveltekit-reload target="_blank" rel="noopener" data-settlement-pdf>{t('pdf')}</a>
+          <a class="sub__btn sub__btn--ghost" href={exportHref('csv')} data-sveltekit-reload download data-settlement-csv>{t('csv')}</a>
         </div>
       </div>
     </section>

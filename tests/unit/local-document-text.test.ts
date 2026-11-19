@@ -62,6 +62,20 @@ describe('local document extraction without external services', () => {
     expect(result.text).toContain('42.50');
     expect(result.text.toUpperCase()).toContain('RECEIPT');
   }, 30_000);
+  it('still reads a Spanish or Portuguese receipt when only the English OCR pack is installed', async () => {
+    const bytes = await sharp(
+      Buffer.from(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="240"><rect width="1200" height="240" fill="white"/><text x="40" y="100" font-family="DejaVu Sans" font-size="52" fill="black">TOTAL MXN 1250.00</text></svg>',
+      ),
+    )
+      .png()
+      .toBuffer();
+    for (const locale of ['es', 'pt'] as const) {
+      const result = await extractLocalDocumentText(bytes, 'image/png', locale);
+      expect(result.method).toBe('image_ocr');
+      expect(result.text).toContain('1250.00');
+    }
+  }, 60_000);
   it('rejects unsupported content and oversized input before a tool runs', async () => {
     await expect(
       extractLocalDocumentText(Buffer.from('not a pdf'), 'application/pdf', 'en'),

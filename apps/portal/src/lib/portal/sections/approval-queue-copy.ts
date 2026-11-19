@@ -121,6 +121,7 @@ const en = {
   approveAllBatch: 'This step approves the oldest {shown} of {count} (max {limit} at once). Approve again for the rest.',
   visibleTooMany: 'Too many entries for one step ({count}, max {limit}). Use a filter or approve week by week.',
   ownExcluded: '{count} of your own entries need another reviewer.',
+  ownExcludedOne: '1 of your own entries needs another reviewer.',
   noMatches: 'Nothing matches these filters.',
   reportEmpty: 'No details written.',
 };
@@ -247,6 +248,7 @@ const es: Record<CopyKey, string> = {
   approveAllBatch: 'Este paso aprueba los {shown} más antiguos de {count} (máximo {limit} a la vez). Vuelve a aprobar para el resto.',
   visibleTooMany: 'Demasiados registros para un paso ({count}, máximo {limit}). Usa un filtro o aprueba semana por semana.',
   ownExcluded: '{count} registros tuyos necesitan otro revisor.',
+  ownExcludedOne: '1 registro tuyo necesita otro revisor.',
   noMatches: 'Nada coincide con estos filtros.',
   reportEmpty: 'Sin detalles escritos.',
 };
@@ -371,6 +373,7 @@ const pt: Record<CopyKey, string> = {
   approveAllBatch: 'Esta etapa aprova os {shown} mais antigos de {count} (máximo {limit} de uma vez). Aprove novamente para o restante.',
   visibleTooMany: 'Registros demais para uma etapa ({count}, máximo {limit}). Use um filtro ou aprove semana a semana.',
   ownExcluded: '{count} registros seus precisam de outro revisor.',
+  ownExcludedOne: '1 registro seu precisa de outro revisor.',
   noMatches: 'Nada corresponde a estes filtros.',
   reportEmpty: 'Sem detalhes escritos.',
 };
@@ -383,6 +386,9 @@ export function approvalQueueText(
   params: Record<string, string | number> = {},
 ): string {
   const table: Record<CopyKey, string> = locale === 'es' ? es : locale === 'pt' ? pt : en;
+  // Singular wording ("1 … needs") when a "<key>One" variant exists.
+  const one = `${key}One` as CopyKey;
+  if (Number(params.count ?? params.n) === 1 && Object.hasOwn(table, one)) key = one;
   return (table[key] ?? en[key]).replace(/\{(\w+)\}/gu, (match, name: string) =>
     Object.hasOwn(params, name) ? String(params[name]) : match,
   );

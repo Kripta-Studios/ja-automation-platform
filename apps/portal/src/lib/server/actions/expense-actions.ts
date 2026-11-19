@@ -813,6 +813,22 @@ export async function validateExpenseReceipt(file: File): Promise<Uint8Array> {
   }
 }
 
+/** A batch receipt is already stored or repeated in the batch: nothing saved, rows named. */
+function duplicateBatchReceipt(batchRows: number[]) {
+  return actionFail(
+    409,
+    'problem.expense.receiptDuplicateContent',
+    {},
+    'This receipt file matches existing private content. No new expense was saved. Review expenses you can access or contact the project owner.',
+    {
+      code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
+      batchRow: batchRows[0],
+      batchRows,
+      remedies: [{ id: 'review_expenses' }],
+    },
+  );
+}
+
 export async function saveExpenseReceipt(
   context: ReturnType<typeof openPortalRepository>,
   projectId: string,
@@ -1275,6 +1291,9 @@ export const expenseActions = withOperationalActionNames({
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
+    // "Save & send N expenses": create the drafts and submit them in the same
+    // transaction (same canonical submit command, RBAC and audit as week submit).
+    const submitNow = object.submitNow === 'on';
     const rowCount = Number(object.rowCount);
     const requestId = String(object.requestId ?? '');
     if (!Number.isInteger(rowCount) || rowCount < 1 || rowCount > 20)
@@ -1356,6 +1375,24 @@ export const expenseActions = withOperationalActionNames({
       const bytes = new Map<number, Uint8Array>();
       for (const row of rows)
         if (row.receipt) bytes.set(row.index, await validateExpenseReceipt(row.receipt));
+      // Name every row whose receipt is already stored or repeats another row's
+      // photo, before anything is stored, so the person can fix just those rows.
+      const seen = new Set<string>();
+      const duplicateRows = new Set<number>();
+      const storedContent = context.sqlite.prepare(
+        'SELECT 1 FROM document WHERE sha256=? AND byte_length=? LIMIT 1',
+      );
+      for (const row of rows) {
+        const rowBytes = bytes.get(row.index);
+        if (!rowBytes) continue;
+        const sha256 = createHash('sha256').update(rowBytes).digest('hex');
+        const key = `${sha256}:${rowBytes.byteLength}`;
+        // The same photo twice: the later row is the repeat; the first one may stay.
+        if (seen.has(key)) duplicateRows.add(row.index);
+        else seen.add(key);
+        if (storedContent.get(sha256, rowBytes.byteLength)) duplicateRows.add(row.index);
+      }
+      if (duplicateRows.size) return duplicateBatchReceipt([...duplicateRows].sort((a, b) => a - b));
       for (const row of rows)
         row.input.whoPaid = defaultExpensePayer(context.sqlite, {
           projectId: String(row.input.projectId),
@@ -1367,6 +1404,7 @@ export const expenseActions = withOperationalActionNames({
         .update(
           JSON.stringify({
             workerId,
+            submitNow,
             rows: rows.map((row) => ({
               ...row.input,
               receipt: bytes.has(row.index)
@@ -1401,12 +1439,25 @@ export const expenseActions = withOperationalActionNames({
       for (const row of rows) {
         const rowBytes = bytes.get(row.index);
         if (!row.receipt || !rowBytes) continue;
-        const upload = await saveExpenseReceipt(
-          context,
-          String(row.input.projectId),
-          row.receipt,
-          rowBytes,
-        );
+        let upload: Awaited<ReturnType<typeof saveExpenseReceipt>>;
+        try {
+          upload = await saveExpenseReceipt(
+            context,
+            String(row.input.projectId),
+            row.receipt,
+            rowBytes,
+          );
+        } catch (error) {
+          // Same receipt stored by someone else in the meantime: mark that row.
+          if (
+            error instanceof Error &&
+            error.message === 'Upload conflicts with existing content'
+          ) {
+            await cleanup();
+            return duplicateBatchReceipt([row.index]);
+          }
+          throw error;
+        }
         uploads.push(upload);
         row.input.receiptDocumentId = upload.id;
       }
@@ -1418,6 +1469,9 @@ export const expenseActions = withOperationalActionNames({
           if (!parsed.success) throw new ValidationError('Expense fields are invalid');
           return context.repository.createExpense(context.principal, parsed.data, workerId);
         });
+        if (submitNow)
+          for (const row of created)
+            context.repository.submitExpense(context.principal, row.id, row.version);
         recordAuditEvent(
           context.sqlite,
           context.principal,
@@ -1435,6 +1489,12 @@ export const expenseActions = withOperationalActionNames({
         return { created: created.length, replayed: false };
       });
       if (result.replayed) await cleanup();
+      if (submitNow && !result.replayed)
+        return actionSuccess(
+          result.created === 1 ? 'action.expense.weekSubmittedOne' : 'action.expense.weekSubmitted',
+          { created: result.created, submitted: result.created },
+          `${result.created} expenses sent for review`,
+        );
       return actionSuccess(
         result.replayed
           ? 'action.expense.weekDraftsAlreadySaved'

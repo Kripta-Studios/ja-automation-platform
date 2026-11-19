@@ -152,7 +152,7 @@ const en = {
   saveDraft: 'Save draft',
   waitingToRead: 'Waiting to read this receipt…',
   filledFromReceiptShort: 'Amount from the receipt — check it.',
-  notReadType: 'Could not read the amount. Type it.',
+  notReadType: 'Couldn’t read the receipt — type the amount.',
   readingReceipts: 'Reading {n} receipts…',
   readingReceiptsOne: 'Reading 1 receipt…',
   checkAmount: 'Suggested from the receipt — check it matches.',
@@ -162,6 +162,14 @@ const en = {
   confirmSubmitOne: 'Submit 1 expense',
   captureScopeOne: 'Last {weeks} weeks and open items · 1 expense',
   saveAllOne: 'Save 1 expense',
+  saveSendAll: 'Save & send {n} expenses',
+  saveSendAllOne: 'Save & send 1 expense',
+  saveAsDrafts: 'Save as drafts',
+  duplicateReceiptRows:
+    'The receipt in {rows} is already on another expense (or used twice here). Nothing was saved.',
+  saveOthers: 'Remove {rows} and save the other {n}',
+  saveOthersOne: 'Remove {rows} and save the other one',
+  receiptUsed: 'This receipt is already used — remove the row or choose another photo.',
   itemsOne: '1 expense',
 };
 
@@ -317,7 +325,7 @@ const es: Copy = {
   saveDraft: 'Guardar borrador',
   waitingToRead: 'Esperando para leer este ticket…',
   filledFromReceiptShort: 'Importe tomado del ticket: compruébalo.',
-  notReadType: 'No se pudo leer el importe. Escríbelo.',
+  notReadType: 'No se pudo leer el ticket: escribe el importe.',
   readingReceipts: 'Leyendo {n} tickets…',
   readingReceiptsOne: 'Leyendo 1 ticket…',
   checkAmount: 'Sugerido a partir del ticket: comprueba que coincide.',
@@ -327,6 +335,14 @@ const es: Copy = {
   confirmSubmitOne: 'Enviar 1 gasto',
   captureScopeOne: 'Últimas {weeks} semanas y pendientes · 1 gasto',
   saveAllOne: 'Guardar 1 gasto',
+  saveSendAll: 'Guardar y enviar {n} gastos',
+  saveSendAllOne: 'Guardar y enviar 1 gasto',
+  saveAsDrafts: 'Guardar como borradores',
+  duplicateReceiptRows:
+    'El ticket de {rows} ya está en otro gasto (o se repite aquí). No se guardó nada.',
+  saveOthers: 'Quitar {rows} y guardar los otros {n}',
+  saveOthersOne: 'Quitar {rows} y guardar el otro',
+  receiptUsed: 'Este ticket ya está usado: quita la fila o elige otra foto.',
   itemsOne: '1 gasto',
 };
 
@@ -481,7 +497,7 @@ const pt: Copy = {
   saveDraft: 'Salvar rascunho',
   waitingToRead: 'Aguardando para ler este recibo…',
   filledFromReceiptShort: 'Valor tirado do recibo — confira.',
-  notReadType: 'Não foi possível ler o valor. Digite-o.',
+  notReadType: 'Não foi possível ler o recibo — digite o valor.',
   readingReceipts: 'Lendo {n} recibos…',
   readingReceiptsOne: 'Lendo 1 recibo…',
   checkAmount: 'Sugerido a partir do recibo — confira se está certo.',
@@ -491,6 +507,14 @@ const pt: Copy = {
   confirmSubmitOne: 'Enviar 1 despesa',
   captureScopeOne: 'Últimas {weeks} semanas e pendentes · 1 despesa',
   saveAllOne: 'Salvar 1 despesa',
+  saveSendAll: 'Salvar e enviar {n} despesas',
+  saveSendAllOne: 'Salvar e enviar 1 despesa',
+  saveAsDrafts: 'Salvar como rascunhos',
+  duplicateReceiptRows:
+    'O recibo de {rows} já está em outra despesa (ou se repete aqui). Nada foi salvo.',
+  saveOthers: 'Remover {rows} e salvar as outras {n}',
+  saveOthersOne: 'Remover {rows} e salvar a outra',
+  receiptUsed: 'Este recibo já foi usado — remova a linha ou escolha outra foto.',
   itemsOne: '1 despesa',
 };
 

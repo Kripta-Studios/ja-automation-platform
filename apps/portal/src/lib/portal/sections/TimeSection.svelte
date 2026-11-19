@@ -373,7 +373,7 @@
                 : t('weekStatusDraft'),
         status: used[0]![0] as CellStatus,
       };
-    return { label: `${t('daysLabel')}: ${parts.join(' · ')}`, status: weekStatus === 'approved' ? ('submitted' as const) : weekStatus };
+    return { label: parts.join(' · '), status: weekStatus === 'approved' ? ('submitted' as const) : weekStatus };
   });
   const weekStatusLabel = $derived(weekSummary.label);
   const variant = (status: CellStatus | 'empty' | undefined) =>
@@ -642,6 +642,16 @@
     category: dayCategory,
   });
   const dayCell = $derived(dayProject ? cellFor(dayRow, selectedDay) : null);
+  /** Sent/approved/locked hours are read-only here: no Type choice, no Save buttons. */
+  const dayEditable = $derived(
+    !!dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix'),
+  );
+  /** "Log other hours this day" reveals the Type choice on a read-only day. */
+  let dayOtherTypes = $state(false);
+  $effect(() => {
+    void selectedDay;
+    dayOtherTypes = false;
+  });
   const dayEntries = $derived(entries.filter((entry) => String(entry.work_date) === selectedDay));
   const dayTotal = $derived(
     dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0),
@@ -656,6 +666,7 @@
     detailEdits = {};
     detailKey = '';
     dayDone = null;
+    if (projectId !== dayProjectChoice) dayOtherTypes = false;
     dayProjectChoice = projectId;
     dayCategory = category;
     confirmingDelete = false;
@@ -1155,7 +1166,13 @@
               <strong>{projectLabel(dayProject)}</strong>
             </div>
           {/if}
-          {#if dayProject}
+          {#if dayProject && !dayEditable && !dayOtherTypes}
+            <div class="day-field" data-testid="time-day-type-readonly">
+              <span>{t('type')}</span>
+              <strong>{categoryLabel(dayCategory)}</strong>
+            </div>
+          {/if}
+          {#if dayProject && (dayEditable || dayOtherTypes)}
             <fieldset class="day-field segmented">
               <legend>{t('type')}</legend>
               {#each dayCategoryChoices as category (category)}
@@ -1171,6 +1188,8 @@
                 </label>
               {/each}
             </fieldset>
+          {/if}
+          {#if dayProject}
             <label class="day-field day-hours">
               <span>{t('hours')}</span>
               {#if dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix')}
@@ -1231,6 +1250,16 @@
           {/if}
           {#if dayProject && !isAuditor}
             <input type="hidden" name="day" value={selectedDay} />
+            {#if !dayEditable && !dirtyNow}
+              {#if !dayOtherTypes && dayCategoryChoices.length > 1}
+                <button
+                  type="button"
+                  class="link day-other-types"
+                  onclick={() => (dayOtherTypes = true)}
+                  data-testid="time-day-other-types">{t('dayOtherTypes')}</button
+                >
+              {/if}
+            {:else}
             <div class="day-buttons">
               {#if canApproveNow}
                 <button
@@ -1261,6 +1290,7 @@
                 >{busy === 'save' ? t('saving') : canSubmit ? t('saveDraftOnly') : t('save')}</button
               >
             </div>
+            {/if}
             {#if canDeleteDay && dayCell}
               <div class="day-delete">
                 {#if confirmingDelete}
@@ -1322,7 +1352,7 @@
                   <span class="sr-only">{`${hm(dayTotals[index] ?? 0)} ${t('hoursUnit')}`}</span>
                 </th>
               {/each}
-              <th scope="col" class="col-total">{t('total')}</th>
+              <th scope="col" class="col-total" data-portal-live-text>{t('total')}</th>
             </tr>
           </thead>
           <tbody>
@@ -2211,6 +2241,11 @@
   .invalid-hint {
     color: var(--ja-danger, #c62828);
     margin: 0;
+  }
+  button.link.day-other-types {
+    justify-self: start;
+    text-align: left;
+    box-shadow: none;
   }
   button.link {
     background: none;

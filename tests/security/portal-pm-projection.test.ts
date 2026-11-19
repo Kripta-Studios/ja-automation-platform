@@ -363,10 +363,10 @@ describe('project-manager portal serialization', () => {
     },
   );
 
-  it('routes finance to its role landing without serializing root search data', async () => {
-    await expect(callRootLoader('finance_admin')).rejects.toMatchObject({
-      status: 303,
-      location: '/j-aautomation/app/finance?view=overview&q=project',
-    });
+  it('lands finance on Home (money inbox) instead of redirecting', async () => {
+    // Owner decision (B9, 2026-11-19): finance lands on Home with the money inbox.
+    // Finance is allowed to see monetary search fields; the PM projection above stays filtered.
+    const data = (await callRootLoader('finance_admin')) as Record<string, unknown>;
+    expect(data).toHaveProperty('homeInbox');
   });
 });

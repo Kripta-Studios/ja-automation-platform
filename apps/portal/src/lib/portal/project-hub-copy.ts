@@ -48,6 +48,11 @@ const copy = {
     '{hours} de horas, {expenses} despesas e {reports} relatórios aguardam aprovação',
   ],
   attApprovalsAction: ['Review and approve', 'Revisar y aprobar', 'Revisar e aprovar'],
+  attApprovalsOthers: [
+    '{count} records ({hours} of hours) wait for approval by the owner or another reviewer',
+    '{count} registros ({hours} de horas) esperan la aprobación del propietario u otro revisor',
+    '{count} registros ({hours} de horas) aguardam a aprovação do proprietário ou de outro revisor',
+  ],
   attUnbilled: [
     '{amount} of approved work ({hours}) is not invoiced yet',
     '{amount} de trabajo aprobado ({hours}) aún no está facturado',
@@ -318,6 +323,24 @@ const copy = {
     'Otra persona cambió este registro. Recarga la página e inténtalo de nuevo.',
     'Outra pessoa alterou este registro. Recarregue a página e tente de novo.',
   ],
+  // Vroles fixes 2026-11-19 (R2/R3)
+  needsTermsTitle: [
+    'No saved pay and cost for: {names}',
+    'Sin pago y coste guardados para: {names}',
+    'Sem pagamento e custo salvos para: {names}',
+  ],
+  needsTermsHelp: [
+    'Enter the internal cost and worker pay below, then press Add again.',
+    'Indica abajo el coste interno y el pago del trabajador y pulsa Añadir de nuevo.',
+    'Informe abaixo o custo interno e o pagamento do trabalhador e toque em Adicionar de novo.',
+  ],
+  startsOnHelp: [
+    'They can log hours from this date.',
+    'Podrá registrar horas desde esta fecha.',
+    'Poderá registrar horas a partir desta data.',
+  ],
+  pastTeam: ['Past team ({count})', 'Equipo anterior ({count})', 'Equipe anterior ({count})'],
+  endedOn: ['Ended {date}', 'Terminó el {date}', 'Encerrou em {date}'],
 } satisfies Record<string, CopyValue>;
 
 export type ProjectHubCopyKey = keyof typeof copy;

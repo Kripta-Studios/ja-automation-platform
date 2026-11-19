@@ -14589,6 +14589,44 @@ export class PortalRepository {
         });
       }
       if (projectManagerChanged && previousProjectManagerId) {
+        // Team memberships that only gained review rights by becoming project
+        // manager stay on the team and give those rights back.
+        const reusedMemberships = this.sqlite
+          .prepare(
+            `SELECT pm.id,
+                    (SELECT json_extract(a.details_json,'$.previousCanReview') FROM audit_event a
+                      WHERE a.entity_type='project_member' AND a.entity_id=pm.id
+                        AND a.action='assignment.update'
+                        AND json_extract(a.details_json,'$.operation')='set_project_manager'
+                      ORDER BY a.occurred_at DESC,a.id DESC LIMIT 1) previous_can_review,
+                    (SELECT json_extract(a.details_json,'$.reusedTeamMembership') FROM audit_event a
+                      WHERE a.entity_type='project_member' AND a.entity_id=pm.id
+                        AND a.action='assignment.update'
+                        AND json_extract(a.details_json,'$.operation')='set_project_manager'
+                      ORDER BY a.occurred_at DESC,a.id DESC LIMIT 1) reused
+               FROM project_member pm
+              WHERE pm.project_id=? AND pm.user_id=? AND pm.assignment_role<>'project_manager'
+                AND pm.status='active' AND pm.can_review=1`,
+          )
+          .all(input.projectId, previousProjectManagerId) as Array<{
+          id: string;
+          previous_can_review: number | null;
+          reused: number | null;
+        }>;
+        for (const membership of reusedMemberships) {
+          if (membership.reused !== 1 || membership.previous_can_review !== 0) continue;
+          this.sqlite
+            .prepare(
+              "UPDATE project_member SET can_review=0,updated_at=?,version=version+1 WHERE id=? AND status='active'",
+            )
+            .run(now(), membership.id);
+          this.audit(principal, 'assignment.update', 'project_member', membership.id, {
+            operation: 'replace_project_manager',
+            projectId: input.projectId,
+            workerId: previousProjectManagerId,
+            canReview: false,
+          });
+        }
         const previousMemberships = this.sqlite
           .prepare(
             "SELECT id,starts_on,ends_on FROM project_member WHERE project_id=? AND user_id=? AND assignment_role='project_manager' AND status='active'",
@@ -14660,7 +14698,35 @@ export class PortalRepository {
           .get(input.projectId, nextProjectManagerId, managerStartDate) as
           | { id: string; status: string }
           | undefined;
-        if (existingMembership) {
+        // A person already on the team keeps that single membership: it gains
+        // review rights instead of a second, overlapping row (duplicate rows
+        // broke the Time and Planning screens).
+        const teamMembership = existingMembership
+          ? undefined
+          : (this.sqlite
+              .prepare(
+                "SELECT id,can_review FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on,id LIMIT 1",
+              )
+              .get(input.projectId, nextProjectManagerId, today()) as
+              | { id: string; can_review: number }
+              | undefined);
+        if (teamMembership) {
+          const promoted = this.sqlite
+            .prepare(
+              "UPDATE project_member SET can_review=1,updated_at=?,version=version+1 WHERE id=? AND status='active'",
+            )
+            .run(now(), teamMembership.id);
+          if (promoted.changes !== 1)
+            throw new ConflictError('Project manager assignment changed before activation');
+          this.audit(principal, 'assignment.update', 'project_member', teamMembership.id, {
+            operation: 'set_project_manager',
+            projectId: input.projectId,
+            workerId: nextProjectManagerId,
+            reusedTeamMembership: true,
+            previousCanReview: teamMembership.can_review === 1,
+            canReview: true,
+          });
+        } else if (existingMembership) {
           const activated = this.sqlite
             .prepare(
               "UPDATE project_member SET assignment_role='project_manager',ends_on=NULL,can_review=1,status='active',updated_at=?,version=version+1 WHERE id=?",

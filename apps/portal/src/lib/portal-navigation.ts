@@ -308,16 +308,18 @@ export function portalNavigationForRole(
 
   if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator')
     return {
+      // Field work first (R9): Time leads; the technician's digital-worker
+      // tools follow the everyday entries.
       primary: [
-        ...(workforceProfile === 'external_technician'
-          ? [item('workflow', 'Digital workers', '▤')]
-          : []),
         ...(workforceProfile === 'supplier_coordinator'
           ? [item('supplier', 'Supplier team', '◌')]
           : []),
         item('time', 'Time', '◷'),
         item('expenses', 'Expenses', '◇'),
         item('reports', 'Reports', '▤'),
+        ...(workforceProfile === 'external_technician'
+          ? [item('workflow', 'Digital workers', '▤')]
+          : []),
       ],
       secondary: [
         item('supplier', 'Operational report', '▤', route('supplier/report')),
@@ -419,8 +421,14 @@ export function portalNavigationForRole(
     }
     case 'auditor_read_only':
       return {
+        // Read-only entries for every area the auditor may read (R6); the
+        // server still enforces read-only access on each page and action.
         primary: [
           item('finance', 'Money', '↗', route('finance', 'overview')),
+          item('projects', 'Projects', '▦'),
+          item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' }),
+          item('expenses', 'Expenses', '◇'),
+          item('billing', 'Invoices', '◫'),
           item('ledger', 'Payments', '▤'),
         ],
         secondary: [

@@ -2539,6 +2539,19 @@
     };
   };
   const paletteRecords = $derived((data.searchSuggestions ?? []).map(toPaletteRecord));
+  // Supplier workforce: their own projects only, opening the Time screen.
+  const restrictedPaletteRecords = $derived(
+    (
+      ((data as { restrictedProjectSuggestions?: Array<{ id: string; number: string; name: string }> })
+        .restrictedProjectSuggestions ?? [])
+    ).map((project) => ({
+      id: `project:${project.id}`,
+      label: project.name,
+      detail: project.number,
+      group: translate('Projects'),
+      href: `${base}/app/time?project=${encodeURIComponent(project.id)}`,
+    })),
+  );
   const navigationBadges = $derived({
     approvals: Number(($page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
   });
@@ -3872,7 +3885,7 @@
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
     badges={navigationBadges}
-    recordSuggestions={canUseGlobalSearch ? paletteRecords : []}
+    recordSuggestions={canUseGlobalSearch ? paletteRecords : restrictedPaletteRecords}
     mapRecord={canUseGlobalSearch ? toPaletteRecord : undefined}
   />
   <main id="portal-main" data-portal-section={data.section}>

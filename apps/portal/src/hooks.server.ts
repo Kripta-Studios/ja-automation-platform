@@ -56,11 +56,20 @@ function escapeHtml(value: string): string {
 }
 
 /** Keep this guard before route loading while giving denied document requests a usable remedy. */
+// Supplier-workforce people are paid by their own company, so J&A's My Pay
+// does not apply to them (R9). Say so instead of a bare "Access restricted".
+const supplierPayExplanation: Record<'en' | 'es' | 'pt', string> = {
+  en: 'Your pay is handled by your own company, not in this portal. Ask your supplier coordinator about payments.',
+  es: 'Tu pago lo gestiona tu propia empresa, no este portal. Consulta los pagos con tu coordinador del proveedor.',
+  pt: 'Seu pagamento é feito pela sua própria empresa, não por este portal. Fale com o coordenador do fornecedor sobre pagamentos.',
+};
+
 function operationalAccessDeniedResponse(
   profile: 'external_technician' | 'supplier_coordinator',
   locale: PortalLocale,
   acceptsHtml: boolean,
   correlationId: string,
+  route = '',
 ): Response {
   const destination = profile === 'supplier_coordinator' ? 'supplier' : 'time';
   const href = `${portalBase}/${destination}?lang=${locale}`;
@@ -79,7 +88,14 @@ function operationalAccessDeniedResponse(
     );
 
   const title = escapeHtml(portalText(locale, 'Access restricted'));
-  const explanation = escapeHtml(portalText(locale, 'problem.operational.routeRestricted'));
+  const payRoute = /^\/(pay|my-pay)(\/|$)/u.test(route);
+  const explanation = escapeHtml(
+    payRoute
+      ? supplierPayExplanation[
+          String(locale).startsWith('es') ? 'es' : String(locale).startsWith('pt') ? 'pt' : 'en'
+        ]
+      : portalText(locale, 'problem.operational.routeRestricted'),
+  );
   const contact = escapeHtml(portalText(locale, 'Contact an owner'));
   const destinationLabel = escapeHtml(
     portalText(locale, destination === 'supplier' ? 'Supplier' : 'Time'),
@@ -574,6 +590,7 @@ export const handle: Handle = async ({ event, resolve }) => {
                 (event.request.method === 'GET' || event.request.method === 'HEAD') &&
                   event.request.headers.get('accept')?.includes('text/html') === true,
                 correlationId,
+                route,
               ),
               true,
               path,

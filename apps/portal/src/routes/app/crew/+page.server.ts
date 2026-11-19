@@ -638,6 +638,17 @@ export const load: PageServerLoad = ({ locals, url }) => {
         (resolved.filterProblem?.code === 'CREW_DAY_PROJECT_UNAVAILABLE_CHIEF' &&
           upcoming.some((delegation) => delegation.projectId === projectId)));
     const filterProblem = waitingForDelegation ? null : resolved.filterProblem;
+    // R7: supplier coordinators record their team's hours on the supplier
+    // page; without a crew delegation send them there instead of a dead end.
+    if (
+      filterProblem?.code === 'CREW_DAY_PROJECT_REQUIRED_CHIEF' &&
+      !upcoming.length &&
+      locals.user.workforceProfile === 'supplier_coordinator'
+    )
+      redirect(
+        303,
+        `/j-aautomation/app/supplier${url.searchParams.get('lang') ? `?lang=${encodeURIComponent(url.searchParams.get('lang')!)}` : ''}`,
+      );
     const emptyRows = (
       currentProjects = projects,
       currentProblem: ProblemData | null = filterProblem,

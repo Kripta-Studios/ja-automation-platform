@@ -515,25 +515,38 @@
     id: string;
     tone: 'warn' | 'info';
     text: string;
-    action: string;
-    href: string;
+    action?: string;
+    href?: string;
     tab?: TabId;
     primary?: boolean;
   };
   const attention = $derived.by((): AttentionItem[] => {
     const items: AttentionItem[] = [];
-    if (!isWorker && pendingTotal > 0)
+    // Only promise "Review and approve" for what this viewer may approve
+    // (PM: not their own records, not supplier-workforce time).
+    const reviewable = hub.reviewable;
+    const reviewableTotal = reviewable.timeCount + reviewable.expenseCount + reviewable.reportCount;
+    if (!isWorker && reviewableTotal > 0)
       items.push({
         id: 'approvals',
         tone: 'warn',
         text: h('attApprovals', {
-          hours: hours(hub.pending.timeMinutes),
-          expenses: hub.pending.expenseCount,
-          reports: hub.pending.reportCount,
+          hours: hours(reviewable.timeMinutes),
+          expenses: reviewable.expenseCount,
+          reports: reviewable.reportCount,
         }),
         action: h('attApprovalsAction'),
         href: approvalsHref,
         primary: true,
+      });
+    if (!isWorker && pendingTotal > reviewableTotal)
+      items.push({
+        id: 'approvals-others',
+        tone: 'info',
+        text: h('attApprovalsOthers', {
+          hours: hours(hub.pending.timeMinutes - reviewable.timeMinutes),
+          count: pendingTotal - reviewableTotal,
+        }),
       });
     const fin = hub.finance;
     if (fin && canWriteFinance && (fin.unbilledMinutes > 0 || (fin.approvedUnbilledMinor !== '0' && fin.openDrafts === 0)))
@@ -1374,10 +1387,11 @@
       </a>
     {/if}
     {#if !isWorker}
-      <a
+      <svelte:element
+        this={isAuditor ? 'div' : 'a'}
         class="hub-figure"
         class:hub-figure--attention={pendingTotal > 0}
-        href={approvalsHref}
+        href={isAuditor ? undefined : approvalsHref}
       >
         <span>{h('figWaiting')}</span>
         <strong>{pendingTotal}</strong>
@@ -1388,7 +1402,7 @@
             reports: hub.pending.reportCount,
           })}</small
         >
-      </a>
+      </svelte:element>
     {/if}
   </section>
 
@@ -1651,12 +1665,14 @@
               {#each attention as item (item.id)}
                 <li class="hub-attention-item" data-tone={item.tone} data-hub-attention-item={item.id}>
                   <span>{item.text}</span>
-                  <a
-                    class={item.primary ? 'primary-button' : 'secondary-button'}
-                    href={item.href}
-                    onclick={(event) => (item.tab ? tabLink(event, item.tab) : undefined)}
-                    >{item.action}</a
-                  >
+                  {#if item.action && item.href}
+                    <a
+                      class={item.primary ? 'primary-button' : 'secondary-button'}
+                      href={item.href}
+                      onclick={(event) => (item.tab ? tabLink(event, item.tab) : undefined)}
+                      >{item.action}</a
+                    >
+                  {/if}
                 </li>
               {/each}
             </ul>

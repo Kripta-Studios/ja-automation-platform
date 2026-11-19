@@ -43,7 +43,7 @@ export const supplierCopy = {
     future: 'Future',
     time: 'Record team hours',
     batchHelp:
-      'Select one or more technicians. Shared values create separate, traceable drafts in one atomic save; review them before submitting to J&A.',
+      'Pick one or more technicians and enter the hours once. Each person gets their own draft; check them, then send them to J&A.',
     worker: 'Technician',
     findTechnician: 'Find technician',
     selectVisible: 'Add visible to selection',
@@ -149,7 +149,7 @@ export const supplierCopy = {
     future: 'Futuro',
     time: 'Registrar horas del equipo',
     batchHelp:
-      'Selecciona uno o varios técnicos. Los valores comunes crean borradores separados y trazables en un guardado atómico; revísalos antes de enviarlos a J&A.',
+      'Elige uno o varios técnicos e indica las horas una sola vez. Cada persona recibe su propio borrador; revísalos y envíalos a J&A.',
     worker: 'Técnico',
     findTechnician: 'Buscar técnico',
     selectVisible: 'Añadir visibles a la selección',
@@ -255,7 +255,7 @@ export const supplierCopy = {
     future: 'Futuro',
     time: 'Registrar horas da equipe',
     batchHelp:
-      'Selecione um ou mais técnicos. Os valores comuns criam rascunhos separados e rastreáveis em um salvamento atômico; revise-os antes de enviá-los à J&A.',
+      'Escolha um ou mais técnicos e informe as horas uma só vez. Cada pessoa recebe o próprio rascunho; confira e envie para a J&A.',
     worker: 'Técnico',
     findTechnician: 'Buscar técnico',
     selectVisible: 'Adicionar visíveis à seleção',

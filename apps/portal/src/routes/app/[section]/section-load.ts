@@ -248,6 +248,17 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
       user: { ...locals.user, workforceProfile: restrictedProfile?.profile, canonicalOwner },
       section,
       searchQuery,
+      // Supplier-workforce accounts get no record search; Ctrl+K offers only
+      // their own authorized projects (the same list as their Time picker).
+      restrictedProjectSuggestions: restrictedProfile
+        ? (context.repository.listAssignedProjects(context.principal) as Array<Record<string, unknown>>)
+            .slice(0, 50)
+            .map((project) => ({
+              id: String(project.id),
+              number: String(project.project_number ?? ''),
+              name: String(project.name ?? ''),
+            }))
+        : [],
       searchSuggestions: restrictedProfile
         ? []
         : isProjectManager
@@ -292,18 +303,23 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         ) as Array<Record<string, unknown>>;
         const delegating = ['owner_admin', 'project_manager'].includes(context.principal.role);
         const assignedWorkerIds = new Set(allAssignments.map((row) => String(row.worker_id)));
+        // Picker: the viewer first ("Myself"), then everyone else once, by name.
         const timeWorkers = delegating
-          ? [
-              ...(assignedWorkerIds.has(context.principal.userId) &&
-              !(common.workers as Array<{ id: string }>).some(
-                (worker) => String(worker.id) === context.principal.userId,
-              )
-                ? [{ id: context.principal.userId, name: locals.user.name ?? locals.user.email }]
-                : []),
-              ...(common.workers as Array<Record<string, unknown>>)
-                .filter((worker) => assignedWorkerIds.has(String(worker.id)))
-                .map((worker) => ({ id: String(worker.id), name: String(worker.name ?? '') })),
-            ]
+          ? (() => {
+              const others = new Map<string, { id: string; name: string }>();
+              for (const worker of common.workers as Array<Record<string, unknown>>) {
+                const id = String(worker.id);
+                if (id === context.principal.userId || !assignedWorkerIds.has(id) || others.has(id))
+                  continue;
+                others.set(id, { id, name: String(worker.name ?? '') });
+              }
+              return [
+                ...(assignedWorkerIds.has(context.principal.userId)
+                  ? [{ id: context.principal.userId, name: locals.user.name ?? locals.user.email }]
+                  : []),
+                ...[...others.values()].sort((a, b) => a.name.localeCompare(b.name)),
+              ];
+            })()
           : [];
         const requestedWorker = url.searchParams.get('worker')?.trim() ?? '';
         const timeWorkerId = !delegating
@@ -346,8 +362,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const canReview = ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
           context.principal.role,
         );
+        // The read-only auditor never logs hours: Time always opens the overview.
         const timeView =
-          canReview && reviewViewRequested(context, url, ['owner_admin', 'finance_admin', 'auditor_read_only'])
+          canReview &&
+          (context.principal.role === 'auditor_read_only' ||
+            reviewViewRequested(context, url, ['owner_admin', 'finance_admin']))
             ? 'overview'
             : 'capture';
         let overview: TimeOverviewData | undefined;
@@ -548,11 +567,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           }
         })();
         const visibleRecords = visibleProjectRecords(authorizedRecords, scope.projectIds);
-        const canReviewExpenses = ['owner_admin', 'finance_admin', 'project_manager'].includes(
-          context.principal.role,
-        );
+        // The auditor reads the same authorized, role-projected rows as an
+        // overview only (no capture, no actions).
+        const canReviewExpenses = [
+          'owner_admin',
+          'finance_admin',
+          'project_manager',
+          'auditor_read_only',
+        ].includes(context.principal.role);
         const expenseView =
-          canReviewExpenses && reviewViewRequested(context, url, ['owner_admin', 'finance_admin'])
+          canReviewExpenses &&
+          (context.principal.role === 'auditor_read_only' ||
+            reviewViewRequested(context, url, ['owner_admin', 'finance_admin']))
             ? 'overview'
             : 'capture';
         if (expenseView === 'overview') {

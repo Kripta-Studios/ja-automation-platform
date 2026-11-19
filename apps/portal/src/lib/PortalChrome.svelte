@@ -542,8 +542,12 @@
     {locale}
     canSearchRecords={!['external_technician', 'supplier_coordinator'].includes(
       data.user.workforceProfile ?? '',
-    )}
-    recordSearchHref={(query) => workspaceRecordSearchHref(base, data.user.role, query, locale)}
+    ) || recordSuggestions.length > 0}
+    recordSearchHref={['external_technician', 'supplier_coordinator'].includes(
+      data.user.workforceProfile ?? '',
+    )
+      ? undefined
+      : (query) => workspaceRecordSearchHref(base, data.user.role, query, locale)}
     {recordSuggestions}
     {mapRecord}
     recordEndpoint={mapRecord ? `${base}/app/api/search` : ''}

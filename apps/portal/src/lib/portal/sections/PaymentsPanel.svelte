@@ -86,7 +86,7 @@
   <header class="payments__head">
     <div>
       <h2 id="payments-title" class="page-title-hidden">{t('paymentsTitle')}</h2>
-      <p class="payments__muted">{t('paymentsIntro')}</p>
+      <p class="payments__muted">{t(canRecord ? 'paymentsIntro' : 'paymentsIntroReadOnly')}</p>
     </div>
     <a class="secondary-button" href={`${base}/app/finance?view=overview&lang=${locale}`}
       >{t('moneyTitle')}</a

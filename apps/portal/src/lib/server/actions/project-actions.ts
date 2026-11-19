@@ -23,6 +23,7 @@ import {
   V3ValidationError,
   ValidationError,
   ProjectPersonDefaultsRepository,
+  SupplierWorkforceRepository,
 } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { removePurgedFiles } from '$lib/server/permanent-deletion';
@@ -1507,6 +1508,41 @@ export const projectActions = {
     }
   },
   assignWorker: async ({ locals, request, params }: PortalActionEvent) => {
+    // R7: when the owner adds a supplier coordinator to a project team, also
+    // open the project for their supplier company (the owner-only supplier
+    // grant), so "on the team" and "can log hours" mean the same thing.
+    const grantSupplierCoordinator = (
+      context: ReturnType<typeof openPortalRepository>,
+      input: { projectId: string; workerId: string; startsOn: string; endsOn?: string | null },
+    ) => {
+      if (context.principal.role !== 'owner_admin') return;
+      const profile = context.sqlite
+        .prepare(
+          "SELECT supplier_id FROM supplier_user_profile WHERE user_id=? AND profile='supplier_coordinator'",
+        )
+        .get(input.workerId) as { supplier_id: string } | undefined;
+      if (!profile) return;
+      const covered = context.sqlite
+        .prepare(
+          `SELECT 1 FROM supplier_project_grant
+            WHERE supplier_id=? AND project_id=? AND coordinator_id=? AND status='active'
+              AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1`,
+        )
+        .get(profile.supplier_id, input.projectId, input.workerId, input.startsOn, input.startsOn);
+      if (covered) return;
+      try {
+        new SupplierWorkforceRepository(context.sqlite).grantProject(context.principal, {
+          supplierId: profile.supplier_id,
+          projectId: input.projectId,
+          coordinatorId: input.workerId,
+          startsOn: input.startsOn,
+          endsOn: input.endsOn || undefined,
+        });
+      } catch {
+        // The assignment stands; the owner can still grant access on the
+        // Suppliers page (e.g. an overlapping grant already exists).
+      }
+    };
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
@@ -1655,6 +1691,7 @@ export const projectActions = {
           notes,
         });
       });
+      grantSupplierCoordinator(context, parsed.data);
       if (object.useExistingFinanceRules === 'on')
         return actionSuccess(
           'action.projects.assignmentCreated',

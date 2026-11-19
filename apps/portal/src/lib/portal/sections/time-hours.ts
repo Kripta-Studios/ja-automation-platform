@@ -26,6 +26,21 @@ export function parseHoursText(value: unknown): number | null | undefined {
   return Math.round((tenThousandths * 3) / 500);
 }
 
+/**
+ * Hours as the person reads them on the capture screens: "8" for whole hours,
+ * otherwise H:MM ("8:30", "7:05"). Same notation everywhere (input, totals,
+ * confirmations) so 8 h 30 min never shows as "8.5" next to "8:30".
+ */
+export function clockHoursText(minutes: unknown): string {
+  const value = Number(minutes);
+  if (!Number.isSafeInteger(value)) return '—';
+  const absolute = Math.abs(value);
+  const sign = value < 0 ? '-' : '';
+  const h = Math.floor(absolute / 60);
+  const m = absolute % 60;
+  return m ? `${sign}${h}:${String(m).padStart(2, '0')}` : `${sign}${h}`;
+}
+
 /** "7 h 18 min" style text for a minute count (used to confirm what was typed). */
 export function hoursAndMinutesText(minutes: number, unit = { h: 'h', min: 'min' }): string {
   const h = Math.floor(minutes / 60);

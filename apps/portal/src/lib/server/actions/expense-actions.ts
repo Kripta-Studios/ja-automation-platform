@@ -971,9 +971,9 @@ export const expenseActions = withOperationalActionNames({
         return rows.length;
       });
       return actionSuccess(
-        'action.expense.weekSubmitted',
+        submitted === 1 ? 'action.expense.weekSubmittedOne' : 'action.expense.weekSubmitted',
         { submitted },
-        `${submitted} expense drafts submitted for review`,
+        submitted === 1 ? '1 expense sent for review.' : `${submitted} expenses sent for review.`,
       );
     } catch (error) {
       if (
@@ -1240,7 +1240,9 @@ export const expenseActions = withOperationalActionNames({
       return actionSuccess(
         result.replayed
           ? 'action.expense.weekDraftsAlreadySaved'
-          : 'action.expense.weekDraftsSaved',
+          : result.created === 1
+            ? 'action.expense.weekDraftsSavedOne'
+            : 'action.expense.weekDraftsSaved',
         result,
         result.replayed
           ? `${result.created} weekly expense drafts were already saved. No duplicates were created.`
@@ -1436,7 +1438,9 @@ export const expenseActions = withOperationalActionNames({
       return actionSuccess(
         result.replayed
           ? 'action.expense.weekDraftsAlreadySaved'
-          : 'action.expense.weekDraftsSaved',
+          : result.created === 1
+            ? 'action.expense.weekDraftsSavedOne'
+            : 'action.expense.weekDraftsSaved',
         { created: result.created },
         `${result.created} expense drafts saved`,
       );
@@ -1467,6 +1471,10 @@ export const expenseActions = withOperationalActionNames({
     delete object.requestId;
     const allowSeparateExpense = object.allowSeparateExpense === 'on';
     delete object.allowSeparateExpense;
+    // "Save & send": create the draft and submit it in the same transaction
+    // (same canonical submit command, RBAC and audit as the week submit).
+    const submitNow = object.submitNow === 'on';
+    delete object.submitNow;
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File ? receipt : undefined;
     delete object.receipt;
@@ -1589,6 +1597,8 @@ export const expenseActions = withOperationalActionNames({
           requestId,
           { allowSeparateExpense },
         );
+        if (submitNow && !created.replayed)
+          context.repository.submitExpense(context.principal, created.id, created.version);
         if (retryIdentity && !created.replayed)
           recordAuditEvent(
             context.sqlite,
@@ -1605,6 +1615,8 @@ export const expenseActions = withOperationalActionNames({
         return created;
       });
       if (created.replayed) await uploaded?.cleanup();
+      if (submitNow && !created.replayed)
+        return actionSuccess('action.expense.submitted', {}, 'Expense submitted');
       return actionSuccess(
         created.replayed ? 'action.expense.draftAlreadySaved' : 'action.expense.draftSaved',
         {},
@@ -1627,6 +1639,8 @@ export const expenseActions = withOperationalActionNames({
     const receipt = object.receipt;
     const receiptFile = receipt instanceof File && receipt.size > 0 ? receipt : undefined;
     delete object.receipt;
+    const submitNow = object.submitNow === 'on';
+    delete object.submitNow;
     const parsed = parseExpenseUpdateForm(object);
     if (!parsed.success) return expenseSchemaFailure(parsed.error, values);
     const context = openPortalRepository(locals);
@@ -1648,6 +1662,24 @@ export const expenseActions = withOperationalActionNames({
           throw new ConflictError('Expense changed or cannot be edited');
         const bytes = await validateExpenseReceipt(receiptFile);
         uploaded = await saveExpenseReceipt(context, String(detail.project_id), receiptFile, bytes);
+      }
+      if (submitNow) {
+        // Save the edit and send it in one transaction: both or neither.
+        expenseWeekTransaction(context, () => {
+          context.repository.updateExpense(context.principal, {
+            ...parsed.data,
+            ...(uploaded ? { receiptDocumentId: uploaded.id } : {}),
+          });
+          const current = context.sqlite
+            .prepare('SELECT version FROM expense WHERE id=?')
+            .get(parsed.data.id) as { version: number } | undefined;
+          context.repository.submitExpense(
+            context.principal,
+            parsed.data.id,
+            Number(current?.version),
+          );
+        });
+        return actionSuccess('action.expense.submitted', {}, 'Expense submitted');
       }
       context.repository.updateExpense(context.principal, {
         ...parsed.data,

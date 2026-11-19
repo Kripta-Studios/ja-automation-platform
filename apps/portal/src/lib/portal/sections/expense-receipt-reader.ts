@@ -12,6 +12,41 @@ const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 let lastRead = 0;
 
 /**
+ * Small or low-resolution photos/screenshots make the local OCR misread digits
+ * (a 10 px "45.00" was read as "46.00"). Before reading, enlarge such images in
+ * the browser so the text is ~3x taller. Only the copy sent to the reader is
+ * enlarged; the receipt that is saved is always the original file.
+ */
+async function enlargedForReading(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || typeof createImageBitmap !== 'function') return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const longest = Math.max(bitmap.width, bitmap.height);
+    const scale = longest > 0 && longest < 1600 ? Math.min(3, 2400 / longest) : 1;
+    if (scale <= 1.2) {
+      bitmap.close();
+      return file;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bitmap.width * scale);
+    canvas.height = Math.round(bitmap.height * scale);
+    const context = canvas.getContext('2d');
+    if (!context) return file;
+    context.imageSmoothingEnabled = true;
+    context.imageSmoothingQuality = 'high';
+    context.fillStyle = '#fff';
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob || blob.size > 8 * 1024 * 1024) return file;
+    return new File([blob], 'receipt.png', { type: 'image/png' });
+  } catch {
+    return file;
+  }
+}
+
+/**
  * Receipt-first capture: suggest amount and date from the file name and the
  * existing on-server local text reader (no external AI). Suggestions are only
  * prefilled for the person to confirm; nothing is saved automatically. Any
@@ -34,7 +69,7 @@ export async function readReceipt(
       }
       lastRead = Date.now();
       const form = new FormData();
-      form.set('file', file);
+      form.set('file', await enlargedForReading(file));
       form.set('locale', locale);
       const response = await fetch(`${base}/app/api/workflow/extract`, {
         method: 'POST',

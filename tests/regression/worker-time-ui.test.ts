@@ -38,7 +38,9 @@ describe('Worker time UI vertical slice', () => {
   it('keeps Worker entry operational and never asks for commercial treatment', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
     const categories = readSource('apps/portal/src/lib/portal/time-categories.ts');
-    expect(source).toContain('const quickCategories = quickTimeCategories;');
+    // Owner bug C10 (2026-11-19): all four types inline, no "More types" for a single option.
+    expect(source).toContain('const dayCategoryChoices: readonly string[] = captureTimeCategories;');
+    expect(source).not.toContain('time-more-types');
     expect(categories).toContain("export const quickTimeCategories = ['regular', 'travel', 'overtime'] as const;");
     expect(source).not.toMatch(/name="(?:clientRate|tax|markup|multiplier|billable)"/i);
   });

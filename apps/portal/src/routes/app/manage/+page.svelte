@@ -22,6 +22,9 @@
   };
   const t = (text: string, params?: Record<string, string | number>) =>
     portalText(normalizePortalLocale(data.locale), text, params);
+  /** Z3: "1 record" / "5 records". */
+  const domainTotal = (domain: { counts: ReadonlyArray<{ count: number }> }) =>
+    domain.counts.reduce((sum, value) => sum + value.count, 0);
   const controlled = (domain: 'status' | 'availability' | 'expenseCategory', value: unknown) =>
     translateControlledValue(normalizePortalLocale(data.locale), domain, String(value ?? ''));
   function managementHref(changes: Record<string, string>): string {
@@ -450,7 +453,7 @@
         >
           <span class="domain-title">{t(domain.title)} <DirectionIcon /></span>
           <span class="domain-count"
-            >{domain.counts.reduce((sum, value) => sum + value.count, 0)} {t('records')}</span
+            >{domainTotal(domain)} {t(domainTotal(domain) === 1 ? 'record' : 'records')}</span
           >
         </a>{/each}
     </div>

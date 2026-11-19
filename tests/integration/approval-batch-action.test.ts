@@ -84,7 +84,7 @@ describe('approveBatch (approve a worker week in one transaction)', () => {
     expect(result).toMatchObject({
       success: true,
       messageKey: 'action.approval.batchTimeApproved',
-      messageParams: { count: 2, hours: 16 },
+      messageParams: { count: 2, hours: '16:00' },
     });
     expect(state(monday.id).approval_state).toBe('approved');
     expect(state(tuesday.id).approval_state).toBe('approved');

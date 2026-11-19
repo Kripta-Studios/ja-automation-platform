@@ -22,6 +22,7 @@
   import type { TableCardRow } from '../ui';
   import type { PortalActionResult, PortalRow } from '../portal-data';
   import { operationalSearchText } from './operational-register';
+  import { personDisplayName } from '../display-name';
   import {
     emptyPublishedAssignmentFilters,
     publishedAssignmentMatches,
@@ -1170,7 +1171,9 @@
                 <select bind:value={assignmentWorkerFilter} data-assignment-worker-filter>
                   <option value="">{translate('All workers')}</option>
                   {#each assignmentWorkerOptions as worker (value(worker, 'id'))}
-                    <option value={value(worker, 'id')}>{value(worker, 'name')}</option>
+                    <option value={value(worker, 'id')}
+                      >{personDisplayName(value(worker, 'name')) || value(worker, 'name')}</option
+                    >
                   {/each}
                 </select>
               </label>
@@ -1200,7 +1203,7 @@
                   <h3>
                     {value(assignment, 'project_number')}{#if project}
                       · {projectName(project)}
-                    {/if} · {value(assignment, 'worker_name')}
+                    {/if} · {personDisplayName(value(assignment, 'worker_name'))}
                   </h3>
                   {#if assignmentDateContext(assignment)}
                     <p class="project-section__assignment-dates">

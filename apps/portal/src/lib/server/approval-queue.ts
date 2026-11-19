@@ -365,7 +365,19 @@ export function loadApprovalQueuePage(
     worker: labels.workerName,
     project: labels.projectLabel,
   });
-  const matchingTab = filterQueueRows(tabRows, filters, filterLabels);
+  const matchingAll = filterQueueRows(tabRows, filters, filterLabels);
+  // Y4: totals, groups and "Showing N of M" count only what this viewer can
+  // decide. A reviewer's own hours/expenses (never self-approvable) are listed
+  // apart, collapsed, so the list total matches the tab badge.
+  const splitOwn = !isOwner && query.tab !== 'reports';
+  const matchingTab = splitOwn
+    ? matchingAll.filter((row) => viewerCanDecide(context, row))
+    : matchingAll;
+  const ownTab = splitOwn
+    ? matchingAll
+        .filter((row) => !viewerCanDecide(context, row))
+        .sort((a, b) => text(b.date).localeCompare(text(a.date)))
+    : [];
 
   // `show` pages the list that is open: the approved list in view=approved, else the queue.
   const pendingShow = query.view === 'approved' ? APPROVAL_PAGE_SIZE : query.show;
@@ -494,6 +506,11 @@ export function loadApprovalQueuePage(
     groups,
     reports,
     waiting: { count: waitingAll.length, rows: waitingAll.slice(0, 25).map(decorate) },
+    ownEntries: {
+      count: ownTab.length,
+      minutes: queueTotals(ownTab).minutes,
+      rows: ownTab.slice(0, 25).map(decorate),
+    },
     approveAll: {
       matching: queueTotals(actionable),
       batch: queueTotals(batchRows),

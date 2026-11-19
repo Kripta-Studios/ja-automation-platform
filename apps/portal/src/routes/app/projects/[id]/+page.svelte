@@ -1805,6 +1805,7 @@
             projectEnd={String(project.planned_end_date ?? '')}
             today={hub.today}
             canSetRates={canWriteFinance}
+            viewerId={String(data.user?.id ?? '')}
             roleLabel={(value) => controlled('role', value ?? 'worker')}
             formatDate={(value) => formatProjectDate(value)}
             describe={(result) => standaloneActionMessage(locale, result ?? { success: false })}
@@ -2376,7 +2377,9 @@
         aria-labelledby="project-tab-settings"
         tabindex="0"
       >
-        <p class="surface-intro">{isAuditor ? h('settingsIntroReadOnly') : h('settingsIntro')}</p>
+        <p class="surface-intro">
+          {isAuditor || !canEditProjectDetails ? h('settingsIntroReadOnly') : h('settingsIntro')}
+        </p>
         <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
           <summary>{h('setDetails')}</summary>
           <div class="hub-group__body">

@@ -30,6 +30,9 @@ export const homeCopy = {
     seeDrafts: 'See drafts',
     open: 'Open',
     activeProjects: 'Active projects',
+    noActiveProjectsManager:
+      'You are not managing an active project right now. A project appears here when the owner makes you its project manager and it is active.',
+    noActiveProjects: 'No active projects right now.',
     openProject: 'Open project',
     approveAll: 'Approve all hours and expenses',
     approveAllDetail: '{hours} · {expenses}',
@@ -94,6 +97,9 @@ export const homeCopy = {
     seeDrafts: 'Ver borradores',
     open: 'Abrir',
     activeProjects: 'Proyectos activos',
+    noActiveProjectsManager:
+      'Ahora no gestionas ningún proyecto activo. Un proyecto aparece aquí cuando el propietario te nombra su jefe de proyecto y está activo.',
+    noActiveProjects: 'Ahora no hay proyectos activos.',
     openProject: 'Abrir proyecto',
     approveAll: 'Aprobar todas las horas y gastos',
     approveAllDetail: '{hours} · {expenses}',
@@ -157,6 +163,9 @@ export const homeCopy = {
     seeDrafts: 'Ver rascunhos',
     open: 'Abrir',
     activeProjects: 'Projetos ativos',
+    noActiveProjectsManager:
+      'Agora você não gerencia nenhum projeto ativo. Um projeto aparece aqui quando o proprietário o nomeia gerente do projeto e ele está ativo.',
+    noActiveProjects: 'Agora não há projetos ativos.',
     openProject: 'Abrir projeto',
     approveAll: 'Aprovar todas as horas e despesas',
     approveAllDetail: '{hours} · {expenses}',

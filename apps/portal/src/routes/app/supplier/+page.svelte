@@ -207,7 +207,8 @@
   $effect(() => {
     if (!form?.success) return;
     clearSubmissionPosition();
-    if (form.operation === 'createTimeBatch') workspaceAction = 'report';
+    // Y3: stay on Crew hours after saving so the drafts can be sent to J&A right here.
+    if (form.operation === 'createTimeBatch') workspaceAction = 'time';
   });
   const workspaceTargetIds: Record<WorkspaceAction, string> = {
     directory: 'supplier-directory',
@@ -429,8 +430,8 @@
       .sort();
     if (dates.length === 0) return '';
     return dates[0] === dates[dates.length - 1]
-      ? (dates[0] ?? '')
-      : `${dates[0]} – ${dates[dates.length - 1]}`;
+      ? shortDate(dates[0])
+      : `${shortDate(dates[0])} – ${shortDate(dates[dates.length - 1])}`;
   });
   function addVisibleTechnicians() {
     selectedWorkerIds = [
@@ -779,12 +780,14 @@
     {#if form?.success}<p role="status">
         {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
           {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
-          {c.drafts} · {form.outcome.projectName} · {form.outcome.workDate} · {decimalHours(
+          {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(form.outcome.workDate)} · {decimalHours(
             form.outcome.totalMinutes,
           )}
           {c.teamHours}
         {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
-          {form.outcome.submittedCount} {c.draftsSubmitted}
+          {form.outcome.submittedCount} {form.outcome.submittedCount === 1
+            ? c.draftSubmitted
+            : c.draftsSubmitted}
         {:else}{savedMessage(form.operation)}{/if}
       </p>{/if}
     {#if currentProblem && !(submissionFailure && data.projects.length && workspaceAction === 'report') && !(editor && form?.operation === editor.operation) && !['assignTechnician', 'createTimeBatch'].includes(form?.operation ?? '')}
@@ -1479,6 +1482,41 @@
           onclick={() => selectWorkspaceAction('report')}>{c.seeReport} <DirectionIcon /></button
         >
       {/if}
+      {#if draftEntries.length}
+        <!-- Y3: send the saved drafts to J&A from the screen where they were recorded. -->
+        <form
+          method="POST"
+          action={actionUrl('submitTimeBatch')}
+          data-supplier-operation="submitTimeBatch"
+          class="batch-submit crew-drafts-submit"
+          data-crew-submit
+          use:formValidation
+        >
+          <input
+            type="hidden"
+            name="entries"
+            value={JSON.stringify(
+              draftEntries
+                .slice(0, batchLimit)
+                .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
+            )}
+          />
+          <ul class="crew-draft-list">
+            {#each draftEntries.slice(0, batchLimit) as entry (entry.id)}
+              <li>
+                {entry.workerName} · {shortDate(entry.workDate)} · {decimalHours(entry.minutes)}
+                {c.actualHours}
+              </li>
+            {/each}
+          </ul>
+          <button class="primary-button" disabled={submissionNeedsReview}
+            >{(draftEntries.length === 1 ? c.submitDraftsOne : c.submitDrafts).replace(
+              '{count}',
+              String(Math.min(draftEntries.length, batchLimit)),
+            )}</button
+          >
+        </form>
+      {/if}
       <p>{c.batchHelp}</p>
       <form
         id="supplier-time-batch"
@@ -1625,7 +1663,7 @@
               {@const current = submissionCurrent.find((entry) => entry.id === attempted.id)}
               <li>
                 {#if current}
-                  {current.workerName} · {current.workDate} · {portalText(
+                  {current.workerName} · {shortDate(current.workDate)} · {portalText(
                     data.locale,
                     'problem.supplier.timeSubmissionCurrentState',
                     { status: supplierStateLabel(data.locale, current.state) },
@@ -1694,7 +1732,7 @@
       {/if}
       {#each data.entries as entry}
         <article>
-          <h3>{entry.workerName} · {entry.workDate}</h3>
+          <h3>{entry.workerName} · {shortDate(entry.workDate)}</h3>
           {#if !data.owner && entry.state === 'draft'}
             <label class="check draft-selector">
               <input
@@ -2143,6 +2181,13 @@
   }
   .batch-submit :global([data-ui='problem-notice']) {
     flex-basis: 100%;
+  }
+  .crew-draft-list {
+    flex-basis: 100%;
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.25rem;
   }
   .batch-technicians {
     display: grid;

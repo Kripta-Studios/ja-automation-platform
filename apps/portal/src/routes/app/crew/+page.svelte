@@ -743,7 +743,7 @@
               value={form?.operation === 'grant' ? form.values?.chiefUserId : ''}
             >
               <option value="">{t('Choose chief')}</option>
-              {#each data.candidates as person}<option value={person.id}>{person.name}</option
+              {#each data.candidates as person}<option value={person.id}>{personDisplayName(person.name)}</option
                 >{/each}
             </select>
           </label>
@@ -755,7 +755,7 @@
               value={form?.operation === 'grant' ? form.values?.workerUserId : ''}
             >
               <option value="">{t('Choose worker')}</option>
-              {#each data.candidates as person}<option value={person.id}>{person.name}</option
+              {#each data.candidates as person}<option value={person.id}>{personDisplayName(person.name)}</option
                 >{/each}
             </select>
           </label>
@@ -795,8 +795,8 @@
           {#each data.grants as grant}
             <li>
               <div class="delegation-detail">
-                {t('Chief')}: <strong>{grant.chiefName}</strong> ·
-                {t('Team member')}: <strong>{grant.workerName}</strong><br />
+                {t('Chief')}: <strong>{personDisplayName(grant.chiefName)}</strong> ·
+                {t('Team member')}: <strong>{personDisplayName(grant.workerName)}</strong><br />
                 <small
                   >{grant.startsOn} → {grant.endsOn ?? t('open ended')} · {grant.status ===
                   'revoked'
@@ -879,12 +879,12 @@
                         value={person.id}
                         bind:group={selected}
                       />
-                      <span>{person.name}</span>
+                      <span>{personDisplayName(person.name)}</span>
                     </label>
                     {#if mode === 'individual'}
                       <label
                         >{t('Hours for')}
-                        {person.name}
+                        {personDisplayName(person.name)}
                         <input
                           type="text"
                           inputmode="decimal"
@@ -987,7 +987,7 @@
           {#each data.entries as entry}
             <li>
               <div>
-                <strong>{entry.workerName}</strong> · {decimalHours(entry.minutes)} h ·
+                <strong>{personDisplayName(entry.workerName)}</strong> · {decimalHours(entry.minutes)} h ·
                 {timeCategory(entry.category)}<br />
                 <small>{entry.summary} · {status(entry.approvalState)}</small>
               </div>
@@ -1000,7 +1000,7 @@
               >
               {#if !['needs_changes', 'rejected'].includes(entry.approvalState)}
                 <a class="secondary-link" href={expenseLink(entry)}
-                  >{t('Add expense for')} {entry.workerName}</a
+                  >{t('Add expense for')} {personDisplayName(entry.workerName)}</a
                 >
               {/if}
               {#if entry.approvalState === 'draft'}
@@ -1134,9 +1134,11 @@
                     receipt.amountMinor / 100
                   ).toFixed(2)}
                   {receipt.currency} ·
-                  {data.assigned.find(
-                    (person: { id: string; name: string }) => person.id === receipt.workerId,
-                  )?.name || t('Worker')}
+                  {personDisplayName(
+                    data.assigned.find(
+                      (person: { id: string; name: string }) => person.id === receipt.workerId,
+                    )?.name,
+                  ) || t('Worker')}
                   ({payer(receipt.whoPaid)})
                 </option>
               {/each}
@@ -1155,12 +1157,12 @@
                       bind:group={allocationSelected}
                     />
                     <span
-                      >{entry.workerName} · {decimalHours(entry.minutes)} h · {entry.summary}</span
+                      >{personDisplayName(entry.workerName)} · {decimalHours(entry.minutes)} h · {entry.summary}</span
                     >
                   </label>
                   <label
                     >{t('Amount for')}
-                    {entry.workerName}
+                    {personDisplayName(entry.workerName)}
                     <input
                       type="text"
                       inputmode="decimal"
@@ -1243,7 +1245,7 @@
                 <ul>
                   {#each receipt.allocations as allocation}
                     <li>
-                      {allocation.workerName}: {(allocation.amountMinor / 100).toFixed(2)}
+                      {personDisplayName(allocation.workerName)}: {(allocation.amountMinor / 100).toFixed(2)}
                       {receipt.currency}
                     </li>
                   {/each}

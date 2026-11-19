@@ -4,6 +4,7 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { actionFail, actionFailure, actionSuccess, type ActionMessageKey } from './action-message';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { withAssignmentFinanceTransaction } from './assignment-finance';
+import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
 
 const approvalValueFields = new Set(['id', 'type', 'decision', 'reason', 'billable']);
 
@@ -428,17 +429,20 @@ export const approvalActions = {
         }
       });
       const timeOnly = items.every((item) => item.type === 'time');
-      const hours = Math.round((minutes / 60) * 100) / 100;
+      const hours = clockHoursFromMinutes(minutes);
+      const one = items.length === 1;
       return timeOnly
         ? actionSuccess(
-            'action.approval.batchTimeApproved',
+            one ? 'action.approval.batchTimeApprovedOne' : 'action.approval.batchTimeApproved',
             { count: items.length, hours },
-            `Approved ${items.length} time entries (${hours} h).`,
+            one
+              ? `Approved 1 time entry (${hours} h).`
+              : `Approved ${items.length} time entries (${hours} h).`,
           )
         : actionSuccess(
-            'action.approval.batchApproved',
+            one ? 'action.approval.batchApprovedOne' : 'action.approval.batchApproved',
             { count: items.length },
-            `Approved ${items.length} records.`,
+            one ? 'Approved 1 record.' : `Approved ${items.length} records.`,
           );
     } catch (error) {
       const failed = current ?? items[0]!;

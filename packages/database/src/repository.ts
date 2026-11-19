@@ -12273,6 +12273,7 @@ export class PortalRepository {
       to?: string;
       actorId?: string;
       entityType?: string;
+      entityTypes?: readonly string[];
       search?: string;
     }>,
   ) {
@@ -12293,7 +12294,12 @@ export class PortalRepository {
       conditions.push('actor_id=?');
       values.push(options.actorId);
     }
-    if (options.entityType) {
+    if (options.entityTypes?.length) {
+      // Several stored record kinds that read as one (e.g. two mailbox kinds).
+      const types = options.entityTypes.slice(0, 20);
+      conditions.push(`entity_type IN (${types.map(() => '?').join(',')})`);
+      values.push(...types);
+    } else if (options.entityType) {
       conditions.push('entity_type=?');
       values.push(options.entityType);
     }
@@ -12319,6 +12325,7 @@ export class PortalRepository {
       to?: string;
       actorId?: string;
       entityType?: string;
+      entityTypes?: readonly string[];
       search?: string;
     }> = {},
   ) {
@@ -12359,6 +12366,7 @@ export class PortalRepository {
       to?: string;
       actorId?: string;
       entityType?: string;
+      entityTypes?: readonly string[];
       search?: string;
     }> = {},
   ): number {

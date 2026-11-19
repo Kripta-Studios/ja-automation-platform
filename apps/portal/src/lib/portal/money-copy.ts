@@ -10,9 +10,13 @@ const en = {
   moneyScope: 'Most money waiting first (ready to invoice + unpaid)',
   noMatches: 'No project matches your search.',
   onlyMissing: 'Only missing rates',
-  ratesScope: '{people} people in {projects} projects have no client rate',
+  ratesScope: '{people} people in {projects} have no client rate',
+  ratesScopeOne: '1 person in {projects} has no client rate',
+  projectCount: '{count} projects',
+  projectCountOne: '1 project',
   ratesAllSet: 'Every person on an active project has a client rate.',
   peopleOnProject: '{count} people',
+  peopleOnProjectOne: '1 person',
   missingOnProject: '{count} missing',
   openProject: 'Open',
   closeProject: 'Close',
@@ -150,6 +154,7 @@ const en = {
   startsOn: 'Starts on',
   applyEveryone: 'Also replace the {count} personal rates so everyone is charged this rate',
   keepsPersonal: '{count} people have their own rate and keep it. The new rate applies to everyone else.',
+  keepsPersonalOne: '1 person has their own rate and keeps it. The new rate applies to everyone else.',
   applyEveryoneWarning:
     'Careful: the {count} personal rates will be changed to this rate from the start date. Their individual agreements are lost.',
   alsoCost: 'Also use this as our labor cost for margins',
@@ -174,6 +179,7 @@ const en = {
   advancedHelp:
     'Issuing company, invoice numbering, minimums, overtime methods, expense rules and per-category rules.',
   missingCount: '{count} people have no client rate',
+  missingCountOne: '1 person has no client rate',
   readOnly: 'Read-only: you can review rates but not change them.',
   err_invalid_amount: 'Enter a rate greater than zero, with up to 2 decimals.',
   err_invalid_date: 'Choose a valid start date.',
@@ -211,9 +217,13 @@ const es: Record<MoneyCopyKey, string> = {
   moneyScope: 'Primero los que tienen más dinero pendiente (por facturar + sin cobrar)',
   noMatches: 'Ningún proyecto coincide con la búsqueda.',
   onlyMissing: 'Solo tarifas que faltan',
-  ratesScope: '{people} personas en {projects} proyectos no tienen tarifa al cliente',
+  ratesScope: '{people} personas en {projects} no tienen tarifa al cliente',
+  ratesScopeOne: '1 persona en {projects} no tiene tarifa al cliente',
+  projectCount: '{count} proyectos',
+  projectCountOne: '1 proyecto',
   ratesAllSet: 'Todas las personas de proyectos activos tienen tarifa al cliente.',
   peopleOnProject: '{count} personas',
+  peopleOnProjectOne: '1 persona',
   missingOnProject: '{count} sin tarifa',
   openProject: 'Abrir',
   closeProject: 'Cerrar',
@@ -352,6 +362,8 @@ const es: Record<MoneyCopyKey, string> = {
     'Sustituir también las tarifas personales ({count}) para cobrar a todos esta tarifa',
   keepsPersonal:
     '{count} personas tienen su propia tarifa y la mantienen. La nueva tarifa se aplica a los demás.',
+  keepsPersonalOne:
+    '1 persona tiene su propia tarifa y la mantiene. La nueva tarifa se aplica a los demás.',
   applyEveryoneWarning:
     'Atención: las {count} tarifas personales pasarán a esta tarifa desde la fecha de inicio. Se pierden los acuerdos individuales.',
   alsoCost: 'Usar también como nuestro coste de mano de obra para el margen',
@@ -376,6 +388,7 @@ const es: Record<MoneyCopyKey, string> = {
   advancedHelp:
     'Empresa emisora, numeración de facturas, mínimos, métodos de horas extra, reglas de gastos y reglas por categoría.',
   missingCount: '{count} personas sin tarifa al cliente',
+  missingCountOne: '1 persona sin tarifa al cliente',
   readOnly: 'Solo lectura: puedes revisar las tarifas pero no cambiarlas.',
   err_invalid_amount: 'Introduce una tarifa mayor que cero, con hasta 2 decimales.',
   err_invalid_date: 'Elige una fecha de inicio válida.',
@@ -411,9 +424,13 @@ const pt: Record<MoneyCopyKey, string> = {
   moneyScope: 'Primeiro os que têm mais dinheiro pendente (a faturar + a receber)',
   noMatches: 'Nenhum projeto corresponde à pesquisa.',
   onlyMissing: 'Só tarifas em falta',
-  ratesScope: '{people} pessoas em {projects} projetos não têm tarifa ao cliente',
+  ratesScope: '{people} pessoas em {projects} não têm tarifa ao cliente',
+  ratesScopeOne: '1 pessoa em {projects} não tem tarifa ao cliente',
+  projectCount: '{count} projetos',
+  projectCountOne: '1 projeto',
   ratesAllSet: 'Todas as pessoas em projetos ativos têm tarifa ao cliente.',
   peopleOnProject: '{count} pessoas',
+  peopleOnProjectOne: '1 pessoa',
   missingOnProject: '{count} sem tarifa',
   openProject: 'Abrir',
   closeProject: 'Fechar',
@@ -552,6 +569,8 @@ const pt: Record<MoneyCopyKey, string> = {
     'Substituir também as tarifas pessoais ({count}) para cobrar todos por esta tarifa',
   keepsPersonal:
     '{count} pessoas têm a própria tarifa e a mantêm. A nova tarifa vale para os demais.',
+  keepsPersonalOne:
+    '1 pessoa tem a própria tarifa e a mantém. A nova tarifa vale para os demais.',
   applyEveryoneWarning:
     'Atenção: as {count} tarifas pessoais passarão para esta tarifa a partir da data de início. Os acordos individuais serão perdidos.',
   alsoCost: 'Usar também como nosso custo de mão de obra para a margem',
@@ -576,6 +595,7 @@ const pt: Record<MoneyCopyKey, string> = {
   advancedHelp:
     'Empresa emissora, numeração de faturas, mínimos, métodos de hora extra, regras de despesas e regras por categoria.',
   missingCount: '{count} pessoas sem tarifa ao cliente',
+  missingCountOne: '1 pessoa sem tarifa ao cliente',
   readOnly: 'Somente leitura: você pode revisar as tarifas, mas não alterá-las.',
   err_invalid_amount: 'Informe uma tarifa maior que zero, com até 2 casas decimais.',
   err_invalid_date: 'Escolha uma data de início válida.',
@@ -608,6 +628,9 @@ export function moneyText(
   params: Record<string, string | number> = {},
 ): string {
   const catalog = catalogs[(locale === 'es' || locale === 'pt' ? locale : 'en') as 'en'];
+  // Singular wording ("1 person", "1 project") when a "<key>One" variant exists (Z3).
+  const one = `${key}One` as MoneyCopyKey;
+  if (Number(params.count) === 1 && Object.hasOwn(en, one)) key = one;
   const template: string = catalog[key] ?? en[key];
   return template.replace(/\{(\w+)\}/gu, (_, name: string) => String(params[name] ?? ''));
 }

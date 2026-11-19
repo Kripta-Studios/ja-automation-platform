@@ -4040,6 +4040,14 @@
         canViewPendingReports={Boolean(data.dashboard)}
       />
     {:else if data.section === 'time'}
+      {#if data.user.workforceProfile === 'supplier_coordinator'}
+        <!-- Y3: coordinators record their crew's hours on the supplier workspace. -->
+        <p class="crew-hours-link">
+          <a class="secondary-button" href={`${base}/app/supplier?workspaceAction=time`}
+            >{translate('Crew hours')} <DirectionIcon /></a
+          >
+        </p>
+      {/if}
       <TimeSection
         {locale}
         {data}
@@ -6781,7 +6789,7 @@
                 >
                 {#each updateWorkers as worker}
                   <option value={worker.id} selected={String(worker.id) === selectedWorkerId}
-                    >{worker.name}</option
+                    >{personDisplayName(worker.name, worker.email)}</option
                   >
                 {/each}
               </select></label
@@ -7235,7 +7243,7 @@
                     name="workerIds"
                     value={String(worker.id)}
                     bind:group={planningWorkerIds}
-                  />{worker.name}</label
+                  />{personDisplayName(worker.name, worker.email)}</label
                 >
               {/each}
               {#each planningUnavailableWorkers as workerId}
@@ -7436,7 +7444,7 @@
                         value={skillValue('setWorkerSkill', 'workerId')}
                         disabled>{translate('Worker')} · {translate('Unavailable')}</option
                       >{/if}{#each data.workers ?? [] as worker}<option value={worker.id}
-                        >{worker.name}</option
+                        >{personDisplayName(worker.name, worker.email)}</option
                       >{/each}</select
                   ></label
                 ><label
@@ -7485,7 +7493,7 @@
                         disabled>{translate('Worker')} · {translate('Unavailable')}</option
                       >{/if}
                     {#each data.workers ?? [] as worker}<option value={worker.id}
-                        >{worker.name}</option
+                        >{personDisplayName(worker.name, worker.email)}</option
                       >{/each}
                   </select></label
                 >
@@ -7587,7 +7595,10 @@
                 >
                   {#each profileVisibleWorkers as worker}
                     <option value={worker.id}
-                      >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
+                      >{personDisplayName(worker.name, worker.email)} · {controlledValue(
+                        'role',
+                        String(worker.workforce_profile ?? worker.role),
+                      )}</option
                     >
                   {/each}
                 </select></label
@@ -7788,7 +7799,10 @@
                         >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
-                          >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
+                          >{personDisplayName(worker.name, worker.email)} · {controlledValue(
+                        'role',
+                        String(worker.workforce_profile ?? worker.role),
+                      )}</option
                         >
                       {/each}
                     </select></label
@@ -7843,7 +7857,10 @@
                         >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
-                          >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
+                          >{personDisplayName(worker.name, worker.email)} · {controlledValue(
+                        'role',
+                        String(worker.workforce_profile ?? worker.role),
+                      )}</option
                         >
                       {/each}
                     </select></label

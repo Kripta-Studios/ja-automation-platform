@@ -42,6 +42,8 @@ const en = {
   'problem.billing.readinessAmbiguousClientRate':
     'Different client sale rates cover the same scope and dates, so the invoice amount cannot be determined. Review and correct the conflicting rates in Finance → Client labor rates, then check this period again.',
   'action.approval.batchTimeApproved': 'Approved {count} time entries ({hours} h).',
+  'action.approval.batchTimeApprovedOne': 'Approved 1 time entry ({hours} h).',
+  'action.approval.batchApprovedOne': 'Approved 1 record.',
   'action.approval.batchApproved': 'Approved {count} records.',
   'action.approval.sentBack': 'Sent back to the worker with your note.',
   'action.approval.rejected': 'Rejected. The worker can see your reason.',
@@ -696,6 +698,8 @@ const esBase: Record<keyof typeof en, string> = {
   'problem.billing.readinessAmbiguousClientRate':
     'Distintas tarifas de venta al cliente cubren el mismo ámbito y fechas, por lo que no se puede determinar el importe de la factura. Revisa y corrige las tarifas en conflicto en Finanzas → Tarifas del cliente y vuelve a comprobar este período.',
   'action.approval.batchTimeApproved': 'Aprobados {count} registros de horas ({hours} h).',
+  'action.approval.batchTimeApprovedOne': 'Aprobado 1 registro de horas ({hours} h).',
+  'action.approval.batchApprovedOne': 'Aprobado 1 registro.',
   'action.approval.batchApproved': 'Aprobados {count} registros.',
   'action.approval.sentBack': 'Devuelto al trabajador con tu nota.',
   'action.approval.rejected': 'Rechazado. El trabajador puede ver tu motivo.',
@@ -1352,6 +1356,8 @@ const ptBase: Record<keyof typeof en, string> = {
   'problem.billing.readinessAmbiguousClientRate':
     'Tarifas de venda ao cliente diferentes cobrem o mesmo âmbito e datas, por isso não é possível determinar o valor da fatura. Revise e corrija as tarifas em conflito em Finanças → Tarifas do cliente e verifique este período novamente.',
   'action.approval.batchTimeApproved': 'Aprovados {count} registros de horas ({hours} h).',
+  'action.approval.batchTimeApprovedOne': 'Aprovado 1 registro de horas ({hours} h).',
+  'action.approval.batchApprovedOne': 'Aprovado 1 registro.',
   'action.approval.batchApproved': 'Aprovados {count} registros.',
   'action.approval.sentBack': 'Devolvido ao trabalhador com a sua nota.',
   'action.approval.rejected': 'Rejeitado. O trabalhador pode ver o seu motivo.',

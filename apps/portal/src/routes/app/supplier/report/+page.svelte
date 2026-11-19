@@ -77,6 +77,17 @@
     },
   });
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  const localeTag = $derived(
+    data.locale === 'es' ? 'es-ES' : data.locale === 'pt' ? 'pt-BR' : 'en-US',
+  );
+  /** Localized "Nov 17, 2026" for an ISO work date (Y3). */
+  function shortDate(day: unknown): string {
+    const raw = String(day ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(raw)) return raw;
+    return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', timeZone: 'UTC' }).format(
+      new Date(`${raw}T00:00:00Z`),
+    );
+  }
   const query = $derived(
     new URLSearchParams({
       projectId: data.projectId || '',
@@ -444,7 +455,7 @@
   <div id="supplier-report" class="supplier-report-results">
     {#if data.report}
       <h2>{data.report.project.name}</h2>
-      <p>{data.from} — {data.to}</p>
+      <p>{shortDate(data.from)} — {shortDate(data.to)}</p>
       <strong>{c.totalHours}: {decimalHours(data.report.totalMinutes)}</strong>
       <nav>
         <a
@@ -459,10 +470,10 @@
           <ProblemNotice problem={csvProblem} locale={data.locale} remedyLinks={csvRemedyLinks} />
         </div>
       {/if}
-      <SectionCard title={c.report}>
+      <SectionCard title={c.reportEntries}>
         {#each data.report.rows as row}
           <article>
-            <h3>{row.workerName} · {row.workDate}</h3>
+            <h3>{row.workerName} · {shortDate(row.workDate)}</h3>
             <dl>
               <dt>{c.category}</dt>
               <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>

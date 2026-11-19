@@ -26,6 +26,7 @@
   import type { ApprovalQueuePage, QueueTotals } from '../approval-queue-page';
   import type { CurrencyTotal } from '../home-inbox';
   import { personDisplayName } from '../display-name';
+  import { clockHoursFromMinutes } from '../minute-hours';
 
   type Tab = 'time' | 'expenses' | 'reports';
   type Kind = 'time' | 'expense';
@@ -137,7 +138,7 @@
   // ---------- formatting ----------
   // H:MM like Home and the timesheet (Z5), never "7.5 h".
   function hoursText(minutes: number): string {
-    return t('hours', { hours: clockHoursFromMinutes(minutes) });
+    return t('hours', { hours: clockHoursFromMinutes(Math.round(minutes)) });
   }
   function utcDate(iso: string): Date {
     return new Date(`${iso}T00:00:00.000Z`);
@@ -446,6 +447,7 @@
       filterOptions.weeks.length > 1,
   );
   const waitingRows = $derived(queue.waiting.rows as Row[]);
+  const ownRows = $derived((queue.ownEntries?.rows ?? []) as Row[]);
   const approvedView = $derived(queue.query.view === 'approved');
   const approvedRows = $derived(
     ((queue.approved?.rows ?? []) as Row[]).filter(
@@ -1375,6 +1377,28 @@
             : t('showingWeeks', { shown: shownCount, count: totalCount })}</span
         >
       </p>
+    {/if}
+
+    {#if activeTab !== 'reports' && (queue.ownEntries?.count ?? 0) > 0}
+      {@const own = queue.ownEntries!}
+      <details class="aq-more" data-approval-own>
+        <summary
+          >{t('ownEntries', {
+            summary:
+              activeTab === 'time'
+                ? `${countLabel('time', own.count)} · ${hoursText(own.minutes)}`
+                : countLabel('expense', own.count),
+          })}</summary
+        >
+        <ul class="aq-plain">
+          {#each ownRows as row (value(row, 'id'))}
+            <li><a href={recordHref(row)}>{rowSummary(row)}</a></li>
+          {/each}
+        </ul>
+        {#if ownRows.length < own.count}
+          <p class="aq-muted">{t('showing', { shown: ownRows.length, count: own.count })}</p>
+        {/if}
+      </details>
     {/if}
 
     {#if queue.waiting.count > 0}

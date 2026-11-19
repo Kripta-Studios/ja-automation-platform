@@ -2153,6 +2153,12 @@
     },
     validate: (saved) => ({
       ...saved,
+      // Z1: links such as ?tab=settings open "Per-project settings" (view=streams).
+      workspace:
+        !$page.url.searchParams.get('view') &&
+        ['settings', 'streams'].includes($page.url.searchParams.get('tab') ?? '')
+          ? 'streams'
+          : saved.workspace,
       projectFilter: (data.projects ?? []).some(
         (project) => String(project.id) === saved.projectFilter,
       )
@@ -6628,7 +6634,9 @@
       <div class="billing-section__section-intro">
         <p>
           {translate(
-            'A billing stream sets cadence, template and tax for one project. Create the draft here. Approve, issue and collect in Invoices.',
+            canManageBilling
+              ? 'A billing stream sets cadence, template and tax for one project. Create the draft here. Approve, issue and collect in Invoices.'
+              : 'A billing stream sets cadence, template and tax for one project. Read only: Finance creates, approves and issues the invoices.',
           )}
         </p>
         <div class="billing-section__section-intro-actions">
@@ -6662,7 +6670,7 @@
                 <th scope="col">{translate('Project')}</th>
                 <th scope="col">{translate('Cadence')}</th>
                 <th scope="col">{translate('Tax profile')}</th>
-                <th scope="col">{translate('Actions')}</th>
+                <th scope="col">{translate(canManageBilling ? 'Actions' : 'Details')}</th>
               </tr>
             </thead>
             <tbody>
@@ -6773,7 +6781,9 @@
                       translate('No tax profile')}
                   </td>
                   <td>
-                    <span class="billing-section__rule-mobile-label">{translate('Actions')}</span>
+                    <span class="billing-section__rule-mobile-label"
+                      >{translate(canManageBilling ? 'Actions' : 'Details')}</span
+                    >
                     {#if savedSemiMonthlyRuleProblem(rule)}
                       <ProblemNotice
                         problem={savedSemiMonthlyRuleProblem(rule)!}
@@ -6868,20 +6878,23 @@
                           >{translate('Close sources')}</button
                         >
                       </div>
-                    {:else if rule.browser_status !== 'active'}
+                    {:else if rule.browser_status !== 'active' || !canManageBilling}
+                      <!-- Read-only roles (auditor) see the saved settings instead of an empty cell (Z1). -->
                       <details
                         id={`billing-stream-${rowValue(rule, 'id')}`}
                         class="billing-section__saved-stream"
                         data-saved-stream={rowValue(rule, 'id')}
                       >
                         <summary>{translate('Saved stream settings')}</summary>
-                        <p>
-                          {translate(
-                            rule.browser_status === 'archived'
-                              ? 'Archived streams retain saved settings and history. Use a new active stream for future billing.'
-                              : 'This stream’s availability is unknown. Review the current billing setup before making changes.',
-                          )}
-                        </p>
+                        {#if rule.browser_status !== 'active'}
+                          <p>
+                            {translate(
+                              rule.browser_status === 'archived'
+                                ? 'Archived streams retain saved settings and history. Use a new active stream for future billing.'
+                                : 'This stream’s availability is unknown. Review the current billing setup before making changes.',
+                            )}
+                          </p>
+                        {/if}
                         <dl class="record-facts">
                           <div>
                             <dt>{translate('Invoice template')}</dt>
@@ -6921,7 +6934,9 @@
       {:else}
         <div class="billing-section__empty" role="status">
           <strong>{translate('No billing streams configured.')}</strong>
-          <span>{translate('Create an effective-dated stream to prepare an invoice draft.')}</span>
+          {#if canManageBilling}<span
+              >{translate('Create an effective-dated stream to prepare an invoice draft.')}</span
+            >{/if}
           {#if canManageBilling}
             <button type="button" class="primary-button" onclick={openNewBillingStream}
               >{translate('New billing stream')}</button

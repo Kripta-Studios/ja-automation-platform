@@ -663,7 +663,13 @@
                   />
                   <span>{t('rateSaveDefault')}</span>
                 </label>
-                {#if saveAsProject[person.workerId] === false}<small class="qa__muted">{t('rateOnlyLater')}</small>{/if}
+                {#if saveAsProject[person.workerId] === false}<small class="qa__muted">{t('rateOnlyLater')}</small>
+                {:else if (item.people?.length ?? 0) > 1}<small class="qa__muted" data-attention-rate-applies
+                    >{f('rateAppliesToAll', {
+                      count: item.totalCount,
+                      names: item.people!.map((candidate) => candidate.name).join(', '),
+                    })}</small
+                  >{/if}
                 {#if person.suggestedRateMinor}
                   <button
                     type="button"

@@ -95,11 +95,18 @@ async function readNow(
         method: 'POST',
         body: form,
         credentials: 'same-origin',
+        // Busy (one file per person every 10 s): the server answers "wait N ms" instead of 429.
+        headers: { 'x-ja-retry-when-busy': '1' },
       });
       // Busy (another tab, or two reads at once on the server): wait and retry quietly.
       if (response.status === 429) continue;
       if (!response.ok) return done(fromName);
-      const result = (await response.json()) as { text?: unknown };
+      const result = (await response.json()) as { text?: unknown; busy?: unknown; retryAfterMs?: unknown };
+      if (result.busy === true) {
+        const delay = Number(result.retryAfterMs);
+        await wait(Number.isFinite(delay) && delay > 0 ? Math.min(delay, 10_000) + 300 : 10_500);
+        continue;
+      }
       const facts =
         typeof result.text === 'string' ? receiptFactsFromText(result.text, { locale, today }) : {};
       // A deliberate file name ("2026-11-14_89.90.jpg") wins over OCR guesses.

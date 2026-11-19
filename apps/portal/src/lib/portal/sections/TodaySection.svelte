@@ -209,6 +209,10 @@
                   href: link('billing', {
                     project: item.projectId,
                     assistantSurface: 'invoice-create',
+                    // Only approved expenses waiting: open New invoice on its Expenses side.
+                    ...(!priced && !unpriced && !item.pendingMinutes && item.approvedExpenses?.count
+                      ? { tab: 'expenses' }
+                      : {}),
                   }),
                 };
               })

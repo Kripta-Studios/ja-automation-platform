@@ -57,7 +57,7 @@ describe('Finance Overview section architecture', () => {
     expect(component).toContain('Collected (actual)');
     expect(component).toContain('Planning and expected values are directional controls');
     expect(component).toContain('They never count as actual time, paid cash, or collected revenue');
-    expect(component).toContain('Only append-only payment events count as collected');
+    expect(component).toContain('Only payments you record count as collected');
   });
 
   it('preserves canonical nonzero expense tax when finance reopens classification', () => {

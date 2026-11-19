@@ -48,7 +48,7 @@ describe('Billing section lifecycle surface', () => {
       expect(value).toContain(`action="?/${action}"`);
     }
 
-    expect(value).toContain('Issued history is immutable');
+    expect(value).toContain('Issued invoices are never changed; fix mistakes with a credit note');
     expect(value).toContain("['issued', 'sent', 'partially_paid', 'overdue']");
     expect(value).toContain('idempotencyKey');
     expect(value).not.toContain('Run due jobs');

@@ -1227,7 +1227,7 @@
         rows={visibleRows}
         bind:visible={ledgerPage}
         {translate}
-        label="CollectionsLedger"
+        label={translate('Master Invoice / Cost / Collection Ledger')}
         filtersEnabled={false}
         showEmpty={false}
       />

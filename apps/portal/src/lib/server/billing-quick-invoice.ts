@@ -57,6 +57,8 @@ export type QuickInvoiceProject = {
   /** Oldest / newest logged work (approved or still pending) that no live invoice holds. */
   openFrom: string | null;
   openThrough: string | null;
+  /** Oldest SENT (submitted/approved) work no live invoice holds: late entries to include. */
+  sentFrom?: string | null;
 };
 
 export type QuickInvoiceWarning = {
@@ -136,6 +138,11 @@ export type QuickInvoicePreview = {
   /** Expenses of an expense-carrying stream (first 50), for the treatment toggle. */
   expenseRows: QuickInvoiceExpenseRow[];
   expenseRowsTotal: number;
+  /**
+   * For the Hours / Expenses switch: records of these dates that no live invoice holds yet and
+   * that the workers sent (submitted or approved). Counts only; drafts stay with the worker.
+   */
+  streamCounts?: { time: number; expense: number };
   client: QuickInvoiceClient | null;
   capabilities: { canApprove: boolean; canCorrectHours: boolean; role: string };
   /** Invoice-only changes in force for this preview (none: null). */
@@ -407,7 +414,10 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
     (
       context.sqlite
         .prepare(
-          `SELECT project_id projectId,MIN(work_date) openFrom,MAX(work_date) openThrough FROM time_entry
+          `SELECT project_id projectId,MIN(work_date) openFrom,MAX(work_date) openThrough,
+                  -- The owner's own drafts count as sent: he may approve & include them here.
+                  MIN(CASE WHEN approval_state IN ('submitted','approved','locked') OR worker_id=? THEN work_date END) sentFrom
+             FROM time_entry
             WHERE approval_state IN ('draft','submitted','needs_changes','approved','locked') AND invoice_id IS NULL
               AND billability_state IN ('pending','billable')
               AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
@@ -415,7 +425,12 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
                        AND invoice.state NOT IN ('void','cancelled','superseded'))
             GROUP BY project_id`,
         )
-        .all() as Array<{ projectId: string; openFrom: string; openThrough: string }>
+        .all(context.principal.role === 'owner_admin' ? context.principal.userId : '') as Array<{
+        projectId: string;
+        openFrom: string;
+        openThrough: string;
+        sentFrom: string | null;
+      }>
     ).map((row) => [row.projectId, row]),
   );
   const invoicedThrough = new Map(
@@ -437,6 +452,7 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
       lastInvoicedThrough: invoicedThrough.get(String(project.id)) ?? null,
       openFrom: open.get(String(project.id))?.openFrom ?? null,
       openThrough: open.get(String(project.id))?.openThrough ?? null,
+      sentFrom: open.get(String(project.id))?.sentFrom ?? null,
       id: String(project.id),
       number: String(project.project_number),
       name: String(project.name),
@@ -823,18 +839,71 @@ function nearbyApprovedDates(
 ): Array<{ workDate: string }> {
   // Logged hours outside the period that no live invoice holds yet: approved ones, and also
   // those still waiting for an approval ("Approve & include" handles them on that screen).
+  // Other people's drafts / returned entries stay with them and never move the dates; the
+  // owner's own drafts count (he may approve & include them).
   return context.sqlite
     .prepare(
       `SELECT DISTINCT work_date workDate FROM time_entry
         WHERE project_id=? AND (work_date<? OR work_date>?)
-          AND approval_state IN ('draft','submitted','needs_changes','approved','locked') AND invoice_id IS NULL
+          AND (approval_state IN ('submitted','approved','locked')
+            OR (approval_state IN ('draft','needs_changes') AND worker_id=?)) AND invoice_id IS NULL
           AND billability_state IN ('pending','billable')
           AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
                  WHERE source.source_type='time' AND source.source_id=time_entry.id
                    AND invoice.state NOT IN ('void','cancelled','superseded'))
         ORDER BY work_date`,
     )
-    .all(projectId, periodStart, periodEnd) as Array<{ workDate: string }>;
+    .all(projectId, periodStart, periodEnd, ownDraftsOf(context)) as Array<{ workDate: string }>;
+}
+
+/** The acting owner's id (his own drafts may be approved & included); '' for anyone else. */
+const ownDraftsOf = (context: Context) =>
+  context.principal.role === 'owner_admin' ? context.principal.userId : '';
+
+/** Same as {@link nearbyApprovedDates} for the expenses an expense stream bills. */
+function nearbyApprovedExpenseDates(
+  context: Context,
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+): Array<{ workDate: string }> {
+  return context.sqlite
+    .prepare(
+      `SELECT DISTINCT spent_on workDate FROM expense
+        WHERE project_id=? AND (spent_on<? OR spent_on>?)
+          AND (approval_state IN ('submitted','approved','locked')
+            OR (approval_state IN ('draft','needs_changes') AND worker_id=?)) AND invoice_id IS NULL
+          AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                 WHERE source.source_type='expense' AND source.source_id=expense.id
+                   AND invoice.state NOT IN ('void','cancelled','superseded'))
+        ORDER BY spent_on`,
+    )
+    .all(projectId, periodStart, periodEnd, ownDraftsOf(context)) as Array<{ workDate: string }>;
+}
+
+/** Sent, not yet invoiced hours and expenses of the period (Hours / Expenses switch counts). */
+function openStreamCounts(
+  context: Context,
+  projectId: string,
+  periodStart: string,
+  periodEnd: string,
+): { time: number; expense: number } {
+  const live = (type: string, table: string) =>
+    `NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+       WHERE source.source_type='${type}' AND source.source_id=${table}.id
+         AND invoice.state NOT IN ('void','cancelled','superseded'))`;
+  const row = context.sqlite
+    .prepare(
+      `SELECT
+         (SELECT COUNT(*) FROM time_entry WHERE project_id=? AND work_date BETWEEN ? AND ?
+            AND approval_state IN ('submitted','approved') AND invoice_id IS NULL
+            AND billability_state IN ('pending','billable') AND ${live('time', 'time_entry')}) time,
+         (SELECT COUNT(*) FROM expense WHERE project_id=? AND spent_on BETWEEN ? AND ?
+            AND approval_state IN ('submitted','approved') AND invoice_id IS NULL
+            AND ${live('expense', 'expense')}) expense`,
+    )
+    .get(projectId, periodStart, periodEnd, projectId, periodStart, periodEnd) as { time: number; expense: number };
+  return { time: Number(row.time), expense: Number(row.expense) };
 }
 
 /** Approved milestones that no live invoice holds yet, dated by due date (or approval). */
@@ -867,7 +936,9 @@ function nearbyForStream(
 ): Array<{ workDate: string }> {
   return stream.streamType === 'milestone'
     ? nearbyApprovedMilestones(context, projectId, periodStart, periodEnd)
-    : nearbyApprovedDates(context, projectId, periodStart, periodEnd);
+    : stream.streamType === 'expense'
+      ? nearbyApprovedExpenseDates(context, projectId, periodStart, periodEnd)
+      : nearbyApprovedDates(context, projectId, periodStart, periodEnd);
 }
 
 /** Oldest unbilled (approved or pending) work first, aligned to the stream cadence and window. */
@@ -1573,10 +1644,12 @@ function buildAttention(
     });
   }
   const excluded = new Set(input.excludedExpenseIds ?? []);
+  // Other people's drafts and returned expenses are not on this invoice (listed under "Not
+  // sent by the worker yet"): never offered for a client decision and never blocking.
   const unclassified = [...(perKind.get('expenseTreatment') ?? [])].filter(
-    (id) => !excluded.has(id) && byId.get(id)?.containingInvoice == null,
+    (id) => !excluded.has(id) && !unsentIds.has(id) && byId.get(id)?.containingInvoice == null,
   );
-  const expenses = inventory.filter((source) => source.type === 'expense');
+  const expenses = inventory.filter((source) => source.type === 'expense' && !unsentIds.has(source.id));
   const expenseRows: QuickInvoiceExpenseRow[] = [];
   if (expenses.length) {
     const detail = context.sqlite.prepare(
@@ -1908,6 +1981,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
       attention,
       expenseRows,
       expenseRowsTotal,
+      streamCounts: openStreamCounts(context, input.projectId, preview.periodStart, preview.periodEnd),
       client,
       capabilities,
       suggestedPeriod: pending.length ? null : preview.suggestedPeriod,

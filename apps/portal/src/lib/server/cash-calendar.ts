@@ -7,6 +7,7 @@ import {
   type V3Repository,
 } from '@ja/database';
 import type { Principal } from '@ja/domain';
+import { personDisplayName } from '../portal/display-name';
 import { isStrictIsoCalendarDate, weeklyPeriod } from '@ja/billing-engine';
 
 export type CashMovement = {
@@ -167,7 +168,7 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
         sourceId: String(settlement.id),
         projectId,
         project: `${settlement.projectNumber} — ${settlement.projectName}`,
-        party: String(payment.payee_user_name ?? payment.payee_supplier_name ?? ''),
+        party: payment.payee_user_name ? personDisplayName(String(payment.payee_user_name)) : String(payment.payee_supplier_name ?? ''),
         ...entity,
         currency: String(payment.currency),
         kind: 'worker_compensation',
@@ -186,7 +187,7 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
       sourceId: String(settlement.id),
       projectId,
       project: `${settlement.projectNumber} — ${settlement.projectName}`,
-      party: String(settlement.workerName ?? ''),
+      party: personDisplayName(String(settlement.workerName ?? '')),
       ...entity,
       currency: String(settlement.currency),
       kind: 'worker_compensation',
@@ -231,7 +232,7 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
       sourceId: String(item.id),
       projectId,
       project: `${item.projectNumber} — ${item.projectName}`,
-      party: String(item.workerName ?? ''),
+      party: personDisplayName(String(item.workerName ?? '')),
       ...entityOn(projectId, String(item.spentOn)),
       currency: String(item.currency),
       kind: 'worker_reimbursement',

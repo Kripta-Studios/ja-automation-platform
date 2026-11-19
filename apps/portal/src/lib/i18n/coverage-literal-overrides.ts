@@ -4010,9 +4010,9 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   ],
   'Issue date unavailable': ['Fecha de emisión no disponible', 'Data de emissão indisponível'],
   'Issue invoice': ['Emitir factura', 'Emitir fatura'],
-  'Issued history is immutable': [
-    'El historial emitido es inmutable',
-    'O histórico emitido é imutável',
+  'Issued invoices are never changed; fix mistakes with a credit note': [
+    'Las facturas emitidas no se modifican; los errores se corrigen con una nota de crédito',
+    'Faturas emitidas nunca são alteradas; corrija erros com uma nota de crédito',
   ],
   'Issued invoices': ['Facturas emitidas', 'Faturas emitidas'],
   'Invoices are the bill: draft, approve, issue, collect. Billing streams only set cadence and template for a project.':
@@ -4193,9 +4193,9 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   Notes: ['Notas', 'Notas'],
   'OPERATIONAL ASSIGNMENTS': ['ASIGNACIONES OPERATIVAS', 'ATRIBUIÇÕES OPERACIONAIS'],
   OPERATIONS: ['OPERACIONES', 'OPERAÇÕES'],
-  'Only append-only payment events count as collected': [
-    'Solo cuentan como cobrados los eventos de pago de solo anexado',
-    'Somente eventos de pagamento de acréscimo contam como recebidos',
+  'Only payments you record count as collected': [
+    'Solo cuentan como cobrados los pagos que registras',
+    'Só contam como recebidos os pagamentos que você registra',
   ],
   'Only approved hours and activities are included.': [
     'Solo se incluyen horas y actividades aprobadas.',

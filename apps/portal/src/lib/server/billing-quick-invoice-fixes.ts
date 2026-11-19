@@ -197,7 +197,7 @@ export function quickInvoiceSetExpenseTreatment(
   if (input.source.type !== 'expense') throw new ValidationError('Expense required');
   const row = context.sqlite
     .prepare(
-      `SELECT project_id,currency,amount_minor,client_treatment,billing_treatment,markup_bps,tax_amount_minor,
+      `SELECT project_id,worker_id,approval_state,currency,amount_minor,client_treatment,billing_treatment,markup_bps,tax_amount_minor,
         (SELECT r.tax_bps FROM expense_classification_series s JOIN expense_classification_authority_event a ON a.id=s.current_authority_event_id
            JOIN expense_classification_revision r ON r.id=a.revision_id WHERE s.expense_id=expense.id) tax_bps
          FROM expense WHERE id=?`,
@@ -205,6 +205,14 @@ export function quickInvoiceSetExpenseTreatment(
     .get(input.source.id) as Record<string, unknown> | undefined;
   if (!row || row.project_id !== input.projectId)
     throw new AccessDeniedError('Expense is outside the selected project');
+  // A draft or an expense returned for changes still belongs to the worker: it is not on the
+  // invoice and is not classified from here. Only the owner's own drafts (he may "Approve &
+  // include" them in one step) are the exception.
+  if (
+    ['draft', 'needs_changes'].includes(String(row.approval_state)) &&
+    !(context.principal.role === 'owner_admin' && String(row.worker_id) === context.principal.userId)
+  )
+    throw new ValidationError('This expense was not sent by the worker yet; it is not on this invoice.');
   if (row.tax_bps == null && Number(row.tax_amount_minor ?? 0) !== 0)
     throw new ValidationError('Review the existing expense tax classification in Finance first.');
   const foreign = String(row.currency) !== String(project.currency);

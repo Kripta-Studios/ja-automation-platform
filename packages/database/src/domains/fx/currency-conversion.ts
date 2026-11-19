@@ -343,10 +343,9 @@ export function recordCurrencyConversion(
       const changed = sqlite
         .prepare(
           `UPDATE expense SET project_currency_amount_minor=?,billing_amount_minor=?,tax_amount_minor=?,
-                  fx_rate_bps=NULL,version=version+1,updated_at=?,
-                  -- A pending at-cost reimbursement follows the same conversion as billing.
-                  reimbursement_amount_minor=CASE WHEN reimbursement_state='pending' AND reimbursed_at IS NULL
-                    AND COALESCE(reimbursement_amount_minor,0)>0 THEN ? ELSE reimbursement_amount_minor END
+                  fx_rate_bps=NULL,version=version+1,updated_at=?
+            -- Billing projection only: the worker's reimbursement stays in the receipt
+            -- currency (expense.currency) and is never rewritten by a client conversion.
             WHERE id=? AND version=? AND invoice_id IS NULL AND billing_state='unlocked'
               AND billing_lock_id IS NULL`,
         )
@@ -355,7 +354,6 @@ export function recordCurrencyConversion(
           projection.billingAmountMinor,
           projection.taxAmountMinor,
           confirmedAt,
-          projection.projectCurrencyAmountMinor,
           expense.id,
           expense.version,
         );

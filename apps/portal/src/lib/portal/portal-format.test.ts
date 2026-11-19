@@ -15,7 +15,7 @@ import {
 describe('portal format helpers', () => {
   it('preserves the existing money, hour, category, date, and initials presentation', () => {
     expect(money('12345', 'USD')).toBe('$123.45');
-    expect(hours(75)).toBe('1.3h');
+    expect(hours(75)).toBe('1:15 h');
     expect(categorySummary({ regular: 60, travel_time: 30, standby: 0 })).toBe(
       'regular 1.0h · travel time 0.5h',
     );

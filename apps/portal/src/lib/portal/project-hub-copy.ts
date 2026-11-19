@@ -238,6 +238,21 @@ const copy = {
     'Todo lo que se configura una vez. Abre un grupo para cambiarlo.',
     'Tudo o que se configura uma vez. Abra um grupo para alterar.',
   ],
+  rejoinUntil: [
+    'On this project until {ended}',
+    'En este proyecto hasta el {ended}',
+    'Neste projeto até {ended}',
+  ],
+  rejoinOverlap: [
+    'Already on this project until {ended}: choose a later start date',
+    'Ya estuvo en este proyecto hasta el {ended}: elija una fecha de inicio posterior',
+    'Já esteve neste projeto até {ended}: escolha uma data de início posterior',
+  ],
+  overlapFailed: [
+    '{name}: already on this project from {starts} to {ends}. Choose a start date after {ends}.',
+    '{name}: ya está en este proyecto del {starts} al {ends}. Elija una fecha de inicio posterior al {ends}.',
+    '{name}: já está neste projeto de {starts} a {ends}. Escolha uma data de início depois de {ends}.',
+  ],
   rejoinNote: [
     'On this project until {ended} · starts again {start}',
     'En este proyecto hasta el {ended} · vuelve el {start}',

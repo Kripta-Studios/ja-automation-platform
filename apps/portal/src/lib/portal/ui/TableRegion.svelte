@@ -178,6 +178,35 @@
     );
   }
 
+  // Z7: "Scroll horizontally…" is shown only while the table really is wider
+  // than its region; it stays available to screen readers either way.
+  let overflowing = $state(false);
+  function trackOverflow(region: HTMLElement) {
+    if (typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      overflowing = region.scrollWidth > region.clientWidth + 1;
+    };
+    const observer = new ResizeObserver(measure);
+    const observeChildren = () => {
+      observer.observe(region);
+      for (const child of Array.from(region.children)) observer.observe(child);
+    };
+    observeChildren();
+    const mutations = new MutationObserver(() => {
+      observer.disconnect();
+      observeChildren();
+      measure();
+    });
+    mutations.observe(region, { childList: true });
+    measure();
+    return {
+      destroy() {
+        observer.disconnect();
+        mutations.disconnect();
+      },
+    };
+  }
+
   function handleKeydown(event: KeyboardEvent): void {
     const region = event.currentTarget as HTMLElement;
     if (region.scrollWidth <= region.clientWidth + 1) return;
@@ -206,9 +235,15 @@
   aria-describedby={mobileMode === 'scroll' ? instructionId : undefined}
   tabindex={mobileMode === 'scroll' ? 0 : undefined}
   onkeydown={handleKeydown}
+  use:trackOverflow
 >
   {#if mobileMode === 'scroll'}
-    <p class="ui-table-region-instruction" id={instructionId}>
+    <p
+      class="ui-table-region-instruction"
+      class:visually-hidden={!overflowing}
+      data-table-overflowing={overflowing ? 'true' : 'false'}
+      id={instructionId}
+    >
       {scrollInstruction}
     </p>
     {@render children?.()}

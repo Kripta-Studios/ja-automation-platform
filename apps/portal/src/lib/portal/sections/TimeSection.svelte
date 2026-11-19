@@ -114,8 +114,9 @@
   let intent = $state<Intent>('save');
   /** Inline "done" line for One day mode (kept until the next edit). */
   type DoneKind = 'saved' | 'sent' | 'approved' | 'deleted';
-  let dayDone = $state<{ kind: DoneKind; minutes: number; day: string } | null>(null);
-  let pendingDone: { kind: DoneKind; minutes: number; day: string } | null = null;
+  type DayDone = { kind: DoneKind; minutes: number; day: string; category?: string };
+  let dayDone = $state<DayDone | null>(null);
+  let pendingDone: DayDone | null = null;
   let addingRow = $state(false);
   let newRowProject = $state('');
   let newRowCategory = $state('travel');
@@ -255,7 +256,7 @@
     // Start/end given: the hours are calculated (end - start - break).
     const value =
       editable && key in detailEdits && typeof detailMinutes === 'number'
-        ? hoursText(detailMinutes) || '0'
+        ? hoursText(detailMinutes) || '0:00'
         : editable && key in edits
           ? edits[key]!
           : hoursText(originalMinutes);
@@ -531,11 +532,14 @@
     pendingDone = deleting
       ? { kind: 'deleted', minutes: dayCell?.originalMinutes ?? 0, day: selectedDay }
       : mode === 'day' && (intent === 'save' || intent === 'submit_day' || intent === 'submit_day_approve')
-        ? {
-            kind: intent === 'submit_day_approve' ? 'approved' : intent === 'submit_day' ? 'sent' : 'saved',
-            minutes: dayModeTotal,
-            day: selectedDay,
-          }
+        ? intent === 'save'
+          ? // X2: "saved" names this entry only, not the whole day.
+            { kind: 'saved', minutes: dayCell?.minutes ?? 0, day: selectedDay, category: dayCategory }
+          : {
+              kind: intent === 'submit_day_approve' ? 'approved' : 'sent',
+              minutes: dayUnsentMinutes,
+              day: selectedDay,
+            }
         : null;
     return async ({ result: outcome, update }) => {
       busy = '';
@@ -661,6 +665,15 @@
       .filter((entry) => String(entry.approval_state) === 'draft')
       .reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0),
   );
+  /** X7: "Log other hours" jumps to the first type that can still take hours this day. */
+  const openOtherTypes = () => {
+    dayOtherTypes = true;
+    const next = dayCategoryChoices.find((category) => {
+      const kind = cellFor({ key: `${dayProject}|${category}`, projectId: dayProject, category }, selectedDay).kind;
+      return kind === 'new' || kind === 'draft' || kind === 'fix';
+    });
+    if (next && next !== dayCategory) chooseDay(dayProject, next);
+  };
   const chooseDay = (projectId: string, category: string) => {
     edits = {};
     detailEdits = {};
@@ -758,6 +771,15 @@
           (dayCell.minutes ?? 0)
       : 0,
   );
+  /** Hours of this day that "Save & send" sends: drafts and returned entries (incl. this edit). */
+  const dayUnsentMinutes = $derived(
+    dayEntries
+      .filter((entry) => ['draft', 'needs_changes'].includes(String(entry.approval_state)))
+      .reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0) +
+      (dayCell && (dayCell.kind === 'draft' || dayCell.kind === 'fix' || dayCell.kind === 'new')
+        ? (dayCell.minutes ?? 0) - dayCell.originalMinutes
+        : 0),
+  );
   const invalidNow = $derived(
     mode === 'day'
       ? Boolean(dayCell) &&
@@ -781,7 +803,7 @@
     const raw = edits[key];
     if (raw === undefined) return;
     const minutes = parseHoursText(raw);
-    if (typeof minutes === 'number') edits = { ...edits, [key]: hoursText(minutes) || '0' };
+    if (typeof minutes === 'number') edits = { ...edits, [key]: hoursText(minutes) || '0:00' };
   };
   const minutesHint = (minutes: number | null | undefined) =>
     typeof minutes === 'number' && minutes % 30 !== 0
@@ -875,12 +897,12 @@
       class="hours-locked"
       data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
       title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail) : '', cell.detail.note].filter(Boolean).join(' · ')}
-      aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
+      aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0:00'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
       {#if cell.kind === 'unassigned'}
         ·
       {:else}
-        {hoursText(cell.originalMinutes) || '0'}
+        {hoursText(cell.originalMinutes) || '0:00'}
         {#if cell.status === 'approved'}<span aria-hidden="true" class="mark">✓</span>{:else if cell.status === 'submitted'}<span
             aria-hidden="true"
             class="mark">⏳</span
@@ -1225,7 +1247,7 @@
                 {#if dayCell.kind === 'draft'}<small class="muted">{t('dayDraftHint')}</small>{/if}
               {:else if dayCell}
                 <span class="hours-locked big" data-status={dayCell.status}
-                  >{hoursText(dayCell.originalMinutes) || '0'} {t('hoursUnit')}</span
+                  >{hoursText(dayCell.originalMinutes) || '0:00'} {t('hoursUnit')}</span
                 >
                 <small class="muted">{cellTitle(dayCell)}</small>
                 {#if lockedHelp(dayCell)}<small class="locked-help" data-testid="time-day-locked-help">{lockedHelp(dayCell)}</small>{/if}
@@ -1255,7 +1277,7 @@
                 <button
                   type="button"
                   class="link day-other-types"
-                  onclick={() => (dayOtherTypes = true)}
+                  onclick={openOtherTypes}
                   data-testid="time-day-other-types">{t('dayOtherTypes')}</button
                 >
               {/if}
@@ -1308,9 +1330,10 @@
             {#if dayDone && dayDone.day === selectedDay}
               <p class="day-done" role="status" data-testid="time-day-done">
                 <span aria-hidden="true">✓</span>
-                {t(dayDone.kind === 'approved' ? 'approvedDay' : dayDone.kind === 'sent' ? 'sentDay' : dayDone.kind === 'deleted' ? 'deletedDay' : 'savedDay', {
+                {t(dayDone.kind === 'approved' ? 'approvedDay' : dayDone.kind === 'sent' ? 'sentDay' : dayDone.kind === 'deleted' ? 'deletedDay' : 'savedEntry', {
                   hours: hm(dayDone.minutes),
                   day: dayName(dayDone.day, 'long'),
+                  type: categoryLabel(dayDone.category ?? dayCategory),
                 })}
               </p>
             {/if}

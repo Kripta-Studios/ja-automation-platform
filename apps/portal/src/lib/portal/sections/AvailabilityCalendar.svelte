@@ -303,8 +303,8 @@
   <p class="form-help">
     {translate(
       readOnly
-        ? 'Review availability in the calendar. Editing is unavailable in this view. Times are UTC.'
-        : 'Choose a day to add availability. Open an existing window to edit it. Times are UTC.',
+        ? 'Review availability in the calendar. Editing is unavailable in this view.'
+        : 'Choose a day to add availability. Open an existing window to edit it.',
     )}
   </p>
   {#if !readOnly}<button
@@ -314,6 +314,7 @@
       >{translate('Add availability')}</button
     >{/if}
   <PlanningCalendar
+    zoneNote={false}
     headingLevel={3}
     {events}
     {translate}

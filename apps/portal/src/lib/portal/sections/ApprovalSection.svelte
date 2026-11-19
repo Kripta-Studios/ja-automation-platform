@@ -20,6 +20,7 @@
   import type { ProblemData } from '../../problem/contract';
   import type { PortalData, PortalRow as Row } from '../portal-data';
   import { money } from '../portal-format';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { ProblemNotice, StatusBadge, formValidation } from '../ui';
   import { approvalQueueText, type ApprovalQueueCopyKey } from './approval-queue-copy';
   import type { ApprovalQueuePage, QueueTotals } from '../approval-queue-page';
@@ -134,9 +135,9 @@
   }
 
   // ---------- formatting ----------
-  const hoursFormat = $derived(new Intl.NumberFormat(language, { maximumFractionDigits: 2 }));
+  // H:MM like Home and the timesheet (Z5), never "7.5 h".
   function hoursText(minutes: number): string {
-    return t('hours', { hours: hoursFormat.format(minutes / 60) });
+    return t('hours', { hours: clockHoursFromMinutes(minutes) });
   }
   function utcDate(iso: string): Date {
     return new Date(`${iso}T00:00:00.000Z`);

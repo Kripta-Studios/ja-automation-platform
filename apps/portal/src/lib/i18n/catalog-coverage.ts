@@ -554,8 +554,8 @@ export const PORTAL_LITERAL_KEYS = [
   'No events on this day.',
 
   'Availability calendar',
-  'Choose a day to add availability. Open an existing window to edit it. Times are UTC.',
-  'Review availability in the calendar. Editing is unavailable in this view. Times are UTC.',
+  'Choose a day to add availability. Open an existing window to edit it.',
+  'Review availability in the calendar. Editing is unavailable in this view.',
   'Add availability',
   'Edit availability',
   'Showing the latest 200 availability windows for this person.',
@@ -3832,6 +3832,7 @@ export const PORTAL_ACTION_KEYS = [
   'action.time.layoutCopied',
   'action.time.layoutNothingAdded',
   'action.time.removedOrVoided',
+  'action.time.hoursDeleted',
   'action.time.submitted',
   'action.time.sheetAttached',
   'action.time.savedAndApproved',

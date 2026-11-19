@@ -2220,13 +2220,13 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'No events on this day.': ['No hay eventos este día.', 'Não há eventos neste dia.'],
 
   'Availability calendar': ['Calendario de disponibilidad', 'Calendário de disponibilidade'],
-  'Choose a day to add availability. Open an existing window to edit it. Times are UTC.': [
-    'Elige un día para añadir disponibilidad. Abre una ventana existente para editarla. Las horas son UTC.',
-    'Escolha um dia para adicionar disponibilidade. Abra um período existente para editar. Os horários são UTC.',
+  'Choose a day to add availability. Open an existing window to edit it.': [
+    'Elige un día para añadir disponibilidad. Abre una ventana existente para editarla.',
+    'Escolha um dia para adicionar disponibilidade. Abra um período existente para editar.',
   ],
-  'Review availability in the calendar. Editing is unavailable in this view. Times are UTC.': [
-    'Consulta la disponibilidad en el calendario. Esta vista no permite editarla. Las horas son UTC.',
-    'Consulte a disponibilidade no calendário. Esta visualização não permite edições. Os horários são UTC.',
+  'Review availability in the calendar. Editing is unavailable in this view.': [
+    'Consulta la disponibilidad en el calendario. Esta vista no permite editarla.',
+    'Consulte a disponibilidade no calendário. Esta visualização não permite edições.',
   ],
   'Add availability': ['Añadir disponibilidad', 'Adicionar disponibilidade'],
   'Edit availability': ['Editar disponibilidad', 'Editar disponibilidade'],

@@ -76,6 +76,21 @@ describe('operational account route denial', () => {
     },
   );
 
+  it('answers My Pay for supplier people with a plain 200 explanation and no pay data (X3)', async () => {
+    mocks.profile.mockReturnValue({ profile: 'external_technician' });
+    const resolve = vi.fn(() => new Response('restricted projection'));
+    const response = await handle({
+      event: requestFor('/pay', 'text/html', 'en'),
+      resolve,
+    } as never);
+    const body = await response.text();
+    expect(response.status).toBe(200);
+    expect(body).toContain('Your pay is handled by your own company');
+    expect(body).toContain('rel="icon"');
+    expect(body).not.toContain('restricted projection');
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
   it('returns a stable machine-readable 403 for denied data requests', async () => {
     mocks.profile.mockReturnValue({ profile: 'supplier_coordinator' });
     const response = await handle({

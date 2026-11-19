@@ -620,6 +620,9 @@
   let bulkSendNow = $state(true);
   let bulkForm = $state<HTMLFormElement>();
   let nextBulkKey = 0;
+  const MORE_CATEGORY = '__more';
+  const isPrimaryCategory = (value: string) =>
+    primaryExpenseCategories.some((item) => item.value === value);
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
     date,
@@ -887,16 +890,19 @@
                         >{/if}
                     </p>
                     <p class="xp-row-meta">
-                      {dayLabel(text(row, 'spent_on'))} · {text(row, 'project_number')}
-                      {#if expenseReceiptState(row) === 'attached'}
-                        · <span class="xp-has-receipt" data-expense-receipt-indicator
-                          ><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
-                            ><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.3 3.3 0 0 1 4.7 4.7L10.2 18.7a1.7 1.7 0 0 1-2.4-2.4L15.5 8.6" /></svg
-                          >{c('receiptAttached')}</span
-                        >
-                      {:else if row.approval_state === 'draft'}
-                        · <span class="xp-warn">{c('noReceipt')}</span>
-                      {/if}
+                      <!-- X5: each separator travels with the piece after it, so a
+                           wrapped line never ends in a dangling "·". -->
+                      <span class="xp-meta-part">{dayLabel(text(row, 'spent_on'))}</span>{#if text(row, 'project_number')}{' '}<span
+                          class="xp-meta-part">{'· '}{text(row, 'project_number')}</span
+                        >{/if}{#if expenseReceiptState(row) === 'attached'}{' '}<span class="xp-meta-part"
+                          >{'· '}<span class="xp-has-receipt" data-expense-receipt-indicator
+                            ><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+                              ><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.3 3.3 0 0 1 4.7 4.7L10.2 18.7a1.7 1.7 0 0 1-2.4-2.4L15.5 8.6" /></svg
+                            >{c('receiptAttached')}</span
+                          ></span
+                        >{:else if row.approval_state === 'draft'}{' '}<span class="xp-meta-part"
+                          >{'· '}<span class="xp-warn">{c('noReceipt')}</span></span
+                        >{/if}
                     </p>
                   </div>
                   <div class="xp-row-side">
@@ -1098,17 +1104,21 @@
               <span>{c('date')}</span>
               <input type="date" name={`spentOn_${index}`} bind:value={row.date} required />
             </label>
+            <!-- X8: the same short list as the single form, the rest behind "More…". -->
+            <input type="hidden" name={`category_${index}`} value={row.category} />
             <label class="xp-field">
               <span>{c('category')}</span>
-              <select name={`category_${index}`} bind:value={row.category}>
+              <select
+                value={isPrimaryCategory(row.category) ? row.category : MORE_CATEGORY}
+                onchange={(event) => {
+                  const value = event.currentTarget.value;
+                  row.category = value === MORE_CATEGORY ? 'parking' : value;
+                }}
+              >
                 {#each primaryExpenseCategories as item (item.value)}
                   <option value={item.value}>{c(item.copy as ExpenseCopyKey)}</option>
                 {/each}
-                <optgroup label={c('moreCategories')}>
-                  {#each expenseCategories.filter(([value]) => !primaryExpenseCategories.some((item) => item.value === value)) as [value, label] (value)}
-                    <option {value}>{translate(label)}</option>
-                  {/each}
-                </optgroup>
+                <option value={MORE_CATEGORY}>{c('more')}</option>
               </select>
             </label>
             <label class="xp-field">
@@ -1140,6 +1150,16 @@
               />
               <span>{row.file || c('receipt')}</span>
             </label>
+            {#if !isPrimaryCategory(row.category)}
+              <label class="xp-field xp-bulk-more">
+                <span>{c('moreCategories')}</span>
+                <select bind:value={row.category} data-bulk-more-category>
+                  {#each expenseCategories.filter(([value]) => !isPrimaryCategory(value)) as [value, label] (value)}
+                    <option {value}>{translate(label)}</option>
+                  {/each}
+                </select>
+              </label>
+            {/if}
             <label class="xp-field xp-bulk-note">
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
@@ -1714,6 +1734,9 @@
   .xp-bulk-note {
     grid-column: 2 / 5;
   }
+  .xp-bulk-more {
+    grid-column: 2 / 4;
+  }
   .xp-bulk-remove {
     min-height: 2.9rem;
     /* Always in the last column, even when a status line sits above it. */
@@ -1767,7 +1790,8 @@
       grid-row: span 3;
       align-self: start;
     }
-    .xp-bulk-note {
+    .xp-bulk-note,
+    .xp-bulk-more {
       grid-column: 2 / -1 !important;
     }
     .xp-bulk-remove {
@@ -2169,16 +2193,20 @@
     color: #8a5300 !important;
     font-weight: 600;
   }
+  .xp-meta-part {
+    white-space: nowrap;
+  }
   .xp-has-receipt {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
+    display: inline;
     color: var(--ja-green-dark, #145a33);
     font-weight: 600;
   }
   .xp-has-receipt svg {
+    display: inline-block;
     width: 0.95rem;
     height: 0.95rem;
+    vertical-align: -0.15em;
+    margin-right: 0.15rem;
     fill: none;
     stroke: currentColor;
     stroke-width: 2;

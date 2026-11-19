@@ -224,6 +224,60 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
   });
 
+  it('lets the owner approve & include his OWN draft hours in one step; other drafts stay out', () => {
+    const { f, owner, finance, time, context } = setup();
+    f.v3.createClientLaborRate(finance, {
+      projectId: f.project.id,
+      workerId: f.owner.userId,
+      currency: 'EUR',
+      hourlyRateMinor: 10000n,
+      overtimeMethod: 'NONE',
+      effectiveFrom: '2026-08-01',
+    });
+    const others = time('2026-08-04', 90, 'draft');
+    // The owner also works on site: an assignment row (the team screen only assigns workers/PMs).
+    f.sqlite
+      .prepare(
+        "INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,created_at,updated_at) VALUES('owner-member',?,?,'worker','2026-01-01','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z')",
+      )
+      .run(f.project.id, f.owner.userId);
+    const own = f.repository.createTimeEntry(owner, {
+      projectId: f.project.id,
+      workDate: '2026-08-05',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Owner on site',
+    });
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    const approve = preview.attention.find((item) => item.kind === 'approve');
+    expect(approve?.people?.map((person) => person.workerId)).toEqual([f.owner.userId]);
+    expect(approve!.people![0]!.states).toMatchObject({ draft: 1 });
+    const unsent = preview.attention.find((item) => item.kind === 'unsent');
+    expect(unsent?.people?.map((person) => person.workerId)).toEqual([f.worker.userId]);
+    const result = quickInvoiceIncludePending(context(owner), {
+      projectId: f.project.id,
+      ...period,
+      sources: pendingRefs(preview),
+      requestKey: 'inline-own-draft',
+    });
+    expect(result.skipped).toEqual([]);
+    expect(result.approved).toEqual([expect.objectContaining({ id: own.id })]);
+    expect(f.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(own.id)).toEqual({ approval_state: 'approved' });
+    expect(f.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(others)).toEqual({ approval_state: 'draft' });
+    expect(
+      count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='invoice.approve_on_behalf' AND actor_id=?", owner.userId),
+    ).toBe(1);
+    // Sending another worker's draft directly is still refused.
+    const version = (f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(others) as { version: number }).version;
+    expect(
+      f.repository.approvePendingForInvoice(owner, {
+        projectId: f.project.id,
+        sources: [{ type: 'time', id: others, version }],
+        requestKey: 'inline-other-draft',
+      }).skipped,
+    ).toEqual([expect.objectContaining({ reason: 'not_submitted' })]);
+  });
+
   it('is all-or-nothing when a record changed since it was shown', () => {
     const { f, owner, time, context } = setup();
     time('2026-08-04', 90, 'submitted');

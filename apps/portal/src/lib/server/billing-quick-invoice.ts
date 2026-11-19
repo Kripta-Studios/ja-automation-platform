@@ -1274,31 +1274,41 @@ const HARD_SOURCE_CODES = new Set([
 
 /**
  * Records the worker sent that still need an approval step before they can be invoiced:
- * submitted entries, and approved ones still waiting for the finance step. Drafts and
- * entries returned for changes are the worker's (owner decision 2026-11-19): they are
- * never offered as "Approve & include" and never counted in the projected amount.
+ * submitted entries, and approved ones still waiting for the finance step. Other people's
+ * drafts and entries returned for changes are theirs (owner decision 2026-11-19): never
+ * offered as "Approve & include" and never projected. The acting owner's OWN drafts are the
+ * exception (owner decision 2026-11-17): he may submit and approve them in one step here.
  */
 export function pendingInvoiceSources(
   sources: readonly InvoiceCompositionSource[],
+  actor?: { userId: string; role: string } | null,
 ): InvoiceCompositionSource[] {
   return sources.filter(
     (source) =>
       source.containingInvoice === null &&
       !source.blockers.some((reason) => HARD_SOURCE_CODES.has(reason.code)) &&
       (source.approvalState === 'submitted' ||
-        (source.approvalState === 'approved' && !source.financeAccepted)),
+        (source.approvalState === 'approved' && !source.financeAccepted) ||
+        (ownUnsent(source, actor) && ['draft', 'needs_changes'].includes(source.approvalState))),
   );
 }
 
-/** Drafts and returned entries the worker has not sent yet: shown apart, left out of the invoice. */
+/** The owner's own unsent records (the only unsent records approvable from the invoice). */
+function ownUnsent(source: InvoiceCompositionSource, actor?: { userId: string; role: string } | null): boolean {
+  return Boolean(actor && actor.role === 'owner_admin' && source.workerId === actor.userId);
+}
+
+/** Other people's drafts and returned entries: shown apart, left out of the invoice. */
 export function unsentInvoiceSources(
   sources: readonly InvoiceCompositionSource[],
+  actor?: { userId: string; role: string } | null,
 ): InvoiceCompositionSource[] {
   return sources.filter(
     (source) =>
       source.containingInvoice === null &&
       !source.blockers.some((reason) => HARD_SOURCE_CODES.has(reason.code)) &&
-      ['draft', 'needs_changes'].includes(source.approvalState),
+      ['draft', 'needs_changes'].includes(source.approvalState) &&
+      !ownUnsent(source, actor),
   );
 }
 
@@ -1818,8 +1828,8 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
         periodEnd: preview.periodEnd,
       }).sources,
     ];
-    pending = pendingInvoiceSources(inventory);
-    unsent = unsentInvoiceSources(inventory);
+    pending = pendingInvoiceSources(inventory, context.principal);
+    unsent = unsentInvoiceSources(inventory, context.principal);
     if (pending.length && capabilities.canApprove) {
       // Exact "if you approve" amount: the real approval commands and the real draft
       // engine run inside a savepoint that is always rolled back.

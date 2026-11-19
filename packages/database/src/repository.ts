@@ -7648,10 +7648,15 @@ export class PortalRepository {
           throw new ConflictError('Reserved source cannot be approved');
         const state = String(row.approval_state);
         const skip = (reason: string) => skipped.push({ type: ref.type, id: ref.id, reason });
-        // Only what the worker sent can be approved here (owner decision 2026-11-19): drafts
-        // and entries returned for changes stay with the worker and are never approved on behalf.
-        if (['draft', 'needs_changes'].includes(state)) skip('not_submitted');
-        else if (!['submitted', 'approved'].includes(state)) skip('not_approvable');
+        // Only what the worker sent can be approved here (owner decision 2026-11-19): other
+        // people's drafts and returned entries stay with them. The owner's own drafts are the
+        // exception (owner decision 2026-11-17): submitted and approved in one audited step.
+        if (
+          ['draft', 'needs_changes'].includes(state) &&
+          !(principal.role === 'owner_admin' && row.worker_id === principal.userId)
+        )
+          skip('not_submitted');
+        else if (!['draft', 'needs_changes', 'submitted', 'approved'].includes(state)) skip('not_approvable');
         else if (state === 'approved' && row.finance_approved_at) skip('already_approved');
         else if (principal.role === 'finance_admin' && row.worker_id === principal.userId)
           skip('own_record');

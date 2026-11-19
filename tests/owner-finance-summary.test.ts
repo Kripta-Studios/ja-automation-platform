@@ -94,3 +94,21 @@ describe('Owner financial overview', () => {
     expect(summary.months.every((month) => month.incoming === '0')).toBe(true);
   });
 });
+
+describe('Owner Home "Company finances" default currency (R4 M5)', () => {
+  it('opens on the main project currency even when a foreign expense sorts first', () => {
+    const summary = ownerFinanceSummary(
+      [row('usd', { currency: 'USD' }), row('mxn', { currency: 'MXN', kind: 'worker_reimbursement', amountMinor: '-125000' })],
+      '2026-09-10',
+      ['USD', 'USD', 'USD'],
+    );
+    expect(summary.currencies.map((item) => item.currency)).toEqual(['USD', 'MXN']);
+  });
+  it('without project currencies, the currency with most movements comes first', () => {
+    const summary = ownerFinanceSummary(
+      [row('a', { currency: 'USD' }), row('b', { currency: 'USD' }), row('c', { currency: 'EUR' })],
+      '2026-09-10',
+    );
+    expect(summary.currencies.map((item) => item.currency)).toEqual(['USD', 'EUR']);
+  });
+});

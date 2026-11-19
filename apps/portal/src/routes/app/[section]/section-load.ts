@@ -1,5 +1,6 @@
 import { personDisplayName } from '$lib/portal/display-name';
 import { invoiceSourceHolders } from '$lib/server/invoice-source-holders';
+import { approvedExpensesWaiting } from '$lib/server/approved-expenses-waiting';
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
@@ -1769,6 +1770,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     search: financeSearch,
                     limit: financeListLimit,
                     holders: invoiceSourceHolders(context.sqlite),
+                    expensesWaiting: approvedExpensesWaiting(
+                      context.sqlite,
+                      (projects as Array<Record<string, unknown>>).map((project) => String(project.id)),
+                    ),
                   },
                 ),
               }

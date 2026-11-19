@@ -25,6 +25,7 @@ import {
 } from '$lib/portal/home-inbox';
 import { mondayOf } from '$lib/server/portal-week';
 import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
+import { approvedExpensesWaiting } from '$lib/server/approved-expenses-waiting';
 export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (locals.user.status === 'suspended' || locals.user.status === 'offboarded')
@@ -167,24 +168,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
         )
         .all() as Array<{ projectId: string; minutes: number }>)
         approvedMinutes.set(row.projectId, Number(row.minutes) || 0);
-      for (const row of context.sqlite
-        .prepare(
-          `SELECT project_id projectId,currency,COUNT(*) n,CAST(SUM(amount_minor) AS TEXT) total FROM expense
-            WHERE approval_state='approved' AND invoice_id IS NULL
-              AND (commercial_classification_state='unclassified'
-                OR billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
-              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
-                     WHERE source.source_type='expense' AND source.source_id=expense.id
-                       AND invoice.state NOT IN ('void','cancelled','superseded'))
-            GROUP BY project_id,currency`,
-        )
-        .all() as Array<{ projectId: string; currency: string; n: number; total: string }>) {
-        const entry = approvedExpenses.get(row.projectId) ?? { count: 0, totals: new Map() };
-        entry.count += Number(row.n) || 0;
-        if (/^-?\d+$/u.test(String(row.total)))
-          entry.totals.set(row.currency, (entry.totals.get(row.currency) ?? 0n) + BigInt(row.total));
-        approvedExpenses.set(row.projectId, entry);
-      }
+      // Same definition as Money → "Ready to invoice" (approved-expenses-waiting.ts).
+      for (const [projectId, entry] of approvedExpensesWaiting(
+        context.sqlite,
+        openProjects.map((project) => String(project.id)),
+      ))
+        approvedExpenses.set(projectId, entry);
     }
     const pendingByProject = new Map<string, number>();
     for (const row of approvalRows)

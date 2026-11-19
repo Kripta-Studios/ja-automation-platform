@@ -62,10 +62,29 @@ export function ownerFinanceSummary(
     date.setUTCMonth(date.getUTCMonth() - 5 + index);
     return date.toISOString().slice(0, 10);
   });
+  // The company's main currency comes first (the one most projects are invoiced in), so one
+  // foreign receipt never turns the default view into that currency; ties: most movements,
+  // then alphabetical. Currencies are never combined.
+  const weight = new Map<string, [number, number]>();
+  for (const currency of projectCurrencies) {
+    const entry = weight.get(currency) ?? [0, 0];
+    entry[0] += 1;
+    weight.set(currency, entry);
+  }
+  for (const item of movements) {
+    const entry = weight.get(item.currency) ?? [0, 0];
+    entry[1] += 1;
+    weight.set(item.currency, entry);
+  }
+  const ordered = [...weight.keys()].sort((a, b) => a.localeCompare(b));
+  const main = [...ordered].sort((a, b) => {
+    const [pa, ma] = weight.get(a)!;
+    const [pb, mb] = weight.get(b)!;
+    return pb - pa || mb - ma || a.localeCompare(b);
+  })[0];
   return {
     today,
-    currencies: [...new Set([...projectCurrencies, ...movements.map((item) => item.currency)])]
-      .sort()
+    currencies: (main ? [main, ...ordered.filter((currency) => currency !== main)] : ordered)
       .map((currency) => {
         const rows = movements.filter((item) => item.currency === currency);
         const sum = (filter: CashFilter, selected = rows) =>

@@ -110,6 +110,7 @@
   import { tick } from 'svelte';
   import type { PortalLocale } from '../../portal-i18n';
   import { journeyMoney } from '../project-invoice-journey';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
   import { translateControlledValue } from '../../i18n/controlled-values';
   import {
@@ -161,8 +162,7 @@
     quickInvoiceFormat(locale, key, params);
   const money = (minor: string | null | undefined) =>
     minor === null || minor === undefined ? '—' : journeyMoney(minor, currency, locale);
-  const hours = (minutes: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(minutes / 60);
+  const hours = (minutes: number) => clockHoursFromMinutes(minutes);
   const dateText = (value: string | undefined) =>
     value && /^\d{4}-\d{2}-\d{2}/.test(value)
       ? new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
@@ -345,7 +345,7 @@
       errors = { ...errors, [key]: f('convertNeeded', { from: row.currency, to: currency }) };
       return;
     }
-    await act(key, 'setExpenseTreatment', {
+    const result = await act(key, 'setExpenseTreatment', {
       source: row.ref,
       treatment: choice.treatment,
       markupBps: Number.isFinite(markup) ? Math.max(0, Math.min(10000, markup)) : 0,
@@ -358,6 +358,14 @@
           }
         : {}),
     });
+    if (result?.success) closeConversion(row);
+  }
+  /** After a save (or Cancel) the confirmed conversion line shows again; the typed values are cleared. */
+  function closeConversion(row: ExpenseRow) {
+    const { [row.ref.id]: _typed, ...restTyped } = conversions;
+    conversions = restTyped;
+    const { [row.ref.id]: _open, ...restOpen } = changingConversion;
+    changingConversion = restOpen;
   }
   function setConversion(row: ExpenseRow, patch: Partial<{ rate: string; amount: string }>) {
     conversions = { ...conversions, [row.ref.id]: { rate: '', amount: '', ...conversions[row.ref.id], ...patch } };
@@ -960,7 +968,7 @@
               oninput={(event) => setConversion(row, { amount: (event.currentTarget as HTMLInputElement).value })}
               inputmode="decimal"
               autocomplete="off"
-              placeholder={zeroAmount}
+              placeholder={row.conversion ? decimal(row.conversion.amountMinor) : zeroAmount}
               data-attention-convert-amount
             /></label
           >
@@ -970,11 +978,16 @@
               oninput={(event) => setConversion(row, { rate: (event.currentTarget as HTMLInputElement).value })}
               inputmode="decimal"
               autocomplete="off"
-              placeholder={new Intl.NumberFormat(locale, { minimumFractionDigits: 4 }).format(1)}
+              placeholder={row.conversion?.rate ?? ''}
               disabled={Boolean(conversion.amount.trim())}
               data-attention-convert-rate
             /></label
           >
+          {#if row.conversion && changingConversion[row.ref.id]}
+            <button type="button" class="qa__link" disabled={disabled || Boolean(busy)} onclick={() => closeConversion(row)}
+              >{t('cancel')}</button
+            >
+          {/if}
         </div>
       {/if}
       <div class="qa__treatment">

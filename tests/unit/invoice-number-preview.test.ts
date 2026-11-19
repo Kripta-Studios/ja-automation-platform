@@ -120,5 +120,16 @@ describe('read-only draft invoice numbering', () => {
     expect(frozenDoc.bodyHtml).not.toContain('JA-2026-000017');
     expect(frozenDoc.bodyHtml).not.toContain('Número previsto');
     expect(frozenDoc.bodyHtml).not.toContain('data-invoice-edit');
+    // R4 M2: the state under the number is a localized label, never the raw code.
+    expect(frozenDoc.bodyHtml).toContain('>Emitida</small>');
+    for (const [state, locale, label] of [
+      ['partially_paid', 'en', 'Partially paid'],
+      ['partially_paid', 'es', 'Pagada parcialmente'],
+      ['paid', 'pt', 'Paga'],
+    ] as const) {
+      const html = renderInvoiceDocument({ ...issued, state, locale } as typeof issued).bodyHtml;
+      expect(html).toContain(`>${label}</small>`);
+      expect(html).not.toMatch(/>partially_paid</u);
+    }
   });
 });

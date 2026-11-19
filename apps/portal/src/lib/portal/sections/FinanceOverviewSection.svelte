@@ -9,7 +9,7 @@
   import { uxText } from '../ux-refresh-copy';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import DirectionIcon from '../ui/DirectionIcon.svelte';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { compensationPaymentCommandKey } from '../compensation-payment-command';
   import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
@@ -987,11 +987,11 @@
   }
 
   function displayHours(valueToFormat: unknown): string {
-    const hours = decimalHoursFromMinutes(valueToFormat);
+    const hours = clockHoursFromMinutes(valueToFormat);
     if (hours === '—') return hours;
-    const [whole, fraction] = hours.split('.');
+    const [whole, rest] = hours.split(':');
     const grouped = whole!.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-    return `${grouped}${fraction ? `.${fraction}` : ''} ${translate('hrs')}`;
+    return `${grouped}:${rest} ${translate('hrs')}`;
   }
 
   function displaySettlementSource(settlement: Row): string {

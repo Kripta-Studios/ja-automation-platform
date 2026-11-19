@@ -5,7 +5,7 @@
   import { page } from '$app/stores';
   import { tick } from 'svelte';
   import { paymentMoney } from '$lib/portal/payment-money';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { ProblemNotice, TableRegion } from '$lib/portal/ui';
   import type { ProblemData } from '$lib/problem/contract';
@@ -13,7 +13,7 @@
   const locale = $derived(normalizePortalLocale(data.locale));
   const t = (value: string) => portalText(locale, value);
   const hours = (minutes: unknown): string => {
-    const value = decimalHoursFromMinutes(minutes);
+    const value = clockHoursFromMinutes(minutes);
     return value === '—' ? value : `${value} h`;
   };
   const filterProblem = $derived((data.filterProblem ?? null) as ProblemData | null);

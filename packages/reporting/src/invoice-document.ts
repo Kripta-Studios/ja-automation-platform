@@ -66,6 +66,58 @@ const identifierLabels = {
   pt: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROJETO', costCenter: 'CENTRO DE CUSTO', taxId: 'CNPJ/NIF' },
 } as const;
 
+/** Invoice lifecycle state in words (never the raw code) under the number. */
+const stateLabels = {
+  en: {
+    draft: 'Draft',
+    approved: 'Approved',
+    issued: 'Issued',
+    sent: 'Sent',
+    partially_paid: 'Partially paid',
+    paid: 'Paid',
+    overdue: 'Overdue',
+    void: 'Void',
+    cancelled: 'Cancelled',
+    superseded: 'Replaced',
+    credited: 'Credited',
+  },
+  es: {
+    draft: 'Borrador',
+    approved: 'Aprobada',
+    issued: 'Emitida',
+    sent: 'Enviada',
+    partially_paid: 'Pagada parcialmente',
+    paid: 'Pagada',
+    overdue: 'Vencida',
+    void: 'Anulada',
+    cancelled: 'Cancelada',
+    superseded: 'Sustituida',
+    credited: 'Abonada',
+  },
+  pt: {
+    draft: 'Rascunho',
+    approved: 'Aprovada',
+    issued: 'Emitida',
+    sent: 'Enviada',
+    partially_paid: 'Parcialmente paga',
+    paid: 'Paga',
+    overdue: 'Vencida',
+    void: 'Anulada',
+    cancelled: 'Cancelada',
+    superseded: 'Substituída',
+    credited: 'Creditada',
+  },
+} as const satisfies Record<'en' | 'es' | 'pt', Record<string, string>>;
+
+export function invoiceDocumentStateLabel(state: unknown, locale: 'en' | 'es' | 'pt'): string {
+  const code = text(state).toLowerCase();
+  if (!code) return '';
+  const known = (stateLabels[locale] as Record<string, string>)[code];
+  if (known) return known;
+  const words = code.replace(/[_-]+/gu, ' ');
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
 /** One browser-safe, escaped presentation contract for the screen and downloaded invoice. */
 export function renderInvoiceDocument(
   snapshot: InvoiceTemplateSnapshot,
@@ -236,7 +288,7 @@ export function renderInvoiceDocument(
         'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small>${escape(text(snapshot.state))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,

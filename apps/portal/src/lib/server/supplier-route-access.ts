@@ -18,6 +18,9 @@ export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceP
       '/expenses',
       '/reports',
       '/profile',
+      // Own password only: the handler re-checks the live session and changes
+      // nothing but the signed-in person's credentials.
+      '/profile/password',
       '/help',
       '/supplier',
       '/supplier/report',

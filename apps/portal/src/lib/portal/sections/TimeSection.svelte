@@ -885,7 +885,7 @@
   </div>
 {/snippet}
 
-{#if data.canReviewTime}
+{#if data.canReviewTime && !isAuditor}
   <nav class="view-tabs" aria-label={t('title')}>
     <a
       href={sheetHref({ view: null })}
@@ -1418,6 +1418,9 @@
                   >{t('reviewSubmitWeek')} →</a
                 >
               </div>
+            {:else if weekDraftMinutes && !canSubmit}
+              <!-- R5: someone else's week can only be sent by that worker or the owner. -->
+              <p class="muted small" data-testid="time-delegated-hint">{t('delegatedSubmitHint')}</p>
             {:else if weekDraftMinutes}
               <a class="week-link" href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
                 >{t('reviewSubmitWeek')} →</a

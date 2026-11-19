@@ -66,6 +66,7 @@ const en = {
   // Payments
   paymentsTitle: 'Payments',
   paymentsIntro: 'Invoices waiting for money. Record a payment when it arrives.',
+  paymentsIntroReadOnly: 'Invoices still waiting for money.',
   openInvoices: 'Open invoices',
   noOpenInvoices: 'All issued invoices are paid.',
   invoice: 'Invoice',
@@ -261,6 +262,7 @@ const es: Record<MoneyCopyKey, string> = {
   nothingYet: 'Aún no hay nada registrado.',
   paymentsTitle: 'Cobros',
   paymentsIntro: 'Facturas pendientes de cobro. Registra el pago cuando llegue.',
+  paymentsIntroReadOnly: 'Facturas que aún esperan el cobro.',
   openInvoices: 'Facturas abiertas',
   noOpenInvoices: 'Todas las facturas emitidas están pagadas.',
   invoice: 'Factura',
@@ -455,6 +457,7 @@ const pt: Record<MoneyCopyKey, string> = {
   nothingYet: 'Nada registrado ainda.',
   paymentsTitle: 'Recebimentos',
   paymentsIntro: 'Faturas aguardando pagamento. Registre o pagamento quando chegar.',
+  paymentsIntroReadOnly: 'Faturas que ainda aguardam pagamento.',
   openInvoices: 'Faturas em aberto',
   noOpenInvoices: 'Todas as faturas emitidas estão pagas.',
   invoice: 'Fatura',

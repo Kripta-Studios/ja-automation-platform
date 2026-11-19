@@ -668,7 +668,6 @@
 <div class="supplier-page" lang={data.locale} onsubmit={rememberSubmission}>
   <h1 class="supplier-title">{data.owner ? c.title : c.team}</h1>
   <p>{data.owner ? m.intro : c.intro}</p>
-  {#if !data.owner}<p>{c.restricted}</p>{/if}
   <nav class="supplier-jump-links" aria-label={c.title}>
     {#if data.owner}
       <button
@@ -743,7 +742,7 @@
     {:else if form && !form.success && !(editor && form.operation === editor.operation)}
       <p role="alert">{standaloneActionMessage(data.locale, form)}</p>
     {/if}
-    {#if workspaceAction === 'authorize' || workspaceAction === 'time'}
+    {#if data.owner && workspaceAction === 'authorize'}
       <p class="supplier-action-help">
         {workspaceAction === 'authorize' ? c.restricted : c.intro}
       </p>

@@ -48,6 +48,11 @@ const copy = {
     '{hours} de horas, {expenses} despesas e {reports} relatórios aguardam aprovação',
   ],
   attApprovalsAction: ['Review and approve', 'Revisar y aprobar', 'Revisar e aprovar'],
+  attApprovalsOthers: [
+    '{count} records ({hours} of hours) wait for approval by the owner or another reviewer',
+    '{count} registros ({hours} de horas) esperan la aprobación del propietario u otro revisor',
+    '{count} registros ({hours} de horas) aguardam a aprovação do proprietário ou de outro revisor',
+  ],
   attUnbilled: [
     '{amount} of approved work ({hours}) is not invoiced yet',
     '{amount} de trabajo aprobado ({hours}) aún no está facturado',

@@ -224,18 +224,21 @@ describe('portal role navigation contract', () => {
     ]);
   });
 
-  it('keeps the read-only auditor menu limited to read-only finance, audit and profile areas', () => {
+  it('keeps the read-only auditor menu limited to read-only areas', () => {
     expect(labels('auditor_read_only')).toEqual([
       'Money',
+      'Projects',
+      'Time',
+      'Expenses',
+      'Invoices',
       'Payments',
       'Detailed analysis',
       'Accounting',
       'Profile',
       'Audit',
     ]);
-    expect(labels('auditor_read_only')).not.toEqual(
-      expect.arrayContaining(['Billing', 'Commercial Configuration', 'Projects', 'Approvals']),
-    );
+    for (const label of ['Approve', 'Approvals', 'Commercial Configuration', 'Rates', 'Data management'])
+      expect(labels('auditor_read_only')).not.toContain(label);
   });
 
   it('fails closed to the worker menu for missing and unknown role values', () => {

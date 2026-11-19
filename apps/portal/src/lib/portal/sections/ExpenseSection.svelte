@@ -84,7 +84,10 @@
   /* -------------------------------------------------------------- views */
   // Two separate experiences: capture (add + submit, every role) and the
   // review overview (owner, finance, PM for their projects).
-  const canReview = $derived(['owner_admin', 'finance_admin', 'project_manager'].includes(role));
+  const canReview = $derived(
+    ['owner_admin', 'finance_admin', 'project_manager', 'auditor_read_only'].includes(role),
+  );
+  const readOnlyViewer = $derived(role === 'auditor_read_only');
   let view = $state<'capture' | 'overview'>(
     $page.url.searchParams.get('view') === 'overview' ? 'overview' : 'capture',
   );
@@ -99,7 +102,7 @@
     void goto(url, { noScroll: true, keepFocus: true });
   }
   $effect(() => {
-    view = data.expenseView === 'overview' && canReview ? 'overview' : 'capture';
+    view = (data.expenseView === 'overview' || readOnlyViewer) && canReview ? 'overview' : 'capture';
   });
 
   const statusOf = expenseStatusOf;
@@ -661,7 +664,7 @@
   </svg>
 {/snippet}
 
-{#if canReview}
+{#if canReview && !readOnlyViewer}
   <div class="xp-tabs" role="tablist" aria-label={c('title')}>
     <button
       type="button"

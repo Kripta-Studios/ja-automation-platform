@@ -65,7 +65,9 @@ describe('UI_PLAN shell integration', () => {
     // The old inline header search and its popover are gone: one search only.
     expect(shell).not.toContain('aria-controls="portal-search-popover"');
     expect(shell).not.toContain('handleGlobalKeydown');
-    expect(shell).toContain('recordSuggestions={canUseGlobalSearch ? paletteRecords : []}');
+    // Restricted supplier accounts get only their own authorized projects (R7), never record search.
+    expect(shell).toContain('recordSuggestions={canUseGlobalSearch ? paletteRecords : restrictedPaletteRecords}');
+    expect(shell).toContain('mapRecord={canUseGlobalSearch ? toPaletteRecord : undefined}');
     const navigator = read('apps/portal/src/lib/portal/ui/SectionNavigator.svelte');
     expect(navigator).toContain('event.ctrlKey || event.metaKey');
     expect(navigator).toContain("event.key.toLowerCase() === 'k'");

@@ -7,7 +7,7 @@
  * further by role: workers see their own rows, money from invoices and the
  * all-time finance projection is returned only to finance-visible roles.
  */
-import { projectCalendarDate } from '@ja/database';
+import { isSupplierTimeEntry, projectCalendarDate } from '@ja/database';
 import type { openPortalRepository } from './portal-repository';
 
 type Context = ReturnType<typeof openPortalRepository>;
@@ -82,6 +82,12 @@ export type ProjectHubData = {
   hours: { monthMinutes: number; totalMinutes: number; people: HubPersonHours[] };
   expenses: { month: HubMoney[]; people: HubPersonExpenses[] };
   pending: { timeCount: number; timeMinutes: number; expenseCount: number; reportCount: number };
+  /**
+   * The part of `pending` this viewer may approve: everything for the owner;
+   * for a project manager, other people's records except supplier-workforce
+   * time (owner-only); nothing for Finance, auditors and workers.
+   */
+  reviewable: { timeCount: number; timeMinutes: number; expenseCount: number; reportCount: number };
   assignments: HubAssignment[];
   invoices: HubInvoice[] | null;
   finance: {
@@ -202,6 +208,49 @@ export function projectHubData(
     .prepare(pendingSql('technical_report', 'author_id'))
     .get(projectId, ...scopeArgs) as { count: number };
 
+  const pending = {
+    timeCount: Number(pendingTime.count ?? 0),
+    timeMinutes: Number(pendingTime.minutes ?? 0),
+    expenseCount: Number(pendingExpenses.count ?? 0),
+    reportCount: Number(pendingDaily.count ?? 0) + Number(pendingTechnical.count ?? 0),
+  };
+  let reviewable = { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 };
+  if (principal.role === 'owner_admin') reviewable = pending;
+  else if (
+    principal.role === 'project_manager' &&
+    sqlite
+      .prepare(
+        "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' AND can_review=1 AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1",
+      )
+      .get(projectId, principal.userId, today, today)
+  ) {
+    // Self-approval stays blocked and supplier-workforce time is owner-only,
+    // so the project page never promises an approval the PM cannot make.
+    const time = (
+      sqlite
+        .prepare(
+          "SELECT id,minutes FROM time_entry WHERE project_id=? AND approval_state='submitted' AND worker_id<>?",
+        )
+        .all(projectId, principal.userId) as Array<{ id: string; minutes: number }>
+    ).filter((row) => !isSupplierTimeEntry(sqlite, row.id));
+    const others = (table: string, worker: string) =>
+      Number(
+        (
+          sqlite
+            .prepare(
+              `SELECT COUNT(*) count FROM ${table} WHERE project_id=? AND approval_state='submitted' AND ${worker}<>?`,
+            )
+            .get(projectId, principal.userId) as { count: number }
+        ).count ?? 0,
+      );
+    reviewable = {
+      timeCount: time.length,
+      timeMinutes: time.reduce((sum, row) => sum + Number(row.minutes ?? 0), 0),
+      expenseCount: others('expense', 'worker_id'),
+      reportCount: others('daily_report', 'worker_id') + others('technical_report', 'author_id'),
+    };
+  }
+
   // Who is on the project (name, role, dates; never pay): every non-worker role that
   // passed projectOverview sees the list. Finance and auditors read it; only the owner
   // and project managers get the add/end controls (the UI gates them and the
@@ -308,12 +357,8 @@ export function projectHubData(
       people,
     },
     expenses: { month: sumByCurrency(expenseRows.filter(inMonth)), people: expensePeople },
-    pending: {
-      timeCount: Number(pendingTime.count ?? 0),
-      timeMinutes: Number(pendingTime.minutes ?? 0),
-      expenseCount: Number(pendingExpenses.count ?? 0),
-      reportCount: Number(pendingDaily.count ?? 0) + Number(pendingTechnical.count ?? 0),
-    },
+    pending,
+    reviewable,
     assignments,
     invoices,
     finance,
@@ -332,6 +377,7 @@ export function emptyProjectHub(): ProjectHubData {
     hours: { monthMinutes: 0, totalMinutes: 0, people: [] },
     expenses: { month: [], people: [] },
     pending: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
+    reviewable: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
     assignments: [],
     invoices: null,
     finance: null,

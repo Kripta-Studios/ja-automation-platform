@@ -109,6 +109,7 @@ import {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
   effectivePurchaseReference,
+  releaseCopiedStreamPurchaseOrders,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
 import { previewInvoiceNumber } from './domains/billing/invoice-number-preview.ts';
@@ -7647,7 +7648,15 @@ export class PortalRepository {
           throw new ConflictError('Reserved source cannot be approved');
         const state = String(row.approval_state);
         const skip = (reason: string) => skipped.push({ type: ref.type, id: ref.id, reason });
-        if (!['draft', 'submitted', 'needs_changes', 'approved'].includes(state)) skip('not_approvable');
+        // Only what the worker sent can be approved here (owner decision 2026-11-19): other
+        // people's drafts and returned entries stay with them. The owner's own drafts are the
+        // exception (owner decision 2026-11-17): submitted and approved in one audited step.
+        if (
+          ['draft', 'needs_changes'].includes(state) &&
+          !(principal.role === 'owner_admin' && row.worker_id === principal.userId)
+        )
+          skip('not_submitted');
+        else if (!['draft', 'needs_changes', 'submitted', 'approved'].includes(state)) skip('not_approvable');
         else if (state === 'approved' && row.finance_approved_at) skip('already_approved');
         else if (principal.role === 'finance_admin' && row.worker_id === principal.userId)
           skip('own_record');
@@ -10517,10 +10526,12 @@ export class PortalRepository {
     return this.transaction(() => {
       const invoice = this.sqlite
         .prepare(
-          "SELECT id,state,invoice_number,pdf_status FROM invoice WHERE id=? AND state IN ('issued','sent')",
+          // Delivery can be recorded after a payment arrived (owner request 2026-11-19): only the
+          // sent date is added then; payment states are never changed by sending.
+          "SELECT id,state,invoice_number,pdf_status,sent_at FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue','paid')",
         )
         .get(invoiceId) as
-        | { id: string; state: string; invoice_number: string | null; pdf_status: string }
+        | { id: string; state: string; invoice_number: string | null; pdf_status: string; sent_at: string | null }
         | undefined;
       if (!invoice || !invoice.invoice_number) throw new ValidationError('Issued invoice required');
       const existing = this.sqlite
@@ -10537,7 +10548,7 @@ export class PortalRepository {
           existing.reason !== 'Manual send requested')
       )
         throw new ConflictError('Send idempotency key was already used for another command');
-      if (existing || invoice.state === 'sent')
+      if (existing || invoice.state === 'sent' || invoice.sent_at)
         return { sent: false, invoiceNumber: invoice.invoice_number };
       if (invoice.pdf_status !== 'ready')
         throw new ValidationError('Invoice PDF must be ready before sending');
@@ -10556,7 +10567,7 @@ export class PortalRepository {
         );
       this.sqlite
         .prepare(
-          "UPDATE invoice SET state='sent',sent_at=?,updated_at=?,version=version+1 WHERE id=? AND state='issued'",
+          "UPDATE invoice SET state=CASE WHEN state='issued' THEN 'sent' ELSE state END,sent_at=?,updated_at=?,version=version+1 WHERE id=? AND sent_at IS NULL",
         )
         .run(timestamp, timestamp, invoiceId);
       this.audit(principal, 'invoice.send', 'invoice', invoiceId, {
@@ -14545,6 +14556,13 @@ export class PortalRepository {
           ...(input.version !== undefined ? [input.version] : []),
         );
       if (changed.changes !== 1) throw new ConflictError('Project changed before update');
+      if ((poNumber ?? '') !== String(existing.po_number ?? ''))
+        releaseCopiedStreamPurchaseOrders(
+          this.sqlite,
+          principal,
+          input.projectId,
+          existing.po_number as string | null,
+        );
       if (expectedMinutesPerDay !== Number(existing.expected_minutes_per_day ?? 0)) {
         // Keep the weekly expectation used by time screens in step with the
         // project setting. An all-zero schedule means "no expectation".

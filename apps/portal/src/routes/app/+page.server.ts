@@ -15,6 +15,7 @@ import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-vi
 import { readPendingApprovals } from '$lib/server/approval-queue';
 import { homeProjectFinance } from '$lib/server/home-project-finance';
 import {
+  currencyTotals,
   isPendingApproval,
   readyToInvoiceSummary,
   splitUnbilledSources,
@@ -28,7 +29,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   if (locals.user.status === 'suspended' || locals.user.status === 'offboarded')
     redirect(303, '/j-aautomation/app/login?reason=access-revoked');
-  if (locals.user.role === 'finance_admin' || locals.user.role === 'auditor_read_only') {
+  if (locals.user.role === 'auditor_read_only') {
     const destination = new URL(portalLandingForRole(base, locals.user.role), url);
     const query = url.searchParams.get('q')?.trim();
     if (query) destination.searchParams.set('q', query);
@@ -93,7 +94,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
     // One pending definition for Home, the nav badge and Approvals.
     const pendingApprovals = readPendingApprovals(context, { visible });
     const approvalRows = pendingApprovals.rows;
-    const isOwner = context.principal.role === 'owner_admin';
+    // Owner and Finance share the money inbox (ready to invoice, overdue, drafts).
+    const isOwner = ['owner_admin', 'finance_admin'].includes(context.principal.role);
     // Owner: one finance read per open project feeds "Ready to invoice" and the project glance.
     const openProjects = isOwner
       ? visible.projects.filter((project) =>
@@ -147,6 +149,43 @@ export const load: PageServerLoad = ({ locals, url }) => {
         pendingMinutes.set(row.projectId, Number(row.minutes) || 0);
         unsentMinutes.set(row.projectId, Number(row.unsent) || 0);
       }
+    // Approved hours and expenses no invoice (draft or issued) holds yet: the same rule as the
+    // invoice picker ("48.5 h approved, not invoiced"), so Home never says "nothing ready"
+    // while hours without a client rate (or approved expenses) wait to be invoiced.
+    const approvedMinutes = new Map<string, number>();
+    const approvedExpenses = new Map<string, { count: number; totals: Map<string, bigint> }>();
+    if (openProjects.length) {
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
+            WHERE approval_state IN ('approved','locked') AND invoice_id IS NULL
+              AND billability_state IN ('pending','billable')
+              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                     WHERE source.source_type='time' AND source.source_id=time_entry.id
+                       AND invoice.state NOT IN ('void','cancelled','superseded'))
+            GROUP BY project_id`,
+        )
+        .all() as Array<{ projectId: string; minutes: number }>)
+        approvedMinutes.set(row.projectId, Number(row.minutes) || 0);
+      for (const row of context.sqlite
+        .prepare(
+          `SELECT project_id projectId,currency,COUNT(*) n,CAST(SUM(amount_minor) AS TEXT) total FROM expense
+            WHERE approval_state='approved' AND invoice_id IS NULL
+              AND (commercial_classification_state='unclassified'
+                OR billing_treatment LIKE 'reimbursable%' OR billing_treatment='allowance_per_diem')
+              AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
+                     WHERE source.source_type='expense' AND source.source_id=expense.id
+                       AND invoice.state NOT IN ('void','cancelled','superseded'))
+            GROUP BY project_id,currency`,
+        )
+        .all() as Array<{ projectId: string; currency: string; n: number; total: string }>) {
+        const entry = approvedExpenses.get(row.projectId) ?? { count: 0, totals: new Map() };
+        entry.count += Number(row.n) || 0;
+        if (/^-?\d+$/u.test(String(row.total)))
+          entry.totals.set(row.currency, (entry.totals.get(row.currency) ?? 0n) + BigInt(row.total));
+        approvedExpenses.set(row.projectId, entry);
+      }
+    }
     const pendingByProject = new Map<string, number>();
     for (const row of approvalRows)
       if (isPendingApproval(row))
@@ -155,9 +194,19 @@ export const load: PageServerLoad = ({ locals, url }) => {
           (pendingByProject.get(String(row.project_id)) ?? 0) + 1,
         );
     // Commercial references for the alerts, read for the already-authorized projects only.
+    // The PO an invoice of the project would print (same order as the invoice: open stream
+    // override, project PO, client PO reference) or POs set per assignment.
     const projectTerms = openProjects.length
       ? context.sqlite.prepare(
-          'SELECT po_number poNumber,billing_model billingModel FROM project WHERE id=?',
+          `SELECT COALESCE(NULLIF(TRIM((SELECT br.po_number_override FROM billing_rule br
+                     WHERE br.project_id=p.id AND br.enabled=1 AND br.effective_to IS NULL
+                       AND TRIM(COALESCE(br.po_number_override,''))<>''
+                     ORDER BY br.effective_from DESC LIMIT 1)),''),
+                  NULLIF(TRIM(p.po_number),''),NULLIF(TRIM(c.po_reference),''),
+                  (SELECT 'assignment' FROM project_member m WHERE m.project_id=p.id
+                     AND TRIM(COALESCE(m.po_number,''))<>'' LIMIT 1)) poNumber,
+                  p.billing_model billingModel
+             FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
         )
       : null;
     const projectGlance: ProjectGlance[] = openProjects.flatMap((project) => {
@@ -207,6 +256,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
               draftMinor: glance.draftMinor,
               pendingMinutes: pendingMinutes.get(glance.projectId) ?? 0,
               unsentMinutes: unsentMinutes.get(glance.projectId) ?? 0,
+              approvedMinutes: approvedMinutes.get(glance.projectId) ?? 0,
+              rateMissing: glance.missingRate,
+              approvedExpenses: (() => {
+                const entry = approvedExpenses.get(glance.projectId);
+                return entry ? { count: entry.count, totals: currencyTotals(entry.totals) } : null;
+              })(),
             })),
           )
         : null,
@@ -219,7 +274,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       searchQuery,
       searchResults,
       searchSuggestions,
-      ...(context.principal.role === 'owner_admin'
+      ...(isOwner
         ? {
             ownerFinance: ownerFinanceSummary(
               readCashMovements(context),

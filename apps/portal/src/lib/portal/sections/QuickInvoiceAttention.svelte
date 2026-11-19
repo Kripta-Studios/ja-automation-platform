@@ -18,6 +18,7 @@
   export type AttentionItem = {
     kind:
       | 'approve'
+      | 'unsent'
       | 'clientRate'
       | 'workerCost'
       | 'expenseTreatment'
@@ -201,7 +202,12 @@
   let root: HTMLDivElement | undefined = $state();
 
   const roleText = $derived(role === 'finance_admin' ? t('roleFinance') : t('roleOwner'));
-  const count = $derived(attention.filter((item) => item.kind !== 'purchaseOrder').length);
+  /** What stops this invoice vs. what is only good to do; "not sent yet" is information only. */
+  const blockingCount = $derived(attention.filter((item) => item.blocks !== 'none').length);
+  const optionalCount = $derived(
+    attention.filter((item) => item.blocks === 'none' && !['purchaseOrder', 'unsent'].includes(item.kind)).length,
+  );
+  const count = $derived(blockingCount + optionalCount);
 
   $effect(() => {
     if (client && clientFormFor !== `${client.id}:${client.version}`) {
@@ -429,7 +435,10 @@
 
 <div class="qa" bind:this={root} data-quick-invoice-attention={count}>
   <h3 class="qa__title">
-    {#if count}{f('attentionTitle', { count })}{:else}{t('attentionNone')} ✓{/if}
+    {#if blockingCount}{f('attentionToFix', { count: blockingCount })}{:else}{t('attentionNone')} ✓{/if}{#if optionalCount}<span
+        class="qa__title-optional"
+        data-attention-optional={optionalCount}>&nbsp;· {f('attentionOptional', { count: optionalCount })}</span
+      >{/if}
   </h3>
   {#each attention as item, index (item.kind + (item.code ?? '') + index)}
     <section
@@ -568,6 +577,35 @@
           {@render status(key)}
         {/if}
         {#if notes.approve}<p class="qa__muted" role="status">{notes.approve}</p>{/if}
+      {:else if item.kind === 'unsent'}
+        <h4 id={`qa-title-${index}`}>
+          <span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>
+          {item.minutes ? f('unsentTitle', { hours: hours(item.minutes) }) : t('unsentTitleExpenses')}
+        </h4>
+        <p class="qa__muted">{t('unsentHelp')}</p>
+        <ul class="qa__people">
+          {#each peopleOf(item) as person (person.workerId)}
+            <li class="qa__person" data-attention-unsent-person={person.workerId}>
+              <div class="qa__person-main">
+                <strong>{person.name}</strong>
+                <span>
+                  {#if person.minutes}{hours(person.minutes)} h{:else if person.expenseCount}{person.expenseCount === 1
+                      ? t('expenseOne')
+                      : f('expenseMany', { count: person.expenseCount })}{/if}
+                  <small>· {statesText(person)}</small>
+                </span>
+              </div>
+              <div class="qa__actions">
+                <a class="qa__link" href={timeHref(person)}>{t('unsentOpen')}</a>
+              </div>
+            </li>
+          {/each}
+        </ul>
+        {#if (item.people?.length ?? 0) > 3 && !showAllPeople.unsent}
+          <button type="button" class="qa__link" onclick={() => (showAllPeople = { ...showAllPeople, unsent: true })}
+            >{f('showMore', { count: (item.people?.length ?? 0) - 3 })}</button
+          >
+        {/if}
       {:else if item.kind === 'clientRate' || item.kind === 'workerCost'}
         {@const kind = item.kind === 'clientRate' ? 'client' : item.payMissing ? 'pay' : 'cost'}
         {@const alsoCost = Boolean(item.costMissing)}
@@ -1014,6 +1052,10 @@
   .qa__title {
     margin: 0;
     font-size: 1rem;
+  }
+  .qa__title-optional {
+    font-weight: 500;
+    color: var(--ja-text-muted, #6b6b62);
   }
   .qa__item {
     display: grid;

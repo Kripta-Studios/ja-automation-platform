@@ -135,19 +135,37 @@
     ];
     if (inbox.readyToInvoice) {
       const ready = inbox.readyToInvoice;
+      const expensesNote = (expenses: { count: number; totals: readonly CurrencyTotal[] } | undefined) =>
+        expenses && expenses.count > 0
+          ? h(expenses.count === 1 ? 'approvedExpenseNote' : 'approvedExpensesNote', {
+              count: expenses.count,
+              amount: totalsText(expenses.totals),
+            })
+          : '';
+      const pendingNote = (minutes: number | undefined) =>
+        minutes ? h('pendingToApprove', { hours: decimalHoursFromMinutes(minutes) }) : '';
+      const unpricedNote = (minutes: number | undefined) =>
+        minutes ? h('approvedHours', { hours: decimalHoursFromMinutes(minutes) }) : '';
+      // Headline: money ready, else approved hours without a rate, else hours to approve, else expenses.
+      const headline =
+        totalsText(ready.totals) ||
+        unpricedNote(ready.unpricedMinutes) ||
+        pendingNote(ready.pendingMinutes) ||
+        expensesNote(ready.approvedExpenses) ||
+        '—';
       rows.push({
         id: 'ready',
         label: h('readyToInvoice'),
-        value: ready.projects
-          ? totalsText(ready.totals) ||
-            (ready.pendingMinutes ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) }) : '—')
-          : '—',
+        value: ready.projects ? headline : '—',
         detail: ready.projects
           ? [
               plural(ready.projects, 'project', 'projects'),
-              ready.totals.length && ready.pendingMinutes
-                ? h('pendingToApprove', { hours: decimalHoursFromMinutes(ready.pendingMinutes) })
-                : '',
+              ...[
+                unpricedNote(ready.unpricedMinutes),
+                pendingNote(ready.pendingMinutes),
+                expensesNote(ready.approvedExpenses),
+              ].filter((part) => part && part !== headline),
+              ready.unpricedMinutes ? h('rateMissingSetIt') : '',
             ]
               .filter(Boolean)
               .join(' · ')
@@ -165,30 +183,35 @@
         moreLabel: h('viewAllProjects', { count: ready.items.length }),
         items:
           canCreateInvoiceDraft && ready.items.length > 0
-            ? ready.items.slice(0, 6).map((item) => ({
-                id: item.projectId,
-                label: item.label,
-                value:
-                  BigInt(item.minor) > 0n
-                    ? money(item.minor, item.currency)
-                    : h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes ?? 0) }),
-                note:
-                  [
-                    item.draftMinor ? h('inDraft', { amount: money(item.draftMinor, item.currency) }) : '',
-                    BigInt(item.minor) > 0n && item.pendingMinutes
-                      ? h('pendingToApprove', { hours: decimalHoursFromMinutes(item.pendingMinutes) })
-                      : '',
-                    item.unsentMinutes
-                      ? h('notSentYet', { hours: decimalHoursFromMinutes(item.unsentMinutes) })
-                      : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' · ') || undefined,
-                href: link('billing', {
-                  project: item.projectId,
-                  assistantSurface: 'invoice-create',
-                }),
-              }))
+            ? ready.items.slice(0, 6).map((item) => {
+                const priced = BigInt(item.minor) > 0n;
+                const unpriced = item.rateMissing ? unpricedNote(item.approvedMinutes) : '';
+                const value = priced
+                  ? money(item.minor, item.currency)
+                  : unpriced || pendingNote(item.pendingMinutes) || expensesNote(item.approvedExpenses);
+                return {
+                  id: item.projectId,
+                  label: item.label,
+                  value,
+                  note:
+                    [
+                      item.draftMinor ? h('inDraft', { amount: money(item.draftMinor, item.currency) }) : '',
+                      unpriced && unpriced !== value ? unpriced : '',
+                      item.rateMissing ? h('rateMissingSetIt') : '',
+                      pendingNote(item.pendingMinutes) !== value ? pendingNote(item.pendingMinutes) : '',
+                      item.unsentMinutes
+                        ? h('notSentYet', { hours: decimalHoursFromMinutes(item.unsentMinutes) })
+                        : '',
+                      expensesNote(item.approvedExpenses) !== value ? expensesNote(item.approvedExpenses) : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' · ') || undefined,
+                  href: link('billing', {
+                    project: item.projectId,
+                    assistantSurface: 'invoice-create',
+                  }),
+                };
+              })
             : undefined,
       });
     }
@@ -762,6 +785,15 @@
   }
   .home-inbox-items strong {
     font-variant-numeric: tabular-nums;
+  }
+  /* Phone: the project name gets the full width; amount and action share the next line. */
+  @media (max-width: 560px) {
+    .home-inbox-items li {
+      grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .home-inbox-items li .home-inbox-item-label {
+      grid-column: 1 / -1;
+    }
   }
   .home-inbox-action {
     display: inline-flex;

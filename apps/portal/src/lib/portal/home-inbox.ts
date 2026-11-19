@@ -84,6 +84,12 @@ export type ReadyToInvoiceItem = {
   pendingMinutes?: number;
   /** Draft or sent-back hours the worker has not sent yet (never counted as "to approve"). */
   unsentMinutes?: number;
+  /** Approved hours no invoice holds yet (also those without a client rate). */
+  approvedMinutes?: number;
+  /** Some approved hours have no client rate: the amount is set on the invoice screen. */
+  rateMissing?: boolean;
+  /** Approved expenses no invoice holds yet that may be re-billed (recorded amounts). */
+  approvedExpenses?: { count: number; totals: CurrencyTotal[] };
 };
 
 export type ReadyToInvoice = {
@@ -91,6 +97,10 @@ export type ReadyToInvoice = {
   totals: CurrencyTotal[];
   /** Hours logged on these projects that still need an approval before invoicing. */
   pendingMinutes?: number;
+  /** Approved hours whose amount is not known yet (client rate missing). */
+  unpricedMinutes?: number;
+  /** Approved expenses waiting to be invoiced, per recorded currency. */
+  approvedExpenses?: { count: number; totals: CurrencyTotal[] };
   /** One row per project with approved, unbilled work; largest first. */
   items: ReadyToInvoiceItem[];
   /** The project with the largest amount, to open the invoice draft directly. */
@@ -106,21 +116,39 @@ export function readyToInvoiceSummary(
     label?: string;
     pendingMinutes?: number | null;
     unsentMinutes?: number | null;
+    approvedMinutes?: number | null;
+    rateMissing?: boolean;
+    approvedExpenses?: { count: number; totals: readonly CurrencyTotal[] } | null;
   }>,
 ): ReadyToInvoice {
   const totals = new Map<string, bigint>();
+  const expenseTotals = new Map<string, bigint>();
   const items: Array<ReadyToInvoiceItem & { value: bigint }> = [];
+  const minutesOf = (value: number | null | undefined) =>
+    Number.isFinite(Number(value)) ? Math.max(0, Number(value ?? 0)) : 0;
   let pendingTotal = 0;
+  let unpricedTotal = 0;
+  let expenseCount = 0;
   for (const row of rows) {
     const raw = text(row.minor).trim();
     const minor = /^\d+$/u.test(raw) ? BigInt(raw) : 0n;
-    const pending = Number.isFinite(Number(row.pendingMinutes)) ? Math.max(0, Number(row.pendingMinutes ?? 0)) : 0;
+    const pending = minutesOf(row.pendingMinutes);
+    const approved = minutesOf(row.approvedMinutes);
+    // Approved hours without a client rate are ready too: the rate is set on the invoice screen.
+    const unpriced = approved > 0 && (row.rateMissing || minor <= 0n) ? approved : 0;
+    const expenses =
+      row.approvedExpenses && row.approvedExpenses.count > 0 ? row.approvedExpenses : null;
     // Pending-approval work counts too: the invoice screen approves and includes it.
-    if (minor <= 0n && pending <= 0) continue;
+    if (minor <= 0n && pending <= 0 && unpriced <= 0 && !expenses) continue;
     if (minor > 0n) totals.set(row.currency, (totals.get(row.currency) ?? 0n) + minor);
     pendingTotal += pending;
+    if (minor <= 0n) unpricedTotal += unpriced;
+    if (expenses) {
+      expenseCount += expenses.count;
+      for (const total of expenses.totals) addMinor(expenseTotals, total.currency, total.minor);
+    }
     const draft = text(row.draftMinor).trim();
-    const unsent = Number.isFinite(Number(row.unsentMinutes)) ? Math.max(0, Number(row.unsentMinutes ?? 0)) : 0;
+    const unsent = minutesOf(row.unsentMinutes);
     items.push({
       projectId: row.projectId,
       label: row.label ?? row.projectId,
@@ -129,12 +157,18 @@ export function readyToInvoiceSummary(
       ...(/^\d+$/u.test(draft) && BigInt(draft) > 0n ? { draftMinor: draft } : {}),
       ...(pending > 0 ? { pendingMinutes: pending } : {}),
       ...(unsent > 0 ? { unsentMinutes: unsent } : {}),
+      ...(approved > 0 ? { approvedMinutes: approved } : {}),
+      ...(unpriced > 0 ? { rateMissing: true } : {}),
+      ...(expenses ? { approvedExpenses: { count: expenses.count, totals: [...expenses.totals] } } : {}),
       value: minor,
     });
   }
+  const weight = (item: ReadyToInvoiceItem) =>
+    (item.rateMissing ? (item.approvedMinutes ?? 0) : 0) + (item.pendingMinutes ?? 0);
   items.sort((left, right) =>
     left.value === right.value
-      ? (right.pendingMinutes ?? 0) - (left.pendingMinutes ?? 0)
+      ? weight(right) - weight(left) ||
+        (right.approvedExpenses?.count ?? 0) - (left.approvedExpenses?.count ?? 0)
       : left.value > right.value
         ? -1
         : 1,
@@ -143,6 +177,10 @@ export function readyToInvoiceSummary(
     projects: items.length,
     totals: currencyTotals(totals),
     ...(pendingTotal > 0 ? { pendingMinutes: pendingTotal } : {}),
+    ...(unpricedTotal > 0 ? { unpricedMinutes: unpricedTotal } : {}),
+    ...(expenseCount > 0
+      ? { approvedExpenses: { count: expenseCount, totals: currencyTotals(expenseTotals) } }
+      : {}),
     items: items.map(({ value: _value, ...item }) => item),
     topProjectId: items[0]?.projectId ?? null,
   };

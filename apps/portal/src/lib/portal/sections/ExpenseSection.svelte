@@ -95,7 +95,7 @@
     const url = new URL(window.location.href);
     for (const key of [...url.searchParams.keys()])
       if (!['lang', 'includeArchived'].includes(key)) url.searchParams.delete(key);
-    if (next === 'overview') url.searchParams.set('view', 'overview');
+    url.searchParams.set('view', next);
     void goto(url, { noScroll: true, keepFocus: true });
   }
   $effect(() => {

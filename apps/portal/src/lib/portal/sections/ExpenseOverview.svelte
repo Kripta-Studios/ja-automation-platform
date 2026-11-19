@@ -197,7 +197,7 @@
         <span>{c('person')}</span>
         <select name="worker" value={overview.worker} onchange={submitOnChange}>
           <option value="">{c('allPeople')}</option>
-          {#each people as person (person.id)}
+          {#each overview.people ?? people as person (person.id)}
             <option value={person.id}>{personDisplayName(person.name)}</option>
           {/each}
         </select>

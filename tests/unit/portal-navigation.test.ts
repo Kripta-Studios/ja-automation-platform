@@ -137,6 +137,7 @@ describe('portal role navigation contract', () => {
 
   it('gives Finance the economic and billing workflow without audit clutter', () => {
     expect(labels('finance_admin')).toEqual([
+      'Home',
       'Money',
       'Projects',
       'Billing',
@@ -151,9 +152,8 @@ describe('portal role navigation contract', () => {
   });
 
   it('maps finance landings to an authorized active destination', () => {
-    expect(portalLandingForRole('/j-aautomation', 'finance_admin')).toBe(
-      '/j-aautomation/app/finance?view=overview',
-    );
+    // Finance starts on Home (what needs them), owner decision 2026-11-19.
+    expect(portalLandingForRole('/j-aautomation', 'finance_admin')).toBe('/j-aautomation/app/');
     expect(portalLandingForRole('/j-aautomation', 'auditor_read_only')).toBe(
       '/j-aautomation/app/finance?view=overview',
     );
@@ -390,7 +390,7 @@ describe('active portal navigation destination', () => {
     ['worker', 'Today'],
     ['project_manager', 'Home'],
     ['owner_admin', 'Home'],
-    ['finance_admin', 'Money'],
+    ['finance_admin', 'Home'],
     ['auditor_read_only', 'Money'],
   ])('selects the role landing for %s at the root URL', (role, label) => {
     expect(activeNavItem(flatten(role), location('?lang=es', 'today', role))?.label).toBe(label);

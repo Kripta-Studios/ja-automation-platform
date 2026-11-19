@@ -31,6 +31,7 @@
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
   import {
+    quickInvoiceFormat,
     quickInvoiceText,
     quickInvoiceWarningText,
     type QuickInvoiceCopyKey,
@@ -83,6 +84,10 @@
   const preview = $derived(data.preview as { invoice: InvoiceRow; lines: Row[]; taxes: Row[] });
   const invoice = $derived(preview.invoice);
   const invoiceState = $derived(String(invoice.state ?? '').toLowerCase());
+  /** Delivery is a fact of its own: it can still be recorded after a payment arrived. */
+  const invoiceSentAt = $derived(
+    typeof invoice.sent_at === 'string' && invoice.sent_at ? String(invoice.sent_at) : '',
+  );
   const invoiceStatusLabel = $derived(
     (
       {
@@ -1166,7 +1171,17 @@
       <div class="invoice-lifecycle__row">
         <div class="invoice-lifecycle__summary">
           <p id="invoice-lifecycle-heading" class="invoice-lifecycle__eyebrow">
-            {q('issuedTitle')} · {invoice.invoice_number}
+            {q(
+              invoiceState === 'paid'
+                ? 'paidTitle'
+                : invoiceState === 'partially_paid'
+                  ? 'partlyPaidTitle'
+                  : invoiceState === 'overdue'
+                    ? 'overdueTitle'
+                    : invoiceState === 'sent'
+                      ? 'sentTitle'
+                      : 'issuedTitle',
+            )} · {invoice.invoice_number}
           </p>
           <strong>{invoiceTotalText}</strong>
           <span
@@ -1186,7 +1201,7 @@
               >{t('Download PDF')}</a
             >
           {/if}
-          {#if invoiceState === 'issued'}
+          {#if !invoiceSentAt}
             <form method="POST" action="?/sendInvoice" use:enhance>
               <input type="hidden" name="invoiceId" value={invoiceId} />
               <input type="hidden" name="idempotencyKey" value={sendKey} />
@@ -1242,8 +1257,12 @@
           }}
         />
       {/if}
-      {#if invoiceState === 'issued'}
-        <p class="invoice-lifecycle__help">
+      {#if invoiceSentAt}
+        <p class="invoice-lifecycle__help" data-invoice-sent-at={invoiceSentAt}>
+          ✓ {quickInvoiceFormat(locale, 'sentOn', { date: invoiceSentAt.slice(0, 10) })}
+        </p>
+      {:else}
+        <p class="invoice-lifecycle__help" data-invoice-not-sent>
           {pdfStatus === 'ready' ? q('issuedHelp') : q('markSentWaiting')}
         </p>
       {/if}
@@ -1410,10 +1429,11 @@
       {:else if pdfStatus === 'unavailable'}
         <p class="invoice-pdf-panel__message" role="status">{t('Unavailable')}</p>
       {/if}
+      <details class="invoice-pdf-panel__languages localized-pdf-slot" data-invoice-pdf-languages>
+        <summary>{q('pdfOtherLanguages')}</summary>
+        <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={q('pdfOtherLanguages')} />
+      </details>
     </section>
-    <div class="no-print localized-pdf-slot">
-      <LocalizedPdfPanel ownerType="invoice" ownerId={invoiceId} {locale} title={t('PDF')} />
-    </div>
   {/if}
   {#if legacyDiscountMismatch}
     <p class="no-print" role="alert">
@@ -1436,8 +1456,8 @@
         }}
       />
     </div>
-  {:else if standaloneActionMessage(locale, form)}
-    <p class="no-print" role="status">{standaloneActionMessage(locale, form)}</p>
+  {:else if standaloneActionMessage(locale, form) && !paymentNotice}
+    <p class="no-print invoice-action-status" role="status">{standaloneActionMessage(locale, form)}</p>
   {/if}
   {#if retainedDraftValues.length}
     <section class="detail-panel no-print" data-invoice-retained-customizations>
@@ -1862,6 +1882,27 @@
   .invoice-lifecycle__balance {
     margin: 0.6rem 0 0;
     font-variant-numeric: tabular-nums;
+  }
+  .invoice-action-status {
+    margin: 0.75rem 0;
+    padding: 0.6rem 0.9rem;
+    border-radius: 0.6rem;
+    background: var(--ja-surface, #fff);
+    color: var(--ja-text, #1c1c19);
+    border: 1px solid var(--ja-border-subdued, #e4e4df);
+  }
+  .invoice-pdf-panel__languages {
+    margin-top: 0.9rem;
+  }
+  .invoice-pdf-panel__languages > summary {
+    cursor: pointer;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 3px;
   }
   .invoice-lifecycle__help {
     margin: 0;

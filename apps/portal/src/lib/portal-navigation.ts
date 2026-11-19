@@ -271,7 +271,8 @@ export function subsectionsForNavItem(
  * page with no active navigation item.
  */
 export function portalLandingForRole(base: string, role?: string | null): string {
-  if (role === 'finance_admin' || role === 'auditor_read_only') {
+  // Finance starts on Home: what needs them (ready to invoice, overdue, drafts, approvals).
+  if (role === 'auditor_read_only') {
     return `${base}/app/finance?view=overview`;
   }
   return `${base}/app/`;
@@ -369,6 +370,7 @@ export function portalNavigationForRole(
     case 'finance_admin':
       return {
         primary: [
+          item('today', 'Home', '⌂'),
           item('finance', 'Money', '↗', route('finance', 'overview')),
           item('projects', 'Projects', '▦'),
           item('billing', 'Billing', '◫'),

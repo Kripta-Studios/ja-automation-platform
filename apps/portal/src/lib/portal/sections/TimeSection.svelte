@@ -888,7 +888,7 @@
 {#if data.canReviewTime}
   <nav class="view-tabs" aria-label={t('title')}>
     <a
-      href={sheetHref({ view: null })}
+      href={sheetHref({ view: 'capture' })}
       aria-current={data.timeView !== 'overview' ? 'page' : undefined}
       onclick={leaveGuard}
       data-testid="time-tab-capture">{t('tabCapture')}</a

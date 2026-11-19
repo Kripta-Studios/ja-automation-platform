@@ -274,9 +274,25 @@ export function buildExpenseOverview(rows: Row[], params: URLSearchParams, today
     };
   }
 
+  // Person picker: only people with expenses in the visible scope (never every account,
+  // never system/service users), most recent first; the screen makes it searchable.
+  const latest = new Map<string, { name: string; date: string }>();
+  for (const row of live) {
+    const id = text(row, 'worker_id');
+    const name = personDisplayName(text(row, 'worker_name'));
+    if (!id || !name) continue;
+    const date = text(row, 'spent_on');
+    const known = latest.get(id);
+    if (!known || date > known.date) latest.set(id, { name, date });
+  }
+  const people = [...latest.entries()]
+    .sort((a, b) => b[1].date.localeCompare(a[1].date) || a[1].name.localeCompare(b[1].name))
+    .map(([id, value]) => ({ id, name: value.name }));
+
   return {
     ...window,
     ...filters,
+    people,
     group,
     show,
     count: inPeriod.length,

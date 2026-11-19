@@ -2016,7 +2016,9 @@
       data.contacts ?? [],
     );
     setupCurrency = defaults.currency;
-    setupPoNumber = defaults.poNumber;
+    // The stream follows the project/client PO unless a different one is typed here; never
+    // copy it (a copy goes stale when the project PO changes).
+    setupPoNumber = '';
     setupPaymentTermsDays = defaults.paymentTermsDays;
     setupRecipientEmail = defaults.recipientEmail;
     setupContactId = defaults.billingContactId;
@@ -6394,7 +6396,11 @@
               </label>
               <label>
                 <span>{translate('PO reference')}</span>
-                <input name="poNumberOverride" bind:value={setupPoNumber} />
+                <input
+                  name="poNumberOverride"
+                  bind:value={setupPoNumber}
+                  placeholder={setupProjectDefaults.poNumber}
+                />
               </label>
               <p data-billing-grouping-help>
                 {translate(

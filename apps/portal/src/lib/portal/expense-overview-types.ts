@@ -19,6 +19,8 @@ export type ExpenseOverviewData = {
   receipt: string;
   find: string;
   group: ExpenseOverviewGroup;
+  /** People with expenses in the visible scope, most recent first. */
+  people?: Array<{ id: string; name: string }>;
   show: number;
   count: number;
   sums: ExpenseSums;

@@ -1053,11 +1053,14 @@
     const order: Record<string, number> = { labor: 0, expense: 1, milestone: 2 };
     return [...byKind.values()].sort((a, b) => (order[a.streamType] ?? 9) - (order[b.streamType] ?? 9));
   });
-  /** What the screen shows: everything logged (projection) when approvals are pending. */
+  /**
+   * What the screen shows: exactly what will be invoiced. Only when nothing is invoiceable
+   * yet does it show the projection ("If approved") of the entries the workers submitted.
+   */
   const shown = $derived.by(() => {
     if (!preview) return null;
-    if (preview.projected?.state === 'ready') return preview.projected;
-    return preview.state === 'ready' ? preview : null;
+    if (preview.state === 'ready') return preview;
+    return preview.projected?.state === 'ready' ? preview.projected : null;
   });
   const labor = $derived(shown?.groups.filter((g) => g.kind === 'labor') ?? []);
   const fees = $derived(shown?.groups.filter((g) => g.kind === 'fee') ?? []);
@@ -1286,7 +1289,9 @@
                 <strong>{money(split ? split.totalMinor : shown.totalMinor)}</strong>
                 {#if preview.projected && BigInt(preview.projected.includedPendingMinor) > 0n}
                   <small data-quick-invoice-projected
-                    >{quickInvoiceFormat(locale, 'projected', { amount: money(preview.projected.includedPendingMinor) })}</small
+                    >{shown === preview.projected
+                      ? quickInvoiceFormat(locale, 'projected', { amount: money(preview.projected.includedPendingMinor) })
+                      : quickInvoiceFormat(locale, 'projectedNotIncluded', { amount: money(preview.projected.includedPendingMinor) })}</small
                   >
                 {/if}
               </div>

@@ -15,8 +15,8 @@ import {
 } from '../../apps/portal/src/lib/server/billing-quick-invoice-fixes.ts';
 
 /**
- * One-screen invoice with inline fixes (design S1/S2/S3/S8): "Approve & include" from any
- * pre-approval state, exact projected total, inline client rate, guarded create+approve+issue.
+ * One-screen invoice with inline fixes (design S1/S2/S3/S8): "Approve & include" for what the
+ * worker submitted (drafts / returned entries stay with the worker), exact projected total, inline client rate, guarded create+approve+issue.
  */
 const fixtures: B5LifecycleSecurityFixture[] = [];
 afterEach(() => fixtures.splice(0).forEach(closeB5LifecycleSecurityFixture));
@@ -117,7 +117,7 @@ const pendingRefs = (preview: ReturnType<typeof quickInvoicePreview>) =>
   );
 
 describe('S1/S2: Approve & include with an exact projected total', () => {
-  it('projects the pending work exactly, writes nothing on preview, then approves drafts, submitted and returned entries with audit', () => {
+  it('projects the submitted work exactly, writes nothing on preview, approves only what the worker sent, with audit', () => {
     const { f, owner, time, context } = setup();
     time('2026-08-03', 60, 'approved');
     const draft = time('2026-08-04', 90, 'draft');
@@ -147,7 +147,13 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     const approve = preview.attention.filter((item) => item.kind === 'approve');
     expect(approve).toHaveLength(1);
     expect(approve[0]!.people).toHaveLength(1);
-    expect(approve[0]!.people![0]!.states).toEqual({ draft: 1, submitted: 1, returned: 1, financePending: 0 });
+    // Only the submitted entry is offered (owner decision 2026-11-19); drafts and returned
+    // entries are listed apart, as information, and never counted in the projection.
+    expect(approve[0]!.people![0]!.states).toEqual({ draft: 0, submitted: 1, returned: 0, financePending: 0 });
+    const unsent = preview.attention.find((item) => item.kind === 'unsent');
+    expect(unsent).toMatchObject({ blocks: 'none', minutes: 120 });
+    expect(unsent!.people![0]!.states).toMatchObject({ draft: 1, returned: 1 });
+    expect(unsent!.people![0]!.sources).toBeUndefined();
     expect(preview.projected).toBeTruthy();
     expect(BigInt(preview.projected!.totalMinor)).toBeGreaterThan(BigInt(preview.totalMinor));
     expect(BigInt(preview.projected!.includedPendingMinor)).toBe(
@@ -163,15 +169,15 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
       sources: pendingRefs(preview),
       requestKey: 'inline-approve-1',
     });
-    expect(result.approved).toHaveLength(3);
-    for (const id of [draft, submitted, returned])
-      expect(f.sqlite.prepare('SELECT approval_state,finance_approved_at IS NOT NULL f FROM time_entry WHERE id=?').get(id)).toEqual({
-        approval_state: 'approved',
-        f: 1,
-      });
+    expect(result.approved).toHaveLength(1);
+    expect(f.sqlite.prepare('SELECT approval_state,finance_approved_at IS NOT NULL f FROM time_entry WHERE id=?').get(submitted)).toEqual({
+      approval_state: 'approved',
+      f: 1,
+    });
+    expect(f.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(draft)).toEqual({ approval_state: 'draft' });
+    expect(f.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(returned)).toEqual({ approval_state: 'needs_changes' });
     // Per-record lifecycle evidence plus one grouped event with the real actor.
-    expect(count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='time.approved' AND actor_id=?", owner.userId)).toBe(3);
-    expect(count(f, "SELECT COUNT(*) n FROM approval_event WHERE entity_id=? AND from_state='needs_changes' AND to_state='submitted'", returned)).toBe(1);
+    expect(count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='time.approved' AND actor_id=?", owner.userId)).toBe(1);
     expect(
       count(
         f,
@@ -184,6 +190,7 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     const after = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
     expect(after.totalMinor).toBe(preview.projected!.totalMinor);
     expect(after.attention.some((item) => item.kind === 'approve')).toBe(false);
+    expect(after.attention.some((item) => item.kind === 'unsent')).toBe(true);
 
     // Idempotent retry: same key replays, nothing new.
     const auditsAfter = count(f, 'SELECT COUNT(*) n FROM audit_event');
@@ -198,13 +205,31 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(count(f, 'SELECT COUNT(*) n FROM audit_event')).toBe(auditsAfter);
   });
 
+  it('never approves drafts or returned entries on the worker’s behalf, even when sent directly', () => {
+    const { f, owner, time } = setup();
+    const draft = time('2026-08-04', 90, 'draft');
+    const returned = time('2026-08-05', 60, 'needs_changes');
+    const version = (id: string) =>
+      (f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(id) as { version: number }).version;
+    const result = f.repository.approvePendingForInvoice(owner, {
+      projectId: f.project.id,
+      sources: [
+        { type: 'time', id: draft, version: version(draft) },
+        { type: 'time', id: returned, version: version(returned) },
+      ],
+      requestKey: 'inline-unsent-direct',
+    });
+    expect(result.approved).toHaveLength(0);
+    expect(result.skipped.map((entry) => entry.reason)).toEqual(['not_submitted', 'not_submitted']);
+    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
+  });
+
   it('is all-or-nothing when a record changed since it was shown', () => {
-    const { f, owner, worker, time, context } = setup();
-    time('2026-08-04', 90, 'draft');
-    const changed = time('2026-08-05', 60, 'draft');
+    const { f, owner, time, context } = setup();
+    time('2026-08-04', 90, 'submitted');
+    const changed = time('2026-08-05', 60, 'submitted');
     const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
-    const version = (f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(changed) as { version: number }).version;
-    f.repository.updateTimeEntry(worker, { id: changed, version, minutes: 75 } as never);
+    f.repository.operationalApproveTime(f.manager, changed, 'needs_changes', 'Check the hours');
     expect(() =>
       quickInvoiceIncludePending(context(owner), {
         projectId: f.project.id,
@@ -213,12 +238,12 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
         requestKey: 'inline-approve-stale',
       }),
     ).toThrow(ConflictError);
-    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state<>'draft'")).toBe(0);
+    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
   });
 
   it('allows Finance to approve on behalf (audited as Finance) and denies project managers and workers', () => {
     const { f, finance, worker, manager, time, context } = setup();
-    time('2026-08-04', 90, 'draft');
+    time('2026-08-04', 90, 'submitted');
     const preview = quickInvoicePreview(context(finance), { projectId: f.project.id, ...period });
     const sources = pendingRefs(preview);
     for (const denied of [manager, worker])
@@ -237,7 +262,7 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
         requestKey: 'inline-denied-repository',
       }),
     ).toThrow(AccessDeniedError);
-    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state<>'draft'")).toBe(0);
+    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
 
     const result = quickInvoiceIncludePending(context(finance), {
       projectId: f.project.id,
@@ -246,7 +271,6 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
       requestKey: 'inline-finance-approve',
     });
     expect(result.approved).toHaveLength(1);
-    expect(count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='time.submit' AND actor_id=?", finance.userId)).toBe(1);
     expect(
       count(
         f,
@@ -339,6 +363,54 @@ describe('S8: create + approve + issue in one request', () => {
     });
     expect(again).toMatchObject({ ok: false, reason: 'already_invoiced', invoiceId: issued.invoiceId });
     expect(count(f, "SELECT COUNT(*) n FROM invoice WHERE state NOT IN ('void','cancelled','superseded')")).toBe(before + 1);
+  });
+
+  it('still records that the invoice was sent after the client paid (B5), keeping the payment state', () => {
+    const { f, owner, finance, time, context } = setup();
+    time('2026-08-04', 90, 'approved');
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
+    const issued = quickInvoiceIssue(context(owner), {
+      projectId: f.project.id,
+      ...period,
+      expectedTotalMinor: preview.totalMinor,
+      requestKey: 'inline-issue-pay-send',
+      locale: 'en',
+    });
+    if (!issued.ok) throw new Error('issued expected');
+    f.v3.recordInvoicePdf(finance, issued.invoiceId, 'invoices/INL-pay-send.pdf', 'c'.repeat(64), 4);
+    f.repository.recordPayment(finance, {
+      invoiceId: issued.invoiceId,
+      amountMinor: BigInt(preview.totalMinor),
+      currency: 'EUR',
+      receivedAt: new Date().toISOString(),
+      reference: 'Paid before it was marked sent',
+      idempotencyKey: 'inline-pay-before-send',
+    });
+    expect(f.sqlite.prepare('SELECT state,sent_at FROM invoice WHERE id=?').get(issued.invoiceId)).toEqual({
+      state: 'paid',
+      sent_at: null,
+    });
+    expect(f.repository.sendInvoice(finance, issued.invoiceId, 'inline-send-after-pay')).toMatchObject({ sent: true });
+    expect(
+      f.sqlite.prepare('SELECT state,sent_at IS NOT NULL sent FROM invoice WHERE id=?').get(issued.invoiceId),
+    ).toEqual({ state: 'paid', sent: 1 });
+    expect(f.repository.sendInvoice(finance, issued.invoiceId, 'inline-send-after-pay-2')).toMatchObject({ sent: false });
+  });
+
+  it('a stream PO copied from the project follows the project when the project PO changes (B4)', () => {
+    const { f, owner, finance } = setup();
+    const rule = f.sqlite.prepare("SELECT id FROM billing_rule WHERE project_id=? AND stream_type='labor'").get(f.project.id) as { id: string };
+    const version = () => (f.sqlite.prepare('SELECT version FROM project WHERE id=?').get(f.project.id) as { version: number }).version;
+    f.repository.updateProject(owner, { projectId: f.project.id, version: version(), poNumber: 'Placeholder' });
+    f.sqlite.prepare("UPDATE billing_rule SET po_number_override='Placeholder' WHERE id=?").run(rule.id);
+    f.repository.updateProject(owner, { projectId: f.project.id, version: version(), poNumber: null });
+    expect(f.sqlite.prepare('SELECT po_number_override FROM billing_rule WHERE id=?').get(rule.id)).toEqual({ po_number_override: null });
+    expect(count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='billing_rule.update' AND entity_id=?", rule.id)).toBe(1);
+    // A stream with its own, different PO keeps it.
+    f.sqlite.prepare("UPDATE billing_rule SET po_number_override='OWN-PO' WHERE id=?").run(rule.id);
+    f.repository.updateProject(owner, { projectId: f.project.id, version: version(), poNumber: 'NEW' });
+    expect(f.sqlite.prepare('SELECT po_number_override FROM billing_rule WHERE id=?').get(rule.id)).toEqual({ po_number_override: 'OWN-PO' });
+    void finance;
   });
 
   it('is denied to project managers', () => {

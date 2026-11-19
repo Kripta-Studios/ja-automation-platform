@@ -1,3 +1,4 @@
+import { personDisplayName } from '$lib/portal/display-name';
 import { invoiceSourceHolders } from '$lib/server/invoice-source-holders';
 import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
@@ -345,7 +346,10 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const canReview = ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'].includes(
           context.principal.role,
         );
-        const timeView = canReview && url.searchParams.get('view') === 'overview' ? 'overview' : 'capture';
+        const timeView =
+          canReview && reviewViewRequested(context, url, ['owner_admin', 'finance_admin', 'auditor_read_only'])
+            ? 'overview'
+            : 'capture';
         let overview: TimeOverviewData | undefined;
         if (timeView === 'overview') {
           const ovWindow = overviewPeriod(url.searchParams);
@@ -362,7 +366,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             filters,
           );
           const known = new Map(workers);
-          for (const worker of timeWorkers) if (!known.has(worker.id)) known.set(worker.id, worker.name);
+          for (const worker of timeWorkers)
+            if (!known.has(worker.id)) known.set(worker.id, personDisplayName(worker.name));
           overview = buildTimeOverview({
             entries,
             workers: [...known.entries()].sort((x, y) => x[1].localeCompare(y[1])),
@@ -547,7 +552,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           context.principal.role,
         );
         const expenseView =
-          canReviewExpenses && url.searchParams.get('view') === 'overview' ? 'overview' : 'capture';
+          canReviewExpenses && reviewViewRequested(context, url, ['owner_admin', 'finance_admin'])
+            ? 'overview'
+            : 'capture';
         if (expenseView === 'overview') {
           // Review: aggregates, top groups and one opened group only (never every expense).
           return {
@@ -1787,3 +1794,28 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
     context.sqlite.close();
   }
 };
+
+/**
+ * Time / Expenses open on the review overview when asked (?view=overview), and by default for
+ * owner / finance / auditor accounts that are not assigned to any current project (nothing to
+ * log themselves). ?view=capture always opens the capture screen.
+ */
+function reviewViewRequested(
+  context: { sqlite: import('node:sqlite').DatabaseSync; principal: { role: string; userId: string } },
+  url: URL,
+  defaultRoles: readonly string[],
+): boolean {
+  const view = url.searchParams.get('view');
+  if (view === 'overview') return true;
+  if (view) return false;
+  if (!defaultRoles.includes(context.principal.role)) return false;
+  const today = new Date().toISOString().slice(0, 10);
+  const assigned = context.sqlite
+    .prepare(
+      `SELECT 1 FROM project_member m JOIN project p ON p.id=m.project_id
+        WHERE m.user_id=? AND COALESCE(m.status,'active') NOT IN ('ended','removed','inactive')
+          AND (m.ends_on IS NULL OR m.ends_on>=?) AND p.status IN ('active','closing','paused') LIMIT 1`,
+    )
+    .get(context.principal.userId, today);
+  return !assigned;
+}

@@ -176,6 +176,13 @@ const copy = {
     'Rascunho criado. Confira abaixo e depois emita.',
   ],
   issuedTitle: ['Invoice issued', 'Factura emitida', 'Fatura emitida'],
+  sentTitle: ['Invoice sent', 'Factura enviada', 'Fatura enviada'],
+  partlyPaidTitle: ['Partly paid', 'Pagada en parte', 'Paga em parte'],
+  overdueTitle: ['Invoice overdue', 'Factura vencida', 'Fatura vencida'],
+  paidTitle: ['Invoice paid', 'Factura pagada', 'Fatura paga'],
+  sentOn: ['Sent to the client · {date}', 'Enviada al cliente · {date}', 'Enviada ao cliente · {date}'],
+  notSentYet: ['Not marked as sent yet', 'Aún sin marcar como enviada', 'Ainda não marcada como enviada'],
+  pdfOtherLanguages: ['PDF in another language', 'PDF en otro idioma', 'PDF em outro idioma'],
   voidTitle: ['Invoice voided', 'Factura anulada', 'Fatura cancelada'],
   voidHelp: [
     'This invoice stays on record as void. Its hours and expenses were released for a replacement invoice.',
@@ -228,6 +235,24 @@ const copy = {
   // One-screen invoice: "Needs attention" checklist and inline fixes
   attentionTitle: ['Needs attention ({count})', 'Necesita atención ({count})', 'Precisa de atenção ({count})'],
   attentionNone: ['Everything is ready', 'Todo está listo', 'Tudo pronto'],
+  attentionToFix: ['{count} to fix', '{count} por resolver', '{count} para resolver'],
+  attentionOptional: ['{count} optional', 'opcionales: {count}', 'opcionais: {count}'],
+  unsentTitle: [
+    'Not sent by the worker yet · {hours} h · not on this invoice',
+    'Aún sin enviar por el trabajador · {hours} h · no van en esta factura',
+    'Ainda não enviadas pelo trabalhador · {hours} h · fora desta fatura',
+  ],
+  unsentTitleExpenses: [
+    'Not sent by the worker yet · not on this invoice',
+    'Aún sin enviar por el trabajador · no van en esta factura',
+    'Ainda não enviadas pelo trabalhador · fora desta fatura',
+  ],
+  unsentHelp: [
+    'Drafts and entries returned for changes stay with the worker. Once they send them, you can approve and include them here.',
+    'Los borradores y lo devuelto para cambios siguen con el trabajador. Cuando los envíe, podrás aprobarlos e incluirlos aquí.',
+    'Rascunhos e lançamentos devolvidos para ajuste continuam com o trabalhador. Quando ele enviar, você poderá aprovar e incluir aqui.',
+  ],
+  unsentOpen: ['See entries', 'Ver registros', 'Ver lançamentos'],
   approveGroupOne: ['1 entry not approved yet', '1 entrada sin aprobar', '1 lançamento não aprovado'],
   approveGroup: [
     '{count} entries not approved yet',
@@ -264,9 +289,9 @@ const copy = {
     'Aprovar {count} lançamentos de {people} pessoas ({hours} h)?',
   ],
   approveConfirmBody: [
-    'This records that you ({role}) approved them on the worker’s behalf. Drafts are submitted for them; returned entries are accepted as recorded. They will see it in their history.',
-    'Quedará registrado que tú ({role}) las aprobaste en nombre del trabajador. Los borradores se envían por él; las devueltas se aceptan tal cual. Lo verá en su historial.',
-    'Ficará registrado que você ({role}) aprovou em nome do trabalhador. Rascunhos são enviados por ele; devolvidos são aceitos como estão. Ele verá no histórico.',
+    'This records that you ({role}) approved them on the worker’s behalf. They will see it in their history.',
+    'Quedará registrado que tú ({role}) las aprobaste en nombre del trabajador. Lo verá en su historial.',
+    'Ficará registrado que você ({role}) aprovou em nome do trabalhador. Ele verá no histórico.',
   ],
   approveReturnedNote: [
     'Returned for changes: “{reason}”',

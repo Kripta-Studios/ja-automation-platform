@@ -317,6 +317,43 @@ export function invoiceIssuerCoverageIssue(
   return { kind: 'gap', missingFrom: cursor, missingTo: periodEnd } as const;
 }
 
+/**
+ * The project PO changed: billing streams whose PO override is just a copy of the previous
+ * project PO (stream setup used to prefill it) follow the project again instead of printing
+ * the stale reference. Streams with their own, different PO keep it. Open drafts are marked
+ * stale so their preview/PDF is rebuilt; issued invoices are snapshots and never change.
+ */
+export function releaseCopiedStreamPurchaseOrders(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  projectId: string,
+  previousPo: string | null | undefined,
+): number {
+  const previous = typeof previousPo === 'string' ? previousPo.trim() : '';
+  if (!previous) return 0;
+  const rules = sqlite
+    .prepare(
+      `SELECT id,po_number_override FROM billing_rule WHERE project_id=? AND TRIM(po_number_override)=?`,
+    )
+    .all(projectId, previous) as Array<{ id: string; po_number_override: string }>;
+  const timestamp = new Date().toISOString();
+  for (const rule of rules) {
+    sqlite
+      .prepare(
+        'UPDATE billing_rule SET po_number_override=NULL,updated_at=?,version=version+1 WHERE id=?',
+      )
+      .run(timestamp, rule.id);
+    recordAuditEvent(sqlite, principal, 'billing_rule.update', 'billing_rule', rule.id, {
+      projectId,
+      before: { poNumberOverride: rule.po_number_override },
+      after: { poNumberOverride: null },
+      reason: 'Project PO changed: the stream follows the project PO again',
+    });
+  }
+  if (rules.length) invalidateDraftPresentation(sqlite, 'project_id=?', [projectId]);
+  return rules.length;
+}
+
 export function effectivePurchaseReference(
   stream: unknown,
   project: unknown,

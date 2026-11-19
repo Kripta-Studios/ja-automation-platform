@@ -9,6 +9,7 @@ import {
   issuerSettingsPresentation,
   updateIssuerDocumentSettings,
   invalidateDraftPresentation,
+  releaseCopiedStreamPurchaseOrders,
   resolveInvoiceIssuerAuthority,
   effectivePurchaseReference,
 } from './issuer-document-settings.ts';
@@ -295,6 +296,12 @@ export function updateInvoiceDraftDetails(
         after: { poNumber: data.purchaseNo || null },
         reason: 'Invoice preview purchase reference edit',
       });
+      releaseCopiedStreamPurchaseOrders(
+        sqlite,
+        principal,
+        String(invoice.project_id),
+        invoice.project_po_number as string | null,
+      );
       invalidateDraftPresentation(sqlite, 'project_id=?', [String(invoice.project_id)], invoiceId);
     }
     if (changedPo && !carryForward) after.purchaseNo = data.purchaseNo ?? '';

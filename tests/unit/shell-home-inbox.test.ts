@@ -187,3 +187,26 @@ describe('search palette records', () => {
     expect(searchPaletteRecords('', records)).toEqual([]);
   });
 });
+
+describe('Home "Ready to invoice" without a client rate and with approved expenses (B1/B7)', () => {
+  it('lists approved hours without a rate and approved expenses as ready, never as nothing', () => {
+    const ready = readyToInvoiceSummary([
+      { projectId: 'rate', currency: 'USD', minor: '0', approvedMinutes: 2910, rateMissing: true, label: 'R' },
+      {
+        projectId: 'exp',
+        currency: 'USD',
+        minor: '0',
+        approvedExpenses: { count: 8, totals: [{ currency: 'USD', minor: '38400' }] },
+        label: 'E',
+      },
+      { projectId: 'none', currency: 'USD', minor: '0', approvedMinutes: 0 },
+    ]);
+    expect(ready.projects).toBe(2);
+    expect(ready.totals).toEqual([]);
+    expect(ready.unpricedMinutes).toBe(2910);
+    expect(ready.approvedExpenses).toEqual({ count: 8, totals: [{ currency: 'USD', minor: '38400' }] });
+    expect(ready.items.map((item) => item.projectId)).toEqual(['rate', 'exp']);
+    expect(ready.items[0]).toMatchObject({ rateMissing: true, approvedMinutes: 2910 });
+    expect(ready.topProjectId).toBe('rate');
+  });
+});

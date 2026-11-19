@@ -179,7 +179,7 @@ describe('portal role navigation contract', () => {
     ]);
     expect(
       mobilePrimaryNavigationFor(owner).find((item) => item.section === 'time')?.shortLabel,
-    ).toBe('Hours');
+    ).toBeUndefined();
     expect(
       moreNavigationGroups(owner).map((entry) => [
         entry.group,

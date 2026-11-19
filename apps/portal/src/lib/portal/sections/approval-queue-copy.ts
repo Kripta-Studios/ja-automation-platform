@@ -121,6 +121,9 @@ const en = {
   approveAllBatch: 'This step approves the oldest {shown} of {count} (max {limit} at once). Approve again for the rest.',
   visibleTooMany: 'Too many entries for one step ({count}, max {limit}). Use a filter or approve week by week.',
   ownExcluded: '{count} of your own entries need another reviewer.',
+  ownExcludedOne: '1 of your own entries needs another reviewer.',
+  ownerApprovesSupplier: 'Supplier and crew hours are approved by the owner ({name}). Waiting now: {count} entries.',
+  ownerApprovesSupplierOne: 'Supplier and crew hours are approved by the owner ({name}). Waiting now: 1 entry.',
   noMatches: 'Nothing matches these filters.',
   reportEmpty: 'No details written.',
 };
@@ -247,6 +250,9 @@ const es: Record<CopyKey, string> = {
   approveAllBatch: 'Este paso aprueba los {shown} más antiguos de {count} (máximo {limit} a la vez). Vuelve a aprobar para el resto.',
   visibleTooMany: 'Demasiados registros para un paso ({count}, máximo {limit}). Usa un filtro o aprueba semana por semana.',
   ownExcluded: '{count} registros tuyos necesitan otro revisor.',
+  ownExcludedOne: '1 registro tuyo necesita otro revisor.',
+  ownerApprovesSupplier: 'Las horas de proveedores y cuadrillas las aprueba el propietario ({name}). En espera: {count} registros.',
+  ownerApprovesSupplierOne: 'Las horas de proveedores y cuadrillas las aprueba el propietario ({name}). En espera: 1 registro.',
   noMatches: 'Nada coincide con estos filtros.',
   reportEmpty: 'Sin detalles escritos.',
 };
@@ -371,6 +377,9 @@ const pt: Record<CopyKey, string> = {
   approveAllBatch: 'Esta etapa aprova os {shown} mais antigos de {count} (máximo {limit} de uma vez). Aprove novamente para o restante.',
   visibleTooMany: 'Registros demais para uma etapa ({count}, máximo {limit}). Use um filtro ou aprove semana a semana.',
   ownExcluded: '{count} registros seus precisam de outro revisor.',
+  ownExcludedOne: '1 registro seu precisa de outro revisor.',
+  ownerApprovesSupplier: 'As horas de fornecedores e equipes são aprovadas pelo proprietário ({name}). Aguardando: {count} registros.',
+  ownerApprovesSupplierOne: 'As horas de fornecedores e equipes são aprovadas pelo proprietário ({name}). Aguardando: 1 registro.',
   noMatches: 'Nada corresponde a estes filtros.',
   reportEmpty: 'Sem detalhes escritos.',
 };

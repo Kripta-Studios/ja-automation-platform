@@ -3,7 +3,13 @@
   import { onMount } from 'svelte';
   import { browserForgetIdentity } from '$lib/portal/offline-controller';
   import PortalChrome from '$lib/PortalChrome.svelte';
-  import { portalNavigationForRole, type NavItem } from '$lib/portal-navigation';
+  import { page } from '$app/state';
+  import {
+    activeNavItem,
+    mobilePrimaryNavigationFor,
+    portalNavigationForRole,
+    type NavItem,
+  } from '$lib/portal-navigation';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { initials } from '$lib/portal/portal-format';
   import { persistStandaloneLocale, applyStandaloneDocumentLocale } from '../standalone-locale';
@@ -15,12 +21,29 @@
   const navigation = $derived(
     portalNavigationForRole(base, data.supplierUser.role, data.supplierUser.workforceProfile),
   );
-  const chromeData = $derived({ section: 'supplier', user: data.supplierUser });
-  const owner = $derived(data.supplierUser.role === 'owner_admin');
   const itemHref = (item: NavItem) => {
     const href = item.href ?? `${base}/app/${item.section === 'today' ? '' : item.section}`;
     return `${href}${href.includes('?') ? '&' : '?'}lang=${locale}`;
   };
+  const chromeData = $derived({ section: 'supplier', user: data.supplierUser });
+  // Phone bottom bar (P7): the same compact navigation as the rest of the portal.
+  const mobileNavigation = $derived(mobilePrimaryNavigationFor(navigation));
+  // "Crew hours" is the supplier page opened on its time workspace.
+  const crewHoursItem = $derived(
+    navigation.primary.find((item) => item.href?.includes('workspaceAction=time')),
+  );
+  const activeDestination = $derived(
+    crewHoursItem && page.url.searchParams.get('workspaceAction') === 'time'
+      ? crewHoursItem
+      : activeNavItem([...navigation.primary, ...navigation.secondary], {
+      base,
+      section: 'supplier',
+      url: page.url,
+      role: data.supplierUser.role,
+      itemHref,
+    }),
+  );
+  const owner = $derived(data.supplierUser.role === 'owner_admin');
   function changeLocale(event: Event) {
     const next = normalizePortalLocale((event.currentTarget as HTMLSelectElement).value);
     persistStandaloneLocale(next);
@@ -75,4 +98,40 @@
     onCloseMenu={() => (menuOpen = false)}
   />
   <main id="portal-main" lang={locale}>{@render children()}</main>
+  <nav class="bottom-nav" aria-label={translate('Mobile navigation')}>
+    {#each mobileNavigation as item}
+      <a
+        class:active={activeDestination === item}
+        href={itemHref(item)}
+        aria-current={activeDestination === item ? 'page' : undefined}
+        ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span></a
+      >
+    {/each}
+    <button
+      type="button"
+      class="bottom-nav-more"
+      aria-controls="portal-navigation"
+      aria-expanded={menuOpen}
+      onclick={() => (menuOpen = true)}
+      class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
+    >
+      <span class="bottom-nav-label">{translate('More')}</span>
+    </button>
+  </nav>
 </div>
+
+<style>
+  .bottom-nav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bottom-nav-more {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.7rem;
+  }
+</style>

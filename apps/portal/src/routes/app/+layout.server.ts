@@ -2,7 +2,6 @@ import type { LayoutServerLoad } from './$types';
 import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { readPendingApprovals } from '$lib/server/approval-queue';
-import { pendingApprovalSummary } from '$lib/portal/home-inbox';
 
 /**
  * The navigation "Approve" badge: the same pending count Home and the
@@ -15,13 +14,9 @@ function approvalPendingCount(locals: App.Locals): number {
   try {
     const context = openPortalRepository(locals);
     try {
-      const pending = readPendingApprovals(context);
-      // A project manager cannot approve their own records: the badge counts
-      // only what they can act on.
-      if (context.principal.role !== 'project_manager') return pending.summary.total;
-      return pendingApprovalSummary(
-        pending.rows.filter((row) => String(row.worker_id ?? '') !== context.principal.userId),
-      ).total;
+      // Only what this viewer can act on: never a PM's own records or
+      // owner-only supplier-workforce time (P1).
+      return readPendingApprovals(context).reviewable.total;
     } finally {
       context.sqlite.close();
     }

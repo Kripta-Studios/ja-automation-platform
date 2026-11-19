@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { PortalRow } from '../portal-data';
   import { workersWithExpertise } from './project-worker-expertise';
+  import { personDisplayName } from '../display-name';
+  import { isSystemAccount } from '../system-accounts';
 
   type Props = {
     workers: readonly PortalRow[];
@@ -16,11 +18,13 @@
   let workerSearch = $state('');
   let workerId = $derived(selectedWorkerId);
   let workerSelect: HTMLSelectElement;
-  const availableWorkers = $derived(workersWithExpertise(workers, workerExpertise, expertiseId));
-  const eligibleWorkers = $derived(workersWithExpertise(workers, workerExpertise, ''));
+  // People only: shared/system mailboxes are never assignable choices (P3).
+  const people = $derived(workers.filter((worker) => !isSystemAccount(worker)));
+  const availableWorkers = $derived(workersWithExpertise(people, workerExpertise, expertiseId));
+  const eligibleWorkers = $derived(workersWithExpertise(people, workerExpertise, ''));
   const duplicateNames = $derived(
     eligibleWorkers.reduce((names, worker) => {
-      const name = String(worker.name ?? '').trim().toLocaleLowerCase();
+      const name = personDisplayName(worker.name, worker.email).toLocaleLowerCase();
       if (name) names.set(name, (names.get(name) ?? 0) + 1);
       return names;
     }, new Map<string, number>()),
@@ -28,7 +32,7 @@
   const searchTerm = $derived(workerSearch.trim().toLocaleLowerCase());
   const matchingWorkers = $derived(
     availableWorkers.filter((worker) =>
-      `${String(worker.name ?? '')} ${String(worker.email ?? '')}`
+      `${String(worker.name ?? '')} ${personDisplayName(worker.name, worker.email)} ${String(worker.email ?? '')}`
         .toLocaleLowerCase()
         .includes(searchTerm),
     ),
@@ -51,12 +55,11 @@
   );
 
   function workerLabel(worker: PortalRow): string {
-    const name = String(worker.name ?? '').trim();
+    // Display name (never the login); the e-mail only tells apart equal names.
+    const name = personDisplayName(worker.name, worker.email);
     const email = String(worker.email ?? '').trim();
-    if (name && email && name.toLocaleLowerCase() !== email.toLocaleLowerCase())
-      return `${name} · ${email}`;
     if (name && (duplicateNames.get(name.toLocaleLowerCase()) ?? 0) > 1)
-      return `${name} · ${String(worker.id).slice(0, 8)}`;
+      return email ? `${name} · ${email}` : `${name} · ${String(worker.id).slice(0, 8)}`;
     return name || email || translate('Worker');
   }
 

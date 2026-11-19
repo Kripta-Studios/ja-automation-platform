@@ -173,7 +173,9 @@ describe('assignment status changes during form entry', () => {
       status: 409,
       data: {
         code: 'PROJECT_ASSIGNMENT_OVERLAP',
-        messageKey: 'problem.project.assignmentOverlap',
+        // W10: the message names the dates of the assignment that collides.
+        messageKey: 'problem.project.assignmentOverlapDates',
+        messageParams: { starts: '2026-09-01', ends: '2026-09-30' },
         remedies: [{ id: 'review_assignments', projectId: value.project.id }],
       },
     });

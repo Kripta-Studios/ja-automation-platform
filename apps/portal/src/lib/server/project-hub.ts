@@ -8,6 +8,7 @@
  * all-time finance projection is returned only to finance-visible roles.
  */
 import { isSupplierTimeEntry, projectCalendarDate } from '@ja/database';
+import { personDisplayName } from '$lib/portal/display-name';
 import type { openPortalRepository } from './portal-repository';
 
 type Context = ReturnType<typeof openPortalRepository>;
@@ -89,6 +90,11 @@ export type ProjectHubData = {
    */
   reviewable: { timeCount: number; timeMinutes: number; expenseCount: number; reportCount: number };
   assignments: HubAssignment[];
+  /**
+   * Per person, the last day of an earlier (ended) assignment on this project,
+   * including removed ones: re-adding them must start after it (W10).
+   */
+  lastEndedOn: Record<string, string>;
   invoices: HubInvoice[] | null;
   finance: {
     currency: string;
@@ -145,7 +151,7 @@ export function projectHubData(
   const people = hourRows.map((row) => ({
     ...row,
     workerId: String(row.workerId),
-    name: String(row.name ?? ''),
+    name: personDisplayName(row.name),
     totalMinutes: Number(row.totalMinutes ?? 0),
     monthMinutes: Number(row.monthMinutes ?? 0),
     waitingMinutes: Number(row.waitingMinutes ?? 0),
@@ -182,7 +188,7 @@ export function projectHubData(
   const inMonth = (row: { spentOn: string }) => row.spentOn >= monthStart && row.spentOn <= today;
   const expensePeople: HubPersonExpenses[] = [...byWorker].map(([workerId, rows]) => ({
     workerId,
-    name: String(rows[0]?.name ?? ''),
+    name: personDisplayName(rows[0]?.name),
     count: rows.length,
     waitingCount: rows.filter((row) => ['submitted', 'needs_changes'].includes(row.state)).length,
     missingReceipts: rows.filter((row) => !row.receipt).length,
@@ -260,22 +266,46 @@ export function projectHubData(
     ? (
         sqlite
           .prepare(
-            `SELECT pm.id,pm.version,pm.user_id workerId,u.name,pm.assignment_role role,pm.starts_on startsOn,pm.ends_on endsOn,
+            `SELECT pm.id,pm.version,pm.user_id workerId,u.name,u.email email,
+                    -- The person's real role (P4): a supplier coordinator or external
+                    -- technician, or a project manager, is not shown as "Worker".
+                    CASE WHEN u.role='project_manager' THEN 'project_manager'
+                         WHEN sp.profile IS NOT NULL THEN sp.profile
+                         ELSE pm.assignment_role END role,
+                    pm.starts_on startsOn,pm.ends_on endsOn,
                     ${sqlite.prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'").get() ? 'pm.po_number' : 'NULL'} poNumber
                FROM project_member pm JOIN user u ON u.id=pm.user_id
+               LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
               WHERE pm.project_id=? AND pm.status='active' ORDER BY u.name`,
           )
-          .all(projectId) as HubAssignment[]
-      ).map((row) => ({ ...row, id: String(row.id), version: Number(row.version) }))
+          .all(projectId) as Array<HubAssignment & { email?: string | null }>
+      ).map(({ email, ...row }) => ({
+        ...row,
+        // Display name, never the login (F6/P3).
+        name: personDisplayName(row.name, email),
+        id: String(row.id),
+        version: Number(row.version),
+      }))
     : [];
 
-  const managerName = project.project_manager_id
-    ? ((
-        sqlite.prepare('SELECT name FROM user WHERE id=?').get(String(project.project_manager_id)) as
-          | { name: string }
-          | undefined
-      )?.name ?? null)
-    : null;
+  const lastEndedOn: Record<string, string> = {};
+  if (canReadAssignments)
+    for (const row of sqlite
+      .prepare(
+        `SELECT user_id workerId,MAX(ends_on) endsOn FROM project_member
+          WHERE project_id=? AND ends_on IS NOT NULL
+            AND (status='active' OR (status='inactive' AND ends_on>=starts_on))
+          GROUP BY user_id`,
+      )
+      .all(projectId) as Array<{ workerId: string; endsOn: string }>)
+      lastEndedOn[String(row.workerId)] = String(row.endsOn);
+
+  const managerRow = project.project_manager_id
+    ? (sqlite.prepare('SELECT name,email FROM user WHERE id=?').get(String(project.project_manager_id)) as
+        | { name: string | null; email: string | null }
+        | undefined)
+    : undefined;
+  const managerName = managerRow ? personDisplayName(managerRow.name, managerRow.email) || null : null;
 
   const clientPo =
     principal.role === 'worker'
@@ -360,6 +390,7 @@ export function projectHubData(
     pending,
     reviewable,
     assignments,
+    lastEndedOn,
     invoices,
     finance,
   };
@@ -379,6 +410,7 @@ export function emptyProjectHub(): ProjectHubData {
     pending: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
     reviewable: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
     assignments: [],
+    lastEndedOn: {},
     invoices: null,
     finance: null,
   };

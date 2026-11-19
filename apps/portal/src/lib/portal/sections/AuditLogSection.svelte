@@ -4,6 +4,7 @@
   import type { AuditFilter } from '../audit-log';
   import type { PortalRow } from '../portal-data';
   import { scaleCopy, scaleLocaleTag, type ScaleShellCopyKey } from './scale-shell-copy';
+  import { auditActionText, auditEntityTypeText } from '../audit-action-labels';
 
   let {
     rows,
@@ -97,7 +98,15 @@
     return raw.length > 14 && /^[0-9a-f-]{20,}$/iu.test(raw) ? `…${raw.slice(-8)}` : raw;
   }
   function humanType(type: string): string {
-    return type.replaceAll('_', ' ');
+    return auditEntityTypeText(type, locale);
+  }
+  /** Human label (A3); the raw machine code stays in the expanded detail. */
+  function humanAction(row: Record<string, unknown>): string {
+    const shellLabel = actionLabel(row);
+    return auditActionText(
+      shellLabel.startsWith('security.mfa.login') ? 'security.mfa.login' : String(row.action),
+      locale,
+    );
   }
 </script>
 
@@ -199,7 +208,7 @@
         <li>
           <details class="audit-log__row audit-event">
             <summary
-              aria-label={`${translate('View details')}: ${String(row.action)} · ${String(row.entity_id)}`}
+              aria-label={`${translate('View details')}: ${humanAction(row)} · ${String(row.entity_id)}`}
             >
               <time class="audit-log__time" datetime={utcIso(row.occurred_at)}
                 >{shortTime(row.occurred_at)}</time
@@ -207,7 +216,7 @@
               <span class="audit-log__actor"
                 >{String(row.actor_name ?? '') || (row.actor_id ? shortRef(row.actor_id) : c('unknownActor'))}</span
               >
-              <strong class="audit-log__action">{actionLabel(row)}</strong>
+              <strong class="audit-log__action" title={String(row.action)}>{humanAction(row)}</strong>
               <span class="audit-log__entity"
                 >{humanType(String(row.entity_type))} · {shortRef(row.entity_id)}</span
               >
@@ -215,7 +224,7 @@
             <div class="audit-log__detail">
               <p>
                 <small
-                  >{String(row.entity_type)} · {String(row.entity_id)} ·
+                  >{String(row.action)} · {String(row.entity_type)} · {String(row.entity_id)} ·
                   {timestampLabel(row.occurred_at)}</small
                 >
                 <small>{translate('Actor ID')}: {String(row.actor_id || '—')}</small>

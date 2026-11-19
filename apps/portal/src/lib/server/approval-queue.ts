@@ -6,6 +6,7 @@
  * Project managers never receive expense money.
  */
 import type { openPortalRepository } from './portal-repository';
+import { isSupplierTimeEntry } from '@ja/database';
 import { projectVisibility, visibleProjectRecords } from '$lib/portal/project-visibility';
 import {
   isPendingApproval,
@@ -69,7 +70,27 @@ export type PendingApprovals = {
   rows: Row[];
   /** The one "to approve" definition: submitted records waiting for this reviewer. */
   summary: ApprovalPendingSummary;
+  /**
+   * The part of `summary` this viewer can actually approve (P1): everything for
+   * the owner; never their own records for anyone else, and for a project
+   * manager never supplier-workforce time (owner-only). Home and the nav badge
+   * show this number, so they never promise an approval the viewer cannot make.
+   */
+  reviewable: ApprovalPendingSummary;
 };
+
+/** Whether the viewer may decide this pending row (presentation; the server re-checks). */
+export function viewerCanDecide(context: PortalContext, row: Row): boolean {
+  if (context.principal.role === 'owner_admin') return true;
+  if (text(row.worker_id) === context.principal.userId) return false;
+  if (
+    context.principal.role === 'project_manager' &&
+    row.type === 'time' &&
+    isSupplierTimeEntry(context.sqlite, text(row.id))
+  )
+    return false;
+  return true;
+}
 
 /**
  * The single source of the pending numbers shown in the nav badge, on Home, in
@@ -95,7 +116,41 @@ export function readPendingApprovals(
       ),
     ),
   );
-  return { visible, rows, summary: pendingApprovalSummary(rows) };
+  return {
+    visible,
+    rows,
+    summary: pendingApprovalSummary(rows),
+    reviewable: pendingApprovalSummary(
+      rows.filter((row) => isPendingApproval(row) && viewerCanDecide(context, row)),
+    ),
+  };
+}
+
+/**
+ * Supplier-workforce hours waiting on a PM's projects. They never reach the
+ * PM queue (owner-only approval), so the PM is told who approves them (P8).
+ */
+function ownerOnlyTime(
+  context: PortalContext,
+  projectIds: ReadonlySet<string> | readonly string[],
+): { count: number; ownerName: string } | null {
+  if (context.principal.role !== 'project_manager') return null;
+  const ids = [...projectIds].map(String).filter((id) => context.principal.projectIds.has(id));
+  if (!ids.length) return null;
+  const rows = context.sqlite
+    .prepare(
+      `SELECT id FROM time_entry WHERE approval_state='submitted' AND worker_id<>?
+          AND project_id IN (${ids.map(() => '?').join(',')}) LIMIT 500`,
+    )
+    .all(context.principal.userId, ...ids) as Array<{ id: string }>;
+  const count = rows.filter((row) => isSupplierTimeEntry(context.sqlite, String(row.id))).length;
+  if (!count) return null;
+  const owner = context.sqlite
+    .prepare(
+      "SELECT name,email FROM user WHERE role='owner_admin' AND status='active' ORDER BY created_at LIMIT 1",
+    )
+    .get() as { name: string | null; email: string | null } | undefined;
+  return { count, ownerName: owner ? personDisplayName(owner.name, owner.email) : '' };
 }
 
 type Labels = {
@@ -351,7 +406,7 @@ export function loadApprovalQueuePage(
     : approvable.filter((row) => text(row.worker_id) === context.principal.userId);
   const actionable = isOwner
     ? approvable
-    : approvable.filter((row) => text(row.worker_id) !== context.principal.userId);
+    : approvable.filter((row) => viewerCanDecide(context, row));
   const batchRows = actionable.slice(0, APPROVAL_BATCH_LIMIT);
   const versionOf = {
     time: context.sqlite.prepare('SELECT version FROM time_entry WHERE id=?'),
@@ -427,6 +482,8 @@ export function loadApprovalQueuePage(
     query,
     pageSize: query.view === 'approved' ? APPROVED_PAGE_SIZE : APPROVAL_PAGE_SIZE,
     summary: pending.summary,
+    reviewable: pending.reviewable,
+    ownerOnlyTime: ownerOnlyTime(context, pending.visible.projectIds),
     options,
     filtersActive: Boolean(query.search || query.worker || query.project || query.week),
     matching: {

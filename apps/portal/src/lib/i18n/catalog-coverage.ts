@@ -2989,6 +2989,7 @@ export const PORTAL_ACTION_KEYS = [
   'problem.project.deleteHasDailyReports',
   'problem.project.deleteHasTechnicalReports',
   'problem.project.assignmentOverlap',
+  'problem.project.assignmentOverlapDates',
   'problem.project.assignmentWorkerUnavailable',
   'Review assignments',
   'Choose an available worker',

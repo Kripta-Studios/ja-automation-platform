@@ -4467,6 +4467,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Este trabajador ya tiene una asignación que se solapa en este proyecto. Revisa las fechas de la asignación existente.',
     'Este trabalhador já tem uma atribuição sobreposta neste projeto. Revise as datas da atribuição existente.',
   ],
+  'problem.project.assignmentOverlapDates': [
+    'Esta persona ya está en este proyecto del {starts} al {ends}. Elige una fecha de inicio posterior al {ends}.',
+    'Esta pessoa já está neste projeto de {starts} a {ends}. Escolha uma data de início depois de {ends}.',
+  ],
   'problem.project.assignmentWorkerUnavailable': [
     'Este trabajador ya no está activo. Elige un trabajador disponible antes de asignarlo.',
     'Este trabalhador não está mais ativo. Escolha um trabalhador disponível antes de atribuí-lo.',
@@ -11353,6 +11357,8 @@ const problemEnglish: Record<string, string> = {
     'The worker assignment must start within the project dates. Review the start date.',
   'problem.project.assignmentOverlap':
     'This worker already has an overlapping assignment on this project. Review the existing assignment dates.',
+  'problem.project.assignmentOverlapDates':
+    'This person is already on this project from {starts} to {ends}. Choose a start date after {ends}.',
   'problem.project.assignmentWorkerUnavailable':
     'This worker is no longer active. Choose an available worker before assigning.',
   'problem.client.stale':

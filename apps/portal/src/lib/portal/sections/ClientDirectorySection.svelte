@@ -528,7 +528,7 @@
         rows={directory.rows}
         controlled
         {translate}
-        label="ClientDirectory"
+        label="Clients"
         filtersEnabled={false}
         showEmpty={false}
         server={{
@@ -661,7 +661,7 @@
       bind:visible={clientPage}
       focusId={focusedClientId}
       {translate}
-      label="ClientDirectory"
+      label="Clients"
       filtersEnabled={false}
       showEmpty={false}
     />

@@ -908,6 +908,24 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
       ),
       projects,
       projectId,
+      // Default start for "Assign existing technician" (P5): the project start,
+      // or the coordinator's grant start when that is later; never a guess of "today".
+      projectStartDefaults: Object.fromEntries(
+        projects.flatMap((project) => {
+          const row = ctx.sqlite
+            .prepare(
+              owner
+                ? 'SELECT start_date start FROM project WHERE id=?'
+                : `SELECT MAX(COALESCE(p.start_date,''),COALESCE((SELECT MAX(g.starts_on) FROM supplier_project_grant g
+                     WHERE g.project_id=p.id AND g.coordinator_id=? AND g.status='active'),'')) start
+                     FROM project p WHERE p.id=?`,
+            )
+            .get(...(owner ? [String(project.id)] : [ctx.principal.userId, String(project.id)])) as
+            | { start: string | null }
+            | undefined;
+          return row?.start ? [[String(project.id), String(row.start)]] : [];
+        }),
+      ) as Record<string, string>,
       ...period,
       suppliers: ctx.supplier.listSuppliers(ctx.principal),
       technicians: ctx.supplier.listTechnicians(ctx.principal) as {

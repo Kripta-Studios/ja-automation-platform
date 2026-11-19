@@ -366,12 +366,14 @@
     weekFilter = '';
     applyFilters();
   }
+  // Tab badges count what this viewer can approve (P1); own entries stay listed.
+  const tabSummary = $derived(queue.reviewable ?? queue.summary);
   const tabCount = (tab: Tab): number =>
     tab === 'time'
-      ? queue.summary.time.count
+      ? tabSummary.time.count
       : tab === 'expenses'
-        ? queue.summary.expenses.count
-        : queue.summary.reports;
+        ? tabSummary.expenses.count
+        : tabSummary.reports;
 
   // ---------- approve all hours and expenses (one transaction via approveBatch) ----------
   const APPROVE_ALL_LIMIT = 200; // matches the server batch limit
@@ -751,6 +753,16 @@
 
 <div class="aq">
   <p class="aq-help">{ownerApprovalIncludesFinance ? t('helpOwner') : t('help')}</p>
+  {#if queue.ownerOnlyTime}
+    <p class="aq-help aq-owner-only" data-owner-only-time>
+      {queue.ownerOnlyTime.count === 1
+        ? t('ownerApprovesSupplierOne', { name: queue.ownerOnlyTime.ownerName })
+        : t('ownerApprovesSupplier', {
+            name: queue.ownerOnlyTime.ownerName,
+            count: queue.ownerOnlyTime.count,
+          })}
+    </p>
+  {/if}
 
   {#if approvalProblem}
     <div data-approval-problem tabindex="-1">
@@ -876,7 +888,11 @@
           </p>
         {/if}
         {#if queue.approveAll.ownExcluded > 0}
-          <p class="aq-muted">{t('ownExcluded', { count: queue.approveAll.ownExcluded })}</p>
+          <p class="aq-muted">
+            {queue.approveAll.ownExcluded === 1
+              ? t('ownExcludedOne')
+              : t('ownExcluded', { count: queue.approveAll.ownExcluded })}
+          </p>
         {/if}
         {#if ownerApprovalIncludesFinance}
           <p class="aq-muted">{t('confirmOwnerNote')}</p>

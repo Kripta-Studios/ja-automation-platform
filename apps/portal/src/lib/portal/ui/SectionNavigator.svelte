@@ -105,9 +105,12 @@
       .filter((task): task is AssistantTask => Boolean(task))
       .slice(0, 4);
   });
+  const resultTotal = $derived(
+    query.trim() ? results.count + records.length : items.length + suggestedTasks.length,
+  );
   const resultCount = $derived(
-    navigationUxText(locale, 'sectionNavigator', 'resultCount', {
-      count: query.trim() ? results.count + records.length : items.length + suggestedTasks.length,
+    navigationUxText(locale, 'sectionNavigator', resultTotal === 1 ? 'resultCountOne' : 'resultCount', {
+      count: resultTotal,
     }),
   );
   async function open() {

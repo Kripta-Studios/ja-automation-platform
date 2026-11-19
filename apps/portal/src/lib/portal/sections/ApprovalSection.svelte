@@ -26,7 +26,6 @@
   import type { ApprovalQueuePage, QueueTotals } from '../approval-queue-page';
   import type { CurrencyTotal } from '../home-inbox';
   import { personDisplayName } from '../display-name';
-  import { clockHoursFromMinutes } from '../minute-hours';
 
   type Tab = 'time' | 'expenses' | 'reports';
   type Kind = 'time' | 'expense';

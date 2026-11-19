@@ -104,7 +104,7 @@
           <small
             >{entry.overdue > 0n
               ? t('overdue', { amount: money(entry.overdue.toString(), currency) })
-              : t('noOverdue')} · {t('outstandingHelp', { count: entry.count })}{#if entry.credits < 0n}{' · '}<span data-payments-credits>{t('creditsNetted', { amount: money((-entry.credits).toString(), currency) })}</span>{/if}</small
+              : t('noOverdue')} · {entry.count === 1 ? t('outstandingHelpOne') : t('outstandingHelp', { count: entry.count })}{#if entry.credits < 0n}{' · '}<span data-payments-credits>{t('creditsNetted', { amount: money((-entry.credits).toString(), currency) })}</span>{/if}</small
           >
         </div>
       {/each}

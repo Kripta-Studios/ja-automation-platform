@@ -356,7 +356,7 @@
     if (!file || mode !== 'create') return;
     const scope = formKey;
     receiptReading = true;
-    void readReceipt(file, locale)
+    void readReceipt(file, locale, { retryWhenBusy: true })
       .then((facts) => {
         if (scope !== formKey || mode !== 'create') return;
         let filled = false;

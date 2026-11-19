@@ -1508,7 +1508,7 @@
         key: 'collected',
         label: translate('Collected (actual)'),
         value: displayMoney(finance.paidMinor, finance.currency),
-        note: translate('Only append-only payment events count as collected'),
+        note: translate('Only payments you record count as collected'),
       },
       {
         key: 'outstanding',
@@ -1828,6 +1828,7 @@
       overview={data.moneyOverview}
       {locale}
       {money}
+      canEdit={canWriteFinance}
       includeArchived={$page.url.searchParams.get('includeArchived') === '1'}
     />
     {#if canWriteFinance}

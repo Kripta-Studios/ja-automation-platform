@@ -19,7 +19,7 @@ import {
 /**
  * Final billing regression (2026-11-17): expense terms next to issued labor invoices (F1),
  * the inline billing setup also sets the issuing company (F2), one audited conversion for
- * billing and reimbursement (F4), and a stream starting mid-month suggests a billable period (F5).
+ * billing — never for the worker's receipt-currency reimbursement (F4), and a stream starting mid-month suggests a billable period (F5).
  */
 const fixtures: B5LifecycleSecurityFixture[] = [];
 afterEach(() => fixtures.splice(0).forEach(closeB5LifecycleSecurityFixture));
@@ -109,13 +109,19 @@ function setup(options: { issuer?: boolean; rule?: boolean } = {}) {
       whoPaid: 'worker',
       receiptRequired: false,
     });
+  /** An expense the worker SENT (only sent expenses are decided on New invoice). */
+  const sent = (date: string, currency: string, amountMinor: bigint, category = 'hotel', vendor = 'Hotel') => {
+    const row = expense(date, currency, amountMinor, category, vendor);
+    f.repository.submitExpense(worker, row.id, row.version);
+    return row;
+  };
   const context = (principal: typeof finance) =>
     ({ sqlite: f.sqlite, repository: f.repository, v3: f.v3, principal }) as unknown as Parameters<
       typeof quickInvoicePreview
     >[0];
   const version = (id: string) =>
     (f.sqlite.prepare('SELECT version FROM expense WHERE id=?').get(id) as { version: number }).version;
-  return { f, finance, owner, worker, entity, revision, time, expense, context, version };
+  return { f, finance, owner, worker, entity, revision, time, expense, sent, context, version };
 }
 
 function issueLabor(env: ReturnType<typeof setup>, key: string) {
@@ -135,12 +141,12 @@ function issueLabor(env: ReturnType<typeof setup>, key: string) {
 describe('F1 expense terms after issued labor invoices', () => {
   it('classifies an expense dated inside an issued labor-only period, from the earliest un-invoiced expense', () => {
     const env = setup();
-    const { f, owner, time, expense, context, version } = env;
+    const { f, owner, time, expense, sent, context, version } = env;
     time('2026-08-03', 480);
     const issued = issueLabor(env, 'final-f1-labor');
     const before = f.sqlite.prepare('SELECT * FROM invoice_line WHERE invoice_id=? ORDER BY id').all(issued.invoiceId);
-    const early = expense('2026-08-05', 'EUR', 3100n);
-    const late = expense('2026-08-12', 'EUR', 4500n);
+    const early = sent('2026-08-05', 'EUR', 3100n);
+    const late = sent('2026-08-12', 'EUR', 4500n);
     quickInvoiceSetExpenseTreatment(context(owner), {
       projectId: f.project.id,
       source: { type: 'expense', id: late.id, version: version(late.id) },
@@ -224,10 +230,10 @@ describe('F2 inline billing setup sets the issuing company', () => {
 });
 
 describe('F4 one audited conversion', () => {
-  it('records the inline conversion and reimburses with the same amount', () => {
+  it('records the inline conversion for billing only; the worker is reimbursed the receipt amount', () => {
     const env = setup();
-    const { f, owner, expense, context, version } = env;
-    const usd = expense('2026-08-10', 'USD', 10000n);
+    const { f, owner, expense, sent, context, version } = env;
+    const usd = sent('2026-08-10', 'USD', 10000n);
     quickInvoiceSetExpenseTreatment(context(owner), {
       projectId: f.project.id,
       source: { type: 'expense', id: usd.id, version: version(usd.id) },
@@ -242,13 +248,13 @@ describe('F4 one audited conversion', () => {
     expect(rows).toEqual([{ t: '9000', r: '0.9' }]);
     expect(
       f.sqlite.prepare('SELECT billing_amount_minor b,reimbursement_amount_minor w FROM expense WHERE id=?').get(usd.id),
-    ).toEqual({ b: 9000, w: 9000 });
+    ).toEqual({ b: 9000, w: 10000 });
   });
 
   it('uses an already confirmed conversion without retyping (prefilled on New invoice)', () => {
     const env = setup();
-    const { f, owner, expense, context, version } = env;
-    const usd = expense('2026-08-10', 'USD', 5310n);
+    const { f, owner, expense, sent, context, version } = env;
+    const usd = sent('2026-08-10', 'USD', 5310n);
     recordCurrencyConversion(f.sqlite, owner, {
       sourceKind: 'expense',
       sourceId: usd.id,
@@ -277,7 +283,145 @@ describe('F4 one audited conversion', () => {
     expect(f.sqlite.prepare('SELECT COUNT(*) n FROM currency_conversion WHERE source_id=?').get(usd.id)).toEqual({ n: 1 });
     expect(
       f.sqlite.prepare('SELECT billing_amount_minor b,reimbursement_amount_minor w FROM expense WHERE id=?').get(usd.id),
-    ).toEqual({ b: 2655, w: 2655 });
+    ).toEqual({ b: 2655, w: 5310 });
+  });
+});
+
+describe('R3 F1 client conversion never rewrites the worker reimbursement (invariant)', () => {
+  const owed = (env: ReturnType<typeof setup>, id: string) =>
+    env.f.sqlite
+      .prepare(
+        'SELECT currency c,amount_minor a,reimbursement_amount_minor w,billing_amount_minor b,project_currency_amount_minor p FROM expense WHERE id=?',
+      )
+      .get(id) as { c: string; a: number; w: number | null; b: number | null; p: number | null };
+
+  it('MX$1,250 meal converted to 68.75 for the client: worker is still owed MX$1,250', () => {
+    const env = setup();
+    const { f, owner, expense, sent, context, version } = env;
+    const meal = sent('2026-08-11', 'MXN', 125000n, 'meal', 'Taqueria');
+    quickInvoiceSetExpenseTreatment(context(owner), {
+      projectId: f.project.id,
+      source: { type: 'expense', id: meal.id, version: version(meal.id) },
+      treatment: 'reimbursable',
+      markupBps: 0,
+      requestKey: 'r3-f1-meal',
+      conversion: { convertedAmount: '68.75' },
+    });
+    // The conversion went through the audited path (currency_conversion + audit event).
+    const conversions = f.sqlite
+      .prepare('SELECT id,CAST(target_amount_minor AS TEXT) t,target_currency c FROM currency_conversion WHERE source_id=?')
+      .all(meal.id) as Array<{ id: string; t: string; c: string }>;
+    expect(conversions).toEqual([{ id: expect.any(String), t: '6875', c: 'EUR' }]);
+    expect(
+      f.sqlite
+        .prepare("SELECT COUNT(*) n FROM audit_event WHERE action='currency_conversion.confirm' AND entity_id=?")
+        .get(conversions[0]!.id),
+    ).toEqual({ n: 1 });
+    expect(owed(env, meal.id)).toEqual({ c: 'MXN', a: 125000, w: 125000, b: 6875, p: 6875 });
+
+    // A later correction of the client conversion changes billing only.
+    recordCurrencyConversion(f.sqlite, owner, {
+      sourceKind: 'expense',
+      sourceId: meal.id,
+      targetCurrency: 'EUR',
+      rate: '0.05',
+      rateSource: 'manual',
+      idempotencyKey: 'r3-f1-meal-correction',
+      expectedCurrentId: conversions[0]!.id,
+    });
+    expect(owed(env, meal.id)).toEqual({ c: 'MXN', a: 125000, w: 125000, b: 6250, p: 6250 });
+
+    // Finance views the worker is paid from (reimbursement queue) keep the receipt currency.
+    f.repository.operationalApproveExpense(f.manager, meal.id, 'approved');
+    f.repository.financeApproveExpense(env.finance, meal.id);
+    const queued = f.v3
+      .listReimbursementQueue(env.finance)
+      .find((row) => String((row as { id: unknown }).id) === meal.id) as Record<string, unknown> | undefined;
+    expect(queued).toMatchObject({ currency: 'MXN', reimbursementAmountMinor: '125000' });
+  });
+
+  it('holds for any currency/amount: reimbursement equals the receipt amount after conversion', () => {
+    const env = setup();
+    const { f, owner, expense, sent, context, version } = env;
+    const cases: Array<[string, bigint, string]> = [
+      ['USD', 1n, '0.01'],
+      ['MXN', 999999n, '470.33'],
+      ['GBP', 12345n, '143.99'],
+      ['JPY', 5000n, '31.10'],
+    ];
+    cases.forEach(([currency, amount, converted], index) => {
+      const row = sent(`2026-08-${String(12 + index).padStart(2, '0')}`, currency, amount, `cat${index}`, `Vendor ${index}`);
+      quickInvoiceSetExpenseTreatment(context(owner), {
+        projectId: f.project.id,
+        source: { type: 'expense', id: row.id, version: version(row.id) },
+        treatment: index % 2 ? 'reimbursable' : 'all_in',
+        markupBps: 0,
+        requestKey: `r3-f1-any-${index}`,
+        conversion: { convertedAmount: converted },
+      });
+      const stored = owed(env, row.id);
+      expect(stored.c).toBe(currency);
+      expect(stored.w).toBe(Number(amount));
+      expect(stored.p).toBe(Number(converted.replace('.', '')));
+    });
+  });
+});
+
+describe('R3 F2 drafts and returned expenses are not on the invoice', () => {
+  it('lists and decides only sent expenses; a worker draft is refused, the owner may decide his own', () => {
+    const env = setup();
+    const { f, finance, owner, expense, sent, context, version } = env;
+    const rule = f.repository.createBillingRule(finance, {
+      projectId: f.project.id,
+      legalEntityId: env.entity.id,
+      streamType: 'expense',
+      cadenceType: 'custom',
+      currency: 'EUR',
+      effectiveFrom: '2026-08-01',
+    }) as { id: string };
+    const draft = expense('2026-08-10', 'EUR', 1000n, 'meals', 'Draft lunch');
+    const ready = sent('2026-08-11', 'EUR', 2000n, 'meals', 'Sent lunch');
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period, billingRuleId: rule.id });
+    const listed = preview.expenseRows.map((row) => row.ref.id);
+    expect(listed).toContain(ready.id);
+    expect(listed).not.toContain(draft.id);
+    expect(preview.expenseRowsTotal).toBe(listed.length);
+    const decide = preview.attention.find((item) => item.kind === 'expenseTreatment');
+    expect(decide?.expenseIds ?? []).not.toContain(draft.id);
+    expect(preview.streamCounts).toEqual({ time: 0, expense: 1 });
+    // The draft stays with the worker: never classified from New invoice.
+    expect(() =>
+      quickInvoiceSetExpenseTreatment(context(owner), {
+        projectId: f.project.id,
+        source: { type: 'expense', id: draft.id, version: version(draft.id) },
+        treatment: 'reimbursable',
+        markupBps: 0,
+        requestKey: 'r3-f2-draft',
+      }),
+    ).toThrow(/not sent by the worker yet/u);
+    expect(
+      f.sqlite.prepare('SELECT commercial_classification_state s FROM expense WHERE id=?').get(draft.id),
+    ).toEqual({ s: 'unclassified' });
+    // Owner decision 2026-11-17: the owner's OWN draft may be decided (Approve & include).
+    // (The owner is put on the project directly: the fixture owner is not a workforce member.)
+    f.sqlite
+      .prepare(
+        `INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,created_at,updated_at,status)
+         VALUES('r3-owner-member',?,?,'worker','2026-01-01','2026-01-01T00:00:00Z','2026-01-01T00:00:00Z','active')`,
+      )
+      .run(f.project.id, owner.userId);
+    const own = expense('2026-08-12', 'EUR', 1500n, 'meals', 'Owner lunch');
+    f.sqlite.prepare('UPDATE expense SET worker_id=? WHERE id=?').run(owner.userId, own.id);
+    quickInvoiceSetExpenseTreatment(context(owner), {
+      projectId: f.project.id,
+      source: { type: 'expense', id: own.id, version: version(own.id) },
+      treatment: 'reimbursable',
+      markupBps: 0,
+      requestKey: 'r3-f2-own',
+    });
+    expect(
+      f.sqlite.prepare('SELECT commercial_classification_state s FROM expense WHERE id=?').get(own.id),
+    ).toEqual({ s: 'classified' });
   });
 });
 

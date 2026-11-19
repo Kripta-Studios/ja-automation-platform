@@ -3473,7 +3473,7 @@
       return translate(
         'Record money received from the client. That is the only path that counts as collected.',
       );
-    if (state === 'paid') return translate('Issued history is immutable');
+    if (state === 'paid') return translate('Issued invoices are never changed; fix mistakes with a credit note');
     return translate('No lifecycle action available');
   }
   let invoicePage = $state<typeof visibleInvoices>([]);
@@ -3485,7 +3485,7 @@
       <p class="billing-section__eyebrow">{translate('Finance operations')}</p>
       <h2>{translate('Billing')}</h2>
       <p>
-        {quickInvoiceText(locale, 'landingIntro')}
+        {quickInvoiceText(locale, canManageBilling ? 'landingIntro' : 'landingIntroReadOnly')}
       </p>
     </div>
     {#if isAuditor}
@@ -3545,9 +3545,11 @@
         initialPeriodStart={quickInvoicePrefill?.periodStart ?? ''}
         initialPeriodEnd={quickInvoicePrefill?.periodEnd ?? ''}
         initialBillingRuleId={quickInvoicePrefill?.billingRuleId ?? ''}
+        initialStreamType={$page.url.searchParams.get('tab') === 'expenses' ? 'expense' : ''}
         replacement={quickInvoicePrefill?.replacement ?? false}
         replacesInvoiceId={quickInvoicePrefill?.replacesInvoiceId ?? ''}
         onAdvancedRecords={openAdvancedComposer}
+        onStreamSettings={(ruleId) => openBillingStreamEditor(ruleId)}
       />
     </ResponsiveSheet>
   {/if}
@@ -7029,7 +7031,7 @@
                       <button
                         type="button"
                         class="secondary-button"
-                        onclick={() => openInvoice(invoice)}>{translate('Manage')}</button
+                        onclick={() => openInvoice(invoice)}>{translate(canManageBilling ? 'Manage' : 'View')}</button
                       >
                     </td>
                   </tr>
@@ -7277,7 +7279,7 @@
 
                 <h3 id="invoice-collections" tabindex="-1">{translate('Collections')}</h3>
                 <p class="billing-section__timeline-note">
-                  {translate('Only append-only payment events count as collected')}
+                  {translate('Only payments you record count as collected')}
                 </p>
 
                 {#if ledger}
@@ -7714,7 +7716,7 @@
                     />
                   {:else if isAuditor}
                     <span class="billing-section__read-only"
-                      >{translate('Issued history is immutable')}</span
+                      >{translate('Issued invoices are never changed; fix mistakes with a credit note')}</span
                     >
                   {:else if invoiceStateValue === 'draft'}
                     {#if problemFor('approveInvoice', 'invoiceId', invoiceId)}

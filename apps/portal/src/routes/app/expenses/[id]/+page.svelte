@@ -2,6 +2,7 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
   import { base } from '$app/paths';
+  import { personDisplayName } from '$lib/portal/display-name';
   import { enhance } from '$app/forms';
   import type { SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
@@ -663,7 +664,7 @@
       <dl class="record-facts">
         <div>
           <dt>{t('Worker')}</dt>
-          <dd>{record.worker_name}</dd>
+          <dd>{personDisplayName(record.worker_name)}</dd>
         </div>
         <div>
           <dt>{t('Project')}</dt>
@@ -718,7 +719,7 @@
           {record.vendor || record.description || controlled('expenseCategory', record.category)}
         </h1>
         <p>{record.project_number} · {record.project_name} · {record.spent_on}</p>
-        <p>{t('Worker')}: {record.worker_name || '—'}</p>
+        <p>{t('Worker')}: {personDisplayName(record.worker_name) || '—'}</p>
       </div>
       <span class="state-tag">{statusLabel}</span>
     </header>
@@ -1019,7 +1020,7 @@
                   {/if}
                   {#each data.correctionTimeOptions as option (option.id)}
                     <option value={option.id}
-                      >{option.workerName} · {Number(option.minutes) / 60} h · {option.summary}</option
+                      >{personDisplayName(option.workerName)} · {Number(option.minutes) / 60} h · {option.summary}</option
                     >
                   {/each}
                 </select></label

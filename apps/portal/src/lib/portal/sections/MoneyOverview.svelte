@@ -15,11 +15,14 @@
     locale = 'en',
     money,
     includeArchived = false,
+    canEdit = true,
   }: {
     overview: MoneyOverview;
     locale?: PortalLocale;
     money: (minor: unknown, currency?: string) => string;
     includeArchived?: boolean;
+    /** Read-only roles (auditor) see facts only: no "Set rate" / "Invoice" actions. */
+    canEdit?: boolean;
   } = $props();
 
   const t = (key: MoneyCopyKey, params: Record<string, string | number> = {}) =>
@@ -125,7 +128,7 @@
               >
               ·
             {/if}
-            {t('outstandingHelp', { count: row.openCount })}
+            {row.openCount === 1 ? t('outstandingHelpOne') : t('outstandingHelp', { count: row.openCount })}
           </small>
         </a>
         <article class="money__card" data-money-metric="costs">
@@ -155,9 +158,11 @@
           >
         </article>
         {#if big(row.readyToInvoiceMinor) > 0n || big(row.inDraftMinor) > 0n}
-          <a
-            class="money__card money__card--action"
-            href={`${base}/app/billing?assistantSurface=invoice-create&${lang}`}
+          <svelte:element
+            this={canEdit ? 'a' : 'article'}
+            class="money__card"
+            class:money__card--action={canEdit}
+            href={canEdit ? `${base}/app/billing?assistantSurface=invoice-create&${lang}` : undefined}
             data-money-metric="ready"
           >
             <span>{t('readyToInvoice')}</span>
@@ -166,7 +171,7 @@
             {#if big(row.inDraftMinor) > 0n}<small data-money-in-draft
                 >{t('inDraft', { amount: money(row.inDraftMinor, row.currency) })}</small
               >{/if}
-          </a>
+          </svelte:element>
         {/if}
       </div>
     </section>
@@ -230,12 +235,14 @@
                     ><strong>{project.projectName}</strong>
                     <small>{project.clientName} · {project.projectNumber}</small></a
                   >
-                  {#if project.missingRates > 0}
+                  {#if project.missingRates > 0 && canEdit}
                     <a
                       class="money__badge"
                       href={rateHref(project.projectId)}
                       data-money-rate-missing>{t('rateMissing')} · {t('setRate')}</a
                     >
+                  {:else if project.missingRates > 0}
+                    <span class="money__badge" data-money-rate-missing>{t('rateMissing')}</span>
                   {/if}
                 </th>
                 <td class="num" data-label={t('workValue')}
@@ -265,7 +272,7 @@
                 </td>
                 <td class="money__row-actions">
                   <a class="secondary-button" href={projectHref(project.projectId)}>{t('open')}</a>
-                  {#if big(project.readyToInvoiceMinor) > 0n}
+                  {#if big(project.readyToInvoiceMinor) > 0n && canEdit}
                     <a
                       class="primary-button"
                       href={invoiceHref(project.projectId)}
@@ -287,7 +294,7 @@
         data-money-show-more>{t('showMore')}</a
       >
     {/if}
-    {#if quiet > 0}<p class="money__muted">{t('inactiveProjects', { count: quiet })}</p>{/if}
+    {#if quiet > 0}<p class="money__muted">{quiet === 1 ? t('inactiveProjectsOne') : t('inactiveProjects', { count: quiet })}</p>{/if}
     {#if currencies.length === 1}
       <p class="money__muted">{t('currencyNote', { currency: currencies[0]!.currency })}</p>
     {/if}

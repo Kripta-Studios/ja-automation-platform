@@ -449,24 +449,25 @@ export class ExpenseCommercialClassificationRepository {
           return this.failValidation('Expense policy override requires a reason');
         if (firstPolicyClassification) {
           if (policy.workerReimbursement === 'at_cost') {
-            // One conversion for billing and reimbursement: the confirmed, audited
-            // currency_conversion row wins over an inline value (same rule as billing below).
-            const stored =
+            // The worker is reimbursed what they paid, in the receipt currency
+            // (expense.currency). A client/project-currency conversion only drives
+            // billing (project_currency_amount_minor / billing_amount_minor) and must
+            // never rewrite what the company owes the worker. A foreign receipt still
+            // needs an exact conversion first (fail closed: no foreign obligation whose
+            // project-currency cost is unknown), but only to project the cost.
+            const converted =
               sourceCurrency !== projectCurrency && isCurrency(projectCurrency)
                 ? currentCurrencyConversion(this.deps.sqlite, 'expense', normalized.expenseId, projectCurrency)
                 : null;
-            const reimbursedMinor =
-              stored && stored.sourceAmountMinor === String(sourceAmountMinor)
-                ? Number(stored.targetAmountMinor)
-                : (normalized.conversion?.projectCurrencyAmountMinor ?? null);
-            if (sourceCurrency !== projectCurrency && reimbursedMinor === null)
+            if (
+              sourceCurrency !== projectCurrency &&
+              !(converted && converted.sourceAmountMinor === String(sourceAmountMinor)) &&
+              !normalized.conversion
+            )
               return this.failValidation(
                 'Expense reimbursement requires an exact currency conversion',
               );
-            workerReimbursementMinor =
-              sourceCurrency !== projectCurrency
-                ? reimbursedMinor!
-                : (sourceAmountMinor as number);
+            workerReimbursementMinor = sourceAmountMinor as number;
             reimbursementState = 'pending';
           } else {
             workerReimbursementMinor = 0;

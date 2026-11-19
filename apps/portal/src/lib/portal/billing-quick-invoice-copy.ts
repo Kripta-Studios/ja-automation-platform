@@ -229,6 +229,11 @@ const copy = {
     'Crea una factura con las horas y gastos aprobados, emítela y registra el cobro.',
     'Crie uma fatura com as horas e despesas aprovadas, emita e registre o pagamento.',
   ],
+  landingIntroReadOnly: [
+    'Every invoice with its amount, status and payments.',
+    'Todas las facturas con su importe, estado y cobros.',
+    'Todas as faturas com valor, situação e pagamentos.',
+  ],
   tabInvoices: ['Invoices', 'Facturas', 'Faturas'],
   tabStreams: ['Per-project settings', 'Ajustes por proyecto', 'Ajustes por projeto'],
   tabSetup: ['Company and numbering', 'Empresa y numeración', 'Empresa e numeração'],
@@ -330,6 +335,11 @@ const copy = {
     'Save as this project’s rate',
     'Guardar como tarifa de este proyecto',
     'Salvar como tarifa deste projeto',
+  ],
+  rateAppliesToAll: [
+    'Applies to all {count} people without their own rate: {names}.',
+    'Se aplica a las {count} personas sin tarifa propia: {names}.',
+    'Aplica-se às {count} pessoas sem tarifa própria: {names}.',
   ],
   rateOnlyLater: [
     'Only on this invoice: the project’s rates stay as they are.',

@@ -34,7 +34,7 @@ describe('Billing invoice planning surface', () => {
     expect(value).toMatch(
       /\{@const planningEditable =\s*canManageBilling &&\s*\['draft', 'approved'\]\.includes\(invoiceStateValue\) &&\s*!historicalIssueMarkers\}/u,
     );
-    expect(value).toContain('Issued history is immutable');
+    expect(value).toContain('Issued invoices are never changed; fix mistakes with a credit note');
     expect(value).not.toMatch(/invoice[^\n]*(?:Edit|edit invoice)/);
   });
 
@@ -46,7 +46,7 @@ describe('Billing invoice planning surface', () => {
       'Actual issue',
       'Expected collection',
       'Actual collection',
-      'Only append-only payment events count as collected',
+      'Only payments you record count as collected',
     ]) {
       expect(value).toContain(label);
     }

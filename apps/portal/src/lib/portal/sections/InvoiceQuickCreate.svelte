@@ -62,6 +62,7 @@
     lastInvoicedThrough: string | null;
     openFrom?: string | null;
     openThrough?: string | null;
+    sentFrom?: string | null;
   };
   type SplitPart = {
     poKey: string | null;
@@ -155,6 +156,7 @@
     attention: AttentionItem[];
     expenseRows: ExpenseRow[];
     expenseRowsTotal: number;
+    streamCounts?: { time: number; expense: number };
     client: AttentionClient | null;
     capabilities: { canApprove: boolean; canCorrectHours?: boolean; role: string };
     overrides: Overrides | null;
@@ -171,10 +173,12 @@
     initialPeriodStart = '',
     initialPeriodEnd = '',
     initialBillingRuleId = '',
+    initialStreamType = '',
     replacement = false,
     replacesInvoiceId = '',
     translate,
     onAdvancedRecords,
+    onStreamSettings,
   }: {
     locale?: PortalLocale;
     role?: string;
@@ -182,11 +186,15 @@
     initialPeriodStart?: string;
     initialPeriodEnd?: string;
     initialBillingRuleId?: string;
+    /** Opened for one kind of work (e.g. Home "approved expenses" → 'expense'). */
+    initialStreamType?: string;
     replacement?: boolean;
     /** The voided invoice this one replaces (linked and audited on create/issue). */
     replacesInvoiceId?: string;
     translate: (value: string) => string;
     onAdvancedRecords?: (scope: AdvancedScope) => void;
+    /** Opens the settings of this existing billing stream (not the new-stream wizard). */
+    onStreamSettings?: (billingRuleId: string) => void;
   } = $props();
 
   const t = (key: QuickInvoiceCopyKey) => quickInvoiceText(locale, key);
@@ -212,6 +220,14 @@
   let issuing = $state(false);
   let fixing = $state(false);
   let purchaseNo = $state('');
+  /** "Change" next to PO in the summary: a PO for this invoice only. */
+  let poEditing = $state(false);
+  let poEditDraft = $state('');
+  function savePoEdit(): void {
+    purchaseNo = poEditDraft.trim();
+    poEditing = false;
+    schedulePreview(0);
+  }
   let issueMessage = $state('');
   let issueFailedInvoice = $state('');
   /** Unclassified expenses left out of this invoice (sent with every request). */
@@ -247,6 +263,19 @@
   // Opening a project tries its default dates; when nothing is billable there but approved,
   // unbilled work exists elsewhere, jump to the suggested dates (at most a few times).
   let autoPeriod = false;
+  /**
+   * Opened without a chosen stream: when the Hours stream has nothing for these dates but a
+   * separate Expenses stream exists, show Expenses instead (once per project choice).
+   */
+  let autoStream = false;
+  /** The empty Hours result to come back to when the Expenses side is empty too. */
+  let autoFallback: {
+    preview: Preview;
+    periodStart: string;
+    periodEnd: string;
+    choiceId: string;
+    autoAdjusted: boolean;
+  } | null = null;
   let autoVisited: string[] = [];
   let autoAdjusted = $state(false);
   let debounce: ReturnType<typeof setTimeout> | undefined;
@@ -335,8 +364,10 @@
         let sinceStart = project?.lastInvoicedThrough
           ? shiftDate(project.lastInvoicedThrough, 1)
           : effectiveFrom;
-        // Late entries dated before the last invoice, and logged future days, are included.
-        if (project?.openFrom && project.openFrom < sinceStart) sinceStart = project.openFrom;
+        // Late entries the workers SENT dated before the last invoice, and logged future days,
+        // are included. Drafts stay with the worker and never pull the start back.
+        const lateFrom = project?.sentFrom === undefined ? project?.openFrom : project.sentFrom;
+        if (lateFrom && lateFrom < sinceStart) sinceStart = lateFrom;
         const start = sinceStart < effectiveFrom ? effectiveFrom : sinceStart;
         const end = project?.openThrough && project.openThrough > today ? project.openThrough : today;
         if (start <= end) choices.push({ id: 'since', label: t('sinceLast'), start, end });
@@ -364,6 +395,8 @@
     else schedulePreview(0);
     autoPeriod = true;
     autoVisited = [];
+    autoStream = true;
+    autoFallback = null;
   }
 
   function applyChoice(choice: PeriodChoice): void {
@@ -449,6 +482,46 @@
         }
       }
       if (body.preview.state !== 'empty') autoPeriod = false;
+      // Hours have nothing for these dates but the project bills expenses on their own
+      // stream: show Expenses instead (once per project choice; back to Hours if that is
+      // empty too).
+      if (autoFallback) {
+        const fallback = autoFallback;
+        autoFallback = null;
+        if (body.preview.state === 'empty' && !body.preview.projected && !body.preview.attention.length) {
+          streamOverride = '';
+          periodStart = fallback.periodStart;
+          periodEnd = fallback.periodEnd;
+          choiceId = fallback.choiceId;
+          autoAdjusted = fallback.autoAdjusted;
+          preview = fallback.preview;
+          requestKey = newKey();
+          return;
+        }
+      }
+      const expenseStream = autoStream
+        ? projects
+            .find((candidate) => candidate.id === projectId)
+            ?.streams.find((stream) => stream.streamType === 'expense')
+        : undefined;
+      autoStream = false;
+      if (
+        expenseStream &&
+        !streamOverride &&
+        body.preview.stream?.streamType === 'labor' &&
+        body.preview.state === 'empty' &&
+        !body.preview.projected &&
+        (body.preview.streamCounts?.time ?? 0) === 0
+      ) {
+        autoFallback = { preview: body.preview, periodStart, periodEnd, choiceId, autoAdjusted };
+        streamOverride = expenseStream.id;
+        autoPeriod = true;
+        autoVisited = [];
+        controller = null;
+        previewLoading = false;
+        void loadPreview();
+        return;
+      }
       preview = body.preview;
       requestKey = newKey();
     } catch (error) {
@@ -1053,6 +1126,14 @@
     const order: Record<string, number> = { labor: 0, expense: 1, milestone: 2 };
     return [...byKind.values()].sort((a, b) => (order[a.streamType] ?? 9) - (order[b.streamType] ?? 9));
   });
+  /** Records sent and not invoiced yet for these dates, per kind (shown on the switch). */
+  function streamCount(streamType: string): number | null {
+    const counts = preview?.streamCounts;
+    if (!counts) return null;
+    if (streamType === 'labor') return counts.time;
+    if (streamType === 'expense') return counts.expense;
+    return null;
+  }
   /**
    * What the screen shows: exactly what will be invoiced. Only when nothing is invoiceable
    * yet does it show the projection ("If approved") of the entries the workers submitted.
@@ -1093,6 +1174,15 @@
       projects = body.projects;
       if (initialProjectId && projects.some((candidate) => candidate.id === initialProjectId)) {
         chooseProject(initialProjectId);
+        const wanted = initialStreamType
+          ? projects
+              .find((candidate) => candidate.id === initialProjectId)
+              ?.streams.find((candidate) => candidate.streamType === initialStreamType)
+          : undefined;
+        if (wanted) {
+          streamOverride = wanted.id;
+          autoStream = false;
+        }
         // Prefilled scope (e.g. replacing a void invoice): exactly these dates and stream.
         if (initialPeriodStart && initialPeriodEnd && initialPeriodStart <= initialPeriodEnd) {
           const stream = projects
@@ -1268,7 +1358,14 @@
                       streamOverride = kind.id;
                       schedulePreview(0);
                     }}
-                    data-quick-invoice-stream={kind.streamType}><strong>{t(`stream_${kind.streamType}` as QuickInvoiceCopyKey)}</strong></button
+                    data-quick-invoice-stream={kind.streamType}
+                    ><strong
+                      >{t(`stream_${kind.streamType}` as QuickInvoiceCopyKey)}{#if streamCount(kind.streamType) !== null}<span
+                          class="quick-invoice__kind-count"
+                          data-quick-invoice-stream-count={streamCount(kind.streamType)}
+                          >{streamCount(kind.streamType)}</span
+                        >{/if}</strong
+                    ></button
                   >
                 {/each}
               </div>
@@ -1644,7 +1741,39 @@
                     >
                   {:else}
                     <dt>{t('po')}</dt>
-                    <dd>{purchaseNo || preview.purchaseNo || '—'}</dd>
+                    <dd data-quick-invoice-po>
+                      {#if poEditing}
+                        <span class="quick-invoice__po-edit">
+                          <input
+                            bind:value={poEditDraft}
+                            maxlength="200"
+                            aria-label={`${t('po')} · ${t('poThisInvoice')}`}
+                            placeholder="4500012345"
+                            onkeydown={(event) => {
+                              if (event.key === 'Enter') {
+                                event.preventDefault();
+                                savePoEdit();
+                              }
+                            }}
+                          />
+                          <button type="button" class="secondary-button" onclick={savePoEdit}>{t('save')}</button>
+                        </span>
+                        <small class="quick-invoice__muted">{t('poThisInvoice')}</small>
+                      {:else}
+                        {purchaseNo || preview.purchaseNo || '—'}
+                        {#if preview.capabilities.canApprove}
+                          <button
+                            type="button"
+                            class="quick-invoice__linkbtn"
+                            data-quick-invoice-po-change
+                            onclick={() => {
+                              poEditDraft = purchaseNo || preview?.purchaseNo || '';
+                              poEditing = true;
+                            }}>{t('lineChange')}</button
+                          >
+                        {/if}
+                      {/if}
+                    </dd>
                   {/if}
                 </div>
                 {#if preview.provisionalNumber}
@@ -1761,11 +1890,20 @@
                   })}>{t('pickRecords')}</button
               >
             {/if}
-            <a
-              class="secondary-button"
-              href={`${base}/app/projects/${encodeURIComponent(projectId)}?tab=billing&lang=${locale}#project-panel-billing`}
-              >{t('streamSettings')}</a
-            >
+            {#if onStreamSettings && preview?.stream}
+              <button
+                type="button"
+                class="secondary-button"
+                data-quick-invoice-stream-settings
+                onclick={() => onStreamSettings?.(preview!.stream!.id)}>{t('streamSettings')}</button
+              >
+            {:else}
+              <a
+                class="secondary-button"
+                href={`${base}/app/projects/${encodeURIComponent(projectId)}?tab=billing&lang=${locale}#project-panel-billing`}
+                >{t('streamSettings')}</a
+              >
+            {/if}
           </div>
         </details>
       </section>
@@ -2084,6 +2222,27 @@
     color: var(--ja-text-secondary, #57574f);
     font-size: 0.8rem;
   }
+  .quick-invoice__kinds .quick-invoice__choice {
+    justify-items: center;
+    text-align: center;
+  }
+  .quick-invoice__kinds .quick-invoice__choice strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .quick-invoice__kind-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 1.5rem;
+    height: 1.5rem;
+    padding: 0 0.4rem;
+    border-radius: 999px;
+    color: var(--ja-surface, #fff) !important;
+    background: var(--ja-primary, #292925);
+    font-size: 0.78rem !important;
+    font-weight: 700;
+  }
   .quick-invoice__project[aria-pressed='true'],
   .quick-invoice__choice[aria-pressed='true'] {
     border-color: var(--ja-primary, #292925) !important;
@@ -2192,6 +2351,17 @@
   }
   .quick-invoice__facts dt {
     color: var(--ja-text-muted, #6b6b62);
+  }
+  .quick-invoice__po-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    align-items: center;
+  }
+  .quick-invoice__po-edit input {
+    min-height: 2.75rem;
+    min-width: 0;
+    flex: 1 1 9rem;
   }
   .quick-invoice__facts dd {
     margin: 0;

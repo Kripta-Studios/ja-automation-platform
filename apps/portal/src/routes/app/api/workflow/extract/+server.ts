@@ -29,7 +29,14 @@ export const POST: RequestHandler = async ({ request, locals }) => {
   }
   const now = Date.now();
   for (const [id, time] of attempts) if (now - time > 60_000) attempts.delete(id);
-  if (now - (attempts.get(locals.user.id) ?? 0) < 10_000) return reply({ error: 'busy' }, 429);
+  const elapsed = now - (attempts.get(locals.user.id) ?? 0);
+  if (elapsed < 10_000) {
+    // The receipt reader on Add expense queues and retries on its own: it asks for a
+    // plain "wait" answer instead of an HTTP 429 (which browsers log as an error).
+    if (request.headers.get('x-ja-retry-when-busy') === '1')
+      return reply({ busy: true, retryAfterMs: 10_000 - elapsed });
+    return reply({ error: 'busy' }, 429);
+  }
   attempts.set(locals.user.id, now);
   const length = Number(request.headers.get('content-length'));
   if (length > LOCAL_TEXT_MAX_BYTES + 64 * 1024) return reply({ error: 'invalid_file' }, 413);

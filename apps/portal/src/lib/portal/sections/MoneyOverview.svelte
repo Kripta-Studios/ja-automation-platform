@@ -54,7 +54,16 @@
       row.workValueMinor,
       row.readyToInvoiceMinor,
       row.inDraftMinor,
-    ].some((value) => big(value) !== 0n);
+      row.expensesWaitingMinor,
+    ].some((value) => big(value) !== 0n) || row.expensesWaitingCount > 0;
+  /** Same words as Home: "8 approved expenses · $384.00" (receipt amounts, priced on New invoice). */
+  const expensesNote = (count: number, amount: string) =>
+    count > 0 ? (count === 1 ? t('expensesWaitingOne', { amount }) : t('expensesWaiting', { count, amount })) : '';
+  const projectExpensesNote = (project: MoneyOverview['projects'][number]) =>
+    expensesNote(
+      project.expensesWaiting.count,
+      project.expensesWaiting.totals.map((total) => money(total.minor, total.currency)).join(' + '),
+    );
   const currencies = $derived(overview.currencies.filter(hasMoney));
   // The server sends one page of projects with activity (most money waiting first).
   const active = $derived(overview.projects);
@@ -157,7 +166,8 @@
               : t('marginHelp', { value: money(row.workValueMinor, row.currency) })}</small
           >
         </article>
-        {#if big(row.readyToInvoiceMinor) > 0n || big(row.inDraftMinor) > 0n}
+        {#if big(row.readyToInvoiceMinor) > 0n || big(row.inDraftMinor) > 0n || row.expensesWaitingCount > 0}
+          {@const waitingNote = expensesNote(row.expensesWaitingCount, money(row.expensesWaitingMinor, row.currency))}
           <svelte:element
             this={canEdit ? 'a' : 'article'}
             class="money__card"
@@ -166,8 +176,14 @@
             data-money-metric="ready"
           >
             <span>{t('readyToInvoice')}</span>
-            <strong>{money(row.readyToInvoiceMinor, row.currency)}</strong>
-            <small>{t('readyToInvoiceHelp')}</small>
+            {#if big(row.readyToInvoiceMinor) === 0n && waitingNote}
+              <strong class="money__card-note" data-money-expenses-waiting>{waitingNote}</strong>
+              <small>{t('expensesWaitingHelp')}</small>
+            {:else}
+              <strong>{money(row.readyToInvoiceMinor, row.currency)}</strong>
+              <small>{t('readyToInvoiceHelp')}</small>
+              {#if waitingNote}<small data-money-expenses-waiting>+ {waitingNote}</small>{/if}
+            {/if}
             {#if big(row.inDraftMinor) > 0n}<small data-money-in-draft
                 >{t('inDraft', { amount: money(row.inDraftMinor, row.currency) })}</small
               >{/if}
@@ -262,6 +278,9 @@
                       >{t('inDraft', {
                         amount: money(project.inDraftMinor, project.currency),
                       })}</small
+                    >{/if}{#if project.expensesWaiting.count > 0}<small
+                      class="money__draft"
+                      data-money-expenses-waiting>+ {projectExpensesNote(project)}</small
                     >{/if}</td
                 >
                 <td class="num" data-label={t('unpaid')}>
@@ -272,10 +291,12 @@
                 </td>
                 <td class="money__row-actions">
                   <a class="secondary-button" href={projectHref(project.projectId)}>{t('open')}</a>
-                  {#if big(project.readyToInvoiceMinor) > 0n && canEdit}
+                  {#if (big(project.readyToInvoiceMinor) > 0n || project.expensesWaiting.count > 0) && canEdit}
                     <a
                       class="primary-button"
-                      href={invoiceHref(project.projectId)}
+                      href={big(project.readyToInvoiceMinor) > 0n
+                        ? invoiceHref(project.projectId)
+                        : `${invoiceHref(project.projectId)}&tab=expenses`}
                       data-money-invoice={project.projectId}>{t('invoiceNow')}</a
                     >
                   {/if}
@@ -398,6 +419,10 @@
   .money__card strong {
     font-size: 1.5rem;
     font-variant-numeric: tabular-nums;
+  }
+  .money__card strong.money__card-note {
+    font-size: 1.15rem;
+    line-height: 1.3;
   }
   .money__card strong em {
     font-style: normal;

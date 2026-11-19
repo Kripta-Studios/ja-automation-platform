@@ -70,6 +70,11 @@ export function buildMoneyOverview(
      * ready again and is reported apart as "in a draft".
      */
     holders?: ReadonlyMap<string, string>;
+    /** Approved expenses without an invoice amount yet, per project (approved-expenses-waiting.ts). */
+    expensesWaiting?: ReadonlyMap<
+      string,
+      { count: number; totals: ReadonlyMap<string, bigint>; counts: ReadonlyMap<string, number> }
+    >;
   }>,
 ): MoneyOverview {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
@@ -94,6 +99,8 @@ export function buildMoneyOverview(
     workValue: bigint;
     readyToInvoice: bigint;
     inDraft: bigint;
+    expensesWaitingCount: number;
+    expensesWaiting: bigint;
   };
   const totals = new Map<string, Totals>();
   const totalsFor = (currency: string): Totals => {
@@ -111,6 +118,8 @@ export function buildMoneyOverview(
         workValue: 0n,
         readyToInvoice: 0n,
         inDraft: 0n,
+        expensesWaitingCount: 0,
+        expensesWaiting: 0n,
       };
       totals.set(currency, row);
     }
@@ -173,6 +182,13 @@ export function buildMoneyOverview(
     const row = totalsFor(String(project.currency));
     row.readyToInvoice += unbilled;
     row.inDraft += draft;
+    // Only projects the viewer's portfolio lists (authorization stays with financePortfolio).
+    const waiting = options.expensesWaiting?.get(String(project.projectId));
+    for (const [currency, minor] of waiting?.totals ?? []) {
+      const target = totalsFor(currency);
+      target.expensesWaiting += minor;
+      target.expensesWaitingCount += waiting?.counts.get(currency) ?? 0;
+    }
   }
 
   const projects: MoneyOverview['projects'] = [];
@@ -191,6 +207,13 @@ export function buildMoneyOverview(
     const unbilled = unbilledByProject.get(projectId) ?? 0n;
     const inDraft = draftByProject.get(projectId) ?? 0n;
     const invoiced = projectInvoiced.get(projectId) ?? 0n;
+    const waiting = options.expensesWaiting?.get(projectId);
+    const expensesWaiting = {
+      count: waiting?.count ?? 0,
+      totals: [...(waiting?.totals ?? [])]
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([code, minor]) => ({ currency: code, minor: minor.toString() })),
+    };
     projects.push({
       projectId,
       projectNumber: String(project.projectNumber ?? ''),
@@ -206,6 +229,7 @@ export function buildMoneyOverview(
       inDraftMinor: inDraft.toString(),
       outstandingMinor: open.outstanding.toString(),
       overdueMinor: open.overdue.toString(),
+      expensesWaiting,
       missingRates: Number(project.missingRateCount ?? 0),
       hasActivity:
         workValue !== 0n ||
@@ -213,13 +237,16 @@ export function buildMoneyOverview(
         invoiced !== 0n ||
         unbilled !== 0n ||
         inDraft !== 0n ||
+        expensesWaiting.count > 0 ||
         open.outstanding !== 0n,
     });
   }
   // Projects that need the owner first: money waiting (ready to invoice + unpaid), then
   // the period's work value. Amounts are only compared, never added across currencies.
   const waiting = (row: MoneyOverview['projects'][number]) =>
-    big(row.readyToInvoiceMinor) + big(row.outstandingMinor);
+    big(row.readyToInvoiceMinor) +
+    big(row.outstandingMinor) +
+    big(row.expensesWaiting.totals.find((total) => total.currency === row.currency)?.minor);
   projects.sort((a, b) => {
     if (a.hasActivity !== b.hasActivity) return a.hasActivity ? -1 : 1;
     const byWaiting = waiting(b) - waiting(a);
@@ -260,6 +287,8 @@ export function buildMoneyOverview(
         marginBps: row.workValue === 0n ? null : ((margin * 10_000n) / row.workValue).toString(),
         readyToInvoiceMinor: row.readyToInvoice.toString(),
         inDraftMinor: row.inDraft.toString(),
+        expensesWaitingCount: row.expensesWaitingCount,
+        expensesWaitingMinor: row.expensesWaiting.toString(),
       };
     });
   return {

@@ -340,6 +340,37 @@ describe('R3 F1 client conversion never rewrites the worker reimbursement (invar
     expect(queued).toMatchObject({ currency: 'MXN', reimbursementAmountMinor: '125000' });
   });
 
+  it('R4 M1 changing a confirmed conversion on New invoice saves once, without a stale conflict', () => {
+    const env = setup();
+    const { f, owner, sent, context, version } = env;
+    const meal = sent('2026-08-11', 'MXN', 125000n, 'meal', 'Taqueria');
+    const save = (convertedAmount: string, requestKey: string, expected = version(meal.id)) =>
+      quickInvoiceSetExpenseTreatment(context(owner), {
+        projectId: f.project.id,
+        source: { type: 'expense', id: meal.id, version: expected },
+        treatment: 'reimbursable',
+        markupBps: 0,
+        requestKey,
+        conversion: { convertedAmount },
+      });
+    save('68.75', 'r4-m1-first');
+    // "Change conversion" → 70.00 → Save: the conversion re-projects the classified expense
+    // (version + 1) inside the same save; the classification must use that version, not 409.
+    expect(() => save('70.00', 'r4-m1-change')).not.toThrow();
+    expect(
+      f.sqlite
+        .prepare('SELECT CAST(target_amount_minor AS TEXT) t FROM currency_conversion WHERE source_id=? ORDER BY confirmed_at,rowid')
+        .all(meal.id),
+    ).toEqual([{ t: '6875' }, { t: '7000' }]);
+    expect(owed(env, meal.id)).toEqual({ c: 'MXN', a: 125000, w: 125000, b: 7000, p: 7000 });
+
+    // A really stale review still conflicts, and nothing of that save is kept (one transaction).
+    const stale = version(meal.id) - 1;
+    expect(() => save('71.00', 'r4-m1-stale', stale)).toThrow(ConflictError);
+    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM currency_conversion WHERE source_id=?').get(meal.id)).toEqual({ n: 2 });
+    expect(owed(env, meal.id)).toEqual({ c: 'MXN', a: 125000, w: 125000, b: 7000, p: 7000 });
+  });
+
   it('holds for any currency/amount: reimbursement equals the receipt amount after conversion', () => {
     const env = setup();
     const { f, owner, expense, sent, context, version } = env;

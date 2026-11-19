@@ -37,7 +37,7 @@
     billingReadinessReviewPath,
     billingReadinessRecoveryRequest,
   } from '../billing-readiness';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { requestGuidedRecovery } from '../guided-recovery/events';
   import { localizedServerFieldMessage } from '../ui/form-validation';
   import { reversalRecoveryState } from '../billing-reversal-recovery';
@@ -1789,7 +1789,7 @@
   }
 
   function timeReadinessHours(minutes: number): string {
-    const hours = decimalHoursFromMinutes(minutes);
+    const hours = clockHoursFromMinutes(minutes);
     return hours === '—' ? hours : `${hours} h`;
   }
 

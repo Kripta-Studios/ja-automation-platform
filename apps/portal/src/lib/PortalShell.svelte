@@ -2,7 +2,7 @@
   import { personDisplayName } from './portal/display-name';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
-  import { paySummaryText } from '$lib/portal/pay-summary-copy';
+  import { payCurrencyHeading, paySummaryText } from '$lib/portal/pay-summary-copy';
   import {
     assignmentDirectoryView,
     assignmentFormAction,
@@ -4577,6 +4577,9 @@
             {@const owedTotal = owed
               ? BigInt(owed.settlementMinor || '0') + BigInt(owed.reimbursementMinor || '0')
               : 0n}
+            {#if (data.pay.currencyBreakdown?.length ?? 1) > 1}<h3 class="pay-summary-currency" data-pay-currency={amount.currency}>
+                {payCurrencyHeading(locale, amount.currency)}
+              </h3>{/if}
             <div class="pay-summary-grid">
               <a class="pay-summary-tile is-earned" href="{base}/app/time?lang={locale}">
                 <span>{paySummaryText(locale, 'earned')}</span>
@@ -4620,6 +4623,9 @@
                 >
               </a>
             </div>
+            {#if BigInt(amount.estimatedApprovedMinor || '0') > 0n && BigInt(owed?.settlementMinor || '0') === 0n}
+              <p class="form-help pay-summary-when" data-pay-payable-when>{paySummaryText(locale, 'payableWhen')}</p>
+            {/if}
           {/each}
         </section>
         <details class="pay-more">
@@ -8133,6 +8139,13 @@
     margin-bottom: 1rem;
   }
   .pay-summary h2 {
+    margin: 0;
+  }
+  .pay-summary-currency {
+    margin: 0.6rem 0 0;
+    font-size: 1rem;
+  }
+  .pay-summary-when {
     margin: 0;
   }
   .pay-summary-grid {

@@ -3,7 +3,7 @@
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
   import { paymentMoney } from '$lib/portal/payment-money';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import { settlementText, type SettlementCopyKey } from './copy';
 
   let { data, form } = $props();
@@ -21,7 +21,7 @@
       new Date(`${iso}T00:00:00Z`),
     );
   const range = $derived(`${shortDate(data.week.start)} – ${shortDate(data.week.end)}`);
-  const hours = (minutes: number) => decimalHoursFromMinutes(minutes);
+  const hours = (minutes: number) => clockHoursFromMinutes(minutes);
   function href(changes: Record<string, string | null>): string {
     const params = new URLSearchParams();
     params.set('week', data.week.start);

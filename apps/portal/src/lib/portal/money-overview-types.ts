@@ -24,6 +24,12 @@ export type MoneyCurrencyTotals = {
   readyToInvoiceMinor: string;
   /** Approved work already on an unissued draft (not counted as ready). */
   inDraftMinor: string;
+  /**
+   * Approved expenses whose invoice amount is decided on New invoice (same as Home),
+   * counted in this receipt currency; not part of readyToInvoiceMinor.
+   */
+  expensesWaitingCount: number;
+  expensesWaitingMinor: string;
 };
 
 export type MoneyProjectRow = {
@@ -42,6 +48,8 @@ export type MoneyProjectRow = {
   inDraftMinor: string;
   outstandingMinor: string;
   overdueMinor: string;
+  /** Approved expenses waiting for their invoice amount (see MoneyCurrencyTotals). */
+  expensesWaiting: { count: number; totals: Array<{ currency: string; minor: string }> };
   missingRates: number;
   hasActivity: boolean;
 };

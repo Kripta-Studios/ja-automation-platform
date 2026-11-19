@@ -193,11 +193,33 @@ export function quickInvoiceSetExpenseTreatment(
   },
 ) {
   authorize(context);
+  // One write lock for the conversion, the expense condition and the classification: a later
+  // failure never leaves a recorded conversion without the treatment it was entered with.
+  const sqlite = context.sqlite;
+  sqlite.exec('BEGIN IMMEDIATE');
+  try {
+    const result = setExpenseTreatmentLocked(context, input);
+    sqlite.exec('COMMIT');
+    return result;
+  } catch (error) {
+    try {
+      sqlite.exec('ROLLBACK');
+    } catch {
+      /* keep the original error */
+    }
+    throw error;
+  }
+}
+
+function setExpenseTreatmentLocked(
+  context: Context,
+  input: Parameters<typeof quickInvoiceSetExpenseTreatment>[1],
+) {
   const project = visibleProject(context, input.projectId);
   if (input.source.type !== 'expense') throw new ValidationError('Expense required');
   const row = context.sqlite
     .prepare(
-      `SELECT project_id,worker_id,approval_state,currency,amount_minor,client_treatment,billing_treatment,markup_bps,tax_amount_minor,
+      `SELECT project_id,worker_id,approval_state,currency,amount_minor,client_treatment,billing_treatment,markup_bps,tax_amount_minor,version,
         (SELECT r.tax_bps FROM expense_classification_series s JOIN expense_classification_authority_event a ON a.id=s.current_authority_event_id
            JOIN expense_classification_revision r ON r.id=a.revision_id WHERE s.expense_id=expense.id) tax_bps
          FROM expense WHERE id=?`,
@@ -265,9 +287,19 @@ export function quickInvoiceSetExpenseTreatment(
       ? `; converted ${String(row.currency)}→${String(project.currency)} ${conversion.rate ? `at ${conversion.rate}` : 'by entered amount'} = ${conversion.projectCurrencyAmountMinor} minor`
       : ''
   }`;
+  // Recording a changed conversion re-projects a classified expense (version + 1). When the
+  // owner reviewed the current version, classify the version this same transaction produced;
+  // otherwise keep the reviewed version so a real concurrent edit (or a replay) is detected.
+  const reviewedCurrent = Number(row.version) === input.source.version;
+  const expectedVersion = reviewedCurrent
+    ? Number(
+        (context.sqlite.prepare('SELECT version FROM expense WHERE id=?').get(input.source.id) as { version: number })
+          .version,
+      )
+    : input.source.version;
   return context.repository.classifyExpenseCommercially(context.principal, {
     expenseId: input.source.id,
-    expectedVersion: input.source.version,
+    expectedVersion,
     clientTreatment: pair.clientTreatment,
     billingTreatment: pair.billingTreatment,
     markupBps,

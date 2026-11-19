@@ -23,6 +23,7 @@
   } from '@ja/billing-engine';
   import type { PortalLocale } from '../../portal-i18n';
   import { journeyMoney } from '../project-invoice-journey';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import {
     quickInvoiceFormat,
@@ -1040,8 +1041,8 @@
 
   const money = (minor: string | null | undefined) =>
     minor === null || minor === undefined ? '—' : journeyMoney(minor, preview?.currency ?? '', locale);
-  const hours = (minutes: number) =>
-    new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(minutes / 60);
+  /** Display only ("37:30"); hour inputs (hoursText/parseHours) stay decimal. */
+  const hours = (minutes: number) => clockHoursFromMinutes(minutes);
   const dateText = (value: string) => {
     if (!/^\d{4}-\d{2}-\d{2}/.test(value)) return value;
     return new Intl.DateTimeFormat(locale, {
@@ -1208,6 +1209,23 @@
   });
 </script>
 
+{#snippet streamSettingsLink()}
+  {#if onStreamSettings && preview?.stream}
+    <button
+      type="button"
+      class="quick-invoice__link"
+      data-quick-invoice-stream-settings
+      onclick={() => onStreamSettings?.(preview!.stream!.id)}>{t('streamSettings')}</button
+    >
+  {:else}
+    <a
+      class="quick-invoice__link"
+      href={`${base}/app/projects/${encodeURIComponent(projectId)}?tab=billing&lang=${locale}#project-panel-billing`}
+      data-quick-invoice-stream-settings>{t('streamSettings')}</a
+    >
+  {/if}
+{/snippet}
+
 <div class="quick-invoice" data-quick-invoice>
   <p class="quick-invoice__intro">{t('intro')}</p>
   {#if replacement}<p class="quick-invoice__muted" role="status" data-quick-invoice-replacement>{t('replacementPrefilled')}</p>{/if}
@@ -1323,9 +1341,42 @@
           {#if autoAdjusted && choiceId === 'custom'}
             <p class="quick-invoice__muted" data-quick-invoice-auto-dates>{t('autoDates')}</p>
           {/if}
-          {#if currentStream(project)}
-            <p class="quick-invoice__muted">{cadenceText(currentStream(project)!.cadence)}</p>
-          {/if}
+          <p class="quick-invoice__muted quick-invoice__cadence" data-quick-invoice-cadence>
+            {#if currentStream(project)}<span>{cadenceText(currentStream(project)!.cadence)}</span>{/if}
+            {@render streamSettingsLink()}
+          </p>
+        </section>
+        <section class="quick-invoice__step quick-invoice__step--advanced" aria-label={t('advanced')}>
+          <details class="quick-invoice__advanced" data-quick-invoice-advanced>
+            <summary>{t('advanced')}</summary>
+            <p class="quick-invoice__muted">{t('advancedHelp')}</p>
+            {#if project.streams.length > 1}
+              <label class="quick-invoice__field">
+                <span>{t('stream')}</span>
+                <select bind:value={streamOverride} onchange={() => schedulePreview(0)}>
+                  <option value="">{t('streamAuto')}</option>
+                  {#each project.streams as stream (stream.id)}
+                    <option value={stream.id}>{streamLabel(stream)}</option>
+                  {/each}
+                </select>
+              </label>
+            {/if}
+            <div class="quick-invoice__advanced-actions">
+              {#if onAdvancedRecords && preview?.stream && ['labor', 'expense'].includes(preview.stream.streamType)}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() =>
+                    onAdvancedRecords?.({
+                      projectId,
+                      billingRuleId: preview!.stream!.id,
+                      periodStart: preview!.periodStart,
+                      periodEnd: preview!.periodEnd,
+                    })}>{t('pickRecords')}</button
+                >
+              {/if}
+            </div>
+          </details>
         </section>
       {/if}
     </div>
@@ -1827,7 +1878,7 @@
               <div class="quick-invoice__suggestion" data-quick-invoice-late-work>
                 <span
                   >{quickInvoiceFormat(locale, 'lateWork', {
-                    hours: new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(late.minutes / 60),
+                    hours: clockHoursFromMinutes(late.minutes),
                     dates: late.from === late.to ? dateText(late.from) : rangeText(late.from, late.to),
                   })}</span
                 >
@@ -1862,50 +1913,6 @@
           </div>
         {/if}
 
-        <details class="quick-invoice__advanced" data-quick-invoice-advanced>
-          <summary>{t('advanced')}</summary>
-          <p class="quick-invoice__muted">{t('advancedHelp')}</p>
-          {#if project.streams.length > 1}
-            <label class="quick-invoice__field">
-              <span>{t('stream')}</span>
-              <select bind:value={streamOverride} onchange={() => schedulePreview(0)}>
-                <option value="">{t('streamAuto')}</option>
-                {#each project.streams as stream (stream.id)}
-                  <option value={stream.id}>{streamLabel(stream)}</option>
-                {/each}
-              </select>
-            </label>
-          {/if}
-          <div class="quick-invoice__advanced-actions">
-            {#if onAdvancedRecords && preview?.stream && ['labor', 'expense'].includes(preview.stream.streamType)}
-              <button
-                type="button"
-                class="secondary-button"
-                onclick={() =>
-                  onAdvancedRecords?.({
-                    projectId,
-                    billingRuleId: preview!.stream!.id,
-                    periodStart: preview!.periodStart,
-                    periodEnd: preview!.periodEnd,
-                  })}>{t('pickRecords')}</button
-              >
-            {/if}
-            {#if onStreamSettings && preview?.stream}
-              <button
-                type="button"
-                class="secondary-button"
-                data-quick-invoice-stream-settings
-                onclick={() => onStreamSettings?.(preview!.stream!.id)}>{t('streamSettings')}</button
-              >
-            {:else}
-              <a
-                class="secondary-button"
-                href={`${base}/app/projects/${encodeURIComponent(projectId)}?tab=billing&lang=${locale}#project-panel-billing`}
-                >{t('streamSettings')}</a
-              >
-            {/if}
-          </div>
-        </details>
       </section>
     {/if}
   </div>
@@ -2138,6 +2145,11 @@
   @media (min-width: 900px) {
     .quick-invoice__layout {
       grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+    }
+    /* Project, dates and options stay in view while the long amount column scrolls. */
+    .quick-invoice__inputs {
+      position: sticky;
+      top: 0;
     }
   }
   .quick-invoice__inputs {
@@ -2449,8 +2461,30 @@
     gap: 0.5rem 0.75rem;
   }
   .quick-invoice__advanced {
-    border-top: 1px solid var(--ja-border-subdued, #e4e4df);
-    padding-top: 0.6rem;
+    min-width: 0;
+  }
+  .quick-invoice__step--advanced {
+    padding-block: 0.25rem;
+  }
+  .quick-invoice__cadence {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0 0.75rem;
+  }
+  .quick-invoice__link {
+    min-height: 2.75rem;
+    padding: 0 0.25rem !important;
+    border: 0 !important;
+    background: none !important;
+    box-shadow: none !important;
+    color: var(--ja-text-primary, #20201d) !important;
+    text-decoration: underline;
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
   }
   .quick-invoice__advanced summary {
     cursor: pointer;

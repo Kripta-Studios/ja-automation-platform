@@ -65,7 +65,7 @@ describe('Worker time UI vertical slice', () => {
     const load = readSource('apps/portal/src/routes/app/[section]/section-load.ts');
     expect(source).toContain('data-testid="time-mode-day"');
     expect(source).toContain('data-testid="time-mode-week"');
-    expect(source).toContain('{#if data.canReviewTime}');
+    expect(source).toContain('{#if data.canReviewTime && !isAuditor}');
     expect(source).not.toContain('time-history');
     expect(overview).toContain('data-testid="ov-matrix"');
     // Review rows are operational only: no money or rate fields reach the overview.

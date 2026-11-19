@@ -238,6 +238,16 @@ const copy = {
     'Todo lo que se configura una vez. Abre un grupo para cambiarlo.',
     'Tudo o que se configura uma vez. Abra um grupo para alterar.',
   ],
+  rejoinNote: [
+    'On this project until {ended} · starts again {start}',
+    'En este proyecto hasta el {ended} · vuelve el {start}',
+    'Neste projeto até {ended} · volta em {start}',
+  ],
+  settingsIntroReadOnly: [
+    'Everything set up for this project. Open a group to see it.',
+    'Todo lo configurado para este proyecto. Abre un grupo para verlo.',
+    'Tudo o que está configurado neste projeto. Abra um grupo para ver.',
+  ],
   setDetails: ['Project details', 'Datos del proyecto', 'Dados do projeto'],
   editDetails: ['Edit project details', 'Editar datos del proyecto', 'Editar dados do projeto'],
   setBilling: [

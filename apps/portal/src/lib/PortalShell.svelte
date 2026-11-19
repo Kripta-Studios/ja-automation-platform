@@ -102,6 +102,7 @@
   import AccountingSection from './portal/sections/AccountingSection.svelte';
   import ClientDirectorySection from './portal/sections/ClientDirectorySection.svelte';
   import AuditLogSection from './portal/sections/AuditLogSection.svelte';
+  import { documentKindText, documentSensitivityText, humanFileSize } from './portal/document-labels';
   import ProfilePasswordCard from './portal/sections/ProfilePasswordCard.svelte';
   import TeamDirectorySection, {
     type MailboxDirectoryStatus,
@@ -4334,14 +4335,14 @@
                 <small
                   >{document.project_number
                     ? String(document.project_number)
-                    : translate('Private')} · {String(document.artifact_type)} ·
+                    : translate('Private')} · {documentKindText(document.artifact_type, locale)} ·
                   {document.byte_length == null
                     ? ''
-                    : `${String(document.byte_length)} bytes`}</small
+                    : humanFileSize(document.byte_length, locale)}</small
                 >
               </div>
               <div class="record-actions">
-                <span class="state-tag">{String(document.sensitivity ?? 'internal')}</span>
+                <span class="state-tag">{documentSensitivityText(document.sensitivity, locale)}</span>
                 <a
                   class="preview-link"
                   target="_blank"
@@ -7580,7 +7581,7 @@
                 >
                   {#each profileVisibleWorkers as worker}
                     <option value={worker.id}
-                      >{worker.name} · {controlledValue('role', worker.role)}</option
+                      >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
                     >
                   {/each}
                 </select></label
@@ -7781,7 +7782,7 @@
                         >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
-                          >{worker.name} · {controlledValue('role', worker.role)}</option
+                          >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
                         >
                       {/each}
                     </select></label
@@ -7836,7 +7837,7 @@
                         >{/if}
                       {#each data.workers ?? [] as worker}
                         <option value={worker.id}
-                          >{worker.name} · {controlledValue('role', worker.role)}</option
+                          >{personDisplayName(worker.name, worker.email)} · {controlledValue('role', worker.role)}</option
                         >
                       {/each}
                     </select></label
@@ -7905,8 +7906,16 @@
         <ProfilePasswordCard {locale} email={data.user.email} {translate} />
         <section class="entry-panel security-panel">
           <span class="portal-kicker">{translate('ACCOUNT SECURITY')}</span>
-          <h2>{data.user.name}</h2>
-          <p>{data.user.email} · {controlledValue('role', data.user.role ?? 'worker')}</p>
+          <h2>{personDisplayName(data.user.name, data.user.email)}</h2>
+          <p>
+            {data.user.email} · {controlledValue(
+              'role',
+              data.user.workforceProfile === 'external_technician' ||
+                data.user.workforceProfile === 'supplier_coordinator'
+                ? data.user.workforceProfile
+                : (data.user.role ?? 'worker'),
+            )}
+          </p>
           <div class="security-methods">
             <div class="security-method-heading">
               <div>

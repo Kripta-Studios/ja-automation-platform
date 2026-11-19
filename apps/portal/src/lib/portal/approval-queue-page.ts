@@ -213,6 +213,13 @@ export type ApprovalQueuePage = {
   pageSize: number;
   /** Unfiltered pending numbers (same as nav badge and Home). */
   summary: ApprovalPendingSummary;
+  /** What this viewer can approve (nav badge, Home, tab badges). */
+  reviewable?: ApprovalPendingSummary;
+  /**
+   * Project managers: supplier/crew hours on their projects that only the
+   * owner approves (P8), with the owner's display name.
+   */
+  ownerOnlyTime?: { count: number; ownerName: string } | null;
   options: QueueFilterOptions;
   filtersActive: boolean;
   /** Pending rows in the active tab that match search/filters. */

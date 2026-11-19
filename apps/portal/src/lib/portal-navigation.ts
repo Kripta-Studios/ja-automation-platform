@@ -306,21 +306,25 @@ export function portalNavigationForRole(
   const route = (section: string, view?: string): string =>
     `${base}/app/${section}${view ? `?view=${encodeURIComponent(view)}` : ''}`;
 
-  if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator')
+  if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator') {
+    const coordinator = workforceProfile === 'supplier_coordinator';
+    const supplierTeam = item('supplier', 'Supplier team', '◌', undefined, { shortLabel: 'Team' });
+    const time = item('time', 'Time', '◷');
+    // Crew hours sit next to the coordinator's own Time (P7): one tap to
+    // record the team's hours instead of Supplier → Record team hours.
+    const crewHours = item('supplier', 'Crew hours', '◌', `${route('supplier')}?workspaceAction=time`);
+    const expenses = item('expenses', 'Expenses', '◇');
     return {
-      // Field work first (R9): Time leads; the technician's digital-worker
-      // tools follow the everyday entries.
+      // Field work only (R9/W5): the digital-worker tools are not part of a
+      // field worker's navigation (their routes keep their own authorization).
       primary: [
-        ...(workforceProfile === 'supplier_coordinator'
-          ? [item('supplier', 'Supplier team', '◌')]
-          : []),
-        item('time', 'Time', '◷'),
-        item('expenses', 'Expenses', '◇'),
+        ...(coordinator ? [supplierTeam] : []),
+        time,
+        ...(coordinator ? [crewHours] : []),
+        expenses,
         item('reports', 'Reports', '▤'),
-        ...(workforceProfile === 'external_technician'
-          ? [item('workflow', 'Digital workers', '▤')]
-          : []),
       ],
+      ...(coordinator ? { mobile: [time, crewHours, expenses, supplierTeam] } : {}),
       secondary: [
         item('supplier', 'Operational report', '▤', route('supplier/report')),
         item('profile', 'Profile', '◎'),
@@ -329,6 +333,7 @@ export function portalNavigationForRole(
       admin: [],
       security: [],
     };
+  }
 
   const worker: PortalNavigation = {
     primary: [
@@ -351,7 +356,7 @@ export function portalNavigationForRole(
       // Daily PM work first; everything else sits under "More".
       const home = item('today', 'Home', '⌂');
       const approve = item('approvals', 'Approve', '✓');
-      const time = item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' });
+      const time = item('time', 'Time', '◷');
       const expenses = item('expenses', 'Expenses', '◇');
       const projects = item('projects', 'Projects', '▦');
       return {
@@ -394,7 +399,7 @@ export function portalNavigationForRole(
       // destination is still in "More", the account menu or the search.
       const home = item('today', 'Home', '⌂');
       const approve = item('approvals', 'Approve', '✓');
-      const time = item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' });
+      const time = item('time', 'Time', '◷');
       const expenses = item('expenses', 'Expenses', '◇');
       const projects = item('projects', 'Projects', '▦');
       const invoices = item('billing', 'Invoices', '◫');
@@ -426,7 +431,7 @@ export function portalNavigationForRole(
         primary: [
           item('finance', 'Money', '↗', route('finance', 'overview')),
           item('projects', 'Projects', '▦'),
-          item('time', 'Time', '◷', undefined, { shortLabel: 'Hours' }),
+          item('time', 'Time', '◷'),
           item('expenses', 'Expenses', '◇'),
           item('billing', 'Invoices', '◫'),
           item('ledger', 'Payments', '▤'),

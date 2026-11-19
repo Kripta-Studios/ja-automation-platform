@@ -10,6 +10,8 @@
   import { deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
   import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
+  import { personDisplayName } from '$lib/portal/display-name';
+  import { isSystemAccount } from '$lib/portal/system-accounts';
 
   type Assignment = {
     id: string;
@@ -30,6 +32,7 @@
     locale,
     role,
     assignments,
+    lastEndedOn = {},
     workers = [],
     ratePeople = null,
     hasPersonDefaults = false,
@@ -47,6 +50,7 @@
     locale: string;
     role: string;
     assignments: Assignment[];
+    lastEndedOn?: Record<string, string>;
     workers?: Worker[];
     ratePeople?: RatePerson[] | null;
     hasPersonDefaults?: boolean;
@@ -123,17 +127,47 @@
   });
 
   const assignedIds = $derived(new Set(currentAssignments.map((row) => row.workerId)));
-  const available = $derived(
-    workers
+  // Last day each former member was on this project (W10): adding them again
+  // starts the day after, so the new assignment cannot overlap the old one.
+  // (Server-computed: also counts assignments that were removed.)
+  function dayAfter(date: string): string {
+    const value = new Date(`${date}T00:00:00.000Z`);
+    value.setUTCDate(value.getUTCDate() + 1);
+    return value.toISOString().slice(0, 10);
+  }
+  /** Start date actually sent for one person: never inside their earlier assignment. */
+  function startFor(workerId: string): string {
+    const ended = lastEndedOn[workerId];
+    if (!ended || startsOn > ended) return startsOn;
+    // The day after they left, or today when that is later.
+    const next = dayAfter(ended);
+    return next > today ? next : today;
+  }
+  // People only (P3): active, eligible, no shared/system mailboxes; display
+  // names, with the e-mail added when two people share the same name (P2).
+  const available = $derived.by(() => {
+    const people = workers
       .filter(
         (worker) =>
           String(worker.status ?? 'active') === 'active' &&
           ['worker', 'project_manager'].includes(String(worker.role ?? 'worker')) &&
+          !isSystemAccount(worker) &&
           !assignedIds.has(String(worker.id)),
       )
-      .map((worker) => ({ id: String(worker.id), name: String(worker.name ?? worker.email ?? '') }))
-      .sort((a, b) => a.name.localeCompare(b.name)),
-  );
+      .map((worker) => ({
+        id: String(worker.id),
+        name: personDisplayName(worker.name, worker.email),
+        email: String(worker.email ?? ''),
+      }));
+    const counts = new Map<string, number>();
+    for (const person of people) counts.set(person.name, (counts.get(person.name) ?? 0) + 1);
+    return people
+      .map((person) => ({
+        id: person.id,
+        name: (counts.get(person.name) ?? 0) > 1 && person.email ? `${person.name} (${person.email})` : person.name,
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  });
   const visible = $derived(
     available.filter((worker) =>
       worker.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
@@ -160,14 +194,15 @@
     const missingTerms: string[] = [];
     let added = 0;
     for (const workerId of selectedIds) {
-      const fields: Record<string, string> = { projectId, workerId, startsOn };
+      const personStart = startFor(workerId);
+      const fields: Record<string, string> = { projectId, workerId, startsOn: personStart };
       if (isOwner && payMode === 'defaults') fields.useProjectDefaults = 'on';
       if (isOwner && payMode === 'existing') fields.useExistingFinanceRules = 'on';
       if (isOwner && payMode === 'enter') {
         fields.internalCostHourlyRate = internalCost;
         fields.compensationRate = workerPay;
         fields.compensationBasis = 'hourly';
-        fields.financeEffectiveFrom = startsOn;
+        fields.financeEffectiveFrom = personStart;
         fields.financeEffectiveTo = '';
       }
       try {
@@ -336,7 +371,14 @@
           {#each visible as worker (worker.id)}
             <label class="hub-pick"
               ><input type="checkbox" bind:checked={selected[worker.id]} data-hub-pick={worker.id} />
-              <span>{worker.name}</span></label
+              <span
+                >{worker.name}{#if lastEndedOn[worker.id]}<small class="hub-pick-note"
+                    >{h('rejoinNote', {
+                      ended: formatDate(lastEndedOn[worker.id]),
+                      start: formatDate(startFor(worker.id)),
+                    })}</small
+                  >{/if}</span
+              ></label
             >
           {/each}
         </div>
@@ -692,6 +734,11 @@
     gap: 0.5rem;
     min-height: var(--ja-target-min, 2.75rem);
     cursor: pointer;
+  }
+  .hub-pick-note {
+    display: block;
+    color: var(--muted, #5f6368);
+    font-weight: 400;
   }
   .hub-pick input,
   .hub-radio input {

@@ -13,6 +13,8 @@
   } from '$lib/portal/project-ux-round3-copy';
   import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
   import ProjectHubTeam from '$lib/portal/sections/ProjectHubTeam.svelte';
+  import { personDisplayName } from '$lib/portal/display-name';
+  import { isSystemAccount } from '$lib/portal/system-accounts';
   import ProjectHubLifecycle from '$lib/portal/sections/ProjectHubLifecycle.svelte';
   import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
   import type { ProjectHubData, HubMoney } from '$lib/server/project-hub';
@@ -284,6 +286,33 @@
   });
   const isFinance = $derived(role === 'finance_admin');
   const isAuditor = $derived(role === 'auditor_read_only');
+  // Project manager choices (P2): only active project managers (the server
+  // rejects anyone else), shown by name; the e-mail only tells apart people
+  // who share a name. The current manager stays listed so the form is honest.
+  const managerChoices = $derived.by(() => {
+    const currentId = String(project?.project_manager_id ?? '');
+    const people = ((data.workers ?? []) as Array<Record<string, unknown>>)
+      .filter(
+        (worker) =>
+          worker.role === 'project_manager' &&
+          !isSystemAccount(worker) &&
+          (String(worker.status ?? 'active') === 'active' || String(worker.id) === currentId),
+      )
+      .map((worker) => ({
+        id: String(worker.id),
+        name: personDisplayName(worker.name, worker.email),
+        email: String(worker.email ?? ''),
+        active: String(worker.status ?? 'active') === 'active',
+      }));
+    const counts = new Map<string, number>();
+    for (const person of people) counts.set(person.name, (counts.get(person.name) ?? 0) + 1);
+    return people
+      .map((person) => ({
+        ...person,
+        label: (counts.get(person.name) ?? 0) > 1 ? `${person.name} (${person.email})` : person.name,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  });
   const canViewCommercial = $derived(isOwner || isFinance || isAuditor);
   const canWriteFinance = $derived(isOwner || isFinance);
   // Owner edits every project detail; finance_admin edits the commercial fields only
@@ -1754,7 +1783,7 @@
             <ul class="hub-plain-list">
               {#each overview.workers as worker}
                 <li>
-                  <strong>{display(worker.name, t('Assigned worker'))}</strong>
+                  <strong>{display(personDisplayName(worker.name, worker.email), t('Assigned worker'))}</strong>
                   <small>{controlled('role', worker.assignment_role ?? worker.role)}</small>
                 </li>
               {/each}
@@ -1767,6 +1796,7 @@
             {locale}
             {role}
             assignments={hub.assignments}
+            lastEndedOn={hub.lastEndedOn ?? {}}
             workers={(data.workers ?? []) as Array<Record<string, unknown>>}
             ratePeople={billingSetup ? billingSetup.people : null}
             hasPersonDefaults={Boolean(data.personDefaults)}
@@ -1950,7 +1980,7 @@
                       ? t('No expenses match this category.')
                       : t('No expenses recorded for this project.')}
                   </span>
-                  {#if !expenseCategoryFilter}
+                  {#if !expenseCategoryFilter && !isAuditor}
                     <a
                       class="secondary-button"
                       href={`${base}/app/expenses?action=record-expense&project=${encodeURIComponent(String(project.id))}&lang=${locale}`}
@@ -2345,7 +2375,7 @@
         aria-labelledby="project-tab-settings"
         tabindex="0"
       >
-        <p class="surface-intro">{h('settingsIntro')}</p>
+        <p class="surface-intro">{isAuditor ? h('settingsIntroReadOnly') : h('settingsIntro')}</p>
         <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
           <summary>{h('setDetails')}</summary>
           <div class="hub-group__body">
@@ -3034,13 +3064,14 @@
                   selected
                   disabled>{t('problem.projectDetail.optionUnavailable')}</option
                 >{/if}
-              >{#each data.workers ?? [] as worker}{#if worker.role === 'project_manager'}<option
+              >{#each managerChoices as worker (worker.id)}<option
                     value={worker.id}
-                    selected={String(worker.id) ===
+                    disabled={!worker.active}
+                    selected={worker.id ===
                       String(
                         projectValue('projectManagerId', String(project.project_manager_id ?? '')),
-                      )}>{display(worker.name)} — {display(worker.email)}</option
-                  >{/if}{/each}</select
+                      )}>{worker.label}{worker.active ? '' : ` · ${t('Inactive')}`}</option
+                  >{/each}</select
             ></label
           >
           {/if}

@@ -15,9 +15,14 @@
   import { onMount, tick } from 'svelte';
   let { data, form } = $props();
   let search = $state('');
+  /** Imported placeholders ("None", "N/A", "-") are not names (A7). */
+  const meaningful = (value: unknown): string => {
+    const text = String(value ?? '').trim();
+    return /^(?:none|null|n\/?a|-+|—)$/iu.test(text) ? '' : text;
+  };
   const t = (text: string, params?: Record<string, string | number>) =>
     portalText(normalizePortalLocale(data.locale), text, params);
-  const controlled = (domain: 'status' | 'availability', value: unknown) =>
+  const controlled = (domain: 'status' | 'availability' | 'expenseCategory', value: unknown) =>
     translateControlledValue(normalizePortalLocale(data.locale), domain, String(value ?? ''));
   function managementHref(changes: Record<string, string>): string {
     const next = new URL($page.url);
@@ -286,6 +291,7 @@
           bind:visible={catalogPage}
           focusId={data.focusId}
           translate={t}
+          statusLabel={(status) => controlled('status', status) || t(status)}
           label="Records"
         />
         {#each catalogPage as row}
@@ -345,6 +351,7 @@
           rows={records}
           bind:visible={recordPage}
           translate={t}
+          statusLabel={(status) => controlled('status', status) || t(status)}
           label="Operational records"
         />
         {#each recordPage as row}
@@ -352,9 +359,9 @@
             <header>
               <strong
                 >{String(
-                  row.vendor ||
-                    row.description ||
-                    row.category ||
+                  meaningful(row.vendor) ||
+                    meaningful(row.description) ||
+                    (row.category ? controlled('expenseCategory', row.category) : '') ||
                     row.summary ||
                     row.system_name ||
                     row.activity_summary ||

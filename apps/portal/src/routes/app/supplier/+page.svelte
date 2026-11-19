@@ -505,7 +505,64 @@
   afterNavigate(() => {
     if (data.periodProblem) setTimeout(focusPeriodProblem, 0);
   });
+  /** Specific confirmation per change instead of a generic "Changes saved." (P7). */
+  function savedMessage(operation: unknown): string {
+    switch (String(operation ?? '')) {
+      case 'createSupplier':
+      case 'updateSupplier':
+      case 'setSupplierStatus':
+        return c.savedSupplier;
+      case 'updateTechnician':
+      case 'setTechnicianStatus':
+        return c.savedTechnician;
+      case 'addTechnician':
+        return c.savedTechnicianAdded;
+      case 'assignTechnician':
+        return c.savedTechnicianAssigned;
+      case 'setProfile':
+      case 'grant':
+      case 'revoke':
+        return c.savedAccess;
+      case 'createTime':
+      case 'updateTime':
+        return c.savedHours;
+      case 'submitTime':
+        return c.savedHoursSent;
+      case 'discardTime':
+        return c.savedHoursRemoved;
+      case 'correctTime':
+        return c.savedCorrection;
+      default:
+        return c.saved;
+    }
+  }
+  const localeTag = $derived(
+    data.locale === 'es' ? 'es-ES' : data.locale === 'pt' ? 'pt-BR' : 'en-US',
+  );
+  function shortDate(day: unknown): string {
+    const raw = String(day ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(raw)) return raw;
+    return new Intl.DateTimeFormat(localeTag, { dateStyle: 'medium', timeZone: 'UTC' }).format(
+      new Date(`${raw}T00:00:00Z`),
+    );
+  }
+  /** "on the team since Nov 19, 2026" instead of "2026-11-19 — …" (P7). */
+  function teamPeriod(startsOn: unknown, endsOn: unknown): string {
+    return endsOn
+      ? c.onTeamFromTo.replace('{from}', shortDate(startsOn)).replace('{to}', shortDate(endsOn))
+      : c.onTeamSince.replace('{date}', shortDate(startsOn));
+  }
   let today = $state('');
+  // Project chosen in "Assign existing technician": its start is the default date (P5).
+  let assignProjectId = $state('');
+  const assignDefaultStart = $derived(
+    (data.projectStartDefaults ?? {})[
+      assignProjectId ||
+        (data.projects.some((project) => project.id === $page.url.searchParams.get('projectId'))
+          ? data.projectId
+          : '')
+    ] ?? '',
+  );
   $effect(() => {
     if (workspaceAction) today = localToday();
     if (!batchWorkDate) batchWorkDate = value('createTimeBatch', 'workDate', today);
@@ -728,7 +785,7 @@
           {c.teamHours}
         {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
           {form.outcome.submittedCount} {c.draftsSubmitted}
-        {:else}{c.saved}{/if}
+        {:else}{savedMessage(form.operation)}{/if}
       </p>{/if}
     {#if currentProblem && !(submissionFailure && data.projects.length && workspaceAction === 'report') && !(editor && form?.operation === editor.operation) && !['assignTechnician', 'createTimeBatch'].includes(form?.operation ?? '')}
       <ProblemNotice
@@ -1100,7 +1157,7 @@
         <p>
           <a
             href={`${base}/supplier/report?projectId=${encodeURIComponent(data.projectId)}&from=${data.from}&to=${data.to}&lang=${data.locale}`}
-            >{c.report}</a
+            >{c.print}</a
           >
         </p>
       {/if}
@@ -1111,6 +1168,9 @@
       >{c.project}<select
         name="projectId"
         required
+        onchange={operation === 'assignTechnician'
+          ? (event) => (assignProjectId = (event.currentTarget as HTMLSelectElement).value)
+          : undefined}
         value={value(
           operation,
           'projectId',
@@ -1149,7 +1209,11 @@
       >{c.starts}<input
         name="startsOn"
         type="date"
-        value={value(operation, 'startsOn', today)}
+        value={value(
+          operation,
+          'startsOn',
+          operation === 'assignTechnician' && assignDefaultStart ? assignDefaultStart : today,
+        )}
         required
       /></label
     >
@@ -1405,14 +1469,14 @@
     <SectionCard title={c.time}>
       {#if data.entries.length}
         <p>
-          {data.entries.length}
-          {c.report.toLocaleLowerCase()} · {draftEntries.length}
-          {c.drafts}
+          {(data.entries.length === 1 ? c.periodEntriesOne : c.periodEntries)
+            .replace('{count}', String(data.entries.length))
+            .replace('{drafts}', String(draftEntries.length))}
         </p>
         <button
           type="button"
           class="secondary-button"
-          onclick={() => selectWorkspaceAction('report')}>{c.report} <DirectionIcon /></button
+          onclick={() => selectWorkspaceAction('report')}>{c.seeReport} <DirectionIcon /></button
         >
       {/if}
       <p>{c.batchHelp}</p>
@@ -1470,7 +1534,7 @@
                   disabled={selectedWorkerIds.length >= batchLimit &&
                     !selectedWorkerIds.includes(String(technician.id))}
                 />
-                <span>{technician.name} · {technician.startsOn} — {technician.endsOn || '…'}</span>
+                <span>{technician.name} · {teamPeriod(technician.startsOn, technician.endsOn)}</span>
               </label>
             {:else}<p class="muted">{m.noMatches}</p>{/each}
           </div>

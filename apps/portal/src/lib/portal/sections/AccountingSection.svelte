@@ -638,11 +638,13 @@
     </SectionCard>
   {/if}
 
+  {#if !isAuditor}
   <p>
-    {translate(
-      'Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.',
-    )}
-  </p>
+      {translate(
+        'Generate creates files for reviewing a period. Finalize freezes the reviewed figures as a historical version; later corrections require a new version.',
+      )}
+    </p>
+  {/if}
   <SectionCard
     id="accounting-register"
     title={translate('Accounting Pack register')}

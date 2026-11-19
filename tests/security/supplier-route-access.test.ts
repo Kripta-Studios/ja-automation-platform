@@ -102,7 +102,7 @@ describe('supplier operational surface', () => {
     expect(JSON.stringify(external)).not.toContain('Finance Overview');
     expect(JSON.stringify(coordinator)).toContain('/supplier');
     expect(JSON.stringify(coordinator)).not.toContain('My Pay');
-    expect(external.primary.map((item) => item.section)).toContain('workflow');
+    expect(external.primary.map((item) => item.section)).not.toContain('workflow');
     expect(coordinator.primary.map((item) => item.section)).not.toContain('workflow');
     expect(JSON.stringify(portalNavigationForRole('/app', 'worker'))).toContain('My Pay');
   });

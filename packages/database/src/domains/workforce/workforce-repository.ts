@@ -540,7 +540,7 @@ export class WorkforceRepository {
       if (!worker) throw this.deps.errors.validation('Active workforce member not found');
       const overlap = this.deps.sqlite
         .prepare(
-          `SELECT id FROM project_member
+          `SELECT id,starts_on startsOn,ends_on endsOn FROM project_member
            WHERE project_id=? AND user_id=?
              AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL AND ends_on>=starts_on))
              AND (? IS NULL OR starts_on<=?)
@@ -553,7 +553,7 @@ export class WorkforceRepository {
           input.endsOn || null,
           input.endsOn || null,
           input.startsOn,
-        ) as { id: string } | undefined;
+        ) as { id: string; startsOn: string | null; endsOn: string | null } | undefined;
       if (overlap) {
         try {
           this.deps.errors.conflict('Worker already has an overlapping project assignment');
@@ -564,6 +564,8 @@ export class WorkforceRepository {
               projectId: input.projectId,
               workerId: input.workerId,
               existingAssignmentId: overlap.id,
+              existingStartsOn: overlap.startsOn,
+              existingEndsOn: overlap.endsOn,
             });
           throw error;
         }

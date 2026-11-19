@@ -114,18 +114,21 @@
     assignmentFormData?.actionName === 'assignWorker' ? assignmentFormData.values : undefined,
   );
   let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
-  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? 'active');
+  // A project manager's list is already only their current projects (A8):
+  // default to all of them instead of "Active" so a paused project still shows.
+  const defaultStatus = $derived(role === 'project_manager' ? '' : 'active');
+  let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? defaultStatus);
   let clientFilter = $derived($page.url.searchParams.get('client')?.trim() ?? '');
   useViewPreferences({
     scope: 'projects',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
-    defaults: { search: '', statusFilter: 'active' },
+    defaults: { search: '', statusFilter: role === 'project_manager' ? '' : 'active' },
     query: { search: 'q', statusFilter: 'status' },
     get: () => ({ search, statusFilter }),
     set: (saved) => {
       search = saved.search;
-      statusFilter = saved.statusFilter || ($page.url.searchParams.has('status') ? '' : 'active');
+      statusFilter = saved.statusFilter || ($page.url.searchParams.has('status') ? '' : defaultStatus);
     },
     validate: (saved) => ({
       ...saved,
@@ -683,7 +686,7 @@
       <p>{translate('Review project identity, status, schedule and operational scope.')}</p>
     </div>
     <div class="project-section__context-note">
-      <strong>{ux('showing', { count: visibleProjects.length })}</strong>
+      <strong>{ux(visibleProjects.length === 1 ? 'showingOne' : 'showing', { count: visibleProjects.length })}</strong>
       <span>{ux('projectShortcuts')}</span>
     </div>
   </header>
@@ -764,7 +767,7 @@
     >
   </form>
   <div class="project-section__filter-summary" aria-live="polite">
-    <span>{ux('showing', { count: visibleProjects.length })}</span>
+    <span>{ux(visibleProjects.length === 1 ? 'showingOne' : 'showing', { count: visibleProjects.length })}</span>
     {#if search || statusFilter || clientFilter}
       <span class="project-section__filter-chip"
         >{search ? `“${search}”` : ''}{search && (statusFilter || clientFilter)

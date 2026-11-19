@@ -244,7 +244,8 @@ export const load: PageServerLoad = ({ locals, url }) => {
       ]),
     );
     const homeInbox: HomeInbox = {
-      approvals: pendingApprovals.summary,
+      // What this viewer can approve (P1), the same number as the nav badge.
+      approvals: pendingApprovals.reviewable,
       // Work already on a draft is not "ready" again; it shows as "in a draft" instead.
       readyToInvoice: isOwner
         ? readyToInvoiceSummary(

@@ -105,6 +105,7 @@ const copy: Record<string, CopyValue> = {
     'Nenhum projeto corresponde aos filtros atuais.',
   ],
   resetFilters: ['Reset filters', 'Restablecer filtros', 'Redefinir filtros'],
+  showingOne: ['Showing 1 project', 'Mostrando 1 proyecto', 'Mostrando 1 projeto'],
   showing: [
     'Showing {count} projects',
     'Mostrando {count} proyectos',

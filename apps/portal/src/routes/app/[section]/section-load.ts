@@ -65,6 +65,7 @@ import {
   reportWindowLimit,
 } from '$lib/portal/sections/report-window';
 import { browseRecords } from '$lib/portal/ui/record-browser';
+import { isSystemAccount } from '$lib/portal/system-accounts';
 
 /** Own recent hours and last daily report, used to prefill a new daily report. */
 function ownReportPrefill(
@@ -231,7 +232,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               .filter(
                 (worker) =>
                   worker.status === 'active' &&
-                  ['worker', 'project_manager'].includes(String(worker.role)),
+                  ['worker', 'project_manager'].includes(String(worker.role)) &&
+                  !isSystemAccount(worker),
               )
           : [],
       // Presentation only: lets the shell hide "Include archived" when nothing is archived.
@@ -1341,7 +1343,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               .filter(
                 (worker) =>
                   worker.status === 'active' &&
-                  ['worker', 'project_manager'].includes(String(worker.role)),
+                  ['worker', 'project_manager'].includes(String(worker.role)) &&
+                  !isSystemAccount(worker),
               )
           : [];
         const requestedWorkerId = url.searchParams.get('worker')?.trim();

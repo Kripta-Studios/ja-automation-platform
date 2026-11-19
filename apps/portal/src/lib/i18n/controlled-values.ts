@@ -32,6 +32,8 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     finance_admin: 'Finance Admin',
     project_manager: 'Project manager',
     auditor_read_only: 'Auditor',
+    supplier_coordinator: 'Supplier coordinator',
+    external_technician: 'External technician',
   },
   status: {
     draft: 'Draft',

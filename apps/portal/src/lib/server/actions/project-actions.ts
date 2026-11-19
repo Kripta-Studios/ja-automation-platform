@@ -1772,6 +1772,29 @@ export const projectActions = {
           },
         );
       const domainCode = error instanceof Error ? (error as Error & { code?: string }).code : null;
+      const overlapDates =
+        domainCode === 'PROJECT_ASSIGNMENT_OVERLAP'
+          ? (error as Error & { existingStartsOn?: unknown; existingEndsOn?: unknown })
+          : null;
+      // Name the dates that collide (W10) when the earlier assignment has an end.
+      if (
+        overlapDates &&
+        typeof overlapDates.existingStartsOn === 'string' &&
+        typeof overlapDates.existingEndsOn === 'string'
+      )
+        return actionFail(
+          409,
+          'problem.project.assignmentOverlapDates',
+          { starts: overlapDates.existingStartsOn, ends: overlapDates.existingEndsOn },
+          `This person is already on this project from ${overlapDates.existingStartsOn} to ${overlapDates.existingEndsOn}. Choose a start date after ${overlapDates.existingEndsOn}.`,
+          {
+            code: 'PROJECT_ASSIGNMENT_OVERLAP',
+            actionName: 'assignWorker',
+            values: responseValues,
+            remedies: [{ id: 'review_assignments', projectId: parsed.data.projectId }],
+            correlationId: locals.correlationId,
+          },
+        );
       if (domainCode === 'PROJECT_ASSIGNMENT_OVERLAP')
         return actionFail(
           409,

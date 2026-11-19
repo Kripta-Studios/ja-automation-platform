@@ -701,6 +701,7 @@
       ),
     );
   });
+  let deletingDay = $state(false);
   const submitCells = $derived(
     mode === 'day' && deletingDay && dayCell?.entry
       ? [
@@ -789,7 +790,6 @@
    * saveTimeWeek command (server: deleteTime, which refuses anything that is
    * not an unlocked, never-submitted draft). Same audit and RBAC path.
    */
-  let deletingDay = $state(false);
   const deleteDay = () => {
     if (!dayCell?.entry) return;
     deleteError = '';

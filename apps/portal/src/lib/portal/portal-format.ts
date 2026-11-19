@@ -1,4 +1,4 @@
-import { decimalHoursFromMinutes } from './minute-hours';
+import { clockHoursFromMinutes } from './minute-hours';
 import { paymentMoney } from './payment-money';
 
 /**
@@ -9,9 +9,10 @@ import { paymentMoney } from './payment-money';
 export const money = (minor: unknown, currency = 'USD', locale = 'en-US'): string =>
   paymentMoney(minor, currency, locale);
 
+/** H:MM hours ("1:15 h"), never decimals (Z5). */
 export const hours = (minutes: unknown): string => {
-  const value = decimalHoursFromMinutes(minutes ?? 0);
-  return value === '—' ? value : `${value}h`;
+  const value = clockHoursFromMinutes(minutes ?? 0);
+  return value === '—' ? value : `${value} h`;
 };
 
 export type CategoryLabelFormatter = (category: string) => string;

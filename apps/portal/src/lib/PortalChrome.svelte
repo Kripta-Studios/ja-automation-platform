@@ -448,7 +448,12 @@
   aria-hidden={mobileDrawer && !menuOpen ? 'true' : undefined}
   inert={mobileDrawer && !menuOpen ? true : undefined}
 >
-  <a class="portal-brand" href={`${base}/app/`} onclick={() => closeDrawer(true)}
+  <a
+    class="portal-brand"
+    href={`${base}/app/`}
+    aria-label={`J&A Automation · ${translate('Home')}`}
+    title={translate('Home')}
+    onclick={() => closeDrawer(true)}
     ><img src={`${base}/app/logo.png`} alt="J&A Automation" /></a
   >
   <nav aria-label={translate('Primary navigation')}>

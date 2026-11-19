@@ -1,4 +1,4 @@
-import { decimalHoursFromMinutes } from '../minute-hours';
+import { clockHoursFromMinutes } from '../minute-hours';
 type TimeDeleteRow = Readonly<{
   worker_id?: unknown;
   approval_state?: unknown;
@@ -40,9 +40,14 @@ export function decimalHoursToMinutes(value: string): number | null {
   return Math.round((hundredths * 3) / 5);
 }
 
+/**
+ * Hours for review screens. Despite the historical name this is H:MM
+ * ("79:30 h", "0:00 h"): the same notation as Home and the capture screens,
+ * never decimals like "79.5h" (Z5). Exports keep decimal hours.
+ */
 export function formatDecimalHours(minutes: unknown): string {
-  const value = decimalHoursFromMinutes(minutes ?? 0);
-  return value === '—' ? value : `${value}h`;
+  const value = clockHoursFromMinutes(minutes ?? 0);
+  return value === '—' ? value : `${value} h`;
 }
 
 export function weekDates(weekStart: string): string[] {

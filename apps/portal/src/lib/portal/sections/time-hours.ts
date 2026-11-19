@@ -1,3 +1,4 @@
+import { clockHoursFromMinutes } from '../minute-hours';
 import { personDisplayName } from '../display-name';
 /**
  * Parse the hours a person types into the timesheet.
@@ -27,18 +28,12 @@ export function parseHoursText(value: unknown): number | null | undefined {
 }
 
 /**
- * Hours as the person reads them on the capture screens: "8" for whole hours,
- * otherwise H:MM ("8:30", "7:05"). Same notation everywhere (input, totals,
- * confirmations) so 8 h 30 min never shows as "8.5" next to "8:30".
+ * Hours as the person reads them on the capture screens: always H:MM ("8:00",
+ * "8:30", "0:00"), the same notation as Home and the review screens, so
+ * 8 h 30 min never shows as "8.5" or "8" next to "8:30" (X4/Z5).
  */
 export function clockHoursText(minutes: unknown): string {
-  const value = Number(minutes);
-  if (!Number.isSafeInteger(value)) return '—';
-  const absolute = Math.abs(value);
-  const sign = value < 0 ? '-' : '';
-  const h = Math.floor(absolute / 60);
-  const m = absolute % 60;
-  return m ? `${sign}${h}:${String(m).padStart(2, '0')}` : `${sign}${h}`;
+  return clockHoursFromMinutes(minutes);
 }
 
 /** "7 h 18 min" style text for a minute count (used to confirm what was typed). */

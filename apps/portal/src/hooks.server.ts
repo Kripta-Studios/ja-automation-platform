@@ -101,9 +101,12 @@ function operationalAccessDeniedResponse(
     portalText(locale, destination === 'supplier' ? 'Supplier' : 'Time'),
   );
   const language = documentLanguage(locale);
+  // My Pay for supplier people is an answer, not an error (X3): the page
+  // still shows no pay data, but it is served as a normal 200 page. The icon
+  // link avoids a stray /favicon.ico 404 on this standalone document.
   return new Response(
-    `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title} · J&A Automation</title></head><body><main><h1 tabindex="-1">${title}</h1><p>${explanation}</p><p>${contact}</p><a href="${escapeHtml(href)}">${destinationLabel}</a></main></body></html>`,
-    { status: 403, headers: { 'content-type': 'text/html; charset=utf-8' } },
+    `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="${escapeHtml(`${portalBase}/icon-192.png`)}"><title>${title} · J&A Automation</title></head><body><main><h1 tabindex="-1">${title}</h1><p>${explanation}</p><p>${contact}</p><a href="${escapeHtml(href)}">${destinationLabel}</a></main></body></html>`,
+    { status: payRoute ? 200 : 403, headers: { 'content-type': 'text/html; charset=utf-8' } },
   );
 }
 

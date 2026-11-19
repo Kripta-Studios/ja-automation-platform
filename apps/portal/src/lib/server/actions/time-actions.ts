@@ -1,3 +1,4 @@
+import { clockHoursFromMinutes } from '../../portal/minute-hours';
 import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
 import { expenseInputSchema, timeInputSchema, versionedRecordSchema } from '@ja/schemas';
@@ -1038,13 +1039,17 @@ export const timeActions = withOperationalActionNames({
         ).filter((row) => !submittedBefore.has(row.id));
         const days = new Set(sent.map((row) => row.work_date)).size;
         const minutes = sent.reduce((sum, row) => sum + (Number(row.minutes) || 0), 0);
-        const hours = `${Math.floor(minutes / 60)}${minutes % 60 ? `:${String(minutes % 60).padStart(2, '0')}` : ''}`;
+        const hours = clockHoursFromMinutes(minutes);
         return actionSuccess(
           days === 1 ? 'action.time.weekSentOneDay' : 'action.time.weekSent',
           { days, hours, timeSubmitted: result.submitted },
           days === 1 ? `Week sent: 1 day, ${hours} h.` : `Week sent: ${days} days, ${hours} h.`,
         );
       }
+      // Only deletions (X2): say so instead of "Hours saved", which would sit
+      // next to the screen's own "Deleted" confirmation.
+      if (result.removed > 0 && result.created + result.updated + result.corrected === 0)
+        return actionSuccess('action.time.hoursDeleted', { count: result.removed }, 'Hours deleted.');
       return actionSuccess(
         'action.time.batchDraftsSaved',
         { count: saved },

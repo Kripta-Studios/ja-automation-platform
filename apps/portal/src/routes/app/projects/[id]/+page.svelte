@@ -1606,6 +1606,7 @@
             <PlanningCalendar
               translate={t}
               {locale}
+              zoneNote={!isWorker}
               onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),

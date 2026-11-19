@@ -109,16 +109,17 @@
     value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
     return value.toISOString().slice(0, 10);
   }
-  $effect(() => {
-    // New people can log hours from the project start (owner decision
-    // 2026-11-19); without a project start, from this week's Monday.
-    // Always inside the project dates.
-    if (!startsOn) {
-      let start = projectStart || mondayOf(today);
-      if (projectEnd && start > projectEnd) start = projectEnd;
-      startsOn = start;
-    }
+  // New people can log hours from the project start (owner decision
+  // 2026-11-19); without a project start, from this week's Monday.
+  // Always inside the project dates.
+  const baseStart = $derived.by(() => {
+    let start = projectStart || mondayOf(today);
+    if (projectEnd && start > projectEnd) start = projectEnd;
+    return start;
   });
+  // X1/Y7: once the owner types a date, that exact date is sent for every
+  // selected person (the server rejects overlaps and names the dates).
+  let startTouched = $state(false);
   // People that "use saved rules" could not cover: the owner sets their
   // cost and pay inline and adds them again.
   let needsTerms = $state<string[]>([]);
@@ -135,13 +136,22 @@
     value.setUTCDate(value.getUTCDate() + 1);
     return value.toISOString().slice(0, 10);
   }
-  /** Start date actually sent for one person: never inside their earlier assignment. */
-  function startFor(workerId: string): string {
+  /** Default start for a former member: never inside their earlier assignment. */
+  function rejoinDefault(workerId: string): string {
     const ended = lastEndedOn[workerId];
-    if (!ended || startsOn > ended) return startsOn;
+    if (!ended || baseStart > ended) return baseStart;
     // The day after they left, or today when that is later.
     const next = dayAfter(ended);
     return next > today ? next : today;
+  }
+  /** Start date actually sent for one person: the typed date, else their default. */
+  function startFor(workerId: string): string {
+    return startTouched ? startsOn : rejoinDefault(workerId);
+  }
+  /** Typed date falls inside this person's earlier time on the project. */
+  function overlapsEarlier(workerId: string): boolean {
+    const ended = lastEndedOn[workerId];
+    return Boolean(startTouched && ended && startsOn && startsOn <= ended);
   }
   // People only (P3): active, eligible, no shared/system mailboxes; display
   // names, with the e-mail added when two people share the same name (P2).
@@ -174,6 +184,16 @@
     ),
   );
   const selectedIds = $derived(Object.keys(selected).filter((id) => selected[id]));
+  // The field shows the date that will really be used: the project default,
+  // or (when only former members are picked) the day they can start again.
+  $effect(() => {
+    if (startTouched) return;
+    const starts = selectedIds.map(rejoinDefault);
+    startsOn =
+      starts.length && starts.every((date) => date !== baseStart)
+        ? starts.reduce((latest, date) => (date > latest ? date : latest))
+        : baseStart;
+  });
 
   async function post(url: string, fields: Record<string, string>) {
     const body = new FormData();
@@ -214,8 +234,18 @@
           const name = available.find((worker) => worker.id === workerId)?.name ?? workerId;
           const data = result.type === 'failure' ? result.data : null;
           const code = (data as { code?: unknown } | null)?.code;
+          const params = (data as { params?: Record<string, unknown> } | null)?.params ?? {};
           if (isOwner && payMode !== 'enter' && code === 'ASSIGNMENT_FINANCE_SETUP_REQUIRED')
             missingTerms.push(name);
+          else if (code === 'PROJECT_ASSIGNMENT_OVERLAP' && typeof params.ends === 'string')
+            // Name the colliding dates in the owner's language (X1/Y7).
+            addErrors.push(
+              h('overlapFailed', {
+                name,
+                starts: formatDate(params.starts),
+                ends: formatDate(params.ends),
+              }),
+            );
           else addErrors.push(h('addFailed', { name, message: describe(data) }));
         }
       } catch {
@@ -347,7 +377,10 @@
         class="primary-button"
         data-hub-add-people
         aria-expanded={addOpen}
-        onclick={() => (addOpen = !addOpen)}>{h('addPeople')}</button
+        onclick={() => {
+          addOpen = !addOpen;
+          startTouched = false;
+        }}>{h('addPeople')}</button
       >
     {:else if canManage}
       <a
@@ -372,12 +405,18 @@
             <label class="hub-pick"
               ><input type="checkbox" bind:checked={selected[worker.id]} data-hub-pick={worker.id} />
               <span
-                >{worker.name}{#if lastEndedOn[worker.id]}<small class="hub-pick-note"
-                    >{h('rejoinNote', {
-                      ended: formatDate(lastEndedOn[worker.id]),
-                      start: formatDate(startFor(worker.id)),
-                    })}</small
-                  >{/if}</span
+                >{worker.name}{#if lastEndedOn[worker.id]}{#if overlapsEarlier(worker.id)}<small
+                      class="hub-pick-note hub-pick-note--warn"
+                      data-hub-overlap={worker.id}
+                      >{h('rejoinOverlap', { ended: formatDate(lastEndedOn[worker.id]) })}</small
+                    >{:else if startTouched}<small class="hub-pick-note"
+                      >{h('rejoinUntil', { ended: formatDate(lastEndedOn[worker.id]) })}</small
+                    >{:else}<small class="hub-pick-note"
+                      >{h('rejoinNote', {
+                        ended: formatDate(lastEndedOn[worker.id]),
+                        start: formatDate(startFor(worker.id)),
+                      })}</small
+                    >{/if}{/if}</span
               ></label
             >
           {/each}
@@ -390,6 +429,8 @@
               min={projectStart || undefined}
               max={projectEnd || undefined}
               bind:value={startsOn}
+              oninput={() => (startTouched = true)}
+              data-hub-starts-on
             /><small class="surface-intro">{h('startsOnHelp')}</small></label
           >
           <fieldset>
@@ -739,6 +780,10 @@
     display: block;
     color: var(--muted, #5f6368);
     font-weight: 400;
+  }
+  .hub-pick-note--warn {
+    color: var(--danger, #b3261e);
+    font-weight: 600;
   }
   .hub-pick input,
   .hub-radio input {

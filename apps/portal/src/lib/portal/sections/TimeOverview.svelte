@@ -20,7 +20,7 @@
     type OverviewEntry,
     type OverviewStatus as Status,
   } from '../time-overview-types';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { weekStartForDate } from './time-entry-actions';
   import { timeDetailText } from './time-hours';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
@@ -77,7 +77,8 @@
           : controlledValue('timeCategory', category);
   const projectName = (entry: OverviewEntry) =>
     [entry.project_number, entry.project_name].filter(Boolean).join(' · ');
-  const hours = (minutes: number) => decimalHoursFromMinutes(minutes);
+  // H:MM like the timesheet and Home (Z5); the CSV export keeps decimals.
+  const hours = (minutes: number) => clockHoursFromMinutes(minutes);
 
   const language = $derived(documentLanguage(locale));
   const isWeekend = (date: string) => [0, 6].includes(new Date(`${date}T00:00:00.000Z`).getUTCDay());

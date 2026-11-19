@@ -52,6 +52,26 @@ function runLocal(program: string, args: string[]): Promise<string> {
   });
 }
 
+const tesseractLanguage = { en: 'eng', es: 'spa', pt: 'por' } as const;
+
+/**
+ * OCR in the person's language. When that language pack is not installed on
+ * this host (tesseract reports it as unavailable), read with English instead:
+ * digits, dates and amounts are recognised the same way, so a suggestion is
+ * still better than none. Production images ship eng+spa+por.
+ */
+async function readImageText(file: string, locale: 'en' | 'es' | 'pt'): Promise<string> {
+  const run = (language: string) =>
+    runLocal('/usr/bin/tesseract', [file, 'stdout', '-l', language, '--psm', '6']);
+  try {
+    return await run(tesseractLanguage[locale]);
+  } catch (error) {
+    if (locale === 'en' || !(error instanceof LocalTextError) || error.code !== 'unavailable')
+      throw error;
+    return run(tesseractLanguage.en);
+  }
+}
+
 /** Extraction is a draft aid. It never stores an artifact, creates a fact or applies policy. */
 export async function extractLocalDocumentText(
   bytes: Uint8Array,
@@ -96,14 +116,7 @@ export async function extractLocalDocumentText(
             file,
             '-',
           ])
-        : await runLocal('/usr/bin/tesseract', [
-            file,
-            'stdout',
-            '-l',
-            { en: 'eng', es: 'spa', pt: 'por' }[locale],
-            '--psm',
-            '6',
-          ]);
+        : await readImageText(file, locale);
     }
     const text = value.replace(/\r\n/g, '\n').trim();
     return {

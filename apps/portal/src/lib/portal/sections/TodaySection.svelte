@@ -2,7 +2,7 @@
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { onMount } from 'svelte';
   import { portalText } from '../../portal-i18n';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
   import OwnerFinanceDashboard from './OwnerFinanceDashboard.svelte';
   import { homeText, type HomeCopyKey } from './home-copy';
@@ -51,7 +51,7 @@
 
   const formatPlanningMinutes = (value: unknown): string | null => {
     if (value == null || value === '') return null;
-    const hours = decimalHoursFromMinutes(value);
+    const hours = clockHoursFromMinutes(value);
     return hours === '—' ? null : `${hours} h`;
   };
 
@@ -72,7 +72,7 @@
     count === 1 ? h(one) : h(many, { count });
   const totalsText = (totals: readonly CurrencyTotal[] | undefined): string =>
     (totals ?? []).map((total) => money(total.minor, total.currency)).join(' · ');
-  const hoursText = (minutes: number) => `${decimalHoursFromMinutes(minutes)} h`;
+  const hoursText = (minutes: number) => `${clockHoursFromMinutes(minutes)} h`;
   const link = (path: string, params: Record<string, string> = {}) => {
     const target = new URL(`${base}/app/${path}`, 'https://portal.invalid');
     for (const [key, value] of Object.entries(params)) target.searchParams.set(key, value);
@@ -143,9 +143,9 @@
             })
           : '';
       const pendingNote = (minutes: number | undefined) =>
-        minutes ? h('pendingToApprove', { hours: decimalHoursFromMinutes(minutes) }) : '';
+        minutes ? h('pendingToApprove', { hours: clockHoursFromMinutes(minutes) }) : '';
       const unpricedNote = (minutes: number | undefined) =>
-        minutes ? h('approvedHours', { hours: decimalHoursFromMinutes(minutes) }) : '';
+        minutes ? h('approvedHours', { hours: clockHoursFromMinutes(minutes) }) : '';
       // Headline: money ready, else approved hours without a rate, else hours to approve, else expenses.
       const headline =
         totalsText(ready.totals) ||
@@ -200,7 +200,7 @@
                       item.rateMissing ? h('rateMissingSetIt') : '',
                       pendingNote(item.pendingMinutes) !== value ? pendingNote(item.pendingMinutes) : '',
                       item.unsentMinutes
-                        ? h('notSentYet', { hours: decimalHoursFromMinutes(item.unsentMinutes) })
+                        ? h('notSentYet', { hours: clockHoursFromMinutes(item.unsentMinutes) })
                         : '',
                       expensesNote(item.approvedExpenses) !== value ? expensesNote(item.approvedExpenses) : '',
                     ]
@@ -434,7 +434,7 @@
             class="project-glance"
             ><small
               >{item.weekMinutes > 0
-                ? h('weekHours', { hours: decimalHoursFromMinutes(item.weekMinutes) })
+                ? h('weekHours', { hours: clockHoursFromMinutes(item.weekMinutes) })
                 : h('noHoursWeek')}</small
             >{#if BigInt(item.readyMinor) > 0n}<small class="project-glance-ready"
                 >{h('readyAmount', { amount: money(item.readyMinor, item.currency) })}</small
@@ -471,7 +471,7 @@
           <span class="worker-home-status">
             <strong
               >{weekMinutes > 0
-                ? h('hoursThisWeek', { hours: decimalHoursFromMinutes(weekMinutes) })
+                ? h('hoursThisWeek', { hours: clockHoursFromMinutes(weekMinutes) })
                 : h('noHoursYet')}</strong
             >
             {#each timeChips as chip (chip.key)}<span class="worker-chip" data-tone={chip.tone}
@@ -519,7 +519,6 @@
     >
       <div class="agenda-section-heading">
         <h2 id="today-assignments-heading">{translate('Today')}</h2>
-        <span>{translate('All times in UTC')}</span>
       </div>
       {#each agenda.today as assignment}
         {@render assignmentCard(assignment)}

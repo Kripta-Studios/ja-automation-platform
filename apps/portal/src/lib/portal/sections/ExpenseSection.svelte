@@ -16,7 +16,7 @@
   import type { SubmitFunction } from '@sveltejs/kit';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
-  import { normalizePortalLocale } from '../../portal-i18n';
+  import { normalizePortalLocale, type PortalLocale } from '../../portal-i18n';
   import { localToday } from '../ui/time-entry-clock';
   import { createOperationalSubmit, operationalFieldValidation } from '../ui/operational-submit';
   import { ResponsiveSheet, StatusBadge } from '../ui';
@@ -39,7 +39,10 @@
     availableProjects,
     saveOfflineDraft,
     translate,
+    locale: shellLocale,
   }: {
+    /** The shell's live language: the switcher changes it without a reload. */
+    locale?: PortalLocale;
     data: PortalData;
     isAuditor: boolean;
     availableProjects: Row[];
@@ -51,7 +54,9 @@
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
   } = $props();
 
-  const locale = $derived(normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale));
+  const locale = $derived(
+    shellLocale ?? normalizePortalLocale($page.url.searchParams.get('lang') ?? data.locale),
+  );
   const tag = $derived(expenseLocaleTag[locale]);
   const c = (key: ExpenseCopyKey, params: Record<string, string | number> = {}): string =>
     expenseCopy(locale, key, params);
@@ -274,6 +279,8 @@
   let receiptIsImage = $state(false);
   let receiptReading = $state(false);
   let receiptFilled = $state(false);
+  /** The receipt could not be read (or showed no amount): say so, never stay silent. */
+  let receiptUnread = $state(false);
   /** Amount came from the receipt reader: highlighted until the person checks/edits it. */
   let amountSuggested = $state(false);
   let amountTouched = false;
@@ -332,6 +339,7 @@
     receiptName = '';
     receiptIsImage = false;
     receiptFilled = false;
+    receiptUnread = false;
     receiptReading = false;
     amountSuggested = false;
     if (receiptInput) receiptInput.value = '';
@@ -353,12 +361,15 @@
     receiptIsImage = Boolean(file?.type.startsWith('image/'));
     receiptUrl = file ? URL.createObjectURL(file) : null;
     receiptFilled = false;
+    receiptUnread = false;
     if (!file || mode !== 'create') return;
     const scope = formKey;
+    const current = () => scope === formKey && mode === 'create' && receiptName === file.name;
     receiptReading = true;
-    void readReceipt(file, locale)
+    void readReceipt(file, locale, { stillNeeded: current })
       .then((facts) => {
-        if (scope !== formKey || mode !== 'create') return;
+        if (!current()) return;
+        receiptUnread = facts.unread && !fAmount.trim();
         let filled = false;
         if (facts.amount && !amountTouched && !fAmount.trim()) {
           fAmount = facts.amount;
@@ -603,6 +614,11 @@
   let bulkError = $state('');
   let bulkErrorRow = $state<number | null>(null);
   let bulkProblemCode = $state('');
+  /** Rows whose receipt is already stored or repeated in this batch (marked, never silently dropped). */
+  let bulkDuplicateKeys = $state<number[]>([]);
+  /** Which save the person chose, so "save the others" repeats the same intent. */
+  let bulkSendNow = $state(true);
+  let bulkForm = $state<HTMLFormElement>();
   let nextBulkKey = 0;
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
@@ -623,6 +639,7 @@
     bulkRequestId = crypto.randomUUID();
     bulkError = '';
     bulkErrorRow = null;
+    bulkDuplicateKeys = [];
     bulkFormKey += 1;
     bulkOpen = true;
   }
@@ -632,7 +649,9 @@
     target.queued = false;
     target.reading = true;
     target.unread = false;
-    const facts = await readReceipt(file, locale, { retryWhenBusy: true });
+    const facts = await readReceipt(file, locale, {
+      stillNeeded: () => bulkOpen && bulkRows.some((item) => item.key === key),
+    });
     const row = bulkRows.find((item) => item.key === key);
     if (!row) return;
     row.reading = false;
@@ -640,7 +659,7 @@
       row.amount = facts.amount;
       row.filled = true;
     }
-    if (!facts.amount && !row.amount.trim()) row.unread = true;
+    if (facts.unread && !row.amount.trim()) row.unread = true;
     if (facts.date) {
       row.date = facts.date;
       row.filled = true;
@@ -700,8 +719,15 @@
     },
     setProblem: (value) => {
       bulkProblemCode = value?.code ?? '';
-      const row = (value as (ProblemData & { batchRow?: number }) | null)?.batchRow;
+      const problem = value as (ProblemData & { batchRow?: number; batchRows?: unknown }) | null;
+      const row = problem?.batchRow;
       bulkErrorRow = typeof row === 'number' ? row : null;
+      bulkDuplicateKeys =
+        problem?.code === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
+          ? (Array.isArray(problem.batchRows) ? problem.batchRows : [row])
+              .map((index) => (typeof index === 'number' ? bulkRows[index]?.key : undefined))
+              .filter((key): key is number => typeof key === 'number')
+          : [];
     },
     onSuccess: () => {
       try {
@@ -715,6 +741,26 @@
     },
     offlineHandled: () => false,
   });
+  const bulkDuplicateLabels = $derived(
+    bulkRows
+      .map((row, index) => (bulkDuplicateKeys.includes(row.key) ? c('rowLabel', { n: index + 1 }) : ''))
+      .filter(Boolean)
+      .join(', '),
+  );
+  const bulkOthers = $derived(bulkFilled.filter((row) => !bulkDuplicateKeys.includes(row.key)).length);
+  /** Only after the person confirms: drop the marked rows and save the rest the same way. */
+  async function saveOtherBulkRows(): Promise<void> {
+    const remove = new Set(bulkDuplicateKeys);
+    bulkRows = bulkRows.filter((row) => !remove.has(row.key));
+    bulkDuplicateKeys = [];
+    bulkError = '';
+    bulkErrorRow = null;
+    await tick();
+    const submitter = bulkForm?.querySelector<HTMLButtonElement>(
+      bulkSendNow ? '[data-expense-bulk-send]' : '[data-expense-bulk-save]',
+    );
+    if (bulkForm && submitter) bulkForm.requestSubmit(submitter);
+  }
 </script>
 
 {#snippet categoryIcon(value: string)}
@@ -948,6 +994,7 @@
       action="?/createExpenseBatch"
       enctype="multipart/form-data"
       class="xp-form"
+      bind:this={bulkForm}
       data-expense-bulk-form
       aria-busy={bulkSaving}
       onfocusin={keepAboveActions}
@@ -966,7 +1013,21 @@
         />
         <span class="xp-receipt-cta">{c('pickReceipts')}</span>
       </label>
-      {#if bulkError}
+      {#if bulkError && bulkDuplicateKeys.length}
+        <div class="xp-error" role="alert" tabindex="-1" data-operational-form-error data-bulk-duplicate>
+          <p>{c('duplicateReceiptRows', { rows: bulkDuplicateLabels })}</p>
+          {#if bulkOthers > 0}
+            <button
+              type="button"
+              class="secondary-button"
+              disabled={bulkSaving}
+              onclick={() => void saveOtherBulkRows()}
+              data-bulk-save-others
+              >{c('saveOthers', { rows: bulkDuplicateLabels, n: bulkOthers })}</button
+            >
+          {/if}
+        </div>
+      {:else if bulkError}
         <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
           {#if bulkErrorRow !== null}{c('rowLabel', { n: bulkErrorRow + 1 })}:
           {/if}{bulkProblemCode === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
@@ -1027,7 +1088,11 @@
 
       <ol class="xp-bulk">
         {#each bulkRows as row, index (row.key)}
-          <li class="xp-bulk-row" class:xp-bulk-bad={bulkErrorRow === index}>
+          <li
+            class="xp-bulk-row"
+            class:xp-bulk-bad={bulkErrorRow === index || bulkDuplicateKeys.includes(row.key)}
+            data-bulk-duplicate-row={bulkDuplicateKeys.includes(row.key) ? '' : undefined}
+          >
             <span class="xp-bulk-n" aria-hidden="true">{index + 1}</span>
             <label class="xp-field">
               <span>{c('date')}</span>
@@ -1069,6 +1134,7 @@
                   const file = event.currentTarget.files?.[0];
                   row.file = file?.name ?? '';
                   row.filled = false;
+                  bulkDuplicateKeys = bulkDuplicateKeys.filter((key) => key !== row.key);
                   if (file) void fillBulkRow(row.key, file);
                 }}
               />
@@ -1078,7 +1144,9 @@
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
             </label>
-            {#if row.queued}
+            {#if bulkDuplicateKeys.includes(row.key)}
+              <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="duplicate">{c('receiptUsed')}</p>
+            {:else if row.queued}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="queued">{c('waitingToRead')}</p>
             {:else if row.reading}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="reading">{c('readingReceipt')}</p>
@@ -1107,12 +1175,25 @@
       <p class="xp-muted">{c('policyHint')}</p>
       <div class="xp-form-actions">
         <span><strong>{c('total')}: {bulkTotal}</strong></span>
-        <button type="submit" disabled={bulkSaving || bulkFilled.length === 0 || bulkPending > 0} data-expense-bulk-save
+        <button
+          type="submit"
+          class="secondary xp-save-draft"
+          disabled={bulkSaving || bulkFilled.length === 0 || bulkPending > 0}
+          onclick={() => (bulkSendNow = false)}
+          data-expense-bulk-save>{c('saveAsDrafts')}</button
+        >
+        <button
+          type="submit"
+          name="submitNow"
+          value="on"
+          disabled={bulkSaving || bulkFilled.length === 0 || bulkPending > 0}
+          onclick={() => (bulkSendNow = true)}
+          data-expense-bulk-send
           >{bulkSaving
             ? c('saving')
             : bulkPending > 0
               ? c('readingReceipts', { n: bulkPending })
-              : c('saveAll', { n: bulkFilled.length })}</button
+              : c('saveSendAll', { n: bulkFilled.length })}</button
         >
       </div>
     </form>
@@ -1267,6 +1348,8 @@
         >
         {#if receiptReading}
           <p class="xp-muted" role="status">{c('readingReceipt')}</p>
+        {:else if receiptUnread && receiptUrl && !fAmount.trim()}
+          <p class="xp-warn" role="status" data-expense-receipt-unread>{c('notReadType')}</p>
         {:else if receiptFilled}
           <p class="xp-ok" role="status" data-expense-receipt-filled>{c('filledFromReceipt')}</p>
         {:else if mode === 'create' && !receiptUrl}

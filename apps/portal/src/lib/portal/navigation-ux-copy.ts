@@ -47,6 +47,7 @@ export const navigationUxCopy = {
   sectionNavigator: {
     currentSection: 'Current section: {section}',
     resultCount: '{count} matching destinations',
+    resultCountOne: '1 matching destination',
     searchHint:
       'Find authorized actions, settings and sections. Record search appears separately when available.',
     frequentSettings: 'Frequent settings',
@@ -110,6 +111,7 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     sectionNavigator: {
       currentSection: 'Sección actual: {section}',
       resultCount: '{count} destinos coincidentes',
+      resultCountOne: '1 destino coincidente',
       searchHint:
         'Busca acciones, ajustes y secciones autorizados. La búsqueda de registros aparece aparte cuando está disponible.',
       frequentSettings: 'Ajustes frecuentes',
@@ -165,6 +167,7 @@ export const navigationUxCatalog: Record<NavigationUxLocale, NavigationUxCatalog
     sectionNavigator: {
       currentSection: 'Seção atual: {section}',
       resultCount: '{count} destinos correspondentes',
+      resultCountOne: '1 destino correspondente',
       searchHint:
         'Encontre ações, configurações e seções autorizadas. A busca por registros aparece à parte quando disponível.',
       frequentSettings: 'Configurações frequentes',
@@ -186,7 +189,10 @@ export function navigationUxText(
   key: string,
   params: Readonly<Record<string, string | number>> = {},
 ): string {
-  const value =
-    navigationUxCatalog[locale]?.[section]?.[key] ?? navigationUxCatalog.en[section][key] ?? key;
+  // Singular wording ("1 matching destination") when a "<key>One" variant exists.
+  const one = Number(params.count) === 1 ? `${key}One` : '';
+  const pick = (name: string) =>
+    navigationUxCatalog[locale]?.[section]?.[name] ?? navigationUxCatalog.en[section][name];
+  const value = (one && pick(one)) || pick(key) || key;
   return value.replace(/\{([\w]+)\}/g, (_, name: string) => String(params[name] ?? `{${name}}`));
 }

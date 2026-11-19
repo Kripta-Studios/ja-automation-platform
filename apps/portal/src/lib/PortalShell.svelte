@@ -123,7 +123,7 @@
     hours,
     initials,
   } from './portal/portal-format';
-  import { decimalHoursFromMinutes } from './portal/minute-hours';
+  import { clockHoursFromMinutes } from './portal/minute-hours';
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
   import { scaleWindowText } from './portal/sections/scale-window-copy';
@@ -445,7 +445,7 @@
     }
   };
   const hoursFromMinutes = (minutes: unknown): string => {
-    const value = decimalHoursFromMinutes(minutes);
+    const value = clockHoursFromMinutes(minutes);
     return value === '—' ? value : `${value} h`;
   };
   const projectUx = (
@@ -4050,6 +4050,7 @@
       />
     {:else if data.section === 'expenses'}
       <ExpenseSection
+        {locale}
         {data}
         {isAuditor}
         {availableProjects}

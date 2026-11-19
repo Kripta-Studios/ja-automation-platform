@@ -148,6 +148,21 @@ const en = {
   deleteConfirm: 'Delete this draft? This cannot be undone.',
   deleteYes: 'Yes, delete',
   deleteKeep: 'Keep it',
+  saveAndSend: 'Save & send',
+  saveDraft: 'Save draft',
+  waitingToRead: 'Waiting to read this receipt…',
+  filledFromReceiptShort: 'Amount from the receipt — check it.',
+  notReadType: 'Could not read the amount. Type it.',
+  readingReceipts: 'Reading {n} receipts…',
+  readingReceiptsOne: 'Reading 1 receipt…',
+  checkAmount: 'Suggested from the receipt — check it matches.',
+  receiptAttached: 'Receipt',
+  confirmBodyOne:
+    '1 expense will be sent for review. You cannot change it after submitting unless the reviewer returns it.',
+  confirmSubmitOne: 'Submit 1 expense',
+  captureScopeOne: 'Last {weeks} weeks and open items · 1 expense',
+  saveAllOne: 'Save 1 expense',
+  itemsOne: '1 expense',
 };
 
 type Copy = Record<keyof typeof en, string>;
@@ -298,6 +313,21 @@ const es: Copy = {
   deleteConfirm: '¿Eliminar este borrador? No se puede deshacer.',
   deleteYes: 'Sí, eliminar',
   deleteKeep: 'Conservar',
+  saveAndSend: 'Guardar y enviar',
+  saveDraft: 'Guardar borrador',
+  waitingToRead: 'Esperando para leer este ticket…',
+  filledFromReceiptShort: 'Importe tomado del ticket: compruébalo.',
+  notReadType: 'No se pudo leer el importe. Escríbelo.',
+  readingReceipts: 'Leyendo {n} tickets…',
+  readingReceiptsOne: 'Leyendo 1 ticket…',
+  checkAmount: 'Sugerido a partir del ticket: comprueba que coincide.',
+  receiptAttached: 'Ticket',
+  confirmBodyOne:
+    'Se enviará 1 gasto a revisión. No podrás cambiarlo después de enviarlo, salvo que el revisor lo devuelva.',
+  confirmSubmitOne: 'Enviar 1 gasto',
+  captureScopeOne: 'Últimas {weeks} semanas y pendientes · 1 gasto',
+  saveAllOne: 'Guardar 1 gasto',
+  itemsOne: '1 gasto',
 };
 
 const pt: Copy = {
@@ -447,6 +477,21 @@ const pt: Copy = {
   deleteConfirm: 'Excluir este rascunho? Não é possível desfazer.',
   deleteYes: 'Sim, excluir',
   deleteKeep: 'Manter',
+  saveAndSend: 'Salvar e enviar',
+  saveDraft: 'Salvar rascunho',
+  waitingToRead: 'Aguardando para ler este recibo…',
+  filledFromReceiptShort: 'Valor tirado do recibo — confira.',
+  notReadType: 'Não foi possível ler o valor. Digite-o.',
+  readingReceipts: 'Lendo {n} recibos…',
+  readingReceiptsOne: 'Lendo 1 recibo…',
+  checkAmount: 'Sugerido a partir do recibo — confira se está certo.',
+  receiptAttached: 'Recibo',
+  confirmBodyOne:
+    '1 despesa será enviada para revisão. Você não poderá alterá-la depois do envio, a menos que o revisor a devolva.',
+  confirmSubmitOne: 'Enviar 1 despesa',
+  captureScopeOne: 'Últimas {weeks} semanas e pendentes · 1 despesa',
+  saveAllOne: 'Salvar 1 despesa',
+  itemsOne: '1 despesa',
 };
 
 const catalogs: Record<PortalLocale, Copy> = { en, es, pt };
@@ -458,7 +503,11 @@ export function expenseCopy(
   key: ExpenseCopyKey,
   params: Record<string, string | number> = {},
 ): string {
-  const template = (catalogs[locale] ?? en)[key] ?? en[key];
+  const table = catalogs[locale] ?? en;
+  // Singular wording ("1 expense", never "1 expenses") when "<key>One" exists.
+  const one = `${key}One` as ExpenseCopyKey;
+  const template =
+    Number(params.n) === 1 && Object.hasOwn(table, one) ? table[one] : (table[key] ?? en[key]);
   return template.replace(/\{(\w+)\}/gu, (match, name: string) =>
     name in params ? String(params[name]) : match,
   );

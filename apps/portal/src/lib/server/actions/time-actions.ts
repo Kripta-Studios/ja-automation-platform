@@ -827,7 +827,7 @@ export const timeActions = withOperationalActionNames({
       return actionSuccess(
         'action.time.batchDraftsSaved',
         { count: result.created.length },
-        `${result.created.length} daily time drafts saved`,
+        'Hours saved. Not sent for approval yet.',
       );
     } catch (error) {
       return timeActionFailure(error, object);
@@ -957,7 +957,9 @@ export const timeActions = withOperationalActionNames({
         { code: 'TIME_SAVE_APPROVE_OWNER_ONLY', values, remedies: [{ id: 'review_week' }] },
       );
     }
-    const submittedBefore = approve
+    // Ids already waiting before this request, so the result can say exactly
+    // what this request sent or approved (never other pending entries).
+    const submittedBefore = approve || submit
       ? new Set(
           (
             context.sqlite
@@ -1021,17 +1023,33 @@ export const timeActions = withOperationalActionNames({
       }
       if (submitDay)
         return actionSuccess('action.time.submitted', {}, 'Time submitted.');
-      return submit
-        ? actionSuccess(
-            'action.time.weekSubmitted',
-            { timeSubmitted: result.submitted, mealsSubmitted: 0 },
-            `${result.submitted} time drafts submitted`,
-          )
-        : actionSuccess(
-            'action.time.batchDraftsSaved',
-            { count: saved },
-            `${saved} daily time drafts saved`,
-          );
+      if (submit) {
+        // Plain summary for the worker: "Week sent: 3 days, 24 h".
+        const sent = (
+          context.sqlite
+            .prepare(
+              `SELECT id,work_date,minutes FROM time_entry WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='submitted'`,
+            )
+            .all(workerId, weekStart, [...dates].sort().at(-1)!) as Array<{
+            id: string;
+            work_date: string;
+            minutes: number;
+          }>
+        ).filter((row) => !submittedBefore.has(row.id));
+        const days = new Set(sent.map((row) => row.work_date)).size;
+        const minutes = sent.reduce((sum, row) => sum + (Number(row.minutes) || 0), 0);
+        const hours = `${Math.floor(minutes / 60)}${minutes % 60 ? `:${String(minutes % 60).padStart(2, '0')}` : ''}`;
+        return actionSuccess(
+          days === 1 ? 'action.time.weekSentOneDay' : 'action.time.weekSent',
+          { days, hours, timeSubmitted: result.submitted },
+          days === 1 ? `Week sent: 1 day, ${hours} h.` : `Week sent: ${days} days, ${hours} h.`,
+        );
+      }
+      return actionSuccess(
+        'action.time.batchDraftsSaved',
+        { count: saved },
+        'Hours saved. Not sent for approval yet.',
+      );
     } catch (error) {
       const failure = timeActionFailure(error, values);
       const cell = (error as { weekCell?: unknown } | null)?.weekCell;
@@ -1429,11 +1447,14 @@ export const timeActions = withOperationalActionNames({
         weekStart,
         expected as Array<{ id: string; version: number }>,
       );
-      return actionSuccess(
-        'action.time.weekSubmitted',
-        result,
-        `${result.timeSubmitted} time drafts and ${result.mealsSubmitted} linked meal expenses submitted`,
-      );
+      // Linked meals are mentioned only when there were some.
+      return result.mealsSubmitted
+        ? actionSuccess(
+            'action.time.weekSubmitted',
+            result,
+            `Week sent for approval: ${result.timeSubmitted} hour entries and ${result.mealsSubmitted} meal expenses.`,
+          )
+        : actionSuccess('action.time.weekSentPlain', result, 'Week sent for approval.');
     } catch (error) {
       return timeActionFailure(error, object);
     } finally {

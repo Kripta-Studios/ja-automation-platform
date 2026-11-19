@@ -31,16 +31,16 @@ const exact: Record<string, readonly [string, string]> = {
     'O rascunho de despesa já estava salvo. Nenhum duplicado foi criado.',
   ],
   'action.expense.weekDraftsAlreadySaved': [
-    'Ya estaban guardados {created} borradores de gastos semanales. No se crearon duplicados.',
-    '{created} rascunhos de despesas semanais já estavam salvos. Nenhum duplicado foi criado.',
+    'Estos gastos ya estaban guardados. No se duplicó nada.',
+    'Estas despesas já estavam salvas. Nada foi duplicado.',
   ],
   'action.expense.weekDraftsSaved': [
-    'Se guardaron {created} borradores de gastos semanales.',
-    '{created} rascunhos de despesas semanais salvos.',
+    '{created} gastos guardados como borrador. Envíalos a aprobación cuando quieras.',
+    '{created} despesas salvas como rascunho. Envie-as para aprovação quando quiser.',
   ],
   'action.expense.weekSubmitted': [
-    'Se enviaron {submitted} borradores de gastos para revisión.',
-    '{submitted} rascunhos de despesas enviados para revisão.',
+    'Se enviaron {submitted} gastos a revisión.',
+    '{submitted} despesas enviadas para revisão.',
   ],
   'action.planning.assignmentAlreadyPublished': [
     'La asignación ya estaba publicada. No se crearon duplicados.',
@@ -8227,8 +8227,8 @@ const actionExact: Record<string, readonly [string, string]> = {
     'O rascunho de despesa já foi salvo. Nenhuma duplicata foi criada.',
   ],
   'action.expense.weekDraftsAlreadySaved': [
-    '{created} borradores semanales de gastos ya se guardaron. No se crearon duplicados.',
-    '{created} rascunhos semanais de despesas já foram salvos. Nenhuma duplicata foi criada.',
+    'Estos gastos ya estaban guardados. No se duplicó nada.',
+    'Estas despesas já estavam salvas. Nada foi duplicado.',
   ],
   'action.planning.assignmentAlreadyPublished': [
     'La asignación ya se publicó. No se crearon duplicados.',
@@ -8243,12 +8243,16 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Os rascunhos de horas e refeição foram retirados juntos.',
   ],
   'action.expense.weekSubmitted': [
-    '{submitted} borradores de gastos enviados a revisión.',
-    '{submitted} rascunhos de despesas enviados para revisão.',
+    '{submitted} gastos enviados a revisión.',
+    '{submitted} despesas enviadas para revisão.',
   ],
   'action.expense.weekDraftsSaved': [
-    '{created} borradores semanales guardados; las repeticiones no crean duplicados.',
-    '{created} rascunhos semanais salvos; novas tentativas não criam duplicatas.',
+    '{created} gastos guardados como borrador. Envíalos a aprobación cuando quieras.',
+    '{created} despesas salvas como rascunho. Envie-as para aprovação quando quiser.',
+  ],
+  'action.expense.weekDraftsSavedOne': [
+    '1 gasto guardado como borrador. Envíalo a aprobación cuando quieras.',
+    '1 despesa salva como rascunho. Envie-a para aprovação quando quiser.',
   ],
   'action.management.changed': [
     'Este registro cambió. Tus datos siguen en este formulario. Compáralos con el registro actual antes de volver a aplicar tus cambios.',
@@ -8950,8 +8954,8 @@ const actionExact: Record<string, readonly [string, string]> = {
   ],
   'action.time.draftSaved': ['Borrador de horas guardado.', 'Rascunho de horas salvo.'],
   'action.time.batchDraftsSaved': [
-    '{count} borradores diarios de horas guardados.',
-    '{count} rascunhos diários de horas salvos.',
+    'Horas guardadas. Aún no se enviaron a aprobación.',
+    'Horas salvas. Ainda não foram enviadas para aprovação.',
   ],
   'action.time.expenseDraftsSaved': [
     'Borradores de horas y gasto guardados.',
@@ -8974,9 +8978,13 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.time.sheetAttached': ['Hoja firmada adjuntada a la semana.', 'Folha assinada anexada à semana.'],
   'action.time.savedAndApproved': ['{count} registros de horas guardados y aprobados ({hours} h).', '{count} registros de horas salvos e aprovados ({hours} h).'],
   'action.time.weekSubmitted': [
-    '{timeSubmitted} registros de horas y {mealsSubmitted} gastos de comidas enviados para revisión.',
-    '{timeSubmitted} registros de horas e {mealsSubmitted} despesas com refeições enviados para revisão.',
+    'Semana enviada a aprobación: {timeSubmitted} registros de horas y {mealsSubmitted} gastos de comida.',
+    'Semana enviada para aprovação: {timeSubmitted} registros de horas e {mealsSubmitted} despesas de refeição.',
   ],
+  'action.time.weekSent': ['Semana enviada: {days} días, {hours} h.', 'Semana enviada: {days} dias, {hours} h.'],
+  'action.time.weekSentOneDay': ['Semana enviada: 1 día, {hours} h.', 'Semana enviada: 1 dia, {hours} h.'],
+  'action.time.weekSentPlain': ['Semana enviada a aprobación.', 'Semana enviada para aprovação.'],
+  'action.expense.weekSubmittedOne': ['1 gasto enviado a revisión.', '1 despesa enviada para revisão.'],
 };
 
 const validationEntities: Record<string, readonly [string, string]> = {
@@ -9320,14 +9328,16 @@ function englishActionMessage(key: string): string {
     'action.validation.receiptContent':
       'Receipt filename or content does not match its declared file type.',
     'action.validation.receiptPath': 'Invalid receipt path.',
-    'action.expense.weekSubmitted': '{submitted} expense drafts submitted for review.',
+    'action.expense.weekSubmitted': '{submitted} expenses sent for review.',
+    'action.expense.weekSubmittedOne': '1 expense sent for review.',
     'action.expense.weekDraftsSaved':
-      '{created} weekly expense drafts saved; retries create no duplicates.',
+      '{created} expenses saved as drafts. Send them for approval when ready.',
+    'action.expense.weekDraftsSavedOne': '1 expense saved as a draft. Send it for approval when ready.',
     'action.validation.unusedIssuerReplacement': 'Review the replacement issuing authority fields.',
     'action.expense.draftSaved': 'Expense draft saved.',
     'action.expense.draftAlreadySaved': 'Expense draft already saved. No duplicate was created.',
     'action.expense.weekDraftsAlreadySaved':
-      '{created} weekly expense drafts were already saved. No duplicates were created.',
+      'These expenses were already saved. Nothing was duplicated.',
     'action.validation.expenseRecord': 'Invalid expense record.',
     'action.expense.submitted': 'Expense submitted.',
     'action.reports.draftDeleted': 'Draft deleted.',
@@ -9457,7 +9467,7 @@ function englishActionMessage(key: string): string {
     'action.time.draftAlreadySaved': 'Time draft already saved. No duplicate was created.',
     'action.linkedDraft.withdrawn': 'Linked time and meal drafts withdrawn.',
     'action.time.draftSaved': 'Time draft saved.',
-    'action.time.batchDraftsSaved': '{count} daily time drafts saved.',
+    'action.time.batchDraftsSaved': 'Hours saved. Not sent for approval yet.',
     'action.time.expenseDraftsSaved': 'Time and expense drafts saved.',
     'action.validation.timeSourceWeekDifferent': 'Choose a different source week.',
     'action.time.draftUpdated': 'Time draft updated.',
@@ -9466,7 +9476,10 @@ function englishActionMessage(key: string): string {
     'action.time.sheetAttached': 'Signed sheet attached to the week.',
     'action.time.savedAndApproved': '{count} time entries saved and approved ({hours} h).',
     'action.time.weekSubmitted':
-      '{timeSubmitted} time drafts and {mealsSubmitted} linked meal expenses submitted for review.',
+      'Week sent for approval: {timeSubmitted} hour entries and {mealsSubmitted} meal expenses.',
+    'action.time.weekSent': 'Week sent: {days} days, {hours} h.',
+    'action.time.weekSentOneDay': 'Week sent: 1 day, {hours} h.',
+    'action.time.weekSentPlain': 'Week sent for approval.',
     'action.time.removedOrVoided': 'Time entry removed/voided.',
     'action.error.invalid': 'Check the submitted values and try again.',
     'action.reports.periodFollowupRecorded': 'Period follow-up recorded.',

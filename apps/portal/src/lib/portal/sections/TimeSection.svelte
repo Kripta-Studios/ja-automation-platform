@@ -18,17 +18,12 @@
   import type { ControlledValueDomain } from '../../i18n/controlled-values';
   import { documentLanguage, type PortalLocale } from '../../portal-i18n';
   import type { PortalData, PortalRow as Row } from '../portal-data';
-  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '../minute-hours';
   import { localToday } from '../ui/time-entry-clock';
   import { weekDates, weekStartForDate } from './time-entry-actions';
   import { timeWeekText, type TimeWeekCopyKey } from './time-week-copy';
+  import { captureTimeCategories, isCaptureTimeCategory } from '../time-categories';
   import {
-    captureTimeCategories,
-    isCaptureTimeCategory,
-    moreTimeCategories,
-    quickTimeCategories,
-  } from '../time-categories';
-  import {
+    clockHoursText,
     DAY_MAX_MINUTES,
     DAY_WARN_MINUTES,
     hoursAndMinutesText,
@@ -62,7 +57,6 @@
   type CellKind = 'new' | 'draft' | 'fix' | 'locked' | 'multi' | 'unassigned';
   type SheetRow = { key: string; projectId: string; category: string };
 
-  const quickCategories = quickTimeCategories;
   const categoryOrder = (category: string) => {
     const index = (captureTimeCategories as readonly string[]).indexOf(category);
     return index < 0 ? 9 : index;
@@ -119,7 +113,7 @@
   let busy = $state<'' | Intent>('');
   let intent = $state<Intent>('save');
   /** Inline "done" line for One day mode (kept until the next edit). */
-  type DoneKind = 'saved' | 'sent' | 'approved';
+  type DoneKind = 'saved' | 'sent' | 'approved' | 'deleted';
   let dayDone = $state<{ kind: DoneKind; minutes: number; day: string } | null>(null);
   let pendingDone: { kind: DoneKind; minutes: number; day: string } | null = null;
   let addingRow = $state(false);
@@ -184,10 +178,14 @@
     /** Minutes computed from start/end/break; null = no times; undefined = invalid times. */
     detailMinutes: number | null | undefined;
     detailChanged: boolean;
+    /** Start or end typed without the other: saving waits, no error shown yet. */
+    incomplete: boolean;
   };
 
   const parseHours = (value: string) => parseHoursText(value);
-  const hoursText = (minutes: number) => (minutes ? decimalHoursFromMinutes(minutes) : '');
+  /** Capture screens show hours as H:MM ("8:30"), never as decimals ("8.5"). */
+  const hm = (minutes: unknown) => clockHoursText(Number(minutes ?? 0) || 0);
+  const hoursText = (minutes: number) => (minutes ? hm(minutes) : '');
   const storedDetail = (entry?: Row): DetailDraft => ({
     start: entry?.start_time && entry?.end_time ? String(entry.start_time) : '',
     end: entry?.start_time && entry?.end_time ? String(entry.end_time) : '',
@@ -197,11 +195,19 @@
         : '',
     note: String(entry?.activity_summary ?? ''),
   });
-  /** Worked minutes from a detail: null = no times, undefined = invalid. */
+  /** Only one of start/end typed so far: not an error yet, just not complete. */
+  const detailIncomplete = (detail: DetailDraft): boolean => {
+    const start = parseClockText(detail.start);
+    const end = parseClockText(detail.end);
+    return (start === null) !== (end === null) && start !== undefined && end !== undefined;
+  };
+  /** Worked minutes from a detail: null = no (complete) times, undefined = invalid. */
   const detailMinutesOf = (detail: DetailDraft): number | null | undefined => {
     const start = parseClockText(detail.start);
     const end = parseClockText(detail.end);
     if (start === null && end === null) return null;
+    // Half-typed (start without end): validated only once both are given.
+    if (detailIncomplete(detail)) return null;
     if (!start || !end) return undefined;
     const text = detail.breakMinutes.trim();
     if (!/^\d{0,4}$/u.test(text)) return undefined;
@@ -222,9 +228,11 @@
   const detailSummary = (detail: DetailDraft) =>
     detail.start && detail.end
       ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${Number(detail.breakMinutes || 0) ? ` −${Number(detail.breakMinutes)} min` : ''}`
-      : detail.note.trim()
-        ? '✎'
-        : '';
+      : detail.start.trim() || detail.end.trim()
+        ? `${parseClockText(detail.start) ?? '…'}–${parseClockText(detail.end) ?? '…'}`
+        : detail.note.trim()
+          ? '✎'
+          : '';
 
   const cellFor = (row: SheetRow, date: string): Cell => {
     const key = cellKey(row, date);
@@ -267,6 +275,7 @@
       detail,
       detailMinutes,
       detailChanged,
+      incomplete: editable && key in detailEdits && detailIncomplete(detail),
     };
   };
 
@@ -287,7 +296,9 @@
   const longDays = $derived(days.filter((_, index) => dayLong(index)));
   const changedCells = $derived(grid.flatMap((line) => line.cells.filter((cell) => cell.changed)));
   const invalidCells = $derived(
-    grid.flatMap((line) => line.cells.filter((cell) => cell.minutes === undefined)),
+    grid.flatMap((line) =>
+      line.cells.filter((cell) => cell.minutes === undefined || cell.incomplete),
+    ),
   );
   const fixingCells = $derived(changedCells.filter((cell) => cell.kind === 'fix'));
   const dirty = $derived(changedCells.length > 0);
@@ -516,8 +527,10 @@
 
   const submitSheet: SubmitFunction = () => {
     busy = intent;
-    pendingDone =
-      mode === 'day' && (intent === 'save' || intent === 'submit_day' || intent === 'submit_day_approve')
+    const deleting = deletingDay;
+    pendingDone = deleting
+      ? { kind: 'deleted', minutes: dayCell?.originalMinutes ?? 0, day: selectedDay }
+      : mode === 'day' && (intent === 'save' || intent === 'submit_day' || intent === 'submit_day_approve')
         ? {
             kind: intent === 'submit_day_approve' ? 'approved' : intent === 'submit_day' ? 'sent' : 'saved',
             minutes: dayModeTotal,
@@ -526,6 +539,9 @@
         : null;
     return async ({ result: outcome, update }) => {
       busy = '';
+      deletingDay = false;
+      confirmingDelete = false;
+      if (outcome.type !== 'success' && deleting) deleteError = t('deleteFailed');
       if (outcome.type === 'success') {
         edits = {};
         detailEdits = {};
@@ -613,12 +629,8 @@
   );
   let dayProjectChoice = $state('');
   let dayCategory = $state<string>('regular');
-  let showMoreTypes = $state(false);
-  const dayCategoryChoices = $derived<readonly string[]>(
-    showMoreTypes || (moreTimeCategories as readonly string[]).includes(dayCategory)
-      ? captureTimeCategories
-      : quickCategories,
-  );
+  // All four types are shown inline (only one was ever hidden behind "More types").
+  const dayCategoryChoices: readonly string[] = captureTimeCategories;
   const dayProject = $derived(
     dayProjects.some((project) => String(project.id) === dayProjectChoice)
       ? dayProjectChoice
@@ -646,6 +658,8 @@
     dayDone = null;
     dayProjectChoice = projectId;
     dayCategory = category;
+    confirmingDelete = false;
+    deleteError = '';
   };
   // Remember the last project and type so the next "Log hours" is just hours -> Save.
   const lastChoiceKey = () => `ja.time.lastDay.${String(data.user.id)}`;
@@ -688,7 +702,18 @@
     );
   });
   const submitCells = $derived(
-    mode === 'day'
+    mode === 'day' && deletingDay && dayCell?.entry
+      ? [
+          {
+            projectId: dayRow.projectId,
+            category: dayRow.category,
+            workDate: selectedDay,
+            hours: '0',
+            id: String(dayCell.entry.id),
+            version: Number(dayCell.entry.version),
+          },
+        ]
+      : mode === 'day'
       ? dayCell?.changed
         ? [
             {
@@ -723,28 +748,64 @@
   );
   const invalidNow = $derived(
     mode === 'day'
-      ? Boolean(dayCell) && (dayCell!.minutes === undefined || dayModeTotal > DAY_MAX_MINUTES)
+      ? Boolean(dayCell) &&
+          (dayCell!.minutes === undefined || dayCell!.incomplete || dayModeTotal > DAY_MAX_MINUTES)
       : invalidCells.length > 0 || overDays.length > 0,
   );
+  /** Week mode only: One day shows each problem once, next to its field. */
   const blockReason = $derived(
     invalidNow
-      ? (mode === 'day' ? dayModeTotal > DAY_MAX_MINUTES : overDays.length > 0)
+      ? overDays.length > 0
         ? t('dayOver24')
-        : t('invalidHours')
+        : invalidCells.every((cell) => cell.incomplete)
+          ? t('detailIncomplete')
+          : invalidCells.some((cell) => cell.key in detailEdits && cell.detailMinutes === undefined)
+            ? t('detailInvalid')
+            : t('invalidHours')
       : '',
   );
-  /** On leaving a cell, show the normalized value ("7:30" -> "7.5"). */
+  /** On leaving a cell, show the value in the same H:MM notation ("7.5" -> "7:30"). */
   const normalizeCell = (key: string) => {
     const raw = edits[key];
     if (raw === undefined) return;
     const minutes = parseHoursText(raw);
-    if (typeof minutes === 'number' && /[:h]/iu.test(raw))
-      edits = { ...edits, [key]: hoursText(minutes) || '0' };
+    if (typeof minutes === 'number') edits = { ...edits, [key]: hoursText(minutes) || '0' };
   };
   const minutesHint = (minutes: number | null | undefined) =>
     typeof minutes === 'number' && minutes % 30 !== 0
       ? `= ${hoursAndMinutesText(minutes)}`
       : '';
+  // ---- One day: delete a draft entry (never a submitted/approved one) ----
+  let confirmingDelete = $state(false);
+  let deleteError = $state('');
+  const canDeleteDay = $derived(
+    !isAuditor &&
+      Boolean(dayCell?.entry) &&
+      dayCell?.kind === 'draft' &&
+      !dayCell.entry?.submitted_at,
+  );
+  /**
+   * Delete = save this never-submitted draft cell as 0 h through the same
+   * saveTimeWeek command (server: deleteTime, which refuses anything that is
+   * not an unlocked, never-submitted draft). Same audit and RBAC path.
+   */
+  let deletingDay = $state(false);
+  const deleteDay = () => {
+    if (!dayCell?.entry) return;
+    deleteError = '';
+    deletingDay = true;
+    intent = 'save';
+    void tick().then(() => sheetForm?.requestSubmit());
+  };
+  /** Why a sent entry cannot be changed here (the state machine has no "unsend"). */
+  const lockedHelp = (cell: Cell): string =>
+    cell.kind !== 'locked'
+      ? ''
+      : cell.status === 'submitted'
+        ? t('submittedHelp')
+        : cell.status === 'approved'
+          ? t('approvedHelp')
+          : '';
   const fixingNow = $derived(
     mode === 'day' ? Boolean(dayCell?.changed && dayCell.kind === 'fix') : fixingCells.length > 0,
   );
@@ -769,7 +830,7 @@
     <input
       class="hours-input"
       class:is-changed={cell.changed}
-      class:is-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
+      class:is-invalid={cell.minutes === undefined || cell.incomplete || problemKey === cell.key || dayOver(index)}
       data-status={cell.kind === 'new' ? 'empty' : cell.status}
       type="text"
       inputmode="decimal"
@@ -779,14 +840,14 @@
       readonly={typeof cell.detailMinutes === 'number'}
       aria-label={label}
       aria-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
-      aria-describedby={cell.minutes === undefined ? `${cell.key}-error` : undefined}
+      aria-describedby={cell.minutes === undefined || cell.incomplete ? `${cell.key}-error` : undefined}
       title={typeof cell.detailMinutes === 'number' ? t('detailFromTimes') : minutesHint(cell.minutes)}
       value={cell.value}
       oninput={(event) => setCell(cell.key, event.currentTarget.value)}
       onblur={() => normalizeCell(cell.key)}
     />
-    {#if cell.minutes === undefined}
-      <small class="cell-error" id={`${cell.key}-error`}>{cell.detailMinutes === undefined && cell.key in detailEdits ? t('detailInvalid') : t('invalidHoursShort')}</small>
+    {#if detailKey !== cell.key && (cell.minutes === undefined || cell.incomplete)}
+      <small class="cell-error" id={`${cell.key}-error`}>{cell.incomplete ? t('detailIncompleteShort') : cell.detailMinutes === undefined && cell.key in detailEdits ? t('detailInvalid') : t('invalidHoursShort')}</small>
     {/if}
     <button
       type="button"
@@ -869,11 +930,13 @@
         data-testid="time-detail-note"
       />
     </label>
-    {#if cell.detailMinutes === undefined}
+    {#if cell.incomplete}
+      <small class="muted" data-testid="time-detail-incomplete">{t('detailIncomplete')}</small>
+    {:else if cell.detailMinutes === undefined}
       <small class="cell-error" role="alert">{t('detailInvalid')}</small>
     {:else if typeof cell.detailMinutes === 'number'}
       <small class="detail-computed" data-testid="time-detail-computed"
-        >{t('detailComputed', { hours: decimalHoursFromMinutes(cell.detailMinutes) })} ({clockHoursFromMinutes(cell.detailMinutes)}){overnight(cell.detail) ? ` · ${t('detailOvernight')}` : ''}</small
+        >{t('detailComputed', { hours: hm(cell.detailMinutes) })}{overnight(cell.detail) ? ` · ${t('detailOvernight')}` : ''}</small
       >
     {/if}
     <div class="detail-actions">
@@ -1107,15 +1170,6 @@
                   {categoryLabel(category)}
                 </label>
               {/each}
-              {#if dayCategoryChoices.length < captureTimeCategories.length}
-                <button
-                  type="button"
-                  class="more-types"
-                  aria-expanded="false"
-                  data-testid="time-more-types"
-                  onclick={() => (showMoreTypes = true)}>{t('moreTypes')}</button
-                >
-              {/if}
             </fieldset>
             <label class="day-field day-hours">
               <span>{t('hours')}</span>
@@ -1128,7 +1182,7 @@
                   inputmode="decimal"
                   autocomplete="off"
                   maxlength="7"
-                  placeholder="8"
+                  placeholder="0:00"
                   readonly={typeof dayCell.detailMinutes === 'number'}
                   title={typeof dayCell.detailMinutes === 'number' ? t('detailFromTimes') : undefined}
                   value={dayCell.value}
@@ -1137,14 +1191,15 @@
                   aria-invalid={dayCell.minutes === undefined || dayModeTotal > DAY_MAX_MINUTES}
                   data-testid="time-day-hours"
                 />
-                {#if dayCell.minutes === undefined && dayCell.detailMinutes === undefined && dayCell.key in detailEdits}
-                  <small class="cell-error" role="alert">{t('detailInvalid')}</small>
+                {#if dayCell.key in detailEdits && (dayCell.incomplete || dayCell.detailMinutes === undefined)}
+                  <!-- Start/end problems are explained once, inside the open detail panel. -->
+                  {#if detailKey !== dayCell.key}<small class="cell-error" role="alert">{dayCell.incomplete ? t('detailIncomplete') : t('detailInvalid')}</small>{/if}
                 {:else if dayCell.minutes === undefined}
                   <small class="cell-error" role="alert">{t('invalidHours')}</small>
                 {:else if dayModeTotal > DAY_MAX_MINUTES}
                   <small class="cell-error" role="alert">{t('dayOver24')}</small>
                 {:else if dayModeTotal > DAY_WARN_MINUTES}
-                  <small class="cell-warn">{t('dayOver12', { hours: decimalHoursFromMinutes(dayModeTotal), day: dayName(selectedDay) })}</small>
+                  <small class="cell-warn">{t('dayOver12', { hours: hm(dayModeTotal), day: dayName(selectedDay) })}</small>
                 {:else if minutesHint(dayCell.minutes)}
                   <small class="muted">{minutesHint(dayCell.minutes)}</small>
                 {/if}
@@ -1154,6 +1209,7 @@
                   >{hoursText(dayCell.originalMinutes) || '0'} {t('hoursUnit')}</span
                 >
                 <small class="muted">{cellTitle(dayCell)}</small>
+                {#if lockedHelp(dayCell)}<small class="locked-help" data-testid="time-day-locked-help">{lockedHelp(dayCell)}</small>{/if}
                 {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail)} {dayCell.detail.note}</small>{/if}
               {/if}
             </label>
@@ -1193,11 +1249,7 @@
                   disabled={(!dirtyNow && dayDraftCount === 0) || Boolean(busy) || invalidNow}
                   onclick={() => saveAndSend()}
                   data-testid="time-day-send"
-                  >{busy === 'submit_day'
-                    ? t('sendingDay')
-                    : dirtyNow
-                      ? t('saveAndSend')
-                      : t('sendDay')}</button
+                  >{busy === 'submit_day' ? t('sendingDay') : t('saveAndSend')}</button
                 >
               {/if}
               <button
@@ -1209,11 +1261,25 @@
                 >{busy === 'save' ? t('saving') : canSubmit ? t('saveDraftOnly') : t('save')}</button
               >
             </div>
+            {#if canDeleteDay && dayCell}
+              <div class="day-delete">
+                {#if confirmingDelete}
+                  <div class="day-delete-confirm" role="alertdialog" aria-label={t('deleteConfirm', { hours: hm(dayCell.originalMinutes), day: dayName(selectedDay, 'long') })} data-testid="time-day-delete-confirm">
+                    <p>{t('deleteConfirm', { hours: hm(dayCell.originalMinutes), day: dayName(selectedDay, 'long') })}</p>
+                    <button type="button" class="danger" disabled={Boolean(busy)} onclick={deleteDay} data-testid="time-day-delete-yes">{deletingDay ? t('deleting') : t('deleteYes')}</button>
+                    <button type="button" class="secondary" onclick={() => (confirmingDelete = false)}>{t('deleteKeep')}</button>
+                  </div>
+                {:else}
+                  <button type="button" class="link danger-link" disabled={Boolean(busy)} onclick={() => (confirmingDelete = true)} data-testid="time-day-delete">{t('deleteEntry')}</button>
+                {/if}
+              </div>
+            {/if}
+            {#if deleteError}<p class="cell-error" role="alert">{deleteError}</p>{/if}
             {#if dayDone && dayDone.day === selectedDay}
               <p class="day-done" role="status" data-testid="time-day-done">
                 <span aria-hidden="true">✓</span>
-                {t(dayDone.kind === 'approved' ? 'approvedDay' : dayDone.kind === 'sent' ? 'sentDay' : 'savedDay', {
-                  hours: decimalHoursFromMinutes(dayDone.minutes),
+                {t(dayDone.kind === 'approved' ? 'approvedDay' : dayDone.kind === 'sent' ? 'sentDay' : dayDone.kind === 'deleted' ? 'deletedDay' : 'savedDay', {
+                  hours: hm(dayDone.minutes),
                   day: dayName(dayDone.day, 'long'),
                 })}
               </p>
@@ -1222,7 +1288,7 @@
         </div>
         {#if dayEntries.length}
           <div class="day-logged">
-            <h3>{t('loggedThisDay')} · {decimalHoursFromMinutes(dayTotal)} {t('hoursUnit')}</h3>
+            <h3>{t('loggedThisDay')} · {hm(dayTotal)} {t('hoursUnit')}</h3>
             <ul>
               {#each dayEntries as entry (entry.id)}
                 <li>
@@ -1232,7 +1298,7 @@
                     onclick={() => chooseDay(String(entry.project_id), String(entry.category))}
                   >
                     <span>{projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))}</span>
-                    <strong>{decimalHoursFromMinutes(entry.minutes)} {t('hoursUnit')}</strong>
+                    <strong>{hm(entry.minutes)} {t('hoursUnit')}</strong>
                   </button>
                   <StatusBadge variant={variant(entryStatus(entry))} text={statusLabel(entryStatus(entry))} />
                 </li>
@@ -1253,7 +1319,7 @@
                   {#if dayStatus(date) !== 'empty'}
                     <span class="dot" data-status={dayStatus(date)} title={statusLabel(dayStatus(date))}></span>
                   {/if}
-                  <span class="sr-only">{`${decimalHoursFromMinutes(dayTotals[index] ?? 0)} ${t('hoursUnit')}`}</span>
+                  <span class="sr-only">{`${hm(dayTotals[index] ?? 0)} ${t('hoursUnit')}`}</span>
                 </th>
               {/each}
               <th scope="col" class="col-total">{t('total')}</th>
@@ -1270,7 +1336,7 @@
                   <td class:is-today={days[index] === today}>{@render cellInput(line, cell, index)}</td>
                 {/each}
                 <td class="col-total">
-                  {decimalHoursFromMinutes(line.cells.reduce((sum, cell) => sum + cellMinutes(cell), 0))}
+                  {hm(line.cells.reduce((sum, cell) => sum + cellMinutes(cell), 0))}
                 </td>
               </tr>
             {/each}
@@ -1280,11 +1346,11 @@
               <th scope="row" class="col-project">{t('dayTotal')}</th>
               {#each dayTotals as total, index (days[index])}
                 <td class:day-over={dayOver(index)} class:day-long={dayLong(index)}>
-                  {decimalHoursFromMinutes(total)}
+                  {hm(total)}
                   {#if dayOver(index)}<small class="cell-error">{t('over24Short')}</small>{/if}
                 </td>
               {/each}
-              <td class="col-total week-total" data-testid="week-total">{decimalHoursFromMinutes(weekTotal)}</td>
+              <td class="col-total week-total" data-testid="week-total">{hm(weekTotal)}</td>
             </tr>
           </tfoot>
         </table>
@@ -1310,7 +1376,7 @@
               {#if dayStatus(date) !== 'empty'}
                 <StatusBadge variant={variant(dayStatus(date))} text={statusLabel(dayStatus(date))} />
               {/if}
-              <span class="day-card-total" class:day-over={dayOver(index)}>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}</span>
+              <span class="day-card-total" class:day-over={dayOver(index)}>{hm(dayTotals[index])} {t('hoursUnit')}</span>
             </summary>
             {#if dayOver(index)}<p class="cell-error">{t('dayOver24')}</p>{/if}
             <ul>
@@ -1390,13 +1456,13 @@
         </label>
       {/if}
 
-      {#if invalidNow}
+      {#if invalidNow && mode === 'week' && (overDays.length > 0 || !invalidCells.every((cell) => cell.key === detailKey))}
         <p class="invalid-hint" role="alert">{blockReason}</p>
       {:else if mode === 'week' && longDays.length}
         <p class="cell-warn" role="status" data-testid="time-long-days">
           {t('longDays', {
             days: longDays
-              .map((date) => `${dayName(date)} (${decimalHoursFromMinutes(dayTotals[days.indexOf(date)])} ${t('hoursUnit')})`)
+              .map((date) => `${dayName(date)} (${hm(dayTotals[days.indexOf(date)])} ${t('hoursUnit')})`)
               .join(', '),
           })}
         </p>
@@ -1406,14 +1472,14 @@
         {#if mode === 'day'}
           <div class="sheet-actions day-actions" data-testid="time-day-actions">
             <p class="week-summary">
-              {t('weekSoFar', { hours: decimalHoursFromMinutes(weekTotal) })}
+              {t('weekSoFar', { hours: hm(weekTotal) })}
               {#if weekDraftMinutes && !weekEndNear}
-                · {t('notSubmittedHours', { hours: decimalHoursFromMinutes(weekDraftMinutes) })}
+                · {t('notSubmittedHours', { hours: hm(weekDraftMinutes) })}
               {/if}
             </p>
             {#if weekDraftMinutes && weekEndNear && canSubmit}
               <div class="week-reminder" role="status" data-testid="time-week-reminder">
-                <span>{t('weekEndReminder', { hours: decimalHoursFromMinutes(weekDraftMinutes) })}</span>
+                <span>{t('weekEndReminder', { hours: hm(weekDraftMinutes) })}</span>
                 <a href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
                   >{t('reviewSubmitWeek')} →</a
                 >
@@ -1428,7 +1494,7 @@
         <div class="sheet-actions" data-testid="time-week-actions">
           <div class="sheet-actions-total">
             <span>{t('weekTotal')}</span>
-            <strong>{decimalHoursFromMinutes(weekTotal)} {t('hoursUnit')}</strong>
+            <strong>{hm(weekTotal)} {t('hoursUnit')}</strong>
             <small class:unsaved={dirty}>{dirty ? t('unsaved') : t('allSaved')}</small>
           </div>
           <div class="sheet-actions-buttons">
@@ -1521,12 +1587,12 @@
         <tbody>
           {#each days as date, index (date)}
             {#if dayTotals[index]}
-              <tr class:day-long={dayLong(index)}><th scope="row">{dayName(date, 'long')}</th><td>{decimalHoursFromMinutes(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}</td></tr>
+              <tr class:day-long={dayLong(index)}><th scope="row">{dayName(date, 'long')}</th><td>{hm(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}</td></tr>
             {/if}
           {/each}
         </tbody>
         <tfoot>
-          <tr><th scope="row">{t('weekTotal')}</th><td><strong>{decimalHoursFromMinutes(weekTotal)} {t('hoursUnit')}</strong></td></tr>
+          <tr><th scope="row">{t('weekTotal')}</th><td><strong>{hm(weekTotal)} {t('hoursUnit')}</strong></td></tr>
         </tfoot>
       </table>
       <p>{t('confirmEntries', { count: submitCount })}</p>
@@ -1704,17 +1770,6 @@
     padding: 0.5rem 1rem;
     overflow-wrap: anywhere;
   }
-  .segmented .more-types {
-    min-height: var(--ja-target-min, 44px);
-    padding: 0 1rem;
-    border: 1px dashed var(--ja-control-border, #b8c0cc);
-    border-radius: 999px;
-    background: transparent;
-    color: inherit;
-    font: inherit;
-    font-weight: 600;
-    cursor: pointer;
-  }
   .segmented label:focus-within {
     outline: 3px solid var(--ja-focus-ring, #1f6feb);
     outline-offset: 2px;
@@ -1776,6 +1831,44 @@
   .day-buttons {
     display: grid;
     gap: 0.5rem;
+  }
+  .day-delete {
+    display: grid;
+    justify-items: start;
+  }
+  .day-delete .danger-link {
+    min-height: var(--ja-target-min, 44px);
+    color: var(--ja-danger, #c62828);
+    font-weight: 600;
+  }
+  .day-delete-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid var(--ja-danger, #c62828);
+    border-radius: 0.6rem;
+  }
+  .day-delete-confirm p {
+    flex: 1 1 100%;
+    margin: 0;
+    font-weight: 600;
+  }
+  .day-delete-confirm button {
+    min-height: var(--ja-target-min, 44px);
+  }
+  .day-delete-confirm .danger {
+    background: var(--ja-danger, #c62828);
+    border-color: var(--ja-danger, #c62828);
+    color: #fff;
+  }
+  .locked-help {
+    display: block;
+    max-width: 28rem;
+    margin-top: 0.35rem;
+    color: var(--ja-text, #1c2430);
+    font-size: 0.9rem;
   }
   .day-done {
     margin: 0;

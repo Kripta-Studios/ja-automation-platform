@@ -187,6 +187,20 @@ const en = {
   ovDetail: 'Detail',
   ovSheets: 'Signed sheets',
   ovSheetFor: '{worker} · week of {week}',
+  // One day: delete a draft, explain sent entries, half-typed start/end.
+  detailIncomplete: 'Add the end time too, or clear the start time.',
+  detailIncompleteShort: 'Add start and end',
+  deleteEntry: 'Delete these hours',
+  deleteConfirm: 'Delete {hours} h on {day}? This cannot be undone.',
+  deleteYes: 'Yes, delete',
+  deleteKeep: 'Keep',
+  deleting: 'Deleting…',
+  deleteFailed: 'The hours could not be deleted. Reload the page and try again.',
+  deletedDay: 'Deleted: {hours} h on {day}.',
+  submittedHelp: 'Already sent for approval, so it cannot be changed or deleted here. Ask your manager to send it back to you if it is wrong.',
+  approvedHelp: 'Already approved. If it is wrong, ask your manager to correct it.',
+  confirmEntriesOne: '1 entry will be submitted.',
+  countNeedsChangesOne: '1 needs changes',
 } as const;
 
 type CopyKey = keyof typeof en;
@@ -380,6 +394,19 @@ const es: Record<CopyKey, string> = {
   ovDetail: 'Detalle',
   ovSheets: 'Hojas firmadas',
   ovSheetFor: '{worker} · semana del {week}',
+  detailIncomplete: 'Añade también la hora de fin o borra la de inicio.',
+  detailIncompleteShort: 'Pon inicio y fin',
+  deleteEntry: 'Eliminar estas horas',
+  deleteConfirm: '¿Eliminar {hours} h del {day}? No se puede deshacer.',
+  deleteYes: 'Sí, eliminar',
+  deleteKeep: 'Mantener',
+  deleting: 'Eliminando…',
+  deleteFailed: 'No se pudieron eliminar las horas. Recarga la página e inténtalo de nuevo.',
+  deletedDay: 'Eliminado: {hours} h del {day}.',
+  submittedHelp: 'Ya se envió a aprobación, así que no se puede cambiar ni eliminar aquí. Si está mal, pide a tu responsable que te lo devuelva.',
+  approvedHelp: 'Ya está aprobado. Si está mal, pide a tu responsable que lo corrija.',
+  confirmEntriesOne: 'Se enviará 1 registro.',
+  countNeedsChangesOne: '1 requiere cambios',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -571,6 +598,19 @@ const pt: Record<CopyKey, string> = {
   ovDetail: 'Detalhe',
   ovSheets: 'Folhas assinadas',
   ovSheetFor: '{worker} · semana de {week}',
+  detailIncomplete: 'Informe também a hora de fim ou apague a de início.',
+  detailIncompleteShort: 'Informe início e fim',
+  deleteEntry: 'Excluir estas horas',
+  deleteConfirm: 'Excluir {hours} h de {day}? Não é possível desfazer.',
+  deleteYes: 'Sim, excluir',
+  deleteKeep: 'Manter',
+  deleting: 'Excluindo…',
+  deleteFailed: 'Não foi possível excluir as horas. Recarregue a página e tente de novo.',
+  deletedDay: 'Excluído: {hours} h de {day}.',
+  submittedHelp: 'Já foi enviado para aprovação, então não pode ser alterado nem excluído aqui. Se estiver errado, peça ao seu gestor para devolvê-lo a você.',
+  approvedHelp: 'Já está aprovado. Se estiver errado, peça ao seu gestor para corrigi-lo.',
+  confirmEntriesOne: '1 registro será enviado.',
+  countNeedsChangesOne: '1 precisa de ajustes',
 };
 
 export type TimeWeekCopyKey = CopyKey;
@@ -581,6 +621,10 @@ export function timeWeekText(
   params: Record<string, string | number> = {},
 ): string {
   const table: Record<CopyKey, string> = locale === 'es' ? es : locale === 'pt' ? pt : en;
+  // Singular wording ("1 entry", never "1 entries") when a "<key>One" variant exists.
+  const count = params.count ?? params.n;
+  const one = `${key}One` as CopyKey;
+  if (Number(count) === 1 && Object.hasOwn(table, one)) key = one;
   return (table[key] ?? en[key]).replace(/\{(\w+)\}/gu, (match, name: string) =>
     Object.hasOwn(params, name) ? String(params[name]) : match,
   );

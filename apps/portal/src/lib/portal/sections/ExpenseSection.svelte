@@ -271,6 +271,8 @@
   let receiptIsImage = $state(false);
   let receiptReading = $state(false);
   let receiptFilled = $state(false);
+  /** Amount came from the receipt reader: highlighted until the person checks/edits it. */
+  let amountSuggested = $state(false);
   let amountTouched = false;
   let dateTouched = false;
   let crewOptions = $state<Array<{ id: string; name: string }>>([]);
@@ -281,6 +283,37 @@
       'currency',
     ) || 'USD';
   const lastProjectKey = (): string => `ja-expense-last-project:${me}`;
+  const lastCategoryKey = (): string => `ja-expense-last-category:${me}`;
+  /**
+   * Last category this person used (start there next time instead of always
+   * "Meals"): this device's last choice, else the person's latest expense.
+   */
+  function rememberedCategory(): string {
+    const known = (value: string) => expenseCategories.some(([key]) => key === value);
+    try {
+      const saved = localStorage.getItem(lastCategoryKey()) ?? '';
+      if (known(saved)) return saved;
+    } catch {
+      /* Fall back to the latest expense below. */
+    }
+    const latest = records
+      .filter((row) => text(row, 'worker_id') === me)
+      .sort((a, b) =>
+        (text(b, 'created_at') || text(b, 'spent_on')).localeCompare(
+          text(a, 'created_at') || text(a, 'spent_on'),
+        ),
+      )[0];
+    const category = text(latest, 'category');
+    return known(category) ? category : 'meals';
+  }
+  function rememberCategory(value: string): void {
+    try {
+      if (expenseCategories.some(([key]) => key === value))
+        localStorage.setItem(lastCategoryKey(), value);
+    } catch {
+      /* Remembering the category is only a convenience. */
+    }
+  }
   function rememberedProject(): string {
     try {
       const saved = localStorage.getItem(lastProjectKey()) ?? '';
@@ -297,6 +330,7 @@
     receiptIsImage = false;
     receiptFilled = false;
     receiptReading = false;
+    amountSuggested = false;
     if (receiptInput) receiptInput.value = '';
   }
   /** Camera photo: move it into the named receipt input so the form sends it. */
@@ -325,6 +359,7 @@
         let filled = false;
         if (facts.amount && !amountTouched && !fAmount.trim()) {
           fAmount = facts.amount;
+          amountSuggested = true;
           filled = true;
         }
         if (facts.date && !dateTouched) {
@@ -351,8 +386,8 @@
         ? text(projects[0], 'id')
         : rememberedProject();
     fWorker = isOwner ? (people.some((p) => p.id === requestedWorker) ? requestedWorker : '') : '';
-    fCategory = 'meals';
-    moreCategories = false;
+    fCategory = rememberedCategory();
+    moreCategories = !primaryExpenseCategories.some((item) => item.value === fCategory);
     fAmount = '';
     fCurrency = projectCurrency(fProject);
     fNote = fVendor = fWhoPaid = fPaymentMethod = '';
@@ -446,6 +481,7 @@
         } catch {
           /* Remembering the project is only a convenience. */
         }
+        rememberCategory(fCategory);
       }
       if (mode === 'create' && addAnother) {
         fAmount = '';
@@ -469,12 +505,36 @@
     offlineHandled: () => mode === 'create' && data.offlineEnabled !== false,
     inlineProblem: (problem) => problem.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE',
   });
+  /**
+   * Phone: the sticky Save bar sits over the bottom of the sheet. When a field
+   * gets focus (keyboard opens), scroll it above the bar instead of under it.
+   */
+  function keepAboveActions(event: FocusEvent): void {
+    const field = event.target as HTMLElement | null;
+    const form = event.currentTarget as HTMLElement | null;
+    if (!field || !form || !field.matches('input, select, textarea')) return;
+    const bar = form.querySelector<HTMLElement>('.xp-form-actions');
+    if (!bar || bar.contains(field)) return;
+    requestAnimationFrame(() => {
+      const barTop = bar.getBoundingClientRect().top;
+      const bottom = field.getBoundingClientRect().bottom;
+      if (bottom + 12 > barTop) field.scrollIntoView({ block: 'center' });
+    });
+  }
   async function handleOffline(event: SubmitEvent): Promise<void> {
     const result = await saveOfflineDraft(event, 'expense');
     if (result.saved) closeForm();
     else if (result.error) formError = translate(result.error);
   }
   const possibleDuplicate = $derived(formProblem?.code === 'EXPENSE_POSSIBLE_CREW_DUPLICATE');
+  /** "Save & send" is offered when this person may submit the record right away. */
+  const canSendNow = $derived(
+    canRecord &&
+      !fTimeEntryId &&
+      (mode === 'edit' || !fWorker || fWorker === me || isOwner),
+  );
+  /** Saving while the receipt is still being read would send an empty amount. */
+  const readingBlocks = $derived(receiptReading && !fAmount.trim());
 
   /* ------------------------------------------------------ week submit */
   let confirmBlock = $state<{ week: string; block: PersonBlock } | null>(null);
@@ -516,8 +576,12 @@
 
   /* -------------------------------------------------------- bulk entry */
   type BulkRow = {
+    /** Waiting for its turn at the receipt reader (one file every ~10 s). */
+    queued?: boolean;
     reading?: boolean;
     filled?: boolean;
+    /** The reader found no amount: the person types it. */
+    unread?: boolean;
     key: number;
     date: string;
     category: string;
@@ -540,7 +604,7 @@
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
     date,
-    category: 'meals',
+    category: rememberedCategory(),
     amount: '',
     note: '',
     file: '',
@@ -562,7 +626,9 @@
   async function fillBulkRow(key: number, file: File): Promise<void> {
     const target = bulkRows.find((row) => row.key === key);
     if (!target) return;
+    target.queued = false;
     target.reading = true;
+    target.unread = false;
     const facts = await readReceipt(file, locale, { retryWhenBusy: true });
     const row = bulkRows.find((item) => item.key === key);
     if (!row) return;
@@ -571,6 +637,7 @@
       row.amount = facts.amount;
       row.filled = true;
     }
+    if (!facts.amount && !row.amount.trim()) row.unread = true;
     if (facts.date) {
       row.date = facts.date;
       row.filled = true;
@@ -584,7 +651,7 @@
     input.value = '';
     if (!files.length) return;
     const start = kept.at(-1)?.date ?? localToday();
-    const added = files.map((file) => ({ ...blankRow(start), file: file.name }));
+    const added = files.map((file) => ({ ...blankRow(start), file: file.name, queued: true }));
     bulkRows = [...kept, ...added];
     await tick();
     added.forEach((row, index) => {
@@ -598,6 +665,8 @@
       if (!bulkOpen) return;
       await fillBulkRow(row.key, files[index]!);
     }
+    // Rows removed or a closed sheet must never stay "waiting".
+    for (const row of bulkRows) row.queued = false;
   }
   function addBulkRow(): void {
     if (bulkRows.length >= 20) return;
@@ -608,6 +677,8 @@
     return inputTextToMinor(value, bulkCurrency);
   }
   const bulkFilled = $derived(bulkRows.filter((row) => row.amount.trim() || row.file));
+  /** Receipts still being read: saving now would send rows without an amount. */
+  const bulkPending = $derived(bulkRows.filter((row) => row.queued || row.reading).length);
   const bulkTotal = $derived(
     money(
       bulkFilled.reduce((sum, row) => sum + (decimalMinor(row.amount) ?? 0n), 0n).toString(),
@@ -635,6 +706,8 @@
       } catch {
         /* Remembering the project is only a convenience. */
       }
+      const used = bulkFilled.at(-1)?.category;
+      if (used) rememberCategory(used);
       bulkOpen = false;
     },
     offlineHandled: () => false,
@@ -766,7 +839,13 @@
                     </p>
                     <p class="xp-row-meta">
                       {dayLabel(text(row, 'spent_on'))} · {text(row, 'project_number')}
-                      {#if row.approval_state === 'draft' && expenseReceiptState(row) !== 'attached'}
+                      {#if expenseReceiptState(row) === 'attached'}
+                        · <span class="xp-has-receipt" data-expense-receipt-indicator
+                          ><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
+                            ><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.3 3.3 0 0 1 4.7 4.7L10.2 18.7a1.7 1.7 0 0 1-2.4-2.4L15.5 8.6" /></svg
+                          >{c('receiptAttached')}</span
+                        >
+                      {:else if row.approval_state === 'draft'}
                         · <span class="xp-warn">{c('noReceipt')}</span>
                       {/if}
                     </p>
@@ -868,6 +947,7 @@
       class="xp-form"
       data-expense-bulk-form
       aria-busy={bulkSaving}
+      onfocusin={keepAboveActions}
       use:dirtyFormGuard
       use:operationalFieldValidation
       use:enhance={submitBulk}
@@ -995,10 +1075,14 @@
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
             </label>
-            {#if row.reading}
-              <p class="xp-muted xp-bulk-status" role="status">{c('readingReceipt')}</p>
+            {#if row.queued}
+              <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="queued">{c('waitingToRead')}</p>
+            {:else if row.reading}
+              <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="reading">{c('readingReceipt')}</p>
             {:else if row.filled}
-              <p class="xp-ok xp-bulk-status" role="status">{c('filledFromReceipt')}</p>
+              <p class="xp-ok xp-bulk-status" role="status" data-bulk-status="filled">{c('filledFromReceiptShort')}</p>
+            {:else if row.unread}
+              <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="unread">{c('notReadType')}</p>
             {/if}
             {#if bulkRows.length > 1}
               <button
@@ -1020,8 +1104,12 @@
       <p class="xp-muted">{c('policyHint')}</p>
       <div class="xp-form-actions">
         <span><strong>{c('total')}: {bulkTotal}</strong></span>
-        <button type="submit" disabled={bulkSaving || bulkFilled.length === 0}
-          >{bulkSaving ? c('saving') : c('saveAll', { n: bulkFilled.length })}</button
+        <button type="submit" disabled={bulkSaving || bulkFilled.length === 0 || bulkPending > 0} data-expense-bulk-save
+          >{bulkSaving
+            ? c('saving')
+            : bulkPending > 0
+              ? c('readingReceipts', { n: bulkPending })
+              : c('saveAll', { n: bulkFilled.length })}</button
         >
       </div>
     </form>
@@ -1045,6 +1133,7 @@
       data-expense-entry-surface
       data-assistant-target="expense-create"
       aria-busy={saving}
+      onfocusin={keepAboveActions}
       use:dirtyFormGuard
       use:operationalFieldValidation
       use:enhance={submitForm}
@@ -1250,9 +1339,17 @@
             pattern={amountPattern(fCurrency)}
             placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : '0.00'}
             data-expense-amount
+            class:xp-suggested={amountSuggested}
+            style={amountSuggested
+              ? 'border: 2px solid #b26a00; background: #fff7e8; color: #1c2430;'
+              : undefined}
             bind:value={fAmount}
-            oninput={() => (amountTouched = true)}
+            oninput={() => {
+              amountTouched = true;
+              amountSuggested = false;
+            }}
           />
+          {#if amountSuggested}<small class="xp-suggested-note" data-expense-amount-suggested>{c('checkAmount')}</small>{/if}
         </label>
         <label class="xp-field xp-currency">
           <span>{c('currency')}</span>
@@ -1324,9 +1421,34 @@
             data-testid="expense-save-anyway">{c('saveAnyway')}</button
           >
         {/if}
-        <button type="submit" disabled={saving}
-          >{saving ? c('saving') : mode === 'edit' ? c('saveChanges') : c('save')}</button
-        >
+        {#if canSendNow}
+          <!-- One stable primary action: save and send for approval in one step. -->
+          <button
+            type="submit"
+            class="secondary xp-save-draft"
+            disabled={saving || readingBlocks}
+            data-expense-save-draft
+            >{mode === 'edit' ? c('saveChanges') : c('saveDraft')}</button
+          >
+          <button
+            type="submit"
+            name="submitNow"
+            value="on"
+            disabled={saving || readingBlocks}
+            data-expense-save-send
+            >{saving ? c('saving') : readingBlocks ? c('readingReceipt') : c('saveAndSend')}</button
+          >
+        {:else}
+          <button type="submit" disabled={saving || readingBlocks}
+            >{saving
+              ? c('saving')
+              : readingBlocks
+                ? c('readingReceipt')
+                : mode === 'edit'
+                  ? c('saveChanges')
+                  : c('save')}</button
+          >
+        {/if}
       </div>
     </form>
   {/key}
@@ -1508,6 +1630,9 @@
   }
   .xp-bulk-remove {
     min-height: 2.9rem;
+    /* Always in the last column, even when a status line sits above it. */
+    grid-column: -2 / -1 !important;
+    justify-self: end;
   }
   .xp-bulk-status {
     grid-column: 2 / -1 !important;
@@ -1939,6 +2064,41 @@
     font-size: 0.95rem;
     margin-left: auto;
   }
+  .xp-form-actions button + button {
+    margin-left: 0;
+  }
+  .xp-form-actions .xp-save-draft {
+    border: 1px solid var(--ja-control-border, #b8c0cc);
+    background: var(--ja-surface);
+    color: var(--ja-text);
+    box-shadow: none;
+  }
+  /* Fields scrolled into view stop above the sticky Save bar (phone keyboard). */
+  .xp-form :global(input),
+  .xp-form :global(select),
+  .xp-form :global(textarea) {
+    scroll-margin-bottom: 7rem;
+  }
+  .xp-suggested-note {
+    color: #8a5300 !important;
+    font-weight: 600;
+  }
+  .xp-has-receipt {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    color: var(--ja-green-dark, #145a33);
+    font-weight: 600;
+  }
+  .xp-has-receipt svg {
+    width: 0.95rem;
+    height: 0.95rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
   .xp-delete {
     margin-top: 0.5rem;
   }
@@ -2034,6 +2194,15 @@
     .xp-submit-bar button,
     .xp-confirm button {
       width: 100%;
+    }
+    /* Phone: "Save and add another" on its own line, then the two buttons side by side. */
+    .xp-form-actions .xp-check {
+      flex: 1 1 100%;
+    }
+    .xp-form-actions button {
+      flex: 1 1 0;
+      margin-left: 0;
+      padding-inline: 0.8rem;
     }
   }
 </style>

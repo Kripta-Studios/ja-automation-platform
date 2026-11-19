@@ -505,9 +505,17 @@ export class PlanningRepository {
       .all(principal.userId) as Array<
       Record<string, unknown> & { timezone: string; starts_on: string; ends_on: string | null }
     >;
+    // A person can hold more than one current membership row on the same
+    // project (for example a team-member row plus a project-manager row).
+    // The project list is unique per project; duplicates break keyed lists.
+    const seen = new Set<string>();
     return rows.flatMap(({ starts_on, ends_on, ...project }) => {
       const today = this.todayInZone(project.timezone as string);
-      return starts_on <= today && (!ends_on || ends_on >= today) ? [project] : [];
+      if (!(starts_on <= today && (!ends_on || ends_on >= today))) return [];
+      const id = String(project.id);
+      if (seen.has(id)) return [];
+      seen.add(id);
+      return [project];
     });
   }
 }

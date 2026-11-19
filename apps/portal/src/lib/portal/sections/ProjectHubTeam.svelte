@@ -66,13 +66,23 @@
   const canManage = $derived(role === 'owner_admin' || role === 'project_manager');
   const projectHref = $derived(`${base}/app/projects/${encodeURIComponent(projectId)}`);
 
+  // Assignments whose end date has passed are history: they are not counted
+  // as the current team and cannot be ended again.
+  const currentAssignments = $derived(
+    assignments.filter((row) => !row.endsOn || row.endsOn >= today),
+  );
+  const pastAssignments = $derived(
+    assignments.filter((row) => Boolean(row.endsOn) && String(row.endsOn) < today),
+  );
+  const teamCount = $derived(new Set(currentAssignments.map((row) => row.workerId)).size);
+
   const rateFor = (workerId: string) => ratePeople?.find((person) => person.id === workerId);
   const anyRate = $derived((ratePeople ?? []).some((person) => person.customerRate !== null));
   // People on the team with no client rate at all. The project-wide rate stays on offer
   // while anyone is missing one, even when others already have a personal rate.
   const missingRateCount = $derived(
     ratePeople
-      ? assignments.filter((row) => {
+      ? currentAssignments.filter((row) => {
           const rate = rateFor(row.workerId);
           return !rate || rate.customerRate === null;
         }).length
@@ -90,19 +100,29 @@
   let busy = $state(false);
   let addErrors = $state<string[]>([]);
 
+  function mondayOf(date: string): string {
+    const value = new Date(`${date}T00:00:00.000Z`);
+    value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
+    return value.toISOString().slice(0, 10);
+  }
   $effect(() => {
-    // Assignments must start inside the project dates: today, clamped to them.
+    // New people can log hours from the project start (owner decision
+    // 2026-11-19); without a project start, from this week's Monday.
+    // Always inside the project dates.
     if (!startsOn) {
-      let start = projectStart && projectStart > today ? projectStart : today;
+      let start = projectStart || mondayOf(today);
       if (projectEnd && start > projectEnd) start = projectEnd;
       startsOn = start;
     }
   });
+  // People that "use saved rules" could not cover: the owner sets their
+  // cost and pay inline and adds them again.
+  let needsTerms = $state<string[]>([]);
   $effect(() => {
     payMode = hasPersonDefaults ? 'defaults' : 'existing';
   });
 
-  const assignedIds = $derived(new Set(assignments.map((row) => row.workerId)));
+  const assignedIds = $derived(new Set(currentAssignments.map((row) => row.workerId)));
   const available = $derived(
     workers
       .filter(
@@ -137,6 +157,7 @@
     if (!selectedIds.length || busy) return;
     busy = true;
     addErrors = [];
+    const missingTerms: string[] = [];
     let added = 0;
     for (const workerId of selectedIds) {
       const fields: Record<string, string> = { projectId, workerId, startsOn };
@@ -157,17 +178,22 @@
         } else {
           const name = available.find((worker) => worker.id === workerId)?.name ?? workerId;
           const data = result.type === 'failure' ? result.data : null;
-          addErrors.push(h('addFailed', { name, message: describe(data) }));
+          const code = (data as { code?: unknown } | null)?.code;
+          if (isOwner && payMode !== 'enter' && code === 'ASSIGNMENT_FINANCE_SETUP_REQUIRED')
+            missingTerms.push(name);
+          else addErrors.push(h('addFailed', { name, message: describe(data) }));
         }
       } catch {
         addErrors.push(h('addFailed', { name: workerId, message: describe(null) }));
       }
     }
     busy = false;
+    needsTerms = missingTerms;
+    if (missingTerms.length) payMode = 'enter';
     if (added) {
       notify(h('added', { count: added }), 'success');
       await invalidateAll();
-      if (!addErrors.length) addOpen = false;
+      if (!addErrors.length && !missingTerms.length) addOpen = false;
     }
   }
 
@@ -277,7 +303,7 @@
 <section class="project-surface hub-team" aria-labelledby="hub-team-title" data-hub-team>
   <div class="surface-heading">
     <div>
-      <h2 id="hub-team-title">{h('tabTeam')} · {assignments.length}</h2>
+      <h2 id="hub-team-title">{h('tabTeam')} · {teamCount}</h2>
       <p class="surface-intro">{h('teamIntro')}</p>
     </div>
     {#if isOwner}
@@ -315,7 +341,15 @@
           {/each}
         </div>
         <div class="hub-add-fields">
-          <label>{h('startsOn')}<input type="date" required bind:value={startsOn} /></label>
+          <label
+            >{h('startsOn')}<input
+              type="date"
+              required
+              min={projectStart || undefined}
+              max={projectEnd || undefined}
+              bind:value={startsOn}
+            /><small class="surface-intro">{h('startsOnHelp')}</small></label
+          >
           <fieldset>
             <legend>{h('payTerms')}</legend>
             {#if hasPersonDefaults}
@@ -330,6 +364,12 @@
               ><input type="radio" value="enter" bind:group={payMode} />{h('payEnter')}</label
             >
           </fieldset>
+          {#if needsTerms.length}
+            <div class="hub-needs-terms" role="status" data-hub-needs-terms>
+              <strong>{h('needsTermsTitle', { names: needsTerms.join(', ') })}</strong>
+              <p>{h('needsTermsHelp')}</p>
+            </div>
+          {/if}
           {#if payMode === 'enter'}
             <label
               >{h('internalCost', { currency })}<input
@@ -372,7 +412,7 @@
     </form>
   {/if}
 
-  {#if canSetRates && ratePeople && assignments.length > 0 && (!anyRate || missingRateCount > 0)}
+  {#if canSetRates && ratePeople && currentAssignments.length > 0 && (!anyRate || missingRateCount > 0)}
     <div class="hub-rate-banner" data-hub-project-rate>
       <p>
         {anyRate ? h('projectRateSome', { count: missingRateCount }) : h('attMissingRate')}
@@ -387,11 +427,11 @@
     </div>
   {/if}
 
-  {#if assignments.length === 0}
+  {#if currentAssignments.length === 0}
     <p class="empty-state">{h('noTeam')}</p>
   {:else}
     <ul class="hub-team-list">
-      {#each assignments as row (row.id)}
+      {#each currentAssignments as row (row.id)}
         {@const rate = rateFor(row.workerId)}
         <li class="hub-team-row" data-hub-member={row.workerId}>
           <div class="hub-team-main">
@@ -496,6 +536,26 @@
         </li>
       {/each}
     </ul>
+  {/if}
+
+  {#if pastAssignments.length}
+    <details class="hub-past-team" data-hub-past-team>
+      <summary>{h('pastTeam', { count: pastAssignments.length })}</summary>
+      <ul class="hub-team-list">
+        {#each pastAssignments as row (row.id)}
+          <li class="hub-team-row hub-team-row-past" data-hub-past-member={row.workerId}>
+            <div class="hub-team-main">
+              <strong>{row.name}</strong>
+              <small
+                >{roleLabel(row.role)} · {formatDate(row.startsOn)} – {h('endedOn', {
+                  date: formatDate(row.endsOn),
+                })}</small
+              >
+            </div>
+          </li>
+        {/each}
+      </ul>
+    </details>
   {/if}
 
   {#if canSetRates && ratePeople && anyRate}
@@ -672,6 +732,35 @@
     flex-wrap: wrap;
     gap: 0.5rem;
     justify-content: flex-end;
+  }
+  .hub-needs-terms {
+    grid-column: 1 / -1;
+    padding: 0.75rem;
+    border: 1px solid #fdba74;
+    border-radius: 0.5rem;
+    background: #fff7ed;
+    color: #7c2d12;
+  }
+  .hub-needs-terms p {
+    margin: 0.25rem 0 0;
+  }
+  .hub-add-fields > label small {
+    font-weight: 400;
+  }
+  .hub-past-team {
+    margin-top: 1rem;
+  }
+  .hub-past-team summary {
+    cursor: pointer;
+    min-height: var(--ja-target-min, 2.75rem);
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    color: var(--project-muted, #77756d);
+  }
+  .hub-team-row-past {
+    grid-template-columns: minmax(0, 1fr);
+    opacity: 0.8;
   }
   .hub-errors {
     margin: 0;

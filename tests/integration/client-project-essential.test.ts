@@ -337,6 +337,75 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     expect(cleared.ends_on >= cleared.starts_on).toBe(true);
   });
 
+  it('reuses an existing team membership when that person becomes project manager (R1)', () => {
+    const value = fixture();
+    seedB5User(value.sqlite, 'b5-manager-2', 'project_manager');
+    value.sqlite
+      .prepare(
+        "UPDATE project_member SET can_review=0 WHERE project_id=? AND user_id='b5-manager' AND status='active'",
+      )
+      .run(value.project.id);
+    const activeRows = () =>
+      value.sqlite
+        .prepare(
+          "SELECT id,assignment_role,can_review FROM project_member WHERE project_id=? AND user_id='b5-manager' AND status='active'",
+        )
+        .all(value.project.id) as Array<{ id: string; assignment_role: string; can_review: number }>;
+    const teamRows = activeRows();
+    expect(teamRows).toHaveLength(1);
+    const version = () =>
+      (
+        value.sqlite.prepare('SELECT version FROM project WHERE id=?').get(value.project.id) as {
+          version: number;
+        }
+      ).version;
+    value.repository.updateProject(value.owner, {
+      projectId: value.project.id,
+      version: version(),
+      projectManagerId: 'b5-manager',
+    });
+    expect(activeRows()).toEqual([
+      { id: teamRows[0]!.id, assignment_role: teamRows[0]!.assignment_role, can_review: 1 },
+    ]);
+    const manager = value.repository.principalFor('b5-manager');
+    const listed = value.repository
+      .listAssignedProjects(manager)
+      .filter((project) => String(project.id) === value.project.id);
+    expect(listed).toHaveLength(1);
+
+    value.repository.updateProject(value.owner, {
+      projectId: value.project.id,
+      version: version(),
+      projectManagerId: 'b5-manager-2',
+    });
+    expect(activeRows()).toEqual([
+      { id: teamRows[0]!.id, assignment_role: teamRows[0]!.assignment_role, can_review: 0 },
+    ]);
+  });
+
+  it('lists a project once even when legacy duplicate memberships exist (R1)', () => {
+    const value = fixture();
+    const row = value.sqlite
+      .prepare(
+        "SELECT starts_on FROM project_member WHERE project_id=? AND user_id='b5-manager' AND status='active' LIMIT 1",
+      )
+      .get(value.project.id) as { starts_on: string };
+    value.sqlite
+      .prepare(
+        "INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,ends_on,planned_minutes,can_review,status,created_at,updated_at) VALUES('dup-pm-row',?,'b5-manager','project_manager',?,NULL,NULL,1,'active',?,?)",
+      )
+      .run(
+        value.project.id,
+        row.starts_on < '2026-01-02' ? '2025-12-31' : '2026-01-01',
+        new Date().toISOString(),
+        new Date().toISOString(),
+      );
+    const ids = value.repository
+      .listAssignedProjects(value.repository.principalFor('b5-manager'))
+      .map((project) => String(project.id));
+    expect(ids.filter((id) => id === value.project.id)).toHaveLength(1);
+  });
+
   it('removes archived projects from worker operational scope while preserving restore access', () => {
     const value = fixture();
     const current = value.sqlite

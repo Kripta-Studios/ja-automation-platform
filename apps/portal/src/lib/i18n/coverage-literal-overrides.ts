@@ -1,5 +1,12 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  // Read-only billing settings for auditors (Z1, 2026-11-19).
+  Details: ['Detalles', 'Detalhes'],
+  record: ['registro', 'registro'],
+  'A billing stream sets cadence, template and tax for one project. Read only: Finance creates, approves and issues the invoices.': [
+    'Un flujo de facturación fija la cadencia, la plantilla y el impuesto de un proyecto. Solo lectura: Finanzas crea, aprueba y emite las facturas.',
+    'Um fluxo de faturamento define a cadência, o modelo e o imposto de um projeto. Somente leitura: o Financeiro cria, aprova e emite as faturas.',
+  ],
   // Billing fixes: draft-only PO / payment terms (2026-11-17).
   'Also use for future invoices of this project': [
     'Usar también en las próximas facturas de este proyecto',

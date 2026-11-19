@@ -36,8 +36,8 @@ describe('searchable navigation settings', () => {
       const shortcuts = navigationShortcutsFor(flatten(role), itemHref, role);
       const billing = shortcuts.find((item) => item.label === 'Configure billing');
       expect(billing?.href).toBe('/j-aautomation/app/billing?view=setup');
-      // The owner's menu names the billing destination by its daily job: Invoices.
-      expect(billing?.parentLabel).toBe(role === 'owner_admin' ? 'Invoices' : 'Billing');
+      // Every role names the billing destination by its daily job: Invoices (Z6).
+      expect(billing?.parentLabel).toBe('Invoices');
       const compensation = shortcuts.find((item) => item.label === 'Worker compensation');
       const target = new URL(compensation!.href!, 'https://portal.test');
       expect(target.searchParams.get('view')).toBe('commercial');
@@ -140,9 +140,9 @@ describe('portal role navigation contract', () => {
       'Home',
       'Money',
       'Projects',
-      'Billing',
+      'Invoices',
       'Payments',
-      'Approvals',
+      'Approve',
       'Accounting',
       'Rates',
       'Documents',

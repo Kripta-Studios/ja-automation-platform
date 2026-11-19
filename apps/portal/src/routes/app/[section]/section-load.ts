@@ -1193,7 +1193,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const representedWorkers = new Map<string, string>();
         for (const row of projectRows) {
           const id = String(row.worker_id ?? '').trim();
-          if (id) representedWorkers.set(id, String(row.worker_name ?? id));
+          // Z4: "Gabriel Lamoglia", not the login "gabriel.lamoglia".
+          if (id) representedWorkers.set(id, personDisplayName(row.worker_name) || id);
         }
         const duplicateNames = new Map<string, number>();
         for (const name of representedWorkers.values())
@@ -1337,7 +1338,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         // used by the repository so a forged `?worker=` cannot broaden the data scope.
         const workforceAdmin = ['owner_admin', 'finance_admin'].includes(context.principal.role);
         const canInspectWorkforce = workforceAdmin || context.principal.role === 'project_manager';
-        const workers = canInspectWorkforce
+        const workforceRows = canInspectWorkforce
           ? context.repository
               .listAllWorkers(context.principal)
               .filter(
@@ -1347,6 +1348,23 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                   !isSystemAccount(worker),
               )
           : [];
+        // Label supplier accounts by their workforce profile ("Supplier coordinator",
+        // "External technician") instead of the generic access role "Worker".
+        const workforceProfiles = new Map(
+          workforceRows.length
+            ? (
+                context.sqlite
+                  .prepare('SELECT user_id,profile FROM supplier_user_profile')
+                  .all() as Array<{ user_id: string; profile: string }>
+              ).map((row) => [String(row.user_id), String(row.profile)])
+            : [],
+        );
+        const workers = workforceRows.map((worker) => {
+          const profile = workforceProfiles.get(String(worker.id));
+          return profile === 'external_technician' || profile === 'supplier_coordinator'
+            ? { ...worker, workforce_profile: profile }
+            : worker;
+        });
         const requestedWorkerId = url.searchParams.get('worker')?.trim();
         const validRequestedWorkerId =
           requestedWorkerId && workers.some((worker) => String(worker.id) === requestedWorkerId)

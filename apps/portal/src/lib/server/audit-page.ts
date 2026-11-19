@@ -1,5 +1,7 @@
 import type { openPortalRepository } from '$lib/server/portal-repository';
 import { personDisplayName } from '$lib/portal/display-name';
+import { auditEntityTypeText } from '$lib/portal/audit-action-labels';
+import { isSystemAccount } from '$lib/portal/system-accounts';
 import { AUDIT_RANGES, type AuditFilter, type AuditRange } from '$lib/portal/audit-log';
 
 /**
@@ -85,11 +87,32 @@ function entityTypes(context: ReturnType<typeof openPortalRepository>): string[]
   return types;
 }
 
+/**
+ * Z2: record kinds that read the same ("Mailbox", "Issuing company") are one
+ * filter choice. The option value is the group's first stored type; the
+ * filter expands it to every stored type with the same label.
+ */
+export function auditTypeGroups(types: readonly string[]): Map<string, string[]> {
+  const byLabel = new Map<string, string[]>();
+  for (const type of types) {
+    const label = auditEntityTypeText(type, 'en').toLocaleLowerCase();
+    const group = byLabel.get(label) ?? [];
+    group.push(type);
+    byLabel.set(label, group);
+  }
+  return new Map([...byLabel.values()].map((group) => [group[0]!, group]));
+}
+
 export function buildAuditPage(
   context: ReturnType<typeof openPortalRepository>,
   params: URLSearchParams,
 ): AuditPageData {
   const filter = auditFilterFrom(params);
+  const typeGroups = auditTypeGroups(entityTypes(context));
+  const typeGroup = filter.type
+    ? (typeGroups.get(filter.type) ??
+      [...typeGroups.values()].find((group) => group.includes(filter.type)) ?? [filter.type])
+    : [];
   const query = {
     view: filter.view,
     from: filter.from ? `${filter.from}T00:00:00.000Z` : undefined,
@@ -97,6 +120,7 @@ export function buildAuditPage(
     to: filter.to ? `${addDays(filter.to, 1)}T00:00:00.000Z` : undefined,
     actorId: filter.actor || undefined,
     entityType: filter.type || undefined,
+    entityTypes: typeGroup.length > 1 ? typeGroup : undefined,
     search: filter.find || undefined,
   };
   // Count and page are two cheap reads: a top-25 heap scan and a count,
@@ -111,10 +135,13 @@ export function buildAuditPage(
         offset: (page - 1) * AUDIT_PAGE_SIZE,
       })
     : [];
-  // Only people who can appear as actors; display names, never raw ids.
+  // Display names, never raw ids, for every actor on this page.
   const people = context.sqlite
     .prepare('SELECT id,name,email FROM user ORDER BY name COLLATE NOCASE')
     .all() as Array<{ id: string; name: string | null; email: string | null }>;
+  // Z2: the Person filter lists only people who actually appear in the log
+  // (index lookup per user on audit_event_actor_time_idx), never mailboxes.
+  const hasEvents = context.sqlite.prepare('SELECT 1 FROM audit_event WHERE actor_id=? LIMIT 1');
   const names = new Map(
     people.map((person) => [String(person.id), personDisplayName(person.name, person.email)]),
   );
@@ -129,7 +156,7 @@ export function buildAuditPage(
       from: filter.from,
       to: filter.to,
       actor: filter.actor,
-      type: filter.type,
+      type: typeGroup[0] ?? filter.type,
       find: filter.find,
     },
     auditTotal: total,
@@ -137,9 +164,16 @@ export function buildAuditPage(
     auditPages: pages,
     auditPageSize: AUDIT_PAGE_SIZE,
     auditActors: people
+      .filter(
+        (person) =>
+          String(person.id) === filter.actor ||
+          (!isSystemAccount(person) && Boolean(hasEvents.get(String(person.id)))),
+      )
       .map((person) => ({ id: String(person.id), name: names.get(String(person.id)) ?? '' }))
       .filter((person) => person.name)
       .sort((left, right) => left.name.localeCompare(right.name)),
-    auditEntityTypes: entityTypes(context),
+    auditEntityTypes: [...typeGroups.keys()].sort((left, right) =>
+      auditEntityTypeText(left, 'en').localeCompare(auditEntityTypeText(right, 'en')),
+    ),
   };
 }

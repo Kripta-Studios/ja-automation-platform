@@ -5,6 +5,7 @@
   import type { PortalRow } from '../portal-data';
   import { scaleCopy, scaleLocaleTag, type ScaleShellCopyKey } from './scale-shell-copy';
   import { auditActionText, auditEntityTypeText } from '../audit-action-labels';
+  import { auditDetailLines, auditDetailText } from '../audit-detail';
 
   let {
     rows,
@@ -205,6 +206,7 @@
   {:else}
     <ul class="audit-log__list">
       {#each rows as row (String(row.id))}
+        {@const detail = auditDetailLines(row.details_json, locale)}
         <li>
           <details class="audit-log__row audit-event">
             <summary
@@ -222,14 +224,38 @@
               >
             </summary>
             <div class="audit-log__detail">
-              <p>
-                <small
-                  >{String(row.action)} · {String(row.entity_type)} · {String(row.entity_id)} ·
-                  {timestampLabel(row.occurred_at)}</small
-                >
-                <small>{translate('Actor ID')}: {String(row.actor_id || '—')}</small>
-              </p>
-              <pre><code>{detailsDisplay(row.details_json)}</code></pre>
+              {#if detail.kind === 'none'}
+                <p class="audit-log__none">{auditDetailText(locale, 'noDetails')}</p>
+              {:else}
+                <dl class="audit-log__fields" data-audit-fields={detail.kind}>
+                  {#each detail.lines as line, lineIndex (lineIndex)}
+                    <div>
+                      <dt>{line.label}</dt>
+                      <dd>
+                        {#if line.before !== undefined}<span class="audit-log__old"
+                            >{line.before}</span
+                          > → {/if}{line.value}
+                      </dd>
+                    </div>
+                  {/each}
+                </dl>
+                {#if detail.hidden > 0}
+                  <p class="audit-log__none">
+                    {auditDetailText(locale, 'more', { count: detail.hidden })}
+                  </p>
+                {/if}
+              {/if}
+              <details class="audit-log__technical">
+                <summary>{auditDetailText(locale, 'technical')}</summary>
+                <p>
+                  <small
+                    >{String(row.action)} · {String(row.entity_type)} · {String(row.entity_id)} ·
+                    {timestampLabel(row.occurred_at)}</small
+                  >
+                  <small>{translate('Actor ID')}: {String(row.actor_id || '—')}</small>
+                </p>
+                <pre><code>{detailsDisplay(row.details_json)}</code></pre>
+              </details>
             </div>
           </details>
         </li>
@@ -361,6 +387,40 @@
     margin: 0 0 0.5rem;
     word-break: break-all;
   }
+  .audit-log__fields {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0 0 0.5rem;
+  }
+  .audit-log__fields > div {
+    display: grid;
+    grid-template-columns: minmax(8rem, 14rem) minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+  .audit-log__fields dt {
+    font-weight: 600;
+    color: #33475a;
+  }
+  .audit-log__fields dd {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .audit-log__old {
+    color: #6b7c8c;
+    text-decoration: line-through;
+  }
+  .audit-log__none {
+    color: #526779;
+    margin: 0 0 0.5rem;
+  }
+  .audit-log__technical summary {
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+  }
   .audit-log__detail pre {
     max-height: 22rem;
     overflow: auto;
@@ -406,6 +466,20 @@
     }
     .audit-log__entity {
       grid-column: 1 / 3;
+    }
+    /* Z8: full timestamps and names on phones (no "8:4…" truncation). */
+    .audit-log__row summary > .audit-log__time,
+    .audit-log__row summary > .audit-log__actor {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+    .audit-log__row summary > .audit-log__actor {
+      text-align: right;
+    }
+    .audit-log__fields > div {
+      grid-template-columns: 1fr;
+      gap: 0.1rem;
     }
   }
 </style>

@@ -14,7 +14,12 @@
   } from '$lib/portal/ui/workspace-navigation';
   import { createAuthClient } from 'better-auth/client';
   import PortalChrome from '$lib/PortalChrome.svelte';
-  import { portalNavigationForRole, type NavItem } from '$lib/portal-navigation';
+  import {
+    activeNavItem,
+    mobilePrimaryNavigationFor,
+    portalNavigationForRole,
+    type NavItem,
+  } from '$lib/portal-navigation';
   import { portalText, type PortalLocale } from '$lib/portal-i18n';
   let { data, children } = $props();
   configureWorkspaceNavigation(
@@ -52,6 +57,20 @@
       !/\/app\/(supplier|login|invite|accept-invitation)(\/|$)/.test($page.url.pathname),
   );
   const translate = (text: string) => portalText(locale, text);
+  // Y6: standalone pages (project detail, crew, …) keep the phone bottom bar.
+  const mobileNavigation = $derived(mobilePrimaryNavigationFor(navigation));
+  const activeDestination = $derived(
+    activeNavItem([...navigation.primary, ...navigation.secondary], {
+      base,
+      section,
+      url: $page.url,
+      role: data.chromeUser?.role,
+      itemHref: (item: NavItem) =>
+        item.href ?? `${base}/app/${item.section === 'today' ? '' : item.section}`,
+    }),
+  );
+  // Pages with their own breadcrumb back link do not get a second "← Back".
+  const ownBackLink = $derived($page.route.id === '/app/projects/[id]');
   const itemHref = (item: NavItem) =>
     item.href ?? `${base}/app/${item.section === 'today' ? '' : item.section}`;
   const auth = createAuthClient({
@@ -217,14 +236,43 @@
       badges={{ approvals: Number(data.approvalPendingCount ?? 0) }}
     />
     <div id="portal-main" class="standalone-workspace__content" use:restoreOriginBack>
-      <a
-        class="workspace-back"
-        href={origin ?? `${base}/app/${section}`}
-        data-origin-back
-        onclick={back}><DirectionIcon direction="left" /> {translate('Back')}</a
-      >
+      {#if !ownBackLink}
+        <a
+          class="workspace-back"
+          href={origin ?? `${base}/app/${section}`}
+          data-origin-back
+          onclick={back}><DirectionIcon direction="left" /> {translate('Back')}</a
+        >
+      {/if}
       {@render children()}
     </div>
+    <nav class="bottom-nav" aria-label={translate('Mobile navigation')}>
+      {#each mobileNavigation as item}
+        {@const pending = item.section === 'approvals' ? Number(data.approvalPendingCount ?? 0) : 0}
+        <a
+          class:active={activeDestination === item}
+          href={itemHref(item)}
+          aria-current={activeDestination === item ? 'page' : undefined}
+          aria-label={pending > 0
+            ? `${translate(item.label)} · ${pending} ${translate('pending')}`
+            : undefined}
+          ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span
+          >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true"
+              >{pending > 99 ? '99+' : pending}</span
+            >{/if}</a
+        >
+      {/each}
+      <button
+        type="button"
+        class="bottom-nav-more"
+        aria-controls="portal-navigation"
+        aria-expanded={menuOpen}
+        onclick={() => (menuOpen = true)}
+        class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
+      >
+        <span class="bottom-nav-label">{translate('More')}</span>
+      </button>
+    </nav>
   </div>
 {:else}
   {@render children()}
@@ -313,6 +361,55 @@
     color: inherit;
     font-size: 1.5rem;
     cursor: pointer;
+  }
+  .bottom-nav-label {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .bottom-nav a,
+  .bottom-nav-more {
+    position: relative;
+  }
+  .bottom-nav-badge {
+    position: absolute;
+    top: 0.35rem;
+    left: calc(50% + 0.9rem);
+    min-width: 1.25rem;
+    width: max-content;
+    padding: 0.05rem 0.3rem;
+    border-radius: 999px;
+    white-space: nowrap;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: 1.3;
+    text-align: center;
+  }
+  .bottom-nav-more {
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+    font-size: 0.7rem;
+  }
+  .bottom-nav-more.active {
+    color: var(--ja-ink);
+    border-top-color: var(--ja-red);
+    background: var(--ja-canvas);
+  }
+  @media (max-width: 620px) {
+    /* Room for the fixed bottom bar (Y6). */
+    :global(.standalone-workspace__content) {
+      padding-bottom: 5.65rem;
+    }
+  }
+  @media print {
+    .bottom-nav {
+      display: none;
+    }
   }
   @media (min-width: 900px) {
     .session-expired {

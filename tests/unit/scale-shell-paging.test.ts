@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { PortalRepository } from '../../packages/database/src/repository';
-import { auditFilterFrom } from '../../apps/portal/src/lib/server/audit-page';
+import { auditFilterFrom, auditTypeGroups } from '../../apps/portal/src/lib/server/audit-page';
 
 const owner: Principal = {
   userId: 'owner',
@@ -93,6 +93,8 @@ describe('audit register filters', () => {
     expect(count({ view: 'all', actorId: 'pm' })).toBe(1);
     expect(count({ view: 'all', actorId: 'service' })).toBe(1);
     expect(count({ view: 'all', entityType: 'time_entry' })).toBe(2);
+    // Z2: record kinds that read the same are filtered together.
+    expect(count({ view: 'all', entityTypes: ['time_entry', 'invoice'] })).toBe(3);
     expect(count({ view: 'all', search: 'SCL-2026-0007' })).toBe(1);
     expect(count({ view: 'all', search: 'inv-1' })).toBe(1);
     // LIKE wildcards are literal: "_" and "%" do not match arbitrary characters.
@@ -100,6 +102,22 @@ describe('audit register filters', () => {
     expect(count({ view: 'all', search: '100%' })).toBe(1);
     const page = repository.listAuditEvents(owner, { view: 'all', limit: 2, offset: 1 });
     expect(page.map((row) => row.id)).toEqual(['a2', 'a1']);
+  });
+
+  it('offers one record-type choice per label (no duplicate "Issuing company")', () => {
+    const groups = auditTypeGroups([
+      'canonical_legal_entity',
+      'client',
+      'legal_entity',
+      'project_legal_entity',
+      'time_entry',
+    ]);
+    expect([...groups.keys()]).toEqual(['canonical_legal_entity', 'client', 'time_entry']);
+    expect(groups.get('canonical_legal_entity')).toEqual([
+      'canonical_legal_entity',
+      'legal_entity',
+      'project_legal_entity',
+    ]);
   });
 
   it('keeps audit access to owner and auditor', () => {

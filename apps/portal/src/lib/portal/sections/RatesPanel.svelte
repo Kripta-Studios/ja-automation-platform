@@ -292,7 +292,10 @@
   <p class="rates__scope" data-rates-scope>
     {#if list.peopleMissing > 0}
       <span class="rates__missing-count"
-        >{t('ratesScope', { people: list.peopleMissing, projects: list.projectsMissing })}</span
+        >{t(list.peopleMissing === 1 ? 'ratesScopeOne' : 'ratesScope', {
+          people: list.peopleMissing,
+          projects: t('projectCount', { count: list.projectsMissing }),
+        })}</span
       >
     {:else}
       {t('ratesAllSet')}

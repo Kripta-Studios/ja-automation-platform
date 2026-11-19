@@ -40,6 +40,7 @@
     projectEnd = '',
     today,
     canSetRates = false,
+    viewerId = '',
     roleLabel,
     formatDate,
     describe,
@@ -58,6 +59,8 @@
     projectEnd?: string;
     today: string;
     canSetRates?: boolean;
+    /** Signed-in user id (hides "End assignment" on a manager's own row). */
+    viewerId?: string;
     roleLabel: (value: unknown) => string;
     formatDate: (value: unknown) => string;
     describe: (result: unknown) => string;
@@ -519,7 +522,8 @@
               {/if}
             </div>
           {/if}
-          {#if canManage}
+          {#if canManage && (isOwner || row.workerId !== viewerId)}
+            <!-- Y5: a project manager does not end their own membership (the owner does). -->
             <button
               type="button"
               class="quiet-button hub-end"
@@ -607,8 +611,11 @@
     {#if canSetRates}
       <a href={`${projectHref}?tab=settings&group=billing#project-person-conditions`}>{h('allRates')} →</a>
     {/if}
-    {#if canManage}
+    {#if isOwner}
+      <!-- Crew hours is an owner screen (a project manager gets 403 there, Y5). -->
       <a href={`${base}/app/crew?project=${encodeURIComponent(projectId)}`}>{h('crewHours')} →</a>
+    {/if}
+    {#if canManage}
       <a
         href={`${base}/app/projects?action=update-assignment&project=${encodeURIComponent(projectId)}#project-assignment-list`}
         >{h('advancedAssignments')} →</a

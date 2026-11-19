@@ -308,7 +308,8 @@ export function portalNavigationForRole(
 
   if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator') {
     const coordinator = workforceProfile === 'supplier_coordinator';
-    const supplierTeam = item('supplier', 'Supplier team', '◌', undefined, { shortLabel: 'Team' });
+    // One name on desktop and phone (Z6).
+    const supplierTeam = item('supplier', 'Supplier team', '◌');
     const time = item('time', 'Time', '◷');
     // Crew hours sit next to the coordinator's own Time (P7): one tap to
     // record the team's hours instead of Supplier → Record team hours.
@@ -380,11 +381,11 @@ export function portalNavigationForRole(
           item('today', 'Home', '⌂'),
           item('finance', 'Money', '↗', route('finance', 'overview')),
           item('projects', 'Projects', '▦'),
-          item('billing', 'Billing', '◫'),
+          item('billing', 'Invoices', '◫'),
           item('ledger', 'Payments', '▤'),
         ],
         secondary: [
-          item('approvals', 'Approvals', '✓'),
+          item('approvals', 'Approve', '✓'),
           item('accounting', 'Accounting', '▥'),
           item('finance', 'Rates', '⚙', route('finance', 'commercial')),
           item('documents', 'Documents', '▧'),

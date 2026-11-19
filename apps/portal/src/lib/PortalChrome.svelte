@@ -204,7 +204,9 @@
             ? 'manager'
             : value === 'auditor_read_only'
               ? 'auditor_read_only'
-              : (value ?? 'worker');
+              : value === 'worker' && data.user.workforceProfile
+                ? data.user.workforceProfile
+                : (value ?? 'worker');
     return translateControlledValue(locale, 'role', normalized);
   };
 

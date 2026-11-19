@@ -234,6 +234,8 @@ export type ApprovalQueuePage = {
   }>;
   reports: Array<Record<string, unknown>>;
   waiting: { count: number; rows: Array<Record<string, unknown>> };
+  /** The viewer's own pending entries in this tab: listed apart, never decidable by them. */
+  ownEntries?: { count: number; minutes: number; rows: Array<Record<string, unknown>> };
   /** "Approve all": every matching submitted hour/expense (both tabs), oldest first. */
   approveAll: {
     matching: QueueTotals;

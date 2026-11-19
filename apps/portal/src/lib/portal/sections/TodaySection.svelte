@@ -30,7 +30,7 @@
     locale?: 'en' | 'es' | 'pt';
     data: Pick<
       PortalData,
-      'dashboard' | 'records' | 'ownerFinance' | 'locale' | 'homeInbox' | 'workerWeek'
+      'dashboard' | 'records' | 'ownerFinance' | 'locale' | 'homeInbox' | 'workerWeek' | 'user'
     >;
     availableProjects: PortalRow[];
     online: boolean;
@@ -453,6 +453,12 @@
           >{:else}<small>{controlledValue('status', project.status)} · {project.timezone}</small
           >{/if}<i>{h('openProject')}</i></a
       >{/each}
+    {#if activeProjects.length === 0}
+      <!-- Z9: say why the list is empty instead of an empty "Active projects · 0" card. -->
+      <p class="project-board-empty" data-home-projects-empty>
+        {data.user?.role === 'project_manager' ? h('noActiveProjectsManager') : h('noActiveProjects')}
+      </p>
+    {/if}
     {#if activeProjects.length > boardProjects.length}
       <a class="project-board-all" href={link('projects')} data-home-projects-all
         >{h('viewAllProjects', { count: activeProjects.length })} <DirectionIcon /></a
@@ -649,6 +655,11 @@
     display: block;
     color: var(--ja-text-secondary);
     font-size: 0.8125rem;
+  }
+  .project-board-empty {
+    margin: 0;
+    padding: 0.75rem 0;
+    color: var(--ja-text-secondary, #5b6573);
   }
   .project-board-all {
     display: inline-flex;

@@ -1094,7 +1094,7 @@
     await navigator.clipboard.writeText(new URL(invitationPath, location.origin).toString());
     invitationCopied = true;
   }
-  const workforceSupplierProblemInForm = $derived(
+  const workforceSupplierProblemInForm = $derived.by(() =>
     Boolean(
       workforceSupplierInactiveProblem &&
       canManageTeam &&

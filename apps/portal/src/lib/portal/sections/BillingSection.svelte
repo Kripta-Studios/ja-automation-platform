@@ -6683,7 +6683,7 @@
                     <span class="billing-section__rule-mobile-label">{translate('Cadence')}</span>
                     <StatusBadge
                       variant={rule.browser_status === 'active' ? 'success' : 'neutral'}
-                      text={streamStatusLabel(rule.browser_status)}
+                      text={streamStatusLabel(String(rule.browser_status ?? 'unknown'))}
                     />
                     {controlledValue(
                       'billingStream',

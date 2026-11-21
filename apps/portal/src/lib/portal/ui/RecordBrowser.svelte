@@ -64,7 +64,9 @@
       nextLabel?: string;
     };
   } = $props();
-  const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
+  const preferredOrder = untrack(() =>
+    statusless && initialOrder === 'priority' ? 'newest' : initialOrder,
+  );
   let search = $state('');
   let order = $state<string>(preferredOrder);
   let page = $state(0);

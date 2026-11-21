@@ -468,7 +468,7 @@
     font-weight: 600;
     min-width: 0;
   }
-  .project-create-simple__rate select,
+  .project-create-simple__rate :global(select[data-currency-select]),
   .project-create-simple__rate input {
     width: 100%;
     min-width: 0;

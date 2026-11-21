@@ -176,10 +176,19 @@ test('project and finance administration opens one chosen task', async ({ page }
   await page.locator('.finance-config-panel').scrollIntoViewIfNeeded();
   await page.screenshot({ path: info.outputPath('finance-task.png'), fullPage: false });
   await page.goto(portal('/projects?view=team'), { waitUntil: 'networkidle' });
-  const assignments = page.locator('.team-directory__assignment-details').first();
+  const assignedPerson = page
+    .getByRole('row')
+    .filter({ has: page.locator('.people__chip') })
+    .getByRole('link')
+    .first();
+  await assignedPerson.click();
+  const person = page.locator('[data-person-page]');
+  await person.locator('[data-person-tab="projects"]').click();
+  const projects = person.locator('[data-person-panel="projects"]');
+  const assignments = projects.locator('.team-directory__assignment-details');
   await expect(assignments).not.toHaveAttribute('open', '');
   await assignments.locator('summary').click();
-  await expect(assignments.locator('.team-directory__assignment-list')).toBeVisible();
+  await expect(assignments.getByRole('listitem').first()).toBeVisible();
   await readable(page);
   await page.screenshot({ path: info.outputPath('team-disclosure.png'), fullPage: false });
 });

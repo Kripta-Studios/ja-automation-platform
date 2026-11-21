@@ -93,7 +93,7 @@
           },
   );
   let container: HTMLDivElement;
-  let iframe: HTMLIFrameElement;
+  let iframe = $state<HTMLIFrameElement>();
   let dialog: HTMLDialogElement;
   let width = $state(794);
   let height = $state(1123);

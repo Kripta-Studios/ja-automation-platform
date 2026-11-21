@@ -1711,14 +1711,6 @@
     color: var(--ja-steel, #5b6573);
     font-size: 0.875rem;
   }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
   .aq-done {
     display: flex;
     flex-wrap: wrap;

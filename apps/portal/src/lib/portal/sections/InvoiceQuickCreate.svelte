@@ -2385,14 +2385,6 @@
     border: 1px solid var(--ja-border-subdued, #e4e4df);
     background: var(--ja-canvas, #f4f4f2);
   }
-  .quick-invoice__warnings--danger {
-    border-color: color-mix(in srgb, var(--ja-status-danger, #dc2626) 45%, white);
-    background: color-mix(in srgb, var(--ja-status-danger, #dc2626) 7%, white);
-  }
-  .quick-invoice__warnings--warning {
-    border-color: color-mix(in srgb, var(--ja-status-warning, #d97706) 45%, white);
-    background: color-mix(in srgb, var(--ja-status-warning, #d97706) 8%, white);
-  }
   .quick-invoice__warnings ul {
     display: grid;
     gap: 0.5rem;

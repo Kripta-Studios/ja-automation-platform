@@ -4288,12 +4288,6 @@
     margin-top: 0.2rem;
   }
 
-  .finance-overview__projection-reference {
-    display: block;
-    color: var(--portal-muted, #67675f);
-    overflow-wrap: anywhere;
-  }
-
   .finance-overview__projection-warning nav {
     display: flex;
     flex-wrap: wrap;

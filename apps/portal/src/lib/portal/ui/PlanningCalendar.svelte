@@ -38,7 +38,7 @@
   let selected = $state(untrack(() => calendarDate(initialDate ?? today)));
   let month = $state(untrack(() => selected));
   useViewPreferences({
-    scope: `planning-calendar:${agendaId ?? 'default'}`,
+    scope: untrack(() => `planning-calendar:${agendaId ?? 'default'}`),
     user: () =>
       `${$page.data.user?.id ?? $page.data.managementUser?.id ?? ''}:${$page.data.user?.role ?? $page.data.managementUser?.role ?? ''}`,
     url: () => $page.url,

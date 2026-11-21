@@ -41,7 +41,7 @@ jobs:
           - name: Portal Svelte
             command: >-
               pnpm --filter @ja/portal exec svelte-kit sync &&
-              pnpm --filter @ja/portal exec svelte-check --tsconfig ./tsconfig.json
+              pnpm --filter @ja/portal exec svelte-check --fail-on-warnings --tsconfig ./tsconfig.json
           - name: Unit tests (1/4)
             type: unit
             shard: '1/4'
@@ -69,10 +69,10 @@ jobs:
               tests/integration/crew-shared-expense-allocation.test.ts
               tests/integration/supplier-workforce.test.ts
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7.1.0
         with:
           node-version-file: .node-version
       - run: corepack enable
@@ -104,7 +104,7 @@ jobs:
           tar -czf "$RUNNER_TEMP/portal-jobs.tgz" -C deployment/jobs-build .
       - name: Upload portal runtime
         if: matrix.check.name == 'Build' && github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: portal-runtime
           path: |

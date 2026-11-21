@@ -1963,19 +1963,6 @@
     gap: 1rem;
     max-width: 72rem;
   }
-  .time-week-head {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    justify-content: space-between;
-    gap: 0.75rem 1.5rem;
-  }
-  .time-week-head h2 {
-    margin: 0;
-  }
-  .time-week-head p {
-    margin: 0.25rem 0 0;
-  }
   .muted {
     color: var(--ja-steel, #5b6573);
   }

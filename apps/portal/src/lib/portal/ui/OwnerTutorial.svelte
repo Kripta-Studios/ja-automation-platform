@@ -447,15 +447,6 @@
     flex-basis: 100%;
     margin: 0;
   }
-  .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    clip-path: inset(50%);
-  }
   @media (max-width: 560px) {
     .tutorial-card {
       grid-template-columns: minmax(0, 1fr);

@@ -16,9 +16,11 @@ describe('standalone project detail action feedback', () => {
     expect(detail).toContain("actionResult?.success === true ? 'success' : 'error'");
     expect(detail).toMatch(/variant:\s*actionResult\?\.success === true \? 'success' : 'danger'/);
     expect(detail).toContain("title: actionResult?.success === true ? t('Success') : t('Error')");
-    expect(detail).toContain('<ToastRegion');
-    expect(detail).toContain('toasts={actionToasts}');
-    expect(detail).toContain('ondismiss={dismissActionToast}');
+    expect(detail).toMatch(/<ToastRegion\s+toasts=\{\[\.\.\.actionToasts, \.\.\.hubToasts\]\}/);
+    expect(detail).toMatch(
+      /ondismiss=\{\(id: string\) =>\s*id\.startsWith\('hub:'\)\s*\? \(hubToasts = hubToasts\.filter\(\(toast\) => toast\.id !== id\)\)\s*: dismissActionToast\(\)\}/,
+    );
+    expect(detail).toContain('dismissedActionToastKey = actionFeedbackKey;');
   });
 
   it('retains an accessible inline fallback without announcing both surfaces at once', () => {

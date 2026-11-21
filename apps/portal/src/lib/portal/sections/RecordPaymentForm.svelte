@@ -6,6 +6,7 @@
    */
   import { enhance } from '$app/forms';
   import type { SubmitFunction } from '@sveltejs/kit';
+  import { untrack } from 'svelte';
   import { moneyText, type MoneyCopyKey } from '../money-copy';
   import { inputTextToMinor, minorToInputText } from '../payment-money';
 
@@ -49,7 +50,7 @@
     return new Date(now.getTime() - now.getTimezoneOffset() * 60_000).toISOString().slice(0, 10);
   };
 
-  let amount = $state(toDecimal(outstandingMinor));
+  let amount = $state(untrack(() => toDecimal(outstandingMinor)));
   let receivedOn = $state(localToday());
   let method = $state<(typeof methods)[number]>('bank_transfer');
   let reference = $state('');

@@ -3871,14 +3871,6 @@
     margin-top: 0.15rem;
   }
 
-  .team-directory__facts a,
-  .team-directory__assignment a {
-    display: inline-flex;
-    align-items: center;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-  }
-
   .team-directory {
     display: grid;
     gap: 1rem;
@@ -3888,20 +3880,12 @@
     scroll-margin-top: 5.5rem;
   }
   .team-directory__header,
-  .team-directory__identity,
   .team-directory__provisioning-heading,
   .team-directory__invitation-result {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-  }
-  .team-directory__eyebrow {
-    margin: 0 0 0.35rem;
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
   }
   .team-directory h2,
   .team-directory h3 {
@@ -3926,16 +3910,6 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 0.65rem;
     background: var(--portal-wash, #f7f7f6);
-  }
-  .team-directory__count {
-    display: grid;
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-    place-items: center;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 999px;
-    color: var(--portal-ink, #20201d);
-    font-weight: 800;
   }
   .team-directory__tabs {
     display: flex;
@@ -4019,8 +3993,7 @@
   .team-directory__create-form label,
   .team-directory__mailbox-create-form label,
   .team-directory__protected-form label,
-  .team-directory__field label,
-  .team-directory__controls > label:first-child {
+  .team-directory__field label {
     display: block;
     color: var(--portal-muted, #63625b);
     font-size: 0.8125rem;
@@ -4096,23 +4069,9 @@
     border-radius: 0.75rem;
     background: var(--portal-surface, #fff);
   }
-  .team-directory__controls > button,
-  .team-directory__toggle {
-    align-self: end;
-  }
   .team-directory__field {
     min-width: 0;
   }
-  .team-directory__toggle {
-    display: flex;
-    min-height: var(--ja-target-min, 2.75rem);
-    align-items: center;
-    gap: 0.5rem;
-    color: var(--portal-ink, #20201d);
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-  .team-directory__toggle input,
   .team-directory__checkbox-hit input {
     width: 1.2rem;
     height: 1.2rem;
@@ -4128,80 +4087,15 @@
     outline: 3px solid color-mix(in srgb, var(--portal-accent, #53524c) 32%, transparent);
     outline-offset: 2px;
   }
-  .team-directory__list {
-    display: grid;
-    gap: 1rem;
-  }
   :global(.team-directory__card) {
     display: grid;
     gap: 1rem;
   }
-  .team-directory__identity {
-    align-items: center;
-  }
-  .team-directory__avatar {
-    display: grid;
-    flex: 0 0 auto;
-    width: 2.75rem;
-    height: 2.75rem;
-    place-items: center;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 50%;
-    background: var(--portal-wash, #f5f5f5);
-    color: var(--portal-accent, #53524c);
-    font-weight: 850;
-  }
-  .team-directory__identity-copy {
-    display: grid;
-    min-width: 0;
-    flex: 1 1 auto;
-    gap: 0.2rem;
-  }
-  .team-directory__identity-copy a {
-    display: inline-flex;
-    min-height: var(--ja-target-min, 2.75rem);
-    align-items: center;
-    overflow-wrap: anywhere;
-    color: var(--portal-accent, #53524c);
-    font-size: 0.82rem;
-    font-weight: 700;
-  }
-  .team-directory__facts {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 0.75rem;
-    margin: 0;
-  }
-  .team-directory__facts div {
-    min-width: 0;
-    padding: 0.7rem;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 0.5rem;
-    background: color-mix(in srgb, var(--portal-surface, #fff) 92%, var(--portal-wash, #f2f2f1));
-  }
-  .team-directory__facts dt,
-  .team-directory__mailbox-card-facts dt {
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }
-  .team-directory__facts dd,
-  .team-directory__mailbox-card-facts dd {
-    margin: 0.2rem 0 0;
-    overflow-wrap: anywhere;
-    font-weight: 750;
-  }
-  .team-directory__actions,
   .team-directory__form-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 0.6rem;
     align-items: end;
-  }
-  .team-directory__actions form {
-    margin: 0;
   }
   .team-directory__action,
   .team-directory summary {
@@ -4257,20 +4151,6 @@
     padding: 0.55rem 0.7rem;
     font: inherit;
   }
-  .team-directory__assignment-list {
-    display: grid;
-    gap: 0.5rem;
-  }
-  .team-directory__assignment {
-    display: grid;
-    gap: 0.2rem;
-    padding: 0.7rem;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 0.5rem;
-    background: var(--portal-wash, #f8f8f7);
-  }
-  .team-directory__assignment span,
-  .team-directory__assignment small,
   .team-directory__empty,
   .team-directory__form-help {
     color: var(--portal-muted, #63625b);
@@ -4508,17 +4388,6 @@
     color: var(--portal-accent, #53524c);
     font-size: 0.82rem;
   }
-  .team-directory__mailbox-card-facts {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.6rem;
-    margin: 0;
-  }
-  .team-directory__mailbox-card-facts div {
-    padding: 0.6rem;
-    border: 1px solid var(--portal-border, #dfdedc);
-    border-radius: 0.5rem;
-  }
   .team-directory__input-addon {
     display: flex;
     min-width: 0;
@@ -4560,14 +4429,10 @@
   }
   @media (max-width: 720px) {
     .team-directory__header,
-    .team-directory__identity,
     .team-directory__provisioning-heading,
     .team-directory__invitation-result {
       align-items: stretch;
       flex-direction: column;
-    }
-    .team-directory__count {
-      width: fit-content;
     }
     .team-directory__tabs {
       flex-direction: column;
@@ -4583,21 +4448,16 @@
       background: var(--portal-wash, #f5f5f5);
     }
     .team-directory__controls,
-    .team-directory__facts,
     .team-directory__form,
     .team-directory__create-form,
     .team-directory__mailbox-create-form,
     .team-directory__mailbox-toolbar {
       grid-template-columns: 1fr;
     }
-    .team-directory__controls > button {
-      width: 100%;
-    }
     .team-directory__protected-toolbar {
       align-items: stretch;
       flex-direction: column;
     }
-    .team-directory__protected-toolbar form,
     .team-directory__protected-toolbar button {
       width: 100%;
     }
@@ -4608,9 +4468,6 @@
     .team-directory__create-submit,
     .team-directory__provisioning-heading > button,
     .team-directory__invitation-result > button,
-    .team-directory__actions,
-    .team-directory__actions form,
-    .team-directory__actions .team-directory__action,
     .team-directory__form-actions,
     .team-directory__form-actions button,
     .team-directory__bulk-controls,
@@ -4649,12 +4506,6 @@
       scroll-behavior: auto !important;
       transition-duration: 0.01ms !important;
       animation-duration: 0.01ms !important;
-    }
-  }
-
-  @media (max-width: 640px) {
-    .team-directory__mailbox-card-facts {
-      grid-template-columns: 1fr;
     }
   }
 

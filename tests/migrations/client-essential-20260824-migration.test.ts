@@ -889,11 +889,11 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
       .get() as { migration_version: number; migration_name: string } | undefined;
 
     expect({ version, metadata: metadata ?? null }).toEqual({
-      version: 67,
+      version: 82,
       metadata: { migration_version: 28, migration_name: 'client_essential_20260824' },
     });
     expect(sqlite.prepare('SELECT version FROM schema_migration ORDER BY version').all()).toEqual(
-      Array.from({ length: 67 }, (_, index) => ({ version: index + 1 })),
+      Array.from({ length: 82 }, (_, index) => ({ version: index + 1 })),
     );
   });
 
@@ -1329,7 +1329,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2026-01-01',
         effectiveTo: '2026-01-31',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
     expect(() =>
       insertProjectLegalEntityAssignment(sqlite, {
         assignmentId: 'wp02t-assignment-missing-revision',
@@ -1338,7 +1338,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2026-01-01',
         effectiveTo: '2026-01-31',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
     expect(() =>
       insertProjectLegalEntityAssignment(sqlite, {
         assignmentId: 'wp02t-assignment-mismatched-deployment',
@@ -1348,7 +1348,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2026-01-01',
         effectiveTo: '2026-01-31',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
 
     expect(() =>
       insertProjectLegalEntityAssignment(sqlite, {
@@ -1358,7 +1358,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2025-12-01',
         effectiveTo: '2026-01-31',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
     expect(() =>
       insertProjectLegalEntityAssignment(sqlite, {
         assignmentId: 'wp02t-assignment-after-revision',
@@ -1367,7 +1367,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2026-12-01',
         effectiveTo: '2027-01-01',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
 
     expect(() =>
       insertProjectLegalEntityAssignment(sqlite, {
@@ -1389,7 +1389,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         effectiveFrom: '2026-06-30',
         effectiveTo: '2026-12-31',
       }),
-    ).toThrow(/invalid or overlapping project legal entity assignment/i);
+    ).toThrow(/invalid currency, interval or overlapping project legal entity assignment/i);
 
     expect(() =>
       sqlite
@@ -1405,8 +1405,8 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
           'wp02t-legal-revision',
           TEST_TENANT,
           TEST_DEPLOYMENT,
-          '2026-01-01',
-          '2026-06-29',
+          '2026-07-01',
+          '2026-12-31',
           '2026-08-24T10:04:00.000Z',
           'wp02t-assignment-command',
         ),
@@ -1871,7 +1871,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
     expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(integrityCheck(sqlite)).toBe('ok');
     expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-      version: 67,
+      version: 82,
     });
   });
 
@@ -1950,7 +1950,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
           'SELECT migration_version FROM migration_contract_metadata ORDER BY migration_version',
         )
         .all(),
-    ).toEqual(Array.from({ length: 49 }, (_, index) => ({ migration_version: index + 19 })));
+    ).toEqual(Array.from({ length: 64 }, (_, index) => ({ migration_version: index + 19 })));
     expect(() =>
       sqlite
         .prepare(

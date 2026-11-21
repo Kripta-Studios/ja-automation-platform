@@ -42,9 +42,18 @@ jobs:
             command: >-
               pnpm --filter @ja/portal exec svelte-kit sync &&
               pnpm --filter @ja/portal exec svelte-check --tsconfig ./tsconfig.json
-          - name: Full unit test suite
-            portalTests: true
-            command: pnpm run test:unit --maxWorkers=2
+          - name: Unit tests (1/4)
+            type: unit
+            shard: '1/4'
+          - name: Unit tests (2/4)
+            type: unit
+            shard: '2/4'
+          - name: Unit tests (3/4)
+            type: unit
+            shard: '3/4'
+          - name: Unit tests (4/4)
+            type: unit
+            shard: '4/4'
           - name: Invariants and release regression tests
             portalTests: true
             command: >-
@@ -69,9 +78,19 @@ jobs:
       - run: corepack enable
       - run: pnpm install --frozen-lockfile
       - name: Generate portal test configuration
-        if: matrix.check.portalTests == true
+        if: matrix.check.type == 'unit' || matrix.check.portalTests == true
         run: pnpm --filter @ja/portal exec svelte-kit sync
-      - run: ${{ matrix.check.command }}
+      - name: Install PDF test dependencies
+        if: matrix.check.type == 'unit'
+        run: |
+          pnpm --filter @ja/reporting exec playwright install --with-deps --only-shell chromium
+          sudo apt-get install -y --no-install-recommends poppler-utils
+      - name: Run unit tests
+        if: matrix.check.type == 'unit'
+        run: pnpm run test:unit --maxWorkers=2 --shard=${{ matrix.check.shard }}
+      - name: Run selected check
+        if: matrix.check.type != 'unit'
+        run: ${{ matrix.check.command }}
       - name: Package portal runtime
         if: matrix.check.name == 'Build' && github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |

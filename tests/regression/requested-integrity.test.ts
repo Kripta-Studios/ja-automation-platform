@@ -19,7 +19,10 @@ afterEach(() => {
 });
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const worker = stepUpB5Principal(base.sqlite, base.worker, 'requested-integrity');
+  base.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
+  const value = { ...base, worker };
   fixtures.push(value);
   return value;
 }

@@ -7,6 +7,7 @@ import { createDatabase } from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 import { installB5TestDeploymentIdentity } from '../fixtures/b5-test-environment.js';
@@ -28,7 +29,10 @@ afterEach(() => {
 afterAll(() => restoreDeploymentIdentity?.());
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const worker = stepUpB5Principal(base.sqlite, base.worker, 'adversarial-migration');
+  base.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
+  const value = { ...base, worker };
   fixtures.push(value);
   return value;
 }

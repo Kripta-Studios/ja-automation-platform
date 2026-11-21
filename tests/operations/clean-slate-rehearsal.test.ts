@@ -1,4 +1,4 @@
-import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, copyFileSync, cpSync, linkSync, symlinkSync } from 'node:fs';
+import { chmodSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync, copyFileSync, cpSync, linkSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
@@ -294,7 +294,9 @@ describe('isolated clean-slate rehearsal', () => {
   it('refuses a tampered original archive before an idempotent rerun', () => {
     const f=fixture();
     rehearseCleanSlate(f.database,f.artifacts,f.archive);
-    writeFileSync(join(f.archive,'artifacts','invoices','issued-demo.pdf'),'tampered');
+    const archivedInvoice = join(f.archive, 'artifacts', 'invoices', 'issued-demo.pdf');
+    chmodSync(archivedInvoice, 0o600);
+    writeFileSync(archivedInvoice, 'tampered');
     expect(()=>rehearseCleanSlate(f.database,f.artifacts,f.archive)).toThrow(/archive hash verification failed/);
   });
 

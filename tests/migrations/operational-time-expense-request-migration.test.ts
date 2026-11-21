@@ -6,6 +6,7 @@ import { createDatabase, expectedMigrationVersion, integrityCheck } from '@ja/da
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -40,7 +41,9 @@ describe('0055 operational time/expense request migration', () => {
     process.env.JA_MIGRATIONS_PATH = priorMigrationDirectory();
     const value = createB5LifecycleSecurityFixture();
     fixtures.push(value);
-    const time = value.repository.createTimeEntry(value.worker, {
+    const worker = stepUpB5Principal(value.sqlite, value.worker, 'operational-request-upgrade');
+    value.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
+    const time = value.repository.createTimeEntry(worker, {
       projectId: value.project.id,
       workDate: '2026-08-20',
       category: 'regular',

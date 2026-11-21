@@ -50,9 +50,9 @@ const pageCount = (bytes: Uint8Array): number =>
 
 const titles = {
   invoice: {
-    en: 'Labor Detailed Invoice',
-    es: 'Factura Detallada de Mano de Obra',
-    'pt-BR': 'Fatura Detalhada de Mão de Obra',
+    en: 'Draft invoice',
+    es: 'Factura borrador',
+    'pt-BR': 'Fatura rascunho',
   },
   period: {
     en: 'Project Period Report',
@@ -488,12 +488,11 @@ describe('localized report PDF renderers', () => {
   });
 
   it.each(locales)('renders invoice, period and Accounting Pack PDFs in %s', (locale) => {
-    const invoiceText = expectPdf(invoicePdf(invoiceSnapshot(locale)));
+    const invoiceText = expectPdf(invoicePdf({ ...invoiceSnapshot(locale), state: 'draft' }));
     const periodText = expectPdf(periodReportPdf(periodSnapshot(locale)));
     const packText = expectPdf(accountingPackPdf(packSnapshot(locale)));
-    const invoiceTitle = titles.invoice[locale];
-    expect(containsPdfCopy(invoiceText, invoiceTitle.split(' ')[0])).toBe(true);
-    expect(containsPdfCopy(invoiceText, invoiceTitle.split(' ').at(-1) ?? invoiceTitle)).toBe(true);
+    expect(containsPdfCopy(invoiceText, titles.invoice[locale])).toBe(true);
+    expect(containsPdfCopy(invoiceText, `JA-I18N-${locale}`)).toBe(true);
     const periodTitle = titles.period[locale];
     expect(containsPdfCopy(periodText, periodTitle.split(' ')[0])).toBe(true);
     expect(containsPdfCopy(periodText, periodTitle.split(' ').at(-1) ?? periodTitle)).toBe(true);

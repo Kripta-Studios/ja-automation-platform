@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
+  WORKER_STATEMENT_TEMPLATE_VERSION,
   technicalReportPdf,
   workerStatementPdf,
   type WorkerStatementSnapshot,
@@ -68,13 +69,16 @@ describe('readable generated PDF examples', () => {
     expect(Number(page[1])).toBeGreaterThan(Number(page[2]));
     for (const heading of ['TYPE', 'HOURS', 'APPROVAL'])
       expect(words.some((word) => word.text === heading)).toBe(true);
-    const activityHeading = words.find((word) => word.text === 'activity')!;
+    const activityHeading = words.find((word) => word.text === 'ACTIVITY');
+    expect(activityHeading).toBeDefined();
     // Both the activity row and its total must retain a single readable numeric token.
-    expect(words.filter((word) => word.text === '8.00' && word.y > activityHeading.y)).toHaveLength(
-      2,
-    );
+    expect(
+      words.filter(
+        (word) => word.text === '8.00' && word.y > (activityHeading?.y ?? Number.POSITIVE_INFINITY),
+      ),
+    ).toHaveLength(2);
     expect(raw).toContain('$320.00');
-    expect(raw).toContain('2026.09.22.1');
+    expect(raw).toContain(`Template ${WORKER_STATEMENT_TEMPLATE_VERSION}`);
   });
 
   it.each(['en', 'pt-BR'])(

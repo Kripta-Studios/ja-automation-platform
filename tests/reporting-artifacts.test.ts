@@ -1,9 +1,8 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   ACCOUNTING_PACK_DATA_TEMPLATE_VERSION,
@@ -21,6 +20,7 @@ import {
   dailyReportPdf,
   periodReportPdf,
 } from '@ja/reporting';
+import { invoiceDocumentCss, invoiceDocumentHtml } from '@ja/reporting/invoice-document';
 
 const sha256 = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex');
 const pageCount = (bytes: Uint8Array): number =>
@@ -326,17 +326,18 @@ describe('production reporting artifacts', () => {
   });
 
   it('keeps invoice PDF layout CSS independent of shared report page styles', () => {
-    const source = readFileSync(
-      join(dirname(fileURLToPath(import.meta.url)), '../packages/reporting/src/exports.ts'),
-      'utf8',
-    );
-    expect(source).toContain('function invoiceLayout(');
-    expect(source).toContain('.invoice-parties');
-    expect(source).toContain('.invoice-meta');
-    expect(source).toContain('.invoice-total');
-    expect(source).toContain(
-      'invoiceLayout(rendered.title, rendered.subtitle, number, rendered.body, locale, snapshot)',
-    );
+    const html = invoiceDocumentHtml({
+      number: 'JA-LAYOUT-TEST',
+      calculation: { currency: 'USD', subtotalMinor: '1500', taxMinor: '0', totalMinor: '1500' },
+      lines: [{ description: 'Fixture work', subtotal_minor: '1500' }],
+    });
+    expect(html).toContain(`<style>${invoiceDocumentCss}</style>`);
+    expect(html).toContain('id="ja-invoice-document" class="invoice-canonical"');
+    for (const region of ['invoice-parties', 'invoice-meta', 'invoice-total']) {
+      expect(html).toContain(`class="${region}"`);
+      expect(invoiceDocumentCss).toContain(`.invoice-canonical#ja-invoice-document .${region}`);
+    }
+    expect(html).not.toContain('.masthead');
   });
 
   it('supports the selectable English, Brazilian Portuguese and Spanish report locales', () => {

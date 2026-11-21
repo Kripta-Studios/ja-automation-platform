@@ -42,11 +42,6 @@ function ownerFailure(event: PortalActionEvent) {
   return null;
 }
 
-function stringList(value: unknown): string[] {
-  if (Array.isArray(value)) return value.map((item) => String(item));
-  return typeof value === 'string' ? [value] : [];
-}
-
 const decimalPattern = /^\d{1,9}(?:[.,]\d{1,2})?$/u;
 
 export const teamActions = {

@@ -21,10 +21,8 @@
     money,
     translate,
     controlledValue,
-    canCreateProject = false,
     canCreateInvoiceDraft = false,
     invoiceDraftHref = null,
-    canViewPendingReports = false,
   }: {
     base: string;
     locale?: 'en' | 'es' | 'pt';
@@ -39,10 +37,8 @@
     money: (minor: string | number | null | undefined, currency?: string) => string;
     translate: (value: string) => string;
     controlledValue: (domain: ControlledValueDomain, value: unknown) => string;
-    canCreateProject?: boolean;
     canCreateInvoiceDraft?: boolean;
     invoiceDraftHref?: string | null;
-    canViewPendingReports?: boolean;
   } = $props();
 
   const activeProjects = $derived(

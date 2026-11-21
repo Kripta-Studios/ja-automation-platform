@@ -49,7 +49,7 @@
     persistStandaloneLocale,
     resolveStandaloneLocale,
   } from '../routes/app/standalone-locale';
-  import { SvelteMap } from 'svelte/reactivity';
+  import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   import {
     documentLanguage,
     normalizePortalLocale,
@@ -1191,7 +1191,6 @@
     return match ? `project-creation-assignment-${match[1]}-starts-on` : undefined;
   }
   let focusedProjectCreationFailure = '';
-  let createProjectSubmitting = $state(false);
   $effect(() => {
     const failure = form as (ProblemData & { actionName?: string; success?: boolean }) | undefined;
     if (
@@ -1298,16 +1297,6 @@
       document.removeEventListener('focusin', movedFocus, true);
     };
   });
-  const projectFormValue = (field: string, fallback = ''): string => {
-    const value = projectFormValues[field];
-    return typeof value === 'string' ? value : fallback;
-  };
-  const projectErrorCount = $derived(
-    Object.values(projectFieldErrors).reduce(
-      (count, messages) => count + (messages?.length ?? 0),
-      0,
-    ),
-  );
   const projectErrorSection = (
     field: string,
   ): 'basics' | 'context' | 'people' | 'commercial' | 'optional' => {
@@ -1348,8 +1337,6 @@
           fieldErrors?: Record<string, string[] | undefined>;
         })
       | undefined;
-    if (failure?.actionName === 'createProject' && failure.success === false)
-      createProjectSubmitting = false;
     if (data.user.role !== 'owner_admin' && data.user.role !== 'finance_admin') return;
     if (
       data.section !== 'projects' ||
@@ -1727,7 +1714,7 @@
     ['all', 'All dates'],
   ];
   const planningShiftWeek = (from: string, days: number): string => {
-    const value = new Date(`${from}T00:00:00.000Z`);
+    const value = new SvelteDate(`${from}T00:00:00.000Z`);
     value.setUTCDate(value.getUTCDate() + days);
     return value.toISOString().slice(0, 10);
   };
@@ -2017,19 +2004,6 @@
               .includes(projectRegisterSearch.toLocaleLowerCase()),
           )),
     ),
-  );
-  const projectRegisterStatus = $derived(
-    projectWorkflowPage.url.searchParams.has('status')
-      ? (projectWorkflowPage.url.searchParams.get('status')?.trim() ?? '')
-      : 'active',
-  );
-  const projectRegisterStatusLabel = $derived(
-    projectRegisterStatus
-      ? translate(projectRegisterStatus === 'active' ? 'Active' : projectRegisterStatus)
-      : translate('All projects'),
-  );
-  const projectRegisterFilterHref = $derived(
-    `${base}/app/projects?lang=${encodeURIComponent(locale)}&q=&status=`,
   );
   const operationalProjects = $derived(
     availableProjects.filter((project) =>
@@ -2429,7 +2403,7 @@
       itemHref,
     }),
   );
-  const searchGroupKey = (row: Row): SearchGroupKey => {
+  const searchGroupKey = (row: Record<string, unknown>): SearchGroupKey => {
     switch (
       String(row.type ?? '')
         .trim()
@@ -2483,7 +2457,7 @@
       .map((key) => ({ key, label: searchGroupLabel(key), rows: grouped.get(key) ?? [] }));
   };
   const groupedSearchResults = $derived(groupSearchRows(data.searchResults ?? []));
-  const searchHref = (row: Row) => {
+  const searchHref = (row: Record<string, unknown>) => {
     const id = String(row.id ?? '');
     const type = String(row.type ?? '')
       .trim()
@@ -2500,8 +2474,8 @@
         : `${base}/app/projects?view=team&person=${encodeURIComponent(id)}`;
     return `${base}/app/`;
   };
-  const isExpenseSearchRow = (row: Row) => String(row.type ?? '').toLowerCase() === 'expense';
-  const searchResultDescription = (row: Row, groupLabel: string, fullId = false): string => {
+  const isExpenseSearchRow = (row: Record<string, unknown>) => String(row.type ?? '').toLowerCase() === 'expense';
+  const searchResultDescription = (row: Record<string, unknown>, groupLabel: string, fullId = false): string => {
     if (!isExpenseSearchRow(row)) return `${groupLabel} · ${String(row.detail ?? '')}`;
     const id = String(row.id ?? '');
     const projectNumber = String(row.projectNumber ?? '').trim();
@@ -2524,7 +2498,7 @@
       ? `${String(row.label ?? translate('Record'))} · ${searchResultDescription(row, groupLabel, true)}`
       : undefined;
   // Records the server already scoped to this account, offered by the one search.
-  const toPaletteRecord = (row: Row, index: number) => {
+  const toPaletteRecord = (row: Record<string, unknown>, index: number) => {
     const group = searchGroupLabel(searchGroupKey(row));
     return {
       id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
@@ -3794,7 +3768,7 @@
     let escaped = false;
     const indent = () => '  '.repeat(depth);
     for (let index = 0; index < raw.length; index += 1) {
-      const character = raw[index];
+      const character = raw.charAt(index);
       if (quoted) {
         output += character;
         if (escaped) escaped = false;
@@ -4034,10 +4008,8 @@
         money={(minor, currency) => paymentMoney(minor, currency, documentLanguage(locale))}
         {translate}
         {controlledValue}
-        canCreateProject={canManageProjects}
         canCreateInvoiceDraft={canManageProjects}
         {invoiceDraftHref}
-        canViewPendingReports={Boolean(data.dashboard)}
       />
     {:else if data.section === 'time'}
       {#if data.user.workforceProfile === 'supplier_coordinator'}
@@ -4761,12 +4733,12 @@
                   ? 'Os valores do demonstrativo vêm dos seus registros salvos. Revise as horas ou despesas de origem e gere uma nova versão para refletir alterações autorizadas.'
                   : 'Statement values come from your saved records. Review source time or expenses and generate a new version to reflect authorized changes.'}
               <a
-                href={`${base}/app/time?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}
+                href={`${base}/app/time?from=${encodeURIComponent(data.periodStart ?? '')}&to=${encodeURIComponent(data.periodEnd ?? '')}`}
                 >{translate('Time')}</a
               >
               ·
               <a
-                href={`${base}/app/expenses?from=${encodeURIComponent(data.periodStart)}&to=${encodeURIComponent(data.periodEnd)}`}
+                href={`${base}/app/expenses?from=${encodeURIComponent(data.periodStart ?? '')}&to=${encodeURIComponent(data.periodEnd ?? '')}`}
                 >{translate('Expenses')}</a
               >
             </p>
@@ -5586,7 +5558,6 @@
                   {locale}
                   {translate}
                   fieldLabel={projectFieldLabel}
-                  onsubmit={() => (createProjectSubmitting = true)}
                 />
               {/if}
             </section>

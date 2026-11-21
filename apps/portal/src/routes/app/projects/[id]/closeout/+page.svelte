@@ -1,7 +1,8 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
-  import { enhance, type SubmitFunction } from '$app/forms';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { invalidateAll } from '$app/navigation';
   import { onMount, tick } from 'svelte';
   import { standaloneActionMessage } from '../../../standalone-locale';
@@ -249,7 +250,7 @@
                   ? String(
                       document.safe_filename ??
                         document.original_filename ??
-                        t('Document name unavailable'),
+                        portalText(locale, 'Document name unavailable'),
                     )
                   : portalText(locale, 'problem.closeout.documentNoLongerAvailable')}
               </li>
@@ -282,7 +283,7 @@
               {String(
                 document.safe_filename ??
                   document.original_filename ??
-                  t('Document name unavailable'),
+                  portalText(locale, 'Document name unavailable'),
               )} · {documentLabel(document.artifact_type)} · {documentLabel(
                 document.sensitivity,
               )}</label
@@ -477,7 +478,7 @@
               {String(
                 document.safe_filename ??
                   document.original_filename ??
-                  t('Document name unavailable'),
+                  portalText(locale, 'Document name unavailable'),
               )} · {documentLabel(document.artifact_type)}</label
             >{/each}
           {#each unavailableSelection('refresh', true) as id (id)}<label

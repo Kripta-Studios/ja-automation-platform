@@ -95,7 +95,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
         .map(csvCell)
         .join(','),
     );
-    return new Response(`﻿${[header.map(csvCell).join(','), ...lines].join('\r\n')}`, {
+    return new Response(`\uFEFF${[header.map(csvCell).join(','), ...lines].join('\r\n')}`, {
       headers: {
         'content-type': 'text/csv; charset=utf-8',
         'content-disposition': `attachment; filename="hours-${period.from}-to-${period.to}.csv"`,

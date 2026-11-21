@@ -652,7 +652,7 @@
   const exportUnavailableWarning = $derived.by((): ProblemData | null => {
     if (canExport || !['owner_admin', 'finance_admin'].includes(String(data.user.role)))
       return null;
-    const warning =
+    const warning: { code: string; messageKey: ProblemData['messageKey']; remedyId: string } =
       rows.length === 0
         ? {
             code: 'WARNING_COLLECTION_LEDGER_EXPORT_NO_ROWS',

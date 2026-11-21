@@ -22,12 +22,11 @@ const roles = [
   },
 ];
 
-const manual = process.env.JA_QA_REQUIRE_SECRETS
-  ? null
-  : readFileSync('docs/manuals/Portal_Test_Accounts.private.md', 'utf8');
+let manual;
 
 function credentialsFor(label) {
-  const line = manual?.split(/\r?\n/u).find((item) => item.startsWith(`| ${label} |`));
+  manual ??= readFileSync('docs/manuals/Portal_Test_Accounts.private.md', 'utf8');
+  const line = manual.split(/\r?\n/u).find((item) => item.startsWith(`| ${label} |`));
   if (!line) throw new Error(`Missing test account for ${label}`);
   const cells = line
     .split('|')
@@ -79,22 +78,22 @@ try {
     });
     try {
       for (let attempt = 0; attempt < 2; attempt += 1) {
+        stage = 'open login page';
         await page.goto(`${base}/login?lang=en`, { waitUntil: 'domcontentloaded' });
         stage = 'wait for interactive login form';
-        await page.locator('form.login-card[data-hydrated="true"]').waitFor({ timeout: 15_000 });
+        const form = page.locator('form.login-card[data-hydrated="true"]');
+        await form.waitFor({ timeout: 15_000 });
         stage = 'fill login form';
-        await page.getByLabel('Work email').fill(account.email);
-        await page.getByLabel('Password').fill(account.password);
-        stage = 'submit login form';
-        const authResponse = page.waitForResponse((response) =>
-          response.url().includes('/api/auth/sign-in/email'),
-        );
+        await form.locator('input[name="email"]').fill(account.email);
+        await form.locator('input[name="password"]').fill(account.password);
         const waitMs = signInWaitMs(previousSignInAttemptAt, Date.now());
         if (waitMs) await delay(waitMs);
-        previousSignInAttemptAt = Date.now();
-        await page.getByRole('button', { name: 'Continue to workspace' }).click();
         stage = 'receive authentication response';
-        const response = await authResponse;
+        previousSignInAttemptAt = Date.now();
+        const [response] = await Promise.all([
+          page.waitForResponse((response) => response.url().includes('/api/auth/sign-in/email')),
+          form.getByRole('button', { name: 'Continue to workspace' }).click(),
+        ]);
         authStatus = response.status();
         if (authStatus !== 429 || attempt > 0) break;
         const retrySeconds = retryAfterSeconds(response.headers());
@@ -103,6 +102,8 @@ try {
         await delay((retrySeconds + 2) * 1000);
         stage = 'open login page after cooldown';
       }
+      stage = 'authenticate the test account';
+      if (authStatus !== 200) throw new Error('Authentication rejected the test account');
       stage = 'open workspace';
       await page.waitForURL(
         (url) => url.pathname.startsWith('/j-aautomation/app') && !url.pathname.endsWith('/login'),

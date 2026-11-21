@@ -53,16 +53,12 @@
   // Local form state is seeded once from a failed submission (or URL client).
   // svelte-ignore state_referenced_locally
   let clientId = $state(value('clientId', initialClientId));
-  // svelte-ignore state_referenced_locally
   let costCenter = $state(value('costCenterCode'));
   let currencyOverride = $state<string | null>(null);
   let timezoneOverride = $state<string | null>(null);
   let submitting = $state(false);
-  // svelte-ignore state_referenced_locally
   let projectManagerId = $state(value('projectManagerId'));
-  // svelte-ignore state_referenced_locally
   let billingModel = $state(value('billingModel', 'tm'));
-  // svelte-ignore state_referenced_locally
   let budgetType = $state(value('budgetType', 'none'));
 
   const client = $derived(clients.find((row) => String(row.id) === clientId));
@@ -345,7 +341,7 @@
       <label
         >{translate('Budget type')}
         <select name="budgetType" bind:value={budgetType}>
-          {#each [['none', 'No budget'], ['revenue', 'Revenue'], ['purchase_order', 'Purchase order'], ['labor', 'Labor'], ['travel', 'Travel'], ['expense', 'Expenses'], ['combined', 'Combined']] as [option, text] (option)}
+          {#each ([['none', 'No budget'], ['revenue', 'Revenue'], ['purchase_order', 'Purchase order'], ['labor', 'Labor'], ['travel', 'Travel'], ['expense', 'Expenses'], ['combined', 'Combined']] as const) as [option, text] (option)}
             <option value={option}>{translate(text)}</option>
           {/each}
         </select>

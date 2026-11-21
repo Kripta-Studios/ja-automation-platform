@@ -128,8 +128,8 @@
   const invoiceStreamRequiredProblem = (selectedProject: boolean): ProblemData => ({
     code: 'WARNING_BILLING_INVOICE_NEEDS_ACTIVE_STREAM',
     messageKey: selectedProject
-      ? 'An invoice draft needs an active billing stream for the selected project. Set up a stream below, then choose Create invoice again.'
-      : 'An invoice draft needs an active billing stream. Set up a stream for a project below, then choose Create invoice again.',
+      ? 'problem.warning.billingInvoiceNeedsSelectedStream'
+      : 'problem.warning.billingInvoiceNeedsStream',
     params: {},
     fieldErrors: {},
     remedies: [{ id: 'new_billing_stream' }],
@@ -393,7 +393,7 @@
     const id = $page.url.searchParams.get('issuerSettings');
     return id ? { id, mode: 'edit' as const } : null;
   });
-  const taxProfileEditId = $derived(
+  const taxProfileEditId = $derived.by(() =>
     selectedTaxProfileId ||
       (['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation)
         ? billingFailureValues.taxProfileId
@@ -515,8 +515,8 @@
     if (!confirmBillingDirectoryChanges()) navigation.cancel();
   });
   function issuerSetting(entity: Row, name: string): string {
-    const settings = entity.document_settings;
-    return settings && typeof settings === 'object'
+    const settings: unknown = entity.document_settings;
+    return settings && typeof settings === 'object' && !Array.isArray(settings)
       ? String((settings as Record<string, unknown>)[name] ?? '')
       : '';
   }
@@ -947,7 +947,7 @@
       billingFailureValues.originalInvoiceId ||
       String(form?.invoiceEmailId ?? ''),
   );
-  const selectedInvoiceId = $derived(
+  const selectedInvoiceId = $derived.by(() =>
     (selectedInvoiceIntent !== null &&
     (!billingProblem?.correlationId ||
       selectedInvoiceIntentProblemId === billingProblem.correlationId)
@@ -1466,10 +1466,10 @@
       return;
     restoredPaymentScrollId = id;
     const viewport = /^\d{1,7}$/.test(paymentDraft.viewportScrollY ?? '')
-      ? parseInt(paymentDraft.viewportScrollY, 10)
+      ? parseInt(paymentDraft.viewportScrollY ?? '', 10)
       : null;
     const drawer = /^\d{1,7}$/.test(paymentDraft.drawerScrollTop ?? '')
-      ? parseInt(paymentDraft.drawerScrollTop, 10)
+      ? parseInt(paymentDraft.drawerScrollTop ?? '', 10)
       : null;
     void tick().then(() =>
       requestAnimationFrame(() =>
@@ -1892,7 +1892,7 @@
 
   const invoices = $derived(data.invoices ?? []);
   const billingRules = $derived(
-    (data.billingRules ?? []).map((rule) => ({
+    (data.billingRules ?? []).map((rule): Row & { browser_status: string } => ({
       ...rule,
       browser_status:
         String(rule.enabled) === '1'
@@ -2261,6 +2261,7 @@
       messageKey: canReviewSetup
         ? 'problem.billing.savedSemiMonthlyRuleNotApplied'
         : 'problem.billing.savedSemiMonthlyRuleContactFinance',
+      params: {},
       fieldErrors: {},
       remedies: [{ id: canReviewSetup ? 'review_billing_setup' : 'contact_finance' }],
       correlationId: '',
@@ -2381,16 +2382,6 @@
           .includes(normalizedSearch);
       return matchesProject && matchesSearch;
     });
-  });
-
-  const stageCounts = $derived({
-    wip: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'wip').length,
-    drafts: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'drafts').length,
-    outstanding: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'outstanding')
-      .length,
-    overdue: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'overdue').length,
-    credits: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'credits').length,
-    paid: summaryInvoices.filter((invoice) => invoiceStage(invoice) === 'paid').length,
   });
 
   const visibleInvoices = $derived(
@@ -3245,13 +3236,6 @@
     return [number, name, currency ? `(${currency})` : ''].filter(Boolean).join(' — ');
   }
 
-  function invoiceClientIdentity(invoice: Row): string {
-    const code = rowValue(invoice, 'client_code', 'clientCode');
-    const number = rowValue(invoice, 'client_number', 'clientNumber');
-    const name = rowValue(invoice, 'client_name', 'clientName');
-    return [code, number, name].filter(Boolean).join(' · ') || '—';
-  }
-
   function invoiceProjectIdentity(invoice: Row): string {
     const projectId = rowValue(invoice, 'project_id', 'projectId');
     const project = (data.projects ?? []).find(
@@ -3331,24 +3315,6 @@
       'expectedCollectionOn',
     );
     return /^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : '—';
-  }
-
-  function invoiceIssueDue(invoice: Row): string {
-    const issue = dateValue(
-      rowValue(invoice, 'issued_at', 'issuedAt', 'planned_issue_on', 'plannedIssueOn'),
-    );
-    const due = dateValue(
-      rowValue(
-        invoice,
-        'due_on',
-        'dueOn',
-        'due_date',
-        'dueDate',
-        'expected_collection_on',
-        'expectedCollectionOn',
-      ),
-    );
-    return `${issue} / ${due}`;
   }
 
   function invoiceCurrency(invoice: Row): string {
@@ -4333,7 +4299,7 @@
                       class="secondary-button"
                       onclick={() => void visitWizardSection(section)}
                     >
-                      {translate(wizardStepLabels[section - 1])}
+                      {translate(wizardStepLabels[section - 1] ?? '')}
                     </button>
                   {/each}
                 </div>
@@ -4543,7 +4509,7 @@
                   !wizardRuleId ||
                   !wizardPeriodStart ||
                   !wizardPeriodEnd}
-                onclick={checkWizardPeriod}
+                onclick={() => checkWizardPeriod(true)}
                 >{wizardReadinessLoading
                   ? translate('Checking period…')
                   : translate('Check selected period')}</button
@@ -4583,7 +4549,7 @@
                           ?.focus()}>{translate('Review selected period')}</button
                     >
                   {:else if wizardReadinessRemedy === 'retry_readiness'}
-                    <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                    <button type="button" class="secondary-button" onclick={() => checkWizardPeriod(true)}
                       >{translate('Retry')}</button
                     >
                   {/if}
@@ -5225,7 +5191,7 @@
                 {#each wizardReadinessRecovery()?.links ?? [] as link}
                   <a class="secondary-button" href={link.href}>{link.label}</a>
                 {/each}
-                <button type="button" class="secondary-button" onclick={checkWizardPeriod}
+                <button type="button" class="secondary-button" onclick={() => checkWizardPeriod(true)}
                   >{translate('Check selected period')}</button
                 >
               {/if}

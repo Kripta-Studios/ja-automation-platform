@@ -249,12 +249,12 @@ const exact: Record<string, readonly [string, string]> = {
     'Limpar os filtros do registo',
   ],
   'problem.remedy.reviewBilling': ['Revisar Facturación', 'Rever Faturação'],
-  'An invoice draft needs an active billing stream for the selected project. Set up a stream below, then choose Create invoice again.':
+  'problem.warning.billingInvoiceNeedsSelectedStream':
     [
       'Un borrador de factura necesita un flujo de facturación activo para el proyecto seleccionado. Configura un flujo a continuación y vuelve a elegir Crear factura.',
       'Um rascunho de fatura precisa de um fluxo de faturação ativo para o projeto selecionado. Configure um fluxo abaixo e volte a escolher Criar fatura.',
     ],
-  'An invoice draft needs an active billing stream. Set up a stream for a project below, then choose Create invoice again.':
+  'problem.warning.billingInvoiceNeedsStream':
     [
       'Un borrador de factura necesita un flujo de facturación activo. Configura un flujo para un proyecto a continuación y vuelve a elegir Crear factura.',
       'Um rascunho de fatura precisa de um fluxo de faturação ativo. Configure um fluxo para um projeto abaixo e volte a escolher Criar fatura.',
@@ -9698,6 +9698,10 @@ const problemEnglish: Record<string, string> = {
   'problem.expenseReceipt.previewFallback':
     'If the preview does not open in this browser, use the download link below.',
   'problem.expenseReceipt.downloadVerified': 'Download verified receipt',
+  'problem.warning.billingInvoiceNeedsSelectedStream':
+    'An invoice draft needs an active billing stream for the selected project. Set up a stream below, then choose Create invoice again.',
+  'problem.warning.billingInvoiceNeedsStream':
+    'An invoice draft needs an active billing stream. Set up a stream for a project below, then choose Create invoice again.',
   'problem.warning.billingStreamNoTaxProfile':
     'No tax profile is selected. Drafts from this stream will add no tax. Review the correct tax treatment before saving.',
   'problem.warning.collectionsLedgerExportNoRows':

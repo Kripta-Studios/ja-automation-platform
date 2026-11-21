@@ -22,9 +22,6 @@ const fixtures: B5LifecycleSecurityFixture[] = [];
 afterEach(() => fixtures.splice(0).forEach(closeB5LifecycleSecurityFixture));
 
 const period = { periodStart: '2026-08-01', periodEnd: '2026-08-31' };
-const count = (f: B5LifecycleSecurityFixture, sql: string, ...args: string[]) =>
-  Number((f.sqlite.prepare(sql).get(...args) as { n: number }).n);
-
 function setup(withRate = true) {
   const f = createB5LifecycleSecurityFixture();
   fixtures.push(f);

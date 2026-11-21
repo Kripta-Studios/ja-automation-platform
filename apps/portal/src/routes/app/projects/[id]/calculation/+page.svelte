@@ -5,6 +5,7 @@
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
@@ -157,7 +158,7 @@
   }
   /** Configuration gaps grouped by kind: one collapsed line per kind. */
   const issueGroups = $derived.by(() => {
-    const groups = new Map<string, Issue[]>();
+    const groups = new SvelteMap<string, Issue[]>();
     for (const issue of explanation?.issues ?? [])
       groups.set(issue.code, [...(groups.get(issue.code) ?? []), issue]);
     return [...groups.entries()].map(([code, issues]) => ({ code, issues }));
@@ -166,14 +167,14 @@
   const PEOPLE_SHOWN = 10;
   let showAllPeople = $state(false);
   /** Ten people at a time (the opened person always stays visible). */
-  const visiblePeople = $derived(
-    showAllPeople
-      ? (explanation?.people ?? [])
-      : (explanation?.people ?? []).filter(
-          (person, index) =>
-            index < PEOPLE_SHOWN || person.workerId === explanation?.selectedPersonId,
-        ),
-  );
+  const visiblePeople = $derived.by(() => {
+    const people: Person[] = explanation?.people ?? [];
+    return showAllPeople
+      ? people
+      : people.filter(
+          (person, index) => index < PEOPLE_SHOWN || person.workerId === explanation?.selectedPersonId,
+        );
+  });
   let expandedIssueGroups = $state<Record<string, boolean>>({});
   const issueMessage = (code: string) => t(issueMessages[code] ?? code.replaceAll('_', ' '));
   /** Link that opens (or pages) one person's source rows; keeps period and language. */

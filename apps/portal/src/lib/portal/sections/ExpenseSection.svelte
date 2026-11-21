@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   import { CURRENCIES } from '$lib/portal/currencies';
   /*
    * Simplified expense screen (owner request 2026-11-16: "simple as possible").
@@ -107,6 +108,8 @@
     void goto(url, { noScroll: true, keepFocus: true });
   }
 
+  // A conditional fragment strips a leading literal space; keep the wrap point between parts.
+  const metadataGap = ' ';
   const statusOf = expenseStatusOf;
   const statusLabel = expenseStatusLabel;
   const statusVariant = expenseStatusVariant;
@@ -133,13 +136,13 @@
 
   /* --------------------------------------------------------------- weeks */
   function mondayOf(date: string): string {
-    const parsed = new Date(`${date}T00:00:00Z`);
+    const parsed = new SvelteDate(`${date}T00:00:00Z`);
     if (!Number.isFinite(parsed.valueOf())) return date;
     parsed.setUTCDate(parsed.getUTCDate() - ((parsed.getUTCDay() + 6) % 7));
     return parsed.toISOString().slice(0, 10);
   }
   function addDays(date: string, days: number): string {
-    const parsed = new Date(`${date}T00:00:00Z`);
+    const parsed = new SvelteDate(`${date}T00:00:00Z`);
     parsed.setUTCDate(parsed.getUTCDate() + days);
     return parsed.toISOString().slice(0, 10);
   }
@@ -167,7 +170,7 @@
   }
   /** Exact per-currency totals using bigint minor units (never floats). */
   function totals(rows: Row[]): string[] {
-    const sums = new Map<string, bigint>();
+    const sums = new SvelteMap<string, bigint>();
     for (const row of rows) {
       // A returned original that has a correction is replaced by it; rejected
       // claims are not owed. Neither counts toward the week total.
@@ -187,7 +190,7 @@
   type PersonBlock = { workerId: string; workerName: string; rows: Row[]; drafts: Row[] };
   type Week = { start: string; rows: Row[]; people: PersonBlock[] };
   const weeks = $derived.by((): Week[] => {
-    const byWeek = new Map<string, Row[]>();
+    const byWeek = new SvelteMap<string, Row[]>();
     for (const row of visible) {
       const start = mondayOf(text(row, 'spent_on'));
       byWeek.set(start, [...(byWeek.get(start) ?? []), row]);
@@ -195,7 +198,7 @@
     return [...byWeek.entries()]
       .sort(([a], [b]) => b.localeCompare(a))
       .map(([start, rows]) => {
-        const byPerson = new Map<string, Row[]>();
+        const byPerson = new SvelteMap<string, Row[]>();
         for (const row of rows) {
           const id = text(row, 'worker_id');
           byPerson.set(id, [...(byPerson.get(id) ?? []), row]);
@@ -889,16 +892,16 @@
                     <p class="xp-row-meta">
                       <!-- X5: each separator travels with the piece after it, so a
                            wrapped line never ends in a dangling "·". -->
-                      <span class="xp-meta-part">{dayLabel(text(row, 'spent_on'))}</span>{#if text(row, 'project_number')}{' '}<span
-                          class="xp-meta-part">{'· '}{text(row, 'project_number')}</span
-                        >{/if}{#if expenseReceiptState(row) === 'attached'}{' '}<span class="xp-meta-part"
-                          >{'· '}<span class="xp-has-receipt" data-expense-receipt-indicator
+                      <span class="xp-meta-part">{dayLabel(text(row, 'spent_on'))}</span>{#if text(row, 'project_number')}{metadataGap}<span
+                          class="xp-meta-part">· {text(row, 'project_number')}</span
+                        >{/if}{#if expenseReceiptState(row) === 'attached'}{metadataGap}<span class="xp-meta-part"
+                          >· <span class="xp-has-receipt" data-expense-receipt-indicator
                             ><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"
                               ><path d="M21 12.5l-8.5 8.5a5 5 0 0 1-7-7L14 5.5a3.3 3.3 0 0 1 4.7 4.7L10.2 18.7a1.7 1.7 0 0 1-2.4-2.4L15.5 8.6" /></svg
                             >{c('receiptAttached')}</span
                           ></span
-                        >{:else if row.approval_state === 'draft'}{' '}<span class="xp-meta-part"
-                          >{'· '}<span class="xp-warn">{c('noReceipt')}</span></span
+                        >{:else if row.approval_state === 'draft'}{metadataGap}<span class="xp-meta-part"
+                          >· <span class="xp-warn">{c('noReceipt')}</span></span
                         >{/if}
                     </p>
                   </div>

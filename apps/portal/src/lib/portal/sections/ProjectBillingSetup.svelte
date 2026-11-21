@@ -2,7 +2,8 @@
   import { base } from '$app/paths';
   import { onMount, tick, untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
-  import { enhance, type SubmitFunction } from '$app/forms';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/state';
   import type { ProjectPersonDefaults } from '@ja/database';
   import { StatusBadge } from '$lib/portal/ui';
@@ -697,12 +698,13 @@
 
   function personPayload(person: (typeof people)[number]) {
     const draft = personDrafts[person.id];
-    if (!draft) return null;
+    const baseline = personBaselines[person.id];
+    if (!draft || !baseline) return null;
     return {
       projectId,
-      projectMemberId: personBaselines[person.id].assignmentId,
+      projectMemberId: baseline.assignmentId,
       workerId: person.id,
-      expectedFingerprint: personBaselines[person.id].fingerprint,
+      expectedFingerprint: baseline.fingerprint,
       effectiveFrom: draft.effectiveFrom,
       customerHourlyRate: draft.customerHourlyRate,
       customerRateBasis: draft.customerRateBasis,
@@ -1997,7 +1999,8 @@
     </form>
     {#each people as person}
       {@const draft = personDrafts[person.id]}
-      {#if draft}
+      {@const baseline = personBaselines[person.id]}
+      {#if draft && baseline}
         <form
           id={`person-terms-${person.id}`}
           method="POST"
@@ -2009,13 +2012,13 @@
           <input
             type="hidden"
             name="projectMemberId"
-            value={personBaselines[person.id].assignmentId}
+            value={baseline.assignmentId}
           />
           <input type="hidden" name="workerId" value={person.id} />
           <input
             type="hidden"
             name="expectedFingerprint"
-            value={personBaselines[person.id].fingerprint}
+            value={baseline.fingerprint}
           />
           <input type="hidden" name="effectiveFrom" value={draft.effectiveFrom} />
           <input type="hidden" name="customerHourlyRate" value={draft.customerHourlyRate} />

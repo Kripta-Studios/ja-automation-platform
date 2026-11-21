@@ -446,11 +446,7 @@
         try {
           await invalidateAll();
           await tick();
-          if (
-            exportStatuses[key] === 'queued' ||
-            exportStatuses[key] === 'processing' ||
-            exportStatuses[key] === 'ready'
-          ) {
+          if (['queued', 'processing', 'ready'].includes(exportStatuses[key] ?? '')) {
             retryUncertainKey = null;
           }
         } catch {

@@ -485,7 +485,7 @@
     query.set('view', 'commercial');
     query.set('project', String(data.selectedProjectId ?? ''));
     query.set('lang', locale);
-    query.set('task', selectedAction);
+    if (selectedAction) query.set('task', selectedAction);
     return `?/${actionName}&${query.toString()}${hash ? `#${hash}` : ''}`;
   }
   function reimbursementActionUrl(actionName: string): string {

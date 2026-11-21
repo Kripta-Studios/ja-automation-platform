@@ -1424,11 +1424,6 @@
     return `${base}/app/finance?${query.toString()}#finance-configuration-task`;
   }
 
-  function projectionExpenseSourceHref(reason: FinanceProjectionReason): string {
-    const source = projectionExpenseSource(String(reason.sourceId ?? '').trim());
-    return source ? sourceRecordHref(source, 'expenses') : projectWorkflowHref('expenses');
-  }
-
   function rowStatusVariant(
     status: unknown,
   ): 'success' | 'warning' | 'danger' | 'info' | 'neutral' {
@@ -3735,7 +3730,7 @@
                                   'reverseCompensationPayment',
                                   paymentId,
                                   'reversedOn',
-                                  data.financeToday,
+                                  data.financeToday ?? '',
                                 )}
                                 aria-label={translate('Reversal date')}
                                 required

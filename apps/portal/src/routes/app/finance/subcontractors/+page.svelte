@@ -1,7 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
-  import { page } from '$app/stores';
   import { paymentMoney } from '$lib/portal/payment-money';
   import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import { settlementText, type SettlementCopyKey } from './copy';

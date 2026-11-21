@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   /**
    * Project hub Team tab (owner round 2026-11-16): who is on the project, their
    * role and client rate, "Add people" (multi-select) and "End assignment".
@@ -101,14 +102,16 @@
   let search = $state('');
   let selected = $state<Record<string, boolean>>({});
   let startsOn = $state('');
-  let payMode = $state<'defaults' | 'existing' | 'enter'>('existing');
+  let payMode = $derived<'defaults' | 'existing' | 'enter'>(
+    hasPersonDefaults ? 'defaults' : 'existing',
+  );
   let internalCost = $state('');
   let workerPay = $state('');
   let busy = $state(false);
   let addErrors = $state<string[]>([]);
 
   function mondayOf(date: string): string {
-    const value = new Date(`${date}T00:00:00.000Z`);
+    const value = new SvelteDate(`${date}T00:00:00.000Z`);
     value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
     return value.toISOString().slice(0, 10);
   }
@@ -126,16 +129,13 @@
   // People that "use saved rules" could not cover: the owner sets their
   // cost and pay inline and adds them again.
   let needsTerms = $state<string[]>([]);
-  $effect(() => {
-    payMode = hasPersonDefaults ? 'defaults' : 'existing';
-  });
 
   const assignedIds = $derived(new Set(currentAssignments.map((row) => row.workerId)));
   // Last day each former member was on this project (W10): adding them again
   // starts the day after, so the new assignment cannot overlap the old one.
   // (Server-computed: also counts assignments that were removed.)
   function dayAfter(date: string): string {
-    const value = new Date(`${date}T00:00:00.000Z`);
+    const value = new SvelteDate(`${date}T00:00:00.000Z`);
     value.setUTCDate(value.getUTCDate() + 1);
     return value.toISOString().slice(0, 10);
   }
@@ -172,7 +172,7 @@
         name: personDisplayName(worker.name, worker.email),
         email: String(worker.email ?? ''),
       }));
-    const counts = new Map<string, number>();
+    const counts = new SvelteMap<string, number>();
     for (const person of people) counts.set(person.name, (counts.get(person.name) ?? 0) + 1);
     return people
       .map((person) => ({

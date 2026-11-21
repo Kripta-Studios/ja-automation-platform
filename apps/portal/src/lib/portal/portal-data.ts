@@ -4,6 +4,7 @@ import type { ApprovalQueuePage } from './approval-queue-page';
 import type { MoneyOverview, RatesOverview } from './money-overview-types';
 import type { TimeOverviewData } from './time-overview-types';
 import type { ExpenseOverviewData } from './expense-overview-types';
+import type { ClientCalendarEntry } from './client-work-calendar';
 import type { ProblemData } from '../problem/contract';
 export type PortalRow = Record<string, string | number | boolean | string[] | null>;
 
@@ -116,6 +117,11 @@ export type PortalData = {
   };
   section: string;
   projects?: PortalRow[];
+  selectedDocumentProject?: PortalRow | null;
+  archivedDocuments?: PortalRow[];
+  calendarEntries?: ClientCalendarEntry[];
+  calendarMonth?: string;
+  canViewWorkCalendar?: boolean;
   clients?: PortalRow[];
   assignments?: PortalRow[];
   assignmentToday?: string;
@@ -363,6 +369,7 @@ export type PortalData = {
 
 export type PortalActionResult = {
   success?: boolean;
+  operation?: string;
   message?: string;
   messageKey?: string;
 } | null;

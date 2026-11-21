@@ -204,7 +204,7 @@
     needsApproval(source);
   /** One row per blocker code (never one per record): count, people and hours. */
   function groupedReasons(reasons: readonly Reason[]) {
-    const groups = new Map<string, { reason: Reason; count: number; workers: Set<string>; minutes: number }>();
+    const groups = new SvelteMap<string, { reason: Reason; count: number; workers: Set<string>; minutes: number }>();
     for (const reason of reasons) {
       const group = groups.get(reason.code) ?? { reason, count: 0, workers: new Set<string>(), minutes: 0 };
       group.count += 1;

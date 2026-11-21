@@ -52,7 +52,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
         amount_minor: entry.amountMinor ?? '',
         status: detail.status,
       }));
-      return new Response(`﻿${toCsv(rows, undefined, { numericColumns: ['hours', 'rate', 'amount', 'amount_minor'] })}`, {
+      return new Response(`\uFEFF${toCsv(rows, undefined, { numericColumns: ['hours', 'rate', 'amount', 'amount_minor'] })}`, {
         headers: {
           ...headers,
           'content-type': 'text/csv; charset=utf-8',

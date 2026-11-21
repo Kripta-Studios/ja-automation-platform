@@ -8,6 +8,7 @@
 </script>
 
 <script lang="ts">
+  import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   /**
    * One screen to create an invoice: project → dates → amount → Create invoice.
    * The amount is the canonical draft engine's dry run (server); this component never
@@ -317,7 +318,7 @@
   }
 
   function shiftDate(date: string, days: number): string {
-    const value = new Date(`${date}T00:00:00Z`);
+    const value = new SvelteDate(`${date}T00:00:00Z`);
     value.setUTCDate(value.getUTCDate() + days);
     return value.toISOString().slice(0, 10);
   }
@@ -1122,7 +1123,7 @@
             stream.effectiveFrom <= preview!.periodEnd &&
             (!stream.effectiveTo || stream.effectiveTo >= preview!.periodStart))),
     );
-    const byKind = new Map<string, Stream>();
+    const byKind = new SvelteMap<string, Stream>();
     for (const stream of all) if (!byKind.has(stream.streamType) || stream.id === preview.stream.id) byKind.set(stream.streamType, stream);
     const order: Record<string, number> = { labor: 0, expense: 1, milestone: 2 };
     return [...byKind.values()].sort((a, b) => (order[a.streamType] ?? 9) - (order[b.streamType] ?? 9));
@@ -1516,8 +1517,7 @@
                         <td>
                           <span class="quick-invoice__line-label">{group.label}</span>
                           <small
-                            >{group.detail} · {hours(group.minutes)} h{#if group.unitPriceMinor}{' '}×
-                              {money(group.unitPriceMinor)}{/if}{#if group.overrideHours && group.workedMinutes !== undefined}
+                            >{group.detail} · {hours(group.minutes)} h{#if group.unitPriceMinor}{` × ${money(group.unitPriceMinor)}`}{/if}{#if group.overrideHours && group.workedMinutes !== undefined}
                               · {quickInvoiceFormat(locale, 'lineWorked', { hours: hours(group.workedMinutes) })}{/if}</small
                           >
                           {#if group.overrideRate || group.overrideHours}<span class="quick-invoice__badge" data-quick-invoice-override
@@ -1603,7 +1603,7 @@
                                     {#each edit.entries as entry (entry.ref.id)}
                                       <li>
                                         <label class="quick-invoice__entry"
-                                          ><span>{dateText(entry.date)}{#if entry.summary}<small>{" · "}{entry.summary}</small>{/if}</span><input
+                                          ><span>{dateText(entry.date)}{#if entry.summary}<small>{` · ${entry.summary}`}</small>{/if}</span><input
                                             type="text"
                                             inputmode="decimal"
                                             autocomplete="off"
@@ -1779,8 +1779,7 @@
                   <div>
                     <dt>{t('due')}</dt>
                     <dd>
-                      {dateText(preview.dueDate)}{#if preview.paymentTermsDays !== null}{' '}({preview.paymentTermsDays}
-                        {t('days')}){/if}
+                      {dateText(preview.dueDate)}{#if preview.paymentTermsDays !== null}{` (${preview.paymentTermsDays} ${t('days')})`}{/if}
                     </dd>
                   </div>
                 {/if}

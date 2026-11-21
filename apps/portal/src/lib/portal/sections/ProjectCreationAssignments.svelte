@@ -131,7 +131,8 @@
     const value = config[field];
     if (value === undefined || value === '') return '—';
     const labels = draftChoiceLabels[field];
-    return labels && Object.hasOwn(labels, value) ? t(labels[value]) : value;
+    const label = labels && Object.hasOwn(labels, value) ? labels[value] : undefined;
+    return label ? t(label) : value;
   }
 </script>
 

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   /**
    * Log hours: one week timesheet.
    * Rows = assigned projects (Work by default, optional Travel/Overtime rows),
@@ -124,7 +125,7 @@
   let sheetForm = $state<HTMLFormElement | null>(null);
 
   const rows = $derived.by((): SheetRow[] => {
-    const map = new Map<string, SheetRow>();
+    const map = new SvelteMap<string, SheetRow>();
     const add = (projectId: string, category: string) => {
       const key = `${projectId}|${category}`;
       if (!map.has(key)) map.set(key, { key, projectId, category });
@@ -412,7 +413,7 @@
     return `${format.format(new Date(`${days[0]}T00:00:00Z`))} – ${format.format(new Date(`${days[6]}T00:00:00Z`))} ${year}`;
   });
   const shiftWeek = (offset: number) => {
-    const date = new Date(`${weekStart}T00:00:00.000Z`);
+    const date = new SvelteDate(`${weekStart}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + offset * 7);
     return date.toISOString().slice(0, 10);
   };
@@ -624,7 +625,7 @@
         : (days[0] ?? today),
   );
   const shiftDay = (offset: number) => {
-    const date = new Date(`${selectedDay}T00:00:00.000Z`);
+    const date = new SvelteDate(`${selectedDay}T00:00:00.000Z`);
     date.setUTCDate(date.getUTCDate() + offset);
     return date.toISOString().slice(0, 10);
   };
@@ -763,7 +764,6 @@
   const weekEndNear = $derived(
     weekStart < String(weekStartForDate(today) ?? today) || new Date(`${today}T00:00:00Z`).getUTCDay() % 6 === 0 || new Date(`${today}T00:00:00Z`).getUTCDay() === 5,
   );
-  const dayIndex = $derived(days.indexOf(selectedDay));
   const dayModeTotal = $derived(
     dayCell
       ? dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0) -

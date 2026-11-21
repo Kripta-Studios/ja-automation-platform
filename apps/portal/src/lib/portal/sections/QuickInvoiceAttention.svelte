@@ -116,7 +116,6 @@
   import {
     quickInvoiceFormat,
     quickInvoiceText,
-    quickInvoiceWarningText,
     type QuickInvoiceCopyKey,
   } from '../billing-quick-invoice-copy';
 

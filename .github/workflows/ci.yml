@@ -1,0 +1,90 @@
+name: Application CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: application-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: ${{ matrix.check.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        check:
+          - name: Lint
+            command: pnpm run lint
+          - name: Portal TypeScript
+            command: pnpm --filter @ja/portal run typecheck
+          - name: Build
+            command: |
+              ja_ci_build_dir="$(mktemp -d "$RUNNER_TEMP/ja-build.XXXXXX")"
+              export JA_DATABASE_PATH="$ja_ci_build_dir/portal.sqlite"
+              export JA_MIGRATIONS_PATH="$GITHUB_WORKSPACE/migrations"
+              export JA_TENANT_ID=release-build-tenant
+              export JA_DEPLOYMENT_ID=release-build-deployment
+              export JA_DEPLOYMENT_BINDING_SECRET=release-build-binding-secret-2026-08-client-essential
+              export JA_RELEASE_BUILD=1
+              pnpm run build
+              JA_DATABASE_PATH="$ja_ci_build_dir/jobs.sqlite" pnpm run jobs:build
+          - name: Portal Svelte
+            command: >-
+              pnpm --filter @ja/portal exec svelte-kit sync &&
+              pnpm --filter @ja/portal exec svelte-check --tsconfig ./tsconfig.json
+          - name: Full unit test suite
+            command: pnpm run test:unit --maxWorkers=2
+          - name: Invariants and release regression tests
+            command: >-
+              pnpm exec vitest run --maxWorkers=2 tests/invariants
+              tests/production-role-smoke-policy.test.ts
+              tests/regression/billing-section-ui.test.ts
+              tests/unit/astra-manual-catalog.test.ts
+              tests/unit/guided-operations-recovery.test.ts
+          - name: Operational integration regressions
+            command: >-
+              pnpm exec vitest run --no-file-parallelism
+              tests/integration/crew-shared-expense-allocation.test.ts
+              tests/integration/supplier-workforce.test.ts
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+      - run: corepack enable
+      - run: pnpm install --frozen-lockfile
+      - run: ${{ matrix.check.command }}
+      - name: Package portal runtime
+        if: matrix.check.name == 'Build' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          ja_ci_runtime="$RUNNER_TEMP/portal-runtime"
+          pnpm --filter @ja/portal deploy --prod --legacy "$ja_ci_runtime"
+          if ! test -f "$ja_ci_runtime/build/index.js"; then
+            cp -a apps/portal/build "$ja_ci_runtime/"
+          fi
+          test -f "$ja_ci_runtime/build/index.js"
+          tar -czf "$RUNNER_TEMP/portal-runtime.tgz" -C "$ja_ci_runtime" .
+          tar -czf "$RUNNER_TEMP/portal-jobs.tgz" -C deployment/jobs-build .
+      - name: Upload portal runtime
+        if: matrix.check.name == 'Build' && github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-artifact@v4
+        with:
+          name: portal-runtime
+          path: |
+            ${{ runner.temp }}/portal-runtime.tgz
+            ${{ runner.temp }}/portal-jobs.tgz
+          if-no-files-found: error
+          retention-days: 1
+          compression-level: 0

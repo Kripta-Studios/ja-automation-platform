@@ -10,6 +10,7 @@ import {
   portalLocales as canonicalPortalLocales,
   renderPortalMessage as renderCanonicalPortalMessage,
   translate as translateCanonical,
+  type TranslationParams,
 } from './i18n/catalog';
 export type {
   DocumentLanguage,
@@ -494,7 +495,7 @@ export function normalizePortalLocale(value: string | null | undefined): PortalL
 export function portalText(
   locale: PortalLocale,
   key: string,
-  params?: Readonly<Record<string, string | number>>,
+  params?: TranslationParams,
 ): string {
   const canonical = translateCanonical(locale, key, params);
   if (

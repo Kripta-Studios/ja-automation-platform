@@ -867,6 +867,7 @@ describe('Worker report detail and assigned-project list authorization coherence
 function timeExpenseSchema() {
   ownReportsSchema();
   sqlite.exec(`
+    CREATE TABLE operational_time_expense_request(time_entry_id TEXT,expense_id TEXT);
     CREATE TABLE crew_expense_recorder(expense_id TEXT,recorded_by_user_id TEXT,grant_id TEXT);
     CREATE TABLE crew_shared_expense_allocation_group(expense_id TEXT,completed INTEGER);
     CREATE TABLE record_correction_link(record_type TEXT,original_id TEXT,correction_id TEXT);
@@ -930,6 +931,9 @@ function projectOverviewSchema() {
       'project_alias',
       'currency',
       'site_name',
+      'site_location',
+      'onsite_manager',
+      'onsite_contact_id',
       'country',
       'project_manager_id',
       'expected_minutes_per_day',
@@ -1215,12 +1219,14 @@ describe('current project access without a requested record date', () => {
     );
   });
 
-  it('preserves privileged access and the PM original UTC current-date rule', () => {
+  it('preserves privileged access and applies the project-local date to the PM', () => {
     sqlite.exec(
       "INSERT INTO user(id,role,status) VALUES('owner','owner_admin','active'),('manager','project_manager','active'); INSERT INTO project_member VALUES('pm','assigned','manager','active','2026-09-01','2026-09-29')",
     );
     const repository = new PortalRepository(sqlite);
     expect(repository.listProjectSchedule(owner, 'assigned')).toHaveProperty('id', 'schedule');
+    expect(repository.listProjectSchedule(manager, 'assigned')).toHaveProperty('id', 'schedule');
+    vi.setSystemTime(new Date('2026-09-30T05:00:00Z'));
     expect(() => repository.listProjectSchedule(manager, 'assigned')).toThrow(
       'Project assignment access required',
     );

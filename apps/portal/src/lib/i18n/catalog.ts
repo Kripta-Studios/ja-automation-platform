@@ -2057,7 +2057,7 @@ export function assertPortalCatalogParity(): string[] {
   return issues;
 }
 
-export type TranslationParams = Readonly<Record<string, string | number>>;
+export type TranslationParams = Readonly<Record<string, string | number | boolean | null>>;
 
 export function normalizePortalLocale(value: PortalLocaleInput): PortalLocale {
   if (typeof value !== 'string') return 'en';

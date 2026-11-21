@@ -141,7 +141,7 @@ function issueLabor(env: ReturnType<typeof setup>, key: string) {
 describe('F1 expense terms after issued labor invoices', () => {
   it('classifies an expense dated inside an issued labor-only period, from the earliest un-invoiced expense', () => {
     const env = setup();
-    const { f, owner, time, expense, sent, context, version } = env;
+    const { f, owner, time, sent, context, version } = env;
     time('2026-08-03', 480);
     const issued = issueLabor(env, 'final-f1-labor');
     const before = f.sqlite.prepare('SELECT * FROM invoice_line WHERE invoice_id=? ORDER BY id').all(issued.invoiceId);
@@ -232,7 +232,7 @@ describe('F2 inline billing setup sets the issuing company', () => {
 describe('F4 one audited conversion', () => {
   it('records the inline conversion for billing only; the worker is reimbursed the receipt amount', () => {
     const env = setup();
-    const { f, owner, expense, sent, context, version } = env;
+    const { f, owner, sent, context, version } = env;
     const usd = sent('2026-08-10', 'USD', 10000n);
     quickInvoiceSetExpenseTreatment(context(owner), {
       projectId: f.project.id,
@@ -253,7 +253,7 @@ describe('F4 one audited conversion', () => {
 
   it('uses an already confirmed conversion without retyping (prefilled on New invoice)', () => {
     const env = setup();
-    const { f, owner, expense, sent, context, version } = env;
+    const { f, owner, sent, context, version } = env;
     const usd = sent('2026-08-10', 'USD', 5310n);
     recordCurrencyConversion(f.sqlite, owner, {
       sourceKind: 'expense',
@@ -297,7 +297,7 @@ describe('R3 F1 client conversion never rewrites the worker reimbursement (invar
 
   it('MX$1,250 meal converted to 68.75 for the client: worker is still owed MX$1,250', () => {
     const env = setup();
-    const { f, owner, expense, sent, context, version } = env;
+    const { f, owner, sent, context, version } = env;
     const meal = sent('2026-08-11', 'MXN', 125000n, 'meal', 'Taqueria');
     quickInvoiceSetExpenseTreatment(context(owner), {
       projectId: f.project.id,
@@ -373,7 +373,7 @@ describe('R3 F1 client conversion never rewrites the worker reimbursement (invar
 
   it('holds for any currency/amount: reimbursement equals the receipt amount after conversion', () => {
     const env = setup();
-    const { f, owner, expense, sent, context, version } = env;
+    const { f, owner, sent, context, version } = env;
     const cases: Array<[string, bigint, string]> = [
       ['USD', 1n, '0.01'],
       ['MXN', 999999n, '470.33'],

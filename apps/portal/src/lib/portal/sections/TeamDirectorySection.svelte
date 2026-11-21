@@ -5,13 +5,10 @@
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { formatDecimalHours } from './time-entry-actions';
   import { disclosure } from '../ui/disclosure.js';
-  import RecordBrowser from '../ui/RecordBrowser.svelte';
   import { enhance } from '$app/forms';
   import { base } from '$app/paths';
   import type { ActionResult, SubmitFunction } from '@sveltejs/kit';
   import { page } from '$app/stores';
-  import { page as assignmentPage } from '$app/state';
-  import { assignmentWorkflowHref } from '../assignment-form-action';
   import { tick, untrack } from 'svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import { filterProjectTeamWorkers } from '../supplier-technician-filters';
@@ -20,7 +17,6 @@
   import {
     ProblemNotice,
     ResponsiveSheet,
-    SectionCard,
     StatusBadge,
     formValidation,
     reportFormFieldErrors,
@@ -749,30 +745,12 @@
     return workerEmail(row) === OWNER_EMAIL;
   }
 
-  function workerAssignments(worker: PortalRow): PortalRow[] {
-    const id = workerId(worker);
-    return assignments.filter(
-      (assignment) =>
-        value(assignment, 'worker_id', 'user_id') === id &&
-        Boolean(id) &&
-        (!directoryProjectId || value(assignment, 'project_id') === directoryProjectId),
-    );
-  }
-
   function setDirectoryProject(projectId: string): void {
     directoryProjectId = projectId;
     const url = new URL($page.url);
     if (projectId) url.searchParams.set('project', projectId);
     else url.searchParams.delete('project');
     replaceState(url, {});
-  }
-
-  function clearDirectoryFilters(): void {
-    search = '';
-    directorySupplierId = '';
-    directoryTechnicianId = '';
-    showAll = false;
-    setDirectoryProject('');
   }
 
   const projectFilterOptions = $derived.by(() => {
@@ -786,13 +764,6 @@
       if (label) projectsById.set(id, label);
     }
     return [...projectsById].map(([id, name]) => ({ id, name }));
-  });
-
-  const supplierFilterOptions = $derived.by(() => {
-    const representedSupplierIds = new Set(
-      workers.map((worker) => value(worker, 'supplier_id', 'supplierId')).filter(Boolean),
-    );
-    return suppliers.filter((supplier) => representedSupplierIds.has(value(supplier, 'id')));
   });
 
   function availability(row: PortalRow): string {
@@ -828,26 +799,8 @@
     }
   }
 
-  function minutesFor(rows: PortalRow[], key: 'planned_minutes' | 'actual_minutes'): number {
-    return rows.reduce((total, row) => total + (Number(value(row, key)) || 0), 0);
-  }
-
   function formatHours(minutes: number): string {
     return minutes > 0 ? formatDecimalHours(minutes) : '—';
-  }
-
-  function matchesWorker(row: PortalRow): boolean {
-    if (!normalizedSearch) return true;
-    return normalizeSelectSearch(
-      [
-        workerName(row),
-        value(row, 'email', 'role', 'availability', 'availability_status'),
-        ...workerAssignments(row).flatMap((assignment) => [
-          value(assignment, 'project_number', 'project_name'),
-          value(assignment, 'assignment_role', 'status'),
-        ]),
-      ].join(' '),
-    ).includes(normalizedSearch);
   }
 
   const relationFilteredWorkers = $derived(
@@ -856,17 +809,6 @@
       supplierId: directorySupplierId,
       technicianId: directoryTechnicianId,
     }),
-  );
-  const activeWorkers = $derived(
-    relationFilteredWorkers.filter((worker) => showAll || value(worker, 'status') === 'active'),
-  );
-  const visibleWorkers = $derived(
-    activeWorkers.filter(
-      (worker) =>
-        (matchesWorker(worker) || workerId(worker) === $page.url.searchParams.get('worker')) &&
-        (!$page.url.searchParams.get('worker') ||
-          workerId(worker) === $page.url.searchParams.get('worker')),
-    ),
   );
   const existingUserCandidates = $derived(
     (existingPeople ?? workers ?? []).filter(
@@ -1019,7 +961,6 @@
         .includes(normalizedMailboxSearch);
     }),
   );
-  const availableMailboxes = $derived(mailboxRows.filter(mailboxIsEligible));
   const eligibleVisibleMailboxes = $derived(filteredMailboxes.filter(mailboxIsEligible));
   const allVisibleEligibleSelected = $derived(
     eligibleVisibleMailboxes.length > 0 &&
@@ -1153,7 +1094,6 @@
     await navigator.clipboard.writeText(new URL(invitationPath, location.origin).toString());
     invitationCopied = true;
   }
-  let teamPage = $state<typeof visibleWorkers>([]);
   const workforceSupplierProblemInForm = $derived(
     Boolean(
       workforceSupplierInactiveProblem &&
@@ -1427,9 +1367,7 @@
       .sort((a, b) => personName(a).localeCompare(personName(b))),
   );
   const shownPeople = $derived(peopleDirectory ? peopleRows : peopleRows.slice(0, peopleLimit));
-  $effect(() => {
-    teamPage = selectedPerson ? [selectedPerson] : shownPeople;
-  });
+  const teamPage = $derived(selectedPerson ? [selectedPerson] : shownPeople);
 </script>
 
 <div class="team-directory" data-team-directory>

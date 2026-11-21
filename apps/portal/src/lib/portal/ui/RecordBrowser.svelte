@@ -66,7 +66,7 @@
   } = $props();
   const preferredOrder = statusless && initialOrder === 'priority' ? 'newest' : initialOrder;
   let search = $state('');
-  let order = $state(preferredOrder);
+  let order = $state<string>(preferredOrder);
   let page = $state(0);
   const statuses = $derived(
     [...new Set([...rows.map(recordState), status].filter(Boolean))].sort(),

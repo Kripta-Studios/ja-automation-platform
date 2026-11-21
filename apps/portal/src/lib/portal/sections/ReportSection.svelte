@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteMap } from 'svelte/reactivity';
   import ProjectContextNav from '../ui/ProjectContextNav.svelte';
   import { useAssistantSurfaceRequest } from '../assistant/surface-request.svelte';
   import { dirtyFormGuard } from '../dirty-form-guard';
@@ -726,7 +727,7 @@
       windowProject = '';
     }
     if (windowProject !== projectId) return local;
-    const merged = new Map<string, string>(reportWindow[tab].workers);
+    const merged = new SvelteMap<string, string>(reportWindow[tab].workers);
     for (const [id, name] of local) if (!merged.has(id)) merged.set(id, name);
     return [...merged].sort((a, b) => a[1].localeCompare(b[1]));
   }

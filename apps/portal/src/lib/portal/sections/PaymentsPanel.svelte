@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteMap } from 'svelte/reactivity';
   /**
    * Owner "Payments": open invoices first (most overdue on top), balance per
    * currency, and an inline one-step "Record payment" on each row.
@@ -45,7 +46,7 @@
   );
   // "Still owed" nets issued credit notes exactly like the ledger's customer balance.
   const totals = $derived.by(() => {
-    const byCurrency = new Map<
+    const byCurrency = new SvelteMap<
       string,
       { owed: bigint; overdue: bigint; credits: bigint; count: number }
     >();
@@ -104,7 +105,7 @@
           <small
             >{entry.overdue > 0n
               ? t('overdue', { amount: money(entry.overdue.toString(), currency) })
-              : t('noOverdue')} · {entry.count === 1 ? t('outstandingHelpOne') : t('outstandingHelp', { count: entry.count })}{#if entry.credits < 0n}{' · '}<span data-payments-credits>{t('creditsNetted', { amount: money((-entry.credits).toString(), currency) })}</span>{/if}</small
+              : t('noOverdue')} · {entry.count === 1 ? t('outstandingHelpOne') : t('outstandingHelp', { count: entry.count })}{#if entry.credits < 0n}<span data-payments-credits>{` · ${t('creditsNetted', { amount: money((-entry.credits).toString(), currency) })}`}</span>{/if}</small
           >
         </div>
       {/each}

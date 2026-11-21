@@ -26,10 +26,12 @@
   import ProjectEconomicsDefaults from '$lib/portal/sections/ProjectEconomicsDefaults.svelte';
   import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
   import { base } from '$app/paths';
-  import { enhance, type SubmitFunction } from '$app/forms';
+  import { enhance } from '$app/forms';
+  import type { SubmitFunction } from '@sveltejs/kit';
   import { afterNavigate, beforeNavigate, replaceState } from '$app/navigation';
   import { page } from '$app/state';
   import { onDestroy, onMount, tick } from 'svelte';
+  import { SvelteMap } from 'svelte/reactivity';
   import { ResponsiveSheet, ToastRegion, formValidation, type ToastItem } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
@@ -304,7 +306,7 @@
         email: String(worker.email ?? ''),
         active: String(worker.status ?? 'active') === 'active',
       }));
-    const counts = new Map<string, number>();
+    const counts = new SvelteMap<string, number>();
     for (const person of people) counts.set(person.name, (counts.get(person.name) ?? 0) + 1);
     return people
       .map((person) => ({
@@ -513,7 +515,7 @@
     `${base}/app/approvals?project=${encodeURIComponent(String(project.id))}&lang=${locale}`,
   );
   const expenseTotals = $derived.by((): HubMoney[] => {
-    const totals = new Map<string, bigint>();
+    const totals = new SvelteMap<string, bigint>();
     for (const person of hub.expenses.people)
       for (const row of person.total)
         totals.set(row.currency, (totals.get(row.currency) ?? 0n) + BigInt(row.amountMinor));
@@ -972,7 +974,7 @@
     Boolean(mounted && actionFeedbackKey && dismissedActionToastKey !== actionFeedbackKey),
   );
   const actionToasts = $derived<ToastItem[]>(
-    actionToastVisible
+    actionToastVisible && actionFeedback
       ? [
           {
             id: `project-action:${actionFeedbackKey}`,
@@ -1497,7 +1499,7 @@
               ? 'project-periodStart-error'
               : undefined}
           />
-          {#if periodProblem.fieldErrors.periodStart}
+          {#if periodProblem.fieldErrors.periodStart?.[0]}
             <small id="project-periodStart-error" class="field-error"
               >{t(periodProblem.fieldErrors.periodStart[0])}</small
             >
@@ -1517,7 +1519,7 @@
               ? 'project-periodEnd-error'
               : undefined}
           />
-          {#if periodProblem.fieldErrors.periodEnd}
+          {#if periodProblem.fieldErrors.periodEnd?.[0]}
             <small id="project-periodEnd-error" class="field-error"
               >{t(periodProblem.fieldErrors.periodEnd[0])}</small
             >
@@ -2444,7 +2446,7 @@
                         href={`${siteContactDirectoryHref}#client-contact-${encodeURIComponent(String(siteContact.id))}`}
                         >{display(siteContact.name)}</a
                       >
-                      {#each [['role', 'Role'], ['company', 'Company'], ['location', 'Location']] as [field, label]}
+                      {#each ([['role', 'Role'], ['company', 'Company'], ['location', 'Location']] as const) as [field, label]}
                         {#if display(siteContact[field], '')}
                           <p><span>{t(label)}:</span> {display(siteContact[field])}</p>
                         {/if}
@@ -2964,7 +2966,7 @@
           <TimezoneSelect
             name="timezone"
             label={pc('timezone')}
-            value={projectValue('timezone', display(project.timezone, ''))}
+            value={String(projectValue('timezone', display(project.timezone, '')))}
             {locale}
           />
           <ProjectSiteFields

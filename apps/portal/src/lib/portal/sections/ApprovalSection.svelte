@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { SvelteMap } from 'svelte/reactivity';
   /**
    * Approvals: one queue with Time / Expenses / Reports tabs.
    * Time and expenses are grouped by worker + week (Mon–Sun). A group is approved
@@ -181,7 +182,7 @@
     return count === 1 ? t('expense') : t('expenses', { count });
   }
   function moneyTotals(items: readonly Item[]): string {
-    const totals = new Map<string, bigint>();
+    const totals = new SvelteMap<string, bigint>();
     for (const item of items) {
       const currency = value(item.row, 'expense_currency');
       const raw = value(item.row, 'expense_amount_minor');

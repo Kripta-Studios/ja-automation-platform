@@ -228,7 +228,7 @@
   const timeCategoryLabel = (current: Locale, category: string) =>
     timeWeekText(
       current,
-      category === 'regular' ? 'work' : isCaptureTimeCategory(category) ? category : 'otherCategory',
+      isCaptureTimeCategory(category) ? (category === 'regular' ? 'work' : category) : 'otherCategory',
     );
   const payerNames: Record<string, string> = {
     worker: 'Worker',

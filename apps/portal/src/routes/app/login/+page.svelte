@@ -2,6 +2,7 @@
   import { requestRecoveryMessage } from '$lib/portal/guided-recovery/events';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
+  import { portalReturnTo } from './portal-return-to';
   import { replaceState } from '$app/navigation';
   import { normalizePortalLocale } from '$lib/portal-i18n';
   import { page } from '$app/stores';
@@ -62,17 +63,14 @@
     plugins: [passkeyClient()],
   });
   async function continueAfterSignIn(twoFactorRedirect = false): Promise<void> {
+    const destination = portalReturnTo($page.url, base);
     if (twoFactorRedirect) {
-      location.assign(`${base}/app/login/two-factor`);
+      const verification = new URL(`${base}/app/login/two-factor`, $page.url);
+      if (destination) verification.searchParams.set('returnTo', destination);
+      location.assign(verification.href);
       return;
     }
-    location.assign(safeReturnTo() ?? `${base}/app/`);
-  }
-  /** Only same-portal paths are accepted, so the parameter cannot redirect elsewhere. */
-  function safeReturnTo(): string | null {
-    const value = $page.url.searchParams.get('returnTo');
-    if (!value || !value.startsWith(`${base}/app/`) || /[\\\s]|\/\//u.test(value)) return null;
-    return /\/app\/(login|invite)(\/|$)/u.test(value) ? null : value;
+    location.assign(destination ?? `${base}/app/`);
   }
   function retryAfterDeadline(header: string | null): number | null {
     if (!header) return null;
@@ -134,7 +132,9 @@
         return;
       }
       if (response.status === 429) {
-        retryDeadline = retryAfterDeadline(response.headers.get('retry-after'));
+        retryDeadline = retryAfterDeadline(
+          response.headers.get('retry-after') ?? response.headers.get('x-retry-after'),
+        );
         updateRetryCountdown();
         message = retryDeadline
           ? ''

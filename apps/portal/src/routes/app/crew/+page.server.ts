@@ -1,8 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { error, isRedirect, redirect } from '@sveltejs/kit';
+import { parseMajorToMinor } from '@ja/billing-engine';
 import {
   AccessDeniedError,
   CrewLeaderRepository,
+  CrewReceiptAmountError,
   CrewSharedExpenseAllocationRepository,
   ConflictError,
   ValidationError,
@@ -145,11 +147,12 @@ const crewProblems: Record<string, CrewProblem> = {
     field: 'expenseId',
     remedy: 'review_receipts',
   },
-  'Enter each receipt allocation as an amount such as 6.50': {
+  'Enter a valid amount for each receipt allocation': {
     status: 400,
     code: 'CREW_RECEIPT_AMOUNT_FORMAT_INVALID',
     key: 'problem.crew.receiptAmountFormatInvalid',
-    message: 'Enter each allocation as a positive amount, such as 6.50.',
+    message:
+      'Enter a positive amount in the receipt currency for each allocation. Use whole amounts for currencies without decimals.',
     field: 'timeEntryIds',
     remedy: 'review_receipts',
   },
@@ -157,7 +160,8 @@ const crewProblems: Record<string, CrewProblem> = {
     status: 400,
     code: 'CREW_RECEIPT_AMOUNT_FORMAT_INVALID',
     key: 'problem.crew.receiptAmountFormatInvalid',
-    message: 'Enter each allocation as a positive amount, such as 6.50.',
+    message:
+      'Enter a positive amount in the receipt currency for each allocation. Use whole amounts for currencies without decimals.',
     field: 'timeEntryIds',
     remedy: 'review_receipts',
   },
@@ -429,16 +433,13 @@ export function _crewPageActionFailure(
       if (
         ['CREW_RECEIPT_AMOUNT_FORMAT_INVALID', 'CREW_RECEIPT_AMOUNTS_INVALID'].includes(known.code)
       ) {
-        fieldErrors = Object.fromEntries(
-          timeEntryIds.flatMap((id) => {
-            try {
-              if (minorFromMoney(values[`amount_${id}`] ?? '') > 0n) return [];
-            } catch {
-              /* The invalid amount is corrected in its own visible input. */
-            }
-            return [[`amount_${id}`, [known.key]]];
-          }),
-        );
+        const invalidIds =
+          error instanceof CrewReceiptAmountError
+            ? error.timeEntryIds
+            : timeEntryIds.filter(
+                (id) => (parseMajorToMinor(values[`amount_${id}`] ?? '', 'USD') ?? 0n) <= 0n,
+              );
+        fieldErrors = Object.fromEntries(invalidIds.map((id) => [`amount_${id}`, [known.key]]));
       }
       if (known.code === 'CREW_RECEIPT_TOTAL_MISMATCH')
         fieldErrors = Object.fromEntries(timeEntryIds.map((id) => [`amount_${id}`, [known.key]]));
@@ -605,16 +606,6 @@ function minutesFromHours(value: string, label: string): number {
   if (minutes === null || minutes < 1 || minutes > 1440)
     throw new ValidationError(`${label}: enter more than zero and no more than 24 hours`);
   return minutes;
-}
-
-function minorFromMoney(value: string): bigint {
-  const normalized = value.trim().replace(',', '.');
-  if (!/^\d{1,12}(?:\.\d{1,2})?$/u.test(normalized))
-    throw new ValidationError('Enter each receipt allocation as an amount such as 6.50');
-  const [whole = '0', fraction = ''] = normalized.split('.');
-  const amount = BigInt(whole) * 100n + BigInt(fraction.padEnd(2, '0'));
-  if (amount <= 0n) throw new ValidationError('Each receipt allocation must be positive');
-  return amount;
 }
 
 export const load: PageServerLoad = ({ locals, url }) => {
@@ -794,14 +785,17 @@ function action(
         crew.submit(context.principal, value('id'), Number(value('version')));
       } else if (operation === 'allocateReceipt') {
         const timeEntryIds = formData.getAll('timeEntryIds').map(String);
-        new CrewSharedExpenseAllocationRepository(context.sqlite).create(context.principal, {
-          requestId: value('requestId'),
-          expenseId: value('expenseId'),
-          allocations: timeEntryIds.map((timeEntryId) => ({
-            timeEntryId,
-            amountMinor: minorFromMoney(value(`amount_${timeEntryId}`)),
-          })),
-        });
+        new CrewSharedExpenseAllocationRepository(context.sqlite).createFromMajor(
+          context.principal,
+          {
+            requestId: value('requestId'),
+            expenseId: value('expenseId'),
+            allocations: timeEntryIds.map((timeEntryId) => ({
+              timeEntryId,
+              amount: value(`amount_${timeEntryId}`),
+            })),
+          },
+        );
       } else {
         const workerIds = formData.getAll('workerIds').map(String);
         const individual = value('mode') === 'individual';

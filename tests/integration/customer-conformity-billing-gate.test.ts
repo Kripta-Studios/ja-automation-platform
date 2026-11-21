@@ -11,7 +11,7 @@ import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
   seedB5User,
-  stepUpB5Principal,
+  signInB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -104,12 +104,10 @@ function fixture(): B5LifecycleSecurityFixture {
   const base = createB5LifecycleSecurityFixture();
   const value = {
     ...base,
-    owner: stepUpB5Principal(base.sqlite, base.owner, 'customer-conformity-owner-default'),
-    finance: stepUpB5Principal(base.sqlite, base.finance, 'customer-conformity-finance-default'),
+    owner: signInB5Principal(base.sqlite, base.owner, 'customer-conformity-owner-default'),
+    finance: signInB5Principal(base.sqlite, base.finance, 'customer-conformity-finance-default'),
+    worker: signInB5Principal(base.sqlite, base.worker, 'customer-conformity-worker-default'),
   };
-  base.sqlite
-    .prepare('UPDATE session SET step_up_at=NULL WHERE id IN (?,?)')
-    .run(value.owner.sessionId, value.finance.sessionId);
   fixtures.push(value);
   previousDocumentRoots.set(value, process.env.JA_DOCUMENT_ROOT);
   process.env.JA_DOCUMENT_ROOT = join(value.directory, 'documents');
@@ -1070,7 +1068,11 @@ describe('Client Essential customer sign-off security boundary', () => {
       rateBasis: 'hourly',
       effectiveFrom: '2026-01-01',
     });
-    const secondWorker = value.repository.principalFor('b5-worker-two');
+    const secondWorker = signInB5Principal(
+      value.sqlite,
+      value.repository.principalFor('b5-worker-two'),
+      'customer-conformity-worker-two',
+    );
     const secondTime = value.repository.createTimeEntry(secondWorker, {
       projectId: value.project.id,
       workDate: '2026-08-10',

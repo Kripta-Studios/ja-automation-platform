@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { ValidationError } from '@ja/database';
+import { CrewReceiptAmountError, ValidationError } from '@ja/database';
 import { _crewPageActionFailure as crewPageActionFailure } from '../../apps/portal/src/routes/app/crew/+page.server';
 import { actionFail } from '../../apps/portal/src/lib/server/actions/action-message';
 import { weeklyRecoveryFields } from '../../apps/portal/src/lib/portal/sections/operational-recovery-fields';
@@ -7,6 +7,7 @@ import { withOperationalActionNames } from '../../apps/portal/src/lib/server/act
 import { timeActions } from '../../apps/portal/src/lib/server/actions/time-actions';
 import { expenseActions } from '../../apps/portal/src/lib/server/actions/expense-actions';
 import type { PortalActionEvent } from '../../apps/portal/src/lib/server/action-utils';
+import { portalText } from '../../apps/portal/src/lib/portal-i18n';
 
 const projectId = '00000000-0000-4000-8000-000000000001';
 const dates = [
@@ -191,21 +192,29 @@ describe('guided operational recovery', () => {
 
   it('asks for the invalid allocation amount while preserving selected receipt rows', () => {
     const result = crewPageActionFailure(
-      new ValidationError('Enter each receipt allocation as an amount such as 6.50'),
+      new CrewReceiptAmountError('Enter a valid amount for each receipt allocation', ['bad']),
       'allocateReceipt',
       {
-        amount_good: '12.50',
-        amount_bad: 'wrong',
+        amount_good: '750',
+        amount_bad: '750.50',
         expenseId: 'receipt-1',
       },
       [],
       ['good', 'bad'],
     );
     expect(result.data).toMatchObject({
+      message:
+        'Enter a positive amount in the receipt currency for each allocation. Use whole amounts for currencies without decimals.',
       fieldErrors: { amount_bad: ['problem.crew.receiptAmountFormatInvalid'] },
       timeEntryIds: ['good', 'bad'],
       values: { expenseId: 'receipt-1' },
     });
     expect(result.data.fieldErrors).not.toHaveProperty('timeEntryIds');
+    expect(portalText('es', 'problem.crew.receiptAmountFormatInvalid')).toContain(
+      'Usa números enteros si la moneda no admite decimales.',
+    );
+    expect(portalText('pt', 'problem.crew.receiptAmountFormatInvalid')).toContain(
+      'Use valores inteiros se a moeda não aceitar casas decimais.',
+    );
   });
 });

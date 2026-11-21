@@ -35,13 +35,14 @@ export function seedB5User(
     );
 }
 
-export function stepUpB5Principal(
+export function signInB5Principal(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
   principal: Principal,
   suffix: string,
+  stepUp = false,
 ): Principal {
   const now = new Date().toISOString();
-  const sessionId = `b5-step-up-${principal.userId}-${suffix}`;
+  const sessionId = `b5-${stepUp ? 'step-up' : 'session'}-${principal.userId}-${suffix}`;
   sqlite
     .prepare(
       'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at,step_up_at) VALUES(?,?,?,?,?,?,?)',
@@ -53,9 +54,17 @@ export function stepUpB5Principal(
       new Date(Date.now() + 3_600_000).toISOString(),
       now,
       now,
-      now,
+      stepUp ? now : null,
     );
   return { ...principal, sessionId };
+}
+
+export function stepUpB5Principal(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+  suffix: string,
+): Principal {
+  return signInB5Principal(sqlite, principal, suffix, true);
 }
 
 export function createB5LifecycleSecurityFixture() {

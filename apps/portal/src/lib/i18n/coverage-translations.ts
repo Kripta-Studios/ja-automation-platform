@@ -3560,8 +3560,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Este recibo não está disponível com seu acesso atual à equipe. Revise os recibos atuais.',
   ],
   'problem.crew.receiptAmountFormatInvalid': [
-    'Introduce cada reparto como un importe positivo, por ejemplo, 6,50.',
-    'Informe cada distribuição como um valor positivo, por exemplo, 6,50.',
+    'Introduce un importe positivo en la moneda del recibo para cada reparto. Usa números enteros si la moneda no admite decimales.',
+    'Informe um valor positivo na moeda do recibo para cada divisão. Use valores inteiros se a moeda não aceitar casas decimais.',
   ],
   'problem.crew.receiptAmountInvalid': [
     'El importe del recibo no es válido para repartirlo. Revisa el recibo guardado.',
@@ -10440,7 +10440,7 @@ const problemEnglish: Record<string, string> = {
   'problem.crew.receiptAccessRequired':
     'This receipt is unavailable under your current crew access. Review current receipts.',
   'problem.crew.receiptAmountFormatInvalid':
-    'Enter each allocation as a positive amount, such as 6.50.',
+    'Enter a positive amount in the receipt currency for each allocation. Use whole amounts for currencies without decimals.',
   'problem.crew.receiptAmountInvalid':
     'The receipt amount is invalid for allocation. Review the saved receipt.',
   'problem.crew.receiptAmountsInvalid': 'Enter a positive amount for each distinct crew time row.',

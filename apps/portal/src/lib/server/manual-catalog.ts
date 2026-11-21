@@ -105,6 +105,7 @@ const bbsRoleGuide = (
   stem: string,
   audience: Exclude<ManualAudience, 'quick-start'>,
   description: string,
+  revision = '2026-10-17',
 ): ManualDefinition => ({
   id: `bbs-${persona}-manual`,
   title: { en: title, es: `${title} (en inglés)`, pt: `${title} (em inglês)` },
@@ -115,7 +116,7 @@ const bbsRoleGuide = (
   },
   audience,
   locales: ['en'],
-  revision: '2026-10-17',
+  revision,
   allowedPersonas: [persona],
   assets: { en: { sourceName: `BBS_${stem}_Manual_EN.pdf` } },
 });
@@ -255,14 +256,16 @@ export const manualCatalog: readonly ManualDefinition[] = [
     'Supplier coordinator: BBS operations',
     'Supplier_Coordinator',
     'supplier-operations',
-    'Updated 17 October: current navigation and form recovery; illustrated English course for authorized supplier project scope, team work and operational reporting.',
+    'Updated 21 November: current navigation and form recovery; illustrated English course for authorized supplier project scope, team work and operational reporting.',
+    '2026-11-21',
   ),
   bbsRoleGuide(
     'external-technician',
     'External technician: BBS field work',
     'External_Technician',
     'supplier-operations',
-    'Updated 17 October: current navigation and form recovery; illustrated English course for assigned supplier work, own actual time, expenses, reports and corrections.',
+    'Updated 21 November: current navigation and form recovery; illustrated English course for assigned supplier work, own actual time, expenses, reports and corrections.',
+    '2026-11-21',
   ),
 ];
 

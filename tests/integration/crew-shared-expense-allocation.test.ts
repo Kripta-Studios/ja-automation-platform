@@ -20,7 +20,7 @@ afterEach(() => {
   for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
 });
 
-function setup() {
+function setup(currency: 'EUR' | 'JPY' = 'EUR') {
   const fixture = createB5LifecycleSecurityFixture();
   fixtures.push(fixture);
   const owner = stepUpB5Principal(fixture.sqlite, fixture.owner, 'shared-receipt-owner');
@@ -69,8 +69,8 @@ function setup() {
       vendor: 'Crew parking',
       category: 'parking',
       description: 'Parking for two installation workers',
-      currency: 'EUR',
-      amountMinor: 1250n,
+      currency,
+      amountMinor: currency === 'JPY' ? 1500n : 1250n,
       whoPaid: 'worker',
       receiptRequired: true,
       receiptDocumentId: receipt.id,
@@ -87,6 +87,45 @@ function setup() {
 }
 
 describe('shared crew receipt allocations', () => {
+  it('parses a yen split using the saved receipt currency and replays equivalent amounts', () => {
+    const { fixture, chief, expense, times, repository } = setup('JPY');
+    const input = {
+      requestId: 'shared-yen-allocation-request-001',
+      expenseId: expense.id,
+      allocations: [
+        { timeEntryId: times[0]!.id, amount: '700' },
+        { timeEntryId: times[1]!.id, amount: '800' },
+      ],
+    };
+    expect(() =>
+      repository.createFromMajor(chief, {
+        ...input,
+        allocations: [{ ...input.allocations[0]!, amount: '700.01' }, input.allocations[1]!],
+      }),
+    ).toThrow(ValidationError);
+    expect(repository.allocatedReceipts(chief, fixture.project.id, spentOn)).toEqual([]);
+
+    const saved = repository.createFromMajor(chief, input);
+    expect(
+      repository.createFromMajor(chief, {
+        ...input,
+        allocations: [...input.allocations].reverse(),
+      }),
+    ).toEqual({ id: saved.id, replayed: true });
+    expect(() =>
+      repository.createFromMajor(chief, {
+        ...input,
+        allocations: [
+          { ...input.allocations[0]!, amount: '750' },
+          { ...input.allocations[1]!, amount: '750' },
+        ],
+      }),
+    ).toThrow(ConflictError);
+    expect(repository.allocatedReceipts(chief, fixture.project.id, spentOn)).toMatchObject([
+      { id: saved.id, totalMinor: 1500, currency: 'JPY' },
+    ]);
+  });
+
   it('saves exact, immutable allocations while keeping one invoice/reimbursement source', () => {
     const { fixture, owner, chief, expense, allocations, repository } = setup();
     expect(repository.eligibleReceipts(chief, fixture.project.id, spentOn)).toHaveLength(1);

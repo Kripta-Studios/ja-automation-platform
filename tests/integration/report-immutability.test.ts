@@ -3,6 +3,7 @@ import { ConflictError } from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  signInB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -13,7 +14,9 @@ afterEach(() => {
 });
 
 function fixture(): B5LifecycleSecurityFixture {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const worker = signInB5Principal(base.sqlite, base.worker, 'report-immutability');
+  const value = { ...base, worker };
   fixtures.push(value);
   return value;
 }

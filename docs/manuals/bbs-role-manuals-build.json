@@ -503,7 +503,7 @@
     {
       "role": "external-technician",
       "filename": "BBS_External_Technician_Manual_EN.pdf",
-      "pages": 60,
+      "pages": 56,
       "landscape": 22,
       "sections": [
         {
@@ -528,117 +528,107 @@
         },
         {
           "key": "release-navigation",
-          "title": "Current navigation, task finder and form recovery",
+          "title": "Find your workspaces and recover interrupted forms",
           "page": 9
-        },
-        {
-          "key": "release-capture",
-          "title": "Digital workers: capture facts and create linked drafts",
-          "page": 11
-        },
-        {
-          "key": "release-local-aids",
-          "title": "Read document text and use optional on-device dictation",
-          "page": 13
         },
         {
           "key": "external-start",
           "title": "Start with authorized supplier access",
-          "page": 14
+          "page": 10
         },
         {
           "key": "external-time",
           "title": "First shift: save actual time, then submit",
-          "page": 16
+          "page": 12
         },
         {
           "key": "external-correction",
           "title": "Correct returned time and verify Owner approval",
-          "page": 19
+          "page": 15
         },
         {
           "key": "external-week",
           "title": "Review a week and submit eligible drafts",
-          "page": 22
+          "page": 18
         },
         {
           "key": "external-expense",
           "title": "Record an own purchase with its private receipt",
-          "page": 24
+          "page": 20
         },
         {
           "key": "external-daily",
           "title": "Write and submit your own daily field report",
-          "page": 27
+          "page": 23
         },
         {
           "key": "external-technical",
           "title": "Save technical facts and private evidence before submission",
-          "page": 30
+          "page": 26
         },
         {
           "key": "external-report-output",
           "title": "Generate, check and download the saved report version",
-          "page": 35
+          "page": 31
         },
         {
           "key": "external-operational",
           "title": "Reconcile an exact period with its native CSV",
-          "page": 38
+          "page": 34
         },
         {
           "key": "external-mobile",
           "title": "Use narrow screens and check saved results",
-          "page": 40
+          "page": 36
         },
         {
           "key": "external-profile",
           "title": "Maintain your workforce profile and individual security",
-          "page": 43
+          "page": 39
         },
         {
           "key": "external-help",
           "title": "Use Help and hand problems to the correct role",
-          "page": 45
+          "page": 41
         },
         {
           "key": "external-assignment-planning-targets",
           "title": "Planning appendix \u00b7 assignment dates and expected targets",
-          "page": 47
+          "page": 43
         },
         {
           "key": "external-operational-goals-handoff",
           "title": "Describe completed work, open goals and the next shift",
-          "page": 52
+          "page": 48
         },
         {
           "key": "external-checklist",
           "title": "Complete the technician handoff",
-          "page": 56
+          "page": 52
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 57
+          "page": 53
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 58
+          "page": 54
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 60
+          "page": 56
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 208,
+      "instructionBlocks": 184,
       "instructionText": "PASS",
-      "bytes": 3241173,
-      "sha256": "f2a6bba6c1abce44ae766a874f3af36febe6a4f92e2343eaf9da00ecf09c5e2c",
+      "bytes": 3216560,
+      "sha256": "2deef55aaf2b80666735e72063af66a51eeeed19435f23e1a46d16306d5f3f86",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",
@@ -758,7 +748,7 @@
         }
       ],
       "assembled": true,
-      "outlineEntries": 26
+      "outlineEntries": 24
     },
     {
       "role": "finance",
@@ -2594,7 +2584,7 @@
     {
       "role": "supplier-coordinator",
       "filename": "BBS_Supplier_Coordinator_Manual_EN.pdf",
-      "pages": 64,
+      "pages": 63,
       "landscape": 22,
       "sections": [
         {
@@ -2619,117 +2609,117 @@
         },
         {
           "key": "release-navigation",
-          "title": "Current navigation, task finder and form recovery",
+          "title": "Find your workspaces and recover interrupted forms",
           "page": 9
         },
         {
           "key": "release-supplier-current",
-          "title": "Current supplier workflow and digital-workspace handoff",
-          "page": 11
+          "title": "Record team work and hand drafts to J&A",
+          "page": 10
         },
         {
           "key": "start",
           "title": "Start with a supplier access profile, not an Owner account",
-          "page": 12
+          "page": 11
         },
         {
           "key": "navigation",
           "title": "Use the coordinator\u2019s restricted navigation",
-          "page": 14
+          "page": 13
         },
         {
           "key": "personnel",
           "title": "Verify the saved supplier roster and dates",
-          "page": 17
+          "page": 16
         },
         {
           "key": "add-technician",
           "title": "Add a directory technician with the exact fields",
-          "page": 19
+          "page": 18
         },
         {
           "key": "batch",
           "title": "Record actual duration for selected technicians",
-          "page": 21
+          "page": 20
         },
         {
           "key": "drafts",
           "title": "Inspect each saved team draft and submit to J&A",
-          "page": 24
+          "page": 23
         },
         {
           "key": "correction",
           "title": "Create a linked correction for returned team work",
-          "page": 27
+          "page": 26
         },
         {
           "key": "export",
           "title": "Keep the before checkpoint and export the final filtered totals",
-          "page": 30
+          "page": 29
         },
         {
           "key": "own-time",
           "title": "Keep your own work separate and submit eligible weekly drafts",
-          "page": 33
+          "page": 32
         },
         {
           "key": "own-expenses",
           "title": "Save your own expense receipt and submit the facts",
-          "page": 35
+          "page": 34
         },
         {
           "key": "daily",
           "title": "Create, submit and download your own Daily report",
-          "page": 38
+          "page": 37
         },
         {
           "key": "technical",
           "title": "Create, submit and download your own Technical / PLC report",
-          "page": 41
+          "page": 40
         },
         {
           "key": "profile-help",
           "title": "Maintain your own availability and secure access",
-          "page": 45
+          "page": 44
         },
         {
           "key": "handoff",
           "title": "Finish the supplier operational cycle",
-          "page": 49
+          "page": 48
         },
         {
           "key": "supplier-planning-team-handoff",
           "title": "Planning appendix \u00b7 turn work instructions into actual team facts",
-          "page": 51
+          "page": 50
         },
         {
           "key": "supplier-coverage-goals-troubleshooting",
           "title": "Coverage appendix \u00b7 missing people, dates and work goals",
-          "page": 56
+          "page": 55
         },
         {
           "key": "recovery-matrix",
           "title": "Recovery \u00b7 correct a source or request help",
-          "page": 61
+          "page": 60
         },
         {
           "key": "security",
           "title": "Security \u00b7 verify your own device and recovery options",
-          "page": 62
+          "page": 61
         },
         {
           "key": "verification",
           "title": "Completion check \u00b7 your permitted role cycle",
-          "page": 64
+          "page": 63
         }
       ],
       "annexLinks": [],
       "missing": 0,
       "overflows": [],
-      "instructionBlocks": 215,
+      "instructionBlocks": 209,
       "instructionText": "PASS",
-      "bytes": 3653979,
-      "sha256": "9d7bb96f8e6e362789bb2a67dfbfea9af531cfb78a455a94fe2c5fb84a2ce6cd",
+      "bytes": 3643636,
+      "sha256": "496025f52b1488416ebeae559136986897fbbe1586040d2c1697fe128ae666fd",
       "figures": [
         {
           "path": "docs/evidence/bbs-readiness-20261006/owner-common/screenshots/access-activated.png",

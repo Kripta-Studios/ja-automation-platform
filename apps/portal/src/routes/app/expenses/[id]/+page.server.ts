@@ -286,6 +286,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       correctionOrigin,
       linkedPairTimeId: status.linked_pair_time_id,
       crewRecorded: Boolean(status.crew_recorded_by),
+      sharedReceiptAllocated: status.shared_receipt === 1,
       correctionRequestId: randomUUID(),
       canCreateCorrection,
       correctionTimeOptions: canCreateCorrection
@@ -303,6 +304,7 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
           context.principal.role === 'owner_admin'),
       canWithdrawCrewDraft:
         record.approval_state === 'draft' &&
+        status.shared_receipt !== 1 &&
         !status.linked_pair_time_id &&
         Boolean(status.crew_recorded_by) &&
         (context.principal.role === 'owner_admin' ||

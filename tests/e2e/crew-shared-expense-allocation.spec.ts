@@ -1,14 +1,28 @@
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '@playwright/test';
+import { expect, test, type Browser, type Page, type TestInfo } from '@playwright/test';
 import { createDatabase, PortalRepository } from '@ja/database';
 import { e2eCredentials, e2eLifecycleFixturesFor, portal, signIn } from './auth.js';
 import { readE2EFixturePointer } from './environment.js';
 import { e2eCostCenter } from './project-cost-center.js';
 
-test('chief allocates one saved receipt across two worker shifts on phone, tablet and desktop', async ({
-  page,
-  browser,
-}, testInfo) => {
+for (const currency of ['USD', 'JPY'] as const) {
+  test(`chief allocates one saved ${currency} receipt across two worker shifts`, async ({
+    page,
+    browser,
+  }, testInfo) => {
+    await verifyReceiptAllocation(currency, page, browser, testInfo);
+  });
+}
+
+async function verifyReceiptAllocation(
+  currency: 'USD' | 'JPY',
+  page: Page,
+  browser: Browser,
+  testInfo: TestInfo,
+) {
+  const amountMinor = currency === 'JPY' ? 1500 : 1250;
+  const expectedTotal = currency === 'JPY' ? '1500 JPY' : '12.50 USD';
+  const amounts = currency === 'JPY' ? ['750', '750'] : ['8.00', '4.50'];
   test.skip(!['phone-360', 'phone-390', 'tablet-768', 'desktop'].includes(testInfo.project.name));
   test.setTimeout(180_000);
   const databasePath = readE2EFixturePointer().databasePath;
@@ -30,7 +44,7 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
       projectId = repository.createProject(owner, {
         clientId: e2eLifecycleFixturesFor(testInfo.project.name).client.id,
         name: `Shared receipt installation ${randomUUID()}`,
-        costCenterCode: e2eCostCenter('SHR', 4, testInfo.project.name),
+        costCenterCode: e2eCostCenter('SHR', 4, testInfo.project.name, currency === 'JPY' ? 1 : 0),
         currency: 'USD',
         timezone: 'UTC',
         billingModel: 'tm',
@@ -57,9 +71,10 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
   }
 
   await signIn(page, 'owner');
-  await page.goto(portal(`/crew?project=${projectId}&date=${date}`));
   for (const worker of workers) {
-    const grant = page.locator('form[action="?/grant"]');
+    await page.goto(portal(`/crew?project=${projectId}&date=${date}`));
+    await page.waitForLoadState('networkidle');
+    const grant = page.locator('form[data-crew-operation="grant"]');
     await grant.getByLabel('Chief').selectOption(chiefId);
     await grant.getByLabel('Team member').selectOption(worker.id);
     await grant.getByLabel('Effective from').fill(date);
@@ -74,7 +89,8 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
     const chiefPage = await chiefContext.newPage();
     await signIn(chiefPage, 'worker');
     await chiefPage.goto(portal(`/crew?project=${projectId}&date=${date}`));
-    const batch = chiefPage.locator('form[action="?/createBatch"]');
+    await chiefPage.waitForLoadState('networkidle');
+    const batch = chiefPage.locator('form[data-crew-operation="createBatch"]');
     for (const worker of workers)
       await batch.locator(`input[name=workerIds][value="${worker.id}"]`).check();
     await batch.getByLabel('Hours per member').fill('2.5');
@@ -115,8 +131,8 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
             vendor: 'Shared crew parking',
             category: 'parking',
             description: 'One receipt for two crew members',
-            currency: 'USD',
-            amountMinor: 1250n,
+            currency,
+            amountMinor: BigInt(amountMinor),
             whoPaid: 'worker',
             receiptRequired: true,
             receiptDocumentId: receipt.id,
@@ -129,25 +145,35 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
       }
     }
     await chiefPage.reload();
+    await chiefPage.waitForLoadState('networkidle');
     const allocation = chiefPage.locator('form[data-crew-operation="allocateReceipt"]');
-    await expect(allocation.getByRole('option', { name: /Shared crew parking/ })).toHaveCount(1);
+    await expect(allocation.getByRole('option', { name: /Shared crew parking/ })).toContainText(
+      expectedTotal,
+    );
     await allocation.getByLabel('Receipt expense').selectOption(expenseId);
     for (const id of timeIds)
       await allocation.locator(`input[name=timeEntryIds][value="${id}"]`).check();
-    await allocation.locator(`input[name="amount_${timeIds[0]}"]`).fill('8.00');
-    await allocation.locator(`input[name="amount_${timeIds[1]}"]`).fill('4.50');
+    await allocation.locator(`input[name="amount_${timeIds[0]}"]`).fill(amounts[0]!);
+    await allocation.locator(`input[name="amount_${timeIds[1]}"]`).fill(amounts[1]!);
+    await expect(allocation.locator('[data-crew-allocation-preview]')).toContainText(
+      'Amounts match the receipt.',
+    );
     await allocation.getByRole('button', { name: 'Save receipt allocation' }).click();
     await expect(allocation.getByRole('option', { name: /Shared crew parking/ })).toHaveCount(0);
     await expect(
       chiefPage.getByRole('heading', { name: 'Saved receipt allocations' }),
     ).toBeVisible();
-    await expect(chiefPage.locator('main')).toContainText('12.50 USD · one expense');
+    await expect(chiefPage.locator('main')).toContainText(`${expectedTotal} · one expense`);
     for (const worker of workers)
       await expect(chiefPage.locator('main')).toContainText(worker.name);
-    await chiefPage.goto(portal(`/expenses?project=${projectId}`));
-    const chiefExpense = chiefPage.locator(`[data-expense-record="${expenseId}"]`);
+    await chiefPage.goto(portal(`/expenses/${expenseId}?lang=en`));
+    const chiefExpense = chiefPage.locator('main');
+    await expect(chiefExpense).toContainText('Shared crew parking');
     await expect(chiefExpense).toContainText('Shared crew receipt · allocation locked');
     await expect(chiefExpense.getByRole('button', { name: 'Edit' })).toHaveCount(0);
+    await expect(
+      chiefExpense.getByRole('button', { name: 'Withdraw crew expense draft' }),
+    ).toHaveCount(0);
     const editResponse = await chiefPage.evaluate(
       async ({ id }) => {
         const response = await fetch('/j-aautomation/app/expenses?/updateExpense', {
@@ -162,8 +188,9 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
       httpStatus: 200,
       action: { type: 'failure', status: 409 },
     });
-    await page.goto(portal(`/expenses?project=${projectId}`));
-    const ownerExpense = page.locator(`[data-expense-record="${expenseId}"]`);
+    await page.goto(portal(`/expenses/${expenseId}?lang=en`));
+    const ownerExpense = page.locator('main');
+    await expect(ownerExpense).toContainText('Shared crew parking');
     await expect(ownerExpense).toContainText('Shared crew receipt · allocation locked');
     await expect(ownerExpense.getByRole('button', { name: 'Edit' })).toHaveCount(0);
     await expect(ownerExpense.getByRole('button', { name: 'Delete' })).toHaveCount(0);
@@ -191,18 +218,18 @@ test('chief allocates one saved receipt across two worker shifts on phone, table
         check.sqlite
           .prepare('SELECT COUNT(*) count,SUM(amount_minor) total FROM expense WHERE id=?')
           .get(expenseId),
-      ).toEqual({ count: 1, total: 1250 });
+      ).toEqual({ count: 1, total: amountMinor });
       expect(
         check.sqlite
           .prepare(
             'SELECT COUNT(*) count,SUM(amount_minor) total FROM crew_shared_expense_allocation a JOIN crew_shared_expense_allocation_group g ON g.id=a.group_id WHERE g.expense_id=?',
           )
           .get(expenseId),
-      ).toEqual({ count: 2, total: 1250 });
+      ).toEqual({ count: 2, total: amountMinor });
     } finally {
       check.sqlite.close();
     }
   } finally {
     await chiefContext.close();
   }
-});
+}

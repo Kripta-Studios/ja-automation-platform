@@ -25,6 +25,12 @@ function setup() {
     workerId,
     startsOn: '2026-01-01',
   });
+  const worker = stepUpB5Principal(
+    fixture.sqlite,
+    fixture.repository.principalFor(workerId),
+    'expense-crew-worker',
+  );
+  fixture.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
   const crew = new CrewLeaderRepository(fixture.sqlite);
   const grant = crew.grant(owner, {
     projectId: fixture.project.id,
@@ -54,12 +60,12 @@ function setup() {
     whoPaid: 'worker',
     receiptRequired: false,
   };
-  return { fixture, owner, chief, workerId, crew, grant, shift, input };
+  return { fixture, owner, chief, worker, workerId, crew, grant, shift, input };
 }
 
 describe('chief-entered worker expenses', () => {
   it('records exact worker and chief provenance, links hours, and keeps worker reimbursement private', () => {
-    const { fixture, chief, workerId, grant, shift, input } = setup();
+    const { fixture, chief, worker, workerId, grant, shift, input } = setup();
     const created = fixture.repository.createExpense(
       chief,
       input,
@@ -95,9 +101,7 @@ describe('chief-entered worker expenses', () => {
     const detail = fixture.repository.expenseDetail(chief, created.id);
     expect(detail).not.toHaveProperty('reimbursement_amount_minor');
     expect(detail).not.toHaveProperty('client_treatment');
-    expect(
-      fixture.repository.expenseDetail(fixture.repository.principalFor(workerId), created.id),
-    ).toMatchObject({
+    expect(fixture.repository.expenseDetail(worker, created.id)).toMatchObject({
       worker_id: workerId,
       reimbursement_amount_minor: null,
     });
@@ -131,7 +135,7 @@ describe('chief-entered worker expenses', () => {
   });
 
   it('rejects out-of-scope, cross-worker shift and revoked access without changing source rows', () => {
-    const { fixture, owner, chief, workerId, crew, grant, input } = setup();
+    const { fixture, owner, chief, worker, workerId, crew, grant, input } = setup();
     const created = fixture.repository.createExpense(
       chief,
       input,
@@ -178,10 +182,7 @@ describe('chief-entered worker expenses', () => {
     expect(
       fixture.repository.listExpensesForScope(chief).some((row) => row.id === created.id),
     ).toBe(false);
-    expect(
-      fixture.repository.expenseDetail(fixture.repository.principalFor(workerId), created.id)
-        .worker_id,
-    ).toBe(workerId);
+    expect(fixture.repository.expenseDetail(worker, created.id).worker_id).toBe(workerId);
     expect(
       fixture.sqlite
         .prepare('SELECT approval_state,version FROM expense WHERE id=?')

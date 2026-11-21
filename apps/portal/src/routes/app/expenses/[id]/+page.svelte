@@ -723,6 +723,9 @@
       </div>
       <span class="state-tag">{statusLabel}</span>
     </header>
+    {#if data.sharedReceiptAllocated}
+      <p>{t('Shared crew receipt · allocation locked')}</p>
+    {/if}
     {#if data.correctionOrigin}
       <section
         class="detail-panel record-detail-copy"

@@ -93,8 +93,8 @@
     ['owner_admin', 'finance_admin', 'project_manager', 'auditor_read_only'].includes(role),
   );
   const readOnlyViewer = $derived(role === 'auditor_read_only');
-  let view = $state<'capture' | 'overview'>(
-    $page.url.searchParams.get('view') === 'overview' ? 'overview' : 'capture',
+  let view = $derived<'capture' | 'overview'>(
+    canReview && (data.expenseView === 'overview' || readOnlyViewer) ? 'overview' : 'capture',
   );
   function chooseView(next: 'capture' | 'overview'): void {
     view = next;
@@ -106,9 +106,6 @@
     url.searchParams.set('view', next);
     void goto(url, { noScroll: true, keepFocus: true });
   }
-  $effect(() => {
-    view = (data.expenseView === 'overview' || readOnlyViewer) && canReview ? 'overview' : 'capture';
-  });
 
   const statusOf = expenseStatusOf;
   const statusLabel = expenseStatusLabel;

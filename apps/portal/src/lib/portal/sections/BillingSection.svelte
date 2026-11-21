@@ -277,6 +277,9 @@
     formatMoney: (minor: unknown, currency: string) => string;
   } = $props();
 
+  const canManageBilling = $derived(
+    !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
+  );
   let search = $state('');
   const billingStageFromQuery = (value: string | null): BillingStage =>
     value && ['all', 'wip', 'drafts', 'outstanding', 'overdue', 'credits', 'paid'].includes(value)
@@ -286,7 +289,18 @@
   let stageFilter = $state<BillingStage>(
     billingStageFromQuery($page.url.searchParams.get('stage')?.trim() ?? null),
   );
-  let workspace = $state<BillingWorkspace>('invoices');
+  const legacyBillingTabs = ['settings', 'streams'];
+  function requestedBillingWorkspace(params: URLSearchParams): string | null {
+    const view = params.get('view')?.trim();
+    if (view) return view;
+    // Existing links use the settings tab name instead of the workspace view.
+    return legacyBillingTabs.includes(params.get('tab') ?? '') ? 'streams' : null;
+  }
+  const billingWorkspaceFromValue = (value: string | null): BillingWorkspace =>
+    value === 'streams' || (value === 'setup' && canManageBilling) ? value : 'invoices';
+  let workspace = $state(
+    billingWorkspaceFromValue(requestedBillingWorkspace($page.url.searchParams)),
+  );
   let setupAction = $state<BillingSetupAction>('stream');
   let issuerSettingsSavingId = $state('');
   let selectedIssuerSettings = $state<{ id: string; mode: 'edit' | 'remove' } | null>(null);
@@ -1835,6 +1849,8 @@
     setupAction = action;
     const url = new URL(location.href);
     url.searchParams.set('view', next);
+    if (legacyBillingTabs.includes(url.searchParams.get('tab') ?? ''))
+      url.searchParams.delete('tab');
     if (projectFilter) url.searchParams.set('project', projectFilter);
     else url.searchParams.delete('project');
     if (stageFilter !== 'all') url.searchParams.set('stage', stageFilter);
@@ -2075,9 +2091,6 @@
     };
   });
   const ledgerRows = $derived(data.ledger ?? []);
-  const canManageBilling = $derived(
-    !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
-  );
   const taxProfileFailure = $derived(
     Boolean(
       billingProblem && ['updateTaxProfile', 'archiveTaxProfile'].includes(billingFailureOperation),
@@ -2153,12 +2166,10 @@
     },
     validate: (saved) => ({
       ...saved,
-      // Z1: links such as ?tab=settings open "Per-project settings" (view=streams).
-      workspace:
-        !$page.url.searchParams.get('view') &&
-        ['settings', 'streams'].includes($page.url.searchParams.get('tab') ?? '')
-          ? 'streams'
-          : saved.workspace,
+      // Shallow tab changes update the address bar without reloading the page URL.
+      workspace: billingWorkspaceFromValue(
+        requestedBillingWorkspace(new URLSearchParams(window.location.search)) ?? saved.workspace,
+      ),
       projectFilter: (data.projects ?? []).some(
         (project) => String(project.id) === saved.projectFilter,
       )
@@ -2171,9 +2182,7 @@
       projectFilter = saved.projectFilter;
       stageFilter = billingStageFromQuery(saved.stageFilter);
       if (!billingProblem) {
-        workspace = ['invoices', 'streams', 'setup'].includes(saved.workspace)
-          ? (saved.workspace as BillingWorkspace)
-          : 'invoices';
+        workspace = billingWorkspaceFromValue(saved.workspace);
         setupAction = setupActions.some((action) => action.id === saved.setupAction)
           ? (saved.setupAction as BillingSetupAction)
           : 'stream';

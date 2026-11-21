@@ -14,7 +14,7 @@ afterEach(() => {
   for (const fixture of fixtures.splice(0)) closeB5LifecycleSecurityFixture(fixture);
 });
 
-function seedCoordinatorCredential(
+function seedTestCredential(
   fixture: B5LifecycleSecurityFixture,
   userId = fixture.worker.userId,
 ): void {
@@ -25,7 +25,7 @@ function seedCoordinatorCredential(
        VALUES(?,?,?,'credential',?,?,?,?)`,
     )
     .run(
-      `supplier-fixture-coordinator-credential-${userId}`,
+      `supplier-fixture-credential-${userId}`,
       'local:credential',
       `credential-${userId}`,
       userId,
@@ -35,12 +35,23 @@ function seedCoordinatorCredential(
     );
 }
 
+function authenticatedWorker(fixture: B5LifecycleSecurityFixture, userId: string) {
+  seedTestCredential(fixture, userId);
+  const principal = stepUpB5Principal(
+    fixture.sqlite,
+    fixture.repository.principalFor(userId),
+    'supplier-workforce-own-operation',
+  );
+  fixture.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(principal.sessionId);
+  return principal;
+}
+
 function setup() {
   const fixture = createB5LifecycleSecurityFixture();
   fixtures.push(fixture);
   const suppliers = new SupplierWorkforceRepository(fixture.sqlite);
   const supplier = suppliers.createSupplier(fixture.owner, { name: 'Field supplier' });
-  seedCoordinatorCredential(fixture);
+  seedTestCredential(fixture);
   Object.assign(
     fixture.owner,
     stepUpB5Principal(fixture.sqlite, fixture.owner, 'supplier-profile-owner'),
@@ -87,14 +98,15 @@ describe('supplier workforce canonical time', () => {
   it('retains standard-worker own-time assignment filtering after membership expiry', () => {
     const fixture = createB5LifecycleSecurityFixture();
     fixtures.push(fixture);
-    const entry = fixture.repository.createTimeEntry(fixture.worker, {
+    const worker = authenticatedWorker(fixture, fixture.worker.userId);
+    const entry = fixture.repository.createTimeEntry(worker, {
       projectId: fixture.project.id,
       workDate: operationalDate,
       category: 'regular',
       minutes: 15,
       summary: 'Standard worker assignment regression',
     });
-    expect(fixture.repository.listOwnTime(fixture.worker)).toEqual(
+    expect(fixture.repository.listOwnTime(worker)).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: entry.id })]),
     );
 
@@ -102,10 +114,10 @@ describe('supplier workforce canonical time', () => {
       .prepare("UPDATE project_member SET ends_on='2026-01-01' WHERE project_id=? AND user_id=?")
       .run(fixture.project.id, fixture.worker.userId);
 
-    expect(fixture.repository.listOwnTime(fixture.worker)).toEqual([]);
-    expect(fixture.repository.listOwnTimeWeek(fixture.worker, operationalDate).rows).toEqual([]);
-    expect(fixture.repository.listTimeForScope(fixture.worker)).toEqual([]);
-    expect(() => fixture.repository.timeDetail(fixture.worker, entry.id)).toThrow(
+    expect(fixture.repository.listOwnTime(worker)).toEqual([]);
+    expect(fixture.repository.listOwnTimeWeek(worker, operationalDate).rows).toEqual([]);
+    expect(fixture.repository.listTimeForScope(worker)).toEqual([]);
+    expect(() => fixture.repository.timeDetail(worker, entry.id)).toThrow(
       AccessDeniedError,
     );
   });
@@ -399,7 +411,7 @@ describe('supplier workforce canonical time', () => {
     // assigned external technician's own membership authority.
     expect(
       fixture.repository.createTimeEntry(
-        { userId: technician.id, role: 'worker', projectIds: new Set([fixture.project.id]) },
+        authenticatedWorker(fixture, technician.id),
         {
           projectId: fixture.project.id,
           workDate: operationalDate,
@@ -567,7 +579,7 @@ describe('supplier workforce canonical time', () => {
     // This legacy profile-history assertion intentionally promotes the
     // no-login personnel record before clearing it again. Seed a separate
     // credential so coordinator eligibility remains a real capability check.
-    seedCoordinatorCredential(fixture, technician.id);
+    seedTestCredential(fixture, technician.id);
     suppliers.setAccountProfile(fixture.owner, {
       userId: technician.id,
       profile: 'supplier_coordinator',
@@ -625,11 +637,7 @@ describe('supplier workforce canonical time', () => {
       minutes: 60,
       summary: 'Coordinator-recorded source',
     });
-    const technicianPrincipal = {
-      userId: technician.id,
-      role: 'worker' as const,
-      projectIds: new Set([fixture.project.id]),
-    };
+    const technicianPrincipal = authenticatedWorker(fixture, technician.id);
     const ownEntered = fixture.repository.createTimeEntry(technicianPrincipal, {
       projectId: fixture.project.id,
       workDate: operationalDate,
@@ -832,7 +840,7 @@ describe('supplier workforce canonical time', () => {
       summary: 'Discarded draft',
     });
     fixture.repository.deleteTime(
-      { userId: technician.id, role: 'worker', projectIds: new Set([fixture.project.id]) },
+      authenticatedWorker(fixture, technician.id),
       entry.id,
       entry.version,
     );

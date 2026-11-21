@@ -12,7 +12,12 @@
   import { requestGuidedRecovery } from '$lib/portal/guided-recovery/events';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
-  import { decimalToMinor } from '$lib/portal/portal-format';
+  import {
+    currencyMinorDigits,
+    formatMinorPlain,
+    isCurrency,
+    parseMajorToMinor,
+  } from '@ja/billing-engine';
   import { paymentMoney } from '$lib/portal/payment-money';
   import { personDisplayName } from '$lib/portal/display-name';
   import {
@@ -160,18 +165,18 @@
     const receiptTotal = formatAmount(receiptMinor);
     let total = 0n;
     for (const row of rows) {
-      const normalized = row.amount.trim().replace(',', '.');
-      const minor = /^\d{1,12}(?:\.\d{1,2})?$/u.test(normalized)
-        ? decimalToMinor(normalized)
-        : undefined;
-      if (minor === undefined || BigInt(minor) <= 0n)
+      const minor = parseMajorToMinor(
+        row.amount,
+        isCurrency(receipt.currency) ? receipt.currency : 'USD',
+      );
+      if (minor === null || minor <= 0n)
         return {
           ...empty,
           receiptTotal,
           workerHint,
           message: t('Enter a positive amount for every selected time row to calculate the split.'),
         };
-      total += BigInt(minor);
+      total += minor;
     }
     return {
       receiptTotal,
@@ -187,6 +192,15 @@
     };
   }
   const allocationPreview = $derived(allocationPreviewSummary(allocationPreviewSnapshot));
+  const allocationCurrency = $derived(
+    data.receipts.find(({ id }: { id: string }) => id === allocationPreviewSnapshot.expenseId)
+      ?.currency,
+  );
+  const wholeAllocation = $derived(
+    isCurrency(allocationCurrency) && currencyMinorDigits(allocationCurrency) === 0,
+  );
+  const receiptAmountText = (minor: number, currency: string) =>
+    formatMinorPlain(minor, isCurrency(currency) ? currency : 'USD');
   function syncAllocationPreview(announce = false): void {
     const target = receiptAllocationForm;
     if (!target?.isConnected) return;
@@ -1082,7 +1096,7 @@
                 currentAllocation.description ||
                 currentAllocation.category ||
                 t('Receipt')}
-              · {(currentAllocation.totalMinor / 100).toFixed(2)}
+              · {receiptAmountText(currentAllocation.totalMinor, currentAllocation.currency)}
               {currentAllocation.currency}
             </p>
           {:else}
@@ -1130,9 +1144,10 @@
               <option value="">{t('Choose a saved receipt')}</option>
               {#each data.receipts as receipt}
                 <option value={receipt.id}>
-                  {receipt.vendor || receipt.description || receipt.category || t('Receipt')} · {(
-                    receipt.amountMinor / 100
-                  ).toFixed(2)}
+                  {receipt.vendor || receipt.description || receipt.category || t('Receipt')} · {receiptAmountText(
+                    receipt.amountMinor,
+                    receipt.currency,
+                  )}
                   {receipt.currency} ·
                   {personDisplayName(
                     data.assigned.find(
@@ -1165,12 +1180,12 @@
                     {personDisplayName(entry.workerName)}
                     <input
                       type="text"
-                      inputmode="decimal"
+                      inputmode={wholeAllocation ? 'numeric' : 'decimal'}
                       name="amount_{entry.id}"
                       value={form?.operation === 'allocateReceipt'
                         ? String(form.values?.[`amount_${entry.id}`] ?? '')
                         : ''}
-                      placeholder="6.50"
+                      placeholder={wholeAllocation ? '750' : '6.50'}
                       disabled={!allocationSelected.includes(entry.id)}
                       required
                     />
@@ -1239,13 +1254,16 @@
                     t('Receipt')}</strong
                 >
                 ·
-                {(receipt.totalMinor / 100).toFixed(2)}
+                {receiptAmountText(receipt.totalMinor, receipt.currency)}
                 {receipt.currency}
                 {t('· one expense')}
                 <ul>
                   {#each receipt.allocations as allocation}
                     <li>
-                      {personDisplayName(allocation.workerName)}: {(allocation.amountMinor / 100).toFixed(2)}
+                      {personDisplayName(allocation.workerName)}: {receiptAmountText(
+                        allocation.amountMinor,
+                        receipt.currency,
+                      )}
                       {receipt.currency}
                     </li>
                   {/each}

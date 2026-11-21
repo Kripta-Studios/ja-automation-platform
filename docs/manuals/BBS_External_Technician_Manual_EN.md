@@ -1,6 +1,6 @@
 # External Technician · BBS field operations
 
-Authorized own work, expenses, reports, corrections and supplier operational evidence · Updated navigation and digital workflows, 17 October 2026
+Authorized own work, expenses, reports, corrections and supplier operational evidence · Navigation checked 21 November 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -79,93 +79,28 @@ Review is determined by the source, base role and current dated grants. Chief de
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
 
 <a id="release-navigation"></a>
-## Current navigation, task finder and form recovery
+## Find your workspaces and recover interrupted forms
 
-Go here: Header → Go to section / Find a task; workspace → record search when available
+Go here: Time / Expenses / Reports / More
 
-Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
+Context: Navigation checked 21 November 2026. Dated examples retain their original dates and results.
 
-Go to section opens Find a section (Ctrl/⌘ Shift K). It groups allowed destinations as Actions, Configuration and Sections. Find a task is separate (Ctrl/⌘ K): describe a task in English, Spanish or Portuguese and choose a role-available result to open its workspace or form. Choosing a task does not save, submit, approve or send anything.
-
-Record search is a separate Records handoff that appears only when enabled for the active account. It sends the query to the workspace record search, where available records are checked against current access again. A task may also ask you to choose a record inside its destination; that local choice is part of the task flow, not the separate Records handoff.
-
-Examples of supported task wording include “create an invoice”, “crear factura” and “criar fatura” for authorized billing roles. The matching task list depends on the current account, role and permissions. The English, Spanish and Portuguese labels in the interface can differ; the current illustrated role courses are English, and Help identifies an English-PDF fallback.
-
-At 200% browser text scaling, forms follow a natural page flow so labels and focus remain clear. If validation fails, read the summary and follow its field link; a hidden optional section opens before focus moves to the field. Correct the value, check that the rest of your entries remain, then use the named Save or Submit action once.
-
-Global record search is not shown for this restricted profile. Use your own assigned work and the Supplier workspace when it is authorized.
+Time opens after sign-in. Use Time, Expenses and Reports to record your own work. Reports contains your Daily and Technical / PLC reports.
 
 ### Do the task
 
-1. Use Go to section to locate an authorized action, configuration or section. Use Find a task when you know the outcome you want; inspect the destination and choose the correct project or record when asked.
-2. Use the separate Records handoff only when it appears for your account. Open an authorized result and verify its project, owner and dates before acting. If the handoff is absent, use the role’s normal workspace and permissions.
-3. On a narrow screen or at enlarged text, follow the labelled controls in their natural page order. Use a field link from the error summary to reach the correction; retained values remain available while the form reflows.
-4. If asked about unsaved changes, stay to continue editing or deliberately leave after saving. Opening a section or choosing a task is not confirmation that a previous form saved.
+1. Open Time, Expenses or Reports from the main navigation. On a phone these are available in the bottom bar.
+2. Open More for Operational report, and use the account menu or More for Profile and Help.
+3. If validation fails, read the summary and follow its field link. Correct the highlighted field and check the retained values before saving.
 
 ### Verify the result
 
-- Before a write action, check the page heading, account, language, project, record and dates. Wait for a saved confirmation and reopen the record when needed; draft, submitted, approved, issued and sent are different states.
+- Before saving, verify the account, project and work date. Look for confirmation and reopen the saved draft before you submit it.
 
 ### If you get stuck
 
-- If a task is unavailable, use a permitted section or ask the Owner to check access. If a record search handoff is absent, the profile may not have global search; stay in the designated workspace.
-- If a save response is uncertain, inspect the existing record before retrying so you do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval.
-
-<a id="release-capture"></a>
-## Digital workers: capture facts and create linked drafts
-
-Go here: Digital workers → Open work capture → Finish today
-
-Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
-
-This workspace brings your own unfinished records together. Finish your work links to existing drafts, returned sources and missing receipt evidence. Open those records to continue them before creating another capture.
-
-Capture creates your own factual Time, Daily report and Expense drafts. Choose one or more outputs. It does not invent hours from a plan, generate a Technical report or submit the resulting records. Enter duration in decimal hours here, just as in the normal Time form; for example, 1.5 hours is ninety minutes.
-
-External Technician can use own work overview, factual capture and document text extraction. The restricted profile has no internal assigned-follow-up decisions, Today agenda or Planning calendar. Keep the normal supplier review handoff for submitted time.
-
-### Do the task
-
-1. Choose a currently assigned project and the actual work date. Enter a factual summary. Select Time, Daily report and/or Expense as required. For Time supply the actual category and duration in decimal hours; enter 1.5 for ninety minutes.
-2. For Daily report check completed tasks, problems, corrective actions, downtime, blockers and next plan. For Expense enter the real category, amount, currency, payer and description. Review the separate output fields, not only the shared summary.
-3. Choose Save on this device if you need to pause. Recover local draft restores form text for this account/project/date on this device. Review it after recovery. It is not a server save, does not queue attachments and does not submit when connectivity returns.
-4. When online and signed in, choose Review facts. Check the review summary and then Create server drafts once. Open each link in the saved receipt, add required original evidence and submit each record through its normal workflow.
-5. If the same receipt is returned after a retry, use those existing record links. Inspect the date-filtered register before starting a new capture.
-
-### Verify the result
-
-- Each intended output has one linked server draft with the correct person, project, date and facts. Check each record separately for evidence and Submitted status; the capture receipt alone is not submission.
-
-### If you get stuck
-
-- If no project is offered, ask the Owner to check current project access and coverage of the intended work date in the project timezone. A past assignment does not automatically grant access today.
-- Local text can be unavailable on a different device or after browser storage is cleared. Keep approved source evidence through the normal record upload. Do not rely on local drafts as a backup.
-
-<a id="release-local-aids"></a>
-## Read document text and use optional on-device dictation
-
-Go here: Work capture → Expense → Read text from a document; supported note fields → Dictate on this device
-
-Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
-
-Text extraction accepts PNG, JPEG, text PDF or UTF-8 text up to 8 MiB. It uses local server tools, with English, Spanish and Portuguese image OCR. Text PDFs are read through page 20 and the preview is limited to 10,000 characters. This limit is separate from the normal receipt upload limit.
-
-Dictation requires browser support and an already installed on-device language pack. No external AI service is called by these aids. Dictation has no cloud fallback or automatic language-pack installation; type when unavailable.
-
-### Do the task
-
-1. Choose the document and run text extraction. Read the preview against the original, correcting names, dates, decimal separators, amounts and currency before Use reviewed text.
-2. Fill and verify the actual Expense fields yourself. Extraction does not attach the original receipt, verify its validity or fill every required value. Attach the original on the saved record.
-3. If Dictate on this device is offered, start it deliberately, speak the factual note, stop it and correct the text before saving.
-
-### Verify the result
-
-- The saved facts agree with the original evidence. A scanned PDF without a text layer may produce no usable text; a clear supported image or typed facts remains valid.
-- The local dictation capability has automated behavior coverage; a real microphone journey on every user device has not been certified.
-
-### If you get stuck
-
-- If extraction fails or is incomplete, enter the facts manually and retain the original evidence. For unavailable dictation, use the keyboard.
+- If asked about unsaved changes, stay to continue editing or leave after saving.
+- If it is unclear whether a record saved, check the list before retrying to avoid a duplicate.
 
 <a id="external-start"></a>
 ## Start with authorized supplier access

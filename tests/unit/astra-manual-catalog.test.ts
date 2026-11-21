@@ -94,13 +94,13 @@ describe('Help manual catalog', () => {
     }
     expect(manualsForRole('owner_admin').map((manual) => manual.id)).toEqual([
       'bbs-owner-manual',
+      'bbs-supplier-coordinator-manual',
+      'bbs-external-technician-manual',
       'bbs-finance-manual',
       'bbs-auditor-manual',
       'bbs-worker-manual',
       'bbs-chief-manual',
       'bbs-manager-manual',
-      'bbs-supplier-coordinator-manual',
-      'bbs-external-technician-manual',
       'bbs-project-invoices-guide',
       'administration-finance-reference',
       'employee-field-guide',
@@ -135,7 +135,11 @@ describe('Help manual catalog', () => {
     );
     expect(currentCourses).toHaveLength(8);
     for (const guide of currentCourses) {
-      expect(guide.revision).toBe('2026-10-17');
+      const revisedSupplierGuide = [
+        'bbs-supplier-coordinator-manual',
+        'bbs-external-technician-manual',
+      ].includes(guide.id);
+      expect(guide.revision).toBe(revisedSupplierGuide ? '2026-11-21' : '2026-10-17');
       expect(guide.locales).toEqual(['en']);
       expect(guide.description.es).toContain('inglés');
       expect(guide.description.pt).toContain('inglês');

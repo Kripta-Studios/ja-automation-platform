@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import { newId, type Principal } from '@ja/domain';
+import { isCurrency, parseMajorToMinor } from '@ja/money';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
@@ -14,6 +15,21 @@ export type SharedReceiptAllocationInput = Readonly<{
     amountMinor: bigint;
   }>[];
 }>;
+
+type SharedReceiptMajorAllocationInput = Readonly<{
+  requestId: string;
+  expenseId: string;
+  allocations: readonly Readonly<{ timeEntryId: string; amount: string }>[];
+}>;
+
+export class CrewReceiptAmountError extends ValidationError {
+  constructor(
+    message: string,
+    readonly timeEntryIds: readonly string[],
+  ) {
+    super(message);
+  }
+}
 
 type Receipt = {
   id: string;
@@ -161,6 +177,52 @@ export class CrewSharedExpenseAllocationRepository {
       throw caught;
     }
     return { ...group, allocations };
+  }
+
+  /** Parse the submitted amounts against the saved receipt currency, within the write transaction. */
+  createFromMajor(
+    principal: Principal,
+    input: SharedReceiptMajorAllocationInput,
+  ): { id: string; replayed: boolean } {
+    return runImmediateTransaction(this.sqlite, 'crew-shared-expense', () => {
+      const receipt = this.sqlite
+        .prepare(
+          `SELECT e.project_id projectId,e.spent_on spentOn,e.worker_id workerId,e.currency
+           FROM expense e JOIN crew_expense_recorder rec ON rec.expense_id=e.id
+           WHERE e.id=? AND rec.recorded_by_user_id=?`,
+        )
+        .get(input.expenseId, principal.userId) as
+        | Pick<Receipt, 'projectId' | 'spentOn' | 'workerId' | 'currency'>
+        | undefined;
+      if (!receipt) throw new AccessDeniedError('Unallocated chief-entered receipt required');
+      this.crew.authorizeDelegatedOperationalEntry(
+        principal,
+        receipt.workerId,
+        receipt.projectId,
+        receipt.spentOn,
+      );
+      // Non-curated legacy currencies used two decimal places in this form.
+      const currency = isCurrency(receipt.currency) ? receipt.currency : 'USD';
+      const allocations = input.allocations.map(({ timeEntryId, amount }) => ({
+        timeEntryId,
+        amountMinor: parseMajorToMinor(amount, currency),
+      }));
+      const invalidRows = allocations.filter(({ amountMinor }) => (amountMinor ?? 0n) <= 0n);
+      if (invalidRows.length)
+        throw new CrewReceiptAmountError(
+          invalidRows.some(({ amountMinor }) => amountMinor === null)
+            ? 'Enter a valid amount for each receipt allocation'
+            : 'Each receipt allocation must be positive',
+          invalidRows.map(({ timeEntryId }) => timeEntryId),
+        );
+      return this.create(principal, {
+        ...input,
+        allocations: allocations.map(({ timeEntryId, amountMinor }) => ({
+          timeEntryId,
+          amountMinor: amountMinor!,
+        })),
+      });
+    });
   }
 
   create(

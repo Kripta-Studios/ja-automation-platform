@@ -1,5 +1,6 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
+  import { portalReturnTo } from '../portal-return-to';
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
@@ -18,6 +19,7 @@
   const t = (key: string): string => standaloneText(locale, key);
   let error = $state('');
   let busy = $state(false);
+  let hydrated = $state(false);
   let retrySeconds = $state(0);
   let retryTimer: ReturnType<typeof setInterval> | undefined;
   let statusElement: HTMLParagraphElement;
@@ -41,12 +43,14 @@
           ),
         },
       );
-      if (response.ok) location.assign(`${base}/app/`);
+      if (response.ok) location.assign(portalReturnTo($page.url, base) ?? `${base}/app/`);
       else if (response.status === 429) {
         error = t(
           'Too many verification attempts. Wait before trying again. Your code is still in the form.',
         );
-        const retryAfter = response.headers.get('retry-after')?.trim() ?? '';
+        const retryAfter = (
+          response.headers.get('retry-after') ?? response.headers.get('x-retry-after') ?? ''
+        ).trim();
         const milliseconds = /^\d+$/u.test(retryAfter)
           ? Number(retryAfter) * 1000
           : Math.max(0, Date.parse(retryAfter) - Date.now());
@@ -87,6 +91,7 @@
   }
 
   onMount(() => {
+    hydrated = true;
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -145,7 +150,7 @@
         <DirectionIcon direction="up-right" class="webmail-btn-arrow" />
       </a>
     </div>
-    <form class="login-card" onsubmit={verify}>
+    <form class="login-card" method="POST" onsubmit={verify}>
       <div class="login-brand mobile-brand" aria-hidden="true">
         <img src={`${base}/app/logo.png`} alt="J&A Automation" />
       </div>
@@ -175,7 +180,7 @@
       >
         {error}
       </p>
-      <button class="login-submit" disabled={busy || retrySeconds > 0}
+      <button class="login-submit" disabled={!hydrated || busy || retrySeconds > 0}
         >{t('Verify and continue')} <DirectionIcon /></button
       >
       {#if retrySeconds > 0}<p>

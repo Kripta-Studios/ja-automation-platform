@@ -1,6 +1,6 @@
 # Supplier Coordinator · BBS operational course
 
-Authorized supplier personnel, actual team hours, corrections and operational reporting · Updated navigation and digital workflows, 17 October 2026
+Authorized supplier personnel, actual team hours, corrections and operational reporting · Navigation checked 21 November 2026
 
 <a id="practice"></a>
 ## Before practising · live and training access
@@ -79,63 +79,52 @@ Review is determined by the source, base role and current dated grants. Chief de
 - If the intended source is absent, check source type, state, dates, assignment/review grant and supplier authorization before searching another queue. A review-enabled Worker Chief variant is not exposed by the current role model; Owner must provision the genuinely permitted reviewer role and grant. Never use a colleague’s credentials to bypass this boundary.
 
 <a id="release-navigation"></a>
-## Current navigation, task finder and form recovery
+## Find your workspaces and recover interrupted forms
 
-Go here: Header → Go to section / Find a task; workspace → record search when available
+Go here: Supplier team / Time / Crew hours / Expenses / Reports / More
 
-Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
+Context: Navigation checked 21 November 2026. Dated examples retain their original dates and results.
 
-Go to section opens Find a section (Ctrl/⌘ Shift K). It groups allowed destinations as Actions, Configuration and Sections. Find a task is separate (Ctrl/⌘ K): describe a task in English, Spanish or Portuguese and choose a role-available result to open its workspace or form. Choosing a task does not save, submit, approve or send anything.
-
-Record search is a separate Records handoff that appears only when enabled for the active account. It sends the query to the workspace record search, where available records are checked against current access again. A task may also ask you to choose a record inside its destination; that local choice is part of the task flow, not the separate Records handoff.
-
-Examples of supported task wording include “create an invoice”, “crear factura” and “criar fatura” for authorized billing roles. The matching task list depends on the current account, role and permissions. The English, Spanish and Portuguese labels in the interface can differ; the current illustrated role courses are English, and Help identifies an English-PDF fallback.
-
-At 200% browser text scaling, forms follow a natural page flow so labels and focus remain clear. If validation fails, read the summary and follow its field link; a hidden optional section opens before focus moves to the field. Correct the value, check that the rest of your entries remain, then use the named Save or Submit action once.
-
-Global record search is not shown for this restricted profile. Continue through Supplier team and its authorized operational records.
+Supplier team is your starting point after sign-in. Crew hours opens Record team hours. Time, Expenses and Reports contain your own records.
 
 ### Do the task
 
-1. Use Go to section to locate an authorized action, configuration or section. Use Find a task when you know the outcome you want; inspect the destination and choose the correct project or record when asked.
-2. Use the separate Records handoff only when it appears for your account. Open an authorized result and verify its project, owner and dates before acting. If the handoff is absent, use the role’s normal workspace and permissions.
-3. On a narrow screen or at enlarged text, follow the labelled controls in their natural page order. Use a field link from the error summary to reach the correction; retained values remain available while the form reflows.
-4. If asked about unsaved changes, stay to continue editing or deliberately leave after saving. Opening a section or choosing a task is not confirmation that a previous form saved.
+1. On desktop use the main navigation for Supplier team, Time, Crew hours, Expenses and Reports. On a phone use More to reach Reports.
+2. Open More for Operational report, and use the account menu or More for Profile and Help.
+3. If validation fails, read the summary and follow its field link. Correct the highlighted field and check the retained values before saving.
 
 ### Verify the result
 
-- Before a write action, check the page heading, account, language, project, record and dates. Wait for a saved confirmation and reopen the record when needed; draft, submitted, approved, issued and sent are different states.
+- Before saving, verify the account, project and work date. Look for confirmation and reopen the saved draft before you submit it.
 
 ### If you get stuck
 
-- If a task is unavailable, use a permitted section or ask the Owner to check access. If a record search handoff is absent, the profile may not have global search; stay in the designated workspace.
-- If a save response is uncertain, inspect the existing record before retrying so you do not create a duplicate. For sign-in rate limits, wait for the displayed retry interval.
+- If asked about unsaved changes, stay to continue editing or leave after saving.
+- If it is unclear whether a record saved, check the list before retrying to avoid a duplicate.
 
 <a id="release-supplier-current"></a>
-## Current supplier workflow and digital-workspace handoff
+## Record team work and hand drafts to J&A
 
-Go here: Supplier team → Personnel / Record team hours / Review drafts; Digital workers
+Go here: Supplier team → Personnel / Record team hours / Operational report
 
-Context: Current operating instructions · 17 October 2026 · earlier examples retain their dates and saved outcomes.
+Context: Navigation checked 21 November 2026. Dated examples retain their original dates and results.
 
-Supplier Coordinator remains a restricted Worker profile. The current Digital workers page directs coordination to Continue in the supplier workspace. It does not provide the coordinator with the internal assigned-follow-up controls or general work capture.
-
-Use Supplier team for authorized personnel and team hours. Your own Time, Expenses, Daily and Technical reports remain separate from entries recorded for supplier personnel.
+Use Supplier team for authorized personnel and team hours. Use Time, Expenses and Reports for your own records.
 
 ### Do the task
 
-1. Check supplier authorization, project/date coverage and each person’s active directory/access status. A directory technician does not automatically have an application login or project membership.
-2. Use Record team hours for actual duration, category and work performed. Inspect each created draft and submit eligible records through Review drafts; send supplier time to the authorized J&A Owner.
-3. For your own work, use the normal Time/Expenses/Reports forms and attach original evidence. Open Operational report with the exact period and verify the native CSV totals.
-4. Use Find a task for allowed supplier destinations. If Digital workers offers Continue in the supplier workspace, follow that link to the established team controls.
+1. In Personnel, verify the installation and check that the technician’s assignment covers the work date. A directory technician needs a separate account to sign in.
+2. Open Record team hours. Select the technicians, work date and category. Enter actual hours, or record start and end times. Add work performed when it helps explain the entry.
+3. Choose Save selected drafts. Inspect the saved drafts under Operational report and use Review drafts to send eligible entries to the J&A Owner.
+4. Open the standalone Operational report from More. Apply the exact project and date range before comparing the screen with Download CSV.
 
 ### Verify the result
 
-- Team entry has the intended people/date and actual hours; submitted supplier sources still await J&A review. No internal Planning agenda is implied by supplier coverage.
+- Each draft shows the intended technician, date and actual hours. Submitted supplier sources await J&A review.
 
 ### If you get stuck
 
-- For a missing person or date guard, ask the Owner to correct the real supplier authorization/assignment. Do not enter the work under another identity.
+- Ask the Owner to check supplier authorization or assignment dates if a technician or installation is missing.
 
 <a id="start"></a>
 ## Start with a supplier access profile, not an Owner account

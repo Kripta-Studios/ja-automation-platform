@@ -55,7 +55,8 @@ describe('customer unit migration 74', () => {
       .get('historical-hourly');
     const projects = f.sqlite.prepare('SELECT * FROM project ORDER BY id').all();
     f.sqlite.close();
-    process.env.JA_MIGRATIONS_PATH = migrations;
+    const upgrade = '0074_client_labor_billing_units.sql';
+    cpSync(join(migrations, upgrade), join(prior, upgrade));
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(
       f.sqlite.prepare('SELECT * FROM client_labor_rate WHERE id=?').get('historical-hourly'),

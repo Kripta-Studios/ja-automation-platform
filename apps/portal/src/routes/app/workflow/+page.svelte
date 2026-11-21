@@ -586,7 +586,7 @@
                   name="scopeClassification"
                   value={value('scopeClassification')}
                 >
-                  <option value="">{t('Choose a classification')}</option><option
+                  <option value="">{t('Choose classification')}</option><option
                     value="existing_scope">{t('Existing scope')}</option
                   ><option value="rework">{t('Rework')}</option><option value="goodwill"
                     >{t('Goodwill')}</option
@@ -732,7 +732,7 @@
                         id={`manager-classification-${item.id}`}
                         name="scopeClassification"
                         value={item.scopeClassification ?? ''}
-                        ><option value="">{t('Choose a classification')}</option><option
+                        ><option value="">{t('Choose classification')}</option><option
                           value="existing_scope">{t('Existing scope')}</option
                         ><option value="rework">{t('Rework')}</option><option value="goodwill"
                           >{t('Goodwill')}</option

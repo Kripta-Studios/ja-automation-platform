@@ -78,7 +78,7 @@ describe('readable generated PDF examples', () => {
       ),
     ).toHaveLength(2);
     expect(raw).toContain('$320.00');
-    expect(raw).toContain(`Template ${WORKER_STATEMENT_TEMPLATE_VERSION}`);
+    expect(raw.replace(/\s+/gu, '')).toContain(`Template${WORKER_STATEMENT_TEMPLATE_VERSION}`);
   });
 
   it.each(['en', 'pt-BR'])(

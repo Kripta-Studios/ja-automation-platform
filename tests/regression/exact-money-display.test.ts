@@ -32,15 +32,18 @@ describe('exact minor-unit display', () => {
     expect(paymentFormat).toContain('BigInt(raw)');
     expect(paymentFormat).not.toContain('Number(');
 
-    for (const path of [
-      'apps/portal/src/routes/app/expenses/[id]/+page.svelte',
-      'apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte',
-      'apps/portal/src/routes/app/reports/period/[id]/+page.svelte',
-    ]) {
-      const source = read(path);
-      expect(source, `${path} must use the shared exact-money formatter`).toContain(
+    const formatters = {
+      'apps/portal/src/routes/app/expenses/[id]/+page.svelte':
         "import { money as formatMoney } from '$lib/portal/portal-format';",
-      );
+      'apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte':
+        "import { paymentMoney } from '$lib/portal/payment-money';",
+      'apps/portal/src/routes/app/reports/period/[id]/+page.svelte':
+        "import { money as formatMoney } from '$lib/portal/portal-format';",
+    };
+    for (const [path, formatter] of Object.entries(formatters)) {
+      const source = read(path);
+      expect(source, `${path} must use the shared exact-money formatter`).toContain(formatter);
+      expect(source).not.toMatch(/(?:formatMoney|paymentMoney)\(\s*Number\(/u);
       expect(source, `${path} must not convert minor units through Number`).not.toContain(
         'format(Number(minor',
       );

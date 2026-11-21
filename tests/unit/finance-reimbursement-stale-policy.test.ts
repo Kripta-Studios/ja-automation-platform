@@ -54,6 +54,7 @@ describe('stale worker reimbursement policy actions', () => {
       projectId: 'project-b',
       expectedVersion: '2',
       mode: 'none',
+      effectiveFrom: '2026-09-01',
       reason: 'Apply the revised travel policy',
     };
     const result = await submit('setProjectReimbursementDefault', values);
@@ -85,6 +86,7 @@ describe('stale worker reimbursement policy actions', () => {
       projectMemberId: 'assignment-2',
       expectedVersion: '4',
       mode: 'at_cost',
+      effectiveFrom: '2026-09-01',
       reason: 'Reimburse the worker for approved travel',
     };
     const result = await submit('setWorkerReimbursementOverride', values);
@@ -118,6 +120,7 @@ describe('stale worker reimbursement policy actions', () => {
       projectMemberId: 'removed-assignment',
       expectedVersion: '4',
       mode: 'none',
+      effectiveFrom: '2026-09-01',
       reason: 'Travel policy changed after review',
     };
     const result = await submit('setWorkerReimbursementOverride', values);

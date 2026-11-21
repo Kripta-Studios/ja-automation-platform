@@ -94,8 +94,12 @@ describe('time action prechecks', () => {
           category: 'regular',
           minutes: 450,
           summary: 'Field repair',
+          startTime: undefined,
+          endTime: undefined,
+          breakMinutes: undefined,
         },
       ],
+      { allowExactDuplicate: false },
     );
     const changedDate = await timeAction('createTimeBatch', { ...form, workDate_0: '2026-09-22' });
     expect(changedDate).toMatchObject({
@@ -140,7 +144,8 @@ describe('time action prechecks', () => {
       status: 400,
       data: {
         code: 'TIME_BATCH_ENTRY_INVALID',
-        fieldErrors: { entries: ['problem.time.batchEntryInvalid'] },
+        fieldErrors: { workDate: ['problem.time.workDateInvalid'] },
+        remedies: [{ id: 'review_week' }],
       },
     });
     expect(JSON.stringify(invalidEntry.data)).not.toContain('secret');
@@ -319,20 +324,23 @@ describe('time action prechecks', () => {
 
 describe('expense action prechecks', () => {
   it('keeps payer guidance separate from customer billing treatment', async () => {
-    const result = await expenseAction('createExpense', { ...validExpense, whoPaid: 'unknown' });
+    const result = await expenseAction('createExpense', {
+      ...validExpense,
+      whoPaid: 'unknown',
+      clientTreatment: 'reimbursable',
+    });
     expect(result).toMatchObject({
       status: 400,
       data: {
         code: 'EXPENSE_PAYER_INVALID',
         messageKey: 'problem.expense.payerInvalid',
+        message: 'Select who actually paid this expense.',
         values: { whoPaid: 'unknown', amount: '12.50' },
         fieldErrors: { whoPaid: ['problem.expense.payerInvalid'] },
         remedies: [{ id: 'correct_field' }],
       },
     });
-    expect(JSON.stringify(result.data)).toContain(
-      'Customer billing treatment is reviewed separately',
-    );
+    expect(result.data).not.toHaveProperty('values.clientTreatment');
   });
 
   it('keeps amount and record errors beside their visible controls', async () => {

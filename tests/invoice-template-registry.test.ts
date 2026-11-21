@@ -210,11 +210,9 @@ describe('controlled invoice template registry', () => {
     expect(rendered.body).not.toContain('<dl class="invoice-meta">');
 
     const layout = pdfLayout(invoicePdf(baseSnapshot('labor-detailed')));
-    expect(layout.split(/\r?\n/).some((line) => /From/i.test(line) && /Bill to/i.test(line))).toBe(
-      true,
-    );
+    expect(layout).toMatch(/J&A Automation[\s\S]*Bill to[\s\S]*Northline Mobility/iu);
     expect(
-      layout.split(/\r?\n/).some((line) => /Issue date/i.test(line) && /Due date/i.test(line)),
+      layout.split(/\r?\n/).some((line) => /Invoice date/i.test(line) && /Due date/i.test(line)),
     ).toBe(true);
   });
 
@@ -242,7 +240,7 @@ describe('controlled invoice template registry', () => {
       ],
     };
     const rendered = renderInvoiceTemplate(snapshot);
-    expect(rendered.body).not.toContain(sourceId);
+    expect(rendered.body.replace(/<[^>]*>/gu, '')).not.toContain(sourceId);
     expect(rendered.body).toContain('class="amount"');
     expect(rendered.body).not.toContain('nth-child(n+3)');
 

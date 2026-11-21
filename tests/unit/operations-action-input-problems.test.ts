@@ -153,15 +153,15 @@ describe('operations action direct input problems', () => {
   it('marks an invalid reporting period with retained scalar selection', async () => {
     const result = await reportActions.generatePeriodReports(
       event('reports', 'generatePeriodReports', {
-        projectId: 'bad-id',
+        projectId: 'imported-project',
         periodStart: '2026-09-25',
         periodEnd: '2026-09-01',
       }),
     );
     expect(result.data).toMatchObject({
       code: 'REPORT_PERIOD_SELECTION_INVALID',
-      values: { projectId: 'bad-id', periodStart: '2026-09-25' },
-      fieldErrors: expect.any(Object),
+      values: { projectId: 'imported-project', periodStart: '2026-09-25', periodEnd: '2026-09-01' },
+      fieldErrors: { periodEnd: ['End date must be on or after start date'] },
       remedies: [{ id: 'review_report_period' }],
     });
   });

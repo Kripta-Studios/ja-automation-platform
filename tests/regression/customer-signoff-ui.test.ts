@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 const pagePath = resolve(
@@ -131,13 +132,12 @@ describe('period report customer sign-off surface', () => {
     expect(source).toContain('canAttachLegacyCustomerSignoffEvidence');
     expect(source).toContain("signatureEvidenceStatus === 'missing'");
     expect(compose).toMatch(/BODY_SIZE_LIMIT:\s*24M/u);
-    // @sveltejs/adapter-node consumes this environment value at the generated
-    // handler boundary, ahead of SvelteKit's multipart form parsing.
-    const generatedHandler = resolve(
-      process.cwd(),
-      'apps/portal/.svelte-kit/adapter-node/entries/handler.js',
-    );
-    expect(readFileSync(generatedHandler, 'utf8')).toContain("env('BODY_SIZE_LIMIT', '512K')");
+    // The adapter copies this handler template at build time. Read the
+    // installed source so this regression also runs before any portal build.
+    const requireFromPortal = createRequire(resolve(process.cwd(), 'apps/portal/package.json'));
+    const adapterRoot = dirname(requireFromPortal.resolve('@sveltejs/adapter-node/package.json'));
+    const handlerTemplate = resolve(adapterRoot, 'files/handler.js');
+    expect(readFileSync(handlerTemplate, 'utf8')).toContain("env('BODY_SIZE_LIMIT', '512K')");
   });
 
   it('binds a legacy-evidence attachment request to the period route before repository attachment', () => {

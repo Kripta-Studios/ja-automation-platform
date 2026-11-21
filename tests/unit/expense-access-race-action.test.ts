@@ -52,6 +52,7 @@ function requestWithReceipt(): Request {
 }
 
 const close = vi.fn();
+const exec = vi.fn();
 const reserveUpload = vi.fn();
 const finalizeUpload = vi.fn();
 const cancelUploadReservation = vi.fn();
@@ -63,7 +64,7 @@ beforeEach(() => {
   reserveUpload.mockReturnValue({ reservationId, storageKey });
   vi.mocked(openPortalRepository).mockReturnValue({
     principal: { userId: 'worker-1', role: 'worker' },
-    sqlite: { close },
+    sqlite: { close, exec },
     v3: { reserveUpload, finalizeUpload, cancelUploadReservation },
     repository: { createExpense, removeUnreferencedReceipt },
   } as unknown as ReturnType<typeof openPortalRepository>);
@@ -174,6 +175,7 @@ describe('expense access failures', () => {
             : /não tem mais.*responsável/i,
       );
       expect(createExpense).toHaveBeenCalledOnce();
+      expect(exec.mock.calls).toEqual([['BEGIN IMMEDIATE'], ['ROLLBACK']]);
       expect(removeUnreferencedReceipt).toHaveBeenCalledOnce();
       expect(removePrivateFileIfPresent).toHaveBeenCalledWith(expect.any(String), storageKey);
       expect(close).toHaveBeenCalledOnce();

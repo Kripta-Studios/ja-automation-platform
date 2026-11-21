@@ -2153,7 +2153,7 @@
                     autocapitalize="none"
                     spellcheck="false"
                     bind:value={localEmail}
-                    placeholder="juan.perez"
+                    placeholder={translate('first.last')}
                     aria-describedby="local-email-preview"
                     required
                   /><small id="local-email-preview" class="team-directory__email-preview"
@@ -2324,7 +2324,7 @@
                   autocapitalize="none"
                   spellcheck="false"
                   autocomplete="email"
-                  placeholder="juan.perez"
+                  placeholder={translate('first.last')}
                   bind:value={inviteEmail}
                   aria-describedby="team-invite-email-preview"
                   required

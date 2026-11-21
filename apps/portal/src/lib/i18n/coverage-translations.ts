@@ -8795,6 +8795,10 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.validation.missingUsername': ['Añade un alias de cuenta.', 'Adicione um alias de conta.'],
   'action.finance.reimbursementRecorded': ['Reembolso registrado.', 'Reembolso registrado.'],
   'action.navigation.wrongSection': ['Sección incorrecta.', 'Seção incorreta.'],
+  'action.notifications.markedAllRead': [
+    'Todas las notificaciones se marcaron como leídas.',
+    'Todas as notificações foram marcadas como lidas.',
+  ],
   'action.notifications.markedRead': [
     'Notificación marcada como leída.',
     'Notificação marcada como lida.',
@@ -9382,6 +9386,7 @@ function englishActionMessage(key: string): string {
     'action.finance.assignmentRateOverrideSaved': 'Assignment rate override saved.',
     'action.validation.notificationIdRequired': 'Notification is required.',
     'action.notifications.markedRead': 'Notification marked as read.',
+    'action.notifications.markedAllRead': 'All notifications marked as read.',
     'action.validation.reportAutosaveRequest': 'Invalid report autosave request.',
     'action.error.reportEditAccess': 'Report edit access required.',
     'action.conflict.reportNotEditable':

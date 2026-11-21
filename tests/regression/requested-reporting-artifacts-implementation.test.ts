@@ -5,7 +5,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import {
   accountingPackExportTemplateVersion,
   renderAccountingPackArtifacts,
-  REPORT_TEMPLATE_VERSION,
+  INVOICE_TEMPLATE_VERSION,
   runArtifactJobs,
   type ArtifactJobContext,
   type ArtifactJobExecution,
@@ -79,7 +79,7 @@ describe('requested reporting artifact implementation', () => {
     const root = mkdtempSync(join(tmpdir(), 'ja-reporting-collision-'));
     roots.push(root);
     const { proof } = b5ArtifactPrincipal();
-    const target = join(root, 'invoices', 'invoice-1', `${REPORT_TEMPLATE_VERSION}.pdf`);
+    const target = join(root, 'invoices', 'invoice-1', `${INVOICE_TEMPLATE_VERSION}.pdf`);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, Buffer.from('unrelated pre-existing content'));
     let thrown: unknown;

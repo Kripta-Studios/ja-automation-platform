@@ -37,10 +37,10 @@ describe('requested portal UI regressions (RED characterization)', () => {
 
   it('places project actions under the page title and before Authorized projects', () => {
     const projects = sectionBlock(shellSource(), 'projects');
-    const workflowActions = projects.indexOf('class="project-workflow-actions"');
+    const workflowActions = projects.indexOf('class="project-toolbar"');
     const authorized = projects.indexOf("title={translate('Authorized projects')}");
-    const firstAdminPanel = projects.indexOf('<details class="admin-details">');
-    expect(workflowActions, 'Projects must expose the Choose one action buttons').toBeGreaterThan(
+    const firstAdminPanel = projects.indexOf('data-project-more-tools');
+    expect(workflowActions, 'Projects must expose the management toolbar').toBeGreaterThan(
       -1,
     );
     expect(authorized, 'Projects must render the authorized-projects surface').toBeGreaterThan(-1);
@@ -116,16 +116,16 @@ describe('requested portal UI regressions (RED characterization)', () => {
   });
 
   it('renders client-contact actions from record ids rather than asking users to type UUIDs', () => {
-    const projects = sectionBlock(shellSource(), 'projects');
-    expect(projects).toMatch(/Client contacts/);
-    expect(projects).toMatch(/each (?:data\.contacts|contactPage) as contact/);
+    const projects = readSource('apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte');
+    expect(projects).toContain('client-directory__contact-list');
+    expect(projects).toMatch(/each relatedContacts as contact/);
     expect(projects).toMatch(/(?:Edit|Update) contact/i);
     expect(projects).toMatch(/Delete contact/i);
     expect(projects).not.toMatch(/Contact UUID/);
     expect(
       projects,
       'contact update/delete actions must carry the selected contact id from the rendered record',
-    ).toMatch(/(?:data-contact-id|name="contactId"[^>]*value=\{[^}]*\.id\})/);
+    ).toMatch(/type="hidden" name="contactId" value=\{value\(contact, \'id\'\)\}/);
   });
 
   it('gives owner/admin the worker selector needed to manage skills and availability', () => {

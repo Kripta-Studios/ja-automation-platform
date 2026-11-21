@@ -35,7 +35,12 @@ describe('Billing invoice planning surface', () => {
       /\{@const planningEditable =\s*canManageBilling &&\s*\['draft', 'approved'\]\.includes\(invoiceStateValue\) &&\s*!historicalIssueMarkers\}/u,
     );
     expect(value).toContain('Issued invoices are never changed; fix mistakes with a credit note');
-    expect(value).not.toMatch(/invoice[^\n]*(?:Edit|edit invoice)/);
+    // Only one form posts planning changes, and its controls are behind the
+    // role/state gate even when an attempted edit is shown for recovery.
+    expect(value.match(/action="\?\/setInvoicePlanningDates"/gu)).toHaveLength(1);
+    expect(value).toMatch(
+      /action="\?\/setInvoicePlanningDates"[\s\S]*?<fieldset disabled=\{!planningEditable\}>/u,
+    );
   });
 
   it('separates planned/expected dates from actual lifecycle and payment evidence', () => {
@@ -110,6 +115,6 @@ describe('Billing invoice planning surface', () => {
       '{#if planningEditable}\n                          <button type="submit"',
     );
     expect(recovery).toContain('for (const [name, value] of Object.entries(values))');
-    expect(recovery).toContain('else control.value = value;');
+    expect(recovery).toMatch(/else\s*(?:\{\s*)?control\.value = value;/u);
   });
 });

@@ -120,13 +120,16 @@ describe('coordinated section and task search', () => {
     expect(ownerTarget.searchParams.get('q')).toBe('Body Shop');
     expect(ownerTarget.searchParams.get('lang')).toBe('es');
 
-    for (const role of ['finance_admin', 'auditor_read_only']) {
+    for (const [role, path, view] of [
+      ['finance_admin', '/j-aautomation/app/', null],
+      ['auditor_read_only', '/j-aautomation/app/finance', 'overview'],
+    ] as const) {
       const target = new URL(
         workspaceRecordSearchHref('/j-aautomation', role, 'Body Shop', 'pt'),
         'https://portal.invalid',
       );
-      expect(target.pathname).toBe('/j-aautomation/app/finance');
-      expect(target.searchParams.get('view')).toBe('overview');
+      expect(target.pathname).toBe(path);
+      expect(target.searchParams.get('view')).toBe(view);
       expect(target.searchParams.get('q')).toBe('Body Shop');
       expect(target.searchParams.get('lang')).toBe('pt');
     }

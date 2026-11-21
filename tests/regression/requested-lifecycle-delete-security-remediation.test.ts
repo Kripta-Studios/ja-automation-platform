@@ -6,6 +6,7 @@ import {
   createB5LifecycleSecurityFixture,
   readSource,
   seedB5User,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -32,10 +33,13 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
   it('ends provisional and rate-linked assignments without deleting history', () => {
     const value = fixture();
 
+    const now = new Date();
+    const today = now.toISOString().slice(0, 10);
+    const futureStart = new Date(now.getTime() + 86_400_000).toISOString().slice(0, 10);
     const provisional = value.repository.assignWorker(value.owner, {
       projectId: value.project.id,
       workerId: 'b5-outsider',
-      startsOn: '2026-08-24',
+      startsOn: futureStart,
     }) as { id: string };
     expect(() => value.repository.deleteAssignment(value.owner, provisional.id)).not.toThrow();
     expect(
@@ -45,7 +49,7 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
     ).toMatchObject({
       id: provisional.id,
       status: 'inactive',
-      ends_on: new Date().toISOString().slice(0, 10),
+      ends_on: today,
     });
 
     const overrideAssignment = value.repository.assignWorker(value.owner, {
@@ -74,13 +78,15 @@ describe('requested lifecycle delete and workforce write boundaries', () => {
         .get(overrideAssignment.id),
     ).toEqual({
       starts_on: '2026-08-25',
-      ends_on: new Date().toISOString().slice(0, 10),
+      ends_on: today,
     });
 
     const historicalAssignment = value.sqlite
       .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=? LIMIT 1')
       .get(value.project.id, value.worker.userId) as { id: string };
-    value.repository.createTimeEntry(value.worker, {
+    const worker = stepUpB5Principal(value.sqlite, value.worker, 'lifecycle-assignment-history');
+    value.sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
+    value.repository.createTimeEntry(worker, {
       projectId: value.project.id,
       workDate: '2026-08-20',
       category: 'commissioning',

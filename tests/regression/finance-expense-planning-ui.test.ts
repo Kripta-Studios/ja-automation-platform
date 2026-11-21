@@ -52,7 +52,9 @@ describe('Finance expense classification and planning UI', () => {
     expect(component).toContain('0% allowed');
     expect(component).toContain('name="reason"');
     expect(component).toContain('name="idempotencyKey"');
-    expect(component).toContain('action="?/classifyExpenseCommercially"');
+    expect(component).toContain('action={expenseClassificationAction(expenseId)}');
+    expect(component).toContain('?/classifyExpenseCommercially&');
+    expect(component).toContain("query.set('expense', expenseId)");
     expect(component).toContain(
       'action={`?/setExpensePlanningDates&view=commercial&project=${encodeURIComponent',
     );
@@ -67,7 +69,9 @@ describe('Finance expense classification and planning UI', () => {
     expect(component).toContain('Expected reimbursement');
     expect(component).toContain('Actual reimbursement');
     expect(component).toContain('Expected client recovery');
-    expect(component).toContain('Actual client recovery state');
+    expect(component).toMatch(
+      /translate\('Billing state'\)[\s\S]*?statusLabel\(expenseBillingState\(expense\)\)/u,
+    );
     expect(component).toContain('Expected worker payment planning');
     expect(component).toContain('Actual settled');
     expect(component).toContain('data-finance-expense-planning');

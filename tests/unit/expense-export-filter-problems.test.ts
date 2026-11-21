@@ -1,15 +1,31 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { CrewLeaderRepository } from '@ja/database';
 
 const state = vi.hoisted(() => ({
   role: 'worker',
   active: true,
   sessionExpiry: '2099-01-01T00:00:00.000Z',
   close: vi.fn(),
+  listAssignedProjects: vi.fn(() => [{ id: 'project-1', status: 'active' }]),
   listExpensesForScope: vi.fn(() => [
     {
       id: 'expense-1',
       spent_on: '2026-09-12',
       project_id: 'project-1',
+      worker_id: 'worker-1',
+      client_name: 'Client',
+      category: 'meal',
+      currency: 'EUR',
+      amount_minor: 1200,
+      approval_state: 'approved',
+      reimbursement_state: 'pending',
+      receipt_required: 0,
+      vendor: 'Cafe',
+    },
+    {
+      id: 'not-in-project-scope',
+      spent_on: '2026-09-12',
+      project_id: 'project-outside',
       worker_id: 'worker-1',
       client_name: 'Client',
       category: 'meal',
@@ -35,7 +51,10 @@ vi.mock('$lib/server/portal-repository', async () => {
           prepare: () => ({ get: () => ({ expires_at: state.sessionExpiry }) }),
           close: state.close,
         },
-        repository: { listExpensesForScope: state.listExpensesForScope },
+        repository: {
+          listAssignedProjects: state.listAssignedProjects,
+          listExpensesForScope: state.listExpensesForScope,
+        },
       };
     },
   };
@@ -83,8 +102,14 @@ describe('expense export download problems', () => {
     state.active = true;
     state.sessionExpiry = '2099-01-01T00:00:00.000Z';
     state.close.mockClear();
+    state.listAssignedProjects.mockClear();
     state.listExpensesForScope.mockClear();
     state.exporter.mockClear();
+    vi.spyOn(CrewLeaderRepository.prototype, 'projects').mockReturnValue([]);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('requires sign-in before opening the repository or inspecting filters', async () => {
@@ -200,7 +225,7 @@ describe('expense export download problems', () => {
     ['from=2026-09-30&to=2026-09-01&format=csv', 'DATE_ORDER_INVALID', 400, 'to'],
     ['from=2026-09-01&to=2026-09-30&format=txt', 'FORMAT_INVALID', 400, 'format'],
     [`${valid}&receipt=bogus`, 'RECEIPT_INVALID', 400, 'receipt'],
-    [`${valid}&currency=GBP`, 'CURRENCY_INVALID', 400, 'currency'],
+    [`${valid}&currency=ZZZ`, 'CURRENCY_INVALID', 400, 'currency'],
     [`${valid}&status=bogus`, 'STATUS_INVALID', 400, 'status'],
     [`${valid}&reimbursement=unknown`, 'REIMBURSEMENT_INVALID', 400, 'reimbursement'],
     [`${valid}&q=${'x'.repeat(501)}`, 'FILTER_TOO_LONG', 400, 'q'],
@@ -251,6 +276,11 @@ describe('expense export download problems', () => {
         expect.objectContaining({ role, userId: 'worker-1' }),
       );
       expect(state.exporter).toHaveBeenCalledOnce();
+      expect(state.exporter).toHaveBeenCalledWith(
+        [expect.objectContaining({ id: 'expense-1', project_id: 'project-1' })],
+        'csv',
+        '2026-09-01 — 2026-09-30',
+      );
     },
   );
 
@@ -276,6 +306,7 @@ describe('expense export download problems', () => {
       });
       expect(body.message).not.toContain('private rendering path');
       expect(log).toHaveBeenCalledOnce();
+      expect(state.exporter).toHaveBeenCalledOnce();
       expect(state.close).toHaveBeenCalledOnce();
     } finally {
       log.mockRestore();

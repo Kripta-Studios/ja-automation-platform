@@ -56,10 +56,11 @@ describe('workforce and finance UI implementation contracts', () => {
     ]) {
       expect(actions).toContain(action);
       expect(registered).toContain(`${action}: financeActions.${action}`);
-      expect(section).toContain(`?/${action}`);
+      expect(section).toContain(`action={configurationActionUrl('${action}')}`);
     }
+    expect(section).toContain('`?/${actionName}&');
     expect(section).toMatch(/name="(?:supersedesId|ruleId)"/);
     expect(section).toContain('Settlements are immutable financial snapshots');
-    expect(section).not.toMatch(/action="\?\/delete(?:Compensation|Client|Internal)/i);
+    expect(section).not.toMatch(/action=(?:"\?\/|\{configurationActionUrl\(\x27)delete(?:Compensation|Client|Internal)/i);
   });
 });

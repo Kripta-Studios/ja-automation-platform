@@ -40,6 +40,7 @@
   import RecordPaymentForm from '$lib/portal/sections/RecordPaymentForm.svelte';
   import { moneyText } from '$lib/portal/money-copy';
   import { paymentMoney } from '$lib/portal/payment-money';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { documentLanguage } from '$lib/portal-i18n';
 
   type Row = Record<string, unknown>;
@@ -88,22 +89,7 @@
   const invoiceSentAt = $derived(
     typeof invoice.sent_at === 'string' && invoice.sent_at ? String(invoice.sent_at) : '',
   );
-  const invoiceStatusLabel = $derived(
-    (
-      {
-        draft: 'Draft',
-        approved: 'Approved',
-        issued: 'Issued',
-        sent: 'Sent',
-        partially_paid: 'Partially paid',
-        paid: 'Paid',
-        overdue: 'Overdue',
-        void: 'Void',
-        credited: 'Credited',
-        credit_note: 'Credit note',
-      } as Record<string, string>
-    )[invoiceState] ?? invoiceState,
-  );
+  const invoiceStatusLabel = $derived(translateControlledValue(locale, 'status', invoiceState));
   function invoiceStatusVariant(
     state: string,
   ): 'neutral' | 'success' | 'warning' | 'danger' | 'info' {
@@ -1037,7 +1023,7 @@
     >
     <StatusBadge
       variant={invoiceStatusVariant(invoiceState)}
-      text={invoiceState === 'paid' ? `✓ ${t(invoiceStatusLabel)}` : t(invoiceStatusLabel)}
+      text={invoiceState === 'paid' ? `✓ ${invoiceStatusLabel}` : invoiceStatusLabel}
       data-invoice-status={invoiceState}
     />
   </nav>

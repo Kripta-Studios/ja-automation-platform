@@ -30,7 +30,7 @@ describe('Client Essential project detail role-safe UI', () => {
     expect(detail).toContain("if (!commercialRole && tab === 'invoices') return 'overview';");
     expect(detail).not.toContain('billing_treatment');
     expect(detail).not.toContain('client_treatment');
-    expect(detail).toContain('No commercial treatment is inferred.');
+    expect(detail).toContain('Reported expense amounts, receipt evidence and operational review state.');
     expect(loader).toContain('includeFinance: false');
     expect(loader).toContain('financial:\n          financeVisible && !periodProblem');
     expect(loader).toContain('billingRules = financeVisible');

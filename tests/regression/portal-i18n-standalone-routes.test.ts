@@ -86,12 +86,17 @@ describe('standalone portal route locale boundary', () => {
     expect(project).toContain("locale === 'pt' ? 'pt-BR' : locale");
     expect(project).not.toMatch(/Number\([^\n]*(?:minor|amount)/i);
 
-    for (const path of [standaloneRoutes[5], standaloneRoutes[7], standaloneRoutes[8]]) {
+    for (const path of [standaloneRoutes[5], standaloneRoutes[7]]) {
       const source = read(path);
       expect(source).toContain("import { money as formatMoney } from '$lib/portal/portal-format'");
       expect(source).toContain("locale === 'pt' ? 'pt-BR' : locale");
       expect(source).not.toMatch(/\.format\(Number\([^)]*\)\s*\/\s*100\)/);
     }
+
+    const invoice = read(standaloneRoutes[8]);
+    expect(invoice).toContain("import { paymentMoney } from '$lib/portal/payment-money'");
+    expect(invoice).toContain('paymentMoney(minor, currency, documentLanguage(locale))');
+    expect(invoice).not.toMatch(/\.format\(Number\([^)]*\)\s*\/\s*100\)/);
   });
 
   it('consumes keyed action feedback and never renders the legacy message field directly', () => {

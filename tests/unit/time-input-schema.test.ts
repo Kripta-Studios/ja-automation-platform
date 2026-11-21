@@ -50,6 +50,16 @@ describe('time input schema', () => {
     });
   });
 
+  it('derives minutes for a shift that ends the next day', () => {
+    const parsed = timeInputSchema.parse({
+      ...baseInput,
+      startTime: '22:00',
+      endTime: '06:00',
+      breakMinutes: '30',
+    });
+    expect(parsed).toMatchObject({ startTime: '22:00', endTime: '06:00', breakMinutes: 30, minutes: 450 });
+  });
+
   it('preserves the duration-only legacy contract without inventing clock times', () => {
     expect(timeInputSchema.parse({ ...baseInput, minutes: '75' })).toMatchObject({
       ...baseInput,
@@ -64,7 +74,6 @@ describe('time input schema', () => {
     [{ startTime: '08:00', minutes: 60 }, 'endTime'],
     [{ startTime: '8:00', endTime: '09:00' }, 'startTime'],
     [{ startTime: '09:00', endTime: '09:00' }, 'endTime'],
-    [{ startTime: '10:00', endTime: '09:00' }, 'endTime'],
     [{ startTime: '08:00', endTime: '09:00', breakMinutes: 60 }, 'breakMinutes'],
     [{ startTime: '', endTime: '', minutes: '' }, 'minutes'],
   ] as const)('rejects an invalid or incomplete interval %#', (values, errorField) => {

@@ -51,7 +51,7 @@ vi.mock('@ja/database', async (importOriginal) => {
       }
     },
     CrewSharedExpenseAllocationRepository: class {
-      create() {
+      createFromMajor() {
         verdict();
         return { id: 'allocation-1', replayed: false };
       }
@@ -326,8 +326,8 @@ describe('crew route problem contract', () => {
     const form = new FormData();
     form.set('requestId', 'request-1234567890');
     form.set('expenseId', 'expense-1');
-    form.set('timeEntryIds', 'time-1');
-    form.set('timeEntryIds', 'time-2');
+    form.append('timeEntryIds', 'time-1');
+    form.append('timeEntryIds', 'time-2');
     form.set('amount_time-2', '4.00');
     const response = await crewActions.allocateReceipt!({
       locals: { user: { id: 'chief-1' } },
@@ -336,7 +336,8 @@ describe('crew route problem contract', () => {
     expect(response.status).toBe(400);
     expect(response.data).toMatchObject({
       code: 'CREW_RECEIPT_TOTAL_MISMATCH',
-      fieldErrors: { timeEntryIds: [expect.any(String)] },
+      fieldErrors: { 'amount_time-2': ['problem.crew.receiptTotalMismatch'] },
+      timeEntryIds: ['time-1', 'time-2'],
       remedies: [{ id: 'review_receipts' }],
     });
   });

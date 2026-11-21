@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { moneyText, type MoneyCopyKey } from '../../apps/portal/src/lib/portal/money-copy';
 import { AccessDeniedError, ValidationError, V3AccessDeniedError } from '@ja/database';
 import {
   actionFail,
@@ -10,7 +11,7 @@ import {
 
 const actionRoot = resolve(process.cwd(), 'apps/portal/src/lib/server/actions');
 const actionFiles = readdirSync(actionRoot)
-  .filter((file) => file.endsWith('-actions.ts'))
+  .filter((file) => file.endsWith('-actions.ts') && file !== 'rates-actions.ts')
   .sort();
 
 describe('localized portal action contracts', () => {
@@ -72,16 +73,31 @@ describe('localized portal action contracts', () => {
     }
   });
 
-  it('gives every explicit success and failure response a stable key and params object', () => {
+  it('uses a stable message key in typed success responses', () => {
     for (const file of actionFiles) {
       const source = readFileSync(resolve(actionRoot, file), 'utf8');
-      const explicitResponses = source.match(/\baction(?:Success|Fail)\(/g) ?? [];
-      const keyedResponses = source.match(/\baction(?:Success|Fail)\(/g) ?? [];
-      expect(
-        keyedResponses.length,
-        `${file} should expose messageKey for each explicit response (${explicitResponses.length})`,
-      ).toBeGreaterThanOrEqual(explicitResponses.length);
-      expect(source, `${file} should use the typed action helpers`).toContain('actionSuccess');
+      expect(source, `${file} should use the typed action helpers`).toMatch(
+        /\bactionSuccess\(\s*'action\.[^']+'/u,
+      );
+    }
+  });
+
+  it('keeps rate responses keyed by outcome and localizes the known failure codes', () => {
+    const source = readFileSync(resolve(actionRoot, 'rates-actions.ts'), 'utf8');
+    expect(source).toContain("rateSave: { kind, code: 'saved', changed: result.changed, values }");
+    expect(source).toContain('rateSave: { kind, code, values }');
+    expect(source).not.toMatch(/rateSave:.*(?:error\.message|message:)/u);
+
+    const panel = readFileSync(
+      resolve(actionRoot, '../../portal/sections/RatesPanel.svelte'),
+      'utf8',
+    );
+    expect(panel).toContain("save ? `err_${save.code}` : 'err_failed'");
+    for (const code of ['failed', 'forbidden', 'same_day'] as const) {
+      const key: MoneyCopyKey = `err_${code}`;
+      const english = moneyText('en', key);
+      expect(moneyText('es', key)).not.toBe(english);
+      expect(moneyText('pt', key)).not.toBe(english);
     }
   });
 

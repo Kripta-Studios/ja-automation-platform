@@ -21,6 +21,7 @@ import {
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  signInB5Principal,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -436,7 +437,8 @@ describe('B5 private download boundary', () => {
       artifactClassification: 'finance',
       sensitivity: 'sensitive',
     });
-    for (const principal of [value.manager, value.worker]) {
+    for (const account of [value.manager, value.worker]) {
+      const principal = signInB5Principal(value.sqlite, account, 'finance-classified');
       expect(value.repository.listDocuments(principal)).not.toEqual(
         expect.arrayContaining([expect.objectContaining({ id: document.id })]),
       );
@@ -444,14 +446,9 @@ describe('B5 private download boundary', () => {
         expect.arrayContaining([expect.objectContaining({ id: document.id })]),
       );
       expect(() => value.v3.authorizeDocument(principal, document.id)).toThrow();
-      openPortalRepository.mockReturnValue(
-        downloadContext(
-          value,
-          stepUpB5Principal(value.sqlite, principal, `finance-classified-${principal.userId}`),
-        ),
-      );
+      openPortalRepository.mockReturnValue(downloadContext(value, principal));
       const request = {
-        locals: { user: { id: principal.userId }, session: { id: 'test-session' } },
+        locals: { user: { id: principal.userId }, session: { id: principal.sessionId } },
         params: { id: document.id },
         url: new URL(`http://localhost/app/api/documents/${document.id}`),
       };

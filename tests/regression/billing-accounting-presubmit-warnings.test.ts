@@ -27,7 +27,7 @@ describe('billing and accounting pre-submit warnings', () => {
     expect(source).toContain("code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE'");
     expect(source).toContain("code: 'WARNING_BILLING_ISSUE_LOCKS_DRAFT'");
     expect(source).toMatch(
-      /<h3>\{translate\('Save \/ issue'\)\}<\/h3>[\s\S]*?problem=\{draftPeriodWarning\}[\s\S]*?<button\s+type="submit"/,
+      /data-invoice-detail="12"[\s\S]*?data-invoice-review-summary[\s\S]*?problem=\{draftPeriodWarning\}[\s\S]*?<button\s+type="submit"/,
     );
     expect(source).toMatch(
       /action="\?\/createDraft"\s+class="billing-section__period-form"[\s\S]*?problem=\{draftPeriodWarning\}[\s\S]*?<button type="submit">/,

@@ -109,6 +109,7 @@
         'After creating an expense draft, add its receipt on the expense detail page before submission. No file is uploaded here.',
       supplier:
         'Use the existing supplier time and report workflow for supplier coordinated entries.',
+      supplierLink: 'Supplier workflow',
       needOne: 'Choose at least one draft.',
       noDefault: 'Enter actual hours. No planned or minimum hours are used.',
       recovered: 'Recovered a draft saved on this device.',
@@ -163,6 +164,7 @@
         'Tras crear el borrador de gasto, añade el justificante en la página del gasto antes de enviarlo. Aquí no se sube ningún archivo.',
       supplier:
         'Usa el flujo existente de tiempo e informes de proveedores para registros coordinados.',
+      supplierLink: 'Flujo de proveedores',
       needOne: 'Elige al menos un borrador.',
       noDefault: 'Introduce las horas reales. No se usan horas previstas ni mínimas.',
       recovered: 'Se recuperó un borrador de este dispositivo.',
@@ -217,6 +219,7 @@
         'Depois de criar o rascunho da despesa, adicione o recibo na página da despesa antes de submeter. Nenhum ficheiro é enviado aqui.',
       supplier:
         'Use o fluxo existente de tempo e relatórios de fornecedores para entradas coordenadas.',
+      supplierLink: 'Fluxo de fornecedores',
       needOne: 'Escolha pelo menos um rascunho.',
       noDefault: 'Introduza as horas reais. Não são usadas horas planeadas ou mínimas.',
       recovered: 'Rascunho recuperado deste dispositivo.',
@@ -410,7 +413,7 @@
   {#if data.supplierCoordinator}
     <section class="card">
       <p>{t.supplier}</p>
-      <a href={`${base}/app/supplier`}>Supplier workflow</a>
+      <a href={`${base}/app/supplier`}>{t.supplierLink}</a>
     </section>
   {:else}
     {#if form?.message}<p class="error" role="alert">{form.message}</p>{/if}

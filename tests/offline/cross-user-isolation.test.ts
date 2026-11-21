@@ -13,6 +13,10 @@ const fixtures: string[] = [];
 const children: ChildProcess[] = [];
 const browsers: Browser[] = [];
 const contexts: BrowserContext[] = [];
+const browserOptions = {
+  headless: true,
+  executablePath: process.env.JA_PLAYWRIGHT_EXECUTABLE_PATH,
+};
 
 afterEach(async () => {
   for (const context of contexts.splice(0)) await context.close();
@@ -81,7 +85,7 @@ async function startPortal(): Promise<string> {
   const documentRoot = join(directory, 'documents');
   execFileSync(
     process.execPath,
-    ['--experimental-strip-types', 'packages/database/src/demo-seed.ts'],
+    ['--experimental-transform-types', 'packages/database/src/demo-seed.ts'],
     {
       cwd: root,
       env: {
@@ -98,7 +102,7 @@ async function startPortal(): Promise<string> {
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
       },
-      stdio: 'ignore',
+      stdio: ['ignore', 'ignore', 'pipe'],
     },
   );
   const previousTenantId = process.env.JA_TENANT_ID;
@@ -139,6 +143,7 @@ async function startPortal(): Promise<string> {
         JA_DEPLOYMENT_ID: 'e2e-client-essential-deployment',
         JA_PUBLIC_BASE_PATH: '/j-aautomation',
         JA_PORTAL_BASE_PATH: '/j-aautomation/app',
+        JA_OFFLINE_ENABLED: 'true',
         HOST: '127.0.0.1',
         PORT: String(port),
       },
@@ -160,10 +165,10 @@ async function signInAt(
   role: keyof typeof e2eCredentials,
 ): Promise<void> {
   const credentials = e2eCredentials[role];
-  await page.goto(`${baseUrl}/login`);
+  await page.goto(`${baseUrl}/login?lang=en`);
   await page.waitForLoadState('networkidle');
-  await page.getByLabel('Work email').fill(credentials.email);
-  await page.getByLabel('Password').fill(credentials.password);
+  await page.locator('input[name="email"]').fill(credentials.email);
+  await page.locator('input[name="password"]').fill(credentials.password);
   await page.getByRole('button', { name: 'Continue to workspace' }).click();
   await page.waitForURL(
     (url) =>
@@ -189,41 +194,39 @@ async function waitForServiceWorkerCache(page: Page): Promise<void> {
 }
 
 async function assignmentOptionTexts(page: Page): Promise<string[]> {
-  return page
-    .locator('form[action="?/createTime"] select[name="projectId"] option')
+  const dayForm = page.getByTestId('time-day-form');
+  await expect(dayForm).toBeVisible();
+  return dayForm
+    .locator(
+      '[data-testid="time-day-project-choices"] label, [data-testid="time-day-project"] option',
+    )
     .allTextContents();
 }
 
-async function timeFilterOptionTexts(page: Page): Promise<string[]> {
-  return page.locator('form.time-filters select[name="project"] option').allTextContents();
-}
-
-async function openTimeEntryForm(page: Page): Promise<void> {
-  await page.locator('[data-time-primary-cta]').click();
-  await expect(page.locator('form[action="?/createTime"]')).toHaveCount(1);
-}
-
-async function openDailyReportForm(page: Page): Promise<void> {
-  await page.locator('[data-report-primary-cta]').click();
-  await expect(page.locator('form[action="?/createDailyReport"]')).toHaveCount(1);
+async function openDailyReportForm(page: Page) {
+  await page.locator('[data-report-quick-daily]').click();
+  const form = page.locator('[data-report-quick-form]');
+  await expect(form).toBeVisible();
+  return form;
 }
 
 describe('offline authenticated-user partitioning', () => {
   it('revokes user A offline state before an offline navigation after logout', async () => {
     const baseUrl = await startPortal();
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch(browserOptions);
     browsers.push(browser);
     const context = await browser.newContext();
     contexts.push(context);
     const page = await context.newPage();
 
-    await signInAt(page, baseUrl, 'manager');
+    await signInAt(page, baseUrl, 'worker');
     await page.goto(`${baseUrl}/time`);
     await page.waitForLoadState('networkidle');
-    await expect(page.locator('.user-copy b')).toHaveText('Daniel Brooks');
+    await expect(page.locator('.user-copy b')).toHaveText('Alex Rivera');
     await waitForServiceWorkerCache(page);
 
-    await page.getByRole('button', { name: 'Sign out' }).click();
+    await page.getByRole('button', { name: 'Account options' }).click();
+    await page.getByRole('menuitem', { name: 'Log out' }).click();
     await page.waitForURL((url) => url.toString() === `${baseUrl}/login`);
     expect((await context.cookies()).some((cookie) => cookie.name === 'ja_offline_identity')).toBe(
       false,
@@ -240,7 +243,7 @@ describe('offline authenticated-user partitioning', () => {
 
   it('does not expose one user’s queued draft after a session changes on the same device', async () => {
     const baseUrl = await startPortal();
-    const browser = await chromium.launch({ headless: true });
+    const browser = await chromium.launch(browserOptions);
     browsers.push(browser);
     const context = await browser.newContext();
     contexts.push(context);
@@ -252,7 +255,6 @@ describe('offline authenticated-user partitioning', () => {
     const workerBOnlyAssignment = 'High-Speed Palletizer Commissioning · Demo';
     await workerBSessionPage.goto(`${baseUrl}/time`);
     await workerBSessionPage.waitForLoadState('networkidle');
-    await openTimeEntryForm(workerBSessionPage);
     const workerBTimeAssignments = await assignmentOptionTexts(workerBSessionPage);
     expect(
       workerBTimeAssignments.some((label) => label.includes(workerBOnlyAssignment)),
@@ -262,9 +264,7 @@ describe('offline authenticated-user partitioning', () => {
 
     await workerBSessionPage.goto(`${baseUrl}/reports`);
     await workerBSessionPage.waitForLoadState('networkidle');
-    await openDailyReportForm(workerBSessionPage);
-    const workerBReportForm = workerBSessionPage.locator('form[action="?/createDailyReport"]');
-    await expect(workerBReportForm).toHaveCount(1);
+    const workerBReportForm = await openDailyReportForm(workerBSessionPage);
     await expect(
       workerBReportForm.locator(`select[name="projectId"] option`).filter({
         hasText: workerBOnlyAssignment,
@@ -282,12 +282,11 @@ describe('offline authenticated-user partitioning', () => {
     await signInAt(workerPage, baseUrl, 'worker');
     await workerPage.goto(`${baseUrl}/time`);
     await workerPage.waitForLoadState('networkidle');
-    await expect(workerPage.locator('.connection')).toHaveText('Online');
+    await expect(workerPage.locator('.connection')).toHaveCount(0);
     await expect(workerPage.locator('.queue')).toHaveCount(0);
     await expect(workerPage.locator('.sync-message')).toHaveCount(0);
 
     const workerOnlyAssignment = 'Remote Controls Support Retainer · Demo';
-    await openTimeEntryForm(workerPage);
     const workerAssignments = await assignmentOptionTexts(workerPage);
     expect(
       workerAssignments.some((label) => label.includes(workerOnlyAssignment)),
@@ -299,7 +298,9 @@ describe('offline authenticated-user partitioning', () => {
     await workerPage.waitForLoadState('networkidle');
     const workerPrivateReport =
       'Startup support, sensor timing investigation and customer handover notes.';
-    await expect(workerPage.getByText(workerPrivateReport, { exact: true })).toBeVisible();
+    await expect(
+      workerPage.locator('.quick-row-link').filter({ hasText: workerPrivateReport }),
+    ).toBeVisible();
     await waitForServiceWorkerCache(workerPage);
     await workerPage.close();
 
@@ -318,7 +319,7 @@ describe('offline authenticated-user partitioning', () => {
       )
       .toBe(200);
     await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
-    const workerBAssignments = await timeFilterOptionTexts(workerBOfflinePage);
+    const workerBAssignments = await assignmentOptionTexts(workerBOfflinePage);
     expect
       .soft(
         workerBAssignments.some((label) => label.includes(workerBOnlyAssignment)),
@@ -342,22 +343,24 @@ describe('offline authenticated-user partitioning', () => {
     await expect.soft(workerBOfflinePage.locator('.user-copy b')).toHaveText('Rafael Santos');
     expect
       .soft(
-        await workerBOfflinePage.getByText(workerPrivateReport, { exact: true }).count(),
+        await workerBOfflinePage.locator('main').textContent(),
         "Worker B must not see Worker A's private cached report response",
       )
-      .toBe(0);
+      .not.toContain(workerPrivateReport);
     await workerBOfflinePage.close();
 
     await context.clearCookies();
     await context.setOffline(false);
     const workerQueuePage = await context.newPage();
     await signInAt(workerQueuePage, baseUrl, 'worker');
-    await workerQueuePage.goto(`${baseUrl}/time`);
+    await workerQueuePage.goto(`${baseUrl}/reports`);
     await workerQueuePage.waitForLoadState('networkidle');
-    await expect(workerQueuePage.locator('.connection')).toHaveText('Online');
+    await expect(workerQueuePage.locator('.connection')).toHaveCount(0);
     await expect(workerQueuePage.locator('.queue')).toHaveCount(0);
     await expect(workerQueuePage.locator('.sync-message')).toHaveCount(0);
-    await openTimeEntryForm(workerQueuePage);
+    const form = await openDailyReportForm(workerQueuePage);
+    const title = 'Worker-only queued draft';
+    await form.locator('textarea[name="tasksCompleted"]').fill(title);
     await context.setOffline(true);
     await workerQueuePage.evaluate(
       () =>
@@ -381,14 +384,7 @@ describe('offline authenticated-user partitioning', () => {
     );
     await expect(workerQueuePage.getByText('Offline', { exact: true })).toBeVisible();
 
-    const form = workerQueuePage.locator('form[action="?/createTime"]');
-    await form.locator('select[name="projectId"]').selectOption({ index: 1 });
-    await form.locator('input[name="workDate"]').fill('2026-08-20');
-    await form.locator('select[name="category"]').selectOption('regular');
-    await form.getByLabel('Actual hours').fill('0.5');
-    await expect(form.locator('input[name="minutes"]')).toHaveValue('30');
-    await form.locator('textarea[name="summary"]').fill('Worker-only queued draft');
-    await form.getByRole('button', { name: 'Save draft', exact: true }).click();
+    await form.locator('[data-report-quick-draft]').click();
     await expect(workerQueuePage.locator('.connection')).toHaveText('Offline');
     await expect(workerQueuePage.locator('.queue')).toHaveText('1 Queued');
     await expect(workerQueuePage.locator('.sync-message')).toHaveText(
@@ -405,13 +401,13 @@ describe('offline authenticated-user partitioning', () => {
         syncAttributions.push(request.postData() ?? '');
     });
     await signInAt(financePage, baseUrl, 'finance');
-    await expect(financePage.locator('.connection')).toHaveText('Online');
+    await expect(financePage.locator('.connection')).toHaveCount(0);
     await expect.soft(financePage.locator('.queue')).toHaveCount(0);
     // The assertion uses only the visible Finance queue and the real sync request payload. It
     // does not assume a database name, object-store name, or any other IndexedDB implementation.
     expect
       .soft(
-        syncAttributions.some((body) => body.includes('Worker-only queued draft')),
+        syncAttributions.some((body) => body.includes(title)),
         'Finance must not submit the Worker mutation for synchronization',
       )
       .toBe(false);

@@ -123,7 +123,7 @@ describe('collection ledger export problems', () => {
     ['?q=one&q=two', 'FILTER_DUPLICATE', 'q'],
     [`?q=${'x'.repeat(201)}`, 'FILTER_TOO_LONG', 'q'],
     ['?report=unknown', 'REPORT_INVALID', 'report'],
-    ['?currency=GBP', 'CURRENCY_INVALID', 'currency'],
+    ['?currency=ZZZ', 'CURRENCY_INVALID', 'currency'],
     ['?aging=ancient', 'AGING_INVALID', 'aging'],
   ])('returns typed %s before ledger query or audit', async (query, suffix, field) => {
     const response = await request(query);
@@ -151,7 +151,10 @@ describe('collection ledger export problems', () => {
   });
 
   it.each(['csv', 'xlsx'])('keeps the authorized %s download and filename', async (format) => {
-    const response = await request('?periodStart=2026-01-01&periodEnd=2026-01-31', format);
+    const response = await request(
+      '?periodStart=2026-01-01&periodEnd=2026-01-31&currency=GBP',
+      format,
+    );
     expect(response.status).toBe(200);
     expect(response.headers.get('content-disposition')).toContain(
       `ja-invoice-collection-ledger-2026-01-01-2026-01-31.${format}`,

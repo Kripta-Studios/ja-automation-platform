@@ -22,7 +22,11 @@ describe('Finance project commercial policy UI', () => {
   it('posts the established effective-dated policy contract', () => {
     const policy = policyRegion();
 
-    expect(policy).toContain('?/createProjectCommercialPolicy&view=commercial&project=');
+    expect(policy).toContain("action={configurationActionUrl('createProjectCommercialPolicy')}");
+    const builder = source().split('function configurationActionUrl')[1]?.split('function reimbursementActionUrl')[0];
+    expect(builder).toContain("query.set('view', 'commercial')");
+    expect(builder).toContain("query.set('project', String(data.selectedProjectId ?? ''))");
+    expect(builder).toContain('?/${actionName}&${query.toString()}');
     expect(policy).toContain('name="projectId"');
     expect(policy).toContain('name="effectiveFrom"');
     expect(policy).toContain('name="overtimeEnabled"');

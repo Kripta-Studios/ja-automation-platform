@@ -136,7 +136,13 @@ describe('supplier action specific problems', () => {
       },
     });
     expect(
-      await submit('correctTime', { id: 'missing', requestId: '', reason: 'Fix time' }),
+      await submit('correctTime', {
+        id: 'missing',
+        requestId: '',
+        reason: 'Fix time',
+        durationMode: 'duration',
+        durationHours: '1',
+      }),
     ).toMatchObject({
       status: 400,
       data: {
@@ -145,7 +151,13 @@ describe('supplier action specific problems', () => {
       },
     });
     expect(
-      await submit('correctTime', { id: 'missing', requestId: 'correction-request-1', reason: '' }),
+      await submit('correctTime', {
+        id: 'missing',
+        requestId: 'correction-request-1',
+        reason: '',
+        durationMode: 'duration',
+        durationHours: '1',
+      }),
     ).toMatchObject({
       status: 400,
       data: {
@@ -155,7 +167,7 @@ describe('supplier action specific problems', () => {
     });
   });
 
-  it('identifies time category, summary, and batch request fields', async () => {
+  it('identifies missing category and batch request fields while permitting an empty summary', async () => {
     const { fixture, supplier, usePrincipal } = setup();
     const { coordinator, technician } = coordinatorSetup(fixture, supplier);
     usePrincipal(coordinator);
@@ -174,13 +186,11 @@ describe('supplier action specific problems', () => {
         fieldErrors: { category: ['problem.supplier.categoryRequired'] },
       },
     });
-    expect(await submit('createTime', { ...base, summary: '' })).toMatchObject({
-      status: 400,
-      data: {
-        code: 'SUPPLIER_ACTIVITY_SUMMARY_REQUIRED',
-        fieldErrors: { summary: ['problem.supplier.activitySummaryRequired'] },
-      },
-    });
+    expect(await submit('createTime', { ...base, summary: '' })).toMatchObject({ success: true });
+    expect(
+      fixture.sqlite.prepare('SELECT activity_summary FROM time_entry WHERE worker_id=? AND work_date=?')
+        .all(technician.id, base.workDate),
+    ).toEqual([{ activity_summary: '' }]);
     expect(
       await submit('createTimeBatch', {
         ...base,

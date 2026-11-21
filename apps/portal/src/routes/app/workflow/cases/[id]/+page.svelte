@@ -375,7 +375,7 @@
             value={data.requestKeys.reconcile}
           /><input type="hidden" name="lang" value={locale} />
           <ActionBar
-            ><button type="submit">{t('Refresh the current source snapshot')}</button></ActionBar
+            ><button type="submit">{t('Reconcile current records')}</button></ActionBar
           >
         </form>
       </FormCard>

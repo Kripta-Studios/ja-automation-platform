@@ -84,7 +84,7 @@ jobs:
         if: matrix.check.type == 'unit'
         run: |
           pnpm --filter @ja/reporting exec playwright install --with-deps --only-shell chromium
-          sudo apt-get install -y --no-install-recommends poppler-utils
+          sudo apt-get install -y --no-install-recommends poppler-utils tesseract-ocr tesseract-ocr-eng tesseract-ocr-spa tesseract-ocr-por
       - name: Run unit tests
         if: matrix.check.type == 'unit'
         run: pnpm run test:unit --maxWorkers=2 --shard=${{ matrix.check.shard }}

@@ -2329,6 +2329,10 @@ export const reportActions = withOperationalActionNames({
           .default('hours_activity_all_technical'),
         technicalReportIds: z.array(uuidSchema).default([]),
       })
+      .refine(({ periodStart, periodEnd }) => periodStart <= periodEnd, {
+        path: ['periodEnd'],
+        message: 'End date must be on or after start date',
+      })
       .safeParse({
         ...Object.fromEntries(formData),
         technicalReportIds: formData.getAll('technicalReportIds').map(String),

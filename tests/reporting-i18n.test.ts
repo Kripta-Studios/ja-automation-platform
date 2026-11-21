@@ -430,7 +430,7 @@ describe('localized report PDF renderers', () => {
         expect(containsPdfCopy(text, '08:15–16:15')).toBe(true);
         expect(containsPdfCopy(text, `${locale === 'en' ? 'Break' : 'Intervalo'}: 1 h`)).toBe(true);
         expect(text).toContain(locale === 'en' ? '7.0 h' : '7,0 h');
-        expect(text).toContain('Commissioned line sensors');
+        expect(text.replace(/\s+/gu, '')).toContain('Commissionedlinesensors');
       }
       const worker = workerStatementSnapshot(locale);
       const workerPdf = workerStatementPdf({
@@ -454,7 +454,7 @@ describe('localized report PDF renderers', () => {
       const legacyWorker = expectPdf(workerStatementPdf(worker));
       expect(legacyPeriod).not.toMatch(/08:15|16:15|60 min/u);
       expect(legacyWorker).not.toMatch(/08:15|16:15|60 min/u);
-      expect(legacyPeriod).toContain('Commissioned line sensors');
+      expect(legacyPeriod.replace(/\s+/gu, '')).toContain('Commissionedlinesensors');
     },
     60000,
   );

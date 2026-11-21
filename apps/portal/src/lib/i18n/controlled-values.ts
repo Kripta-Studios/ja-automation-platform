@@ -76,6 +76,7 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     partially_paid: 'Partially paid',
     void: 'Void',
     credited: 'Credited',
+    credit_note: 'Credit note',
     reimbursed: 'Reimbursed',
     not_applicable: 'Not applicable',
     quarantined: 'Quarantined',

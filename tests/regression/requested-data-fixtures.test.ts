@@ -35,7 +35,7 @@ function seededDemo(): SeedRun {
   const documentRoot = join(root, `documents-${fixtureSentinel}`);
   const output = execFileSync(
     process.execPath,
-    ['--experimental-strip-types', resolve(process.cwd(), 'packages/database/src/demo-seed.ts')],
+    ['--experimental-transform-types', resolve(process.cwd(), 'packages/database/src/demo-seed.ts')],
     {
       cwd: process.cwd(),
       env: {

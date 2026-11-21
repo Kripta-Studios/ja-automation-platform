@@ -4,6 +4,7 @@ import { timeActionFailure } from '../../apps/portal/src/lib/server/actions/time
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -13,7 +14,13 @@ afterEach(() => {
 });
 
 function fixture() {
-  const value = createB5LifecycleSecurityFixture();
+  const base = createB5LifecycleSecurityFixture();
+  const worker = stepUpB5Principal(base.sqlite, base.worker, 'time-fallthrough-subject');
+  const outsider = stepUpB5Principal(base.sqlite, base.outsider, 'time-fallthrough-outsider');
+  base.sqlite
+    .prepare('UPDATE session SET step_up_at=NULL WHERE id IN (?,?)')
+    .run(worker.sessionId, outsider.sessionId);
+  const value = { ...base, worker, outsider };
   fixtures.push(value);
   return value;
 }
@@ -133,12 +140,14 @@ describe('time access changes after opening a form', () => {
       error = caught;
     }
     expect(error).toBeInstanceOf(AccessDeniedError);
-    expect(
-      timeActionFailure(error, { ...draft(value.project.id), minutes: '120' }).data,
-    ).toMatchObject({
-      code: 'TIME_PROJECT_NOT_OPERATIONAL',
-      fieldErrors: { projectId: ['problem.time.projectNotOperational'] },
-      values: { ...draft(value.project.id), minutes: '120' },
+    expect(timeActionFailure(error, { ...draft(value.project.id), minutes: '120' })).toMatchObject({
+      status: 403,
+      data: {
+        code: 'TIME_ASSIGNMENT_REQUIRED',
+        fieldErrors: { workDate: ['problem.time.assignmentRequired'] },
+        remedies: [{ id: 'contact_project_owner' }],
+        values: { ...draft(value.project.id), minutes: '120' },
+      },
     });
     expect(value.sqlite.prepare('SELECT COUNT(*) count FROM time_entry').get()).toEqual({
       count: 0,

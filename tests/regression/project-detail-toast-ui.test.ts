@@ -11,7 +11,7 @@ describe('standalone project detail action feedback', () => {
       'import { ResponsiveSheet, ToastRegion, formValidation, type ToastItem }',
     );
     expect(detail).toContain(
-      'const actionFeedback = $derived(problem ? null : standaloneActionMessage(locale, form));',
+      'const actionFeedback = $derived(problem ? null : standaloneActionMessage(locale, visibleForm));',
     );
     expect(detail).toContain("actionResult?.success === true ? 'success' : 'error'");
     expect(detail).toMatch(/variant:\s*actionResult\?\.success === true \? 'success' : 'danger'/);

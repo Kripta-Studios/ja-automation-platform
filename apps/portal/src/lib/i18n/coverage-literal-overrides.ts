@@ -1,5 +1,21 @@
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  'Accounting Pack status and actions': ['Estado y acciones del paquete contable', 'Status e ações do pacote contábil'],
+  'Billing stream actions': ['Acciones del flujo de facturación', 'Ações do fluxo de faturamento'],
+  'Check the billing stream fields before saving.': ['Revisa los campos del flujo de facturación antes de guardar.', 'Revise os campos do fluxo de faturamento antes de salvar.'],
+  'Contact purpose': ['Motivo del contacto', 'Finalidade do contato'],
+  'Could not archive billing stream.': ['No se pudo archivar el flujo de facturación.', 'Não foi possível arquivar o fluxo de faturamento.'],
+  'Could not close this period.': ['No se pudo cerrar este periodo.', 'Não foi possível fechar este período.'],
+  'Created': ['Fecha de creación', 'Data de criação'],
+  'Delivery': ['Entrega', 'Entrega'],
+  'Eligibility blockers stay on the affected stream or invoice. Review approved sources and the effective date interval before creating a draft.': ['Los impedimentos de facturación aparecen en el flujo o la factura afectados. Revisa los registros aprobados y el intervalo de vigencia antes de crear un borrador.', 'Os impedimentos de faturamento aparecem no fluxo ou na fatura afetada. Revise os registros aprovados e o intervalo de vigência antes de criar um rascunho.'],
+  'Invoice number': ['Número de factura', 'Número da fatura'],
+  'Issuer and tax': ['Emisor e impuestos', 'Emissor e impostos'],
+  'Open client contacts': ['Abrir contactos del cliente', 'Abrir contatos do cliente'],
+  'Open planning': ['Abrir planificación', 'Abrir planejamento'],
+  'Open section': ['Abrir sección', 'Abrir seção'],
+  'Project and service': ['Proyecto y servicio', 'Projeto e serviço'],
+  'Report date': ['Fecha del informe', 'Data do relatório'],
   // Read-only billing settings for auditors (Z1, 2026-11-19).
   Details: ['Detalles', 'Detalhes'],
   record: ['registro', 'registro'],

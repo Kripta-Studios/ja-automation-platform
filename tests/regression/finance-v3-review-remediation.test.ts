@@ -152,7 +152,8 @@ describe('V3 finance review remediation', () => {
       startsOn: '2026-08-01',
     });
     const manager = repository.principalFor('manager');
-    const worker = repository.principalFor('worker');
+    const worker = withRecentStepUp(sqlite, repository.principalFor('worker'), 'settlement-worker');
+    sqlite.prepare('UPDATE session SET step_up_at=NULL WHERE id=?').run(worker.sessionId);
     const rule = v3.createCompensationRule(finance, {
       workerId: 'worker',
       projectId: project.id,

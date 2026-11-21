@@ -328,6 +328,7 @@ describe('calendar datetime action boundary', () => {
         body: new URLSearchParams({
           projectId: uuid,
           workerId: uuid,
+          requestKey: uuid,
           startsAt: 'invalid',
           endsAt: windowInput.endsAt,
           plannedMinutes: '480',
@@ -341,9 +342,9 @@ describe('calendar datetime action boundary', () => {
   it.each(['2026-09-21T08:00', '2026-09-21T08:00:00.000Z'])(
     'publishes a planning entry from %s using canonical timestamps',
     async (startsAt) => {
-      const createPlanningAssignment = vi.fn();
+      const createPlanningAssignments = vi.fn(() => ({ replayed: false }));
       const context = {
-        repository: { createPlanningAssignment },
+        repository: { createPlanningAssignments },
         principal: { userId: uuid },
         sqlite: { close: vi.fn() },
       };
@@ -357,6 +358,7 @@ describe('calendar datetime action boundary', () => {
           body: new URLSearchParams({
             projectId: uuid,
             workerId: uuid,
+            requestKey: uuid,
             startsAt,
             endsAt,
             plannedMinutes: '480',
@@ -364,9 +366,11 @@ describe('calendar datetime action boundary', () => {
         }),
       } as never);
       expect(result).toMatchObject({ success: true });
-      expect(createPlanningAssignment).toHaveBeenCalledWith(
+      expect(createPlanningAssignments).toHaveBeenCalledWith(
         context.principal,
         expect.objectContaining({
+          workerIds: [uuid],
+          requestKey: uuid,
           startsAt: windowInput.startsAt,
           endsAt: windowInput.endsAt,
           plannedMinutes: 480,

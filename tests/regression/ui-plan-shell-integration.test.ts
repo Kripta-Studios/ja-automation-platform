@@ -20,16 +20,16 @@ describe('UI_PLAN shell integration', () => {
     expect(shell).toMatch(
       /import TeamDirectorySection(?:,\s*\{[\s\S]*?\})?\s+from '\.\/portal\/sections\/TeamDirectorySection\.svelte'/u,
     );
-    expect(shell).toContain("data.section === 'projects' && currentView === 'clients'");
-    expect(shell).toContain("data.section === 'projects' && currentView === 'team'");
+    expect(shell).toContain("data.section === 'projects' && projectDirectoryView === 'clients'");
+    expect(shell).toContain("data.section === 'projects' && projectDirectoryView === 'team'");
     expect(shell).toContain('<ClientDirectorySection');
     expect(shell).toContain('<TeamDirectorySection');
 
     const clientBranchStart = shell.indexOf(
-      "data.section === 'projects' && currentView === 'clients'",
+      "{:else if data.section === 'projects' && projectDirectoryView === 'clients'",
     );
     const teamBranchStart = shell.indexOf(
-      "data.section === 'projects' && currentView === 'team'",
+      "{:else if data.section === 'projects' && projectDirectoryView === 'team'",
       clientBranchStart + 1,
     );
     expect(clientBranchStart).toBeGreaterThan(-1);
@@ -49,11 +49,11 @@ describe('UI_PLAN shell integration', () => {
     expect(shell).toMatch(
       /if \(data\.offlineEnabled !== false\) \{[\s\S]*?configureOfflineIdentity\(data\.user\.id\)/,
     );
-    expect(appLayout).toContain('offlineEnabled: !locals.user?.workforceProfile');
+    expect(appLayout).toMatch(/offlineEnabled:\s*process\.env\.JA_OFFLINE_ENABLED[\s\S]*?&&\s*!locals\.user\?\.workforceProfile/u);
   });
 
   it('updates the locale URL through the SvelteKit router state API', () => {
-    expect(shell).toContain("import { beforeNavigate, replaceState } from '$app/navigation';");
+    expect(shell).toMatch(/import \{[^}]*\breplaceState\b[^}]*\} from '\$app\/navigation'/u);
     expect(shell).toContain('replaceState(url, {})');
     expect(shell).not.toContain('history.replaceState');
   });

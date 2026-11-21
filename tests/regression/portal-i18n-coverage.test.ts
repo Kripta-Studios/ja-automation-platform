@@ -23,6 +23,14 @@ import {
   translateControlledValue,
   type ControlledValueDomain,
 } from '../../apps/portal/src/lib/i18n/controlled-values';
+import { quickInvoiceText } from '../../apps/portal/src/lib/portal/billing-quick-invoice-copy';
+import { conversionText } from '../../apps/portal/src/lib/portal/currency/conversion-copy';
+import { moneyText } from '../../apps/portal/src/lib/portal/money-copy';
+import { approvalQueueText } from '../../apps/portal/src/lib/portal/sections/approval-queue-copy';
+import { timeWeekText } from '../../apps/portal/src/lib/portal/sections/time-week-copy';
+import { workflowText } from '../../apps/portal/src/lib/portal/workflow/copy';
+import { conversionsText } from '../../apps/portal/src/routes/app/finance/conversions/copy';
+import { settlementText } from '../../apps/portal/src/routes/app/finance/subcontractors/copy';
 
 const sourceRoot = resolve(process.cwd(), 'apps/portal/src');
 const actionRoot = resolve(sourceRoot, 'lib/server/actions');
@@ -41,15 +49,27 @@ function componentSources(): string[] {
     .filter((path) => !path.includes(join('lib', 'i18n')));
 }
 
-function translatedLiteralKeys(source: string): string[] {
-  const keys = new Set<string>();
-  for (const pattern of [
-    /(?<![A-Za-z0-9_$])(?:translate|t|portalText)(?![A-Za-z0-9_$])\s*\(\s*'([^'\r\n]*)'/g,
-    /(?<![A-Za-z0-9_$])(?:translate|t|portalText)(?![A-Za-z0-9_$])\s*\(\s*"([^"\r\n]*)"/g,
-  ]) {
-    for (const match of source.matchAll(pattern)) keys.add(match[1]);
-  }
-  return [...keys].sort();
+type FeatureTranslator = (locale: 'en' | 'es' | 'pt', key: never) => string;
+const featureTranslators: Readonly<Record<string, FeatureTranslator>> = {
+  approvalQueueText,
+  conversionsText,
+  conversionText,
+  moneyText,
+  quickInvoiceText,
+  settlementText,
+  timeWeekText,
+  workflowText,
+};
+
+function translatedLiterals(source: string) {
+  // A typed feature-copy adapter resolves its own keys. All other helpers use the portal catalog.
+  const featureName = /\bconst t\s*=\s*[^;]{1,300}?=>\s*(\w+)\(locale,\s*key\b/.exec(source)?.[1];
+  const feature = featureName ? featureTranslators[featureName] : undefined;
+  const calls = [
+    ...source.matchAll(/(?<![A-Za-z0-9_$])(translate|t|portalText)\s*\(\s*'([^'\r\n]*)'/g),
+    ...source.matchAll(/(?<![A-Za-z0-9_$])(translate|t|portalText)\s*\(\s*"([^"\r\n]*)"/g),
+  ];
+  return calls.map(([, name, key]) => ({ key, feature: name === 't' ? feature : undefined }));
 }
 
 function actionMessageKeys(): string[] {
@@ -139,8 +159,11 @@ describe('portal i18n coverage contract', () => {
   });
 
   it('covers every literal used by components/routes and every action message key', () => {
+    const literals = componentSources().flatMap((path) =>
+      translatedLiterals(readFileSync(path, 'utf8')),
+    );
     const usedComponentKeys = new Set(
-      componentSources().flatMap((path) => translatedLiteralKeys(readFileSync(path, 'utf8'))),
+      literals.filter(({ feature }) => !feature).map(({ key }) => key),
     );
     const usedActionKeys = new Set(actionMessageKeys());
     const catalogKeys = new Set(portalCatalogKeys);
@@ -155,6 +178,29 @@ describe('portal i18n coverage contract', () => {
     expect([...usedActionKeys].filter((key) => !PORTAL_ACTION_KEYS.includes(key as never))).toEqual(
       [],
     );
+
+    const featureLiterals = literals.flatMap(({ feature, key }) =>
+      feature ? [{ feature, key }] : [],
+    );
+    expect(featureLiterals.length).toBeGreaterThan(500);
+    const missingWorkflowKeys = new Set<string>();
+    for (const { feature, key } of featureLiterals) {
+      const translated = (['en', 'es', 'pt'] as const).map((locale) =>
+        feature(locale, key as never),
+      );
+      expect(
+        translated.every((value) => typeof value === 'string' && value.trim()),
+        key,
+      ).toBe(true);
+      if (
+        feature === workflowText &&
+        !isCoverageInvariantKey(key) &&
+        !catalogKeys.has(key as never) &&
+        translated.every((value) => value === key)
+      )
+        missingWorkflowKeys.add(key);
+    }
+    expect([...missingWorkflowKeys]).toEqual([]);
   });
 
   it('keeps interpolation placeholders identical across EN, ES and PT-BR', () => {
@@ -175,7 +221,9 @@ describe('portal i18n coverage contract', () => {
     const failures = (['es', 'pt'] as const).flatMap((locale) =>
       portalCatalogKeys
         .filter((key) => !isCoverageInvariantKey(key))
-        .filter((key) => englishResidue.test(portalCatalog[locale][key]))
+        .filter((key) =>
+          englishResidue.test(portalCatalog[locale][key].replace(/\{[\w.-]+\}/g, '')),
+        )
         .map((key) => `${locale}:${key} => ${portalCatalog[locale][key]}`),
     );
     expect(failures).toEqual([]);
@@ -277,7 +325,7 @@ describe('portal i18n coverage contract', () => {
     expect(missing).toEqual([]);
 
     const EnglishResidue =
-      /\b(?:the|and|from|with|this|that|your|every|run|confidence|before|after|only|available|field|work|workspace|daily|action|report|project|worker|record|change|save|delete|source|read|write|verify|continue|sign|secure|password|identity|server|summary|history|details|contains|retained|stream|drafts|customer|copy|update|create|archive|confirm|return|print|generate|preview|language|optional|linked|flag|system|machine|station|line|equipment|tasks|completed|minutes|start|end|date|email|name|description|amount|currency|quantity|period|category|type|basis|unassigned|protected|pending|rejected|issued|paid|overdue|queued|running|ready|failed|blocked|preferred|travel|materials|accommodation|meals|invoice|accounting|document|milestone|labor|processing|locked|suspended|offboarded|paused|closing|restore|credited|quarantined|clean|offline|support|what|why|one|immediately|production|credentials|company|due|workforce|capabilities|scope|through|week|time)\b/i;
+      /(?<![\p{L}\p{M}\p{N}_])(?:the|and|from|with|this|that|your|every|run|confidence|before|after|only|available|field|work|workspace|daily|action|report|project|worker|record|change|save|delete|source|read|write|verify|continue|sign|secure|password|identity|server|summary|history|details|contains|retained|stream|drafts|customer|copy|update|create|archive|confirm|return|print|generate|preview|language|optional|linked|flag|system|machine|station|line|equipment|tasks|completed|minutes|start|end|date|email|name|description|amount|currency|quantity|period|category|type|basis|unassigned|protected|pending|rejected|issued|paid|overdue|queued|running|ready|failed|blocked|preferred|travel|materials|accommodation|meals|invoice|accounting|document|milestone|labor|processing|locked|suspended|offboarded|paused|closing|restore|credited|quarantined|clean|offline|support|what|why|one|immediately|production|credentials|company|due|workforce|capabilities|scope|through|week|time)(?![\p{L}\p{M}\p{N}_])/iu;
     const requiredControlTokens = new Set([
       'Type DELETE, followed by a space and the exact email shown below, to confirm deletion',
     ]);

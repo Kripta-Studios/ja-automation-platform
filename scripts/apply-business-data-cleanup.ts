@@ -19,12 +19,18 @@ export type ReviewedCleanupManifest = {
   entries: ReviewedCleanupEntry[];
 };
 
-function assertRehearsalPath(path: string): string {
-  const actual = realpathSync(resolve(path));
-  if (!basename(actual).endsWith('.rehearsal.sqlite'))
+function requireRehearsalLocation(path: string): void {
+  if (!basename(path).endsWith('.rehearsal.sqlite'))
     throw new Error('Cleanup can run only on an isolated *.rehearsal.sqlite copy');
-  if (actual.startsWith('/var/lib/jaautomation/') || actual.startsWith('/opt/jaautomation/'))
+  if (path.startsWith('/var/lib/jaautomation/') || path.startsWith('/opt/jaautomation/'))
     throw new Error('Production and release storage are never rehearsal targets');
+}
+
+function assertRehearsalPath(path: string): string {
+  const requested = resolve(path);
+  requireRehearsalLocation(requested);
+  const actual = realpathSync(requested);
+  requireRehearsalLocation(actual);
   const productionPath = '/var/lib/jaautomation/data/jaautomation.sqlite';
   try {
     const prod = statSync(productionPath);
@@ -32,7 +38,7 @@ function assertRehearsalPath(path: string): string {
     if (prod.dev === target.dev && prod.ino === target.ino)
       throw new Error('Rehearsal target is the production database inode');
   } catch (error) {
-    if (error instanceof Error && error.message.includes('production database inode')) throw error;
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
   return actual;
 }

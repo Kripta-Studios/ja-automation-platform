@@ -4,7 +4,7 @@
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   import { disclosure } from '../ui/disclosure.js';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
-  import { tick } from 'svelte';
+  import { tick, untrack } from 'svelte';
   import {
     assignmentFormAction,
     assignmentWorkflowHref,
@@ -124,7 +124,7 @@
     scope: 'projects',
     user: () => `${$page.data.user?.id ?? ''}:${$page.data.user?.role ?? ''}`,
     url: () => $page.url,
-    defaults: { search: '', statusFilter: role === 'project_manager' ? '' : 'active' },
+    defaults: untrack(() => ({ search: '', statusFilter: defaultStatus })),
     query: { search: 'q', statusFilter: 'status' },
     get: () => ({ search, statusFilter }),
     set: (saved) => {

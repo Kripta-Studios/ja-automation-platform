@@ -43,8 +43,8 @@ const historicalPay = {
 };
 type LoadedSection = {
   projects: Array<{ id: string }>;
-  timesheet: { days: Array<{ expectedMinutes: number | null }> };
-  weeklyPay: { estimatedApprovedMinor: string };
+  timeAssignments: Array<{ project_id: string; worker_id: string; starts_on: string; ends_on: string }>;
+  weekEntries: unknown[];
   pay: typeof historicalPay;
   payExpenses: ReturnType<ReturnType<typeof setupRepository>['listWorkerStatementExpenses']>;
 };
@@ -104,6 +104,7 @@ beforeEach(() => {
     CREATE TABLE daily_report(id TEXT,project_id TEXT,worker_id TEXT,work_date TEXT,summary TEXT);
     CREATE TABLE technical_report(id TEXT,project_id TEXT,author_id TEXT,report_date TEXT,system_name TEXT,change_summary TEXT);
     CREATE TABLE expense(id TEXT,project_id TEXT,worker_id TEXT,spent_on TEXT,vendor TEXT,description TEXT,category TEXT,receipt_document_id TEXT);
+    CREATE TABLE document(id TEXT,project_id TEXT,owner_id TEXT,safe_filename TEXT,original_filename TEXT,media_type TEXT,created_at TEXT,artifact_type TEXT,state TEXT,archived_at TEXT,artifact_metadata_json TEXT);
     CREATE TABLE project(id TEXT,status TEXT);
     CREATE TABLE project_member(project_id TEXT,user_id TEXT,status TEXT,starts_on TEXT,ends_on TEXT);
     CREATE TABLE schedule(project_id TEXT,effective_from TEXT,effective_to TEXT,monday_minutes INTEGER,tuesday_minutes INTEGER,wednesday_minutes INTEGER,thursday_minutes INTEGER,friday_minutes INTEGER,saturday_minutes INTEGER,sunday_minutes INTEGER);
@@ -135,40 +136,23 @@ afterEach(() => {
 });
 
 describe('operational section loader safe Worker DTOs', () => {
-  it('only derives visible schedule targets on effective days without ambiguous own memberships', async () => {
+  it('only sends dated assignments for the visible project, without projecting scheduled hours or pay', async () => {
     const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
-    expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
-      null,
-      null,
-      null,
-      480,
-      480,
-      0,
-      null,
+    expect(data.timeAssignments).toEqual([
+      { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-30', ends_on: '2026-10-03' },
     ]);
+    expect(data.weekEntries).toEqual([]);
     expect(JSON.stringify(data)).not.toContain('expired-project');
     expect(JSON.stringify(data)).not.toContain('Private expired project');
-    expect(data.weeklyPay).toEqual({
-      currency: 'USD',
-      approvedMinutes: 60,
-      pendingMinutes: 15,
-      estimatedApprovedMinor: '9007199254740993',
-      estimatedPendingMinor: '25',
-      currencyBreakdown: [
-        {
-          currency: 'USD',
-          estimatedApprovedMinor: '9007199254740993',
-          estimatedPendingMinor: '25',
-        },
-      ],
-    });
+    expect(data).not.toHaveProperty('timesheet');
+    expect(data).not.toHaveProperty('weeklyPay');
   });
 
   it.each([
     ['overlapping', '2026-10-04'],
     ['hidden-only', '2026-10-01'],
   ])(
-    'returns no expected target for an %s future hidden project without widening operational DTOs',
+    'excludes an %s future hidden project from dated Time assignments',
     async (_scenario, currentEndsOn) => {
       vi.useFakeTimers();
       vi.setSystemTime(new Date('2026-09-30T12:00:00Z'));
@@ -180,15 +164,10 @@ describe('operational section loader safe Worker DTOs', () => {
         INSERT INTO schedule VALUES('future-hidden-project','2026-09-01',NULL,600,600,600,600,600,0,0);
       `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
-      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
-        480,
-        480,
-        480,
-        480,
-        null,
-        null,
-        null,
+      expect(data.timeAssignments).toEqual([
+        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-28', ends_on: currentEndsOn },
       ]);
+      expect(data.weekEntries).toEqual([]);
       expect(data.projects).toEqual([{ id: 'current-project' }]);
       expect(repository.listTimeForScope).toHaveBeenCalled();
       for (const hidden of [
@@ -205,7 +184,7 @@ describe('operational section loader safe Worker DTOs', () => {
     ['inactive membership', 'worker', 'inactive', 'active'],
     ['archived project', 'worker', 'active', 'archived'],
   ])(
-    'does not count an unrelated %s as a competing target',
+    'excludes an unrelated %s from dated Time assignments',
     async (_scenario, workerId, memberStatus, projectStatus) => {
       sqlite.exec(`
       UPDATE project_member SET status='inactive' WHERE project_id='expired-project';
@@ -214,9 +193,10 @@ describe('operational section loader safe Worker DTOs', () => {
       INSERT INTO project_member VALUES('unrelated-project','${workerId}','${memberStatus}','2026-10-02','2026-10-04');
     `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
-      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
-        480, 480, 480, 480, 480, 0, 0,
+      expect(data.timeAssignments).toEqual([
+        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-28', ends_on: '2026-10-04' },
       ]);
+      expect(data.weekEntries).toEqual([]);
       expect(JSON.stringify(data)).not.toContain('unrelated-project');
     },
   );
@@ -232,30 +212,26 @@ describe('operational section loader safe Worker DTOs', () => {
         INSERT INTO project_member VALUES('future-hidden-project','worker','active','2026-10-02','2026-10-04');
       `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
-      expect(data.timesheet.days.map((day) => day.expectedMinutes)).toEqual([
-        null,
-        null,
-        480,
-        480,
-        480,
-        0,
-        null,
+      expect(data.timeAssignments).toEqual([
+        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-30', ends_on: '2026-10-03' },
       ]);
+      expect(data.weekEntries).toEqual([]);
       expect(data.projects).toEqual([{ id: 'current-project' }]);
-      expect(data.weeklyPay).toBeUndefined();
+      expect(data).not.toHaveProperty('weeklyPay');
       expect(JSON.stringify(data)).not.toContain('estimatedApprovedMinor');
       expect(JSON.stringify(data)).not.toContain('future-hidden-project');
       expect(JSON.stringify(data)).not.toContain('expired-project');
     },
   );
 
-  it('returns no past schedule targets for authoritative empty current assignment scope', async () => {
+  it('returns no entries or assignments for authoritative empty current scope', async () => {
     repository.listAssignedProjects.mockReturnValue([]);
     const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
     expect(data.projects).toEqual([]);
-    expect(data.timesheet.days.every((day) => day.expectedMinutes === null)).toBe(true);
+    expect(data.timeAssignments).toEqual([]);
+    expect(data.weekEntries).toEqual([]);
     expect(JSON.stringify(data)).not.toContain('expired-project');
-    expect(data.weeklyPay.estimatedApprovedMinor).toBe('9007199254740993');
+    expect(data).not.toHaveProperty('weeklyPay');
   });
 
   it('does not serialize statement/pay payloads on the Expenses route', async () => {

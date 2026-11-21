@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { DEFAULT_INVOICE_COMPANY_INFO } from '../../packages/invoice-templates/src/index.ts';
+import { renderInvoiceDocument } from '../../packages/reporting/src/invoice-document.ts';
 
 const read = (relativePath: string): string =>
   readFileSync(fileURLToPath(new URL(`../../${relativePath}`, import.meta.url)), 'utf8');
@@ -89,8 +90,17 @@ describe('credential and presentation hygiene', () => {
     expect(DEFAULT_INVOICE_COMPANY_INFO).not.toHaveProperty('phone');
     expect(templateSource).toMatch(/phone\?:\s*string/u);
     expect(templateSource).not.toContain('+1 (864) 208');
-    expect(pageSource).toContain('const invoicePhone = $derived(');
-    expect(pageSource).toContain('{#if invoicePhone}');
+    expect(pageSource).toContain('renderInvoiceDocument(documentSnapshot,');
+    const phone = '+1 202 555 0100';
+    const draft = renderInvoiceDocument({ state: 'draft', locale: 'en' }).bodyHtml;
+    const historical = renderInvoiceDocument({
+      state: 'issued',
+      locale: 'en',
+      companyInfo: { phone },
+    }).bodyHtml;
+    expect(draft).not.toContain(phone);
+    expect(draft).not.toContain('companyPhone');
+    expect(historical).toContain(phone);
     expect(pageSource).not.toContain('+1 (864) 208');
   });
 

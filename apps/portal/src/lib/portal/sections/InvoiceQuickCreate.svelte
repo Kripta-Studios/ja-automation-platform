@@ -1714,7 +1714,7 @@
                           {#if taxEdit.choice === 'new'}
                             <div class="quick-invoice__edit-fields">
                               <label class="quick-invoice__field"
-                                ><span>{t('taxName')}</span><input bind:value={taxEdit.newName} maxlength="160" placeholder="IVA" data-quick-invoice-tax-name /></label
+                                ><span>{t('taxName')}</span><input bind:value={taxEdit.newName} maxlength="160" placeholder={locale === 'en' ? 'VAT' : 'IVA'} data-quick-invoice-tax-name /></label
                               >
                               <label class="quick-invoice__field"
                                 ><span>{t('taxPercent')}</span><input

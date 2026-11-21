@@ -42,6 +42,7 @@ vi.mock('$lib/server/supplier-context', async (importOriginal) => ({
       listProjects: state.listProjects,
       listSuppliers: () => [],
       listTechnicians: () => [],
+      listScheduledTechnicians: () => [],
       listTime: state.listTime,
       operationalReport: state.operationalReport,
     },

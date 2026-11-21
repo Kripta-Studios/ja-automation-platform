@@ -8,8 +8,8 @@ const source = readFileSync(
   'utf8',
 );
 
-const payStart = source.indexOf("{:else if data.section === 'pay' && data.pay}");
-const payEnd = source.indexOf("data.section === 'projects'", payStart);
+const payStart = source.indexOf("{:else if data.section === 'pay'}");
+const payEnd = source.indexOf("{:else if data.section === 'projects'", payStart);
 const payBranch = source.slice(payStart, payEnd);
 
 describe('Worker My Pay UI', () => {

@@ -37,6 +37,8 @@ describe('operational action problems', () => {
     const form = new FormData();
     form.set('projectId', 'selected-project');
     form.set('workDate', 'invalid-date');
+    form.set('category', 'regular');
+    form.set('minutes', '60');
     form.set('summary', 'Work already entered');
     const response = await timeActions.createTime({
       request: new Request('http://localhost/app/time?/createTime', { method: 'POST', body: form }),
@@ -44,13 +46,13 @@ describe('operational action problems', () => {
     } as never);
     expect(response.status).toBe(400);
     expect(response.data).toMatchObject({
-      code: 'TIME_PROJECT_INVALID',
+      code: 'TIME_WORK_DATE_INVALID',
       values: {
         projectId: 'selected-project',
         workDate: 'invalid-date',
         summary: 'Work already entered',
       },
-      fieldErrors: expect.any(Object),
+      fieldErrors: { workDate: ['problem.time.workDateInvalid'] },
       remedies: [{ id: 'review_time' }],
     });
     expect(JSON.parse(JSON.stringify(response.data))).toEqual(response.data);

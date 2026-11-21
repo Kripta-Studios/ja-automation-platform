@@ -14,14 +14,17 @@ const eligible = {
 };
 
 describe('Owner correction detail submission affordance', () => {
-  it('offers the current version for an unlocked correction authored by the Owner', () => {
-    expect(ownerCorrectionDraftVersion(eligible)).toBe(3);
-  });
+  it.each(['owner_admin', 'finance_admin'])(
+    'offers the current version for an unlocked correction authored by %s',
+    (role) => {
+      expect(ownerCorrectionDraftVersion({ ...eligible, role })).toBe(3);
+    },
+  );
 
   it.each([
     { role: 'worker' },
     { role: 'project_manager' },
-    { role: 'finance_admin' },
+    { role: 'auditor_read_only' },
     { correctionActor: null },
     { correctionActor: 'another-user' },
     { approvalState: 'submitted' },

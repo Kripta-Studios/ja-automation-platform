@@ -67,6 +67,16 @@ export const canReviewProject = (principal: Principal, projectId: string): boole
   principal.role === 'owner_admin' ||
   (principal.role === 'project_manager' && principal.projectIds.has(projectId));
 
+/**
+ * Operational (owner/PM) approval of time and expenses. Owner decision D6
+ * (2026-11-23): Finance does not take the operational approval step; it only
+ * reviews already-approved work for billing and pay. Flip by editing this list.
+ */
+export const operationalApproverRoles: readonly Role[] = ['owner_admin', 'project_manager'];
+
+export const canDecideOperationalApproval = (principal: Pick<Principal, 'role'>): boolean =>
+  operationalApproverRoles.includes(principal.role);
+
 export const canManageAssignments = (principal: Principal, projectId: string): boolean =>
   principal.role === 'owner_admin' ||
   (principal.role === 'project_manager' && principal.projectIds.has(projectId));

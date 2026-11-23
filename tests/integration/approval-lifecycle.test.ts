@@ -538,6 +538,33 @@ describe('Client Essential approval lifecycle', () => {
     ).toThrow(AccessDeniedError);
   });
 
+  it('blocks Finance from the operational time and expense decision (D6)', () => {
+    const value = fixture();
+    const timeId = submittedTime(value);
+    const expenseId = submittedExpense(value);
+    const finance = authenticatedFinance(value);
+    for (const decision of ['approved', 'needs_changes', 'rejected'] as const) {
+      expect(() =>
+        value.repository.operationalApproveTime(finance, timeId, decision, 'Finance note'),
+      ).toThrow(AccessDeniedError);
+      expect(() =>
+        value.repository.operationalApproveExpense(finance, expenseId, decision, 'Finance note'),
+      ).toThrow(AccessDeniedError);
+    }
+    expect(
+      value.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(timeId),
+    ).toEqual({ approval_state: 'submitted' });
+    expect(
+      value.sqlite.prepare('SELECT approval_state FROM expense WHERE id=?').get(expenseId),
+    ).toEqual({ approval_state: 'submitted' });
+    // The project's manager still decides both.
+    value.repository.operationalApproveTime(value.manager, timeId, 'approved');
+    value.repository.operationalApproveExpense(value.manager, expenseId, 'approved');
+    expect(
+      value.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(timeId),
+    ).toEqual({ approval_state: 'approved' });
+  });
+
   it('requires a trimmed nonblank reason in schemas and repository boundaries', () => {
     const value = fixture();
     const timeId = submittedTime(value);

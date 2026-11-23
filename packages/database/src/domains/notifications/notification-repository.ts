@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { newId } from '@ja/domain';
+import { newId, operationalApproverRoles } from '@ja/domain';
 import { dueDigitalWorkItems } from './digital-work-followup.ts';
 
 type NotificationRepositoryDependencies = Readonly<{
@@ -251,8 +251,25 @@ function activeOperationalReviewers(
   sqlite: DatabaseSync,
   projectId: string,
   businessDate: string,
+  recordType: ApprovalSource['record_type'],
 ): string[] {
-  const recipients = new Set(activeFinancialRecipients(sqlite));
+  // D6: time and expenses are approved by the Owner or the project's manager,
+  // never by Finance, so Finance gets no request it cannot act on. Reports keep
+  // the Owner/Finance reviewers they had.
+  // Company-wide approver roles; project managers are added per project below.
+  const companyRoles =
+    recordType === 'time' || recordType === 'expense'
+      ? operationalApproverRoles.filter((role) => role !== 'project_manager')
+      : (['owner_admin', 'finance_admin'] as const);
+  const recipients = new Set(
+    (
+      sqlite
+        .prepare(
+          `SELECT id FROM user WHERE status='active' AND role IN (${companyRoles.map(() => '?').join(',')}) ORDER BY id`,
+        )
+        .all(...companyRoles) as Array<{ id: string }>
+    ).map((row) => row.id),
+  );
   const projectManagers = sqlite
     .prepare(
       `SELECT DISTINCT u.id
@@ -469,7 +486,12 @@ export class NotificationRepository {
         : `approval_returned_${row.record_type}`;
       const subjectId = encodedSource(row.record_type, row.source_id, row.version);
       const recipients = requested
-        ? activeOperationalReviewers(this.deps.sqlite, row.project_id, row.business_date)
+        ? activeOperationalReviewers(
+            this.deps.sqlite,
+            row.project_id,
+            row.business_date,
+            row.record_type,
+          )
         : activeUser(this.deps.sqlite, row.owner_id)
           ? [row.owner_id]
           : [];

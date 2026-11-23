@@ -24,6 +24,7 @@ import {
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
+  canDecideOperationalApproval,
   canManageAssignments,
   canManageBilling,
   canManageClients,
@@ -2441,6 +2442,30 @@ export class PortalRepository {
   }
 
   operationalApproveTime(
+    principal: Principal,
+    id: string,
+    decision: 'approved' | 'needs_changes' | 'rejected',
+    reason?: string,
+  ) {
+    this.assertOperationalApprovalRole(principal);
+    return this.decideOperationalTime(principal, id, decision, reason);
+  }
+
+  /**
+   * D6: the operational approval step (approve / send back / reject submitted
+   * time and expenses) belongs to the Owner and the project's manager. Finance
+   * reviews approved work for billing and pay, never the operational step. The
+   * project-level check (PM of this project, can_review) stays in
+   * assertOperationalReviewer. The only Finance exception is the audited
+   * "Approve & include" of invoice preparation (approveSourceForInvoice).
+   */
+  private assertOperationalApprovalRole(principal: Principal): void {
+    this.assertActive(principal);
+    if (!canDecideOperationalApproval(principal))
+      throw new AccessDeniedError('Owner or project manager approval required');
+  }
+
+  private decideOperationalTime(
     principal: Principal,
     id: string,
     decision: 'approved' | 'needs_changes' | 'rejected',
@@ -5614,6 +5639,16 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ) {
+    this.assertOperationalApprovalRole(principal);
+    this.decideOperationalExpense(principal, id, decision, reason);
+  }
+
+  private decideOperationalExpense(
+    principal: Principal,
+    id: string,
+    decision: 'approved' | 'needs_changes' | 'rejected',
+    reason?: string,
+  ) {
     this.assertActive(principal);
     const reviewReason = reason?.trim() || undefined;
     if (decision !== 'approved' && !reviewReason) throw new ValidationError('A reason is required');
@@ -7490,8 +7525,10 @@ export class PortalRepository {
       row = read()!;
     }
     if (row.approval_state === 'submitted') {
-      if (source.type === 'time') this.operationalApproveTime(principal, source.id, 'approved');
-      else this.operationalApproveExpense(principal, source.id, 'approved');
+      // Invoice preparation keeps its audited Finance "Approve & include" (owner
+      // decision 2026-11-17); the public operational path is Owner/PM only (D6).
+      if (source.type === 'time') this.decideOperationalTime(principal, source.id, 'approved');
+      else this.decideOperationalExpense(principal, source.id, 'approved');
       row = read()!;
     }
     if (row.approval_state !== 'approved')

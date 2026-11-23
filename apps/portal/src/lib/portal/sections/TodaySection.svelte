@@ -100,7 +100,10 @@
   const inboxRows = $derived.by((): InboxRow[] => {
     if (!inbox) return [];
     const approvals = inbox.approvals;
-    const rows: InboxRow[] = [
+    // D6: Finance does not take the operational approval step, so it gets no
+    // "to approve" rows; pending hours read as waiting for the owner/PM.
+    const operationalApprover = data.user?.role !== 'finance_admin';
+    const rows: InboxRow[] = !operationalApprover ? [] : [
       {
         id: 'hours',
         label: h('hoursToApprove'),
@@ -139,7 +142,11 @@
             })
           : '';
       const pendingNote = (minutes: number | undefined) =>
-        minutes ? h('pendingToApprove', { hours: clockHoursFromMinutes(minutes) }) : '';
+        minutes
+          ? h(operationalApprover ? 'pendingToApprove' : 'pendingOwnerApproval', {
+              hours: clockHoursFromMinutes(minutes),
+            })
+          : '';
       const unpricedNote = (minutes: number | undefined) =>
         minutes ? h('approvedHours', { hours: clockHoursFromMinutes(minutes) }) : '';
       // Headline: money ready, else approved hours without a rate, else hours to approve, else expenses.

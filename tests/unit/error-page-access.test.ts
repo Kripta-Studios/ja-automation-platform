@@ -52,4 +52,19 @@ describe('in-app 403/404 page (T18)', () => {
     const crew = readFileSync(resolve('apps/portal/src/routes/app/crew/+page.server.ts'), 'utf8');
     expect(crew).toContain("error(403, 'crew.chief_required')");
   });
+
+  it('sends a browser that opens an unavailable private document to the styled 404', () => {
+    const endpoint = readFileSync(
+      resolve('apps/portal/src/routes/app/documents/[id]/+server.ts'),
+      'utf8',
+    );
+    expect(endpoint).toMatch(/isDocumentNavigation\(request\)/u);
+    expect(endpoint).toContain('/j-aautomation/app/document-unavailable?from=');
+    const page = readFileSync(
+      resolve('apps/portal/src/routes/app/document-unavailable/+page.server.ts'),
+      'utf8',
+    );
+    expect(page).toContain("error(404, 'document.unavailable')");
+    expect(sectionLabelKey('/documents/01a0')).toBe('Documents');
+  });
 });

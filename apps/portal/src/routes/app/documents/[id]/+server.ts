@@ -1,4 +1,5 @@
 import { AccessDeniedError, assertLiveSession } from '@ja/database';
+import { isDocumentNavigation } from '$lib/server/document-navigation';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { privateDocumentResponse } from '$lib/server/private-artifact-access';
 import {
@@ -8,7 +9,7 @@ import {
 import { assertRegularPrivateFile, safeDocumentRoot } from '$lib/server/report-attachment-route';
 import type { RequestHandler } from './$types';
 
-export const GET: RequestHandler = async ({ locals, params, url }) => {
+export const GET: RequestHandler = async ({ locals, params, url, request }) => {
   if (!locals.user || !locals.session)
     return privateDocumentProblem('signInRequired', locals.correlationId);
   if (!params.id) return privateDocumentProblem('unavailable', locals.correlationId);
@@ -38,12 +39,24 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
       url.searchParams.get('view') === '1' ? 'inline' : 'attachment',
     );
   } catch (cause) {
-    return privateDocumentFailure(
+    const failure = privateDocumentFailure(
       cause,
       stage,
       locals.correlationId,
       context?.principal.role === 'owner_admin',
     );
+    // T18: a person who opened the link in the browser gets the styled page,
+    // not the JSON problem body (fetch and download callers keep the JSON).
+    if ((failure.status === 403 || failure.status === 404) && isDocumentNavigation(request)) {
+      const lang = url.searchParams.get('lang');
+      return new Response(null, {
+        status: 303,
+        headers: {
+          location: `/j-aautomation/app/document-unavailable?from=${encodeURIComponent(`/documents/${params.id}`)}${lang ? `&lang=${encodeURIComponent(lang)}` : ''}`,
+        },
+      });
+    }
+    return failure;
   } finally {
     context?.sqlite.close();
   }

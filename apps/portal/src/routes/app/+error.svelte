@@ -28,8 +28,11 @@
   );
   // T18: a refused supplier-workforce URL arrives as /restricted?from=<path>.
   const routeRestricted = $derived(status === 403 && errorCode === 'operational.route_restricted');
+  const documentUnavailable = $derived(status === 404 && errorCode === 'document.unavailable');
   const refusedPath = $derived(
-    routeRestricted ? ($page.url.searchParams.get('from') ?? '') : $page.url.pathname,
+    routeRestricted || documentUnavailable
+      ? ($page.url.searchParams.get('from') ?? '')
+      : $page.url.pathname,
   );
   const payRefused = $derived(routeRestricted && /^\/(pay|my-pay)(\/|$)/u.test(refusedPath));
   const crewChiefRequired = $derived(status === 403 && errorCode === 'crew.chief_required');

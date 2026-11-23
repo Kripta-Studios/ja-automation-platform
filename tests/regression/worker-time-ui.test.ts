@@ -24,9 +24,11 @@ describe('Worker time UI vertical slice', () => {
   it('is one week timesheet with one save and one submit action', () => {
     const source = readSource('apps/portal/src/lib/portal/sections/TimeSection.svelte');
     expect(source).toContain('action="?/saveTimeWeek"');
-    // Owner decision 2026-11-17: plus one optional "signed activity sheet" upload.
+    // Owner decision 2026-11-17: plus one optional "signed activity sheet" upload,
+    // and (audit T38) removing a sheet attached by mistake to an unsent week.
     expect([...source.matchAll(/action="\?\/(\w+)"/g)].map((match) => match[1])).toEqual([
       'saveTimeWeek',
+      'removeWeekSheet',
       'attachWeekSheet',
     ]);
     expect((source.match(/data-testid="time-week-submit"/g) ?? []).length).toBe(1);

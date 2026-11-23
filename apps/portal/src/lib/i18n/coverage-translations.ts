@@ -2067,6 +2067,14 @@ const exact: Record<string, readonly [string, string]> = {
     'Una entrada diaria tiene datos inválidos de proyecto, fecha, categoría, duración o trabajo. Revisa el lote antes de guardar.',
     'Uma entrada diária tem dados inválidos de projeto, data, categoria, duração ou trabalho. Revise o lote antes de salvar.',
   ],
+  'problem.time.sheetWeekSent': [
+    'Esta semana ya se envió para aprobación, así que su hoja firmada se queda adjunta.',
+    'Esta semana já foi enviada para aprovação, então a folha assinada continua anexada.',
+  ],
+  'problem.time.sheetRemoveScope': [
+    'Solo quien adjuntó esta hoja puede quitarla.',
+    'Somente quem anexou esta folha pode removê-la.',
+  ],
   'problem.time.sheetScope': ['Solo puedes adjuntar una hoja firmada a una semana de un proyecto al que la persona está asignada.', 'Só é possível anexar uma folha assinada a uma semana de um projeto ao qual a pessoa está atribuída.'],
   'problem.time.sheetFile': ['Usa un PDF o una foto de la hoja firmada (hasta 20 MB).', 'Use um PDF ou uma foto da folha assinada (até 20 MB).'],
   'problem.time.sheetDuplicate': ['Este archivo ya está guardado. Elige la hoja firmada de esta semana.', 'Este arquivo já está salvo. Escolha a folha assinada desta semana.'],
@@ -9005,6 +9013,7 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.time.hoursDeleted': ['Horas eliminadas.', 'Horas excluídas.'],
   'action.time.submitted': ['Registro de horas enviado.', 'Registro de horas enviado.'],
   'action.time.sheetAttached': ['Hoja firmada adjuntada a la semana.', 'Folha assinada anexada à semana.'],
+  'action.time.sheetRemoved': ['Hoja firmada quitada de la semana.', 'Folha assinada removida da semana.'],
   'action.time.savedAndApproved': ['{count} registros de horas guardados y aprobados ({hours} h).', '{count} registros de horas salvos e aprovados ({hours} h).'],
   'action.time.weekSubmitted': [
     'Semana enviada a aprobación: {timeSubmitted} registros de horas y {mealsSubmitted} gastos de comida.',
@@ -9504,6 +9513,7 @@ function englishActionMessage(key: string): string {
     'action.validation.timeRecord': 'Invalid time record.',
     'action.time.submitted': 'Time submitted.',
     'action.time.sheetAttached': 'Signed sheet attached to the week.',
+    'action.time.sheetRemoved': 'Signed sheet removed from the week.',
     'action.time.savedAndApproved': '{count} time entries saved and approved ({hours} h).',
     'action.time.weekSubmitted':
       'Week sent for approval: {timeSubmitted} hour entries and {mealsSubmitted} meal expenses.',
@@ -11200,6 +11210,9 @@ const problemEnglish: Record<string, string> = {
   'problem.time.batchCountInvalid': 'Choose between 1 and 31 daily entries for this batch.',
   'problem.time.batchEntryInvalid':
     'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
+  'problem.time.sheetWeekSent':
+    'This week was already sent for approval, so its signed sheet stays attached.',
+  'problem.time.sheetRemoveScope': 'Only the person who attached this sheet can remove it.',
   'problem.time.sheetScope': 'You can attach a signed sheet only to a week of a project the person is assigned to.',
   'problem.time.sheetFile': 'Use a PDF or photo of the signed sheet (up to 20 MB).',
   'problem.time.sheetDuplicate': 'This file is already stored. Choose the signed sheet for this week.',

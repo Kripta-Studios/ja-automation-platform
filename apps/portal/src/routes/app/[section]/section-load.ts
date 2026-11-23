@@ -20,7 +20,7 @@ import {
   timeRecorders,
 } from '$lib/server/time-returns';
 import { mondayOf } from '$lib/server/portal-week';
-import { listSignedWeekSheets } from '$lib/server/signed-week-sheets';
+import { listSignedWeekSheets, signedSheetWeekSent } from '$lib/server/signed-week-sheets';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
@@ -429,7 +429,16 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           projectIds: timeProjectIds,
           workerId: timeWorkerId,
           weekStart,
-        }).map(({ id, projectId, filename, createdAt }) => ({ id, projectId, filename, createdAt }));
+        }).map(({ id, projectId, workerId: sheetWorkerId, filename, createdAt, uploadedBy }) => ({
+          id,
+          projectId,
+          filename,
+          createdAt,
+          // T38: the uploader (or the owner) may remove it while the week is not sent.
+          removable:
+            (uploadedBy === context.principal.userId || context.principal.role === 'owner_admin') &&
+            !signedSheetWeekSent(context.sqlite, { projectId, workerId: sheetWorkerId, weekStart }),
+        }));
         // Reviewer outcomes (T07): sent-back entries in any week (landing banner with
         // links) and rejected entries of this week (read-only, with the note).
         const timeReturns =

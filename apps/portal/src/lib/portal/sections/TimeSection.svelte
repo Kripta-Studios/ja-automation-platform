@@ -618,6 +618,25 @@
       sheetMessage = text && text !== failure?.messageKey ? text : t('sheetFailed');
     };
   };
+  const removeSheet: SubmitFunction = ({ cancel }) => {
+    if (!confirm(t('sheetRemoveConfirm'))) {
+      cancel();
+      return;
+    }
+    sheetBusy = true;
+    sheetMessage = null;
+    return async ({ result: outcome, update }) => {
+      sheetBusy = false;
+      if (outcome.type === 'success') {
+        await update({ reset: false, invalidateAll: true });
+        sheetMessage = 'removed';
+        return;
+      }
+      const failure = outcome.type === 'failure' ? (outcome.data as SheetResult | undefined) : undefined;
+      const text = failure?.messageKey ? translate(failure.messageKey) : '';
+      sheetMessage = text && text !== failure?.messageKey ? text : t('sheetRemoveFailed');
+    };
+  };
   /** Owner logging for another person: "Save & approve" (same audited approval path). */
   const forOther = $derived(delegating && workerId !== data.user.id);
   const canApproveNow = $derived(forOther && data.user.role === 'owner_admin' && canSubmit);
@@ -1652,10 +1671,19 @@
           <ul class="sheet-files">
             {#each weekSheets as sheet (sheet.id)}
               <li>
-                <a href={`${base}/app/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener" data-testid="time-week-sheet-link"
+                <!-- T38: the API URL is the same authorization and is open to external technicians. -->
+                <a href={`${base}/app/api/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener" data-testid="time-week-sheet-link"
                   >📄 {sheet.filename}</a
                 >
                 {#if rowProjects.length > 1}<span class="muted small">{projectLabel(sheet.projectId)}</span>{/if}
+                {#if sheet.removable}
+                  <form method="POST" action="?/removeWeekSheet" class="sheet-remove" use:enhance={removeSheet}>
+                    <input type="hidden" name="documentId" value={sheet.id} />
+                    <button type="submit" class="link-button" disabled={sheetBusy} data-testid="time-week-sheet-remove"
+                      >{t('sheetRemove')}</button
+                    >
+                  </form>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -1689,7 +1717,9 @@
             >{sheetBusy ? t('sheetAttaching') : t('sheetAttach')}</button
           >
         </form>
-        {#if sheetMessage && sheetMessage !== 'done'}
+        {#if sheetMessage === 'removed'}
+          <p class="muted small" role="status">{t('sheetRemoved')}</p>
+        {:else if sheetMessage && sheetMessage !== 'done'}
           <p class="cell-error" role="alert">{sheetMessage}</p>
         {/if}
       </details>
@@ -2623,6 +2653,24 @@
   .sheet-files a {
     font-weight: 600;
     overflow-wrap: anywhere;
+  }
+  .sheet-files li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+  }
+  .sheet-remove {
+    display: inline;
+  }
+  .sheet-remove button {
+    min-height: 44px;
+    border: 0;
+    background: none;
+    color: #9f1c1c;
+    text-decoration: underline;
+    font: inherit;
+    cursor: pointer;
   }
   .sheet-upload {
     display: flex;

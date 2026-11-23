@@ -4,7 +4,7 @@
  * document (`artifact_type='signed_timesheet'`) with link metadata
  * `{ kind, workerId, weekStart }`, so storage, malware scanning, download
  * authorization and audit are the existing document ones. Download URL:
- * `${base}/app/documents/<id>?view=1`.
+ * `${base}/app/api/documents/<id>?view=1` (also open to external technicians, T38).
  *
  * Billing helper: `listSignedWeekSheets(sqlite, { projectId, from, to })`
  * returns the sheets whose week overlaps an invoice period, to offer them as
@@ -113,7 +113,7 @@ export function listSignedWeekSheets(
 
 export class SignedSheetInputError extends Error {
   constructor(
-    readonly code: 'file' | 'type' | 'content' | 'scope',
+    readonly code: 'file' | 'type' | 'content' | 'scope' | 'sent',
     message: string,
   ) {
     super(message);
@@ -191,4 +191,56 @@ export async function storeSignedWeekSheet(
     if (written) await removePrivateFileIfPresent(root, reservation.storageKey).catch(() => undefined);
     throw error;
   }
+}
+
+/** The week already went to review: its sheet is evidence and stays (T38). */
+export function signedSheetWeekSent(
+  sqlite: DatabaseSync,
+  sheet: Readonly<{ projectId: string; workerId: string; weekStart: string }>,
+): boolean {
+  return Boolean(
+    sqlite
+      .prepare(
+        `SELECT 1 FROM time_entry WHERE project_id=? AND worker_id=? AND work_date BETWEEN ? AND ?
+            AND approval_state IN ('submitted','approved','locked') LIMIT 1`,
+      )
+      .get(sheet.projectId, sheet.workerId, sheet.weekStart, shift(sheet.weekStart, 6)),
+  );
+}
+
+/**
+ * Remove a signed sheet attached by mistake (T38). Only the person who uploaded it
+ * (or the owner), and only while that week has nothing sent for review. The file is
+ * archived through the audited document archive (bytes retained), never deleted.
+ */
+export function removeSignedWeekSheet(
+  context: ReturnType<typeof openPortalRepository>,
+  documentId: string,
+): void {
+  const { principal, sqlite } = context;
+  const sheet = sqlite
+    .prepare(
+      `SELECT project_id,owner_id,json_extract(artifact_metadata_json,'$.workerId') worker_id,
+              json_extract(artifact_metadata_json,'$.weekStart') week_start
+         FROM document WHERE id=? AND artifact_type='signed_timesheet' AND state='committed'
+          AND archived_at IS NULL`,
+    )
+    .get(documentId) as
+    | { project_id: string; owner_id: string; worker_id: string; week_start: string }
+    | undefined;
+  if (!sheet) throw new SignedSheetInputError('scope', 'This signed sheet is no longer attached.');
+  if (sheet.owner_id !== principal.userId && principal.role !== 'owner_admin')
+    throw new SignedSheetInputError('scope', 'Only the person who attached this sheet can remove it.');
+  if (
+    signedSheetWeekSent(sqlite, {
+      projectId: sheet.project_id,
+      workerId: sheet.worker_id,
+      weekStart: sheet.week_start,
+    })
+  )
+    throw new SignedSheetInputError(
+      'sent',
+      'This week was already sent for approval, so its signed sheet stays attached.',
+    );
+  context.v3.archiveDocument(principal, documentId, 'Signed sheet removed from an unsent week');
 }

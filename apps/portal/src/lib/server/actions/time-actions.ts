@@ -14,7 +14,11 @@ import {
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
 import { withAssignmentFinanceTransaction } from './assignment-finance';
-import { SignedSheetInputError, storeSignedWeekSheet } from '$lib/server/signed-week-sheets';
+import {
+  SignedSheetInputError,
+  removeSignedWeekSheet,
+  storeSignedWeekSheet,
+} from '$lib/server/signed-week-sheets';
 import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
 import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
 import { parseCellDetail, parseHoursText, type CellDetail } from '$lib/portal/sections/time-hours';
@@ -1136,6 +1140,36 @@ export const timeActions = withOperationalActionNames({
       if (error instanceof ConflictError || (error instanceof Error && /existing content/i.test(error.message)))
         return sheetFail(409, 'problem.time.sheetDuplicate', 'This file is already stored. Choose the signed sheet for this week.', 'TIME_SHEET_DUPLICATE');
       return timeActionFailure(error, values);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /** Remove a signed sheet attached by mistake to a week not yet sent (T38). */
+  removeWeekSheet: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const documentId = String(object.documentId ?? '').trim();
+    if (!documentId || documentId.length > 100) return invalidSheet();
+    const context = openPortalRepository(locals);
+    try {
+      removeSignedWeekSheet(context, documentId);
+      return actionSuccess('action.time.sheetRemoved', {}, 'Signed sheet removed from the week.');
+    } catch (error) {
+      if (error instanceof SignedSheetInputError)
+        return actionFail(
+          error.code === 'sent' ? 409 : 403,
+          error.code === 'sent' ? 'problem.time.sheetWeekSent' : 'problem.time.sheetRemoveScope',
+          {},
+          error.message,
+          {
+            code: error.code === 'sent' ? 'TIME_SHEET_WEEK_SENT' : 'TIME_SHEET_REMOVE_SCOPE',
+            values: { documentId },
+            fieldErrors: {},
+            remedies: [{ id: 'review_week' }],
+          },
+        );
+      return timeActionFailure(error, { documentId });
     } finally {
       context.sqlite.close();
     }

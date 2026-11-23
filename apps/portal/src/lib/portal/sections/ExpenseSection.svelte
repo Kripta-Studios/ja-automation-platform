@@ -358,8 +358,16 @@
     (event.currentTarget as HTMLInputElement).value = '';
     receiptInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  /** Same limit as the server (expense-actions validateExpenseReceipt): checked before upload. */
+  const RECEIPT_MAX_BYTES = 10_000_000;
+  let receiptTooBig = $state('');
   function onReceiptChange(event: Event): void {
-    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    const input = event.currentTarget as HTMLInputElement;
+    const picked = input.files?.[0];
+    // T54: a too-large photo is refused here, once, before a slow phone upload.
+    receiptTooBig = picked && picked.size > RECEIPT_MAX_BYTES ? picked.name : '';
+    if (receiptTooBig) input.value = '';
+    const file = receiptTooBig ? undefined : picked;
     if (receiptUrl) URL.revokeObjectURL(receiptUrl);
     receiptName = file?.name ?? '';
     receiptIsImage = Boolean(file?.type.startsWith('image/'));
@@ -621,6 +629,8 @@
     filled?: boolean;
     /** The reader found no amount: the person types it. */
     unread?: boolean;
+    /** The chosen file is over the receipt size limit (refused before upload, T54). */
+    tooBig?: boolean;
     /** Currency printed on this receipt when it differs from the batch currency (T22). */
     receiptCurrency?: string;
     key: number;
@@ -729,7 +739,10 @@
   function decimalMinor(value: string): bigint | null {
     return inputTextToMinor(value, bulkCurrency);
   }
-  const bulkFilled = $derived(bulkRows.filter((row) => row.amount.trim() || row.file));
+  // T54: a row with amount 0 and no receipt is not an expense to send.
+  const bulkFilled = $derived(
+    bulkRows.filter((row) => row.file || (decimalMinor(row.amount) ?? 0n) > 0n),
+  );
   /** Receipts still being read: saving now would send rows without an amount. */
   const bulkPending = $derived(bulkRows.filter((row) => row.queued || row.reading).length);
   const bulkTotal = $derived(
@@ -1155,7 +1168,7 @@
                 name={`amount_${index}`}
                 inputmode="decimal"
                 autocomplete="off"
-                placeholder={minorDigitsFor(bulkCurrency) === 0 ? '0' : '0.00'}
+                placeholder={minorDigitsFor(bulkCurrency) === 0 ? '0' : locale === 'en' ? '0.00' : '0,00'}
                 pattern={amountPattern(bulkCurrency)}
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('amount')}`}
                 bind:value={row.amount}
@@ -1169,7 +1182,10 @@
                 accept="image/*,.heic,.heif,application/pdf"
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('receipt')}`}
                 onchange={(event) => {
-                  const file = event.currentTarget.files?.[0];
+                  const picked = event.currentTarget.files?.[0];
+                  row.tooBig = Boolean(picked && picked.size > RECEIPT_MAX_BYTES);
+                  if (row.tooBig) event.currentTarget.value = '';
+                  const file = row.tooBig ? undefined : picked;
                   row.file = file?.name ?? '';
                   row.filled = false;
                   bulkDuplicateKeys = bulkDuplicateKeys.filter((key) => key !== row.key);
@@ -1192,7 +1208,9 @@
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
             </label>
-            {#if bulkDuplicateKeys.includes(row.key)}
+            {#if row.tooBig}
+              <p class="xp-warn xp-bulk-status" role="alert" data-bulk-status="too-big">{c('receiptTooBigShort')}</p>
+            {:else if bulkDuplicateKeys.includes(row.key)}
               <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="duplicate">{c('receiptUsed')}</p>
             {:else if row.queued}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="queued">{c('waitingToRead')}</p>
@@ -1381,10 +1399,14 @@
             accept="image/*,.heic,.heif,application/pdf"
             onchange={onReceiptChange}
           />
-          {#if receiptUrl}
+          {#if receiptTooBig}
+            <span class="xp-warn" role="alert" data-expense-receipt-too-big
+              >{c('receiptTooBig', { name: receiptTooBig })}</span
+            >
+          {:else if receiptUrl}
             <span class="receipt-preview">
               {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
-              <span>{receiptName}</span>
+              <span style="overflow-wrap: anywhere; word-break: normal">{receiptName}</span>
             </span>
           {:else}
             <span class="xp-receipt-cta"
@@ -1479,7 +1501,7 @@
             inputmode="decimal"
             autocomplete="off"
             pattern={amountPattern(fCurrency)}
-            placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : '0.00'}
+            placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : locale === 'en' ? '0.00' : '0,00'}
             data-expense-amount
             class:xp-suggested={amountSuggested}
             style={amountSuggested

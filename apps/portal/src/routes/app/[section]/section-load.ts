@@ -657,9 +657,27 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 }
               : row,
           );
+        // T54 (finance-43): capture lists only projects this person can book on. The
+        // owner records for anyone; Finance and project managers only where they hold an
+        // active assignment themselves (the server refuses the others anyway).
+        const captureProjects =
+          context.principal.role === 'finance_admin' || context.principal.role === 'project_manager'
+            ? (() => {
+                const own = new Set(
+                  (
+                    context.sqlite
+                      .prepare(
+                        "SELECT DISTINCT project_id FROM project_member WHERE user_id=? AND status='active' AND (ends_on IS NULL OR ends_on>=date('now','-90 days'))",
+                      )
+                      .all(context.principal.userId) as Array<{ project_id: string }>
+                  ).map((row) => row.project_id),
+                );
+                return scope.projects.filter((project) => own.has(String(project.id)));
+              })()
+            : scope.projects;
         return {
           ...common,
-          projects: scope.projects,
+          projects: captureProjects,
           expenseView,
           records,
           expenseCapture: {

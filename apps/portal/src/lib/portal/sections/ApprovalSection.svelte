@@ -794,6 +794,22 @@
       : '';
   }
   const queueEmpty = $derived(queue.summary.total === 0);
+  /** Esc closes an inline confirm / send-back panel (keyboard listener via an action). */
+  function escapeCloses(node: HTMLElement, close: () => void) {
+    let current = close;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') current();
+    };
+    node.addEventListener('keydown', onKey);
+    return {
+      update(next: () => void) {
+        current = next;
+      },
+      destroy() {
+        node.removeEventListener('keydown', onKey);
+      },
+    };
+  }
 </script>
 
 <div class="aq">
@@ -1153,11 +1169,8 @@
                         class="aq-confirm"
                         method="POST"
                         action="?/approveBatch"
-                        role="alertdialog"
                         aria-label={t('approveWeekConfirm', { summary: groupFacts(group, group.actionable) })}
-                        onkeydown={(event) => {
-                          if (event.key === 'Escape') confirmApproveFor = null;
-                        }}
+                        use:escapeCloses={() => (confirmApproveFor = null)}
                         use:enhance={decide(
                           group.key,
                           `${groupTitle(group)} · ${groupFacts(group, group.actionable)}`,
@@ -1298,11 +1311,9 @@
                           action="?/approveRecord"
                           use:formValidation
                           use:enhance={decide(`back:${item.id}`, itemSummary(item), 'sentBack')}
-                          onkeydown={(event) => {
-                            if (event.key === 'Escape') {
-                              sendBackFor = null;
-                              confirmRejectFor = null;
-                            }
+                          use:escapeCloses={() => {
+                            sendBackFor = null;
+                            confirmRejectFor = null;
                           }}
                         >
                           <input type="hidden" name="type" value={item.type} />

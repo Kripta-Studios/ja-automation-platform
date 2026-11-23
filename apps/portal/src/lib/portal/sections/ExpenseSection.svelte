@@ -283,6 +283,9 @@
   let receiptUnread = $state(false);
   /** Amount came from the receipt reader: highlighted until the person checks/edits it. */
   let amountSuggested = $state(false);
+  /** T22: the currency field is highlighted whenever the amount is suggested from a receipt. */
+  let currencyFromReceipt = $state('');
+  let currencyTouched = $state(false);
   let amountTouched = false;
   let dateTouched = false;
   let crewOptions = $state<Array<{ id: string; name: string }>>([]);
@@ -342,6 +345,7 @@
     receiptUnread = false;
     receiptReading = false;
     amountSuggested = false;
+    currencyFromReceipt = '';
     if (receiptInput) receiptInput.value = '';
   }
   /** Camera photo: move it into the named receipt input so the form sends it. */
@@ -371,6 +375,15 @@
         if (!current()) return;
         receiptUnread = facts.unread && !fAmount.trim();
         let filled = false;
+        if (
+          facts.currency &&
+          (CURRENCIES as readonly string[]).includes(facts.currency) &&
+          !currencyTouched
+        ) {
+          fCurrency = facts.currency;
+          currencyFromReceipt = facts.currency;
+          filled = true;
+        }
         if (facts.amount && !amountTouched && !fAmount.trim()) {
           fAmount = facts.amount;
           amountSuggested = true;
@@ -417,6 +430,7 @@
     requestId = crypto.randomUUID();
     savedAnother = false;
     amountTouched = false;
+    currencyTouched = false;
     dateTouched = false;
     formError = '';
     formProblem = null;
@@ -513,6 +527,7 @@
         fVendor = '';
         fTimeEntryId = '';
         amountTouched = false;
+        currencyTouched = false;
         requestId = crypto.randomUUID();
         formError = '';
         formProblem = null;
@@ -606,6 +621,8 @@
     filled?: boolean;
     /** The reader found no amount: the person types it. */
     unread?: boolean;
+    /** Currency printed on this receipt when it differs from the batch currency (T22). */
+    receiptCurrency?: string;
     key: number;
     date: string;
     category: string;
@@ -673,6 +690,7 @@
       row.filled = true;
     }
     if (facts.unread && !row.amount.trim()) row.unread = true;
+    if (facts.currency && facts.currency !== bulkCurrency) row.receiptCurrency = facts.currency;
     if (facts.date) {
       row.date = facts.date;
       row.filled = true;
@@ -1180,6 +1198,8 @@
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="queued">{c('waitingToRead')}</p>
             {:else if row.reading}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="reading">{c('readingReceipt')}</p>
+            {:else if row.receiptCurrency && row.receiptCurrency !== bulkCurrency}
+              <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="currency">{c('receiptCurrencyDiffers', { code: row.receiptCurrency, batch: bulkCurrency })}</p>
             {:else if row.filled}
               <p class="xp-ok xp-bulk-status" role="status" data-bulk-status="filled">{c('filledFromReceiptShort')}</p>
             {:else if row.unread}
@@ -1479,11 +1499,32 @@
             <input value={fCurrency} readonly aria-readonly="true" />
             <input type="hidden" name="amountCurrency" value={fCurrency} />
           {:else}
-            <select name="currency" bind:value={fCurrency} required>
+            <select
+              name="currency"
+              bind:value={fCurrency}
+              required
+              data-expense-currency
+              style={amountSuggested || currencyFromReceipt
+                ? 'border: 2px solid #b26a00; background: #fff7e8; color: #1c2430;'
+                : undefined}
+              onchange={() => {
+                currencyTouched = true;
+                currencyFromReceipt = '';
+              }}
+            >
               {#each CURRENCIES as code (code)}
                 <option value={code}>{code}</option>
               {/each}
             </select>
+            {#if currencyFromReceipt}
+              <small class="xp-suggested-note" data-expense-currency-suggested
+                >{c('currencyFromReceipt', { code: currencyFromReceipt })}</small
+              >
+            {:else if amountSuggested}
+              <small class="xp-suggested-note" data-expense-currency-suggested
+                >{c('checkCurrency')}</small
+              >
+            {/if}
           {/if}
         </label>
       </div>

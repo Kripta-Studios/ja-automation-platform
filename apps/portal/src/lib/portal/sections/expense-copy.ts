@@ -156,6 +156,9 @@ const en = {
   readingReceipts: 'Reading {n} receipts…',
   readingReceiptsOne: 'Reading 1 receipt…',
   checkAmount: 'Suggested from the receipt — check it matches.',
+  checkCurrency: 'Check the currency printed on the receipt.',
+  receiptCurrencyDiffers: 'This receipt is in {code}, not {batch}. Save it on its own with the right currency.',
+  currencyFromReceipt: 'Currency read from the receipt ({code}) — check it.',
   receiptAttached: 'Receipt',
   confirmBodyOne:
     '1 expense will be sent for review. You cannot change it after submitting unless the reviewer returns it.',
@@ -329,6 +332,9 @@ const es: Copy = {
   readingReceipts: 'Leyendo {n} tickets…',
   readingReceiptsOne: 'Leyendo 1 ticket…',
   checkAmount: 'Sugerido a partir del ticket: comprueba que coincide.',
+  checkCurrency: 'Comprueba la moneda impresa en el ticket.',
+  receiptCurrencyDiffers: 'Este ticket está en {code}, no en {batch}. Guárdalo aparte con la moneda correcta.',
+  currencyFromReceipt: 'Moneda leída del ticket ({code}): compruébala.',
   receiptAttached: 'Ticket',
   confirmBodyOne:
     'Se enviará 1 gasto a revisión. No podrás cambiarlo después de enviarlo, salvo que el revisor lo devuelva.',
@@ -501,6 +507,9 @@ const pt: Copy = {
   readingReceipts: 'Lendo {n} recibos…',
   readingReceiptsOne: 'Lendo 1 recibo…',
   checkAmount: 'Sugerido a partir do recibo — confira se está certo.',
+  checkCurrency: 'Confira a moeda impressa no recibo.',
+  receiptCurrencyDiffers: 'Este recibo está em {code}, não em {batch}. Salve-o separadamente com a moeda certa.',
+  currencyFromReceipt: 'Moeda lida do recibo ({code}) — confira.',
   receiptAttached: 'Recibo',
   confirmBodyOne:
     '1 despesa será enviada para revisão. Você não poderá alterá-la depois do envio, a menos que o revisor a devolva.',

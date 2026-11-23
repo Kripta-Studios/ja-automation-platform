@@ -296,10 +296,15 @@ function action(operation: 'update' | 'discard' | 'correct' | 'submit'): Actions
       }
       const record = crew.entryDetail(context.principal, params.id);
       crew.discardDraft(context.principal, params.id, version);
-      redirect(
-        303,
-        `/j-aautomation/app/crew?${new URLSearchParams({ project: record.projectId, date: record.workDate })}#crew-entries`,
-      );
+      // T37: keep the language and confirm the discard on the crew page.
+      const back = new URLSearchParams({
+        project: record.projectId,
+        date: record.workDate,
+        notice: 'discarded',
+      });
+      const language = new URL(request.url).searchParams.get('lang');
+      if (language && ['en', 'es', 'pt'].includes(language)) back.set('lang', language);
+      redirect(303, `/j-aautomation/app/crew?${back}#crew-entries`);
     } catch (caught) {
       if (isRedirect(caught)) throw caught;
       return crewTimeActionFailure(

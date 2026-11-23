@@ -23,12 +23,54 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Añade el ticket con Editar antes de enviarlo.',
     'Adicione o recibo em Editar antes de enviar.',
   ],
-  'Sent without a receipt. It can be added when the reviewer sends it back, or with a correction after approval.': [
-    'Enviado sin ticket. Se puede añadir cuando el revisor lo devuelva o con una corrección después de aprobarlo.',
-    'Enviado sem recibo. Ele pode ser adicionado quando o revisor devolver a despesa ou com uma correção após a aprovação.',
-  ],
+  'Sent without a receipt. It can be added when the reviewer sends it back, or with a correction after approval.':
+    [
+      'Enviado sin ticket. Se puede añadir cuando el revisor lo devuelva o con una corrección después de aprobarlo.',
+      'Enviado sem recibo. Ele pode ser adicionado quando o revisor devolver a despesa ou com uma correção após a aprovação.',
+    ],
   'To add the receipt, create a corrected draft below.': [
     'Para añadir el ticket, crea un borrador corregido más abajo.',
     'Para adicionar o recibo, crie um rascunho corrigido abaixo.',
   ],
+  '1 crew draft sent for approval.': [
+    '1 borrador del equipo enviado para aprobación.',
+    '1 rascunho da equipe enviado para aprovação.',
+  ],
+  '{n} crew drafts sent for approval.': [
+    '{n} borradores del equipo enviados para aprobación.',
+    '{n} rascunhos da equipe enviados para aprovação.',
+  ],
+  '{n} crew members': ['{n} personas del equipo', '{n} pessoas da equipe'],
+  'Saved and sent {hours} h for {who}.': [
+    'Guardadas y enviadas {hours} h de {who}.',
+    'Salvas e enviadas {hours} h de {who}.',
+  ],
+  'Saved {hours} h for {who} (draft, not sent yet).': [
+    'Guardadas {hours} h de {who} (borrador, aún sin enviar).',
+    'Salvas {hours} h de {who} (rascunho, ainda não enviado).',
+  ],
+  'Open crew drafts ({n})': [
+    'Borradores del equipo sin enviar ({n})',
+    'Rascunhos da equipe não enviados ({n})',
+  ],
+  'These hours are saved but not sent for approval yet.': [
+    'Estas horas están guardadas pero aún no se enviaron para aprobación.',
+    'Estas horas estão salvas, mas ainda não foram enviadas para aprovação.',
+  ],
+  'Send selected for approval': [
+    'Enviar seleccionadas para aprobación',
+    'Enviar selecionadas para aprovação',
+  ],
+  'Crew week': ['Semana del equipo', 'Semana da equipe'],
+  'Crew member': ['Persona del equipo', 'Pessoa da equipe'],
+  'Draft, not sent yet': ['Borrador, aún sin enviar', 'Rascunho, ainda não enviado'],
+  '* draft, not sent yet. Tap a day to log or review its hours.': [
+    '* borrador, aún sin enviar. Toca un día para registrar o revisar sus horas.',
+    '* rascunho, ainda não enviado. Toque em um dia para registrar ou revisar as horas.',
+  ],
+  'Discard this crew draft? It cannot be undone.': [
+    '¿Descartar este borrador del equipo? No se puede deshacer.',
+    'Descartar este rascunho da equipe? Não é possível desfazer.',
+  ],
+  'Crew draft discarded.': ['Borrador del equipo descartado.', 'Rascunho da equipe descartado.'],
 };

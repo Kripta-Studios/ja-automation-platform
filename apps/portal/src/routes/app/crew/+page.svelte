@@ -540,6 +540,64 @@
     };
   };
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  /** h:mm like the Time screens ("8:00"). */
+  const hm = (minutes: number): string =>
+    `${Math.floor(minutes / 60)}:${String(Math.round(minutes % 60)).padStart(2, '0')}`;
+  // ---- T37: save confirmation, week at a glance, open crew drafts ----
+  const notice = $derived.by(() => {
+    const params = $page.url.searchParams;
+    const kind = params.get('notice');
+    if (!kind) return '';
+    const n = Number(params.get('n') ?? 0) || 0;
+    const minutes = Number(params.get('minutes') ?? 0) || 0;
+    const workerId = params.get('worker') ?? '';
+    const name = workerId
+      ? personDisplayName(
+          data.assigned.find((person: { id: string; name: string }) => person.id === workerId)?.name ??
+            (data.weekEntries ?? []).find((entry: { workerId: string }) => entry.workerId === workerId)
+              ?.workerName ??
+            '',
+        )
+      : '';
+    if (kind === 'discarded') return t('Crew draft discarded.');
+    if (kind === 'sent') return n === 1 ? t('1 crew draft sent for approval.') : t('{n} crew drafts sent for approval.', { n });
+    const who = name || t('{n} crew members', { n });
+    return kind === 'savedSent'
+      ? t('Saved and sent {hours} h for {who}.', { hours: hm(minutes), who })
+      : t('Saved {hours} h for {who} (draft, not sent yet).', { hours: hm(minutes), who });
+  });
+  const weekDays = $derived.by(() => {
+    const start = data.weekStart || data.workDate;
+    if (!start) return [] as string[];
+    return Array.from({ length: 7 }, (_, index) => {
+      const day = new Date(`${start}T00:00:00.000Z`);
+      day.setUTCDate(day.getUTCDate() + index);
+      return day.toISOString().slice(0, 10);
+    });
+  });
+  const weekPeople = $derived.by(() => {
+    const people = new Map<string, string>();
+    for (const person of data.assigned ?? []) people.set(person.id, person.name);
+    for (const entry of data.weekEntries ?? []) people.set(entry.workerId, entry.workerName);
+    return [...people.entries()].map(([id, name]) => ({ id, name: personDisplayName(name) }));
+  });
+  const weekMinutes = (workerId: string, date: string): number =>
+    (data.weekEntries ?? [])
+      .filter((entry: { workerId: string; workDate: string }) => entry.workerId === workerId && entry.workDate === date)
+      .reduce((sum: number, entry: { minutes: number }) => sum + Number(entry.minutes), 0);
+  const weekHasDraft = (workerId: string, date: string): boolean =>
+    (data.weekEntries ?? []).some(
+      (entry: { workerId: string; workDate: string; approvalState: string }) =>
+        entry.workerId === workerId && entry.workDate === date && entry.approvalState === 'draft',
+    );
+  const dayShort = (date: string) =>
+    new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-GB', {
+      weekday: 'short',
+      day: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${date}T12:00:00Z`));
+  const dateHref = (date: string) =>
+    `/j-aautomation/app/crew?${new URLSearchParams({ project: data.projectId, date, lang: locale })}#crew-hours`;
   let mode = $state<'shared' | 'individual'>(
     untrack(() => (form?.values?.mode === 'individual' ? 'individual' : 'shared')),
   );
@@ -856,6 +914,79 @@
       {:else}<p class="empty">{t('No crew delegations for this project.')}</p>{/if}
     </SectionCard>
   {:else if !filterProblem && data.projects.length}
+    {#if notice}
+      <p class="crew-notice" role="status" data-crew-notice>{notice}</p>
+    {/if}
+    {#if data.openDrafts?.length}
+      <SectionCard
+        title={t('Open crew drafts ({n})', { n: data.openDrafts.length })}
+        id="crew-open-drafts"
+      >
+        <p>{t('These hours are saved but not sent for approval yet.')}</p>
+        <form
+          method="POST"
+          action={`?/submitDrafts&${actionContext}`}
+          data-crew-operation="submitDrafts"
+          use:enhance={preserveCrewForm}
+        >
+          <input type="hidden" name="projectId" value={data.projectId} />
+          <input type="hidden" name="workDate" value={data.workDate} />
+          <ul class="draft-list">
+            {#each data.openDrafts as draft (draft.id)}
+              <li>
+                <label
+                  ><input type="checkbox" name="draft" value={`${draft.id}:${draft.version}`} checked />
+                  <span
+                    ><strong>{personDisplayName(draft.workerName)}</strong> · {longDate(draft.workDate)} ·
+                    {hm(Number(draft.minutes))} h · {timeCategory(draft.category)}</span
+                  ></label
+                >
+                <a class="secondary-link" href={`/j-aautomation/app/crew/time/${draft.id}?lang=${locale}`}
+                  >{t('Edit draft')}</a
+                >
+              </li>
+            {/each}
+          </ul>
+          <button type="submit" disabled={Boolean(pendingOperation)} data-crew-submit-drafts
+            >{t('Send selected for approval')}</button
+          >
+        </form>
+      </SectionCard>
+    {/if}
+    {#if weekPeople.length}
+      <SectionCard title={t('Crew week')} id="crew-week">
+        <div class="crew-week-scroll">
+          <table class="crew-week">
+            <thead>
+              <tr>
+                <th scope="col">{t('Crew member')}</th>
+                {#each weekDays as date (date)}
+                  <th scope="col" class:is-selected={date === data.workDate}
+                    ><a href={dateHref(date)}>{dayShort(date)}</a></th
+                  >
+                {/each}
+              </tr>
+            </thead>
+            <tbody>
+              {#each weekPeople as person (person.id)}
+                <tr>
+                  <th scope="row">{person.name}</th>
+                  {#each weekDays as date (date)}
+                    <td class:is-selected={date === data.workDate} class:has-draft={weekHasDraft(person.id, date)}
+                      >{weekMinutes(person.id, date) ? hm(weekMinutes(person.id, date)) : '–'}{#if weekHasDraft(person.id, date)}<span
+                          class="draft-mark"
+                          title={t('Draft, not sent yet')}>*</span
+                        >{/if}</td
+                    >
+                  {/each}
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+        <p class="hint">{t('* draft, not sent yet. Tap a day to log or review its hours.')}</p>
+      </SectionCard>
+    {/if}
     <SectionCard title={t('Log team hours')} id="crew-hours">
       <p>
         {t('Use one worker for a single entry, or select several. Shared hours apply')}
@@ -1279,6 +1410,64 @@
 </main>
 
 <style>
+  .crew-notice {
+    margin: 0.75rem 0;
+    padding: 0.75rem 1rem;
+    border-radius: 0.5rem;
+    background: #e8f5ec;
+    border: 1px solid #9ccfaa;
+    color: #14532d;
+    font-weight: 600;
+  }
+  .draft-list {
+    list-style: none;
+    margin: 0 0 0.75rem;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .draft-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.25rem 0.75rem;
+  }
+  .draft-list label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+  }
+  .draft-list input[type='checkbox'] {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .crew-week-scroll {
+    overflow-x: auto;
+  }
+  .crew-week {
+    border-collapse: collapse;
+    width: 100%;
+    font-variant-numeric: tabular-nums;
+  }
+  .crew-week th,
+  .crew-week td {
+    padding: 0.4rem 0.5rem;
+    border-bottom: 1px solid #e3e0da;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .crew-week tbody th {
+    text-align: left;
+  }
+  .crew-week .is-selected {
+    background: #f6f1e7;
+  }
+  .crew-week .draft-mark {
+    color: #b26a00;
+    font-weight: 700;
+  }
   .crew-page {
     max-width: 72rem;
     margin: 0 auto;

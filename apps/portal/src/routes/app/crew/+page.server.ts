@@ -19,7 +19,24 @@ import {
 import type { Actions, PageServerLoad } from './$types';
 import { parseHoursText } from '$lib/portal/sections/time-hours';
 
-type CrewOperation = 'grant' | 'revoke' | 'createBatch' | 'submit' | 'allocateReceipt';
+const shiftIsoDate = (date: string, days: number): string => {
+  const value = new Date(`${date}T00:00:00.000Z`);
+  value.setUTCDate(value.getUTCDate() + days);
+  return value.toISOString().slice(0, 10);
+};
+/** Monday of the ISO week holding `date`. */
+const crewWeekStart = (date: string): string => {
+  const day = new Date(`${date}T00:00:00.000Z`).getUTCDay();
+  return shiftIsoDate(date, -((day + 6) % 7));
+};
+
+type CrewOperation =
+  | 'grant'
+  | 'revoke'
+  | 'createBatch'
+  | 'submit'
+  | 'allocateReceipt'
+  | 'submitDrafts';
 type CrewProblem = {
   code: string;
   key: ActionMessageKey;
@@ -656,6 +673,9 @@ export const load: PageServerLoad = ({ locals, url }) => {
       grants: [],
       assigned: [],
       entries: [],
+      weekEntries: [] as ReturnType<CrewLeaderRepository['entries']>,
+      weekStart: '',
+      openDrafts: [] as ReturnType<CrewLeaderRepository['entries']>,
       receipts: [],
       allocatedReceipts: [],
     });
@@ -728,6 +748,29 @@ export const load: PageServerLoad = ({ locals, url }) => {
       assigned,
       entries:
         !owner && projectId ? crew.entries(context.principal, projectId, workDate, workDate) : [],
+      // T37: the chief's week at a glance (people x days) and every open crew draft
+      // (any recent date) so nothing recorded is forgotten unsent.
+      weekStart: crewWeekStart(workDate),
+      weekEntries:
+        !owner && projectId
+          ? crew.entries(
+              context.principal,
+              projectId,
+              crewWeekStart(workDate),
+              shiftIsoDate(crewWeekStart(workDate), 6),
+            )
+          : [],
+      openDrafts:
+        !owner && projectId
+          ? crew
+              .entries(
+                context.principal,
+                projectId,
+                shiftIsoDate(workDate, -90),
+                shiftIsoDate(workDate, 30),
+              )
+              .filter((entry) => entry.approvalState === 'draft')
+          : [],
       receipts:
         !owner && projectId
           ? receiptRepository.eligibleReceipts(context.principal, projectId, workDate)
@@ -757,7 +800,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
 };
 
 function action(
-  operation: 'grant' | 'revoke' | 'createBatch' | 'submit' | 'allocateReceipt',
+  operation: 'grant' | 'revoke' | 'createBatch' | 'submit' | 'allocateReceipt' | 'submitDrafts',
 ): Actions[string] {
   return async ({ locals, request }) => {
     if (!locals.user) redirect(303, '/j-aautomation/app/login');
@@ -769,6 +812,9 @@ function action(
         .map(([key, entry]) => [key, String(entry)]),
     );
     const context = openPortalRepository(locals);
+    let notice:
+      | { kind: 'saved' | 'savedSent' | 'sent'; n: number; minutes?: number; worker?: string }
+      | undefined;
     try {
       const crew = new CrewLeaderRepository(context.sqlite);
       if (operation === 'grant') {
@@ -783,6 +829,18 @@ function action(
         crew.revoke(context.principal, value('id'));
       } else if (operation === 'submit') {
         crew.submit(context.principal, value('id'), Number(value('version')));
+        notice = { kind: 'sent', n: 1 };
+      } else if (operation === 'submitDrafts') {
+        // T37: send several open crew drafts at once (each with its own version check).
+        const picked = formData.getAll('draft').map(String);
+        if (!picked.length) throw new ValidationError('Choose at least one draft to send');
+        let sent = 0;
+        for (const token of picked) {
+          const [id, version] = token.split(':');
+          crew.submit(context.principal, String(id), Number(version));
+          sent += 1;
+        }
+        notice = { kind: 'sent', n: sent };
       } else if (operation === 'allocateReceipt') {
         const timeEntryIds = formData.getAll('timeEntryIds').map(String);
         new CrewSharedExpenseAllocationRepository(context.sqlite).createFromMajor(
@@ -809,7 +867,7 @@ function action(
               ]),
             )
           : undefined;
-        crew.createBatch(context.principal, {
+        const batch = crew.createBatch(context.principal, {
           requestId: value('requestId'),
           projectId: value('projectId'),
           workDate: value('workDate'),
@@ -821,14 +879,33 @@ function action(
           submit: value('submit') === 'yes',
           allowExactDuplicate: value('allowExactDuplicate') === 'on',
         });
+        // T37: confirm what was saved ("Saved 8:00 h for Maico (draft)").
+        const savedMinutes = workerMinutes
+          ? Object.values(workerMinutes).reduce((sum, minutes) => sum + minutes, 0)
+          : minutesFromHours(value('sharedHours'), 'Shared hours') * workerIds.length;
+        notice = {
+          kind: value('submit') === 'yes' ? 'savedSent' : 'saved',
+          n: batch.created.length,
+          minutes: savedMinutes,
+          worker: workerIds.length === 1 ? workerIds[0] : undefined,
+        };
       }
       const projectId = value('projectId');
       const workDate =
-        operation === 'createBatch' || operation === 'allocateReceipt' || operation === 'submit'
+        operation === 'createBatch' ||
+        operation === 'allocateReceipt' ||
+        operation === 'submit' ||
+        operation === 'submitDrafts'
           ? value('workDate')
           : '';
       const query = new URLSearchParams();
       if (projectId) query.set('project', projectId);
+      if (notice) {
+        query.set('notice', notice.kind);
+        query.set('n', String(notice.n));
+        if (notice.minutes !== undefined) query.set('minutes', String(notice.minutes));
+        if (notice.worker) query.set('worker', notice.worker);
+      }
       const actionUrl = new URL(request.url);
       const selectedDate = workDate || actionUrl.searchParams.get('date') || '';
       if (/^\d{4}-\d{2}-\d{2}$/u.test(selectedDate)) query.set('date', selectedDate);
@@ -840,7 +917,9 @@ function action(
           ? 'crew-delegations'
           : operation === 'allocateReceipt'
             ? 'crew-receipts'
-            : 'crew-entries';
+            : operation === 'submitDrafts'
+              ? 'crew-open-drafts'
+              : 'crew-entries';
       redirect(303, `/j-aautomation/app/crew?${query}#${destination}`);
     } catch (caught) {
       if (isRedirect(caught)) throw caught;
@@ -923,5 +1002,6 @@ export const actions: Actions = {
   revoke: action('revoke'),
   createBatch: action('createBatch'),
   submit: action('submit'),
+  submitDrafts: action('submitDrafts'),
   allocateReceipt: action('allocateReceipt'),
 };

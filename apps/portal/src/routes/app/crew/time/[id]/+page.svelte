@@ -105,7 +105,7 @@
     hidden.value = valid ? String(minutes) : '';
   }
   const crewHref = $derived(
-    `/j-aautomation/app/crew?${new URLSearchParams({ project: record.projectId, date: record.workDate })}#crew-entries`,
+    `/j-aautomation/app/crew?${new URLSearchParams({ project: record.projectId, date: record.workDate, lang: locale })}#crew-entries`,
   );
   const expenseHref = $derived(
     `/j-aautomation/app/expenses?${new URLSearchParams({
@@ -399,8 +399,12 @@
     <SectionCard title={t('Discard draft')}>
       <form
         method="POST"
-        action="?/discard"
+        action={`?/discard&lang=${locale}`}
         data-crew-time-operation="discard"
+        onsubmit={(event) => {
+          if (!window.confirm(t('Discard this crew draft? It cannot be undone.')))
+            event.preventDefault();
+        }}
         use:enhance={preserveDetailForm}
         use:formValidation
       >

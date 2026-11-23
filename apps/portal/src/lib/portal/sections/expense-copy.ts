@@ -109,6 +109,8 @@ const en = {
   saveAll: 'Save {n} expenses',
   recent: 'My recent expenses',
   recentOwner: 'Your entries and drafts to submit',
+  recentOwnerRecorded: 'Expenses you recorded (for you or others) and drafts to submit',
+  sendsWithTime: 'Will be sent with the time week',
   ovTitle: 'Expenses overview',
   ovIntro:
     'Totals by worker, project and category for the period. Open a group to see each expense.',
@@ -288,6 +290,8 @@ const es: Copy = {
   saveAll: 'Guardar {n} gastos',
   recent: 'Mis gastos recientes',
   recentOwner: 'Tus registros y borradores por enviar',
+  recentOwnerRecorded: 'Gastos que registraste (tuyos o de otras personas) y borradores por enviar',
+  sendsWithTime: 'Se enviará con la semana de horas',
   ovTitle: 'Resumen de gastos',
   ovIntro:
     'Totales por trabajador, proyecto y categoría del periodo. Abre un grupo para ver cada gasto.',
@@ -464,6 +468,8 @@ const pt: Copy = {
   saveAll: 'Salvar {n} despesas',
   recent: 'Minhas despesas recentes',
   recentOwner: 'Seus lançamentos e rascunhos a enviar',
+  recentOwnerRecorded: 'Despesas que você registrou (suas ou de outras pessoas) e rascunhos a enviar',
+  sendsWithTime: 'Será enviada com a semana de horas',
   ovTitle: 'Visão geral de despesas',
   ovIntro:
     'Totais por colaborador, projeto e categoria no período. Abra um grupo para ver cada despesa.',

@@ -861,7 +861,8 @@
   <div class="xp">
     <header class="xp-head">
       <div>
-        <h2>{isOwner ? c('recentOwner') : c('mine')}</h2>
+        <!-- T68: the owner's list holds what the owner recorded, also for other people. -->
+        <h2>{isOwner ? c('recentOwnerRecorded') : c('mine')}</h2>
         <p>{c('intro')}</p>
         <p class="xp-muted" data-expense-scope>
           {c('captureScope', { weeks: capture.weeks, n: visible.length })}
@@ -909,7 +910,7 @@
         </header>
         {#each week.people as block (block.workerId)}
           <div class="xp-person">
-            {#if showPersonHeaders}
+            {#if showPersonHeaders || (isOwner && block.workerId !== me)}
               <p class="xp-person-name">
                 {block.workerId === me ? c('me') : block.workerName}
                 {#if week.people.length > 1}<span class="xp-muted"
@@ -968,7 +969,7 @@
                         >{c('edit')}</button
                       >
                     {:else if row.approval_state === 'draft' && row.linked_pair_time_id}
-                      <span class="xp-muted">{c('withTime')}</span>
+                      <span class="xp-muted">{c('sendsWithTime')}</span>
                     {:else if row.approval_state === 'needs_changes' && (text(row, 'worker_id') === me || isOwner)}
                       {#if row.active_correction_id}
                         <a

@@ -48,7 +48,7 @@
   import LocalDictation from '../local-dictation/LocalDictation.svelte';
   import { applyAction, deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '../minute-hours';
   import { reportQuickText, type ReportQuickCopyKey } from './report-quick-copy';
 
   let {
@@ -1109,6 +1109,20 @@
     quickText = '';
     quickRestored = false;
     const saved = readJson(quickDraftKey());
+    // T57 (worker-21): a draft typed for another day (e.g. yesterday) is restored on
+    // that day instead of being dropped because the sheet reopened on today.
+    if (
+      saved &&
+      !$page.url.searchParams.get('date') &&
+      saved.date !== createDate &&
+      typeof saved.date === 'string' &&
+      /^\d{4}-\d{2}-\d{2}$/u.test(saved.date) &&
+      typeof saved.text === 'string' &&
+      (saved.text.trim() || String(saved.openItems ?? '').trim() || String(saved.plan ?? '').trim())
+    ) {
+      createDate = saved.date;
+      quickDateEdit = true;
+    }
     if (saved && saved.date === createDate && typeof saved.text === 'string') {
       if (visible(saved.project)) createProject = String(saved.project);
       quickText = saved.text;
@@ -1119,6 +1133,18 @@
     }
     quickReady = true;
   }
+  /** T57: the sheet says "today" only for today's report; another day is named. */
+  const quickForToday = $derived(!createDate || createDate === localToday());
+  const quickDateLabel = $derived(
+    createDate && /^\d{4}-\d{2}-\d{2}$/u.test(createDate)
+      ? new Intl.DateTimeFormat(reportLocale === 'es' ? 'es-ES' : reportLocale === 'pt' ? 'pt-BR' : 'en-GB', {
+          weekday: 'short',
+          day: 'numeric',
+          month: 'short',
+          timeZone: 'UTC',
+        }).format(new Date(`${createDate}T12:00:00Z`))
+      : '',
+  );
   // Drafts autosave on this device while typing (cleared after a successful save).
   $effect(() => {
     const snapshot = {
@@ -2190,7 +2216,9 @@
     : surface === 'generate'
       ? translate('Refresh period reports')
       : fieldWorker
-        ? q('formTitle')
+        ? quickForToday
+          ? q('formTitle')
+          : q('formTitleDay', { date: quickDateLabel })
         : translate('New daily report')}
   description={surface === 'generate'
     ? translate('Authorized Finance / Owner action for reviewed period records.')
@@ -2303,7 +2331,7 @@
         {/if}
         <p class="quick-fact quick-hours" data-report-quick-hours>
           {#if quickHours > 0}
-            {q('loggedHours', { hours: decimalHoursFromMinutes(quickHours) })}
+            {q('loggedHours', { hours: clockHoursFromMinutes(quickHours) })}
           {:else}
             {q('noHours')}
             <a class="quick-link" href={`${base}/app/time?focus=hours&lang=${reportLocale}`}
@@ -2314,7 +2342,7 @@
       </div>
       <input type="hidden" name="summary" value={quickSummary} />
       <label class="quick-field">
-        <span>{q('whatDid')}</span>
+        <span>{quickForToday ? q('whatDid') : q('whatDidDay')}</span>
         <textarea
           name="tasksCompleted"
           required

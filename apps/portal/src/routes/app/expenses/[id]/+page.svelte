@@ -72,6 +72,10 @@
   const canViewExpenseMoney = $derived(
     data.expenseMoneyVisible !== false && data.user?.role !== 'project_manager',
   );
+  /** Amount, currency and receipt: also for the reviewing PM (T10); payment details are not. */
+  const canViewExpenseAmount = $derived(
+    canViewExpenseMoney || (data.user?.role === 'project_manager' && record.amount_minor != null),
+  );
   let pmCorrectionForm: HTMLFormElement | undefined = $state();
   beforeNavigate((navigation) => {
     if (
@@ -1077,7 +1081,7 @@
       </div>
     {/if}
     <section class="record-detail-grid">
-      {#if canViewExpenseMoney}
+      {#if canViewExpenseAmount}
         <article>
           <span>{t('AMOUNT')}</span><strong
             >{money(record.amount_minor, String(record.currency))}</strong
@@ -1187,7 +1191,7 @@
             </dd>
           </div>
         {/if}
-        {#if canViewExpenseMoney}
+        {#if canViewExpenseAmount}
           <div>
             <dt>{t('Receipt')}</dt>
             <dd>
@@ -1198,7 +1202,7 @@
           </div>
         {/if}
       </dl>
-      {#if canViewExpenseMoney && record.receipt_document_id}
+      {#if canViewExpenseAmount && record.receipt_document_id}
         <a
           id="expense-receipt-preview"
           class="preview-link"

@@ -12990,7 +12990,10 @@ export class PortalRepository {
     const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
     const expenseColumns =
       principal.role === 'project_manager'
-        ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,
+        ? // The reviewing PM sees what he approves: amount, currency and receipt (T10).
+          // Payment method, who paid, reimbursement and billing stay hidden.
+          `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,
+         e.currency,e.amount_minor,e.receipt_document_id,
          e.vendor,e.description,e.approval_state,e.version,e.created_at,e.updated_at`
         : restrictedSupplier
           ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,

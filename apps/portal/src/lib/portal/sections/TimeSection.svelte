@@ -28,6 +28,7 @@
     DAY_MAX_MINUTES,
     DAY_WARN_MINUTES,
     hoursAndMinutesText,
+    isoDateInZone,
     parseClockText,
     parseHoursText,
     personName,
@@ -426,7 +427,14 @@
     date.setUTCDate(date.getUTCDate() + offset * 7);
     return date.toISOString().slice(0, 10);
   };
-  const currentWeek = weekStartForDate(today) ?? today;
+  // T52: "this week" is the project's week (a Monday 01:00 in Madrid is still Sunday
+  // on a site in Mexico), not the browser's.
+  const projectZone = $derived(
+    String(rowProjects[0]?.timezone ?? projects[0]?.timezone ?? '') || undefined,
+  );
+  const projectToday = $derived(projectZone ? isoDateInZone(projectZone) : today);
+  const currentWeek = $derived(weekStartForDate(projectToday) ?? projectToday);
+  const pastWeek = $derived(weekStart < currentWeek);
 
   const sheetHref = (changes: Record<string, string | null>) => {
     const query = new URLSearchParams($page.url.searchParams);
@@ -803,8 +811,29 @@
   );
   // "Submit week" reminder only near the end of the week (Fri-Sun) or for past weeks.
   const weekEndNear = $derived(
-    weekStart < String(weekStartForDate(today) ?? today) || new Date(`${today}T00:00:00Z`).getUTCDay() % 6 === 0 || new Date(`${today}T00:00:00Z`).getUTCDay() === 5,
+    pastWeek ||
+      new Date(`${projectToday}T00:00:00Z`).getUTCDay() % 6 === 0 ||
+      new Date(`${projectToday}T00:00:00Z`).getUTCDay() === 5,
   );
+  /** T52: per day, what the confirm dialog sends now vs. what was already sent. */
+  const daySendMinutes = (index: number): number => {
+    let minutes = 0;
+    for (const line of grid) {
+      const cell = line.cells[index];
+      if (!cell) continue;
+      const date = days[index]!;
+      const list = cellEntries(line.row, date);
+      if (cell.kind === 'new' || cell.kind === 'fix') minutes += cell.minutes ?? 0;
+      else if (cell.kind === 'draft' && cell.changed) minutes += cell.minutes ?? 0;
+      else
+        minutes += list
+          .filter((entry) => String(entry.approval_state) === 'draft')
+          .reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
+    }
+    return minutes;
+  };
+  const sendNowMinutes = $derived(days.reduce((sum, _, index) => sum + daySendMinutes(index), 0));
+  const sendNowDays = $derived(days.filter((_, index) => daySendMinutes(index) > 0).length);
   const dayModeTotal = $derived(
     dayCell
       ? dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0) -
@@ -1117,7 +1146,7 @@
     >
     {#if weekStart !== currentWeek}
       <a class="this-week" href={sheetHref({ mode: 'week', week: null, day: null })} onclick={leaveGuard} data-sveltekit-noscroll
-        >{t('thisWeek')}</a
+        >{t('goThisWeek')}</a
       >
     {/if}
   </nav>
@@ -1603,14 +1632,20 @@
         {#if mode === 'day'}
           <div class="sheet-actions day-actions" data-testid="time-day-actions">
             <p class="week-summary">
-              {t('weekSoFar', { hours: hm(weekTotal) })}
+              {pastWeek
+                ? `${t('weekTotal')}: ${hm(weekTotal)} ${t('hoursUnit')}`
+                : t('weekSoFar', { hours: hm(weekTotal) })}
               {#if weekDraftMinutes && !weekEndNear}
                 · {t('notSubmittedHours', { hours: hm(weekDraftMinutes) })}
               {/if}
             </p>
             {#if weekDraftMinutes && weekEndNear && canSubmit}
               <div class="week-reminder" role="status" data-testid="time-week-reminder">
-                <span>{t('weekEndReminder', { hours: hm(weekDraftMinutes) })}</span>
+                <span
+                  >{t(pastWeek ? 'weekOverReminder' : 'weekEndReminder', {
+                    hours: hm(weekDraftMinutes),
+                  })}</span
+                >
                 <a href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
                   >{t('reviewSubmitWeek')} →</a
                 >
@@ -1732,7 +1767,12 @@
         <tbody>
           {#each days as date, index (date)}
             {#if dayTotals[index]}
-              <tr class:day-long={dayLong(index)}><th scope="row">{dayName(date, 'long')}</th><td>{hm(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}</td></tr>
+              <tr class:day-long={dayLong(index)} class:day-sent={!daySendMinutes(index)}
+                ><th scope="row">{dayName(date, 'long')}</th><td
+                  >{hm(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}{#if !daySendMinutes(index)}
+                    <span class="muted small"> · {t('alreadySent')}</span>{/if}</td
+                ></tr
+              >
             {/if}
           {/each}
         </tbody>
@@ -1740,6 +1780,7 @@
           <tr><th scope="row">{t('weekTotal')}</th><td><strong>{hm(weekTotal)} {t('hoursUnit')}</strong></td></tr>
         </tfoot>
       </table>
+      <p><strong>{t('sendNow', { hours: hm(sendNowMinutes), n: sendNowDays })}</strong></p>
       <p>{t('confirmEntries', { count: submitCount })}</p>
       <p class="muted">
         {forOther
@@ -1783,6 +1824,11 @@
   }
   .cell-warn {
     color: #8a5300;
+  }
+  tr.day-sent th,
+  tr.day-sent td {
+    color: var(--ja-muted, #5f6670);
+    font-weight: 400;
   }
   td.day-over,
   .day-card-total.day-over {

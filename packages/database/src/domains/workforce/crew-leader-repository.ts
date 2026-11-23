@@ -7,6 +7,9 @@ import { runImmediateTransaction } from '../../core/transaction.ts';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
 import { TimeEntryRepository, type TimeEntryInput } from '../time/time-entry-repository.ts';
 
+/** Time categories a crew chief may record (same set as the single-entry crew form). */
+export const CREW_TIME_CATEGORIES: readonly string[] = ['regular', 'overtime', 'travel', 'standby'];
+
 type CrewGrant = Readonly<{
   id: string;
   projectId: string;
@@ -685,7 +688,7 @@ export class CrewLeaderRepository {
         .get(input.originalId) as { grantId: string };
       if (grant.id !== recorder.grantId)
         throw new AccessDeniedError('Crew time entry delegation changed');
-      if (!['regular', 'overtime', 'travel', 'standby'].includes(input.category))
+      if (!CREW_TIME_CATEGORIES.includes(input.category))
         throw new ValidationError('Choose a valid time category');
       if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
         throw new ValidationError('Enter 1 to 1440 minutes');
@@ -732,7 +735,7 @@ export class CrewLeaderRepository {
         .get(input.id) as { grantId: string };
       if (grant.id !== recorder.grantId)
         throw new AccessDeniedError('Crew time entry delegation changed');
-      if (!['regular', 'overtime', 'travel', 'standby'].includes(input.category))
+      if (!CREW_TIME_CATEGORIES.includes(input.category))
         throw new ValidationError('Choose a valid time category');
       if (!Number.isInteger(input.minutes) || input.minutes < 1 || input.minutes > 1440)
         throw new ValidationError('Enter 1 to 1440 minutes');
@@ -789,6 +792,8 @@ export class CrewLeaderRepository {
     const workerIds = [...new Set(input.workerIds.map((id) => id.trim()).filter(Boolean))].sort();
     if (workerIds.length === 0 || workerIds.length > 100)
       throw new ValidationError('Select 1 to 100 crew members');
+    if (!CREW_TIME_CATEGORIES.includes(input.category))
+      throw new ValidationError('Choose a valid time category');
     if (input.startTime || input.endTime || input.breakMinutes)
       throw new ValidationError('Crew duration entries cannot include an inferred clock interval');
     const workerMinutes = input.workerMinutes;

@@ -78,6 +78,7 @@
   };
   const approvalLabel = (value: string) => translateControlledValue(locale, 'status', value);
   const categoryLabel = (value: string) => translateControlledValue(locale, 'timeCategory', value);
+  const crewTimeCategories = ['regular', 'overtime', 'travel', 'standby'] as const;
   const correctionHref = $derived(
     record.activeCorrectionId
       ? `/j-aautomation/app/crew/time/${encodeURIComponent(record.activeCorrectionId)}`
@@ -253,10 +254,9 @@
         <label
           >{t('Time category')}
           <select name="category" value={submittedValue('category', record.category)}>
-            <option value="regular">{t('Regular')}</option>
-            <option value="overtime">{t('Overtime')}</option>
-            <option value="travel">{t('Travel')}</option>
-            <option value="standby">{t('Standby')}</option>
+            {#each crewTimeCategories as category (category)}
+              <option value={category}>{categoryLabel(category)}</option>
+            {/each}
           </select>
         </label>
         <label
@@ -364,10 +364,9 @@
         <label
           >{t('Time category')}
           <select name="category" value={submittedValue('category', record.category)}>
-            <option value="regular">{t('Regular')}</option>
-            <option value="overtime">{t('Overtime')}</option>
-            <option value="travel">{t('Travel')}</option>
-            <option value="standby">{t('Standby')}</option>
+            {#each crewTimeCategories as category (category)}
+              <option value={category}>{categoryLabel(category)}</option>
+            {/each}
           </select>
         </label>
         <label

@@ -65,6 +65,8 @@
     );
   }
   const timeCategory = (value: string) => translateControlledValue(locale, 'timeCategory', value);
+  // Same categories (and labels) as the crew rows and the server allowlist.
+  const crewTimeCategories = ['regular', 'overtime', 'travel', 'standby'] as const;
   const payer = (value: string) => translateControlledValue(locale, 'role', value);
   const expenseEntryAvailable = $derived(
     data.entries.some(
@@ -949,12 +951,9 @@
             <label
               >{t('Time category')}
               <select name="category" value={submittedValue('category', 'regular')}>
-                <option value="regular">{t('Regular')}</option><option value="overtime"
-                  >{t('Overtime')}</option
-                >
-                <option value="travel">{t('Travel')}</option><option value="standby"
-                  >{t('Standby')}</option
-                >
+                {#each crewTimeCategories as category (category)}
+                  <option value={category}>{timeCategory(category)}</option>
+                {/each}
               </select>
             </label>
             <label

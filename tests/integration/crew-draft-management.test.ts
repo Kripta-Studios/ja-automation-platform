@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { AccessDeniedError, ConflictError, CrewLeaderRepository } from '@ja/database';
+import {
+  AccessDeniedError,
+  ConflictError,
+  CrewLeaderRepository,
+  ValidationError,
+} from '@ja/database';
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
@@ -45,6 +50,27 @@ function setup() {
 }
 
 describe('crew draft management', () => {
+  it('rejects a crew batch with a category outside the crew allowlist (T21)', () => {
+    const source = setup();
+    for (const category of ['billable_premium', 'work', '']) {
+      expect(() =>
+        source.crew.createBatch(source.chief, {
+          projectId: source.fixture.project.id,
+          workerIds: [source.workerId],
+          requestId: `crew-draft-invalid-category-${category || 'empty'}-0001`,
+          workDate,
+          category,
+          minutes: 30,
+          summary: 'Invalid category',
+        }),
+      ).toThrow(ValidationError);
+    }
+    const count = source.fixture.sqlite
+      .prepare("SELECT COUNT(*) n FROM time_entry WHERE category NOT IN ('regular','overtime','travel','standby')")
+      .get() as { n: number };
+    expect(count.n).toBe(0);
+  });
+
   it('does not revive draft or correction access after revocation and regrant', () => {
     const source = setup();
     seedB5User(source.fixture.sqlite, 'b5-other-delegated-worker', 'worker');
@@ -201,7 +227,8 @@ describe('crew draft management', () => {
     expect(
       fixture.sqlite.prepare('SELECT approval_state,minutes FROM time_entry WHERE id=?').get(id),
     ).toEqual({
-      approval_state: 'needs_changes',
+      // T08 (migration 83): the sent correction supersedes the returned original.
+      approval_state: 'rejected',
       minutes: 60,
     });
     crew.revoke(owner, grant.id);

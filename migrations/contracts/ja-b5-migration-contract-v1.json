@@ -1022,7 +1022,7 @@
       "version": 83,
       "canonicalName": "returned_record_supersession",
       "file": "0083_returned_record_supersession.sql",
-      "sha256": "6da3de4c1fcd0663cec8fd61ecc063eb5821498bebc68b7e319bb16210badf34",
+      "sha256": "d9971fb44ca31bf982035d811f3f7264f9d0823f3331109711df3f20ee8efd9f",
       "descriptor": "J&A B5 migration 83 returned_record_supersession",
       "descriptorSha256": "eef53a0f8f4720360493170e921731386452dd700acfe164d0a5b40f1af422ad",
       "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",

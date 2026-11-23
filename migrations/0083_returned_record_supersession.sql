@@ -162,3 +162,61 @@ BEGIN
      AND id=(SELECT link.original_id FROM record_correction_link link
               WHERE link.record_type='expense' AND link.correction_id=NEW.id);
 END;
+
+-- 4. A superseded original stays the canonical root of its correction chain: when the
+--    reviewer sends the correction back too, the worker's retry links to the same root
+--    (repository createCorrectionDraft). The link guard from migration 36 is recreated
+--    unchanged except that it also admits a root closed by step 2/3 above (identified by
+--    its 'Superseded by correction' approval_event), never a reviewer-rejected record.
+DROP TRIGGER correction_link_subject_guard;
+CREATE TRIGGER correction_link_subject_guard BEFORE INSERT ON record_correction_link WHEN
+  (NEW.record_type='time_entry' AND (NOT EXISTS(SELECT 1 FROM time_entry WHERE id=NEW.original_id) OR NOT EXISTS(SELECT 1 FROM time_entry WHERE id=NEW.correction_id))) OR
+  (NEW.record_type='expense' AND (NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.original_id) OR NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.correction_id))) OR
+  (NEW.record_type='daily_report' AND (NOT EXISTS(SELECT 1 FROM daily_report WHERE id=NEW.original_id) OR NOT EXISTS(SELECT 1 FROM daily_report WHERE id=NEW.correction_id))) OR
+  (NEW.record_type='technical_report' AND (NOT EXISTS(SELECT 1 FROM technical_report WHERE id=NEW.original_id) OR NOT EXISTS(SELECT 1 FROM technical_report WHERE id=NEW.correction_id))) OR
+  (NEW.record_type='time_entry' AND (
+    NOT EXISTS(SELECT 1 FROM time_entry WHERE id=NEW.original_id AND (approval_state IN ('approved','locked','needs_changes') OR billing_status='locked' OR locked_at IS NOT NULL OR (approval_state='rejected' AND EXISTS(SELECT 1 FROM approval_event ae WHERE ae.entity_type='time' AND ae.entity_id=NEW.original_id AND ae.from_state='needs_changes' AND ae.to_state='rejected' AND ae.reason LIKE 'Superseded by correction %')))) OR
+    NOT EXISTS(SELECT 1 FROM time_entry WHERE id=NEW.correction_id AND approval_state='draft' AND invoice_id IS NULL AND COALESCE(billing_status,'unlocked')='unlocked' AND locked_at IS NULL) OR
+    NOT EXISTS(
+      SELECT 1 FROM time_entry original
+      JOIN time_entry correction ON correction.id=NEW.correction_id
+      WHERE original.id=NEW.original_id
+        AND original.project_id=correction.project_id
+        AND original.worker_id=correction.worker_id
+    )
+  )) OR
+  (NEW.record_type='expense' AND (
+    NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.original_id AND (approval_state IN ('approved','locked','needs_changes') OR billing_state='locked' OR billing_lock_id IS NOT NULL OR (approval_state='rejected' AND EXISTS(SELECT 1 FROM approval_event ae WHERE ae.entity_type='expense' AND ae.entity_id=NEW.original_id AND ae.from_state='needs_changes' AND ae.to_state='rejected' AND ae.reason LIKE 'Superseded by correction %')))) OR
+    NOT EXISTS(SELECT 1 FROM expense WHERE id=NEW.correction_id AND approval_state='draft' AND invoice_id IS NULL AND COALESCE(billing_state,'unlocked')='unlocked' AND billing_lock_id IS NULL) OR
+    NOT EXISTS(
+      SELECT 1 FROM expense original
+      JOIN expense correction ON correction.id=NEW.correction_id
+      WHERE original.id=NEW.original_id
+        AND original.project_id=correction.project_id
+        AND original.worker_id=correction.worker_id
+    )
+  )) OR
+  (NEW.record_type='daily_report' AND (
+    NOT EXISTS(SELECT 1 FROM daily_report WHERE id=NEW.original_id AND approval_state IN ('approved','locked')) OR
+    NOT EXISTS(SELECT 1 FROM daily_report WHERE id=NEW.correction_id AND approval_state='draft') OR
+    NOT EXISTS(
+      SELECT 1 FROM daily_report original
+      JOIN daily_report correction ON correction.id=NEW.correction_id
+      WHERE original.id=NEW.original_id
+        AND original.project_id=correction.project_id
+        AND original.worker_id=correction.worker_id
+    )
+  )) OR
+  (NEW.record_type='technical_report' AND (
+    NOT EXISTS(SELECT 1 FROM technical_report WHERE id=NEW.original_id AND approval_state IN ('approved','locked')) OR
+    NOT EXISTS(SELECT 1 FROM technical_report WHERE id=NEW.correction_id AND approval_state='draft') OR
+    NOT EXISTS(
+      SELECT 1 FROM technical_report original
+      JOIN technical_report correction ON correction.id=NEW.correction_id
+      WHERE original.id=NEW.original_id
+        AND original.project_id=correction.project_id
+        AND original.author_id=correction.author_id
+    )
+  )) OR
+  NOT EXISTS(SELECT 1 FROM deployment_identity d WHERE d.tenant_id=NEW.tenant_id)
+BEGIN SELECT RAISE(ABORT,'invalid correction subject'); END;

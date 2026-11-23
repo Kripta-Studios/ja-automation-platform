@@ -52,12 +52,17 @@ export function workerOperationalProjectScope(
     throw new AccessDeniedError('Active account required');
   if (!Object.hasOwn(occurrenceDates, recordDates))
     throw new AccessDeniedError('Current worker project access required');
+  // T19/T41: reading one's own history also covers a project that is closing
+  // (its pay and invoices are still pending); closed/archived stay excluded.
+  const statuses = options.ownHistory
+    ? "('active','planned','paused','closing')"
+    : "('active','planned','paused')";
   const timezones = sqlite
     .prepare(
       `SELECT DISTINCT p.timezone FROM project p
        JOIN project_member pm ON pm.project_id=p.id
        WHERE pm.user_id=? AND pm.status='active'
-         AND p.status IN ('active','planned','paused')`,
+         AND p.status IN ${statuses}`,
     )
     .all(principal.userId) as Array<{ timezone: string }>;
   const days: Array<readonly [string, string]> = [];
@@ -98,7 +103,7 @@ export function workerOperationalProjectScope(
     .join('\n');
   return {
     withClause: `WITH current_project_days(timezone,local_today) AS (${days.length ? `VALUES ${days.map(() => '(?,?)').join(',')}` : 'SELECT NULL,NULL WHERE 0'})`,
-    predicate: `p.status IN ('active','planned','paused') AND EXISTS (
+    predicate: `p.status IN ${statuses} AND EXISTS (
       SELECT 1 FROM current_project_days scope_day
       JOIN project_member scope_pm ON scope_pm.project_id=p.id
       WHERE scope_day.timezone=p.timezone AND scope_pm.user_id=?

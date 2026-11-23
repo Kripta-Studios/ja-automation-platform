@@ -55,6 +55,12 @@ describe('own records stay readable after the assignment ends (T19/T41)', () => 
         summary: 'Late entry',
       }),
     ).toThrow(AccessDeniedError);
+    // A closing project keeps own history readable; a closed one does not.
+    base.sqlite.prepare("UPDATE project SET status='closing' WHERE id=?").run(base.project.id);
+    expect(base.repository.timeDetail(worker, time.id)).toMatchObject({ id: time.id });
+    base.sqlite.prepare("UPDATE project SET status='closed' WHERE id=?").run(base.project.id);
+    expect(() => base.repository.timeDetail(worker, time.id)).toThrow(AccessDeniedError);
+    base.sqlite.prepare("UPDATE project SET status='active' WHERE id=?").run(base.project.id);
     // A removed (inactive) assignment grants no history.
     base.sqlite
       .prepare("UPDATE project_member SET status='inactive' WHERE project_id=? AND user_id=?")

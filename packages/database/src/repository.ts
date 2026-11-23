@@ -2897,7 +2897,8 @@ export class PortalRepository {
    * member of a project he does not manage). Read only: every write keeps the
    * current-assignment checks. Everything else that closes access still does:
    * a removed (inactive) assignment, an inactive account, a stale session, a
-   * closed/archived project or an invalid project timezone, and for a supplier
+   * closed/archived project (a closing one stays readable: its pay and
+   * invoices are pending) or an invalid project timezone, and for a supplier
    * coordinator a live supplier grant.
    */
   private ownRecordAssignmentCovers(
@@ -2920,7 +2921,7 @@ export class PortalRepository {
            JOIN project p ON p.id=pm.project_id
           WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
             AND u.status='active' AND u.role=?
-            AND p.status IN ('active','planned','paused')
+            AND p.status IN ('active','planned','paused','closing')
             AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
           LIMIT 1`,
       )

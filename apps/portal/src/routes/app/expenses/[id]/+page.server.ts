@@ -187,6 +187,10 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
       string,
       unknown
     >;
+    // T92: a crew chief reading a crew member's expense does not need that person's
+    // e-mail (it was sent in the page data). Workers keep their own.
+    if (context.principal.role === 'worker' && record.worker_id !== context.principal.userId)
+      delete record.worker_email;
     const correctionLink = context.sqlite
       .prepare(
         `SELECT original_id FROM record_correction_link

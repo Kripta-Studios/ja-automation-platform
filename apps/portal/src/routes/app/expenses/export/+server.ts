@@ -285,6 +285,9 @@ export const GET: RequestHandler = ({ locals, url }) => {
         String(row.spent_on) <= to &&
         (!project || row.project_id === project) &&
         (!worker || row.worker_id === worker) &&
+        // T92: a worker's export is "only your own expenses" (as the page says): crew
+        // expenses a chief recorded for someone else are not mixed in.
+        (role !== 'worker' || row.worker_id === userId) &&
         (!client || row.client_name === client) &&
         (!category || row.category === category) &&
         (!currency || row.currency === currency) &&

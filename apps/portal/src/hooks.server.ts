@@ -570,7 +570,11 @@ export const handle: Handle = async ({ event, resolve }) => {
                 {
                   method: event.request.method,
                   accept: event.request.headers.get('accept') ?? '',
-                  dataRequest: /\/__data\.json$/u.test(route),
+                  // SvelteKit strips "/__data.json" from event.url for client
+                  // navigations and flags them instead.
+                  dataRequest:
+                    (event as { isDataRequest?: boolean }).isDataRequest === true ||
+                    /\/__data\.json$/u.test(route),
                 },
                 correlationId,
                 route,

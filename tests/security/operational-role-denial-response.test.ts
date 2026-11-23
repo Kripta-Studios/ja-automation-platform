@@ -96,6 +96,17 @@ describe('operational account route denial', () => {
     expect(resolve).not.toHaveBeenCalled();
   });
 
+  it('recognises a SvelteKit data request by its flag (event.url has no __data.json)', async () => {
+    mocks.profile.mockReturnValue({ profile: 'external_technician' });
+    const event = { ...requestFor('/finance', '*/*', 'es'), isDataRequest: true };
+    const response = await handle({ event, resolve: vi.fn() } as never);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      type: 'redirect',
+      location: '/j-aautomation/app/restricted?from=%2Ffinance&lang=es',
+    });
+  });
+
   it('returns a stable machine-readable 403 for denied API requests', async () => {
     mocks.profile.mockReturnValue({ profile: 'supplier_coordinator' });
     const response = await handle({

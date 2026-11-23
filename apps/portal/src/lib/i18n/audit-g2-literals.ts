@@ -14,4 +14,8 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Use o horário local do projeto. Um término antes do início termina no dia seguinte.',
   ],
   'Ends the next day': ['Termina al día siguiente', 'Termina no dia seguinte'],
+  'Enter downtime between 0 and 24 hours, for example 1.5.': [
+    'Indica la parada entre 0 y 24 horas, por ejemplo 1,5.',
+    'Informe a parada entre 0 e 24 horas, por exemplo 1,5.',
+  ],
 };

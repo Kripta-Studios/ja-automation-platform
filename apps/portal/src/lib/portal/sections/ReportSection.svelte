@@ -2391,7 +2391,7 @@
             label={translate('Downtime (hours)')}
             minMinutes={0}
             maxMinutes={1440}
-            invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+            invalidMessage={translate('Enter downtime between 0 and 24 hours, for example 1.5.')}
           /></label
         >
         <label class="quick-field"
@@ -2584,7 +2584,7 @@
             label={translate('Downtime (hours)')}
             minMinutes={0}
             maxMinutes={1440}
-            invalidMessage={translate('Enter valid decimal hours within the allowed range.')}
+            invalidMessage={translate('Enter downtime between 0 and 24 hours, for example 1.5.')}
           /></label
         >
         <label

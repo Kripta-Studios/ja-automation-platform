@@ -59,6 +59,13 @@
       Number(minutes) >= minMinutes &&
       (maxMinutes === undefined || Number(minutes) <= maxMinutes);
     const next = withinRange ? minutes : '';
+    // Update validity in this same input event (not only in the effect below), so form
+    // validation clears its error summary while the person types. Otherwise the summary
+    // disappeared on blur, when the person tapped Save: the layout jumped under the
+    // finger and the tap landed beside the button (T23, the draft was never sent).
+    (event.currentTarget as HTMLInputElement).setCustomValidity(
+      text.trim() !== '' && !withinRange ? invalidMessage : '',
+    );
     lastEmitted = next;
     value = next;
     // Form-level autosave handlers may read FormData during this same input event.

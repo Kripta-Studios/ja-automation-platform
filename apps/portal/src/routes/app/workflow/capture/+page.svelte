@@ -6,10 +6,12 @@
   import { workflowStatus } from '$lib/portal/workflow/copy';
   import { enhance } from '$app/forms';
   import { onMount } from 'svelte';
+  import { formatPortalDate } from '$lib/i18n/format';
   import {
     clearLocalCaptureDraft,
     readLocalCaptureDraft,
     saveLocalCaptureDraft,
+    listLocalCaptureDrafts,
   } from '$lib/portal/field-capture/local-draft';
   import LocalDictation from '$lib/portal/local-dictation/LocalDictation.svelte';
   import LocalDocumentText from '$lib/portal/local-document-text/LocalDocumentText.svelte';
@@ -58,6 +60,8 @@
   let activeScope = '';
   let reviewing = false;
   let recovering = false;
+  /** Drafts saved on this device by this person (any project/date), newest first. */
+  let deviceDrafts: Array<{ projectId: string; workDate: string; savedAt: string }> = [];
 
   function cryptoSafeKey() {
     return typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : '';
@@ -113,6 +117,8 @@
       needOne: 'Choose at least one draft.',
       noDefault: 'Enter actual hours. No planned or minimum hours are used.',
       recovered: 'Recovered a draft saved on this device.',
+      deviceDrafts: 'Saved on this device',
+      openDeviceDraft: 'Open',
       offline:
         'This is stored on this device only. Server authorization is checked when you create drafts.',
       retry: 'If a request fails after sending, retry with the same request key and facts.',
@@ -168,6 +174,8 @@
       needOne: 'Elige al menos un borrador.',
       noDefault: 'Introduce las horas reales. No se usan horas previstas ni mínimas.',
       recovered: 'Se recuperó un borrador de este dispositivo.',
+      deviceDrafts: 'Guardado en este dispositivo',
+      openDeviceDraft: 'Abrir',
       offline:
         'Solo se guarda en este dispositivo. La autorización se comprueba al crear los borradores.',
       retry:
@@ -223,6 +231,8 @@
       needOne: 'Escolha pelo menos um rascunho.',
       noDefault: 'Introduza as horas reais. Não são usadas horas planeadas ou mínimas.',
       recovered: 'Rascunho recuperado deste dispositivo.',
+      deviceDrafts: 'Guardado neste dispositivo',
+      openDeviceDraft: 'Abrir',
       offline: 'Guardado apenas neste dispositivo. A autorização é verificada ao criar rascunhos.',
       retry: 'Se um pedido falhar após o envio, repita com a mesma chave e os mesmos factos.',
     },
@@ -339,6 +349,7 @@
         savedAt: new Date().toISOString(),
       });
       localState = t.local;
+      void refreshDeviceDrafts();
     } catch {
       localState =
         locale === 'es'
@@ -396,8 +407,26 @@
       if (scope === activeScope) recovering = false;
     }
   }
+  async function refreshDeviceDrafts(): Promise<void> {
+    try {
+      deviceDrafts = (await listLocalCaptureDrafts(data.userId)).filter((draft) =>
+        data.projects.some((item: { id: string }) => item.id === draft.projectId),
+      );
+    } catch {
+      deviceDrafts = [];
+    }
+  }
+  function openDeviceDraft(draft: { projectId: string; workDate: string }): void {
+    projectId = draft.projectId;
+    workDate = draft.workDate;
+  }
   onMount(() => {
-    void recoverScope();
+    // T24: after a reload nothing is selected yet, so the saved draft looked lost.
+    // Reopen the newest draft saved on this device and list the others.
+    void refreshDeviceDrafts().then(() => {
+      if (!projectId && !workDate && deviceDrafts[0]) openDeviceDraft(deviceDrafts[0]);
+      else void recoverScope();
+    });
   });
   $: if (projectId && workDate) void recoverScope();
   const link = (type: string, id: string) =>
@@ -434,6 +463,24 @@
       </section>
     {/if}
     {#if localState}<p class="local-status" role="status">{localState}. {t.offline}</p>{/if}
+    {#if deviceDrafts.some((draft) => draft.projectId !== projectId || draft.workDate !== workDate)}
+      <section class="card device-drafts" data-capture-device-drafts>
+        <h2>{t.deviceDrafts}</h2>
+        <ul>
+          {#each deviceDrafts.filter((draft) => draft.projectId !== projectId || draft.workDate !== workDate) as draft (draft.projectId + draft.workDate)}
+            <li>
+              <span
+                >{data.projects.find((item: { id: string; name: string }) => item.id === draft.projectId)
+                  ?.name ?? ''} · {formatPortalDate(`${draft.workDate}T12:00:00Z`, locale, { timeZone: 'UTC' })}</span
+              >
+              <button type="button" on:click={() => openDeviceDraft(draft)}
+                >{t.openDeviceDraft}</button
+              >
+            </li>
+          {/each}
+        </ul>
+      </section>
+    {/if}
     {#if !form?.success}
       <form
         method="POST"
@@ -443,6 +490,7 @@
             if (result.type === 'success' && projectId && workDate) {
               clearTimeout(draftTimer);
               await clearLocalCaptureDraft(data.userId, projectId, workDate);
+              void refreshDeviceDrafts();
               localState = '';
               requestKey = cryptoSafeKey();
               reviewing = false;
@@ -670,6 +718,22 @@
 </main>
 
 <style>
+  .device-drafts ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .device-drafts li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+  .device-drafts button {
+    min-height: 44px;
+  }
   .review-facts {
     display: grid;
     gap: 0.35rem;

@@ -2339,7 +2339,10 @@ export class PortalRepository {
             patch: {
               minutes,
               ...intervalPatch,
-              ...(detail !== undefined && note ? { summary: note } : {}),
+              // The detail note is the entry's activity summary (column
+              // activity_summary). The correction path accepts the canonical
+              // alias only; the reviewer-facing "what changed" is the reason.
+              ...(detail !== undefined && note ? { activitySummary: note } : {}),
             },
           };
           const result = withCell(cell, () =>
@@ -4214,8 +4217,12 @@ export class PortalRepository {
             throw new ValidationError('Correction date is invalid');
           assertDate(patch[key], 'Correction date');
         }
+        // A time correction that drops its start/end interval also clears the
+        // break (NULL); the effective-entry check below still rejects a break
+        // that is left without an interval or does not fit inside one.
         if (
           (column === 'minutes' || column === 'break_minutes' || column === 'downtime_minutes') &&
+          !(input.recordType === 'time_entry' && column === 'break_minutes' && patch[key] === null) &&
           (!Number.isInteger(patch[key]) || Number(patch[key]) < 0 || Number(patch[key]) > 1440)
         )
           throw new ValidationError('Correction duration is invalid');

@@ -1,6 +1,6 @@
 <script lang="ts">
   import { untrack } from 'svelte';
-  import { durationMinutes, intervalMinutes } from './time-entry-clock';
+  import { durationMinutes, endsNextDay, intervalMinutes } from './time-entry-clock';
 
   let {
     translate,
@@ -46,7 +46,7 @@
     endInput?.setCustomValidity(
       useInterval && start && end && minutes === null
         ? translate(
-            'End time must be later on the same day, with a break shorter than the interval.',
+            'End time must differ from the start time, with a break shorter than the shift.',
           )
         : '',
     );
@@ -103,13 +103,16 @@
     <input name="breakMinutes" type="hidden" value={pauseMinutes ?? ''} />
     <div class="time-range-total">
       <span>{translate('Calculated duration')}</span><output aria-live="polite"
-        >{minutes === null ? '—' : `${decimalHours(minutes)} h`}</output
+        >{minutes === null ? '—' : `${decimalHours(minutes)} h`}{minutes !== null &&
+        endsNextDay(start, end)
+          ? ` · ${translate('Ends the next day')}`
+          : ''}</output
       >
     </div>
     <input name="minutes" type="hidden" value={minutes ?? ''} />
     <p class="time-range-help">
       {translate('The duration is calculated from the start and end times, less any break.')}
-      {translate("Use the project's local time. Start and end must be on the selected date.")}
+      {translate("Use the project's local time. An end time earlier than the start ends the next day.")}
     </p>
   </fieldset>
 {:else}

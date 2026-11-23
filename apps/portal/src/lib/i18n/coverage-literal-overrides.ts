@@ -1,5 +1,8 @@
+import { auditG2LiteralOverrides } from './audit-g2-literals';
+
 /** Natural translations for literals whose source wording is sentence-like. */
 export const explicitCoverageLiteralOverrides: Record<string, readonly [string, string]> = {
+  ...auditG2LiteralOverrides,
   'Accounting Pack status and actions': ['Estado y acciones del paquete contable', 'Status e ações do pacote contábil'],
   'Billing stream actions': ['Acciones del flujo de facturación', 'Ações do fluxo de faturamento'],
   'Check the billing stream fields before saving.': ['Revisa los campos del flujo de facturación antes de guardar.', 'Revise os campos do fluxo de faturamento antes de salvar.'],

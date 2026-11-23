@@ -14,7 +14,6 @@
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
     currencyMinorDigits,
-    formatMinorPlain,
     isCurrency,
     parseMajorToMinor,
   } from '@ja/billing-engine';
@@ -203,8 +202,9 @@
   const wholeAllocation = $derived(
     isCurrency(allocationCurrency) && currencyMinorDigits(allocationCurrency) === 0,
   );
+  // T77: the same money format as the expense list ("MX$ 420,00"), with its currency.
   const receiptAmountText = (minor: number, currency: string) =>
-    formatMinorPlain(minor, isCurrency(currency) ? currency : 'USD');
+    paymentMoney(String(minor), isCurrency(currency) ? currency : 'USD', locale);
   function syncAllocationPreview(announce = false): void {
     const target = receiptAllocationForm;
     if (!target?.isConnected) return;
@@ -239,6 +239,8 @@
       }),
     };
     allocationPreviewSnapshot = snapshot;
+    // T77: never leave an older announcement next to a newer visible preview.
+    if (!announce) allocationPreviewAnnouncement = '';
     if (announce) {
       const summary = allocationPreviewSummary(snapshot);
       const announcement = [
@@ -1229,7 +1231,6 @@
                 currentAllocation.category ||
                 t('Receipt')}
               · {receiptAmountText(currentAllocation.totalMinor, currentAllocation.currency)}
-              {currentAllocation.currency}
             </p>
           {:else}
             <p>
@@ -1279,8 +1280,7 @@
                   {receipt.vendor || receipt.description || receipt.category || t('Receipt')} · {receiptAmountText(
                     receipt.amountMinor,
                     receipt.currency,
-                  )}
-                  {receipt.currency} ·
+                  )} ·
                   {personDisplayName(
                     data.assigned.find(
                       (person: { id: string; name: string }) => person.id === receipt.workerId,
@@ -1363,7 +1363,8 @@
             >{t('Save receipt allocation')}</button
           >
         </form>
-      {:else if data.assigned.length}
+      {:else if data.assigned.length && !data.allocatedReceipts.length}
+        <!-- T77: not shown above a split that was just saved (it read as if nothing was saved). -->
         <p class="empty">
           {t(
             'Save a receipt expense and at least two crew time rows for this project and date to allocate a shared receipt.',
@@ -1387,7 +1388,6 @@
                 >
                 ·
                 {receiptAmountText(receipt.totalMinor, receipt.currency)}
-                {receipt.currency}
                 {t('· one expense')}
                 <ul>
                   {#each receipt.allocations as allocation}
@@ -1396,7 +1396,6 @@
                         allocation.amountMinor,
                         receipt.currency,
                       )}
-                      {receipt.currency}
                     </li>
                   {/each}
                 </ul>

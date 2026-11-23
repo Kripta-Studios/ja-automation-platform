@@ -9,6 +9,7 @@
  * stored event is never changed.
  */
 import type { PortalLocale } from '../portal-i18n';
+import { formatPortalMoney } from '../i18n/format';
 
 type Tuple = readonly [string, string, string];
 const index = (locale: PortalLocale): 0 | 1 | 2 => (locale === 'es' ? 1 : locale === 'pt' ? 2 : 0);
@@ -60,7 +61,17 @@ const FIELDS: Record<string, Tuple> = {
   country: ['Country', 'País', 'País'],
   timezone: ['Time zone', 'Zona horaria', 'Fuso horário'],
   currency: ['Currency', 'Moneda', 'Moeda'],
-  amountminor: ['Amount (minor units)', 'Importe (unidades menores)', 'Valor (unidades menores)'],
+  amountminor: ['Amount', 'Importe', 'Valor'],
+  rateminor: ['Rate', 'Tarifa', 'Tarifa'],
+  ratebasis: ['Rate basis', 'Base de la tarifa', 'Base da tarifa'],
+  ruletype: ['Rule type', 'Tipo de regla', 'Tipo de regra'],
+  hourlyrateminor: ['Hourly rate', 'Tarifa por hora', 'Tarifa por hora'],
+  overtimerateminor: ['Overtime rate', 'Tarifa de horas extra', 'Tarifa de hora extra'],
+  supplierprofile: ['Supplier profile', 'Perfil de proveedor', 'Perfil de fornecedor'],
+  supplierid: ['Supplier', 'Proveedor', 'Fornecedor'],
+  existingperson: ['Existing person', 'Persona existente', 'Pessoa existente'],
+  mailboxupdated: ['Mailbox updated', 'Buzón actualizado', 'Caixa de e-mail atualizada'],
+  revokedcount: ['Sessions signed out', 'Sesiones cerradas', 'Sessões encerradas'],
   startson: ['Starts on', 'Empieza el', 'Começa em'],
   endson: ['Ends on', 'Termina el', 'Termina em'],
   startdate: ['Start date', 'Fecha de inicio', 'Data de início'],
@@ -84,6 +95,32 @@ const FIELDS: Record<string, Tuple> = {
   previouscanreview: ['Could review before', 'Podía revisar antes', 'Podia revisar antes'],
   sessionsrevoked: ['Signed out', 'Sesiones cerradas', 'Sessões encerradas'],
   version: ['Version', 'Versión', 'Versão'],
+};
+
+/**
+ * T17: an integer "…Minor" amount next to a currency reads as money
+ * ("$1,485.00"), never as raw minor units. Exact: integer strings only.
+ */
+function moneyText(
+  key: string,
+  value: unknown,
+  currency: unknown,
+  locale: PortalLocale,
+): string | undefined {
+  if (!/minor$/iu.test(key) || typeof currency !== 'string' || !/^[A-Z]{3}$/u.test(currency))
+    return undefined;
+  const raw = typeof value === 'bigint' ? value.toString() : typeof value === 'number' ? String(value) : value;
+  if (typeof raw !== 'string' || !/^-?\d{1,18}$/u.test(raw)) return undefined;
+  try {
+    return formatPortalMoney(BigInt(raw), locale, currency);
+  } catch {
+    return undefined;
+  }
+}
+
+const BASIS: Record<string, Tuple> = {
+  hourly: ['per hour', 'por hora', 'por hora'],
+  daily: ['per day', 'por día', 'por dia'],
 };
 
 function fieldLabel(key: string, locale: PortalLocale): string {
@@ -149,16 +186,29 @@ export function auditDetailLines(
   const lines: AuditDetailLine[] = [];
   let kind: 'changes' | 'values' = 'values';
   const rest: Record<string, unknown> = { ...parsed };
+  const currencyOf = (...scopes: unknown[]) => {
+    for (const scope of scopes)
+      if (isRecord(scope) && typeof scope.currency === 'string') return scope.currency;
+    return undefined;
+  };
+  const show = (key: string, value: unknown, currency: unknown): string => {
+    const money = moneyText(key, value, currency, locale);
+    if (money) return money;
+    if (/^ratebasis$/iu.test(key.replace(/[_\s-]/gu, '')) && typeof value === 'string' && BASIS[value])
+      return BASIS[value]![index(locale)];
+    return valueText(value, locale);
+  };
   if (isRecord(parsed.before) || isRecord(parsed.after)) {
     kind = 'changes';
     const before = isRecord(parsed.before) ? parsed.before : {};
     const after = isRecord(parsed.after) ? parsed.after : {};
     for (const key of new Set([...Object.keys(before), ...Object.keys(after)])) {
       if (same(before[key], after[key])) continue;
+      const currency = currencyOf(after, before, parsed);
       lines.push({
         label: fieldLabel(key, locale),
-        before: valueText(before[key], locale),
-        value: valueText(after[key], locale),
+        before: show(key, before[key], currencyOf(before, after, parsed)),
+        value: show(key, after[key], currency),
       });
     }
     delete rest.before;
@@ -168,10 +218,13 @@ export function auditDetailLines(
     if (isRecord(value)) {
       for (const [inner, innerValue] of Object.entries(value))
         if (!isRecord(innerValue))
-          lines.push({ label: fieldLabel(inner, locale), value: valueText(innerValue, locale) });
+          lines.push({
+            label: fieldLabel(inner, locale),
+            value: show(inner, innerValue, currencyOf(value, parsed)),
+          });
       continue;
     }
-    lines.push({ label: fieldLabel(key, locale), value: valueText(value, locale) });
+    lines.push({ label: fieldLabel(key, locale), value: show(key, value, currencyOf(parsed)) });
   }
   if (!lines.length) return { kind: 'none', lines: [], hidden: 0 };
   return {

@@ -1197,10 +1197,17 @@ export class V3Repository {
           : null,
         input.notes ?? null,
       );
+    // T17: the audit row carries the value it created, so a rate change can be
+    // read from the log alone (no ids-only "Pay rate created").
     this.audit(principal, 'compensation_rule.create', 'compensation_rule', id, {
       workerId: input.workerId,
       projectId: projectId ?? null,
       ruleType: input.ruleType,
+      currency: input.currency,
+      rateMinor: String(input.rateMinor ?? 0n),
+      rateBasis: input.rateBasis ?? (input.ruleType === 'Daily' ? 'daily' : 'hourly'),
+      effectiveFrom: input.effectiveFrom,
+      effectiveTo: effectiveTo ?? null,
     });
     return { id };
   }

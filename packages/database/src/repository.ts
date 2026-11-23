@@ -5751,6 +5751,11 @@ export class PortalRepository {
       );
     this.audit(principal, 'compensation_rule.create', 'compensation_rule', id, {
       workerId: input.workerId,
+      projectId: input.projectId ?? null,
+      currency: input.currency,
+      rateMinor: String(input.rateMinor),
+      rateBasis: input.rateBasis,
+      effectiveFrom: input.effectiveFrom,
     });
     return { id };
   }

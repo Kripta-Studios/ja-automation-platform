@@ -399,7 +399,15 @@
       : projects.length === 1
         ? text(projects[0], 'id')
         : rememberedProject();
-    fWorker = isOwner ? (people.some((p) => p.id === requestedWorker) ? requestedWorker : '') : '';
+    // T20: never leave Person blank. The owner starts on the requested person (or
+    // "me" = ''); a crew chief starts on the requested crew member, else himself.
+    // The crew list loads after the form opens; the effect below falls back to "me"
+    // when the requested person is not one of the chief's crew.
+    fWorker = isOwner
+      ? people.some((p) => p.id === requestedWorker)
+        ? requestedWorker
+        : ''
+      : requestedWorker || me;
     fCategory = rememberedCategory();
     moreCategories = !primaryExpenseCategories.some((item) => item.value === fCategory);
     fAmount = '';
@@ -454,6 +462,7 @@
   $effect(() => {
     if (mode !== 'create' || role !== 'worker' || !fProject || !fDate) {
       crewOptions = [];
+      if (mode === 'create' && role !== 'owner_admin' && fWorker !== me) fWorker = me;
       return;
     }
     const controller = new AbortController();
@@ -467,8 +476,9 @@
         const payload = (await response.json()) as {
           workers?: Array<{ id: string; name: string }>;
         };
-        if (!controller.signal.aborted)
-          crewOptions = (payload.workers ?? []).filter((worker) => worker.id !== me);
+        if (controller.signal.aborted) return;
+        crewOptions = (payload.workers ?? []).filter((worker) => worker.id !== me);
+        if (fWorker !== me && !crewOptions.some((worker) => worker.id === fWorker)) fWorker = me;
       })
       .catch(() => {
         /* Lookup failures leave the expense recorded for the signed-in worker. */
@@ -1288,13 +1298,19 @@
         {:else if crewOptions.length > 0}
           <label class="xp-field">
             <span>{c('person')}</span>
-            <select name="workerId" bind:value={fWorker}>
-              <option value={me}>{c('me')}</option>
+            <!-- Linked to a time entry: the person is that entry's worker (locked). -->
+            <select name="workerId" bind:value={fWorker} disabled={Boolean(fTimeEntryId)}>
+              <option value={me}>{c('me')} ({personDisplayName(data.user.name)})</option>
               {#each crewOptions as person (person.id)}
-                <option value={person.id}>{person.name}</option>
+                <option value={person.id}>{personDisplayName(person.name)}</option>
               {/each}
             </select>
+            {#if fTimeEntryId}
+              <input type="hidden" name="workerId" value={fWorker} />
+            {/if}
           </label>
+        {:else if fWorker && fWorker !== me}
+          <input type="hidden" name="workerId" value={fWorker} />
         {/if}
         {#if projects.length === 1}
           <input type="hidden" name="projectId" value={fProject} />

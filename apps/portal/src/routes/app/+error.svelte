@@ -10,6 +10,7 @@
     standaloneText,
   } from './standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { errorPageText, sectionLabelKey } from '$lib/portal/error-page-copy';
 
   const locale = $derived(
     resolveStandaloneLocale(
@@ -18,6 +19,22 @@
     ),
   );
   const status = $derived($page.status);
+  const errorCode = $derived(String($page.error?.message ?? ''));
+  const pageData = $derived(
+    $page.data as {
+      chromeUser?: { workforceProfile?: string } | null;
+      ownerContact?: { name: string; email: string } | null;
+    },
+  );
+  // T18: a refused supplier-workforce URL arrives as /restricted?from=<path>.
+  const routeRestricted = $derived(status === 403 && errorCode === 'operational.route_restricted');
+  const refusedPath = $derived(
+    routeRestricted ? ($page.url.searchParams.get('from') ?? '') : $page.url.pathname,
+  );
+  const payRefused = $derived(routeRestricted && /^\/(pay|my-pay)(\/|$)/u.test(refusedPath));
+  const crewChiefRequired = $derived(status === 403 && errorCode === 'crew.chief_required');
+  const err = (key: Parameters<typeof errorPageText>[1], params?: Record<string, string>) =>
+    errorPageText(locale, key, params);
   const financeProjectUnavailable = $derived(
     status === 404 && $page.error?.message === 'finance.project_unavailable',
   );
@@ -41,7 +58,7 @@
         : notificationDetailUnavailable
           ? translate('Notification unavailable')
           : status === 404
-            ? standaloneText(locale, 'No results')
+            ? err('notFoundTitle')
             : status === 403
               ? standaloneText(locale, 'Access restricted')
               : standaloneText(locale, 'Error'),
@@ -70,9 +87,19 @@
         : status === 404
           ? notificationDetailUnavailable
             ? translate('problem.notification.unavailable')
-            : translate('No records match that search in your access scope.')
+            : err('notFoundBody')
           : status === 403
-            ? closeoutFinanceDenied
+            ? payRefused
+              ? err(
+                  pageData.chromeUser?.workforceProfile === 'supplier_coordinator'
+                    ? 'payCoordinator'
+                    : 'payTechnician',
+                )
+              : routeRestricted
+                ? err('restrictedBody')
+                : crewChiefRequired
+                  ? err('crewChief')
+                  : closeoutFinanceDenied
               ? translate('problem.closeout.financeRoleRequired')
               : approvalRoleDenied
                 ? translate(
@@ -115,6 +142,10 @@
     const code = String($page.error?.message ?? '');
     if (auditHistoryCursorInvalid) return translate('Audit log');
     if (approvalRoleDenied) return translate('Approvals');
+    // T18: name the section of the URL that was opened (My Pay, Money, Audit
+    // log, …) instead of "Portal" or a guess from the error text.
+    const fromPath = sectionLabelKey(refusedPath);
+    if (fromPath) return translate(fromPath);
     if (code.includes('project') || $page.url.pathname.includes('/projects/'))
       return translate('Projects');
     if (code.includes('report')) return translate('Reports');
@@ -147,7 +178,17 @@
     <p class="portal-kicker">{sectionLabel}</p>
     <h1 bind:this={errorHeading} tabindex="-1">{title}</h1>
     <p>{description}</p>
-    {#if closeoutFinanceDenied}<p>{translate('Contact an owner')}</p>{/if}
+    {#if status === 403}
+      {#if pageData.ownerContact?.email}
+        <p class="error-page__contact">
+          <a
+            href={`mailto:${pageData.ownerContact.email}?subject=${encodeURIComponent(
+              err('contactSubject', { page: sectionLabel }),
+            )}`}>{err('contact', { name: pageData.ownerContact.name || pageData.ownerContact.email })}</a
+          >
+        </p>
+      {:else}<p>{translate('Contact an owner')}</p>{/if}
+    {/if}
     <a class="secondary-button" href={recoveryHref}>{recoveryLabel}</a>
   </section>
 </main>

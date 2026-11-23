@@ -38,75 +38,50 @@ function requestLocale(event: Parameters<Handle>[0]['event']): PortalLocale {
   );
 }
 
-function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/gu, (character) => {
-    switch (character) {
-      case '&':
-        return '&amp;';
-      case '<':
-        return '&lt;';
-      case '>':
-        return '&gt;';
-      case '"':
-        return '&quot;';
-      default:
-        return '&#39;';
-    }
-  });
+/**
+ * Keep this guard before route loading while giving denied document requests a
+ * usable remedy. T18: a browser navigation is sent to the in-app "restricted"
+ * page (app shell, role-correct way back, contact link, coordinator/technician
+ * copy for My Pay) instead of a bare HTML document; a SvelteKit client
+ * navigation gets the same destination as a data redirect. Every other request
+ * keeps the stable machine-readable 403.
+ */
+function operationalRestrictedLocation(route: string, locale: PortalLocale): string {
+  const from = route.replace(/\/__data\.json$/u, '') || '/';
+  return `${portalBase}/restricted?from=${encodeURIComponent(from)}&lang=${locale}`;
 }
-
-/** Keep this guard before route loading while giving denied document requests a usable remedy. */
-// Supplier-workforce people are paid by their own company, so J&A's My Pay
-// does not apply to them (R9). Say so instead of a bare "Access restricted".
-const supplierPayExplanation: Record<'en' | 'es' | 'pt', string> = {
-  en: 'Your pay is handled by your own company, not in this portal. Ask your supplier coordinator about payments.',
-  es: 'Tu pago lo gestiona tu propia empresa, no este portal. Consulta los pagos con tu coordinador del proveedor.',
-  pt: 'Seu pagamento é feito pela sua própria empresa, não por este portal. Fale com o coordenador do fornecedor sobre pagamentos.',
-};
 
 function operationalAccessDeniedResponse(
   profile: 'external_technician' | 'supplier_coordinator',
   locale: PortalLocale,
-  acceptsHtml: boolean,
+  request: Readonly<{ method: string; accept: string; dataRequest: boolean }>,
   correlationId: string,
   route = '',
 ): Response {
   const destination = profile === 'supplier_coordinator' ? 'supplier' : 'time';
   const href = `${portalBase}/${destination}?lang=${locale}`;
   const code = 'OPERATIONAL_ACCOUNT_ROUTE_RESTRICTED';
-  if (!acceptsHtml)
+  const read = request.method === 'GET' || request.method === 'HEAD';
+  if (read && request.dataRequest)
     return new Response(
-      JSON.stringify({
-        code,
-        messageKey: 'problem.operational.routeRestricted',
-        params: {},
-        fieldErrors: {},
-        remedies: [{ id: 'return_to_work', href }, { id: 'contact_owner' }],
-        correlationId,
-      }),
-      { status: 403, headers: { 'content-type': 'application/json; charset=utf-8' } },
+      `${JSON.stringify({ type: 'redirect', location: operationalRestrictedLocation(route, locale) })}\n`,
+      { status: 200, headers: { 'content-type': 'application/json; charset=utf-8' } },
     );
-
-  const title = escapeHtml(portalText(locale, 'Access restricted'));
-  const payRoute = /^\/(pay|my-pay)(\/|$)/u.test(route);
-  const explanation = escapeHtml(
-    payRoute
-      ? supplierPayExplanation[
-          String(locale).startsWith('es') ? 'es' : String(locale).startsWith('pt') ? 'pt' : 'en'
-        ]
-      : portalText(locale, 'problem.operational.routeRestricted'),
-  );
-  const contact = escapeHtml(portalText(locale, 'Contact an owner'));
-  const destinationLabel = escapeHtml(
-    portalText(locale, destination === 'supplier' ? 'Supplier' : 'Time'),
-  );
-  const language = documentLanguage(locale);
-  // My Pay for supplier people is an answer, not an error (X3): the page
-  // still shows no pay data, but it is served as a normal 200 page. The icon
-  // link avoids a stray /favicon.ico 404 on this standalone document.
+  if (read && request.accept.includes('text/html'))
+    return new Response(null, {
+      status: 303,
+      headers: { location: operationalRestrictedLocation(route, locale) },
+    });
   return new Response(
-    `<!doctype html><html lang="${language}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" type="image/png" href="${escapeHtml(`${portalBase}/icon-192.png`)}"><title>${title} · J&A Automation</title></head><body><main><h1 tabindex="-1">${title}</h1><p>${explanation}</p><p>${contact}</p><a href="${escapeHtml(href)}">${destinationLabel}</a></main></body></html>`,
-    { status: payRoute ? 200 : 403, headers: { 'content-type': 'text/html; charset=utf-8' } },
+    JSON.stringify({
+      code,
+      messageKey: 'problem.operational.routeRestricted',
+      params: {},
+      fieldErrors: {},
+      remedies: [{ id: 'return_to_work', href }, { id: 'contact_owner' }],
+      correlationId,
+    }),
+    { status: 403, headers: { 'content-type': 'application/json; charset=utf-8' } },
   );
 }
 
@@ -201,7 +176,9 @@ function legacyLoginRedirect(event: Parameters<Handle>[0]['event']): Response | 
 function canonicalPortalAliasRedirect(event: Parameters<Handle>[0]['event']): Response | null {
   const aliases: Readonly<Record<string, Readonly<{ path: string; view?: string }>>> = {
     [`${portalBase}/invoices`]: { path: `${portalBase}/billing` },
-    [`${portalBase}/settings`]: { path: `${portalBase}/audit` },
+    // T18: "settings" is the person's own Profile (password, language, MFA) for
+    // every role, never the owner/auditor-only audit log.
+    [`${portalBase}/settings`]: { path: `${portalBase}/profile` },
     [`${portalBase}/team`]: { path: `${portalBase}/projects`, view: 'team' },
     [`${portalBase}/clients`]: { path: `${portalBase}/projects`, view: 'clients' },
   };
@@ -590,8 +567,11 @@ export const handle: Handle = async ({ event, resolve }) => {
               operationalAccessDeniedResponse(
                 profile.profile,
                 requestLocale(event),
-                (event.request.method === 'GET' || event.request.method === 'HEAD') &&
-                  event.request.headers.get('accept')?.includes('text/html') === true,
+                {
+                  method: event.request.method,
+                  accept: event.request.headers.get('accept') ?? '',
+                  dataRequest: /\/__data\.json$/u.test(route),
+                },
                 correlationId,
                 route,
               ),

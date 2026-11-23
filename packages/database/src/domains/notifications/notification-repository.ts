@@ -251,11 +251,11 @@ function activeOperationalReviewers(
   sqlite: DatabaseSync,
   projectId: string,
   businessDate: string,
-  recordType: ApprovalSource['record_type'],
+  recordType?: ApprovalSource['record_type'],
 ): string[] {
   // D6: time and expenses are approved by the Owner or the project's manager,
   // never by Finance, so Finance gets no request it cannot act on. Reports keep
-  // the Owner/Finance reviewers they had.
+  // the Owner/Finance reviewers they had, as do customer-signature reminders.
   // Company-wide approver roles; project managers are added per project below.
   const companyRoles =
     recordType === 'time' || recordType === 'expense'

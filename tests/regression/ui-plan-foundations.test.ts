@@ -55,7 +55,7 @@ describe('UI_PLAN foundation contracts', () => {
 
   it.each([
     ['/j-aautomation/app/invoices?lang=es', '/j-aautomation/app/billing?lang=es'],
-    ['/j-aautomation/app/settings', '/j-aautomation/app/audit'],
+    ['/j-aautomation/app/settings', '/j-aautomation/app/profile'],
     [
       '/j-aautomation/app/team?lang=pt&focus=worker-1',
       '/j-aautomation/app/projects?lang=pt&focus=worker-1&view=team',

@@ -73,6 +73,8 @@ describe('supplier operational surface', () => {
       '/api/reports/own-id/attachments',
       '/profile',
       '/profile/password',
+      '/restricted',
+      '/restricted/__data.json',
       '/service-worker.js',
       '/manifest.webmanifest',
       '/icon-192.png',

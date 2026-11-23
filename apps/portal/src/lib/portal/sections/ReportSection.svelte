@@ -173,12 +173,22 @@
   ] as const;
 
   type ReportTab = (typeof tabs)[number]['id'];
+  // T44: client sign-off and the client filter are back-office tools (owner,
+  // finance, PM). A field worker, external technician or supplier coordinator
+  // (all role "worker") only sees own daily and technical reports.
+  const backOfficeReports = $derived(data.user.role !== 'worker');
+  const visibleTabs = $derived(
+    backOfficeReports ? tabs : tabs.filter((tab) => tab.id !== 'signoff'),
+  );
   type Surface = 'daily' | 'technical' | 'generate' | null;
   type SignoffState = 'needs_report' | 'ready_for_signature' | 'signed' | 'invalid';
 
   function resolveReportTab(value: string | null): ReportTab {
     const candidate = value?.trim() ?? '';
-    return tabs.some((tab) => tab.id === candidate) ? (candidate as ReportTab) : 'daily';
+    return (data.user.role !== 'worker' || candidate !== 'signoff') &&
+      tabs.some((tab) => tab.id === candidate)
+      ? (candidate as ReportTab)
+      : 'daily';
   }
 
   // Keep direct links such as /app/reports?view=signoff useful on first paint
@@ -1460,7 +1470,7 @@
     aria-label={workRound2Text(reportLocale, 'reportLinks')}
     role="tablist"
   >
-    {#each tabs as tab}
+    {#each visibleTabs as tab}
       <button
         id={`report-tab-${tab.id}`}
         type="button"
@@ -1566,18 +1576,18 @@
       class="register-filter-disclosure"
     >
       <div class="secondary-filter-fields report-register-filters-secondary">
-        <label
-          ><span>{translate('Client')}</span><select
-            name="client"
-            bind:value={clientFilter}
-            onchange={() => {
-              dailyPage = 1;
-              technicalPage = 1;
-            }}
-            ><option value="">{translate('All clients')}</option
-            >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
-          ></label
-        >
+        {#if backOfficeReports}<label
+            ><span>{translate('Client')}</span><select
+              name="client"
+              bind:value={clientFilter}
+              onchange={() => {
+                dailyPage = 1;
+                technicalPage = 1;
+              }}
+              ><option value="">{translate('All clients')}</option
+              >{#each clientOptions as client}<option value={client}>{client}</option>{/each}</select
+            ></label
+          >{/if}
         <label
           ><span>{translate('From')}</span><input
             name="from"

@@ -640,6 +640,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
         303,
         `/j-aautomation/app/supplier${url.searchParams.get('lang') ? `?lang=${encodeURIComponent(url.searchParams.get('lang')!)}` : ''}`,
       );
+    // T44: Crew hours belongs to crew chiefs. A person with no current or
+    // upcoming crew delegation gets the styled "not available" page, not an
+    // invitation to ask for access to a feature they do not have.
+    if (!owner && projects.length === 0 && upcoming.length === 0)
+      error(403, 'crew.chief_required');
     const emptyRows = (
       currentProjects = projects,
       currentProblem: ProblemData | null = filterProblem,

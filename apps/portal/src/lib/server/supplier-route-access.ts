@@ -25,6 +25,8 @@ export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceP
       '/supplier',
       '/supplier/report',
       '/supplier/report.csv',
+      // The in-app "not available under your access" page (T18). It shows no data.
+      '/restricted',
       '/mfa-enrollment',
       '/service-worker.js',
       '/manifest.webmanifest',

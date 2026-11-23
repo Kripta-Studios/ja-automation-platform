@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 const store = vi.hoisted(() => new Map<string, unknown>());
-vi.mock('idb', () => ({
+vi.mock('../../apps/portal/node_modules/idb/build/index.js', () => ({
   openDB: async () => ({
     put: async (_name: string, value: unknown, key: string) => void store.set(key, value),
     get: async (_name: string, key: string) => store.get(key),

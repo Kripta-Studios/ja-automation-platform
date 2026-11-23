@@ -184,6 +184,24 @@
     );
   const report = $derived(data.detail.report as Report);
   const history = $derived((data.detail.history ?? []) as HistoryRow[]);
+  /** T58: the reviewer's reason for sending the report back, shown at the top. */
+  const reviewerNote = $derived.by(() => {
+    const returns = history
+      .filter((event) => String(event.action ?? '').endsWith('.needs_changes'))
+      .sort((a, b) => String(b.occurred_at ?? '').localeCompare(String(a.occurred_at ?? '')));
+    for (const event of returns) {
+      try {
+        const reason = (JSON.parse(String(event.details_json ?? '{}')) as { reason?: unknown })
+          .reason;
+        if (typeof reason === 'string' && reason.trim()) return reason.trim();
+      } catch {
+        /* unreadable details: no note */
+      }
+    }
+    return '';
+  });
+  /** Workers see their report first; the audit trail stays available but folded. */
+  const fieldPerson = $derived(data.user?.role === 'worker');
   const attachments = $derived((data.detail.attachments ?? []) as Attachment[]);
   const isDaily = $derived(data.detail.type === 'daily');
   // Explicit operational fields only; do not render arbitrary DTO keys or audit payloads.
@@ -1446,6 +1464,12 @@
       <strong id="report-change-alert-title"
         >{t('This report needs changes before it can be approved.')}</strong
       >
+      {#if reviewerNote}
+        <p class="change-alert-note" data-report-reviewer-note>
+          <strong>{t('Reviewer note')}:</strong>
+          {reviewerNote}
+        </p>
+      {/if}
       <span
         >{t(
           'Update the fields below and submit it again. The owner and admin team can see exactly what changed.',
@@ -2286,10 +2310,11 @@
     class="report-history-panel"
     data-history-panel
   >
-    <div class="report-history-intro">
+    <details class="report-history-fold" open={!fieldPerson}>
+    <summary class="report-history-intro">
       <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
       <span class="history-count">{history.length} {t('events')}</span>
-    </div>
+    </summary>
     {#each history as event}
       <article class="history-event">
         <div>
@@ -2315,6 +2340,7 @@
         {/if}
       </article>
     {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
+    </details>
   </SectionCard>
 
   {#if data.detail.canDelete}
@@ -2356,6 +2382,17 @@
 </main>
 
 <style>
+  .change-alert-note {
+    margin: 0.35rem 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid #b26a00;
+    background: #fff7e8;
+    color: #1c2430;
+  }
+  .report-history-fold > summary {
+    cursor: pointer;
+    list-style: revert;
+  }
   .report-detail-nav {
     display: flex;
     flex-wrap: wrap;

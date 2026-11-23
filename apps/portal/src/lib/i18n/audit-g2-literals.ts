@@ -73,4 +73,5 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Descartar este rascunho da equipe? Não é possível desfazer.',
   ],
   'Crew draft discarded.': ['Borrador del equipo descartado.', 'Rascunho da equipe descartado.'],
+  'Reviewer note': ['Nota del revisor', 'Observação do revisor'],
 };

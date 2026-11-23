@@ -66,7 +66,9 @@ describe('crew draft management', () => {
       ).toThrow(ValidationError);
     }
     const count = source.fixture.sqlite
-      .prepare("SELECT COUNT(*) n FROM time_entry WHERE category NOT IN ('regular','overtime','travel','standby')")
+      .prepare(
+        "SELECT COUNT(*) n FROM time_entry WHERE category NOT IN ('regular','overtime','travel','standby')",
+      )
       .get() as { n: number };
     expect(count.n).toBe(0);
   });
@@ -281,9 +283,18 @@ describe('crew draft management', () => {
   it('accepts an empty "Work performed" note (optional, same as Log time)', () => {
     const { crew, chief, id } = setup();
     expect(
-      crew.updateDraft(chief, { id, version: 1, workDate, category: 'regular', minutes: 445, summary: '' }),
+      crew.updateDraft(chief, {
+        id,
+        version: 1,
+        workDate,
+        category: 'regular',
+        minutes: 445,
+        summary: '',
+      }),
     ).toEqual({ id, version: 2 });
-    expect(crew.entryDetail(chief, id)).toEqual(expect.objectContaining({ minutes: 445, summary: '' }));
+    expect(crew.entryDetail(chief, id)).toEqual(
+      expect.objectContaining({ minutes: 445, summary: '' }),
+    );
   });
 
   it('discards an unlinked draft without erasing its provenance or audit history', () => {

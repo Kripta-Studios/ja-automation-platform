@@ -4770,7 +4770,13 @@ export class PortalRepository {
     input: ExpenseInput,
     workerId = principal.userId,
     requestId?: string,
-    options: Readonly<{ allowSeparateExpense?: boolean }> = {},
+    options: Readonly<{
+      allowSeparateExpense?: boolean;
+      /** Extra retry-identity details stored on the single expense.create audit event. */
+      auditDetails?: Readonly<Record<string, unknown>>;
+      /** Caller-reserved id (a batch names all its ids in the first row's audit event). */
+      id?: string;
+    }> = {},
   ) {
     this.assertActive(principal);
     return this.transaction(() => {
@@ -4929,7 +4935,7 @@ export class PortalRepository {
           if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
         }
       }
-      const id = newId();
+      const id = options.id && /^[0-9a-f-]{16,64}$/u.test(options.id) ? options.id : newId();
       const timestamp = now();
       // Configuration is not data entry.  The operational intake deliberately
       // ignores legacy/forged commercial fields; Finance/Admin appends the
@@ -4982,6 +4988,7 @@ export class PortalRepository {
           .run(principal.userId, requestId as string, payloadHash as string, id, timestamp);
       }
       this.audit(principal, 'expense.create', 'expense', id, {
+        ...(options.auditDetails ?? {}),
         amountMinor: input.amountMinor.toString(),
         ...(grantId ? { recordedForWorkerId: workerId, crewGrantId: grantId } : {}),
       });

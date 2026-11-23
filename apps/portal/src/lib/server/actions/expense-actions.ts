@@ -1,3 +1,4 @@
+import { newId } from '@ja/domain';
 import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
@@ -9,7 +10,6 @@ import {
   V3AccessDeniedError,
   V3ConflictError,
   ValidationError,
-  recordAuditEvent,
 } from '@ja/database';
 import { z, type ZodError } from 'zod';
 import { mondayOf } from '$lib/server/portal-week';
@@ -227,7 +227,10 @@ const expenseUpdateSchema = versionedRecordSchema
 /** Normalize the browser's decimal controls into the exact minor-unit update contract. */
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   const payload = { ...object };
-  const amountMinor = decimalToMinor(normalizeExpenseAmount(payload.amount), payload.amountCurrency);
+  const amountMinor = decimalToMinor(
+    normalizeExpenseAmount(payload.amount),
+    payload.amountCurrency,
+  );
   payload.amountMinor = amountMinor ?? payload.amount;
   delete payload.amount;
   delete payload.amountCurrency;
@@ -1231,26 +1234,32 @@ export const expenseActions = withOperationalActionNames({
             context.repository.expenseDetail(context.principal, id);
           return { created: details.expenseWeekCount, replayed: true };
         }
-        const created = inputs.map((input) => {
+        // The batch's retry identity rides on the first expense's own expense.create
+        // audit event, so every expense has exactly one "Expense recorded" event.
+        const ids = inputs.map(() => newId());
+        const created = inputs.map((input, index) => {
           if (!input.success) throw new ValidationError('Expense fields are invalid');
-          return context.repository.createExpense(context.principal, input.data, workerId);
+          return context.repository.createExpense(
+            context.principal,
+            input.data,
+            workerId,
+            undefined,
+            {
+              id: ids[index],
+              ...(index === 0
+                ? {
+                    auditDetails: {
+                      projectId: String(object.projectId),
+                      expenseWeekRequestId: requestId,
+                      expenseWeekPayloadHash: payloadHash,
+                      expenseWeekCount: inputs.length,
+                      expenseIds: ids,
+                    },
+                  }
+                : {}),
+            },
+          );
         });
-        // Reuse the reviewed expense.create audit contract to record this batch's
-        // retry identity. The rows and identity commit together; no schema write.
-        recordAuditEvent(
-          context.sqlite,
-          context.principal,
-          'expense.create',
-          'expense',
-          created[0]!.id,
-          {
-            projectId: String(object.projectId),
-            expenseWeekRequestId: requestId,
-            expenseWeekPayloadHash: payloadHash,
-            expenseWeekCount: created.length,
-            expenseIds: created.map((row) => row.id),
-          },
-        );
         return { created: created.length, replayed: false };
       });
       return actionSuccess(
@@ -1392,7 +1401,8 @@ export const expenseActions = withOperationalActionNames({
         else seen.add(key);
         if (storedContent.get(sha256, rowBytes.byteLength)) duplicateRows.add(row.index);
       }
-      if (duplicateRows.size) return duplicateBatchReceipt([...duplicateRows].sort((a, b) => a - b));
+      if (duplicateRows.size)
+        return duplicateBatchReceipt([...duplicateRows].sort((a, b) => a - b));
       for (const row of rows)
         row.input.whoPaid = defaultExpensePayer(context.sqlite, {
           projectId: String(row.input.projectId),
@@ -1464,28 +1474,35 @@ export const expenseActions = withOperationalActionNames({
       const result = expenseWeekTransaction(context, () => {
         const replayed = prior();
         if (replayed) return replayed;
-        const created = rows.map((row) => {
+        // Retry identity on the first expense's own expense.create event (no duplicate).
+        const ids = rows.map(() => newId());
+        const created = rows.map((row, index) => {
           const parsed = expenseInputSchema.safeParse(row.input);
           if (!parsed.success) throw new ValidationError('Expense fields are invalid');
-          return context.repository.createExpense(context.principal, parsed.data, workerId);
+          return context.repository.createExpense(
+            context.principal,
+            parsed.data,
+            workerId,
+            undefined,
+            {
+              id: ids[index],
+              ...(index === 0
+                ? {
+                    auditDetails: {
+                      projectId: String(object.projectId),
+                      expenseBatchRequestId: requestId,
+                      expenseBatchPayloadHash: payloadHash,
+                      expenseBatchCount: rows.length,
+                      expenseIds: ids,
+                    },
+                  }
+                : {}),
+            },
+          );
         });
         if (submitNow)
           for (const row of created)
             context.repository.submitExpense(context.principal, row.id, row.version);
-        recordAuditEvent(
-          context.sqlite,
-          context.principal,
-          'expense.create',
-          'expense',
-          created[0]!.id,
-          {
-            projectId: String(object.projectId),
-            expenseBatchRequestId: requestId,
-            expenseBatchPayloadHash: payloadHash,
-            expenseBatchCount: created.length,
-            expenseIds: created.map((row) => row.id),
-          },
-        );
         return { created: created.length, replayed: false };
       });
       if (result.replayed) await cleanup();
@@ -1650,28 +1667,28 @@ export const expenseActions = withOperationalActionNames({
             ) as { id: string } | undefined;
           if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
         }
+        // The retry identity is stored on the expense's own expense.create audit
+        // event: one "Expense recorded" per expense (T17 double emit).
         const created = context.repository.createExpense(
           context.principal,
           parsed.data,
           workerId,
           requestId,
-          { allowSeparateExpense },
+          {
+            allowSeparateExpense,
+            ...(retryIdentity
+              ? {
+                  auditDetails: {
+                    projectId: parsed.data.projectId,
+                    expenseRequestId: retryIdentity,
+                    expensePayloadHash: payloadHash,
+                  },
+                }
+              : {}),
+          },
         );
         if (submitNow && !created.replayed)
           context.repository.submitExpense(context.principal, created.id, created.version);
-        if (retryIdentity && !created.replayed)
-          recordAuditEvent(
-            context.sqlite,
-            context.principal,
-            'expense.create',
-            'expense',
-            created.id,
-            {
-              projectId: parsed.data.projectId,
-              expenseRequestId: retryIdentity,
-              expensePayloadHash: payloadHash,
-            },
-          );
         return created;
       });
       if (created.replayed) await uploaded?.cleanup();

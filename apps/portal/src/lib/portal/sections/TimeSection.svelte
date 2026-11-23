@@ -78,11 +78,6 @@
   const timeReturns = $derived((data.timeReturns ?? []) as Row[]);
   /** Entries a reviewer rejected this week: read-only, with the reviewer's note. */
   const weekRejected = $derived((data.weekRejected ?? []) as Row[]);
-  const shownRejected = $derived(
-    mode === 'day'
-      ? weekRejected.filter((entry) => String(entry.work_date) === selectedDay)
-      : weekRejected,
-  );
   const assignments = $derived((data.timeAssignments ?? []) as Row[]);
   const projects = $derived((data.projects ?? []) as Row[]);
 
@@ -131,6 +126,9 @@
   let addingRow = $state(false);
   let newRowProject = $state('');
   let newRowCategory = $state('travel');
+  /** T53: on the phone list a new row appears on this day only (other days stay compact). */
+  let newRowDay = $state('');
+  let extraRowDays = $state<Record<string, string[]>>({});
   let confirmDialog = $state<HTMLDialogElement | null>(null);
   let sheetForm = $state<HTMLFormElement | null>(null);
 
@@ -157,6 +155,7 @@
   );
 
   const cellKey = (row: SheetRow, date: string) => `${row.key}|${date}`;
+  const cellDate = (cell: { key: string }): string => cell.key.slice(cell.key.lastIndexOf('|') + 1);
   const cellEntries = (row: SheetRow, date: string) =>
     entries.filter(
       (entry) =>
@@ -237,14 +236,48 @@
     const end = parseClockText(detail.end);
     return Boolean(start && end && end <= start);
   };
-  const detailSummary = (detail: DetailDraft) =>
+  /** "20/11": the day an overnight shift ends (T53), in the person's language. */
+  const nextDayShort = (date: string): string => {
+    const next = new Date(`${date}T12:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    return new Intl.DateTimeFormat(language, { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(next);
+  };
+  const detailSummary = (detail: DetailDraft, date?: string) =>
     detail.start && detail.end
-      ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${Number(detail.breakMinutes || 0) ? ` −${Number(detail.breakMinutes)} min` : ''}`
+      ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${date && overnight(detail) ? ` (${t('endsOn', { date: nextDayShort(date) })})` : ''}${Number(detail.breakMinutes || 0) ? ` · ${t('breakShort', { min: Number(detail.breakMinutes) })}` : ''}`
       : detail.start.trim() || detail.end.trim()
         ? `${parseClockText(detail.start) ?? '…'}–${parseClockText(detail.end) ?? '…'}`
         : detail.note.trim()
           ? '✎'
           : '';
+
+  /** T53: an added row shows on the day it was added for (all days when none chosen). */
+  const extraRowOnDay = (key: string, date: string): boolean =>
+    extraRows.some((row) => row.key === key) &&
+    (!extraRowDays[key]?.length || extraRowDays[key]!.includes(date));
+  /**
+   * T53: the empty default "Work" row is hidden on a day that already has another type
+   * for the project (e.g. only Travel), so the phone list does not invite a blank entry.
+   */
+  const otherRowsOnDay = (projectId: string, index: number): boolean => {
+    const date = days[index];
+    if (!date) return false;
+    const regularKey = `${projectId}|regular`;
+    const regular = entries.some(
+      (entry) =>
+        String(entry.project_id) === projectId &&
+        String(entry.work_date) === date &&
+        String(entry.category) === 'regular',
+    );
+    if (regular || Object.keys(edits).some((key) => key === `${regularKey}|${date}`)) return false;
+    return entries.some(
+      (entry) =>
+        String(entry.project_id) === projectId &&
+        String(entry.work_date) === date &&
+        String(entry.category) !== 'regular' &&
+        String(entry.approval_state) !== 'void',
+    );
+  };
 
   const cellFor = (row: SheetRow, date: string): Cell => {
     const key = cellKey(row, date);
@@ -456,6 +489,7 @@
     edits = {};
     detailEdits = {};
     extraRows = [];
+    extraRowDays = {};
     void goto(sheetHref({ worker: value }), { noScroll: true, keepFocus: true });
   };
 
@@ -477,6 +511,8 @@
       detailEdits = {};
       detailKey = '';
       extraRows = [];
+      extraRowDays = {};
+    extraRowDays = {};
       reason = '';
     }
     sheetIdentity = identity;
@@ -569,6 +605,9 @@
         detailEdits = {};
         detailKey = '';
         extraRows = [];
+        extraRowDays = {};
+      extraRowDays = {};
+    extraRowDays = {};
         reason = '';
         rememberDayChoice();
       }
@@ -598,10 +637,11 @@
   };
   const addRow = () => {
     if (!newRowProject) return;
-    extraRows = [
-      ...extraRows,
-      { key: `${newRowProject}|${newRowCategory}`, projectId: newRowProject, category: newRowCategory },
-    ];
+    const key = `${newRowProject}|${newRowCategory}`;
+    if (!extraRows.some((row) => row.key === key))
+      extraRows = [...extraRows, { key, projectId: newRowProject, category: newRowCategory }];
+    if (newRowDay)
+      extraRowDays = { ...extraRowDays, [key]: [...(extraRowDays[key] ?? []), newRowDay] };
     addingRow = false;
   };
 
@@ -659,6 +699,11 @@
       : days.includes(today)
         ? today
         : (days[0] ?? today),
+  );
+  const shownRejected = $derived(
+    mode === 'day'
+      ? weekRejected.filter((entry) => String(entry.work_date) === selectedDay)
+      : weekRejected,
   );
   const shiftDay = (offset: number) => {
     const date = new SvelteDate(`${selectedDay}T00:00:00.000Z`);
@@ -968,13 +1013,13 @@
       aria-label={t('detailLabel', { project: `${projectLabel(line.row.projectId)} (${categoryLabel(line.row.category)})`, day: dayName(date, 'long') })}
       title={t('detailHint')}
       onclick={() => (detailKey = detailKey === cell.key ? '' : cell.key)}
-      data-testid="time-detail-toggle">{hasDetail(cell.detail) ? detailSummary(cell.detail) : t('detailAdd')}</button
+      data-testid="time-detail-toggle">{hasDetail(cell.detail) ? detailSummary(cell.detail, cellDate(cell)) : t('detailAdd')}</button
     >
   {:else}
     <span
       class="hours-locked"
       data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
-      title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail) : '', cell.detail.note].filter(Boolean).join(' · ')}
+      title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail, cellDate(cell)) : '', cell.detail.note].filter(Boolean).join(' · ')}
       aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0:00'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
       {#if cell.kind === 'unassigned'}
@@ -988,7 +1033,7 @@
       {/if}
     </span>
     {#if cell.kind !== 'unassigned' && hasDetail(cell.detail)}
-      <small class="detail-ro" title={cell.detail.note}>{detailSummary(cell.detail)}</small>
+      <small class="detail-ro" title={cell.detail.note}>{detailSummary(cell.detail, cellDate(cell))}</small>
     {/if}
   {/if}
 {/snippet}
@@ -1347,14 +1392,16 @@
                 {:else if minutesHint(dayCell.minutes)}
                   <small class="muted">{minutesHint(dayCell.minutes)}</small>
                 {/if}
-                {#if dayCell.kind === 'draft'}<small class="muted">{t('dayDraftHint')}</small>{/if}
+                {#if dayCell.kind === 'draft'}<small class="muted"
+                    >{typeof dayCell.detailMinutes === 'number' ? t('dayDraftDetailHint') : t('dayDraftHint')}</small
+                  >{/if}
               {:else if dayCell}
                 <span class="hours-locked big" data-status={dayCell.status}
                   >{hoursText(dayCell.originalMinutes) || '0:00'} {t('hoursUnit')}</span
                 >
                 <small class="muted">{cellTitle(dayCell)}</small>
                 {#if lockedHelp(dayCell)}<small class="locked-help" data-testid="time-day-locked-help">{lockedHelp(dayCell)}</small>{/if}
-                {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail)} {dayCell.detail.note}</small>{/if}
+                {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail, selectedDay)} {dayCell.detail.note}</small>{/if}
               {/if}
             </label>
             {#if dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix')}
@@ -1368,7 +1415,7 @@
                   aria-expanded="false"
                   onclick={() => (detailKey = dayCell.key)}
                   data-testid="time-detail-toggle"
-                  >{hasDetail(dayCell.detail) ? `${t('ovDetail')}: ${detailSummary(dayCell.detail)}` : t('detailAdd')}</button
+                  >{hasDetail(dayCell.detail) ? `${t('ovDetail')}: ${detailSummary(dayCell.detail, selectedDay)}` : t('detailAdd')}</button
                 >
               {/if}
             {/if}
@@ -1405,6 +1452,10 @@
                   data-testid="time-day-send"
                   >{busy === 'submit_day' ? t('sendingDay') : t('saveAndSend')}</button
                 >
+              {/if}
+              {#if !busy && !invalidNow && !dirtyNow && dayDraftCount === 0}
+                <!-- T53: say why the buttons are disabled. -->
+                <small class="muted day-disabled-hint" data-testid="time-day-disabled-hint">{t('dayNothingYet')}</small>
               {/if}
               <button
                 type="button"
@@ -1542,7 +1593,7 @@
             <ul>
               {#each grid as line (line.row.key)}
                 {@const cell = line.cells[index]!}
-                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
+                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && ((line.row.category === 'regular' && !otherRowsOnDay(line.row.projectId, index)) || cell.originalMinutes || cell.key in edits || extraRowOnDay(line.row.key, date))}
                   <li class="day-line">
                     <span class="day-line-label">
                       <span class="project-name">{projectLabel(line.row.projectId)}</span>
@@ -1584,6 +1635,14 @@
                   {/each}
                 </select>
               </label>
+              <label class="add-row-day"
+                >{t('day')}
+                <select bind:value={newRowDay}>
+                  {#each days as date (date)}
+                    <option value={date}>{dayName(date, 'long')}</option>
+                  {/each}
+                </select>
+              </label>
               <button type="button" class="secondary" onclick={addRow}>{t('add')}</button>
               <button type="button" class="link" onclick={() => (addingRow = false)}>{t('cancel')}</button>
             </fieldset>
@@ -1593,6 +1652,7 @@
               class="link"
               onclick={() => {
                 newRowProject = String(rowProjects[0]?.id ?? '');
+                newRowDay = days.includes(projectToday) ? projectToday : (days[0] ?? '');
                 addingRow = true;
               }}>+ {t('addRow')}</button
             >

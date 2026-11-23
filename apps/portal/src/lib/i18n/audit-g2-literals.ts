@@ -18,4 +18,17 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Indica la parada entre 0 y 24 horas, por ejemplo 1,5.',
     'Informe a parada entre 0 e 24 horas, por exemplo 1,5.',
   ],
+  'Not reimbursable': ['No reembolsable', 'Não reembolsável'],
+  'Add the receipt with Edit before sending.': [
+    'Añade el ticket con Editar antes de enviarlo.',
+    'Adicione o recibo em Editar antes de enviar.',
+  ],
+  'Sent without a receipt. It can be added when the reviewer sends it back, or with a correction after approval.': [
+    'Enviado sin ticket. Se puede añadir cuando el revisor lo devuelva o con una corrección después de aprobarlo.',
+    'Enviado sem recibo. Ele pode ser adicionado quando o revisor devolver a despesa ou com uma correção após a aprovação.',
+  ],
+  'To add the receipt, create a corrected draft below.': [
+    'Para añadir el ticket, crea un borrador corregido más abajo.',
+    'Para adicionar o recibo, crie um rascunho corrigido abaixo.',
+  ],
 };

@@ -1104,9 +1104,11 @@
       {#if canViewOwnReimbursement && record.approval_state !== 'void' && record.reimbursement_state}
         <article>
           <span>{t('REIMBURSEMENT')}</span><strong
-            >{financeClassificationPending
-              ? t('Needs Finance classification')
-              : controlled('status', record.reimbursement_state)}</strong
+            >{record.approval_state === 'rejected'
+              ? t('Not reimbursable')
+              : financeClassificationPending
+                ? t('Needs Finance classification')
+                : controlled('status', record.reimbursement_state)}</strong
           >
         </article>
       {/if}
@@ -1198,6 +1200,18 @@
               {record.receipt_document_id
                 ? t('Registered private receipt')
                 : t('No receipt linked')}
+              {#if !record.receipt_document_id && record.worker_id === data.user?.id}
+                <!-- T55: say how a missing receipt can still be added. -->
+                <small class="receipt-path" data-expense-receipt-path
+                  >{record.approval_state === 'draft'
+                    ? t('Add the receipt with Edit before sending.')
+                    : record.approval_state === 'submitted'
+                      ? t('Sent without a receipt. It can be added when the reviewer sends it back, or with a correction after approval.')
+                      : data.canCreateCorrection
+                        ? t('To add the receipt, create a corrected draft below.')
+                        : ''}</small
+                >
+              {/if}
             </dd>
           </div>
         {/if}
@@ -1228,6 +1242,12 @@
 {/if}
 
 <style>
+  .receipt-path {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--ja-muted, #5f6670);
+    font-size: 0.85rem;
+  }
   .expense-correction-panel > summary {
     cursor: pointer;
     list-style: none;

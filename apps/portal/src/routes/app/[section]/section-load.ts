@@ -761,6 +761,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           payActivities,
           payExpenses,
           payOutstanding: workerPayOutstanding(settlements, payExpenses),
+          // T41: link a project only when its page opens for this person.
+          payOpenableProjectIds: [
+            ...new Set(
+              [
+                ...((pay as { projectProgress?: Array<{ projectId?: unknown }> }).projectProgress ??
+                  []),
+                ...(settlements as Array<{ projectId?: unknown }>),
+              ]
+                .map((row) => String(row.projectId ?? ''))
+                .filter(Boolean),
+            ),
+          ].filter((projectId) => context.repository.canOpenProject(context.principal, projectId)),
         };
       }
       // The base project list is already role-scoped by the repository. Add

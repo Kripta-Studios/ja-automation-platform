@@ -62,4 +62,17 @@ describe('own records stay readable after the assignment ends (T19/T41)', () => 
     expect(() => base.repository.timeDetail(worker, time.id)).toThrow(AccessDeniedError);
     expect(base.repository.listTimeForScope(worker)).toEqual([]);
   });
+
+  it('tells lists whether a project page opens, so My Pay links no 403 page (T41)', () => {
+    const base = createB5LifecycleSecurityFixture();
+    fixtures.push(base);
+    const worker = signInB5Principal(base.sqlite, base.worker, 'open-project-worker');
+    const outsider = signInB5Principal(base.sqlite, base.outsider, 'open-project-outsider');
+    expect(base.repository.canOpenProject(worker, base.project.id)).toBe(true);
+    expect(base.repository.canOpenProject(outsider, base.project.id)).toBe(false);
+    base.sqlite
+      .prepare("UPDATE project_member SET status='inactive' WHERE project_id=? AND user_id=?")
+      .run(base.project.id, worker.userId);
+    expect(base.repository.canOpenProject(worker, base.project.id)).toBe(false);
+  });
 });

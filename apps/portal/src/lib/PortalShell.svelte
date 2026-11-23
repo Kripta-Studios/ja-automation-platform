@@ -394,6 +394,12 @@
         ))
       : undefined,
   );
+  // T41: My Pay links a project only when its page opens for this person.
+  function payProjectOpens(projectId: unknown): boolean {
+    const openable = (data as { payOpenableProjectIds?: string[] }).payOpenableProjectIds;
+    return openable === undefined || openable.includes(String(projectId ?? ''));
+  }
+
   function planningRecordHref(row: Row): string {
     const project = encodeURIComponent(String(row.project_id ?? ''));
     const id = encodeURIComponent(String(row.id ?? ''));
@@ -4971,11 +4977,11 @@
               <tbody
                 >{#each data.pay.projectProgress ?? [] as row}<tr
                     ><td
-                      ><a
-                        href="{base}/app/projects/{String(row.projectId ?? '')}"
-                        class="project-progress-link"
-                        >{String(row.projectNumber)} · {String(row.projectName)}</a
-                      ></td
+                      >{#if payProjectOpens(row.projectId)}<a
+                          href="{base}/app/projects/{String(row.projectId ?? '')}"
+                          class="project-progress-link"
+                          >{String(row.projectNumber)} · {String(row.projectName)}</a
+                        >{:else}{String(row.projectNumber)} · {String(row.projectName)}{/if}</td
                     ><td>{hours(row.actualMinutes ?? 0)}</td><td
                       >{hours(row.approvedMinutes ?? 0)}</td
                     ><td>{hours(row.pendingMinutes ?? 0)}</td><td
@@ -5095,14 +5101,16 @@
                 {#each data.settlements ?? [] as settlement}
                   <tr>
                     <td>
-                      <a
-                        class="project-progress-link"
-                        href="{base}/app/projects/{String(settlement.projectId ?? '')}"
-                      >
-                        {String(settlement.projectNumber ?? '—')} · {String(
+                      {#if payProjectOpens(settlement.projectId)}<a
+                          class="project-progress-link"
+                          href="{base}/app/projects/{String(settlement.projectId ?? '')}"
+                        >
+                          {String(settlement.projectNumber ?? '—')} · {String(
+                            settlement.periodStart ?? '—',
+                          )} → {String(settlement.periodEnd ?? '—')}
+                        </a>{:else}{String(settlement.projectNumber ?? '—')} · {String(
                           settlement.periodStart ?? '—',
-                        )} → {String(settlement.periodEnd ?? '—')}
-                      </a>
+                        )} → {String(settlement.periodEnd ?? '—')}{/if}
                     </td>
                     <td>{controlledValue('status', settlement.paymentState ?? settlement.state)}</td
                     >

@@ -2881,6 +2881,22 @@ export class PortalRepository {
    * member of a project he does not manage). Read only: every write keeps the
    * current-assignment checks. A removed (inactive) assignment grants nothing.
    */
+  /**
+   * T41: whether the project page would open for this person today. Lists that
+   * mention a project (My Pay progress, settlements) render a link only when
+   * this is true, so a PM who worked on a project he does not manage is not
+   * sent to a 403 page.
+   */
+  canOpenProject(principal: Principal, projectId: string): boolean {
+    try {
+      this.assertActive(principal);
+      return this.hasEffectiveProjectObjectAccess(principal, projectId);
+    } catch (error) {
+      if (error instanceof AccessDeniedError) return false;
+      throw error;
+    }
+  }
+
   private ownRecordAssignmentCovers(
     principal: Principal,
     projectId: string,

@@ -248,6 +248,12 @@ export const load: PageServerLoad = ({ locals, params }) => {
       user: locals.user,
       reviewOnly: false,
       record: safeRecord,
+      // T41: offer "Open project" only when that page opens for this person
+      // (own entry on a project the PM works on but does not manage).
+      canOpenProject: context.repository.canOpenProject(
+        context.principal,
+        String(record.project_id),
+      ),
       correctionOrigin,
       activeCorrection,
       correctionRequestId,

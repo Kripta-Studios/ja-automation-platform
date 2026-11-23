@@ -276,6 +276,10 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
     return {
       user: locals.user,
       reviewOnly: false,
+      // T41: "Open project" only when that page opens for this person.
+      canOpenProject:
+        !locals.user?.workforceProfile &&
+        context.repository.canOpenProject(context.principal, String(record.project_id)),
       expenseMoneyVisible: context.principal.role !== 'project_manager',
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),

@@ -755,7 +755,13 @@
 </script>
 
 <div class="aq">
-  <p class="aq-help">{ownerApprovalIncludesFinance ? t('helpOwner') : t('help')}</p>
+  <p class="aq-help">
+    {ownerApprovalIncludesFinance
+      ? t('helpOwner')
+      : role === 'finance_admin'
+        ? t('helpFinance')
+        : t('help')}
+  </p>
   {#if queue.ownerOnlyTime}
     <p class="aq-help aq-owner-only" data-owner-only-time>
       {queue.ownerOnlyTime.count === 1

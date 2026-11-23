@@ -1230,7 +1230,9 @@
     <a href={reportReturnHref}
       ><DirectionIcon direction="left" /> {workRound2Text(locale, 'reportReturnToList')}</a
     >
-    <a href={base + '/app/projects/' + display(report.project_id)}>{t('Open project')}</a>
+    {#if data.canOpenProject !== false}<a href={base + '/app/projects/' + display(report.project_id)}
+        >{t('Open project')}</a
+      >{/if}
     {#if data.detail.canEdit}
       <a class="report-detail-shortcut" href="#modify-report-title"
         >{workRound2Text(locale, 'reportEditShortcut')}</a
@@ -1308,11 +1310,15 @@
     {locale}
     fields={previewEditableFields}
     sourceFields={[
-      {
-        name: 'projectSettings',
-        label: t('Open project'),
-        href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
-      },
+      ...(data.canOpenProject !== false
+        ? [
+            {
+              name: 'projectSettings',
+              label: t('Open project'),
+              href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
+            },
+          ]
+        : []),
       ...(data.detail.canCreateCorrection
         ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
             name: field.name,

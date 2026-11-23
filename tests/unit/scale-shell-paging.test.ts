@@ -141,6 +141,30 @@ describe('audit register filters', () => {
     expect(plan.some((detail) => /^SCAN audit_event/u.test(detail))).toBe(false);
   });
 
+  it('reaches business events through the entity index, never a full scan (T40)', () => {
+    sqlite.exec(`
+      CREATE INDEX audit_entity_time_idx ON audit_event(entity_type, entity_id, occurred_at);
+      CREATE INDEX audit_event_occurred_idx ON audit_event(occurred_at, id);
+    `);
+    sqlite
+      .prepare('INSERT INTO audit_event VALUES(?,?,?,?,?,?,?,?)')
+      .run('a5', null, 'service_job.succeed', 'job_run', 'run-1', '2026-11-12T12:00:00.000Z', '{"password":"x"}', 'service');
+    const repository = new PortalRepository(sqlite);
+    const business = repository.listAuditEvents(owner, { view: 'business', limit: 10 });
+    expect(business.map((row) => row.id)).toEqual(['a2', 'a1', 'a4']);
+    expect(repository.countAuditEvents(owner, { view: 'business' })).toBe(3);
+    expect(repository.countAuditEvents(owner, { view: 'service' })).toBe(2);
+    const plan = (
+      sqlite
+        .prepare(
+          `EXPLAIN QUERY PLAN SELECT id FROM audit_event WHERE action NOT LIKE 'service_job.%' AND (entity_type<'job_run' OR entity_type>'job_run') ORDER BY +occurred_at DESC,id DESC LIMIT 25`,
+        )
+        .all() as Array<{ detail: string }>
+    ).map((row) => row.detail);
+    expect(plan.join(' / ')).toMatch(/audit_entity_time_idx/u);
+    expect(plan.join(' / ')).not.toMatch(/SCAN audit_event/u);
+  });
+
   it('keeps audit access to owner and auditor', () => {
     const repository = new PortalRepository(sqlite);
     expect(() => repository.countAuditEvents(manager, {})).toThrow('Audit access required');

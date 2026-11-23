@@ -12321,7 +12321,15 @@ export class PortalRepository {
   ) {
     const conditions: string[] = [];
     const values: Array<string | number> = [];
-    if (options.view === 'business') conditions.push("action NOT LIKE 'service_job.%'");
+    // T40: ~99% of the log is service-job bookkeeping (entity_type 'job_run';
+    // the reviewed action registry binds every service_job.* action to it and
+    // nothing else). The extra range lets SQLite reach the ~1.6k business
+    // events through audit_entity_time_idx instead of reading the whole table,
+    // which froze the server for a search over "all time".
+    if (options.view === 'business')
+      conditions.push(
+        "action NOT LIKE 'service_job.%' AND (entity_type<'job_run' OR entity_type>'job_run')",
+      );
     if (options.view === 'service') conditions.push("action LIKE 'service_job.%'");
     if (options.from) {
       conditions.push('occurred_at>=?');
@@ -12386,7 +12394,7 @@ export class PortalRepository {
       .prepare(
         `SELECT id,actor_id,action,entity_type,entity_id,occurred_at,details_json
          FROM audit_event ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
-         ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?`,
+         ORDER BY ${options.view === 'business' ? '+occurred_at' : 'occurred_at'} DESC,id DESC LIMIT ? OFFSET ?`,
       )
       .all(...values, bounded, Math.max(0, Math.trunc(options.offset ?? 0))) as Array<{
       id: string;

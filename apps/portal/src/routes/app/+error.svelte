@@ -153,7 +153,8 @@
     if (code.includes('expense')) return translate('Expenses');
     if (code.includes('invoice')) return translate('Invoices');
     if (code.includes('notification')) return translate('Notifications');
-    return translate('Portal');
+    // No placeholder section name ("portal portal"): show none.
+    return '';
   });
 
   let errorHeading: HTMLHeadingElement | undefined;
@@ -172,10 +173,10 @@
 <main class="record-detail-page error-page">
   <nav class="detail-nav no-print" aria-label={translate('Portal navigation')}>
     <a href={recoveryHref}><DirectionIcon direction="left" /> {recoveryLabel}</a>
-    <span>{sectionLabel}</span>
+    {#if sectionLabel}<span>{sectionLabel}</span>{/if}
   </nav>
   <section class="detail-panel" role="alert">
-    <p class="portal-kicker">{sectionLabel}</p>
+    {#if sectionLabel}<p class="portal-kicker">{sectionLabel}</p>{/if}
     <h1 bind:this={errorHeading} tabindex="-1">{title}</h1>
     <p>{description}</p>
     {#if status === 403}
@@ -183,7 +184,7 @@
         <p class="error-page__contact">
           <a
             href={`mailto:${pageData.ownerContact.email}?subject=${encodeURIComponent(
-              err('contactSubject', { page: sectionLabel }),
+              err('contactSubject', { page: sectionLabel || refusedPath }),
             )}`}>{err('contact', { name: pageData.ownerContact.name || pageData.ownerContact.email })}</a
           >
         </p>
@@ -192,3 +193,44 @@
     <a class="secondary-button" href={recoveryHref}>{recoveryLabel}</a>
   </section>
 </main>
+
+<style>
+  /* T18: one readable refusal card: kicker above a real heading, no overlap,
+     no focus box from the programmatic focus, a visible contact link. */
+  .error-page .detail-panel {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 40rem;
+    padding: clamp(1.25rem, 4vw, 2rem);
+  }
+  .error-page .detail-panel > * {
+    margin: 0;
+  }
+  .error-page :global(.portal-kicker) {
+    display: block;
+    line-height: 1.4;
+  }
+  .error-page h1 {
+    font-size: clamp(1.4rem, 4vw, 1.9rem);
+    font-weight: 760;
+    line-height: 1.2;
+  }
+  /* The heading receives focus only programmatically (tabindex -1) so screen
+     readers announce it; it is not an interactive control. */
+  .error-page h1:focus {
+    outline: none;
+  }
+  .error-page__contact a {
+    color: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+  .error-page .secondary-button {
+    justify-self: start;
+  }
+  /* Inside the app shell the layout already offers "Back" and the menu. */
+  :global(.standalone-workspace__content) .error-page .detail-nav {
+    display: none;
+  }
+</style>

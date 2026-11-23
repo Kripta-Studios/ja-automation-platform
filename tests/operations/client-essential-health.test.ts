@@ -284,6 +284,23 @@ describe('readiness integrity off the request thread (T97)', () => {
     expect(await monitor.current('/data/app.db')).toBe('*** corruption');
   });
 
+  it('answers "checking" instead of waiting minutes for the very first check', async () => {
+    let release: (value: string) => void = () => undefined;
+    const runner = vi.fn(
+      () =>
+        new Promise<string>((resolvePromise) => {
+          release = resolvePromise;
+        }),
+    );
+    const monitor = createIntegrityMonitor(runner, 60_000, 5);
+    expect(await monitor.current('/data/app.db')).toBe('checking');
+    expect(await monitor.current('/data/app.db')).toBe('checking');
+    expect(runner).toHaveBeenCalledTimes(1);
+    release('ok');
+    await new Promise((resolvePromise) => setImmediate(resolvePromise));
+    expect(await monitor.current('/data/app.db')).toBe('ok');
+  });
+
   it('serves a fresh ok result from memory without another check', async () => {
     const runner = vi.fn(async () => 'ok');
     const monitor = createIntegrityMonitor(runner, 60_000);

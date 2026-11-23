@@ -274,16 +274,22 @@ export type IntegrityMonitor = Readonly<{
   /**
    * The last known integrity result. A fresh "ok" is served from memory; a stale
    * or failed result is returned at once while one background re-check runs.
-   * Only the very first call (no result yet) waits for the worker, and even then
-   * the event loop stays free for every other request.
+   * The very first call (no result yet) waits at most `firstWaitMs` for the
+   * worker and then answers INTEGRITY_CHECKING, so a health request never
+   * hangs for the minutes a full check of the production file can take.
    */
   current: (databasePath?: string) => Promise<string>;
   clear: () => void;
 }>;
 
+/** Integrity not known yet: the first background check is still running. */
+export const INTEGRITY_CHECKING = 'checking';
+export const INTEGRITY_FIRST_WAIT_MS = 2_000;
+
 export function createIntegrityMonitor(
   runner: IntegrityRunner = workerIntegrityCheck,
   ttlMs = INTEGRITY_CACHE_TTL_MS,
+  firstWaitMs = INTEGRITY_FIRST_WAIT_MS,
 ): IntegrityMonitor {
   let last: { value: string; checkedAt: number } | undefined;
   let running: Promise<string> | undefined;
@@ -307,7 +313,15 @@ export function createIntegrityMonitor(
       // In-memory/special databases cannot be opened by a second connection.
       if (databasePath.startsWith(':')) return Promise.resolve(last?.value ?? 'ok');
       const pending = start(databasePath);
-      return last ? Promise.resolve(last.value) : pending;
+      if (last) return Promise.resolve(last.value);
+      return new Promise<string>((resolvePromise) => {
+        const timer = setTimeout(() => resolvePromise(INTEGRITY_CHECKING), firstWaitMs);
+        timer.unref?.();
+        void pending.then((value) => {
+          clearTimeout(timer);
+          resolvePromise(value);
+        });
+      });
     },
     clear() {
       last = undefined;
@@ -323,6 +337,15 @@ export function cachedOperationalReadiness(): Promise<OperationalReadiness> {
     let db: ReturnType<typeof openDatabase> | undefined;
     try {
       db = openDatabase();
+      // T97: while the very first background check runs, readiness is decided
+      // on everything else and the integrity is reported as "checking" (the
+      // previous code also served a result up to 15 minutes old). A finished
+      // check that is not "ok" still fails readiness.
+      if (integrity === INTEGRITY_CHECKING)
+        return {
+          ...operationalReadiness(db, undefined, () => 'ok'),
+          integrity: INTEGRITY_CHECKING,
+        };
       return operationalReadiness(db, undefined, () => integrity);
     } catch {
       return unavailableReadiness();

@@ -114,7 +114,7 @@ describe('audit events read by what happened (T17)', () => {
       CREATE TABLE client(id TEXT PRIMARY KEY,display_name TEXT);
       CREATE TABLE project_member(id TEXT PRIMARY KEY,user_id TEXT,project_id TEXT);
       CREATE TABLE time_entry(id TEXT PRIMARY KEY,worker_id TEXT,project_id TEXT,work_date TEXT);
-      CREATE TABLE expense(id TEXT PRIMARY KEY,worker_id TEXT,project_id TEXT,spent_on TEXT);
+      CREATE TABLE expense(id TEXT PRIMARY KEY,worker_id TEXT,project_id TEXT,spent_on TEXT,currency TEXT);
       CREATE TABLE invoice(id TEXT PRIMARY KEY,invoice_number TEXT);
       CREATE TABLE audit_event(id TEXT,action TEXT,entity_type TEXT,entity_id TEXT,occurred_at TEXT,details_json TEXT);
       CREATE TABLE compensation_rule(id TEXT PRIMARY KEY,worker_id TEXT,project_id TEXT,currency TEXT,rate_minor INTEGER,
@@ -125,6 +125,7 @@ describe('audit events read by what happened (T17)', () => {
         ('r1','w1','p1','USD',5500,'hourly','2026-11-01',NULL,'2026-11-01T00:00:00Z'),
         ('r2','w1','p1','USD',5600,'hourly','2026-12-01',NULL,'2026-11-22T20:25:24Z');
       INSERT INTO time_entry VALUES('t1','w1','p1','2026-11-16');
+      INSERT INTO expense VALUES('e1','w1','p1','2026-11-17','USD');
     `);
     const result = auditSubjects(db, [
       {
@@ -142,6 +143,13 @@ describe('audit events read by what happened (T17)', () => {
         details_json: '{"reason":"owner_password_reset"}',
       },
       { id: 'a3', action: 'time.approved', entity_type: 'time_entry', entity_id: 't1', details_json: '{}' },
+      {
+        id: 'a4',
+        action: 'expense.create',
+        entity_type: 'expense',
+        entity_id: 'e1',
+        details_json: '{"amountMinor":"3550"}',
+      },
     ]);
     expect(result.get('a1')!.subject_label).toBe('Gabriel Lamoglia · C-0020-P-001');
     const lines = auditDetailLines(result.get('a1')!.display_details, 'en').lines;
@@ -151,6 +159,11 @@ describe('audit events read by what happened (T17)', () => {
     expect(lines).toContainEqual({ label: 'Effective from', value: '2026-12-01' });
     expect(result.get('a2')!.subject_label).toBe('Aud Throwaway');
     expect(result.get('a3')!.subject_label).toBe('Gabriel Lamoglia · C-0020-P-001 · 2026-11-16');
+    // An expense amount recorded without currency reads as money, not "3550".
+    expect(auditDetailLines(result.get('a4')!.display_details, 'en').lines).toContainEqual({
+      label: 'Amount',
+      value: '$35.50',
+    });
     db.close();
   });
 });

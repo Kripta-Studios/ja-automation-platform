@@ -10,7 +10,11 @@ export const GET: RequestHandler = async ({ locals }) => {
   return json(
     {
       status: readiness?.ok ? 'ok' : 'degraded',
-      database: readiness.integrity === 'ok' ? 'ok' : 'unavailable',
+      // T97: "checking" while the first background integrity check runs.
+      database:
+        readiness.integrity === 'ok' || readiness.integrity === 'checking'
+          ? readiness.integrity
+          : 'unavailable',
       migration: readiness
         ? { current: readiness.migrationVersion, expected: readiness.expectedMigrationVersion }
         : undefined,

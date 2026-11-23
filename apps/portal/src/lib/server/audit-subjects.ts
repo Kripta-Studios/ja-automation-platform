@@ -165,19 +165,28 @@ export function auditSubjects(
     projectIds.add(member.project_id);
   }
 
-  const records = new Map<string, { worker_id: string; project_id: string; day: string }>();
-  for (const [type, table, day] of [
-    ['time_entry', 'time_entry', 'work_date'],
-    ['expense', 'expense', 'spent_on'],
+  const records = new Map<
+    string,
+    { worker_id: string; project_id: string; day: string; currency?: string | null }
+  >();
+  for (const [type, table, day, currency] of [
+    ['time_entry', 'time_entry', 'work_date', 'NULL'],
+    ['expense', 'expense', 'spent_on', 'currency'],
   ] as const)
     for (const record of inChunks(
       byType(type).map((row) => row.entity_id),
       (batch) =>
         sqlite
           .prepare(
-            `SELECT id,worker_id,project_id,${day} day FROM ${table} WHERE id IN (${marks(batch.length)})`,
+            `SELECT id,worker_id,project_id,${day} day,${currency} currency FROM ${table} WHERE id IN (${marks(batch.length)})`,
           )
-          .all(...batch) as Array<{ id: string; worker_id: string; project_id: string; day: string }>,
+          .all(...batch) as Array<{
+          id: string;
+          worker_id: string;
+          project_id: string;
+          day: string;
+          currency: string | null;
+        }>,
     )) {
       records.set(record.id, record);
       personIds.add(record.worker_id);
@@ -261,6 +270,15 @@ export function auditSubjects(
         const record = records.get(row.entity_id);
         if (record)
           subject = join(people.get(record.worker_id), projectNumbers.get(record.project_id), record.day);
+        // An expense amount recorded without its currency reads as money in the
+        // expense's own currency (an expense's currency never changes).
+        if (
+          record?.currency &&
+          display &&
+          display.currency === undefined &&
+          Object.keys(display).some((key) => /minor$/iu.test(key))
+        )
+          display = { ...display, currency: record.currency };
         break;
       }
       case 'invoice':

@@ -266,6 +266,11 @@ export function auditSubjects(
       case 'invoice':
         subject = invoices.get(row.entity_id) ?? '';
         break;
+      case 'mailbox':
+      case 'mail_identity':
+        // Mailbox ids are short provider handles ("dr"); the address is in the event.
+        subject = typeof details?.linkedEmail === 'string' ? details.linkedEmail : '';
+        break;
       case 'compensation_rule': {
         const rule = rules.get(row.entity_id);
         if (!rule) break;

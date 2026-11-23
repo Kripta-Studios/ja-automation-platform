@@ -2868,9 +2868,37 @@ export class PortalRepository {
       principal.role === 'auditor_read_only'
     )
       return true;
-    if (!this.hasEffectiveProjectObjectAccess(principal, projectId, objectDate)) return false;
+    if (!this.hasEffectiveProjectObjectAccess(principal, projectId, objectDate))
+      return this.ownRecordAssignmentCovers(principal, projectId, ownerId, objectDate);
     if (principal.role === 'project_manager') return true;
     return principal.role === 'worker' && principal.userId === ownerId;
+  }
+
+  /**
+   * T19/T41 read scope: people keep reading their OWN records for the days
+   * their assignment to the project covered, after the assignment ended (an
+   * external technician whose assignment closed, a PM who also worked as a
+   * member of a project he does not manage). Read only: every write keeps the
+   * current-assignment checks. A removed (inactive) assignment grants nothing.
+   */
+  private ownRecordAssignmentCovers(
+    principal: Principal,
+    projectId: string,
+    ownerId: string,
+    objectDate: string,
+  ): boolean {
+    if (principal.userId !== ownerId) return false;
+    if (principal.role !== 'worker' && principal.role !== 'project_manager') return false;
+    return Boolean(
+      this.sqlite
+        .prepare(
+          `SELECT 1 FROM project_member pm JOIN user u ON u.id=pm.user_id
+            WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND u.status='active'
+              AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+            LIMIT 1`,
+        )
+        .get(projectId, ownerId, objectDate, objectDate),
+    );
   }
 
   private canMutateReport(
@@ -12480,12 +12508,9 @@ export class PortalRepository {
     this.assertReadable(principal);
     const clauses = ['1=1'];
     const values: Array<string> = [];
-    let withClause = '';
     if (principal.role === 'worker') {
-      const scope = workerOperationalProjectScope(this.sqlite, principal, 'time');
-      withClause = scope.withClause;
-      clauses.push(scope.predicate);
-      values.push(...scope.parameters);
+      // T19: own hours stay readable for the days the assignment covered (the
+      // EXISTS below), also after the assignment ended; no current-day scope.
       clauses.push('t.worker_id=?');
       values.push(principal.userId);
       clauses.push(
@@ -12521,7 +12546,7 @@ export class PortalRepository {
     }
     const rows = this.sqlite
       .prepare(
-        `${withClause} SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.start_time,t.end_time,t.break_minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
                 (SELECT r.expense_id FROM operational_time_expense_request r

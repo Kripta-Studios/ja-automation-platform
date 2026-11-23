@@ -2904,6 +2904,7 @@ export const PORTAL_ACTION_KEYS = [
   'problem.expenseReceipt.previewBlocked',
   'problem.document.duplicateContent',
   'problem.expense.receiptDuplicateContent',
+  'problem.expense.receiptAlreadyAttached',
   'problem.reportAttachment.recordUnavailable',
   'problem.reportAttachment.downloadNotFound',
   'problem.reportAttachment.downloadNotReady',

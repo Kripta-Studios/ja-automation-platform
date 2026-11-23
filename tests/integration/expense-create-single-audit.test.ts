@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   closeB5LifecycleSecurityFixture,
@@ -31,8 +32,13 @@ function setup(): B5LifecycleSecurityFixture {
   };
   return value;
 }
-function event(fixture: B5LifecycleSecurityFixture, fields: Record<string, string>) {
+function event(
+  fixture: B5LifecycleSecurityFixture,
+  fields: Record<string, string>,
+  receipt?: File,
+) {
   const form = new FormData();
+  if (receipt) form.set('receipt', receipt);
   form.set('projectId', fixture.project.id);
   for (const [key, data] of Object.entries({
     spentOn: new Date().toISOString().slice(0, 10),
@@ -89,5 +95,38 @@ describe('expense create audit (T17 double emit)', () => {
     });
     expect(fixture.sqlite.prepare('SELECT count(*) n FROM expense').get()).toEqual({ n: 1 });
     expect(creates(fixture)).toHaveLength(1);
+  });
+
+  it('names the own expense a duplicate receipt is already attached to (T46)', async () => {
+    const fixture = setup();
+    const originalRoot = process.env.JA_DOCUMENT_ROOT;
+    process.env.JA_DOCUMENT_ROOT = join(fixture.directory, 'files');
+    try {
+      const bytes = Buffer.from('%PDF-1.4\nT46 receipt naming regression\n%%EOF\n');
+      const file = (name: string) => new File([bytes], name, { type: 'application/pdf' });
+      const fields = { workerId: fixture.worker.userId, vendor: 'Taqueria Norte' };
+      expect(
+        await expenseActions.createExpense(event(fixture, fields, file('first.pdf'))),
+      ).toMatchObject({ success: true });
+      const second = await expenseActions.createExpense(
+        event(fixture, { ...fields, amount: '20.00' }, file('renamed.pdf')),
+      );
+      expect(second).toMatchObject({
+        status: 409,
+        data: {
+          code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
+          messageKey: 'problem.expense.receiptAlreadyAttached',
+          messageParams: {
+            spentOn: new Date().toISOString().slice(0, 10),
+            expense: 'Taqueria Norte · meals',
+          },
+        },
+      });
+      expect(fixture.sqlite.prepare('SELECT count(*) n FROM expense').get()).toEqual({ n: 1 });
+      expect(fixture.sqlite.prepare('SELECT count(*) n FROM document').get()).toEqual({ n: 1 });
+    } finally {
+      if (originalRoot === undefined) delete process.env.JA_DOCUMENT_ROOT;
+      else process.env.JA_DOCUMENT_ROOT = originalRoot;
+    }
   });
 });

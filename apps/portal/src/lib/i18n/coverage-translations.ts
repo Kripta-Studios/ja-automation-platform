@@ -766,6 +766,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Ya hay un archivo con el mismo contenido. No se guardó otro documento. Revisa los documentos a los que tienes acceso antes de elegir otro archivo.',
     'Já existe um arquivo com o mesmo conteúdo. Nenhum novo documento foi salvo. Revise os documentos aos quais você tem acesso antes de escolher outro arquivo.',
   ],
+  'problem.expense.receiptAlreadyAttached': [
+    'Este recibo ya está adjunto a tu gasto del {spentOn} ({expense}). No se guardó otro gasto. Abre ese gasto o elige otra foto.',
+    'Este recibo já está anexado à sua despesa de {spentOn} ({expense}). Nenhuma nova despesa foi salva. Abra essa despesa ou escolha outra foto.',
+  ],
   'problem.expense.receiptDuplicateContent': [
     'Este recibo coincide con contenido privado ya guardado. No se guardó otro gasto. Revisa los gastos a los que tienes acceso o contacta con la persona responsable del proyecto.',
     'Este recibo corresponde a conteúdo privado já salvo. Nenhuma nova despesa foi salva. Revise as despesas às quais você tem acesso ou entre em contato com a pessoa responsável pelo projeto.',
@@ -9904,6 +9908,8 @@ const problemEnglish: Record<string, string> = {
   'problem.remedy.contactAccessOwner': 'Contact an owner to review access',
   'problem.document.duplicateContent':
     'A file with the same content is already stored. No new document was saved. Review the documents you can access before choosing another file.',
+  'problem.expense.receiptAlreadyAttached':
+    'This receipt is already attached to your expense of {spentOn} ({expense}). No new expense was saved. Open that expense instead, or choose another photo.',
   'problem.expense.receiptDuplicateContent':
     'This receipt file matches existing private content. No new expense was saved. Review expenses you can access or contact the project owner.',
   'problem.expenseLookup.signInRequired':

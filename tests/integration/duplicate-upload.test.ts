@@ -92,9 +92,10 @@ describe('duplicate private uploads', () => {
             section === 'expenses'
               ? 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
               : 'DOCUMENT_DUPLICATE_CONTENT',
+          // T46: an own expense receipt names the expense it is already attached to.
           messageKey:
             section === 'expenses'
-              ? 'problem.expense.receiptDuplicateContent'
+              ? 'problem.expense.receiptAlreadyAttached'
               : 'problem.document.duplicateContent',
           remedies: [{ id: section === 'expenses' ? 'review_expenses' : 'review_documents' }],
         },

@@ -817,6 +817,47 @@ export async function validateExpenseReceipt(file: File): Promise<Uint8Array> {
 }
 
 /** A batch receipt is already stored or repeated in the batch: nothing saved, rows named. */
+/**
+ * The signed-in person's own expense that already carries a receipt with these bytes
+ * (T46). Only the uploader's own files are compared, so the answer never reveals other
+ * people's records; naming the expense tells the person where the photo is used.
+ */
+function ownReceiptUse(
+  context: ReturnType<typeof openPortalRepository>,
+  sha256: string,
+): { spentOn: string; category: string; vendor: string } | undefined {
+  return context.sqlite
+    .prepare(
+      `SELECT e.spent_on spentOn,e.category category,COALESCE(e.vendor,'') vendor
+         FROM expense e JOIN document d ON d.id=e.receipt_document_id
+        WHERE d.sha256=? AND d.owner_id=? AND d.artifact_type='receipt'
+          AND e.approval_state<>'void'
+        ORDER BY e.created_at DESC,e.id DESC LIMIT 1`,
+    )
+    .get(sha256, context.principal.userId) as
+    | { spentOn: string; category: string; vendor: string }
+    | undefined;
+}
+
+function receiptAlreadyAttached(
+  use: { spentOn: string; category: string; vendor: string },
+  values: Record<string, unknown>,
+) {
+  const expense = [use.vendor, use.category].filter(Boolean).join(' · ');
+  return actionFail(
+    409,
+    'problem.expense.receiptAlreadyAttached',
+    { spentOn: use.spentOn, expense },
+    `This receipt is already attached to your expense of ${use.spentOn} (${expense}). No new expense was saved. Open that expense instead, or choose another photo.`,
+    {
+      code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
+      values,
+      fieldErrors: {},
+      remedies: [{ id: 'review_expenses' }],
+    },
+  );
+}
+
 function duplicateBatchReceipt(batchRows: number[]) {
   return actionFail(
     409,
@@ -1632,6 +1673,10 @@ export const expenseActions = withOperationalActionNames({
           {},
           'Expense draft already saved. No duplicate was created.',
         );
+      if (receiptFile && bytes && receiptHash) {
+        const use = ownReceiptUse(context, receiptHash);
+        if (use) return receiptAlreadyAttached(use, values);
+      }
       if (receiptFile && bytes) {
         uploaded = await saveExpenseReceipt(context, String(object.projectId), receiptFile, bytes);
         object.receiptDocumentId = uploaded.id;

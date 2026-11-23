@@ -40,6 +40,7 @@ export function workerOperationalProjectScope(
   principal: Principal,
   recordDates: RecordDates = 'current',
   instant = new Date(),
+  options: Readonly<{ ownHistory?: boolean }> = {},
 ): WorkerOperationalProjectScope {
   if (principal.role !== 'worker' || !Number.isFinite(instant.valueOf()))
     throw new AccessDeniedError('Current worker project access required');
@@ -78,6 +79,20 @@ export function workerOperationalProjectScope(
       // Invalid project timezone never acquires current access by guessing UTC.
     }
   }
+  // T19: for reading one's OWN records, the assignment must cover the record's
+  // date instead of today, so hours stay visible after the assignment ended.
+  // Project status, timezone validity, live session and the supplier
+  // coordinator's current grant are unchanged.
+  const historyDates = options.ownHistory ? occurrenceDates[recordDates] : [];
+  const membershipConditions = historyDates.length
+    ? historyDates
+        .map(
+          (date) =>
+            `AND scope_pm.starts_on<=${date} AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=${date})`,
+        )
+        .join('\n        ')
+    : `AND scope_pm.starts_on<=scope_day.local_today
+        AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=scope_day.local_today)`;
   const supplierOccurrenceConditions = occurrenceDates[recordDates]
     .map((date) => `AND g.starts_on<=${date} AND (g.ends_on IS NULL OR g.ends_on>=${date})`)
     .join('\n');
@@ -88,8 +103,7 @@ export function workerOperationalProjectScope(
       JOIN project_member scope_pm ON scope_pm.project_id=p.id
       WHERE scope_day.timezone=p.timezone AND scope_pm.user_id=?
         AND scope_pm.status='active'
-        AND scope_pm.starts_on<=scope_day.local_today
-        AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=scope_day.local_today)
+        ${membershipConditions}
         AND (
           NOT EXISTS (SELECT 1 FROM supplier_user_profile sp
                       WHERE sp.user_id=scope_pm.user_id AND sp.profile='supplier_coordinator')

@@ -2875,17 +2875,10 @@ export class PortalRepository {
   }
 
   /**
-   * T19/T41 read scope: people keep reading their OWN records for the days
-   * their assignment to the project covered, after the assignment ended (an
-   * external technician whose assignment closed, a PM who also worked as a
-   * member of a project he does not manage). Read only: every write keeps the
-   * current-assignment checks. A removed (inactive) assignment grants nothing.
-   */
-  /**
    * T41: whether the project page would open for this person today. Lists that
-   * mention a project (My Pay progress, settlements) render a link only when
-   * this is true, so a PM who worked on a project he does not manage is not
-   * sent to a 403 page.
+   * mention a project (My Pay progress, settlements, record details) render a
+   * link only when this is true, so a PM who worked on a project he does not
+   * manage is not sent to a 403 page.
    */
   canOpenProject(principal: Principal, projectId: string): boolean {
     try {
@@ -2897,6 +2890,16 @@ export class PortalRepository {
     }
   }
 
+  /**
+   * T19/T41 read scope: people keep reading their OWN records for the days
+   * their assignment to the project covered, after the assignment ended (an
+   * external technician whose assignment closed, a PM who also worked as a
+   * member of a project he does not manage). Read only: every write keeps the
+   * current-assignment checks. Everything else that closes access still does:
+   * a removed (inactive) assignment, an inactive account, a stale session, a
+   * closed/archived project or an invalid project timezone, and for a supplier
+   * coordinator a live supplier grant.
+   */
   private ownRecordAssignmentCovers(
     principal: Principal,
     projectId: string,
@@ -2905,16 +2908,27 @@ export class PortalRepository {
   ): boolean {
     if (principal.userId !== ownerId) return false;
     if (principal.role !== 'worker' && principal.role !== 'project_manager') return false;
-    return Boolean(
-      this.sqlite
-        .prepare(
-          `SELECT 1 FROM project_member pm JOIN user u ON u.id=pm.user_id
-            WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active' AND u.status='active'
-              AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
-            LIMIT 1`,
-        )
-        .get(projectId, ownerId, objectDate, objectDate),
-    );
+    try {
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+    } catch {
+      return false;
+    }
+    const row = this.sqlite
+      .prepare(
+        `SELECT p.timezone FROM project_member pm
+           JOIN user u ON u.id=pm.user_id
+           JOIN project p ON p.id=pm.project_id
+          WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+            AND u.status='active' AND u.role=?
+            AND p.status IN ('active','planned','paused')
+            AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+          LIMIT 1`,
+      )
+      .get(projectId, ownerId, principal.role, objectDate, objectDate) as
+      | { timezone: string }
+      | undefined;
+    if (!row || !isValidIanaTimeZone(row.timezone)) return false;
+    return this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate);
   }
 
   private canMutateReport(
@@ -11804,12 +11818,16 @@ export class PortalRepository {
     let technicalWithClause = '';
     if (principal.role === 'worker') {
       const instant = new Date();
-      const dailyScope = workerOperationalProjectScope(this.sqlite, principal, 'daily', instant);
+      // T19: own reports stay listed for the days the assignment covered.
+      const dailyScope = workerOperationalProjectScope(this.sqlite, principal, 'daily', instant, {
+        ownHistory: true,
+      });
       const technicalScope = workerOperationalProjectScope(
         this.sqlite,
         principal,
         'technical',
         instant,
+        { ownHistory: true },
       );
       dailyWithClause = dailyScope.withClause;
       technicalWithClause = technicalScope.withClause;
@@ -12524,9 +12542,18 @@ export class PortalRepository {
     this.assertReadable(principal);
     const clauses = ['1=1'];
     const values: Array<string> = [];
+    let withClause = '';
     if (principal.role === 'worker') {
       // T19: own hours stay readable for the days the assignment covered (the
-      // EXISTS below), also after the assignment ended; no current-day scope.
+      // ownHistory scope), also after the assignment ended. Closed projects,
+      // invalid timezones, stale sessions and revoked supplier grants still
+      // close the list.
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'time', new Date(), {
+        ownHistory: true,
+      });
+      withClause = scope.withClause;
+      clauses.push(scope.predicate);
+      values.push(...scope.parameters);
       clauses.push('t.worker_id=?');
       values.push(principal.userId);
       clauses.push(
@@ -12562,7 +12589,7 @@ export class PortalRepository {
     }
     const rows = this.sqlite
       .prepare(
-        `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
+        `${withClause} SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
                 t.start_time,t.end_time,t.break_minutes,
                 t.activity_summary,t.approval_state,t.billability_state,
                 (SELECT r.expense_id FROM operational_time_expense_request r
@@ -12711,7 +12738,10 @@ export class PortalRepository {
     const values: Array<string> = [];
     let withClause = '';
     if (principal.role === 'worker') {
-      const scope = workerOperationalProjectScope(this.sqlite, principal, 'expense');
+      // T19: own expenses stay listed for the days the assignment covered.
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'expense', new Date(), {
+        ownHistory: true,
+      });
       withClause = scope.withClause;
       clauses.push(scope.predicate);
       values.push(...scope.parameters);

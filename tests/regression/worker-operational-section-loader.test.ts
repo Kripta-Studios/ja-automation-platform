@@ -50,6 +50,8 @@ type LoadedSection = {
 };
 function setupRepository() {
   return {
+    // T41: the expired project of a historical pay row does not open any more.
+    canOpenProject: vi.fn(() => false),
     searchSuggestions: vi.fn(() => []),
     search: vi.fn(() => []),
     listAssignedProjects: vi.fn(() => [{ id: 'current-project' }]),
@@ -246,6 +248,8 @@ describe('operational section loader safe Worker DTOs', () => {
   it('preserves own historical My Pay reimbursement fields without requiring current expense detail access', async () => {
     const data = (await sectionLoad(event('pay'))) as unknown as LoadedSection;
     expect(data.pay).toEqual(historicalPay);
+    // T41: the expired project is listed as text, never linked to a 403 page.
+    expect((data as unknown as { payOpenableProjectIds: string[] }).payOpenableProjectIds).toEqual([]);
     expect(data.payExpenses).toEqual(repository.listWorkerStatementExpenses.mock.results[0]?.value);
     expect(data.payExpenses[0]).toMatchObject({
       reimbursementAmountMinor: '9007199254740993',

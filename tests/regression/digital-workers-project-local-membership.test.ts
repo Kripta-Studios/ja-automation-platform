@@ -15,7 +15,8 @@ beforeEach(() => {
       project_number TEXT,
       name TEXT,
       timezone TEXT,
-      status TEXT
+      status TEXT,
+      project_manager_id TEXT
     );
     CREATE TABLE project_member(
       project_id TEXT,
@@ -23,9 +24,10 @@ beforeEach(() => {
       status TEXT,
       can_review INTEGER,
       starts_on TEXT,
-      ends_on TEXT
+      ends_on TEXT,
+      assignment_role TEXT NOT NULL DEFAULT 'worker'
     );
-    CREATE TABLE user(id TEXT PRIMARY KEY,name TEXT,role TEXT,status TEXT);
+    CREATE TABLE user(id TEXT PRIMARY KEY,name TEXT,email TEXT,role TEXT,status TEXT);
   `);
 });
 
@@ -52,12 +54,13 @@ function addMember(
   endsOn: string | null,
   canReview = false,
   status = 'active',
+  assignmentRole = canReview ? 'project_manager' : 'worker',
 ) {
   sqlite
     .prepare(
-      'INSERT INTO project_member(project_id,user_id,status,can_review,starts_on,ends_on) VALUES(?,?,?,?,?,?)',
+      'INSERT INTO project_member(project_id,user_id,status,can_review,starts_on,ends_on,assignment_role) VALUES(?,?,?,?,?,?,?)',
     )
-    .run(projectId, userId, status, canReview ? 1 : 0, startsOn, endsOn);
+    .run(projectId, userId, status, canReview ? 1 : 0, startsOn, endsOn, assignmentRole);
 }
 
 describe('digital workers project-local membership dates', () => {
@@ -112,6 +115,24 @@ describe('digital workers project-local membership dates', () => {
     expect(workflowOwnersForProjects(sqlite, projects, instant)).toEqual([
       { id: 'manager', name: 'Alex Manager', role: 'project_manager', projectIds: ['americas'] },
       { id: 'worker', name: 'Wendy Worker', role: 'worker', projectIds: ['americas'] },
+    ]);
+  });
+
+  it('offers follow-ups only on projects the PM manages, not where he only works as a member (T41)', () => {
+    const instant = new Date('2026-10-15T12:00:00.000Z');
+    addProject('managed', 'UTC');
+    addProject('member-only', 'UTC');
+    addUser('manager', 'Marta Manager', 'project_manager');
+    addMember('managed', 'manager', '2026-10-01', null, true);
+    // A reviewable membership as a worker on a project somebody else manages.
+    addMember('member-only', 'manager', '2026-10-01', null, true, 'active', 'worker');
+    expect(accessibleWorkflowProjects(sqlite, 'manager', instant).map((row) => row.id)).toEqual([
+      'managed',
+    ]);
+    sqlite.prepare("UPDATE project SET project_manager_id='manager' WHERE id='member-only'").run();
+    expect(accessibleWorkflowProjects(sqlite, 'manager', instant).map((row) => row.id)).toEqual([
+      'managed',
+      'member-only',
     ]);
   });
 });

@@ -642,8 +642,15 @@ export const load: PageServerLoad = ({ locals, url }) => {
       );
     // T44: Crew hours belongs to crew chiefs. A person with no current or
     // upcoming crew delegation gets the styled "not available" page, not an
-    // invitation to ask for access to a feature they do not have.
-    if (!owner && projects.length === 0 && upcoming.length === 0)
+    // invitation to ask for access to a feature they do not have. A chief whose
+    // delegation ended while a project was selected keeps the specific
+    // "project no longer available" problem below.
+    if (
+      !owner &&
+      projects.length === 0 &&
+      upcoming.length === 0 &&
+      filterProblem?.code === 'CREW_DAY_PROJECT_REQUIRED_CHIEF'
+    )
       error(403, 'crew.chief_required');
     const emptyRows = (
       currentProjects = projects,

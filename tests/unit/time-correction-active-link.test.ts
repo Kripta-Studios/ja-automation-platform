@@ -32,7 +32,7 @@ beforeEach(() => {
       : { id, approval_state: 'draft' },
   );
   vi.mocked(openPortalRepository).mockReturnValue({
-    repository: { timeDetail },
+    repository: { timeDetail, canOpenProject: () => true },
     principal: { userId: 'worker-1', role: 'worker', projectIds: new Set(['project-1']) },
     sqlite: {
       prepare: (sql: string) => ({

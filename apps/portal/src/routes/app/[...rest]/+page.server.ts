@@ -8,5 +8,5 @@ import type { PageServerLoad } from './$types';
  * shadows a real page or endpoint.
  */
 export const load: PageServerLoad = () => {
-  error(404, 'Page not found');
+  error(404, 'page.not_found');
 };

@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -118,6 +120,25 @@ describe('audit register filters', () => {
       'legal_entity',
       'project_legal_entity',
     ]);
+  });
+
+  it('lists audit entity types with an index skip-scan, not a full scan (T40)', () => {
+    sqlite.exec('CREATE INDEX audit_entity_time_idx ON audit_event(entity_type, entity_id, occurred_at)');
+    const repository = new PortalRepository(sqlite);
+    expect(repository.listAuditEntityTypes(owner)).toEqual([
+      'invoice',
+      'service_job',
+      'time_entry',
+    ]);
+    expect(() => repository.listAuditEntityTypes(manager)).toThrow('Audit access required');
+    const source = readFileSync(resolve('packages/database/src/repository.ts'), 'utf8');
+    const method = source.slice(source.indexOf('  listAuditEntityTypes('));
+    const sql = method.slice(method.indexOf('`') + 1, method.indexOf('`', method.indexOf('`') + 1));
+    const plan = (
+      sqlite.prepare(`EXPLAIN QUERY PLAN ${sql}`).all() as Array<{ detail: string }>
+    ).map((row) => row.detail);
+    expect(plan.some((detail) => /SEARCH a USING COVERING INDEX audit_entity_time_idx/u.test(detail))).toBe(true);
+    expect(plan.some((detail) => /^SCAN audit_event/u.test(detail))).toBe(false);
   });
 
   it('keeps audit access to owner and auditor', () => {

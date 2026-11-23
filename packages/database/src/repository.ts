@@ -12420,14 +12420,27 @@ export class PortalRepository {
     );
   }
 
-  /** Entity types present in the audit log (index-only scan), for the filter. */
+  /**
+   * Entity types present in the audit log, for the filter. T40: a DISTINCT over
+   * ~500k events reads the whole index (11 s on a cold page cache, on the
+   * request path). The recursive skip-scan seeks once per distinct type on
+   * audit_entity_time_idx instead, so the cost grows with the number of kinds.
+   */
   listAuditEntityTypes(principal: Principal): string[] {
     this.assertReadable(principal);
     if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Audit access required');
     return (
       this.sqlite
-        .prepare('SELECT DISTINCT entity_type FROM audit_event ORDER BY entity_type')
+        .prepare(
+          `WITH RECURSIVE kinds(entity_type) AS (
+             SELECT MIN(entity_type) FROM audit_event
+             UNION ALL
+             SELECT (SELECT MIN(a.entity_type) FROM audit_event a WHERE a.entity_type>kinds.entity_type)
+               FROM kinds WHERE kinds.entity_type IS NOT NULL
+           )
+           SELECT entity_type FROM kinds WHERE entity_type IS NOT NULL`,
+        )
         .all() as Array<{ entity_type: string }>
     ).map((row) => String(row.entity_type));
   }

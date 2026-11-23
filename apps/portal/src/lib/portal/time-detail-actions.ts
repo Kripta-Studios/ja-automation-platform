@@ -11,7 +11,11 @@ export function ownerCorrectionDraftVersion(input: {
   lockedAt: string | null;
   version: number;
 }): number | null {
-  return (input.role === 'owner_admin' || input.role === 'finance_admin') &&
+  // The reviewer who authored a correction sends it on (T09, pm-8): otherwise a
+  // correction of a worker who never logs in stays an unsubmitted draft forever.
+  return (input.role === 'owner_admin' ||
+    input.role === 'finance_admin' ||
+    input.role === 'project_manager') &&
     input.correctionActor === input.userId &&
     input.approvalState === 'draft' &&
     input.invoiceId === null &&

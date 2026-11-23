@@ -2709,6 +2709,7 @@ export class PortalRepository {
       'review_reason',
       'active_correction_id',
       'active_correction_state',
+      'corrects_approved',
     ]);
     return safeRows.map(
       (row) =>
@@ -12474,6 +12475,16 @@ export class PortalRepository {
                   SELECT 1 FROM record_correction_link rcl
                    WHERE rcl.record_type='time_entry' AND rcl.correction_id=t.id
                 ) correction_linked,
+                (SELECT correction.approval_state FROM record_correction_link rcl
+                   JOIN time_entry correction ON correction.id=rcl.correction_id
+                  WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                    AND correction.approval_state NOT IN ('rejected','void')
+                  ORDER BY correction.created_at DESC LIMIT 1) active_correction_state,
+                EXISTS(
+                  SELECT 1 FROM record_correction_link rcl JOIN time_entry original ON original.id=rcl.original_id
+                   WHERE rcl.record_type='time_entry' AND rcl.correction_id=t.id
+                     AND original.approval_state IN ('approved','locked')
+                ) corrects_approved,
                 (SELECT rcl.correction_id FROM record_correction_link rcl
                    JOIN time_entry correction ON correction.id=rcl.correction_id
                   WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id

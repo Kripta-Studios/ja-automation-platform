@@ -22,7 +22,13 @@ describe('simplified expense intake defaults', () => {
   it('accepts a decimal comma without changing exact minor units', () => {
     expect(normalizeExpenseAmount('12,50')).toBe('12.50');
     expect(normalizeExpenseAmount(' 7 ')).toBe('7');
-    expect(normalizeExpenseAmount('1,234.50')).toBe('1,234.50');
+    // T56: the thousands separator the app itself displays is accepted in every locale.
+    expect(normalizeExpenseAmount('1,234.50')).toBe('1234.50');
+    expect(normalizeExpenseAmount('2.940,00', 'MXN')).toBe('2940.00');
+    expect(normalizeExpenseAmount('1.234.567,8', 'BRL')).toBe('1234567.8');
+    // Not an amount: left as typed so the schema rejects it with the field error.
+    expect(normalizeExpenseAmount('12,345,6')).toBe('12,345,6');
+    expect(normalizeExpenseAmount('12.505', 'USD')).toBe('12505');
   });
 
   it('fills a neutral description only when the note is empty', () => {

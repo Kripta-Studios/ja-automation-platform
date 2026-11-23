@@ -33,6 +33,7 @@ import {
 } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { expenseCategories } from '$lib/portal/expense-categories';
+import { normalizeAmountText } from '$lib/portal/payment-money';
 import type { DatabaseSync } from 'node:sqlite';
 
 const expenseCategorySchema = z.enum([
@@ -228,7 +229,7 @@ const expenseUpdateSchema = versionedRecordSchema
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   const payload = { ...object };
   const amountMinor = decimalToMinor(
-    normalizeExpenseAmount(payload.amount),
+    normalizeExpenseAmount(payload.amount, payload.amountCurrency),
     payload.amountCurrency,
   );
   payload.amountMinor = amountMinor ?? payload.amount;
@@ -713,12 +714,16 @@ function expenseWeekFailure(
 }
 
 /** Phone keyboards in ES/PT locales type "12,50"; accept one decimal comma as the separator. */
-export function normalizeExpenseAmount(value: unknown): unknown {
-  return typeof value === 'string' && /^\s*\d+,\d{1,2}\s*$/u.test(value)
-    ? value.trim().replace(',', '.')
-    : typeof value === 'string'
-      ? value.trim()
-      : value;
+/**
+ * Typed amount to the canonical "1234.50" the minor-unit converter expects. Uses the
+ * same locale-tolerant parser as the form (T56: "2.940,00" in pt/es, "2,940.00" in en).
+ */
+export function normalizeExpenseAmount(value: unknown, currency?: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  return (
+    normalizeAmountText(value, typeof currency === 'string' && currency ? currency : 'USD') ??
+    value.trim()
+  );
 }
 
 /**
@@ -1175,7 +1180,10 @@ export const expenseActions = withOperationalActionNames({
         category: row.category,
         description: row.description,
         currency: object.currency,
-        amountMinor: decimalToMinor(row.amount, object.currency),
+        amountMinor: decimalToMinor(
+          normalizeExpenseAmount(row.amount, object.currency),
+          object.currency,
+        ),
         whoPaid: object.whoPaid,
         receiptRequired: false,
       }),
@@ -1374,7 +1382,10 @@ export const expenseActions = withOperationalActionNames({
         spentOn: object[`spentOn_${index}`],
         category: object[`category_${index}`],
         currency: object.currency,
-        amountMinor: decimalToMinor(normalizeExpenseAmount(amount), object.currency),
+        amountMinor: decimalToMinor(
+          normalizeExpenseAmount(amount, object.currency),
+          object.currency,
+        ),
         description: String(object[`note_${index}`] ?? '').trim(),
         whoPaid: 'worker',
         receiptRequired: Boolean(receiptFile),
@@ -1598,7 +1609,10 @@ export const expenseActions = withOperationalActionNames({
     delete object.receipt;
     object.receiptRequired =
       object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
-    object.amountMinor = decimalToMinor(normalizeExpenseAmount(object.amount), object.currency);
+    object.amountMinor = decimalToMinor(
+      normalizeExpenseAmount(object.amount, object.currency),
+      object.currency,
+    );
     delete object.amount;
     for (const key of ['paymentMethod', 'receiptDocumentId', 'vendor']) {
       if (object[key] === '') object[key] = undefined;

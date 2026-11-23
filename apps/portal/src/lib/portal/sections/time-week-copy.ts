@@ -207,6 +207,19 @@ const en = {
   submittedHelp: 'Already sent for approval, so it cannot be changed or deleted here. Ask your manager to send it back to you if it is wrong.',
   approvedHelp: 'Already approved. If it is wrong, ask your manager to correct it.',
   confirmEntriesOne: '1 entry will be submitted.',
+  // Audit 2026-11-22 (T07, T51, T76, T83).
+  whoManager: '{name} (project manager)',
+  whoOwner: 'the owner',
+  whoSupplier: 'your supplier coordinator or J&A',
+  submittedHelpWho: 'Already sent for approval, so it cannot be changed or deleted here. If it is wrong, ask {who} to send it back to you.',
+  approvedHelpWho: 'Already approved. If it is wrong, ask {who} to correct it.',
+  returnedCountOne: '1 record needs changes.',
+  returnedCount: '{n} records need changes.',
+  rejectedTitle: 'Rejected by the reviewer.',
+  rejectedHelp: 'These hours are not counted and cannot be resent. If they are right, log them again with an explanation.',
+  statusRejected: 'Rejected',
+  recordedBy: 'Recorded by {name}',
+  openEntry: 'Details',
 } as const;
 
 type CopyKey = keyof typeof en;
@@ -419,6 +432,19 @@ const es: Record<CopyKey, string> = {
   submittedHelp: 'Ya se envió a aprobación, así que no se puede cambiar ni eliminar aquí. Si está mal, pide a tu responsable que te lo devuelva.',
   approvedHelp: 'Ya está aprobado. Si está mal, pide a tu responsable que lo corrija.',
   confirmEntriesOne: 'Se enviará 1 registro.',
+  // Audit 2026-11-22 (T07, T51, T76, T83).
+  whoManager: '{name} (jefe de proyecto)',
+  whoOwner: 'el propietario',
+  whoSupplier: 'tu coordinador del proveedor o J&A',
+  submittedHelpWho: 'Ya se envió a aprobación, así que no se puede cambiar ni eliminar aquí. Si está mal, pide a {who} que te lo devuelva.',
+  approvedHelpWho: 'Ya está aprobado. Si está mal, pide a {who} que lo corrija.',
+  returnedCountOne: '1 registro requiere cambios.',
+  returnedCount: '{n} registros requieren cambios.',
+  rejectedTitle: 'Rechazado por el revisor.',
+  rejectedHelp: 'Estas horas no cuentan y no se pueden reenviar. Si son correctas, regístralas de nuevo con una explicación.',
+  statusRejected: 'Rechazado',
+  recordedBy: 'Registrado por {name}',
+  openEntry: 'Detalles',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -629,6 +655,19 @@ const pt: Record<CopyKey, string> = {
   submittedHelp: 'Já foi enviado para aprovação, então não pode ser alterado nem excluído aqui. Se estiver errado, peça ao seu gestor para devolvê-lo a você.',
   approvedHelp: 'Já está aprovado. Se estiver errado, peça ao seu gestor para corrigi-lo.',
   confirmEntriesOne: '1 registro será enviado.',
+  // Audit 2026-11-22 (T07, T51, T76, T83).
+  whoManager: '{name} (gerente do projeto)',
+  whoOwner: 'o proprietário',
+  whoSupplier: 'seu coordenador do fornecedor ou a J&A',
+  submittedHelpWho: 'Já foi enviado para aprovação, então não pode ser alterado nem excluído aqui. Se estiver errado, peça a {who} para devolvê-lo a você.',
+  approvedHelpWho: 'Já foi aprovado. Se estiver errado, peça a {who} para corrigi-lo.',
+  returnedCountOne: '1 registro precisa de ajustes.',
+  returnedCount: '{n} registros precisam de ajustes.',
+  rejectedTitle: 'Rejeitado pelo revisor.',
+  rejectedHelp: 'Estas horas não contam e não podem ser reenviadas. Se estiverem corretas, registre-as de novo com uma explicação.',
+  statusRejected: 'Rejeitado',
+  recordedBy: 'Registrado por {name}',
+  openEntry: 'Detalhes',
 };
 
 export type TimeWeekCopyKey = CopyKey;

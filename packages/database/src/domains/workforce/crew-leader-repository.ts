@@ -574,7 +574,7 @@ export class CrewLeaderRepository {
       row.approvalState === 'needs_changes' || row.approvalState === 'rejected'
         ? (this.sqlite
             .prepare(
-              "SELECT reason FROM approval_event WHERE entity_type IN ('time','time_entry') AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+              "SELECT reason FROM approval_event WHERE entity_type IN ('time','time_entry') AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR (reason NOT LIKE 'Superseded by append-only correction retry %' AND reason NOT LIKE 'Superseded by correction %')) ORDER BY occurred_at DESC,id DESC LIMIT 1",
             )
             .get(id) as { reason: string | null } | undefined)
         : undefined;

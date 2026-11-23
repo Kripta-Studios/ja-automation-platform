@@ -584,6 +584,37 @@ const timeProblems: Record<string, TimeProblem> = {
     field: 'breakMinutes',
     remedy: 'review_time',
   },
+  // Correction paths (sent-back entries fixed from the week/day sheet, /time/<id>).
+  'Correction duration is invalid': {
+    status: 400,
+    code: 'TIME_CORRECTION_DURATION_INVALID',
+    key: 'problem.time.correctionDurationInvalid',
+    message: 'Enter hours between 0 and 24 and, with start and end times, a break shorter than the shift.',
+    field: 'minutes',
+    remedy: 'review_time',
+  },
+  'Change at least one operational field before creating a correction': {
+    status: 400,
+    code: 'TIME_CORRECTION_NO_CHANGE',
+    key: 'problem.time.correctionNoChange',
+    message: 'Change the hours, times or note before sending the correction.',
+    field: 'minutes',
+    remedy: 'review_time',
+  },
+  'A correction draft already exists for this original record': {
+    status: 409,
+    code: 'TIME_CORRECTION_EXISTS',
+    key: 'problem.time.correctionExists',
+    message: 'A correction for this entry already exists. Open it from the day to continue.',
+    remedy: 'review_time',
+  },
+  'Correction field is not allowed': {
+    status: 400,
+    code: 'TIME_CORRECTION_FIELD_INVALID',
+    key: 'problem.time.correctionFieldInvalid',
+    message: 'This change cannot be made on a sent-back entry. Change only the hours, times or note.',
+    remedy: 'review_time',
+  },
   'Minutes must equal elapsed time less break minutes': {
     status: 400,
     code: 'TIME_DURATION_MISMATCH',

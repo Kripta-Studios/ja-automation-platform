@@ -73,6 +73,15 @@
     !isAuditor && !(data.user.role === 'project_manager' && workerId !== data.user.id),
   );
   const entries = $derived((data.weekEntries ?? []) as Row[]);
+  /** Sent-back entries in any week (T07): the landing banner links to each day. */
+  const timeReturns = $derived((data.timeReturns ?? []) as Row[]);
+  /** Entries a reviewer rejected this week: read-only, with the reviewer's note. */
+  const weekRejected = $derived((data.weekRejected ?? []) as Row[]);
+  const shownRejected = $derived(
+    mode === 'day'
+      ? weekRejected.filter((entry) => String(entry.work_date) === selectedDay)
+      : weekRejected,
+  );
   const assignments = $derived((data.timeAssignments ?? []) as Row[]);
   const projects = $derived((data.projects ?? []) as Row[]);
 
@@ -709,11 +718,24 @@
         /* Ignore unreadable preferences. */
       }
     }
-    // "Edit draft" links open the draft's own project and type (the day comes from ?day=).
+  });
+  // "Edit draft" / "Fix" links open the entry's own project and type (the day comes
+  // from ?day=). Runs on every navigation so in-page links preload the entry too.
+  // Without a link, a day that has a sent-back entry opens on that entry (T07):
+  // the banner says "change the hours", so the form must show the returned hours.
+  afterNavigate(() => {
     const linkedProject = $page.url.searchParams.get('project');
     const linkedCategory = $page.url.searchParams.get('category');
-    if (linkedProject) dayProjectChoice = linkedProject;
-    if (isCaptureTimeCategory(linkedCategory)) dayCategory = linkedCategory;
+    if (linkedProject || isCaptureTimeCategory(linkedCategory)) {
+      chooseDay(linkedProject ?? dayProjectChoice, isCaptureTimeCategory(linkedCategory) ? linkedCategory : dayCategory);
+      return;
+    }
+    const returnedToday = entries.find(
+      (entry) =>
+        String(entry.work_date) === selectedDay && String(entry.approval_state) === 'needs_changes',
+    );
+    if (returnedToday && isCaptureTimeCategory(String(returnedToday.category)))
+      chooseDay(String(returnedToday.project_id), String(returnedToday.category));
   });
   // Home "Log hours" opens One day for today with the cursor in Hours (after
   // navigation, so the router's focus reset does not steal it).
@@ -831,13 +853,21 @@
     void tick().then(() => sheetForm?.requestSubmit());
   };
   /** Why a sent entry cannot be changed here (the state machine has no "unsend"). */
+  const reviewerNames = $derived((data.timeReviewers ?? {}) as Record<string, string>);
+  /** Who can send hours back: the PM by name, the owner for a PM's own hours, the coordinator for supplier staff. */
+  const reviewerFor = (projectId: string): string => {
+    if (data.user.workforceProfile === 'external_technician') return t('whoSupplier');
+    const manager = reviewerNames[projectId];
+    if (data.user.role === 'project_manager' && workerId === data.user.id) return t('whoOwner');
+    return manager ? t('whoManager', { name: manager }) : t('whoOwner');
+  };
   const lockedHelp = (cell: Cell): string =>
     cell.kind !== 'locked'
       ? ''
       : cell.status === 'submitted'
-        ? t('submittedHelp')
+        ? t('submittedHelpWho', { who: reviewerFor(cell.entry ? String(cell.entry.project_id) : dayProject) })
         : cell.status === 'approved'
-          ? t('approvedHelp')
+          ? t('approvedHelpWho', { who: reviewerFor(cell.entry ? String(cell.entry.project_id) : dayProject) })
           : '';
   const fixingNow = $derived(
     mode === 'day' ? Boolean(dayCell?.changed && dayCell.kind === 'fix') : fixingCells.length > 0,
@@ -1102,16 +1132,41 @@
   </nav>
   {/if}
 
-  {#if returned.length}
+  {#if returned.length || timeReturns.length}
+    {@const outside = timeReturns.filter((entry) => !days.includes(String(entry.work_date)))}
     <div class="returned" role="status" data-testid="time-needs-changes">
-      <p><strong>{t('statusNeedsChanges')}.</strong> {mode === 'day' && canSubmit ? t('needsChangesHelpDay') : t('needsChangesHelp')}</p>
+      <p>
+        <strong>{returned.length + outside.length === 1 ? t('returnedCountOne') : t('returnedCount', { n: returned.length + outside.length })}</strong>
+        {mode === 'day' && canSubmit ? t('needsChangesHelpDay') : t('needsChangesHelp')}
+      </p>
       <ul>
-        {#each returned as entry (entry.id)}
+        {#each [...returned, ...outside] as entry (entry.id)}
           <li>
-            <span>{dayName(String(entry.work_date))} · {projectLabel(String(entry.project_id))}</span>
+            <a
+              href={sheetHref({ day: String(entry.work_date), week: null, project: String(entry.project_id), category: String(entry.category) })}
+              onclick={leaveGuard}
+              data-sveltekit-noscroll
+              data-testid="time-returned-link"
+              >{dayName(String(entry.work_date), 'long')} · {projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))} {hm(entry.minutes)} {t('hoursUnit')}</a
+            >
             <span class="note"
               >{t('reviewerNote')}: {entry.review_reason ? String(entry.review_reason) : t('noNote')}</span
             >
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+
+  {#if shownRejected.length}
+    <div class="rejected-list" data-testid="time-rejected">
+      <p><strong>{t('rejectedTitle')}</strong> {t('rejectedHelp')}</p>
+      <ul>
+        {#each shownRejected as entry (entry.id)}
+          <li>
+            <span>{dayName(String(entry.work_date), 'long')} · {projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))} {hm(entry.minutes)} {t('hoursUnit')}</span>
+            <StatusBadge variant="danger" text={t('statusRejected')} />
+            <span class="note">{t('reviewerNote')}: {entry.review_reason ? String(entry.review_reason) : t('noNote')}</span>
           </li>
         {/each}
       </ul>
@@ -1354,6 +1409,10 @@
                     <strong>{hm(entry.minutes)} {t('hoursUnit')}</strong>
                   </button>
                   <StatusBadge variant={variant(entryStatus(entry))} text={statusLabel(entryStatus(entry))} />
+                  {#if entry.recorded_by_name}
+                    <small class="muted recorded-by" data-testid="time-recorded-by">{t('recordedBy', { name: String(entry.recorded_by_name) })}</small>
+                  {/if}
+                  <a class="entry-open" href={`${base}/app/time/${String(entry.id)}`} data-testid="time-entry-open">{t('openEntry')}</a>
                 </li>
               {/each}
             </ul>
@@ -2027,8 +2086,51 @@
   .returned li {
     display: grid;
   }
-  .returned .note {
+  .returned .note,
+  .rejected-list .note {
     font-style: italic;
+  }
+  .returned a {
+    font-weight: 600;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+  }
+  .rejected-list {
+    border-radius: var(--ja-radius, 10px);
+    padding: 0.75rem 1rem;
+    background: #fdf3f3;
+    border: 1px solid #e3a5a5;
+  }
+  .rejected-list p {
+    margin: 0;
+  }
+  .rejected-list ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .rejected-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+  }
+  .rejected-list li .note {
+    flex-basis: 100%;
+  }
+  .day-logged li {
+    flex-wrap: wrap;
+  }
+  .day-logged .recorded-by {
+    flex-basis: 100%;
+    padding-left: 0.5rem;
+  }
+  .day-logged .entry-open {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    white-space: nowrap;
   }
   .sheet-problem {
     background: #fdecec;

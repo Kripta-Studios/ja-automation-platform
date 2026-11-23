@@ -5167,6 +5167,22 @@ const exact: Record<string, readonly [string, string]> = {
     'Las horas registradas deben coincidir con el tiempo entre el inicio y el fin, descontando el descanso.',
     'As horas registradas devem corresponder ao tempo entre o início e o fim, descontando o intervalo.',
   ],
+  'problem.time.correctionDurationInvalid': [
+    'Indica entre 0 y 24 horas y, con hora de inicio y fin, una pausa más corta que el turno.',
+    'Informe entre 0 e 24 horas e, com horário de início e término, um intervalo menor que o turno.',
+  ],
+  'problem.time.correctionNoChange': [
+    'Cambia las horas, el horario o la nota antes de enviar la corrección.',
+    'Altere as horas, os horários ou a observação antes de enviar a correção.',
+  ],
+  'problem.time.correctionExists': [
+    'Ya existe una corrección para este registro. Ábrela desde el día para continuar.',
+    'Já existe uma correção para este registro. Abra-a pelo dia para continuar.',
+  ],
+  'problem.time.correctionFieldInvalid': [
+    'Este cambio no se puede hacer en un registro devuelto. Cambia solo las horas, el horario o la nota.',
+    'Esta alteração não pode ser feita em um registro devolvido. Altere apenas as horas, os horários ou a observação.',
+  ],
   'problem.expense.submissionChanged': [
     'Este borrador cambió desde que lo abriste. Revisa el gasto actualizado antes de enviarlo.',
     'Este rascunho mudou desde que você o abriu. Revise a despesa atualizada antes de enviá-la.',
@@ -11671,6 +11687,14 @@ const problemEnglish: Record<string, string> = {
   'problem.time.breakInvalid': 'Enter a valid break in decimal hours within the shift.',
   'problem.time.durationMismatch':
     'Recorded hours must equal the time between start and end, less the break.',
+  'problem.time.correctionDurationInvalid':
+    'Enter hours between 0 and 24 and, with start and end times, a break shorter than the shift.',
+  'problem.time.correctionNoChange':
+    'Change the hours, times or note before sending the correction.',
+  'problem.time.correctionExists':
+    'A correction for this entry already exists. Open it from the day to continue.',
+  'problem.time.correctionFieldInvalid':
+    'This change cannot be made on a sent-back entry. Change only the hours, times or note.',
   'problem.expense.submissionChanged':
     'This draft changed since you opened it. Review the updated expense before submitting.',
   'problem.expense.submissionNotDraft':

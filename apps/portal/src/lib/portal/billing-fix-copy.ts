@@ -44,7 +44,8 @@ const en = {
   marginNegative: 'We charge less than this person costs',
   upcomingRate: 'From {date}: {rate}',
   validUntil: 'until {date}',
-  classifyAll: 'Apply to all {count}',
+  classifyAll: 'Save all {count} as chosen',
+  classifyAllHelp: 'Saves the client treatment shown in each row below.',
   ledgerExportOwnerOnly: 'Exports are available to finance and the owner.',
   settlementState_reviewed: 'Finalized, not paid yet',
   settlementState_scheduled: 'Payment scheduled',
@@ -57,6 +58,8 @@ const en = {
   hoursNotPlanned: 'No hours planned for this project.',
   packCountOne: '1 accounting pack',
   statusIncomplete: 'Incomplete',
+  financeDiscardOwnerOnly:
+    'Only the owner can discard a draft that already has invoice lines. Ask the owner, or approve and correct it with a credit note after issue.',
   packReadyAuditor: 'Available for review or download',
 };
 
@@ -108,7 +111,8 @@ const es: Record<BillingFixCopyKey, string> = {
   marginNegative: 'Cobramos menos de lo que cuesta esta persona',
   upcomingRate: 'Desde {date}: {rate}',
   validUntil: 'hasta {date}',
-  classifyAll: 'Aplicar a los {count}',
+  classifyAll: 'Guardar los {count} como están elegidos',
+  classifyAllHelp: 'Guarda el tratamiento para el cliente que muestra cada fila de abajo.',
   ledgerExportOwnerOnly: 'Las exportaciones están disponibles para finanzas y el propietario.',
   settlementState_reviewed: 'Finalizada, aún sin pagar',
   settlementState_scheduled: 'Pago programado',
@@ -121,6 +125,8 @@ const es: Record<BillingFixCopyKey, string> = {
   hoursNotPlanned: 'Este proyecto no tiene horas previstas.',
   packCountOne: '1 paquete contable',
   statusIncomplete: 'Incompleto',
+  financeDiscardOwnerOnly:
+    'Solo el propietario puede descartar un borrador que ya tiene líneas de factura. Pídeselo al propietario o, tras emitirla, corrígela con una nota de crédito.',
   packReadyAuditor: 'Disponible para revisar o descargar',
 };
 
@@ -171,7 +177,8 @@ const pt: Record<BillingFixCopyKey, string> = {
   marginNegative: 'Cobramos menos do que esta pessoa custa',
   upcomingRate: 'A partir de {date}: {rate}',
   validUntil: 'até {date}',
-  classifyAll: 'Aplicar a todas as {count}',
+  classifyAll: 'Salvar as {count} como escolhidas',
+  classifyAllHelp: 'Salva o tratamento para o cliente mostrado em cada linha abaixo.',
   ledgerExportOwnerOnly: 'As exportações estão disponíveis para o financeiro e o proprietário.',
   settlementState_reviewed: 'Finalizada, ainda não paga',
   settlementState_scheduled: 'Pagamento agendado',
@@ -184,6 +191,8 @@ const pt: Record<BillingFixCopyKey, string> = {
   hoursNotPlanned: 'Este projeto não tem horas previstas.',
   packCountOne: '1 pacote contábil',
   statusIncomplete: 'Incompleto',
+  financeDiscardOwnerOnly:
+    'Somente o proprietário pode descartar um rascunho que já tem linhas de fatura. Peça ao proprietário ou, depois de emitida, corrija com uma nota de crédito.',
   packReadyAuditor: 'Disponível para revisar ou baixar',
 };
 

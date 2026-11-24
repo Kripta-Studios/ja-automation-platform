@@ -94,14 +94,6 @@
     remedies: [{ id: 'review_invoice' }],
     correlationId: '',
   };
-  const discardLinkedFinanceProblem: ProblemData = {
-    code: 'BILLING_DISCARD_LINKED_FINANCE',
-    messageKey: 'problem.warning.billingDiscardSourceLinkedFinance',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_invoice' }],
-    correlationId: '',
-  };
   const archiveStreamWarning: ProblemData = {
     code: 'WARNING_BILLING_ARCHIVE_STREAM',
     messageKey: 'problem.warning.billingArchiveStream',
@@ -5397,7 +5389,8 @@
         </div>
 
         <nav class="billing-section__setup-actions" aria-label={translate('Configure billing')}>
-          {#each setupActions as action}
+          <!-- T48: owner-only setup actions are not offered to finance (the note below says why). -->
+          {#each setupActions.filter((action) => canManageIssuerAndNumbering || (action.id !== 'entity' && action.id !== 'numbering')) as action}
             <button
               type="button"
               id={action.id === 'entity'
@@ -5406,12 +5399,6 @@
                   ? 'billing-tax-setup-action'
                   : undefined}
               aria-pressed={setupAction === action.id}
-              disabled={!canManageIssuerAndNumbering &&
-                (action.id === 'entity' || action.id === 'numbering')}
-              title={!canManageIssuerAndNumbering &&
-              (action.id === 'entity' || action.id === 'numbering')
-                ? translate('Owner access')
-                : undefined}
               onclick={() => void showSetupAction(action.id)}
             >
               {translate(action.label)}
@@ -7772,11 +7759,10 @@
                       />
                     {/if}
                     {#if data.user.role === 'finance_admin' && financeDraftHasKnownLinkedLines(invoice)}
-                      <ProblemNotice
-                        problem={discardLinkedFinanceProblem}
-                        kind="error"
-                        remedyLinks={invoiceReviewRemedyLinks(invoiceId)}
-                      />
+                      <!-- T48: a neutral note instead of a red error and a disabled discard form. -->
+                      <p class="billing-section__read-only" data-finance-discard-owner-only>
+                        {billingFixText(locale, 'financeDiscardOwnerOnly')}
+                      </p>
                     {:else}
                       <ProblemNotice
                         problem={discardDraftWarning}
@@ -7784,6 +7770,7 @@
                         remedyLinks={invoiceReviewRemedyLinks(invoiceId)}
                       />
                     {/if}
+{#if !(data.user.role === 'finance_admin' && financeDraftHasKnownLinkedLines(invoice))}
                     <form
                       method="POST"
                       action="?/deleteInvoice"
@@ -7803,14 +7790,9 @@
                           required
                         /></label
                       >
-                      <button
-                        type="submit"
-                        class="danger"
-                        disabled={data.user.role === 'finance_admin' &&
-                          financeDraftHasKnownLinkedLines(invoice)}
-                        >{translate('Discard draft')}</button
-                      >
+                      <button type="submit" class="danger">{translate('Discard draft')}</button>
                     </form>
+                    {/if}
                   {:else if invoiceStateValue === 'approved'}
                     {#if problemFor('recalculateApprovedInvoice', 'invoiceId', invoiceId)}
                       <ProblemNotice

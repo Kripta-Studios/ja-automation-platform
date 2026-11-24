@@ -114,6 +114,7 @@
   import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
   import { translateControlledValue } from '../../i18n/controlled-values';
   import { billingFixText } from '../billing-fix-copy';
+  import { personDisplayName } from '../display-name';
   import {
     quickInvoiceFormat,
     quickInvoiceText,
@@ -372,6 +373,30 @@
   }
   function setConversion(row: ExpenseRow, patch: Partial<{ rate: string; amount: string }>) {
     conversions = { ...conversions, [row.ref.id]: { rate: '', amount: '', ...conversions[row.ref.id], ...patch } };
+  }
+
+  /**
+   * T67: save the treatment shown in every row at once (the select already shows a
+   * choice, so confirming each expense one by one is not needed). Rows that still need
+   * a currency conversion keep their own message and are skipped.
+   */
+  let savingAll = $state(false);
+  const bulkTreatmentRows = (rows: ExpenseRow[]) =>
+    rows.filter(
+      (row) =>
+        !row.locked &&
+        (!row.foreign ||
+          Boolean(row.conversion) ||
+          Boolean(conversions[row.ref.id]?.rate.trim() || conversions[row.ref.id]?.amount.trim())),
+    );
+  async function saveAllTreatments(rows: ExpenseRow[]) {
+    if (savingAll) return;
+    savingAll = true;
+    try {
+      for (const row of bulkTreatmentRows(rows)) await saveTreatment(row);
+    } finally {
+      savingAll = false;
+    }
   }
 
   async function applyConditions(rows: ExpenseRow[]) {
@@ -713,6 +738,20 @@
             >
             {@render status('conditions')}
           </div>
+        {:else if bulkTreatmentRows(rows).length > 1}
+          <div class="qa__actions">
+            <button
+              type="button"
+              class="primary-button qa__btn"
+              data-attention-save-all-treatments={bulkTreatmentRows(rows).length}
+              disabled={disabled || Boolean(busy) || savingAll}
+              onclick={() => saveAllTreatments(rows)}
+              >{savingAll
+                ? billingFixText(locale, 'preparing')
+                : billingFixText(locale, 'classifyAll', { count: bulkTreatmentRows(rows).length })}</button
+            >
+            <small class="qa__muted">{billingFixText(locale, 'classifyAllHelp')}</small>
+          </div>
         {/if}
         <ul class="qa__people">
           {#each rows.slice(0, showAllPeople.expenses ? 50 : 5) as row (row.ref.id)}
@@ -944,7 +983,7 @@
   <li class="qa__person qa__expense" data-attention-expense={row.ref.id}>
     <div class="qa__person-main">
       <strong>{rowTitle(row)}</strong>
-      <span>{dateText(row.date)} · {row.workerName} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
+      <span>{dateText(row.date)} · {personDisplayName(row.workerName) || row.workerName} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
     </div>
     {#if row.locked}
       <small class="qa__muted">{t('expenseLocked')}</small>

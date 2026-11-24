@@ -117,7 +117,10 @@
   let search = $derived($page.url.searchParams.get('q')?.trim() ?? '');
   // A project manager's list is already only their current projects (A8):
   // default to all of them instead of "Active" so a paused project still shows.
-  const defaultStatus = $derived(role === 'project_manager' ? '' : 'active');
+  // D14/T59: the default list keeps closing projects (work and money are still
+  // pending there); a short list shows everything without filters.
+  const fewProjects = $derived((projects ?? []).length <= 3);
+  const defaultStatus = $derived(role === 'project_manager' || fewProjects ? '' : 'current');
   let statusFilter = $derived($page.url.searchParams.get('status')?.trim() ?? defaultStatus);
   let clientFilter = $derived($page.url.searchParams.get('client')?.trim() ?? '');
   useViewPreferences({
@@ -135,6 +138,7 @@
       ...saved,
       statusFilter: [
         '',
+        'current',
         'active',
         'planned',
         'attention',
@@ -216,6 +220,7 @@
   }
 
   function statusLabel(status: string): string {
+    if (status === 'current') return ux('statusCurrent');
     return controlledValue?.('status', status) || translate(status);
   }
 
@@ -258,7 +263,7 @@
     const timezone = value(row, 'timezone', 'site_timezone');
     const dates =
       start || end
-        ? `${start ? formatProjectDate(start) : '—'} → ${end ? formatProjectDate(end) : translate('Open target')}`
+        ? `${start ? formatProjectDate(start) : '—'} → ${end ? formatProjectDate(end) : ux('openEnded')}`
         : '';
     return [dates, timezone].filter(Boolean).join(' · ');
   }
@@ -275,7 +280,7 @@
     const start = value(assignment, 'starts_on', 'starts_at');
     const end = value(assignment, 'ends_on', 'ends_at');
     if (!start && !end) return '';
-    return `${translate('Starts on')}: ${start ? formatProjectDate(start) : '—'} · ${translate('Ends on')}: ${end ? formatProjectDate(end) : translate('Open target')}`;
+    return `${translate('Starts on')}: ${start ? formatProjectDate(start) : '—'} · ${translate('Ends on')}: ${end ? formatProjectDate(end) : ux('openEnded')}`;
   }
 
   function projectMatchesSummaryScope(project: PortalRow): boolean {
@@ -308,7 +313,9 @@
         !statusFilter ||
         (statusFilter === 'attention'
           ? ['paused', 'closing'].includes(projectStatus(project))
-          : projectStatus(project) === statusFilter);
+          : statusFilter === 'current'
+            ? ['active', 'closing'].includes(projectStatus(project))
+            : projectStatus(project) === statusFilter);
       const matchesClient = !clientFilter || clientId(project) === clientFilter;
       return matchesSearch && matchesStatus && matchesClient;
     });
@@ -692,6 +699,7 @@
     </div>
   </header>
 
+  {#if !fewProjects}
   <div class="project-section__attention" aria-label={translate('Project attention summary')}>
     <a
       class="project-section__attention-card"
@@ -721,6 +729,7 @@
       <small>{translate('Paused or closing')}</small>
     </a>
   </div>
+  {/if}
 
   <p class="project-section__summary-help">{ux2('projectDateContext')}</p>
 
@@ -744,6 +753,7 @@
       <span>{translate('Status')}</span>
       <select name="status" bind:value={statusFilter}>
         <option value="">{translate('All statuses')}</option>
+        <option value="current">{ux('statusCurrent')}</option>
         <option value="active">{translate('Active')}</option>
         <option value="planned">{translate('Planned')}</option>
         <option value="attention">{translate('Needs attention')}</option>

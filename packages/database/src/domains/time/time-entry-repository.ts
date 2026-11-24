@@ -396,6 +396,14 @@ export class TimeEntryRepository {
       // checks both the current assignment and the object date; the timezone
       // lookup below is only data retrieval, not authorization.
       this.assertNotSupplierCoordinatorOwnTime(principal, workerId);
+      // D5/T42: supplier staff hours are recorded by the supplier coordinator
+      // (or the technician), never by a J&A project manager on their behalf.
+      if (
+        principal.role === 'project_manager' &&
+        workerId !== principal.userId &&
+        this.deps.sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(workerId)
+      )
+        throw this.deps.errors.accessDenied('Supplier staff hours are recorded by their coordinator');
       this.assertEffectiveMembership(principal, input.projectId, workerId, input.workDate);
       this.deps.assertDate(input.workDate, 'Work date');
       if (!Number.isInteger(input.minutes) || input.minutes < 0 || input.minutes > 1440)

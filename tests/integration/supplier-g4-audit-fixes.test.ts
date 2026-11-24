@@ -368,3 +368,23 @@ describe('offboarding checklist (T33)', () => {
     );
   });
 });
+
+describe('project manager and supplier staff hours (D5, T42)', () => {
+  it('refuses a project manager logging hours for a supplier technician', () => {
+    const { fixture, technician } = setup();
+    const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'g4-manager-proxy');
+    expect(() =>
+      fixture.repository.createTimeEntry(
+        manager,
+        {
+        projectId: fixture.project.id,
+        workDate: today,
+        category: 'regular',
+        minutes: 60,
+        summary: 'PM proxy for supplier staff',
+        },
+        technician.id,
+      ),
+    ).toThrow('Supplier staff hours are recorded by their coordinator');
+  });
+});

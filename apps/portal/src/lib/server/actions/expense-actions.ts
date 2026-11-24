@@ -821,7 +821,6 @@ export async function validateExpenseReceipt(file: File): Promise<Uint8Array> {
   }
 }
 
-/** A batch receipt is already stored or repeated in the batch: nothing saved, rows named. */
 /**
  * The signed-in person's own expense that already carries a receipt with these bytes
  * (T46). Only the uploader's own files are compared, so the answer never reveals other
@@ -863,6 +862,7 @@ function receiptAlreadyAttached(
   );
 }
 
+/** A batch receipt is already stored or repeated in the batch: nothing saved, rows named. */
 function duplicateBatchReceipt(batchRows: number[]) {
   return actionFail(
     409,
@@ -1687,12 +1687,26 @@ export const expenseActions = withOperationalActionNames({
           {},
           'Expense draft already saved. No duplicate was created.',
         );
-      if (receiptFile && bytes && receiptHash) {
-        const use = ownReceiptUse(context, receiptHash);
-        if (use) return receiptAlreadyAttached(use, values);
-      }
       if (receiptFile && bytes) {
-        uploaded = await saveExpenseReceipt(context, String(object.projectId), receiptFile, bytes);
+        try {
+          uploaded = await saveExpenseReceipt(
+            context,
+            String(object.projectId),
+            receiptFile,
+            bytes,
+          );
+        } catch (error) {
+          // Access and validation run first (inside the reservation). Only when the bytes are
+          // already stored is the person's OWN expense with that receipt named (T46).
+          const use =
+            receiptHash &&
+            error instanceof Error &&
+            error.message === 'Upload conflicts with existing content'
+              ? ownReceiptUse(context, receiptHash)
+              : undefined;
+          if (use) return receiptAlreadyAttached(use, values);
+          throw error;
+        }
         object.receiptDocumentId = uploaded.id;
       }
       const parsed = expenseInputSchema.safeParse(object);

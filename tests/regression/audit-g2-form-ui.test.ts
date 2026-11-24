@@ -52,4 +52,10 @@ describe('audit G2 form UI regressions', () => {
     expect(blank.slice(0, blank.indexOf('});'))).toContain("category: '',");
     expect(expense).toContain('{:else if row.unread && !row.amount.trim()}');
   });
+
+  it('T24: work capture starts on today and the only assignment when nothing is saved', () => {
+    const capture = read('apps/portal/src/routes/app/workflow/capture/+page.svelte');
+    expect(capture).toContain('if (!workDate) workDate = localToday();');
+    expect(capture).toContain('data.projects.length === 1');
+  });
 });

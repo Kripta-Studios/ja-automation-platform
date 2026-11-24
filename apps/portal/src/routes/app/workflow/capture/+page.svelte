@@ -6,6 +6,7 @@
   import { workflowStatus } from '$lib/portal/workflow/copy';
   import { enhance } from '$app/forms';
   import { onMount } from 'svelte';
+  import { localToday } from '$lib/portal/ui/time-entry-clock';
   import { formatPortalDate } from '$lib/i18n/format';
   import {
     clearLocalCaptureDraft,
@@ -241,7 +242,11 @@
   const timeCategoryLabel = (current: Locale, category: string) =>
     timeWeekText(
       current,
-      isCaptureTimeCategory(category) ? (category === 'regular' ? 'work' : category) : 'otherCategory',
+      isCaptureTimeCategory(category)
+        ? category === 'regular'
+          ? 'work'
+          : category
+        : 'otherCategory',
     );
   const payerNames: Record<string, string> = {
     worker: 'Worker',
@@ -425,7 +430,13 @@
     // Reopen the newest draft saved on this device and list the others.
     void refreshDeviceDrafts().then(() => {
       if (!projectId && !workDate && deviceDrafts[0]) openDeviceDraft(deviceDrafts[0]);
-      else void recoverScope();
+      else {
+        // Nothing saved on this device: start on today and the only assignment, so
+        // "Save on this device" is usable without picking what is already obvious.
+        if (!workDate) workDate = localToday();
+        if (!projectId && data.projects.length === 1) projectId = data.projects[0]!.id;
+        void recoverScope();
+      }
     });
   });
   $: if (projectId && workDate) void recoverScope();
@@ -470,8 +481,11 @@
           {#each deviceDrafts.filter((draft) => draft.projectId !== projectId || draft.workDate !== workDate) as draft (draft.projectId + draft.workDate)}
             <li>
               <span
-                >{data.projects.find((item: { id: string; name: string }) => item.id === draft.projectId)
-                  ?.name ?? ''} · {formatPortalDate(`${draft.workDate}T12:00:00Z`, locale, { timeZone: 'UTC' })}</span
+                >{data.projects.find(
+                  (item: { id: string; name: string }) => item.id === draft.projectId,
+                )?.name ?? ''} · {formatPortalDate(`${draft.workDate}T12:00:00Z`, locale, {
+                  timeZone: 'UTC',
+                })}</span
               >
               <button type="button" on:click={() => openDeviceDraft(draft)}
                 >{t.openDeviceDraft}</button
@@ -646,7 +660,9 @@
                   /></label
                 ><label
                   >{t.currency}<select name="currency" bind:value={currency} required
-                    ><option value="">—</option>{#each CURRENCIES as code (code)}<option value={code}>{code}</option>{/each}</select
+                    ><option value="">—</option>{#each CURRENCIES as code (code)}<option
+                        value={code}>{code}</option
+                      >{/each}</select
                   ></label
                 ><label
                   >{t.payer}<select name="whoPaid" bind:value={whoPaid} required

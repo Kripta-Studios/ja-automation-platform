@@ -404,7 +404,10 @@
     packFilter ? packs.filter((pack) => packState(pack) === packFilter) : packs,
   );
   const registerCountLabel = $derived(
-    navigationUxText(locale, 'accounting', 'registerCount', { count: filteredPacks.length }),
+    // T64: "1 accounting pack", not "1 accounting packs".
+    filteredPacks.length === 1
+      ? billingFixText(locale, 'packCountOne')
+      : navigationUxText(locale, 'accounting', 'registerCount', { count: filteredPacks.length }),
   );
   function accountingPackStatusLabel(status: string): string {
     if (status === 'final') return accountingUxRound2Text(locale, 'finalPack');
@@ -512,7 +515,11 @@
     >
       <span>{translate('Ready')}</span>
       <strong>{stateCount('ready')}</strong>
-      <small>{translate('Available for review, finalization or download')}</small>
+      <small
+        >{isAuditor
+          ? billingFixText(locale, 'packReadyAuditor')
+          : translate('Available for review, finalization or download')}</small
+      >
     </button>
   </div>
   <p class="accounting-section__register-summary" data-accounting-register-summary role="status">

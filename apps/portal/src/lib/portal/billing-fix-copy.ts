@@ -46,6 +46,18 @@ const en = {
   validUntil: 'until {date}',
   classifyAll: 'Apply to all {count}',
   ledgerExportOwnerOnly: 'Exports are available to finance and the owner.',
+  settlementState_reviewed: 'Finalized, not paid yet',
+  settlementState_scheduled: 'Payment scheduled',
+  settlementBasis_APPROVED_TIME: 'Approved hours',
+  settlementBasis_COLLECTED_ELIGIBLE_LABOR: 'Collected labour',
+  confirmFinalizeCompensation: 'Finalize the compensation of {name} for {from} → {to}? The amount is fixed from the approved records.',
+  confirmRegisterSettlementPayment: 'Record the payment of {amount} to {name} on {date}?',
+  hoursRecorded: 'recorded',
+  hoursPlanned: 'planned',
+  hoursNotPlanned: 'No hours planned for this project.',
+  packCountOne: '1 accounting pack',
+  statusIncomplete: 'Incomplete',
+  packReadyAuditor: 'Available for review or download',
 };
 
 type BillingFixCopyKey = keyof typeof en;
@@ -98,6 +110,18 @@ const es: Record<BillingFixCopyKey, string> = {
   validUntil: 'hasta {date}',
   classifyAll: 'Aplicar a los {count}',
   ledgerExportOwnerOnly: 'Las exportaciones están disponibles para finanzas y el propietario.',
+  settlementState_reviewed: 'Finalizada, aún sin pagar',
+  settlementState_scheduled: 'Pago programado',
+  settlementBasis_APPROVED_TIME: 'Horas aprobadas',
+  settlementBasis_COLLECTED_ELIGIBLE_LABOR: 'Mano de obra cobrada',
+  confirmFinalizeCompensation: '¿Finalizar la compensación de {name} del {from} al {to}? El importe queda fijado con los registros aprobados.',
+  confirmRegisterSettlementPayment: '¿Registrar el pago de {amount} a {name} el {date}?',
+  hoursRecorded: 'registradas',
+  hoursPlanned: 'previstas',
+  hoursNotPlanned: 'Este proyecto no tiene horas previstas.',
+  packCountOne: '1 paquete contable',
+  statusIncomplete: 'Incompleto',
+  packReadyAuditor: 'Disponible para revisar o descargar',
 };
 
 const pt: Record<BillingFixCopyKey, string> = {
@@ -149,6 +173,18 @@ const pt: Record<BillingFixCopyKey, string> = {
   validUntil: 'até {date}',
   classifyAll: 'Aplicar a todas as {count}',
   ledgerExportOwnerOnly: 'As exportações estão disponíveis para o financeiro e o proprietário.',
+  settlementState_reviewed: 'Finalizada, ainda não paga',
+  settlementState_scheduled: 'Pagamento agendado',
+  settlementBasis_APPROVED_TIME: 'Horas aprovadas',
+  settlementBasis_COLLECTED_ELIGIBLE_LABOR: 'Mão de obra recebida',
+  confirmFinalizeCompensation: 'Finalizar a compensação de {name} de {from} a {to}? O valor fica fixado com os registros aprovados.',
+  confirmRegisterSettlementPayment: 'Registrar o pagamento de {amount} para {name} em {date}?',
+  hoursRecorded: 'registradas',
+  hoursPlanned: 'previstas',
+  hoursNotPlanned: 'Este projeto não tem horas previstas.',
+  packCountOne: '1 pacote contábil',
+  statusIncomplete: 'Incompleto',
+  packReadyAuditor: 'Disponível para revisar ou baixar',
 };
 
 const catalogs = { en, es, pt } as const;
@@ -162,6 +198,24 @@ export function billingFixText(
     catalogs[(locale === 'es' || locale === 'pt' ? locale : 'en') as 'en'];
   const template = catalog[key] ?? en[key];
   return template.replace(/\{(\w+)\}/gu, (_, name: string) => String(params[name] ?? ''));
+}
+
+/**
+ * T64: a stored timestamp in the viewer's language and time ("Nov 23, 2026, 10:13 AM"),
+ * never raw ISO UTC. A date-only value stays a calendar day; unreadable text is returned as is.
+ */
+export function billingDateTime(raw: unknown, locale: string | undefined): string {
+  const text = String(raw ?? '').trim();
+  if (!text) return '';
+  const tag = locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US';
+  if (/^\d{4}-\d{2}-\d{2}$/u.test(text)) {
+    return new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeZone: 'UTC' }).format(
+      new Date(`${text}T00:00:00Z`),
+    );
+  }
+  const date = new Date(text.includes('T') || text.endsWith('Z') ? text : `${text.replace(' ', 'T')}Z`);
+  if (Number.isNaN(date.getTime())) return text;
+  return new Intl.DateTimeFormat(tag, { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
 export type { BillingFixCopyKey };

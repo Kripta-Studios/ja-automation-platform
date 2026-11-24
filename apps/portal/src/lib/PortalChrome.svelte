@@ -439,12 +439,33 @@
           >
         </summary>
         {#each moreGroups as entry (entry.group)}
-          {#if groupHeadings[entry.group]}
-            <small class="nav-heading">{translate(groupHeadings[entry.group] ?? '')}</small>
+          {#if groupHeadings[entry.group] && moreGroups.length > 1}
+            <!-- Each heading folds its group so every group heading stays in
+                 view on a 768 px tall screen; the current item's group opens. -->
+            <details
+              class="nav-group"
+              open={entry.items.some((item) => itemIsCurrent(item)) || undefined}
+            >
+              <summary class="nav-heading nav-group-toggle"
+                >{translate(groupHeadings[entry.group] ?? '')}<svg
+                  class="nav-more-chevron"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  focusable="false"><path d="m4 6 4 4 4-4" /></svg
+                ></summary
+              >
+              {#each entry.items as item}
+                {@render navigationRow(item)}
+              {/each}
+            </details>
+          {:else}
+            {#if groupHeadings[entry.group]}
+              <small class="nav-heading">{translate(groupHeadings[entry.group] ?? '')}</small>
+            {/if}
+            {#each entry.items as item}
+              {@render navigationRow(item)}
+            {/each}
           {/if}
-          {#each entry.items as item}
-            {@render navigationRow(item)}
-          {/each}
         {/each}
       </details>
     {/if}
@@ -772,6 +793,33 @@
     font-weight: 650;
     letter-spacing: 0.02em;
     text-transform: none;
+  }
+  .nav-group {
+    display: grid;
+    gap: 0.28rem;
+  }
+  .nav-group-toggle {
+    display: flex;
+    align-items: center;
+    min-height: var(--ja-target-min, 44px);
+    padding-inline: 0.72rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .nav-group-toggle::-webkit-details-marker {
+    display: none;
+  }
+  details.nav-group > summary.nav-group-toggle::after {
+    content: none;
+    display: none;
+  }
+  .nav-group[open] > .nav-group-toggle .nav-more-chevron {
+    transform: rotate(180deg);
+  }
+  .nav-group-toggle:focus-visible {
+    outline: 2px solid var(--ja-border-focus);
+    outline-offset: 2px;
   }
   .nav-badge {
     margin-left: auto;

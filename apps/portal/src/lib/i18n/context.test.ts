@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { createPortalLocaleController, documentLanguage, normalizePortalLocale } from './context';
+import {
+  acceptLanguageLocale,
+  createPortalLocaleController,
+  documentLanguage,
+  normalizePortalLocale,
+} from './context';
 
 describe('portal locale context contract', () => {
   it.each([
@@ -36,3 +41,14 @@ describe('portal locale context contract', () => {
     expect(seen).toEqual(['en', 'pt', 'es']);
   });
 });
+
+describe('accept-language first-visit fallback (audit T78 / technician-19)', () => {
+  it('picks the best supported language by q-value', () => {
+    expect(acceptLanguageLocale('es-ES,es;q=0.9,en;q=0.8')).toBe('es');
+    expect(acceptLanguageLocale('de-DE,pt-BR;q=0.7,en;q=0.5')).toBe('pt');
+    expect(acceptLanguageLocale('fr;q=1, en;q=0.1')).toBe('en');
+    expect(acceptLanguageLocale('de, fr')).toBeNull();
+    expect(acceptLanguageLocale(null)).toBeNull();
+  });
+});
+

@@ -772,7 +772,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Publish a planned assignment for one or more assigned workers. Planning does not create actual time entries; each worker records the work performed separately.':
     [
       'Publica una asignación prevista para uno o varios trabajadores asignados. La planificación no crea registros de horas reales; cada trabajador registra por separado el trabajo realizado.',
-      'Publique uma atribuição prevista para um ou mais trabalhadores atribuídos. O planeamento não cria registos de horas reais; cada trabalhador regista separadamente o trabalho realizado.',
+      'Publique uma atribuição prevista para um ou mais trabalhadores atribuídos. O planejamento não cria registros de horas reais; cada trabalhador registra separadamente o trabalho realizado.',
     ],
   'Project access could not be refreshed on this device. Stay online and reload before using offline forms. Your unsent drafts and attachments are preserved.':
     [
@@ -1106,7 +1106,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'This local draft belongs to an older report version. Compare it and copy only needed text; it cannot replace the newer record.':
     [
       'Este borrador local pertenece a una versión anterior del informe. Compáralo y copia sólo el texto necesario; no puede sustituir el registro más reciente.',
-      'Este rascunho local pertence a uma versão anterior do relatório. Compare e copie apenas o texto necessário; não pode substituir o registo mais recente.',
+      'Este rascunho local pertence a uma versão anterior do relatório. Compare e copie apenas o texto necessário; não pode substituir o registro mais recente.',
     ],
   'Submit for review': ['Enviar para revisión', 'Enviar para revisão'],
   'Report actions': ['Acciones del informe', 'Ações do relatório'],
@@ -1114,23 +1114,23 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   Correction: ['Corrección', 'Correção'],
   'The recorded worker must create a corrected draft from their Expenses register.': [
     'El trabajador registrado debe crear un borrador corregido desde su registro de gastos.',
-    'O trabalhador registado deve criar um rascunho corrigido no seu registo de despesas.',
+    'O trabalhador registrado deve criar um rascunho corrigido no seu registro de despesas.',
   ],
   'A rejected expense cannot be corrected. Create a new expense if the cost should be recorded.': [
     'Un gasto rechazado no se puede corregir. Crea un gasto nuevo si ese coste debe registrarse.',
-    'Uma despesa rejeitada não pode ser corrigida. Crie uma nova despesa se esse custo tiver de ser registado.',
+    'Uma despesa rejeitada não pode ser corrigida. Crie uma nova despesa se esse custo tiver de ser registrado.',
   ],
   'Unpaid reviewed settlements:': [
     'Liquidaciones revisadas pendientes de pago:',
-    'Liquidações revistas por pagar:',
+    'Liquidações revisadas a pagar:',
   ],
   'Approved reimbursements awaiting payment:': [
     'Reembolsos aprobados pendientes de pago:',
-    'Reembolsos aprovados por pagar:',
+    'Reembolsos aprovados a pagar:',
   ],
   'Estimated compensation awaiting approval:': [
     'Compensación estimada pendiente de aprobación:',
-    'Compensação estimada a aguardar aprovação:',
+    'Remuneração estimada aguardando aprovação:',
   ],
   'Estimated project compensation': [
     'Compensación estimada del proyecto',
@@ -1138,21 +1138,21 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   ],
   'Estimated reimbursements awaiting approval:': [
     'Reembolsos estimados pendientes de aprobación:',
-    'Reembolsos estimados a aguardar aprovação:',
+    'Reembolsos estimados aguardando aprovação:',
   ],
   'Payment still outstanding': ['Pago todavía pendiente', 'Pagamento ainda pendente'],
   'Reviewed compensation and approved expenses that have not been paid yet.': [
     'Compensación revisada y gastos aprobados que todavía no se han pagado.',
-    'Compensação revista e despesas aprovadas que ainda não foram pagas.',
+    'Remuneração revisada e despesas aprovadas que ainda não foram pagas.',
   ],
   'No reviewed payments or approved reimbursements are outstanding in this period.': [
     'No hay liquidaciones revisadas ni reembolsos aprobados pendientes de pago en este periodo.',
-    'Não há liquidações revistas nem reembolsos aprovados por pagar neste período.',
+    'Não há liquidações revisadas nem reembolsos aprovados a pagar neste período.',
   ],
   'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.':
     [
       'Los documentos registrados se conservan como prueba. Sube el archivo corregido como documento nuevo; el original seguirá disponible en el historial de auditoría.',
-      'Os documentos registados são conservados como prova. Carregue o ficheiro corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
+      'Os documentos registrados são conservados como prova. Envie o arquivo corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
     ],
   'Registered documents remain available as evidence. Authorized project users upload corrections as new documents; the original stays in the audit history.':
     [
@@ -1174,24 +1174,24 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Delete this draft?': ['¿Eliminar este borrador?', 'Eliminar este rascunho?'],
   'No review reason was recorded.': [
     'No se registró el motivo de la revisión.',
-    'Não foi registado o motivo da revisão.',
+    'Não foi registrado o motivo da revisão.',
   ],
   'An existing correction is': ['La corrección existente está', 'A correção existente está'],
   'The recorded worker owns this correction. Ask them to review it from their Time register.': [
     'La corrección pertenece al trabajador registrado. Pídele que la revise desde su registro de horas.',
-    'A correção pertence ao trabalhador registado. Peça que a reveja no seu registo de horas.',
+    'A correção pertence ao trabalhador registrado. Peça que a revise no seu registro de horas.',
   ],
   'Ask the recorded worker to create a corrected draft from their Time register.': [
     'Pide al trabajador registrado que cree un borrador corregido desde su registro de horas.',
-    'Peça ao trabalhador registado que crie um rascunho corrigido no seu registo de horas.',
+    'Peça ao trabalhador registrado que crie um rascunho corrigido no seu registro de horas.',
   ],
   'Open the Time register to create a corrected draft': [
     'Abrir el registro de horas para crear un borrador corregido',
-    'Abrir o registo de horas para criar um rascunho corrigido',
+    'Abrir o registro de horas para criar um rascunho corrigido',
   ],
   'The recorded worker must create a corrected draft from their Time register.': [
     'El trabajador registrado debe crear un borrador corregido desde su registro de horas.',
-    'O trabalhador registado deve criar um rascunho corrigido no seu registo de horas.',
+    'O trabalhador registrado deve criar um rascunho corrigido no seu registro de horas.',
   ],
   'This record was rejected. Contact the reviewer or Owner before recording replacement work.': [
     'Este registro fue rechazado. Contacta con el revisor o el Owner antes de registrar trabajo de reemplazo.',
@@ -1536,12 +1536,12 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Record crew hours above first. After an eligible time row is saved, add a receipt expense for one delegated worker. Then select that expense here and split its amount across at least two crew time rows. The receipt stays':
     [
       'Primero registra las horas del equipo arriba. Una vez guardado un registro de horas apto, añade un gasto con recibo para un trabajador delegado. Luego selecciónalo aquí y distribuye el importe entre al menos dos registros de horas del equipo. El recibo sigue siendo',
-      'Primeiro registe as horas da equipa acima. Depois de guardar um registo de horas elegível, adicione uma despesa com comprovativo para um trabalhador delegado. Em seguida, selecione-a aqui e divida o valor entre pelo menos dois registos de horas da equipa. O comprovativo continua a ser',
+      'Primeiro registre as horas da equipe acima. Depois de guardar um registro de horas elegível, adicione uma despesa com comprovativo para um trabalhador delegado. Em seguida, selecione-a aqui e divida o valor entre pelo menos dois registros de horas da equipe. O comprovativo continua a ser',
     ],
   'No delegated worker is available on this date. Choose a date with an active delegation, or ask the project owner to assign your crew before recording hours and a receipt.':
     [
       'No hay ningún trabajador delegado disponible en esta fecha. Elige una fecha con una delegación activa o pide al propietario del proyecto que asigne tu equipo antes de registrar horas y un recibo.',
-      'Não há trabalhadores delegados disponíveis nesta data. Escolha uma data com uma delegação ativa ou peça ao responsável pelo projeto para atribuir a sua equipa antes de registar horas e um comprovativo.',
+      'Não há trabalhadores delegados disponíveis nesta data. Escolha uma data com uma delegação ativa ou peça ao responsável pelo projeto para atribuir a sua equipe antes de registrar horas e um comprovativo.',
     ],
   'Hours for': ['Horas de', 'Horas de'],
   'Hours per member': ['Horas por miembro', 'Horas por integrante'],
@@ -2652,7 +2652,7 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'MFA is optional. Enabling it returns the setup URI and one-time recovery codes; store them in an approved password manager.':
     [
       'MFA es opcional. Al activarlo recibirás el URI de configuración y códigos de recuperación de un solo uso; guárdalos en un gestor de contraseñas aprobado.',
-      'A MFA é opcional. Ao ativá-la, você receberá o URI de configuração e códigos de recuperação de uso único; guarde-os em um gerenciador de senhas aprovado.',
+      'A MFA é opcional. Ao ativá-la, você receberá o URI de configuração e códigos de recuperação de uso único; salve-os em um gerenciador de senhas aprovado.',
     ],
   'Activate your account': ['Activa tu cuenta', 'Ative sua conta'],
   'Add client contact': ['Añadir contacto del cliente', 'Adicionar contato do cliente'],
@@ -5316,7 +5316,7 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'The eligible records total zero billable amount. Review rates, included hours, milestone amounts, and the billing setup.':
     [
       'Los registros aptos suman un importe facturable de cero. Revisa las tarifas, las horas incluidas, los importes de los hitos y la configuración de facturación.',
-      'Os registos elegíveis somam um valor faturável de zero. Reveja as tarifas, as horas incluídas, os valores dos marcos e a configuração de faturação.',
+      'Os registros elegíveis somam um valor faturável de zero. Revise as tarifas, as horas incluídas, os valores dos marcos e a configuração de faturação.',
     ],
   'Jump to': ['Ir a', 'Ir para'],
   'Choose the project whose approved source records will be billed.': [
@@ -5514,7 +5514,7 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Not client billable travel time is excluded from the customer labor charge. Worker pay follows separate labor terms; workers still record their actual travel time.':
     [
       'El tiempo de viaje no facturable al cliente queda fuera del cargo de mano de obra. La remuneración sigue condiciones laborales separadas; los trabajadores registran igualmente el tiempo de viaje real.',
-      'O tempo de viagem não faturável ao cliente fica fora da cobrança de mão de obra. A remuneração segue condições de trabalho separadas; os trabalhadores continuam a registar o tempo real de viagem.',
+      'O tempo de viagem não faturável ao cliente fica fora da cobrança de mão de obra. A remuneração segue condições de trabalho separadas; os trabalhadores continuam a registrar o tempo real de viagem.',
     ],
   'Non-billable time is not charged to the customer. Worker compensation follows separate labor terms for approved work.':
     [

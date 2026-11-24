@@ -78,7 +78,7 @@ export const mfaEnrollmentCopy: Record<PortalLocale, MfaEnrollmentCopy> = {
     setupUriLabel: 'URI de configuración del autenticador',
     recoveryHeading: 'Códigos de recuperación de un solo uso',
     recoveryWarning:
-      'Guarde estos códigos ahora en un gestor de contraseñas aprobado. Solo se muestran una vez y son necesarios si su autenticador no está disponible.',
+      'Salve estos códigos ahora en un gestor de contraseñas aprobado. Solo se muestran una vez y son necesarios si su autenticador no está disponible.',
     recoveryCodesLabel: 'Códigos de recuperación de un solo uso',
     codeLabel: 'Código del autenticador',
     verifying: 'Verificando…',

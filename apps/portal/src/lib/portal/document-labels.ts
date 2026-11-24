@@ -20,6 +20,7 @@ const KINDS: Record<string, Tuple> = {
 };
 const SENSITIVITY: Record<string, Tuple> = {
   internal: ['Internal', 'Interno', 'Interno'],
+  sensitive: ['Sensitive', 'Sensible', 'Sensível'],
   confidential: ['Confidential', 'Confidencial', 'Confidencial'],
   restricted: ['Restricted', 'Restringido', 'Restrito'],
   public: ['Public', 'Público', 'Público'],

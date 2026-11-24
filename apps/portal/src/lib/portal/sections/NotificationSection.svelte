@@ -3,7 +3,7 @@
   import { enhance } from '$app/forms';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
-  import { notificationCopy } from '../../notifications/copy';
+  import { notificationCopy, notificationRemovedNote } from '../../notifications/copy';
   import { notificationTargetPath } from '../../notifications/target';
   import { standaloneActionMessage } from '../../../routes/app/standalone-locale';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
@@ -93,9 +93,9 @@
   );
   // Plain "what happened + where to fix it" line for the person's own work.
   const quickWords = {
-    en: { time: 'Your hours', expense: 'Your expense', daily: 'Your daily report', technical: 'Your technical report', report: 'Your report', needsChanges: 'Changes requested: {what} for {date}', missing: 'No hours logged for {date}', fix: 'Fix it', logHours: 'Log hours', open: 'Open' },
-    es: { time: 'Tus horas', expense: 'Tu gasto', daily: 'Tu informe diario', technical: 'Tu informe técnico', report: 'Tu informe', needsChanges: 'Cambios solicitados: {what} del {date}', missing: 'No hay horas registradas el {date}', fix: 'Corregir', logHours: 'Registrar horas', open: 'Abrir' },
-    pt: { time: 'Suas horas', expense: 'Sua despesa', daily: 'Seu relatório diário', technical: 'Seu relatório técnico', report: 'Seu relatório', needsChanges: 'Ajustes solicitados: {what} de {date}', missing: 'Sem horas registradas em {date}', fix: 'Corrigir', logHours: 'Registrar horas', open: 'Abrir' },
+    en: { time: 'Your hours', expense: 'Your expense', daily: 'Your daily report', technical: 'Your technical report', report: 'Your report', needsChanges: 'Changes requested: {what} for {date}', missing: 'Hours not sent for {date}', fix: 'Fix it', logHours: 'Log hours', open: 'Open' },
+    es: { time: 'Tus horas', expense: 'Tu gasto', daily: 'Tu informe diario', technical: 'Tu informe técnico', report: 'Tu informe', needsChanges: 'Cambios solicitados: {what} del {date}', missing: 'Horas sin enviar del {date}', fix: 'Corregir', logHours: 'Registrar horas', open: 'Abrir' },
+    pt: { time: 'Suas horas', expense: 'Sua despesa', daily: 'Seu relatório diário', technical: 'Seu relatório técnico', report: 'Seu relatório', needsChanges: 'Ajustes solicitados: {what} de {date}', missing: 'Horas não enviadas em {date}', fix: 'Corrigir', logHours: 'Registrar horas', open: 'Abrir' },
   } as const;
   const longDate = (iso: string) =>
     /^\d{4}-\d{2}-\d{2}$/u.test(iso)
@@ -404,13 +404,20 @@
         {@const safeTarget = notificationTargetPath(row.target)}
         {@const quick = quickNotice(row)}
         {@const detailHref = `${base}/app/notifications/${encodeURIComponent(String(row.id))}?lang=${locale}`}
+        {@const removed = row.source_unavailable === true && row.kind !== 'workspace_activity'}
+        {@const destination = removed ? '' : quick ? quick.href : safeTarget ? base + safeTarget : ''}
         <article class:unread={!row.read_at} class="notification-row" data-notification-id={row.id}>
           <a
             class="record-card-link"
-            href={quick ? quick.href : safeTarget ? base + safeTarget : detailHref}
+            data-sveltekit-preload-data="off"
+            href={destination
+              ? `${detailHref}&open=1&to=${encodeURIComponent(destination.slice(base.length))}`
+              : detailHref}
           >
-            <strong>{quick ? quick.title : notificationCopy(String(row.kind), locale).subject}</strong>
+            <strong>{quick && !removed ? quick.title : notificationCopy(String(row.kind), locale).subject}</strong>
             <small>
+              {#if row.person_name}{String(row.person_name)} ·
+              {/if}
               {#if row.record_title}{String(row.record_title)} ·
               {/if}
               {#if row.project_number}{String(row.project_number)} ·
@@ -427,13 +434,17 @@
                   .join(', ')}</span
               >
             {/if}
-            <span class="record-card-open" class:is-fix={Boolean(quick)}
-              >{quick ? quick.cta : translate('Open record')} <DirectionIcon /></span
-            >
+            {#if removed}
+              <span class="change-summary">{notificationRemovedNote(locale)}</span>
+            {:else if destination}
+              <span class="record-card-open" class:is-fix={Boolean(quick)}
+                >{quick ? quick.cta : translate('Open record')} <DirectionIcon /></span
+              >
+            {/if}
           </a>
           <div class="inbox-row-actions">
             <span class="state-tag">{row.read_at ? translate('read') : translate('new')}</span>
-            <a class="inbox-detail" href={detailHref}>{translate('Notification details')}</a>
+            <a class="inbox-detail" data-sveltekit-preload-data="off" href={detailHref}>{translate('Notification details')}</a>
             {#if !row.read_at}
               <form
                 method="POST"

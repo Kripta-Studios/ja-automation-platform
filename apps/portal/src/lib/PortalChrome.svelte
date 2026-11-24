@@ -17,6 +17,7 @@
   import SectionNavigator from './portal/ui/SectionNavigator.svelte';
   import { workspaceRecordSearchHref } from './portal/ui/section-search';
   import PortalNavIcon from './PortalNavIcon.svelte';
+  import { navIconPath, navIconPaths } from './portal/nav-icons';
   import { personDisplayName } from './portal/display-name';
   import type { PaletteRecord } from './portal/ui/section-search';
 
@@ -103,43 +104,7 @@
   const drawerScrollLockClass = 'portal-drawer-open';
   const languageNames = { en: 'English', es: 'Español', pt: 'Português (Brasil)' };
 
-  const navIconPaths: Record<string, string> = {
-    Today: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
-    Dashboard: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
-    Time: 'M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
-    Reports: 'M5 3.5h14v17H5zM8 8h8M8 12h8M8 16h5',
-    Expenses: 'M5 4h14v16H5zM8 8h8M8 12h8M8 16h5',
-    Projects: 'M4 5h6v6H4zM14 5h6v6h-6zM4 15h6v4H4zM14 15h6v4h-6z',
-    Clients:
-      'M16 20v-1.5a3.5 3.5 0 0 0-7 0V20M12.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM17 8a2.5 2.5 0 1 1 0 5',
-    Team: 'M16 20v-1.5a3.5 3.5 0 0 0-7 0V20M12.5 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM17 8a2.5 2.5 0 1 1 0 5',
-    Planning: 'M5 4h14v16H5zM8 2v4M16 2v4M5 9h14M9 13h2M13 13h2M9 17h2',
-    'PLC / Technical': 'M3 13h4l2-7 4 12 2-6h6',
-    Home: 'M3 10.75 12 3l9 7.75V21a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1v-10.25Z',
-    Approvals: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-4-9 2.5 2.5L16.5 8',
-    Approve: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Zm-4-9 2.5 2.5L16.5 8',
-    Billing: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
-    Invoices: 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
-    Finance: 'M4 18 9 12l4 3 7-9M15 6h5v5',
-    Documents: 'M6 3h9l3 3v15H6zM14 3v4h4M9 12h6M9 16h6',
-    Notifications: 'M6 17h12l-1.5-2v-4a4.5 4.5 0 0 0-9 0v4L6 17ZM10 20h4M9.5 7.5a3 3 0 0 1 5 0',
-    Profile: 'M20 21a8 8 0 0 0-16 0M12 13a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z',
-    Settings:
-      'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.5 6.5 0 0 0-.15-1.4l1.45-1.12-2-3.46-1.72.68a7 7 0 0 0-2.4-1.4L15.45 3h-4l-.26 2.3a7 7 0 0 0-2.4 1.4l-1.72-.68-2 3.46 1.45 1.12a6.5 6.5 0 0 0 0 2.8l-1.45 1.12 2 3.46 1.72-.68a7 7 0 0 0 2.4 1.4l.26 2.3h4l.26-2.3a7 7 0 0 0 2.4-1.4l1.72.68 2-3.46-1.45-1.12c.1-.45.15-.92.15-1.4Z',
-    Audit: 'M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Zm-3 9 2 2 4-4',
-    'My Pay': 'M4 7h16v10H4zM4 10h16M8 14h2',
-    'Finance Overview': 'M4 18 9 12l4 3 7-9M15 6h5v5',
-    'Economic Review': 'M4 18 9 12l4 3 7-9M15 6h5v5',
-    'Collections / Ledger': 'M6 3h12v18l-3-2-3 2-3-2-3 2V3ZM9 8h6M9 12h6M9 16h4',
-    Accounting: 'M5 3.5h14v17H5zM8 8h8M8 12h8M8 16h5',
-    'Commercial Configuration':
-      'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Zm8.5 4a6.5 6.5 0 0 0-.15-1.4l1.45-1.12-2-3.46-1.72.68a7 7 0 0 0-2.4-1.4L15.45 3h-4l-.26 2.3a7 7 0 0 0-2.4 1.4l-1.72-.68-2 3.46 1.45 1.12a6.5 6.5 0 0 0 0 2.8l-1.45 1.12 2 3.46 1.72.68a7 7 0 0 0 2.4 1.4l.26 2.3h4l.26-2.3a7 7 0 0 0 2.4-1.4l1.72.68 2-3.46-1.45-1.12c.1-.45.15-.92.15-1.4Z',
-    'Data management':
-      'M4 6c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3Zm0 0v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3',
-    Suppliers:
-      'M3 7h11v10H3zM14 10h4l3 3v4h-7M7 20a2 2 0 1 0 0-4 2 2 0 0 0 0 4Zm10 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
-    'Crew hours': 'M12 7v5l3.5 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z',
-  };
+
   const groupHeadings: Record<string, string> = {
     management: 'Management',
     finance: 'Finance & control',
@@ -151,10 +116,11 @@
     pt: { label: 'Ajuda', detail: 'Guias de campo e instruções de tarefas' },
   } as const;
 
-  const iconPath = (item: NavItem): string => navIconPaths[item.label] ?? 'M5 12h14M12 5l7 7-7 7';
+  const iconPath = (item: NavItem): string => navIconPath(item.label);
   const globalNavigation = $derived(
     portalGlobalNavigationForRole(data.user.role, data.user.workforceProfile),
   );
+  const unreadNotifications = $derived(Math.max(0, Number(badges.notifications ?? 0)));
   const notificationsItem = $derived(
     globalNavigation.find((item) => item.section === 'notifications'),
   );
@@ -201,7 +167,7 @@
         : value === 'finance_admin'
           ? 'finance'
           : value === 'project_manager'
-            ? 'manager'
+            ? 'project_manager'
             : value === 'auditor_read_only'
               ? 'auditor_read_only'
               : value === 'worker' && data.user.workforceProfile
@@ -473,12 +439,33 @@
           >
         </summary>
         {#each moreGroups as entry (entry.group)}
-          {#if groupHeadings[entry.group]}
-            <small class="nav-heading">{translate(groupHeadings[entry.group] ?? '')}</small>
+          {#if groupHeadings[entry.group] && moreGroups.length > 1}
+            <!-- Each heading folds its group so every group heading stays in
+                 view on a 768 px tall screen; the current item's group opens. -->
+            <details
+              class="nav-group"
+              open={entry.items.some((item) => itemIsCurrent(item)) || undefined}
+            >
+              <summary class="nav-heading nav-group-toggle"
+                >{translate(groupHeadings[entry.group] ?? '')}<svg
+                  class="nav-more-chevron"
+                  viewBox="0 0 16 16"
+                  aria-hidden="true"
+                  focusable="false"><path d="m4 6 4 4 4-4" /></svg
+                ></summary
+              >
+              {#each entry.items as item}
+                {@render navigationRow(item)}
+              {/each}
+            </details>
+          {:else}
+            {#if groupHeadings[entry.group]}
+              <small class="nav-heading">{translate(groupHeadings[entry.group] ?? '')}</small>
+            {/if}
+            {#each entry.items as item}
+              {@render navigationRow(item)}
+            {/each}
           {/if}
-          {#each entry.items as item}
-            {@render navigationRow(item)}
-          {/each}
         {/each}
       </details>
     {/if}
@@ -571,7 +558,9 @@
       class:active={itemIsCurrent(notificationsItem)}
       href={itemHref(notificationsItem)}
       title={translate('Notifications')}
-      aria-label={translate('Notifications')}
+      aria-label={unreadNotifications > 0
+        ? `${translate('Notifications')} · ${unreadNotifications} ${translate('unread')}`
+        : translate('Notifications')}
       aria-current={itemIsCurrent(notificationsItem) ? 'page' : undefined}
     >
       <svg
@@ -584,8 +573,14 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         aria-hidden="true"><path d={navIconPaths.Notifications} /></svg
-      >
+      >{#if unreadNotifications > 0}<span class="bell-badge" aria-hidden="true"
+          >{unreadNotifications > 99 ? '99+' : unreadNotifications}</span
+        >{/if}
     </a>
+  {/if}
+  {#if data.user.role === 'auditor_read_only'}
+    <!-- One shell-level indicator instead of per-page wording (auditor-3). -->
+    <span class="readonly-chip" title={translate('Read-only')}>{translate('Read-only')}</span>
   {/if}
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
@@ -628,7 +623,10 @@
         <div class="account-menu-summary" role="presentation">
           <span class="portal-kicker">{translate('SIGNED IN')}</span>
           <strong>{displayName}</strong>
-          <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
+          <small
+            >{translate('Role')}: {roleLabel(data.user.role)}{#if data.user.role === 'auditor_read_only'}
+              · {translate('Read-only')}{/if}</small
+          >
         </div>
         {#each accountNavigation as item}
           {@const accountDetail =
@@ -639,8 +637,7 @@
                 : item.section === 'profile'
                   ? 'Personal details, MFA and availability'
                   : ''}
-          {@const accountIcon =
-            item.section === 'pay' ? '€' : item.section === 'documents' ? '□' : '◎'}
+          {@const accountIcon = item.section === 'documents' ? '□' : '◎'}
           <a
             role="menuitem"
             href={itemHref(item)}
@@ -648,7 +645,19 @@
             onclick={() => (accountOpen = false)}
           >
             <span class="account-menu-icon" aria-hidden="true">
-              {#if item.section === 'notifications'}
+              {#if item.section === 'pay'}
+                <!-- Neutral wallet: pay can be in USD, MXN, EUR or BRL. -->
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"><path d={navIconPaths['My Pay']} /></svg
+                >
+              {:else if item.section === 'notifications'}
                 <svg
                   viewBox="0 0 24 24"
                   width="20"
@@ -706,7 +715,7 @@
             >
           </span>
           <span
-            ><b>{translate('Log out')}</b><small
+            ><b>{translate('Sign out')}</b><small
               >{translate('End this session on this device')}</small
             ></span
           >
@@ -785,6 +794,33 @@
     letter-spacing: 0.02em;
     text-transform: none;
   }
+  .nav-group {
+    display: grid;
+    gap: 0.28rem;
+  }
+  summary.nav-group-toggle.nav-heading {
+    display: flex;
+    align-items: center;
+    min-height: var(--ja-target-min, 44px);
+    padding-inline: 0.72rem;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+  }
+  .nav-group-toggle::-webkit-details-marker {
+    display: none;
+  }
+  details.nav-group > summary.nav-group-toggle::after {
+    content: none;
+    display: none;
+  }
+  .nav-group[open] > .nav-group-toggle .nav-more-chevron {
+    transform: rotate(180deg);
+  }
+  .nav-group-toggle:focus-visible {
+    outline: 2px solid var(--ja-border-focus);
+    outline-offset: 2px;
+  }
   .nav-badge {
     margin-left: auto;
     min-width: 1.5rem;
@@ -823,10 +859,48 @@
     outline-offset: 2px;
   }
 
+  .portal-notifications-link {
+    position: relative;
+  }
+  .readonly-chip {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--ja-border-subdued, #d6d5d2);
+    border-radius: 999px;
+    background: var(--ja-canvas, #f6f6f1);
+    color: var(--ja-text-secondary, #55534c);
+    font-size: 0.75rem;
+    font-weight: 650;
+    white-space: nowrap;
+  }
   @media (max-width: 520px) {
-    /* The fully labelled inbox remains in Account and Go to section on phones. */
-    .portal-notifications-link {
+    .readonly-chip {
       display: none;
+    }
+  }
+  .bell-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.25rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px #fff;
+  }
+  @media (max-width: 520px) {
+    /* The bell stays on phones: it is the only place the unread count shows. */
+    .portal-notifications-link {
+      flex-basis: 40px;
+      width: 40px;
+      height: 40px;
     }
   }
 </style>

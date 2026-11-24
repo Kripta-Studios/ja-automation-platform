@@ -22,6 +22,29 @@ export function resolvePortalLocalePreference(
   return 'en';
 }
 
+/**
+ * The first supported language of an Accept-Language header ("es-ES,es;q=0.9"
+ * → "es"), honouring q-values. Used only when the person has not chosen a
+ * language yet (no ?lang and no saved preference).
+ */
+export function acceptLanguageLocale(header: string | null | undefined): PortalLocale | null {
+  if (!header) return null;
+  const ranked = header
+    .split(',')
+    .map((part, index) => {
+      const [tag = '', ...params] = part.trim().split(';');
+      const q = params.map((p) => /^q=([0-9.]+)$/u.exec(p.trim())?.[1]).find(Boolean);
+      return { tag: tag.trim().toLowerCase(), q: q === undefined ? 1 : Number(q), index };
+    })
+    .filter((entry) => entry.tag && Number.isFinite(entry.q) && entry.q > 0)
+    .sort((left, right) => right.q - left.q || left.index - right.index);
+  for (const entry of ranked) {
+    const language = entry.tag.split('-')[0];
+    if (language === 'en' || language === 'es' || language === 'pt') return language;
+  }
+  return null;
+}
+
 export function normalizePortalLocale(value: PortalLocaleInput): PortalLocale {
   return normalizeCatalogLocale(value);
 }

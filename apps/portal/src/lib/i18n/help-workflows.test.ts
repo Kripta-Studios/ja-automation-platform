@@ -41,12 +41,10 @@ describe('localized help workflow labels', () => {
           ? 'Buscar secciones, tareas y registros'
           : 'Encontrar seções, tarefas e registros',
       );
-      expect(navigation!.body).toContain(portalText(locale, 'Go to section'));
-      expect(navigation!.body).toContain(
-        locale === 'es' ? 'Buscar una tarea' : 'Buscar uma tarefa',
-      );
-      expect(navigation!.body).toContain(locale === 'es' ? '200 %' : '200%');
-      expect(navigation!.body).toContain(locale === 'es' ? 'Supplier team' : 'Supplier team');
+      // One search (Ctrl/⌘ K) with the same label as the top bar (audit T29).
+      expect(navigation!.body).toContain(`${portalText(locale, 'Search')} (Ctrl/⌘ K)`);
+      expect(navigation!.body).not.toContain('Shift K');
+      expect(navigation!.body).toContain(portalText(locale, 'My team'));
 
       const billing = topics.find((entry) => entry.route === 'billing');
       expect(billing).toBeDefined();
@@ -92,6 +90,9 @@ describe('localized help workflow labels', () => {
   it('keeps supplier guides limited to their operational routes', () => {
     const routes = helpWorkflows('worker', 'external_technician', 'pt').map((entry) => entry.route);
     expect(routes).toEqual(['', 'time', 'expenses', 'reports', 'supplier/report']);
+    expect(
+      helpWorkflows('worker', 'supplier_coordinator', 'es').map((entry) => entry.route),
+    ).toEqual(['', 'supplier', 'time', 'expenses', 'reports', 'supplier/report']);
     const supplier = helpWorkflows('worker', 'external_technician', 'en');
     expect(supplier.some((entry) => entry.route === 'billing')).toBe(false);
     expect(supplier.some((entry) => entry.route === 'finance?view=economic')).toBe(false);
@@ -107,4 +108,32 @@ describe('localized help workflow labels', () => {
       helpWorkflows('finance_admin', undefined, 'en').some((entry) => entry.route === 'billing'),
     ).toBe(true);
   });
+
+  // Audit T81: supplier accounts never get the J&A worker claims (project
+  // manager review, worker reimbursement queue, client sign-off by finance).
+  it.each(['en', 'es', 'pt'] as const)(
+    'gives supplier accounts their own %s guidance',
+    (locale) => {
+      for (const profile of ['supplier_coordinator', 'external_technician']) {
+        const topics = helpWorkflows('worker', profile, locale);
+        const text = JSON.stringify(topics);
+        expect(text).not.toContain('{{');
+        expect(text).not.toContain(translate(locale, 'Worker reimbursement queue'));
+        expect(text).not.toContain(translate(locale, 'Client Sign-off'));
+        expect(text).not.toMatch(
+          /project reviewer|responsable del proyecto|responsável do projeto/,
+        );
+        const time = topics.find((entry) => entry.route === 'time');
+        expect(time!.body).toContain('J&A');
+      }
+      const coordinator = helpWorkflows('worker', 'supplier_coordinator', locale);
+      const team = coordinator.find((entry) => entry.route === 'supplier');
+      expect(team!.body).toContain(portalText(locale, 'Record team hours'));
+      expect(
+        helpWorkflows('worker', 'external_technician', locale).some(
+          (entry) => entry.route === 'supplier',
+        ),
+      ).toBe(false);
+    },
+  );
 });

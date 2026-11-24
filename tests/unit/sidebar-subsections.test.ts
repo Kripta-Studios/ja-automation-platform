@@ -51,7 +51,7 @@ describe('role-scoped sidebar subsections', () => {
       ),
     ).toEqual(['directory', 'setup', 'authorize', 'personnel', 'report']);
     const coordinator = portalNavigationForRole(base, 'worker', 'supplier_coordinator');
-    const coordinatorSupplier = coordinator.primary.find((item) => item.label === 'Supplier team')!;
+    const coordinatorSupplier = coordinator.primary.find((item) => item.label === 'My team')!;
     expect(
       shortcuts(coordinatorSupplier, 'worker').map((item) =>
         new URL(item.href, 'https://example.test').searchParams.get('workspaceAction'),

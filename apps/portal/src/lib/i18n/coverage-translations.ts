@@ -152,7 +152,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.invoice.pdfInvalidResponse': [
     'No se pudo verificar la respuesta del PDF de la factura. No se modificó la factura. Revisa la factura actual antes de volver a intentarlo.',
-    'Não foi possível verificar a resposta do PDF da fatura. A fatura não foi alterada. Reveja a fatura atual antes de tentar novamente.',
+    'Não foi possível verificar a resposta do PDF da fatura. A fatura não foi alterada. Revise a fatura atual antes de tentar novamente.',
   ],
   'problem.invoice.pdfPopupBlocked': [
     'Tu navegador bloqueó la vista previa del PDF de la factura. Permite ventanas emergentes para este sitio o usa Descargar PDF.',
@@ -168,11 +168,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.invoice.pdfUnavailable': [
     'El PDF de esta factura no está disponible para este registro o con tu acceso actual. Revisa la factura y consulta con Finanzas si aún lo necesitas.',
-    'O PDF desta fatura não está disponível para este registo ou com o seu acesso atual. Reveja a fatura e consulte Finanças se ainda precisar dele.',
+    'O PDF desta fatura não está disponível para este registro ou com o seu acesso atual. Revise a fatura e consulte Finanças se ainda precisar dele.',
   ],
   'problem.invoice.pdfNotReady': [
     'El PDF de esta factura aún se está preparando. Revisa el estado actual de la factura y vuelve a intentarlo cuando esté listo.',
-    'O PDF desta fatura ainda está a ser preparado. Reveja o estado atual da fatura e tente novamente quando estiver pronto.',
+    'O PDF desta fatura ainda está sendo preparado. Revise o estado atual da fatura e tente novamente quando estiver pronto.',
   ],
   'problem.invoice.pdfIntegrityBlocked': [
     'No se pudo verificar el PDF de esta factura, así que se bloqueó su descarga. Pide a Finanzas que revise la factura antes de volver a intentarlo.',
@@ -192,7 +192,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.report.pdfInvalidResponse': [
     'No se pudo verificar la respuesta del PDF del informe. No se modificó el informe. Revisa el informe actual antes de volver a intentarlo.',
-    'Não foi possível verificar a resposta do PDF do relatório. O relatório não foi alterado. Reveja o relatório atual antes de tentar novamente.',
+    'Não foi possível verificar a resposta do PDF do relatório. O relatório não foi alterado. Revise o relatório atual antes de tentar novamente.',
   ],
   'problem.report.pdfPopupBlocked': [
     'Tu navegador bloqueó la vista previa del PDF del informe. Permite ventanas emergentes para este sitio o usa Descargar PDF.',
@@ -204,11 +204,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.report.pdfUnavailable': [
     'El PDF de este informe no está disponible para este registro o con tu acceso actual. Revisa los informes a los que puedes acceder o consulta con el responsable del proyecto si aún lo necesitas.',
-    'O PDF deste relatório não está disponível para este registo ou com o seu acesso atual. Reveja os relatórios a que tem acesso ou contacte o responsável do projeto se ainda precisar dele.',
+    'O PDF deste relatório não está disponível para este registro ou com o seu acesso atual. Revise os relatórios a que tem acesso ou entre em contato com o responsável do projeto se ainda precisar dele.',
   ],
   'problem.report.pdfNotReady': [
     'El PDF de este informe aún se está preparando. Revisa el estado actual del informe y vuelve a intentarlo cuando esté listo.',
-    'O PDF deste relatório ainda está a ser preparado. Reveja o estado atual do relatório e tente novamente quando estiver pronto.',
+    'O PDF deste relatório ainda está sendo preparado. Revise o estado atual do relatório e tente novamente quando estiver pronto.',
   ],
   'problem.report.pdfIntegrityBlocked': [
     'No se pudo verificar el PDF de este informe, así que se bloqueó su descarga. Pide a Finanzas que revise el informe antes de volver a intentarlo.',
@@ -229,26 +229,26 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.warning.billingStreamNoTaxProfile': [
     'No se ha seleccionado un perfil fiscal. Los borradores de este flujo no añadirán impuestos. Revisa el tratamiento fiscal correcto antes de guardar.',
-    'Nenhum perfil fiscal foi selecionado. Os rascunhos deste fluxo não adicionarão impostos. Reveja o tratamento fiscal correto antes de guardar.',
+    'Nenhum perfil fiscal foi selecionado. Os rascunhos deste fluxo não adicionarão impostos. Revise o tratamento fiscal correto antes de guardar.',
   ],
   'problem.warning.collectionsLedgerExportNoRows': [
     'No hay facturas emitidas en esta vista para exportar. Revisa Facturación para comprobar si hay facturas listas.',
-    'Não há faturas emitidas nesta vista para exportar. Reveja Faturação para verificar se há faturas prontas.',
+    'Não há faturas emitidas nesta vista para exportar. Revise Faturamento para verificar se há faturas prontas.',
   ],
   'problem.warning.collectionsLedgerExportFilteredEmpty': [
     'Ninguna factura emitida coincide con los filtros actuales, así que no hay nada que exportar. Borra los filtros o revisa Facturación.',
-    'Nenhuma fatura emitida corresponde aos filtros atuais, por isso não há nada para exportar. Limpe os filtros ou reveja Faturação.',
+    'Nenhuma fatura emitida corresponde aos filtros atuais, por isso não há nada para exportar. Limpe os filtros ou revise Faturamento.',
   ],
   'problem.warning.collectionsLedgerExportMissingIssueDates': [
     'Las facturas visibles no tienen fechas de emisión, así que la exportación no puede determinar un período. Revisa esas facturas en Facturación antes de volver a intentarlo.',
-    'As faturas visíveis não têm datas de emissão, por isso a exportação não consegue determinar um período. Reveja essas faturas em Faturação antes de tentar novamente.',
+    'As faturas visíveis não têm datas de emissão, por isso a exportação não consegue determinar um período. Revise essas faturas em Faturamento antes de tentar novamente.',
   ],
   'problem.remedy.createTaxProfile': ['Crear un perfil fiscal', 'Criar um perfil fiscal'],
   'problem.remedy.clearLedgerFilters': [
     'Borrar los filtros del registro',
-    'Limpar os filtros do registo',
+    'Limpar os filtros do registro',
   ],
-  'problem.remedy.reviewBilling': ['Revisar Facturación', 'Rever Faturação'],
+  'problem.remedy.reviewBilling': ['Revisar Facturación', 'Rever Faturamento'],
   'problem.warning.billingInvoiceNeedsSelectedStream':
     [
       'Un borrador de factura necesita un flujo de facturación activo para el proyecto seleccionado. Configura un flujo a continuación y vuelve a elegir Crear factura.',
@@ -271,17 +271,17 @@ const exact: Record<string, readonly [string, string]> = {
   'This browser has reached its offline storage limit. Your entries are still here. Free up browser storage, then try saving again or reconnect and save online.':
     [
       'Este navegador ha alcanzado el límite de almacenamiento sin conexión. Tus datos siguen aquí. Libera espacio de almacenamiento del navegador y vuelve a intentar guardarlos, o reconéctate y guárdalos en línea.',
-      'Este navegador atingiu o limite de armazenamento sem ligação. Os dados introduzidos continuam aqui. Liberte espaço de armazenamento no navegador e tente guardar novamente, ou restabeleça a ligação e guarde online.',
+      'Este navegador atingiu o limite de armazenamento sem ligação. Os dados introduzidos continuam aqui. Liberte espaço de armazenamento no navegador e tente guardar novamente, ou restabeleça a ligação e salve online.',
     ],
   'Browser storage is unavailable. Your entries are still here. Enable site storage or reconnect and save online.':
     [
       'El almacenamiento del navegador no está disponible. Tus datos siguen aquí. Habilita el almacenamiento para este sitio o reconéctate y guárdalos en línea.',
-      'O armazenamento do navegador não está disponível. Os dados introduzidos continuam aqui. Ative o armazenamento para este site ou restabeleça a ligação e guarde online.',
+      'O armazenamento do navegador não está disponível. Os dados introduzidos continuam aqui. Ative o armazenamento para este site ou restabeleça a ligação e salve online.',
     ],
   'The offline draft could not be stored on this device. Your entries are still here. Check browser storage, then try again or reconnect and save online.':
     [
       'No se pudo guardar el borrador sin conexión en este dispositivo. Tus datos siguen aquí. Comprueba el almacenamiento del navegador y vuelve a intentarlo, o reconéctate y guárdalo en línea.',
-      'Não foi possível guardar o rascunho sem ligação neste dispositivo. Os dados introduzidos continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou restabeleça a ligação e guarde online.',
+      'Não foi possível guardar o rascunho sem ligação neste dispositivo. Os dados introduzidos continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou restabeleça a ligação e salve online.',
     ],
   'Offline drafts need your review': [
     'Los borradores sin conexión necesitan tu revisión',
@@ -290,16 +290,16 @@ const exact: Record<string, readonly [string, string]> = {
   'Check saved records before discarding a local draft. A sync result may be uncertain or a server record may have changed.':
     [
       'Comprueba los registros guardados antes de descartar un borrador local. El resultado de la sincronización puede ser incierto o un registro del servidor puede haber cambiado.',
-      'Verifique os registos guardados antes de descartar um rascunho local. O resultado da sincronização pode ser incerto ou um registo do servidor pode ter mudado.',
+      'Verifique os registros guardados antes de descartar um rascunho local. O resultado da sincronização pode ser incerto ou um registro do servidor pode ter mudado.',
     ],
   'Draft needs checking': ['Hay que comprobar el borrador', 'É necessário verificar o rascunho'],
   'Check saved records before retrying this draft.': [
     'Comprueba los registros guardados antes de volver a intentar este borrador.',
-    'Verifique os registos guardados antes de tentar novamente este rascunho.',
+    'Verifique os registros guardados antes de tentar novamente este rascunho.',
   ],
   'Draft was rejected': ['El borrador fue rechazado', 'O rascunho foi rejeitado'],
-  'Server record changed': ['El registro del servidor cambió', 'O registo do servidor mudou'],
-  'Check saved records': ['Comprobar registros guardados', 'Verificar registos guardados'],
+  'Server record changed': ['El registro del servidor cambió', 'O registro do servidor mudou'],
+  'Check saved records': ['Comprobar registros guardados', 'Verificar registros guardados'],
   'Retry this draft after review': [
     'Reintentar este borrador después de revisarlo',
     'Tentar novamente este rascunho após a revisão',
@@ -307,61 +307,61 @@ const exact: Record<string, readonly [string, string]> = {
   'Some offline drafts synced; others may also have saved. Review saved records and remaining drafts before retrying.':
     [
       'Algunos borradores sin conexión se sincronizaron; otros también podrían haberse guardado. Revisa los registros guardados y los borradores pendientes antes de volver a intentarlo.',
-      'Alguns rascunhos sem ligação foram sincronizados; outros também podem ter sido guardados. Reveja os registos guardados e os rascunhos pendentes antes de tentar novamente.',
+      'Alguns rascunhos sem ligação foram sincronizados; outros também podem ter sido guardados. Revise os registros guardados e os rascunhos pendentes antes de tentar novamente.',
     ],
   'The sync result could not be confirmed. Offline drafts remain on this device. Check saved records before retrying.':
     [
       'No se pudo confirmar el resultado de la sincronización. Los borradores sin conexión siguen en este dispositivo. Comprueba los registros guardados antes de volver a intentarlo.',
-      'Não foi possível confirmar o resultado da sincronização. Os rascunhos sem ligação continuam neste dispositivo. Verifique os registos guardados antes de tentar novamente.',
+      'Não foi possível confirmar o resultado da sincronização. Os rascunhos sem ligação continuam neste dispositivo. Verifique os registros guardados antes de tentar novamente.',
     ],
   'Some offline drafts synced, but your session ended. Sign in again and review saved records and remaining drafts before retrying.':
     [
       'Algunos borradores sin conexión se sincronizaron, pero tu sesión terminó. Vuelve a iniciar sesión y revisa los registros guardados y los borradores pendientes antes de volver a intentarlo.',
-      'Alguns rascunhos sem ligação foram sincronizados, mas a sua sessão terminou. Inicie sessão novamente e reveja os registos guardados e os rascunhos pendentes antes de tentar novamente.',
+      'Alguns rascunhos sem ligação foram sincronizados, mas a sua sessão terminou. Inicie sessão novamente e revise os registros guardados e os rascunhos pendentes antes de tentar novamente.',
     ],
   'Your session ended. Offline drafts remain on this device. Sign in again and review saved records before retrying.':
     [
       'Tu sesión terminó. Los borradores sin conexión siguen en este dispositivo. Vuelve a iniciar sesión y revisa los registros guardados antes de volver a intentarlo.',
-      'A sua sessão terminou. Os rascunhos sem ligação continuam neste dispositivo. Inicie sessão novamente e reveja os registos guardados antes de tentar novamente.',
+      'A sua sessão terminou. Os rascunhos sem ligação continuam neste dispositivo. Inicie sessão novamente e revise os registros guardados antes de tentar novamente.',
     ],
   'Some offline drafts synced; the sync service is unavailable for others. Review saved records and remaining drafts, then try again later.':
     [
       'Algunos borradores sin conexión se sincronizaron; el servicio de sincronización no está disponible para los demás. Revisa los registros guardados y los borradores pendientes; inténtalo más tarde.',
-      'Alguns rascunhos sem ligação foram sincronizados; o serviço de sincronização está indisponível para os restantes. Reveja os registos guardados e os rascunhos pendentes; tente novamente mais tarde.',
+      'Alguns rascunhos sem ligação foram sincronizados; o serviço de sincronização está indisponível para os restantes. Revise os registros guardados e os rascunhos pendentes; tente novamente mais tarde.',
     ],
   'The sync service is unavailable. Offline drafts remain on this device. Check saved records, then try again later.':
     [
       'El servicio de sincronización no está disponible. Los borradores sin conexión siguen en este dispositivo. Comprueba los registros guardados e inténtalo más tarde.',
-      'O serviço de sincronização está indisponível. Os rascunhos sem ligação continuam neste dispositivo. Verifique os registos guardados e tente novamente mais tarde.',
+      'O serviço de sincronização está indisponível. Os rascunhos sem ligação continuam neste dispositivo. Verifique os registros guardados e tente novamente mais tarde.',
     ],
   'Some offline drafts synced; another draft or receipt needs review. Check saved records and the remaining draft before retrying.':
     [
       'Algunos borradores sin conexión se sincronizaron; otro borrador o recibo necesita revisión. Comprueba los registros guardados y el borrador pendiente antes de volver a intentarlo.',
-      'Alguns rascunhos sem ligação foram sincronizados; outro rascunho ou recibo precisa de revisão. Verifique os registos guardados e o rascunho pendente antes de tentar novamente.',
+      'Alguns rascunhos sem ligação foram sincronizados; outro rascunho ou recibo precisa de revisão. Verifique os registros guardados e o rascunho pendente antes de tentar novamente.',
     ],
   'An offline draft or receipt could not be prepared. Review the draft and receipt on this device before retrying.':
     [
       'No se pudo preparar un borrador o recibo sin conexión. Revisa el borrador y el recibo en este dispositivo antes de volver a intentarlo.',
-      'Não foi possível preparar um rascunho ou recibo sem ligação. Reveja o rascunho e o recibo neste dispositivo antes de tentar novamente.',
+      'Não foi possível preparar um rascunho ou recibo sem ligação. Revise o rascunho e o recibo neste dispositivo antes de tentar novamente.',
     ],
   'Some offline drafts synced; others could not. Review saved records and remaining drafts before retrying.':
     [
       'Algunos borradores sin conexión se sincronizaron; otros no. Revisa los registros guardados y los borradores pendientes antes de volver a intentarlo.',
-      'Alguns rascunhos sem ligação foram sincronizados; outros não. Reveja os registos guardados e os rascunhos pendentes antes de tentar novamente.',
+      'Alguns rascunhos sem ligação foram sincronizados; outros não. Revise os registros guardados e os rascunhos pendentes antes de tentar novamente.',
     ],
   'Offline drafts could not sync. Review saved records and remaining drafts before retrying.': [
     'No se pudieron sincronizar los borradores sin conexión. Revisa los registros guardados y los borradores pendientes antes de volver a intentarlo.',
-    'Não foi possível sincronizar os rascunhos sem ligação. Reveja os registos guardados e os rascunhos pendentes antes de tentar novamente.',
+    'Não foi possível sincronizar os rascunhos sem ligação. Revise os registros guardados e os rascunhos pendentes antes de tentar novamente.',
   ],
   'Server records changed while offline. Review conflicts, saved records, and remaining drafts before retrying.':
     [
       'Los registros del servidor cambiaron mientras estabas sin conexión. Revisa los conflictos, los registros guardados y los borradores pendientes antes de volver a intentarlo.',
-      'Os registos do servidor mudaram enquanto estava sem ligação. Reveja os conflitos, os registos guardados e os rascunhos pendentes antes de tentar novamente.',
+      'Os registros do servidor mudaram enquanto estava sem ligação. Revise os conflitos, os registros guardados e os rascunhos pendentes antes de tentar novamente.',
     ],
   'Some offline drafts were rejected and remain on this device. Review each draft and current record before retrying.':
     [
       'Algunos borradores sin conexión fueron rechazados y siguen en este dispositivo. Revisa cada borrador y el registro actual antes de volver a intentarlo.',
-      'Alguns rascunhos sem ligação foram rejeitados e continuam neste dispositivo. Reveja cada rascunho e o registo atual antes de tentar novamente.',
+      'Alguns rascunhos sem ligação foram rejeitados e continuam neste dispositivo. Revise cada rascunho e o registro atual antes de tentar novamente.',
     ],
   'Offline drafts synced.': [
     'Los borradores sin conexión se sincronizaron.',
@@ -369,15 +369,15 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'Offline sync could not finish. Review saved drafts before retrying.': [
     'No se pudo completar la sincronización sin conexión. Revisa los borradores guardados antes de volver a intentarlo.',
-    'Não foi possível concluir a sincronização sem ligação. Reveja os rascunhos guardados antes de tentar novamente.',
+    'Não foi possível concluir a sincronização sem ligação. Revise os rascunhos guardados antes de tentar novamente.',
   ],
   'problem.warning.expenseTimeLinkReview': [
     'Este gasto quedará vinculado al registro de horas seleccionado en su historial de revisión. Comprueba que el registro y la fecha del gasto corresponden al mismo trabajo antes de guardar.',
-    'Esta despesa ficará vinculada ao registo de horas selecionado no histórico de análise. Confirme que o registo e a data da despesa se referem ao mesmo trabalho antes de salvar.',
+    'Esta despesa ficará vinculada ao registro de horas selecionado no histórico de análise. Confirme que o registro e a data da despesa se referem ao mesmo trabalho antes de salvar.',
   ],
   'problem.remedy.reviewSelectedTimeEntry': [
     'Revisa el registro de horas seleccionado y la fecha del gasto.',
-    'Reveja o registo de horas selecionado e a data da despesa.',
+    'Revise o registro de horas selecionado e a data da despesa.',
   ],
   // Expense updates cannot add or replace a receipt; never promise upload after draft creation.
   'problem.warning.expenseDraftReceiptMissing': [
@@ -390,27 +390,27 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.crew.dayProjectUnavailableOwner': [
     'Este proyecto ya no está disponible para el trabajo del equipo. Elige un proyecto disponible o revisa su estado actual.',
-    'Este projeto já não está disponível para o trabalho da equipa. Escolha um projeto disponível ou reveja o seu estado atual.',
+    'Este projeto já não está disponível para o trabalho da equipe. Escolha um projeto disponível ou revise o seu estado atual.',
   ],
   'problem.crew.dayProjectUnavailableChief': [
     'Tu acceso al equipo de este proyecto ha cambiado, o el proyecto ya no está disponible para ese trabajo. Elige un proyecto disponible o contacta con el propietario.',
-    'O seu acesso à equipa deste projeto mudou, ou o projeto já não está disponível para esse trabalho. Escolha um projeto disponível ou contacte o responsável pelo projeto.',
+    'O seu acesso à equipe deste projeto mudou, ou o projeto já não está disponível para esse trabalho. Escolha um projeto disponível ou entre em contato com o responsável pelo projeto.',
   ],
   'problem.crew.dayProjectRequiredOwner': [
     'No hay ningún proyecto disponible para el trabajo del equipo. Revisa el estado y las asignaciones del proyecto antes de designar un jefe de equipo.',
-    'Não há projetos disponíveis para o trabalho da equipa. Reveja o estado e as atribuições do projeto antes de designar um chefe de equipa.',
+    'Não há projetos disponíveis para o trabalho da equipe. Revise o estado e as atribuições do projeto antes de designar um chefe de equipe.',
   ],
   'problem.crew.dayProjectRequiredChief': [
     'No hay ninguna delegación activa del equipo disponible. Contacta con el propietario del proyecto para revisar tu acceso.',
-    'Não existe nenhuma delegação ativa da equipa disponível. Contacte o responsável pelo projeto para rever o seu acesso.',
+    'Não existe nenhuma delegação ativa da equipe disponível. Entre em contato com o responsável pelo projeto para rever o seu acesso.',
   ],
   'problem.crew.dayProjectSelectionRequired': [
     'Elige un proyecto disponible para ver el trabajo del equipo.',
-    'Escolha um projeto disponível para ver o trabalho da equipa.',
+    'Escolha um projeto disponível para ver o trabalho da equipe.',
   ],
   'problem.crew.dayDateInvalid': [
     'Introduce una fecha de trabajo real en formato AAAA-MM-DD para ver las horas del equipo.',
-    'Introduza uma data de trabalho válida no formato AAAA-MM-DD para ver as horas da equipa.',
+    'Informe uma data de trabalho válida no formato AAAA-MM-DD para ver as horas da equipe.',
   ],
   'problem.crew.dayOutsideAssignment': [
     'No tienes asignación en este proyecto para la fecha de trabajo seleccionada. Elige una fecha dentro de tu asignación o pide al propietario del proyecto que la revise.',
@@ -426,7 +426,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.crew.dayFilterNotApplied': [
     'No se han cargado registros ni repartos del equipo para estos filtros. Corrige los campos y vuelve a intentarlo.',
-    'Não foram carregados registos nem repartições da equipa para estes filtros. Corrija os campos e tente novamente.',
+    'Não foram carregados registros nem repartições da equipe para estes filtros. Corrija os campos e tente novamente.',
   ],
   'problem.crew.dayProjectUnavailableOption': [
     'Proyecto seleccionado anteriormente (no disponible)',
@@ -1133,27 +1133,27 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.billing.issuerCodeExists': [
     'Ya hay una entidad emisora que usa este código. Revisa las entidades emisoras existentes e introduce otro código.',
-    'Já existe uma entidade emissora com este código. Reveja as entidades emissoras existentes e introduza outro código.',
+    'Já existe uma entidade emissora com este código. Revise as entidades emissoras existentes e informe outro código.',
   ],
   'problem.billing.issuerApprovedInvoiceBlocksArchive': [
     'Esta entidad emisora tiene una factura aprobada. Revísala y emítela o recalcúlala antes de decidir si archivar la entidad emisora.',
-    'Esta entidade emissora tem uma fatura aprovada. Reveja-a e emita-a ou recalcule-a antes de decidir se arquiva a entidade emissora.',
+    'Esta entidade emissora tem uma fatura aprovada. Revise-a e emita-a ou recalcule-a antes de decidir se arquiva a entidade emissora.',
   ],
   'problem.billing.issuerIdentifierTooLong': [
     'El identificador fiscal o de registro debe tener 1.000 caracteres o menos. Acórtalo antes de guardar la entidad emisora.',
-    'O identificador fiscal ou de registo deve ter no máximo 1.000 caracteres. Encurte-o antes de guardar a entidade emissora.',
+    'O identificador fiscal ou de registro deve ter no máximo 1.000 caracteres. Encurte-o antes de guardar a entidade emissora.',
   ],
   'problem.billing.issuerUnavailable': [
     'Esta entidad emisora ya no está activa. Revisa las entidades emisoras actuales antes de modificarla.',
-    'Esta entidade emissora já não está ativa. Reveja as entidades emissoras atuais antes de a alterar.',
+    'Esta entidade emissora já não está ativa. Revise as entidades emissoras atuais antes de a alterar.',
   ],
   'problem.billing.issuerNameInvalid': [
     'Introduce un nombre de entidad emisora de entre 1 y 300 caracteres.',
-    'Introduza um nome de entidade emissora com 1 a 300 caracteres.',
+    'Informe um nome de entidade emissora com 1 a 300 caracteres.',
   ],
   'problem.billing.issuerAddressInvalid': [
     'Introduce una dirección de entidad emisora de entre 1 y 2.000 caracteres.',
-    'Introduza uma morada de entidade emissora com 1 a 2.000 caracteres.',
+    'Informe uma morada de entidade emissora com 1 a 2.000 caracteres.',
   ],
   'problem.billing.numberPolicyFieldsInvalid': [
     'Revisa el prefijo y los dígitos de la factura, la fecha de vigencia y la fecha de aprobación contable.',
@@ -1165,11 +1165,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.billing.taxProfileIssuerCurrencyMismatch': [
     'La entidad emisora seleccionada usa otra moneda. Revisa la entidad emisora y elige su moneda u otra entidad adecuada antes de guardar el perfil fiscal.',
-    'A entidade emissora selecionada usa outra moeda. Reveja a entidade emissora e escolha a sua moeda ou outra entidade adequada antes de guardar o perfil tributário.',
+    'A entidade emissora selecionada usa outra moeda. Revise a entidade emissora e escolha a sua moeda ou outra entidade adequada antes de guardar o perfil tributário.',
   ],
   'problem.billing.packDeploymentIdentityMissing': [
     'No se puede crear el paquete contable porque falta la configuración de identidad de este entorno. Contacta con soporte para restaurarla antes de crear el paquete.',
-    'Não é possível criar o pacote contábil porque falta a configuração de identidade deste ambiente. Contacte o suporte para a restaurar antes de criar o pacote.',
+    'Não é possível criar o pacote contábil porque falta a configuração de identidade deste ambiente. Entre em contato com o suporte para a restaurar antes de criar o pacote.',
   ],
   'problem.billing.packIssuerEffectiveDateGap': [
     'Un emisor no tiene una revisión legal vigente al final del periodo de este paquete contable. Contacta con soporte para revisar el historial fechado del emisor. Se conserva el periodo elegido; cambiar los datos actuales del emisor no repara la cobertura histórica.',
@@ -1428,7 +1428,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.accountingPack.retryServiceUnavailable': [
     'No se envió el reintento porque el acceso al paquete contable no está disponible temporalmente. Revisa los paquetes a los que puedes acceder antes de volver a intentarlo. Referencia: {correlationId}.',
-    'A nova tentativa não foi enviada porque o acesso ao pacote contábil está temporariamente indisponível. Reveja os pacotes a que tem acesso antes de tentar novamente. Referência: {correlationId}.',
+    'A nova tentativa não foi enviada porque o acesso ao pacote contábil está temporariamente indisponível. Revise os pacotes a que tem acesso antes de tentar novamente. Referência: {correlationId}.',
   ],
   'problem.workerStatement.signInRequired': [
     'Inicia sesión para ver tu informe de remuneración.',
@@ -1452,11 +1452,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.pay.startInvalid': [
     'Introduce una única fecha de inicio real en formato AAAA-MM-DD.',
-    'Introduza uma única data de início válida no formato AAAA-MM-DD.',
+    'Informe uma única data de início válida no formato AAAA-MM-DD.',
   ],
   'problem.pay.endInvalid': [
     'Introduce una única fecha de fin real en formato AAAA-MM-DD.',
-    'Introduza uma única data final válida no formato AAAA-MM-DD.',
+    'Informe uma única data final válida no formato AAAA-MM-DD.',
   ],
   'problem.pay.endBeforeStart': [
     'La fecha de fin debe ser igual o posterior a la de inicio. Cambia una de las fechas y vuelve a aplicar el período.',
@@ -2314,11 +2314,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.access.workerNameInvalid': [
     'Introduce un nombre de 160 caracteres como máximo.',
-    'Introduza um nome com, no máximo, 160 caracteres.',
+    'Informe um nome com, no máximo, 160 caracteres.',
   ],
   'problem.access.workerEmailInvalid': [
     'Introduce una dirección de correo válida de 254 caracteres como máximo.',
-    'Introduza um endereço de correio eletrónico válido com, no máximo, 254 caracteres.',
+    'Informe um endereço de correio eletrónico válido com, no máximo, 254 caracteres.',
   ],
   'problem.access.workerRoleInvalid': [
     'Elige un rol disponible en la lista de roles de esta persona.',
@@ -2326,7 +2326,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.access.workerProfileChanged': [
     'El perfil de esta persona cambió mientras guardabas. Revisa el perfil actual antes de volver a intentarlo.',
-    'O perfil desta pessoa mudou enquanto guardava. Reveja o perfil atual antes de tentar novamente.',
+    'O perfil desta pessoa mudou enquanto guardava. Revise o perfil atual antes de tentar novamente.',
   ],
   'problem.access.invitationEmailChoiceInvalid': [
     'Elige si quieres enviar el correo de invitación.',
@@ -2775,11 +2775,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.assignment.startDateInvalid': [
     'Introduce una fecha de inicio válida para la asignación con formato AAAA-MM-DD.',
-    'Introduza uma data de início válida para a atribuição no formato AAAA-MM-DD.',
+    'Informe uma data de início válida para a atribuição no formato AAAA-MM-DD.',
   ],
   'problem.assignment.endDateInvalid': [
     'Introduce una fecha de fin válida para la asignación con formato AAAA-MM-DD.',
-    'Introduza uma data de fim válida para a atribuição no formato AAAA-MM-DD.',
+    'Informe uma data de fim válida para a atribuição no formato AAAA-MM-DD.',
   ],
   'problem.assignment.dateRangeInvalid': [
     'La fecha de fin de la asignación debe ser igual o posterior a la de inicio. Revisa las fechas.',
@@ -3124,7 +3124,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.legalEntityRevisionDateBeforeTail': [
     'La nueva revisión de la entidad jurídica debe comenzar después del inicio de la revisión actual y fuera de cualquier fecha de fin registrada. Revisa las fechas actuales antes de guardar.',
-    'A nova revisão da entidade jurídica deve começar após o início da revisão atual e fora de qualquer data de término registada. Revise as datas atuais antes de guardar.',
+    'A nova revisão da entidade jurídica deve começar após o início da revisão atual e fora de qualquer data de término registrada. Revise as datas atuais antes de guardar.',
   ],
   'problem.finance.projectIssuerRevisionScopeMismatch': [
     'La revisión de la entidad jurídica emisora seleccionada está fuera de este espacio de trabajo. Elige una revisión disponible para este proyecto.',
@@ -3140,7 +3140,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.projectIssuerEndsOutsideRevision': [
     'La autoridad emisora del proyecto debe terminar dentro del período de la revisión de la entidad jurídica seleccionada. Introduce una fecha de fin no posterior al fin de la revisión.',
-    'A autoridade emissora do projeto deve terminar dentro do período da revisão da entidade jurídica selecionada. Introduza uma data de término não posterior ao fim da revisão.',
+    'A autoridade emissora do projeto deve terminar dentro do período da revisão da entidade jurídica selecionada. Informe uma data de término não posterior ao fim da revisão.',
   ],
   'problem.finance.ruleReferenceUnavailable': [
     'La regla de finanzas seleccionada ya no está disponible. Revisa las reglas actuales antes de cambiarla.',
@@ -3148,11 +3148,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.assignmentCommercialLockedByTime': [
     'Ya se han registrado horas para esta persona en esta asignación. Cambiar sus opciones comerciales podría modificar cómo se paga, factura o contabiliza el coste del trabajo anterior. Configura reglas con fecha de vigencia para el pago al trabajador, la facturación al cliente o el coste interno del trabajo futuro.',
-    'Já foram registadas horas para esta pessoa nesta atribuição. Alterar as opções comerciais pode mudar a forma como o trabalho anterior é pago, faturado ou contabilizado como custo. Configure regras com data de vigência para o pagamento ao trabalhador, a faturação ao cliente ou o custo interno do trabalho futuro.',
+    'Já foram registradas horas para esta pessoa nesta atribuição. Alterar as opções comerciais pode mudar a forma como o trabalho anterior é pago, faturado ou contabilizado como custo. Configure regras com data de vigência para o pagamento ao trabalhador, a faturação ao cliente ou o custo interno do trabalho futuro.',
   ],
   'problem.finance.assignmentCommercialRecordedTime': [
     'Ya hay horas registradas; las opciones comerciales de la asignación están bloqueadas.',
-    'Já existem horas registadas; as opções comerciais da atribuição estão bloqueadas.',
+    'Já existem horas registradas; as opções comerciais da atribuição estão bloqueadas.',
   ],
   'problem.finance.assignmentCommercialRuleUnavailable': [
     'Una de las reglas comerciales seleccionadas ya no cubre todo el período y ámbito de esta asignación. Revisa las reglas de facturación al cliente, pago al trabajador y coste interno, y elige una regla disponible.',
@@ -3160,7 +3160,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.assignmentCommercialVersionChanged': [
     'Las opciones comerciales de esta persona cambiaron mientras el formulario estaba abierto. Tus cambios no se guardaron. Revisa las opciones guardadas actualmente antes de decidir si quieres enviar las tuyas.',
-    'As opções comerciais desta pessoa mudaram enquanto o formulário estava aberto. As suas alterações não foram guardadas. Reveja as opções atualmente guardadas antes de decidir se pretende enviar as suas.',
+    'As opções comerciais desta pessoa mudaram enquanto o formulário estava aberto. As suas alterações não foram guardadas. Revise as opções atualmente guardadas antes de decidir se pretende enviar as suas.',
   ],
   'problem.finance.assignmentCommercialCurrentChoices': [
     'Opciones comerciales guardadas actualmente',
@@ -3184,7 +3184,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.assignmentCommercialMissingAtDate': [
     'Esta asignación no aparece para la fecha de trabajo seleccionada. Revisa sus fechas actuales en el equipo del proyecto y elige una fecha dentro de la asignación para ver sus opciones comerciales.',
-    'Esta atribuição não aparece para a data de trabalho selecionada. Reveja as datas atuais na equipa do projeto e escolha uma data dentro da atribuição para ver as suas opções comerciais.',
+    'Esta atribuição não aparece para a data de trabalho selecionada. Revise as datas atuais na equipe do projeto e escolha uma data dentro da atribuição para ver as suas opções comerciais.',
   ],
   'problem.remedy.reviewAssignmentDates': [
     'Revisar fechas de la asignación',
@@ -3192,7 +3192,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.expensePlanningRecordUnavailable': [
     'Este gasto ya no está disponible. No se guardó ninguna fecha de planificación. Revisa la lista actual de gastos de Finanzas y elige un gasto disponible.',
-    'Esta despesa já não está disponível. Nenhuma data de planeamento foi guardada. Reveja a lista atual de despesas de Finanças e escolha uma despesa disponível.',
+    'Esta despesa já não está disponível. Nenhuma data de planejamento foi guardada. Revise a lista atual de despesas de Finanças e escolha uma despesa disponível.',
   ],
   'problem.finance.expensePlanningAttemptedDates': [
     'Fechas que introdujiste',
@@ -3342,7 +3342,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.finance.paymentSettlementUnavailable': [
     'Esta liquidación de remuneración del trabajador ya no está disponible. Revisa las liquidaciones actuales antes de registrar un pago.',
-    'Esta liquidação da remuneração do trabalhador já não está disponível. Revise as liquidações atuais antes de registar um pagamento.',
+    'Esta liquidação da remuneração do trabalhador já não está disponível. Revise as liquidações atuais antes de registrar um pagamento.',
   ],
   'problem.finance.paymentPersonPayeeMismatch': [
     'La persona beneficiaria debe ser el trabajador indicado en esta liquidación. Revisa la liquidación y elige a ese trabajador.',
@@ -3895,11 +3895,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.supplier.reportProjectUnavailable': [
     '{projectName} está {status} y no está disponible para informes operativos. Elige un proyecto disponible o revisa su estado.',
-    '{projectName} está {status} e não está disponível para relatórios operacionais. Escolha um projeto disponível ou reveja o seu status.',
+    '{projectName} está {status} e não está disponível para relatórios operacionais. Escolha um projeto disponível ou revise o seu status.',
   ],
   'problem.supplier.reportProjectScopeChanged': [
     'Este proyecto ya no está disponible con tu acceso operativo actual. Elige un proyecto al que tengas acceso o consulta al responsable del proyecto.',
-    'Este projeto já não está disponível com o seu acesso operacional atual. Escolha um projeto a que tenha acesso ou contacte o responsável do projeto.',
+    'Este projeto já não está disponível com o seu acesso operacional atual. Escolha um projeto a que tenha acesso ou entre em contato com o responsável do projeto.',
   ],
   'problem.supplier.reportSupplierUnavailable': [
     'El proveedor seleccionado ya no está disponible para este informe. Elige otro proveedor.',
@@ -3907,7 +3907,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.supplier.reportNoProjects': [
     'No hay proyectos operativos disponibles con tu acceso actual. Revisa el acceso a proyectos o consulta a un propietario.',
-    'Não há projetos operacionais disponíveis com o seu acesso atual. Reveja o acesso aos projetos ou contacte um proprietário.',
+    'Não há projetos operacionais disponíveis com o seu acesso atual. Revise o acesso aos projetos ou entre em contato com um proprietário.',
   ],
   'problem.supplier.reportSignInRequired': [
     'Tu sesión terminó. Inicia sesión de nuevo y vuelve a este informe operativo.',
@@ -3915,7 +3915,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.supplier.reportRoleRequired': [
     'Tu función actual no permite descargar informes operativos de proveedores. Vuelve a tu área de trabajo o consulta a un propietario.',
-    'A sua função atual não permite baixar relatórios operacionais de fornecedores. Volte ao seu espaço de trabalho ou contacte um proprietário.',
+    'A sua função atual não permite baixar relatórios operacionais de fornecedores. Volte ao seu espaço de trabalho ou entre em contato com um proprietário.',
   ],
   'problem.supplier.reportServiceUnavailable': [
     'No se pudo preparar el informe operativo. No se modificó ningún dato. Vuelve a intentarlo más tarde. Referencia: {correlationId}.',
@@ -3927,7 +3927,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.supplier.reportCsvInvalidResponse': [
     'No se pudo verificar el CSV del informe. No se modificó ningún dato. Revisa los filtros del informe antes de volver a descargarlo.',
-    'Não foi possível verificar o CSV do relatório. Nenhum dado foi alterado. Reveja os filtros do relatório antes de baixar novamente.',
+    'Não foi possível verificar o CSV do relatório. Nenhum dado foi alterado. Revise os filtros do relatório antes de baixar novamente.',
   ],
   'problem.supplier.reportUnavailableProjectOption': [
     'Proyecto seleccionado anteriormente (no disponible)',
@@ -4376,7 +4376,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.access.workforceSupplierInactive': [
     'El proveedor seleccionado ya no está activo. No se guardó este perfil laboral. Revisa el estado del proveedor o elige uno activo.',
-    'O fornecedor selecionado já não está ativo. Este perfil de trabalho não foi guardado. Reveja o estado do fornecedor ou escolha um fornecedor ativo.',
+    'O fornecedor selecionado já não está ativo. Este perfil de trabalho não foi guardado. Revise o estado do fornecedor ou escolha um fornecedor ativo.',
   ],
   'problem.access.workforceSupplierUnavailableOption': [
     'El proveedor seleccionado anteriormente está inactivo o no disponible',
@@ -4388,11 +4388,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.access.accountInactive': [
     'Tu cuenta del portal ya no está activa. Contacta a un propietario para revisar el acceso antes de cambiar el equipo.',
-    'A sua conta do portal já não está ativa. Contacte um proprietário para rever o acesso antes de alterar a equipa.',
+    'A sua conta do portal já não está ativa. Entre em contato com um proprietário para rever o acesso antes de alterar a equipe.',
   ],
   'problem.access.teamSessionExpired': [
     'Tu sesión caducó antes de este cambio del equipo. Vuelve a iniciar sesión y revisa el directorio actual antes de intentarlo de nuevo.',
-    'A sua sessão expirou antes desta alteração da equipa. Inicie sessão novamente e reveja o diretório atual antes de tentar novamente.',
+    'A sua sessão expirou antes desta alteração da equipe. Inicie sessão novamente e revise o diretório atual antes de tentar novamente.',
   ],
   'problem.access.workforceSupplierCue': [
     'Se requiere un proveedor para los perfiles de Coordinador de proveedor y Técnico externo.',
@@ -4639,11 +4639,11 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.billing.savedSemiMonthlyRuleNotApplied': [
     'La división guardada de este flujo no se aplica. La facturación quincenal actualmente cubre las dos mitades de cada mes. Revisa el flujo y el período de la factura antes de crear un borrador.',
-    'A divisão guardada deste fluxo não é aplicada. A faturação quinzenal abrange atualmente as duas metades de cada mês. Reveja o fluxo e o período da fatura antes de criar um rascunho.',
+    'A divisão guardada deste fluxo não é aplicada. A faturação quinzenal abrange atualmente as duas metades de cada mês. Revise o fluxo e o período da fatura antes de criar um rascunho.',
   ],
   'problem.billing.savedSemiMonthlyRuleContactFinance': [
     'La división guardada de este flujo no se aplica. La facturación quincenal actualmente cubre las dos mitades de cada mes. Pide a Finanzas que revise el flujo y el período de la factura antes de crear un borrador.',
-    'A divisão guardada deste fluxo não é aplicada. A faturação quinzenal abrange atualmente as duas metades de cada mês. Peça à equipa financeira que reveja o fluxo e o período da fatura antes da criação de um rascunho.',
+    'A divisão guardada deste fluxo não é aplicada. A faturação quinzenal abrange atualmente as duas metades de cada mês. Peça à equipe financeira que revise o fluxo e o período da fatura antes da criação de um rascunho.',
   ],
   'problem.billing.taxProfileUnavailable': [
     'Este perfil fiscal ya no está activo. Revisa la configuración de facturación actual antes de volver a intentarlo.',
@@ -5041,7 +5041,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.time.correctionRetryChanged': [
     'Este identificador de solicitud de corrección ya se usó con otros datos. Revisa la corrección guardada antes de volver a intentarlo.',
-    'Este identificador de pedido de correção já foi usado com dados diferentes. Reveja a correção salva antes de tentar novamente.',
+    'Este identificador de pedido de correção já foi usado com dados diferentes. Revise a correção salva antes de tentar novamente.',
   ],
   'problem.time.correctionValuesRetained': [
     'Datos que introdujiste antes de que cambiara el registro',
@@ -6358,11 +6358,11 @@ const exact: Record<string, readonly [string, string]> = {
   'Current status: {status}': ['Estado actual: {status}', 'Estado atual: {status}'],
   'Shared crew receipt · allocation locked': [
     'Recibo compartido de cuadrilla · reparto bloqueado',
-    'Recibo partilhado da equipa · distribuição bloqueada',
+    'Recibo partilhado da equipe · distribuição bloqueada',
   ],
   'This record has financial history. Use a financial correction.': [
     'Este registro tiene historial financiero. Utiliza una corrección financiera.',
-    'Este registo tem histórico financeiro. Utilize uma correção financeira.',
+    'Este registro tem histórico financeiro. Utilize uma correção financeira.',
   ],
   'Approved reimbursements awaiting payment': [
     'Reembolsos aprobados pendientes de pago',
@@ -6555,7 +6555,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   '4 · Optional planning and budget': [
     '4 · Planificación y presupuesto opcionales',
-    '4 · Planeamento e orçamento opcionais',
+    '4 · Planejamento e orçamento opcionais',
   ],
   'People (optional)': ['Personas (opcional)', 'Pessoas (opcional)'],
   'Worker assignment start date (optional)': [
@@ -6659,7 +6659,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   '3 · Optional planning and budget': [
     '3 · Planificación y presupuesto opcionales',
-    '3 · Planeamento e orçamento opcionais',
+    '3 · Planejamento e orçamento opcionais',
   ],
   'Person-specific customer rates, worker pay and expense policies are configured after the people are assigned.':
     [
@@ -7585,7 +7585,7 @@ const exact: Record<string, readonly [string, string]> = {
   'Registered documents are retained as evidence. Upload a corrected file as a new document; the original stays available in the audit history.':
     [
       'Los documentos registrados se conservan como prueba. Sube el archivo corregido como documento nuevo; el original seguirá disponible en el historial de auditoría.',
-      'Os documentos registados são conservados como prova. Carregue o ficheiro corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
+      'Os documentos registrados são conservados como prova. Envie o arquivo corrigido como novo documento; o original continuará disponível no histórico de auditoria.',
     ],
   Processing: ['Procesando', 'Processando'],
   Proficiency: ['Competencia', 'Proficiência'],
@@ -7724,7 +7724,7 @@ const extraExact: Record<string, readonly [string, string]> = {
   'Add this URI to your authenticator, then enter the current six-digit code to confirm the device. Recovery codes are shown once; store them securely.':
     [
       'Añade esta URI a tu autenticador e introduce el código actual de seis dígitos para confirmar el dispositivo. Los códigos de recuperación se muestran una sola vez; guárdalos de forma segura.',
-      'Adicione esta URI ao autenticador e informe o código atual de seis dígitos para confirmar o dispositivo. Os códigos de recuperação são exibidos uma única vez; guarde-os com segurança.',
+      'Adicione esta URI ao autenticador e informe o código atual de seis dígitos para confirmar o dispositivo. Os códigos de recuperação são exibidos uma única vez; salve-os com segurança.',
     ],
   'Add this week’s layout': [
     'Añadir la estructura de esta semana',

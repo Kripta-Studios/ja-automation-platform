@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatPortalBps } from '$lib/i18n/format';
   import { minorDigitsFor } from '$lib/portal/payment-money';
   import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
   import { journeyText } from '$lib/portal/project-invoice-journey';
@@ -525,6 +526,20 @@
   const pendingTotal = $derived(
     hub.pending.timeCount + hub.pending.expenseCount + hub.pending.reportCount,
   );
+  // The KPI counts what this viewer can approve (the Approve badge and Home
+  // use the same reviewable count); others' records are a sub-line. The
+  // auditor approves nothing, so it sees the full pending picture.
+  const waitingFigure = $derived.by(() => {
+    const source = isAuditor ? hub.pending : hub.reviewable;
+    const total = source.timeCount + source.expenseCount + source.reportCount;
+    return {
+      total,
+      timeMinutes: source.timeMinutes,
+      expenseCount: source.expenseCount,
+      reportCount: source.reportCount,
+      others: isAuditor ? 0 : Math.max(0, pendingTotal - total),
+    };
+  });
   function tabHref(tab: TabId, extra = ''): string {
     return `${projectHref}?tab=${tab}${extra}&lang=${locale}`;
   }
@@ -564,8 +579,12 @@
         tone: 'warn',
         text: h('attApprovals', {
           hours: hours(reviewable.timeMinutes),
-          expenses: reviewable.expenseCount,
-          reports: reviewable.reportCount,
+          expenses: h(reviewable.expenseCount === 1 ? 'expensesOne' : 'expensesOther', {
+            count: reviewable.expenseCount,
+          }),
+          reports: h(reviewable.reportCount === 1 ? 'reportsOne' : 'reportsOther', {
+            count: reviewable.reportCount,
+          }),
         }),
         action: h('attApprovalsAction'),
         href: approvalsHref,
@@ -577,7 +596,9 @@
         tone: 'info',
         text: h('attApprovalsOthers', {
           hours: hours(hub.pending.timeMinutes - reviewable.timeMinutes),
-          count: pendingTotal - reviewableTotal,
+          count: h(pendingTotal - reviewableTotal === 1 ? 'recordsOne' : 'recordsOther', {
+            count: pendingTotal - reviewableTotal,
+          }),
         }),
       });
     const fin = hub.finance;
@@ -896,19 +917,7 @@
   }
 
   function percentageFromBps(value: unknown): string {
-    const raw = String(value ?? '').trim();
-    if (!/^-?\d+$/.test(raw)) return '—';
-    let bps: bigint;
-    try {
-      bps = BigInt(raw);
-    } catch {
-      return '—';
-    }
-    const negative = bps < 0n;
-    const absolute = negative ? -bps : bps;
-    const whole = absolute / 100n;
-    const fraction = (absolute % 100n).toString().padStart(2, '0');
-    return `${negative ? '-' : ''}${whole.toString()}.${fraction}%`;
+    return formatPortalBps(value, locale);
   }
 
   function money(minor: unknown, currency = String(project.currency ?? 'USD')): string {
@@ -1453,18 +1462,24 @@
       <svelte:element
         this={isAuditor ? 'div' : 'a'}
         class="hub-figure"
-        class:hub-figure--attention={pendingTotal > 0}
+        class:hub-figure--attention={waitingFigure.total > 0}
         href={isAuditor ? undefined : approvalsHref}
       >
+        <!-- Same number as the Approve badge and Home: what this viewer can approve. -->
         <span>{h('figWaiting')}</span>
-        <strong>{pendingTotal}</strong>
+        <strong>{waitingFigure.total}</strong>
         <small
           >{h('figWaitingDetail', {
-            hours: hours(hub.pending.timeMinutes),
-            expenses: hub.pending.expenseCount,
-            reports: hub.pending.reportCount,
+            hours: hours(waitingFigure.timeMinutes),
+            expenses: h(waitingFigure.expenseCount === 1 ? 'expensesOne' : 'expensesOther', {
+              count: waitingFigure.expenseCount,
+            }),
+            reports: h(waitingFigure.reportCount === 1 ? 'reportsOne' : 'reportsOther', {
+              count: waitingFigure.reportCount,
+            }),
           })}</small
         >
+        {#if waitingFigure.others > 0}<small>{h('figWaitingOthers', { count: waitingFigure.others })}</small>{/if}
       </svelte:element>
     {/if}
   </section>

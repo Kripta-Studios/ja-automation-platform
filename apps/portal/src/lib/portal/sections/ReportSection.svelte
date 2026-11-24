@@ -50,7 +50,7 @@
   import LocalDictation from '../local-dictation/LocalDictation.svelte';
   import { applyAction, deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
-  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { reportQuickText, type ReportQuickCopyKey } from './report-quick-copy';
 
   let {

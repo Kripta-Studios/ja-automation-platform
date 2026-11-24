@@ -56,6 +56,51 @@ function approvalPendingCount(locals: App.Locals): number {
   }
 }
 
+/** Unread inbox count for the bell badge. Presentation only; failures never block the page. */
+function unreadNotificationCount(locals: App.Locals): number {
+  if (!locals.user || !locals.session) return 0;
+  try {
+    const context = openPortalRepository(locals);
+    try {
+      return context.repository.countUnreadNotifications(context.principal);
+    } finally {
+      context.sqlite.close();
+    }
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Whether this worker is an active crew chief today (an active, unexpired
+ * delegation on a live project). Crew hours appear in the navigation, Home
+ * and search only then; the /crew route keeps its own server check.
+ */
+function activeCrewChief(locals: App.Locals): boolean {
+  if (!locals.user || !locals.session || locals.user.workforceProfile) return false;
+  if (locals.user.role !== 'worker') return false;
+  try {
+    const context = openPortalRepository(locals);
+    try {
+      const today = new Date().toISOString().slice(0, 10);
+      return Boolean(
+        context.sqlite
+          .prepare(
+            `SELECT 1 FROM crew_leader_grant g JOIN project p ON p.id=g.project_id
+              WHERE g.chief_user_id=? AND g.status='active' AND g.starts_on<=?
+                AND (g.ends_on IS NULL OR g.ends_on>=?)
+                AND p.status IN ('active','paused','closing') LIMIT 1`,
+          )
+          .get(context.principal.userId, today, today),
+      );
+    } finally {
+      context.sqlite.close();
+    }
+  } catch {
+    return false;
+  }
+}
+
 // Identity only. Every child loader retains its own object authorization and safe DTO.
 export const load: LayoutServerLoad = ({ locals }) => ({
   offlineEnabled:
@@ -73,4 +118,6 @@ export const load: LayoutServerLoad = ({ locals }) => ({
       : null,
   approvalPendingCount: approvalPendingCount(locals),
   ownerContact: ownerContact(locals),
+  unreadNotificationCount: unreadNotificationCount(locals),
+  crewChief: activeCrewChief(locals),
 });

@@ -51,7 +51,7 @@ export const actions: Actions = {
           locale === 'es'
             ? 'Revisa y confirma los datos antes de crear borradores en el servidor.'
             : locale === 'pt'
-              ? 'Reveja e confirme os dados antes de criar rascunhos no servidor.'
+              ? 'Revise e confirme os dados antes de criar rascunhos no servidor.'
               : 'Review and confirm the facts before creating server drafts.',
       });
     const values = Object.fromEntries(
@@ -112,7 +112,7 @@ export const actions: Actions = {
             locale === 'es'
               ? 'La sesión o asignación ya no autoriza este registro. Revise el acceso al proyecto.'
               : locale === 'pt'
-                ? 'A sessão ou atribuição já não autoriza este registo. Reveja o acesso ao projeto.'
+                ? 'A sessão ou atribuição já não autoriza este registro. Revise o acesso ao projeto.'
                 : 'Your session or assignment no longer authorizes this entry. Check project access.',
           values,
         });

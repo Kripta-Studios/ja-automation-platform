@@ -1,4 +1,6 @@
 <script lang="ts">
+  import PortalNavIcon from '$lib/PortalNavIcon.svelte';
+  import { navIconPath } from '$lib/portal/nav-icons';
   import { rememberUrlView } from '$lib/portal/ui/url-view-preferences.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import NavigationAssistant from '$lib/portal/assistant/NavigationAssistant.svelte';
@@ -46,7 +48,9 @@
   );
   const locale = $derived((data.locale ?? 'en') as PortalLocale);
   const navigation = $derived(
-    portalNavigationForRole(base, data.chromeUser?.role, data.chromeUser?.workforceProfile),
+    portalNavigationForRole(base, data.chromeUser?.role, data.chromeUser?.workforceProfile, {
+      crewChief: data.crewChief === true,
+    }),
   );
   // Supplier and management routes already provide their own role-aware chrome
   // through nested layouts. Wrapping them here would duplicate the sidebar and
@@ -240,7 +244,10 @@
       {changeLocale}
       onMenuToggle={() => (menuOpen = !menuOpen)}
       onCloseMenu={() => (menuOpen = false)}
-      badges={{ approvals: Number(data.approvalPendingCount ?? 0) }}
+      badges={{
+        approvals: Number(data.approvalPendingCount ?? 0),
+        notifications: Number(data.unreadNotificationCount ?? 0),
+      }}
     />
     <div id="portal-main" class="standalone-workspace__content" use:restoreOriginBack>
       {#if !ownBackLink}
@@ -263,6 +270,8 @@
           aria-label={pending > 0
             ? `${translate(item.label)} · ${pending} ${translate('pending')}`
             : undefined}
+          ><span class="bottom-nav-icon" aria-hidden="true"
+            ><PortalNavIcon path={navIconPath(item.label)} /></span
           ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span
           >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true"
               >{pending > 99 ? '99+' : pending}</span
@@ -277,6 +286,9 @@
         onclick={() => (menuOpen = true)}
         class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
       >
+        <span class="bottom-nav-icon" aria-hidden="true"
+          ><PortalNavIcon path="M5 12h.01M12 12h.01M19 12h.01" /></span
+        >
         <span class="bottom-nav-label">{translate('More')}</span>
       </button>
     </nav>

@@ -85,6 +85,16 @@
       pt: 'Técnico externo',
     },
   };
+  const chiefName: Record<Locale, string> = {
+    en: 'Crew chief',
+    es: 'Jefe de equipo',
+    pt: 'Chefe de equipe',
+  };
+  const chiefPath: Record<Locale, string> = {
+    en: 'Record and send hours and expenses for the crew members delegated to you on a project, during the dates of the delegation. The owner or the project manager reviews them.',
+    es: 'Registra y envía las horas y gastos de los miembros del equipo que te delegaron en un proyecto, dentro de las fechas de la delegación. El propietario o el responsable del proyecto los revisa.',
+    pt: 'Registre e envie as horas e despesas dos membros da equipe delegados a você em um projeto, dentro das datas da delegação. O proprietário ou o gerente do projeto os revisa.',
+  };
   const readingPaths: Record<Persona, Record<Locale, string>> = {
     worker: {
       en: 'Start with your assigned work, then time, expenses, reports and My Pay.',
@@ -153,9 +163,6 @@
       privateNote:
         'Your My Pay view is private. An estimate or statement is not a payslip and does not prove that money was paid.',
       support: 'For an invitation, access or password problem, contact admin@j-aautomation.com.',
-      loginTitle: 'Use the invitation linked to your mailbox',
-      loginBody:
-        'If your invitation is linked to a company mailbox, open it from that mailbox and sign in with the account it names. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up.',
       taskTime:
         'Record actual work and travel under the correct project. Customer minimums do not change actual hours.',
       taskExpense:
@@ -200,9 +207,6 @@
         'Tu vista Mi pago es privada. Un estimado o estado no es una nómina ni demuestra que el dinero se haya pagado.',
       support:
         'Para problemas de invitación, acceso o contraseña, contacta con admin@j-aautomation.com.',
-      loginTitle: 'Usa la invitación vinculada a tu buzón',
-      loginBody:
-        'Si tu invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público.',
       taskTime:
         'Registra el trabajo y el viaje reales en el proyecto correcto. Los mínimos del cliente no cambian las horas reales.',
       taskExpense:
@@ -247,13 +251,10 @@
       privateNote:
         'Sua visão Meu pagamento é privada. Uma estimativa ou declaração não é um contracheque e não prova que o dinheiro foi pago.',
       support: 'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
-      loginTitle: 'Use o convite vinculado à sua caixa de e-mail',
-      loginBody:
-        'Se o convite estiver vinculado a uma caixa corporativa, abra-o nessa caixa e entre com a conta indicada. Se você foi convidado como colaborador externo, use o link de uso único para criar sua conta. Não existe cadastro público.',
       taskTime:
         'Registre o trabalho e a viagem reais no projeto correto. Os mínimos do cliente não mudam as horas reais.',
       taskExpense:
-        'Envie o comprovante completo, escolha o pagador real e guarde o original até confirmar o upload.',
+        'Envie o comprovante completo, escolha o pagador real e salve o original até confirmar o upload.',
       taskCorrection:
         'Leia o motivo de um item devolvido. O histórico aprovado exige o fluxo de correção e um motivo.',
       taskReport:
@@ -344,11 +345,6 @@
     </div>
   </header>
 
-  <section class="notice notice-login" aria-labelledby="login-title">
-    <h2 id="login-title">{text('loginTitle')}</h2>
-    <p>{text('loginBody')}</p>
-  </section>
-
   {#if data.ownerTutorial}
     <OwnerTutorial tutorial={data.ownerTutorial} locale={data.locale} />
   {/if}
@@ -371,19 +367,25 @@
           <p>{description(manual)}</p>
           {#if manual.audience !== 'quick-start'}
             <div class="role-guidance">
-              <div class="role-badges">
-                {#each manual.allowedPersonas as persona}
-                  <span>{roleNames[persona][data.locale]}</span>
+              {#if manual.id === 'bbs-chief-manual'}
+                <!-- The chief guide is about crew work, not the worker path (T81). -->
+                <div class="role-badges"><span>{chiefName[data.locale]}</span></div>
+                <p><strong>{chiefName[data.locale]}:</strong> {chiefPath[data.locale]}</p>
+              {:else}
+                <div class="role-badges">
+                  {#each manual.allowedPersonas as persona}
+                    <span>{roleNames[persona][data.locale]}</span>
+                  {/each}
+                </div>
+                <p>{text('sharedChapters')}</p>
+                <h3>{text('rolePaths')}</h3>
+                {#each visiblePaths(manual) as persona}
+                  <p>
+                    <strong>{roleNames[persona][data.locale]}:</strong>
+                    {readingPaths[persona][data.locale]}
+                  </p>
                 {/each}
-              </div>
-              <p>{text('sharedChapters')}</p>
-              <h3>{text('rolePaths')}</h3>
-              {#each visiblePaths(manual) as persona}
-                <p>
-                  <strong>{roleNames[persona][data.locale]}:</strong>
-                  {readingPaths[persona][data.locale]}
-                </p>
-              {/each}
+              {/if}
             </div>
           {/if}
           <div class="manual-actions">
@@ -564,9 +566,6 @@
   }
   .notice h2 {
     margin-bottom: 0.45rem;
-  }
-  .notice-login {
-    border-left: 4px solid #848279;
   }
   .manual-grid {
     display: grid;

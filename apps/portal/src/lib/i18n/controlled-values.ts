@@ -36,6 +36,8 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     external_technician: 'External technician',
   },
   status: {
+    incomplete: 'incomplete',
+    unpaid: 'unpaid',
     draft: 'Draft',
     submitted: 'Submitted',
     approved: 'Approved',

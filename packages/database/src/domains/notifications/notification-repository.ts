@@ -9,7 +9,7 @@ type NotificationRepositoryDependencies = Readonly<{
 }>;
 
 type SourceKind = 'time' | 'expense' | 'daily' | 'technical';
-type NotificationState = 'submitted' | 'needs_changes';
+type NotificationState = 'submitted' | 'needs_changes' | 'rejected';
 
 type MissingTimeAssignment = Readonly<{
   project_id: string;
@@ -285,6 +285,38 @@ function activeOperationalReviewers(
   return [...recipients].sort();
 }
 
+/** The crew chief who recorded a crew member's time or expense, if any. */
+function crewRecorder(sqlite: DatabaseSync, type: SourceKind, sourceId: string): string | null {
+  const table =
+    type === 'time'
+      ? 'crew_time_entry_recorder WHERE time_entry_id=?'
+      : type === 'expense'
+        ? 'crew_expense_recorder WHERE expense_id=?'
+        : null;
+  if (!table) return null;
+  const row = sqlite.prepare(`SELECT recorded_by_user_id id FROM ${table}`).get(sourceId) as
+    | { id: string }
+    | undefined;
+  return row?.id ?? null;
+}
+
+const APPROVAL_SOURCE_TABLE: Readonly<Record<SourceKind, string>> = {
+  time: 'time_entry',
+  expense: 'expense',
+  daily: 'daily_report',
+  technical: 'technical_report',
+};
+
+/**
+ * Time that answers a "send your hours" reminder: anything already sent to a
+ * reviewer. A draft alone keeps the reminder open (it is not sent yet), and a
+ * returned entry has its own "changes requested" notice.
+ */
+const SENT_TIME_STATES = "('submitted','approved','locked','needs_changes')";
+
+/** Rejections older than this are history, not news, when a scan first sees them. */
+const REJECTION_NOTICE_WINDOW_MS = 14 * 24 * 60 * 60 * 1000;
+
 function activeUser(sqlite: DatabaseSync, userId: string): boolean {
   return Boolean(sqlite.prepare("SELECT 1 FROM user WHERE id=? AND status='active'").get(userId));
 }
@@ -303,7 +335,7 @@ function notificationSourceId(kind: string, subjectId: string): string | null {
     return match?.[1] ?? null;
   }
   const sourcePattern =
-    /^(?:approval_(?:requested|returned)_|missing_receipt|worker_payment_status:)?(time|expense|daily|technical):([^:]+):v\d+$/u;
+    /^(?:approval_(?:requested|returned|rejected)_|missing_receipt|worker_payment_status:)?(time|expense|daily|technical):([^:]+):v\d+$/u;
   const source = sourcePattern.exec(subjectId);
   if (source) return source[2] ?? null;
   const approvalSource = /^(?:time|expense|daily|technical):([^:]+):v\d+$/u.exec(subjectId);
@@ -414,7 +446,7 @@ export class NotificationRepository {
         .prepare(
           `SELECT 1 FROM time_entry
             WHERE project_id=? AND worker_id=? AND work_date=?
-              AND approval_state IN ('submitted','approved','locked') LIMIT 1`,
+              AND approval_state IN ${SENT_TIME_STATES} LIMIT 1`,
         )
         .get(assignment.project_id, assignment.user_id, workDate);
       if (submitted) continue;
@@ -433,6 +465,7 @@ export class NotificationRepository {
   createMissingTimeReminders(workDate?: string, now = this.deps.now()): number {
     if (workDate !== undefined) assertDate(workDate);
     return this.deps.transaction(() => {
+      this.resolveStaleNotifications(now);
       if (workDate !== undefined) return this.missingTimeForDate(workDate, now);
       const instant = new Date(Date.parse(now) - 24 * 60 * 60 * 1000).toISOString();
       const projects = this.deps.sqlite
@@ -449,6 +482,7 @@ export class NotificationRepository {
   }
 
   private approvalNotifications(now: string): number {
+    const rejectedSince = new Date(Date.parse(now) - REJECTION_NOTICE_WINDOW_MS).toISOString();
     const rows = this.deps.sqlite
       .prepare(
         `SELECT record_type,source_id,project_id,owner_id,business_date,approval_state,version
@@ -457,48 +491,118 @@ export class NotificationRepository {
                     t.work_date business_date,t.approval_state,t.version
                FROM time_entry t JOIN project p ON p.id=t.project_id
               WHERE p.status IN ('active','paused','closing')
-                AND t.approval_state IN ('submitted','needs_changes')
+                AND (t.approval_state IN ('submitted','needs_changes')
+                     OR (t.approval_state='rejected' AND t.updated_at>=?))
              UNION ALL
              SELECT 'expense',e.id,e.project_id,e.worker_id,e.spent_on,e.approval_state,e.version
                FROM expense e JOIN project p ON p.id=e.project_id
               WHERE p.status IN ('active','paused','closing')
-                AND e.approval_state IN ('submitted','needs_changes')
+                AND (e.approval_state IN ('submitted','needs_changes')
+                     OR (e.approval_state='rejected' AND e.updated_at>=?))
              UNION ALL
              SELECT 'daily',d.id,d.project_id,d.worker_id,d.work_date,d.approval_state,d.version
                FROM daily_report d JOIN project p ON p.id=d.project_id
               WHERE p.status IN ('active','paused','closing')
-                AND d.approval_state IN ('submitted','needs_changes')
+                AND (d.approval_state IN ('submitted','needs_changes')
+                     OR (d.approval_state='rejected' AND d.updated_at>=?))
              UNION ALL
              SELECT 'technical',t.id,t.project_id,t.author_id,
                     COALESCE(t.report_date,substr(t.created_at,1,10)),t.approval_state,t.version
                FROM technical_report t JOIN project p ON p.id=t.project_id
               WHERE p.status IN ('active','paused','closing')
-                AND t.approval_state IN ('submitted','needs_changes')
+                AND (t.approval_state IN ('submitted','needs_changes')
+                     OR (t.approval_state='rejected' AND t.updated_at>=?))
            ) pending
           ORDER BY business_date,record_type,source_id`,
       )
-      .all() as ApprovalSource[];
+      .all(rejectedSince, rejectedSince, rejectedSince, rejectedSince) as ApprovalSource[];
     let created = 0;
     for (const row of rows) {
-      const requested = row.approval_state === 'submitted';
-      const kind = requested
-        ? `approval_requested_${row.record_type}`
-        : `approval_returned_${row.record_type}`;
+      const kind =
+        row.approval_state === 'submitted'
+          ? `approval_requested_${row.record_type}`
+          : row.approval_state === 'rejected'
+            ? `approval_rejected_${row.record_type}`
+            : `approval_returned_${row.record_type}`;
       const subjectId = encodedSource(row.record_type, row.source_id, row.version);
-      const recipients = requested
-        ? activeOperationalReviewers(
-            this.deps.sqlite,
-            row.project_id,
-            row.business_date,
-            row.record_type,
-          )
-        : activeUser(this.deps.sqlite, row.owner_id)
-          ? [row.owner_id]
-          : [];
+      let recipients: string[];
+      if (row.approval_state === 'submitted') {
+        // D6 reviewers for this record type (G1); a reviewer never receives a
+        // request to approve his own record (G5).
+        recipients = activeOperationalReviewers(
+          this.deps.sqlite,
+          row.project_id,
+          row.business_date,
+          row.record_type,
+        ).filter((id) => id !== row.owner_id);
+      } else {
+        // The person whose record it is, plus the crew chief who recorded it.
+        recipients = [row.owner_id, crewRecorder(this.deps.sqlite, row.record_type, row.source_id)]
+          .filter((id): id is string => typeof id === 'string')
+          .filter((id, index, list) => list.indexOf(id) === index)
+          .filter((id) => activeUser(this.deps.sqlite, id));
+      }
       for (const recipient of recipients)
         if (this.enqueue(recipient, kind, subjectId, now)) created += 1;
     }
     return created;
+  }
+
+  /**
+   * Marks reminders and requests read once they no longer ask for anything:
+   * a "no hours logged" reminder after time exists for that person, project and
+   * day, and an approval request or return after the record moved on (another
+   * state or version) or was removed. Only `read_at` changes; rows stay.
+   */
+  resolveStaleNotifications(now = this.deps.now(), userId?: string): number {
+    const rows = this.deps.sqlite
+      .prepare(
+        `SELECT id,kind,subject_id FROM notification
+          WHERE read_at IS NULL${userId === undefined ? '' : ' AND user_id=?'}
+            AND (kind='missing_time' OR kind LIKE 'approval_requested_%' OR kind LIKE 'approval_returned_%')`,
+      )
+      .all(...(userId === undefined ? [] : [userId])) as Array<{
+      id: string;
+      kind: string;
+      subject_id: string;
+    }>;
+    const stale: string[] = [];
+    for (const row of rows) {
+      if (row.kind === 'missing_time') {
+        const match = /^missing-time:([^:]+):([^:]+):(\d{4}-\d{2}-\d{2})$/u.exec(row.subject_id);
+        if (!match) continue;
+        const logged = this.deps.sqlite
+          .prepare(
+            `SELECT 1 FROM time_entry WHERE project_id=? AND worker_id=? AND work_date=?
+                AND approval_state IN ${SENT_TIME_STATES} LIMIT 1`,
+          )
+          .get(match[1]!, match[2]!, match[3]!);
+        if (logged) stale.push(row.id);
+        continue;
+      }
+      const kindMatch = /^approval_(requested|returned)_(time|expense|daily|technical)$/u.exec(
+        row.kind,
+      );
+      const subject = /^(time|expense|daily|technical):([^:]+):v(\d+)$/u.exec(row.subject_id);
+      if (!kindMatch || !subject || subject[1] !== kindMatch[2]) continue;
+      const table = APPROVAL_SOURCE_TABLE[subject[1] as SourceKind];
+      const current = this.deps.sqlite
+        .prepare(`SELECT approval_state,version FROM ${table} WHERE id=?`)
+        .get(subject[2]!) as { approval_state: string; version: number } | undefined;
+      const expectedState = kindMatch[1] === 'requested' ? 'submitted' : 'needs_changes';
+      if (
+        !current ||
+        current.approval_state !== expectedState ||
+        Number(current.version) !== Number(subject[3])
+      )
+        stale.push(row.id);
+    }
+    const mark = this.deps.sqlite.prepare(
+      'UPDATE notification SET read_at=? WHERE id=? AND read_at IS NULL',
+    );
+    let changed = 0;
+    for (const id of stale) changed += Number(mark.run(now, id).changes);
+    return changed;
   }
 
   private periodNotifications(now: string): number {
@@ -725,8 +829,10 @@ export class NotificationRepository {
 
   /** Scan source state and materialize all supported business notices. */
   dispatchBusinessNotifications(now = this.deps.now()): number {
-    return this.deps.transaction(
-      () =>
+    return this.deps.transaction(() => {
+      // Resolution only marks rows read; the return value counts new notices.
+      this.resolveStaleNotifications(now);
+      return (
         this.approvalNotifications(now) +
         this.periodNotifications(now) +
         this.signatureNotifications(now) +
@@ -734,8 +840,9 @@ export class NotificationRepository {
         this.receiptNotifications(now) +
         this.budgetNotifications(now) +
         this.settlementNotifications(now) +
-        this.digitalWorkNotifications(now),
-    );
+        this.digitalWorkNotifications(now)
+      );
+    });
   }
 
   notificationView(kind: string, subjectId: string): NotificationView {
@@ -749,15 +856,14 @@ export class NotificationRepository {
         title: 'Submit time for this project/date',
       };
     }
-    if (kind.startsWith('approval_requested_time') || kind.startsWith('approval_returned_time'))
+    if (/^approval_(?:requested|returned|rejected)_time$/u.test(kind))
       return {
         sourceId,
         target: targetId ? `/app/time/${targetId}` : null,
         title: 'Time approval',
       };
     if (
-      kind.startsWith('approval_requested_expense') ||
-      kind.startsWith('approval_returned_expense') ||
+      /^approval_(?:requested|returned|rejected)_expense$/u.test(kind) ||
       kind === 'missing_receipt' ||
       kind === 'worker_payment_status'
     )
@@ -767,10 +873,7 @@ export class NotificationRepository {
         title: 'Expense review',
       };
     if (
-      kind.startsWith('approval_requested_daily') ||
-      kind.startsWith('approval_returned_daily') ||
-      kind.startsWith('approval_requested_technical') ||
-      kind.startsWith('approval_returned_technical')
+      /^approval_(?:requested|returned|rejected)_(?:daily|technical)$/u.test(kind)
     )
       return {
         sourceId,

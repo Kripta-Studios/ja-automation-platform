@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatPortalBps } from '$lib/i18n/format';
   const moneyLinks = {
     en: { subcontractors: 'Subcontractor settlement', conversions: 'Currency conversions', convert: 'Convert the expense currency' },
     es: { subcontractors: 'Liquidación de subcontratistas', conversions: 'Conversiones de moneda', convert: 'Convertir la moneda del gasto' },
@@ -1017,13 +1018,7 @@
 
   /** Format canonical basis points without converting money or financial truth in the UI. */
   function displayBps(valueToFormat: unknown): string {
-    const raw = String(valueToFormat ?? '').trim();
-    if (!/^-?\d+$/.test(raw)) return '—';
-    const negative = raw.startsWith('-');
-    const digits = (negative ? raw.slice(1) : raw).padStart(3, '0');
-    const whole = digits.slice(0, -2).replace(/^0+(?=\d)/, '') || '0';
-    const fraction = digits.slice(-2);
-    return `${negative ? '-' : ''}${whole}.${fraction}%`;
+    return formatPortalBps(valueToFormat, locale);
   }
 
   function displayContributionMarginBps(valueToFormat: unknown): string {

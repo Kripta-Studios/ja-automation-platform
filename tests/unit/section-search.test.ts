@@ -135,3 +135,50 @@ describe('coordinated section and task search', () => {
     }
   });
 });
+
+describe('audit T29: sections are found by name prefix, typo and any language', () => {
+  const nav: NavItem[] = [
+    { section: 'ledger', label: 'Payments', icon: '▤', href: '/app/ledger' },
+    { section: 'billing', label: 'Invoices', icon: '◫', href: '/app/billing' },
+    { section: 'crew', label: 'Crew hours', icon: '◌', href: '/app/crew' },
+  ];
+  const real = (locale: 'en' | 'es' | 'pt') => ({
+    ...options('auditor_read_only', locale, nav),
+    translate: (key: string) => key,
+  });
+  it.each([
+    ['pay', 'en', 'Payments'],
+    ['inv', 'en', 'Invoices'],
+    ['invoce', 'en', 'Invoices'],
+    ['facturas', 'en', 'Invoices'],
+    ['cobros', 'es', 'Payments'],
+    ['faturas', 'pt', 'Invoices'],
+  ] as const)('"%s" (%s) finds %s', (query, locale, label) => {
+    const result = searchSectionDestinations(query, real(locale));
+    const destination = nav.find((item) => item.label === label)!.href!;
+    // The section itself, or a task that opens the same destination.
+    const hrefs = [...result.actions, ...result.configurations, ...result.sections].map(
+      (entry) => entry.href ?? entry.task?.href ?? '',
+    );
+    expect(hrefs.some((href) => href.startsWith(destination))).toBe(true);
+  });
+  it('still never matches inside a word', () => {
+    expect(searchSectionDestinations('ments', real('en')).sections).toEqual([]);
+  });
+});
+
+describe('audit T29: result keys stay unique with prefix matching', () => {
+  it('gives a section and a same-named shortcut different ids', () => {
+    const items: NavItem[] = [{ section: 'billing', label: 'Invoices', icon: '◫', href: '/app/billing' }];
+    const shortcuts = [
+      { ...items[0]!, label: 'Invoices', href: '/app/billing?view=invoices', parentLabel: 'Invoices' },
+    ];
+    const result = searchSectionDestinations('invoce', {
+      ...options('auditor_read_only', 'en', items),
+      shortcuts,
+    });
+    const ids = [...result.actions, ...result.configurations, ...result.sections].map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+

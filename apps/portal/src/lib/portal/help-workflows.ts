@@ -25,15 +25,15 @@ const topics: Record<
     route: '',
     en: [
       'Find sections, tasks and records',
-      'Use {{Go to section}} (Ctrl/⌘ Shift K) for authorized actions, configuration and sections. {{Find a task}} (Ctrl/⌘ K) suggests tasks available to your account in English, Spanish or Portuguese, then opens a workspace or form for you to review. Choosing a result does not save, submit, approve or send anything. Record search is a separate handoff shown only when enabled for your account; the destination checks access again. At 200% text scaling, follow visible labels and error-summary links as forms reflow and retain entered values. Restricted supplier profiles stay in Supplier team.',
+      'Use {{Search}} (Ctrl/⌘ K) to find a section by its name in English, Spanish or Portuguese, a task your account can do, or (when your account can search records) a project, client or person. Choosing a result only opens the page or form; nothing is saved, sent or approved until you do it there. The destination checks your access again. Supplier coordinators manage their team under {{My team}}.',
     ],
     es: [
       'Buscar secciones, tareas y registros',
-      'Usa {{Go to section}} (Ctrl/⌘ Shift K) para buscar acciones, configuración y secciones autorizadas. Buscar una tarea (Ctrl/⌘ K) sugiere tareas permitidas para tu cuenta en inglés, español o portugués y abre el espacio o formulario para que lo revises. Elegir un resultado no guarda, envía, aprueba ni emite nada. La búsqueda de registros es un acceso separado que solo aparece si está habilitado para tu cuenta; el destino vuelve a comprobar el acceso. Al ampliar el texto al 200 %, sigue las etiquetas y los enlaces del resumen de errores mientras el formulario se adapta y conserva los datos introducidos. Los perfiles de proveedor restringidos continúan en Supplier team.',
+      'Usa {{Search}} (Ctrl/⌘ K) para encontrar una sección por su nombre en inglés, español o portugués, una tarea que tu cuenta puede hacer o (si tu cuenta puede buscar registros) un proyecto, cliente o persona. Elegir un resultado solo abre la página o el formulario; no se guarda, envía ni aprueba nada hasta que lo hagas allí. El destino vuelve a comprobar tu acceso. Los coordinadores de proveedor gestionan su equipo en {{My team}}.',
     ],
     pt: [
       'Encontrar seções, tarefas e registros',
-      'Use {{Go to section}} (Ctrl/⌘ Shift K) para localizar ações, configurações e seções autorizadas. Buscar uma tarefa (Ctrl/⌘ K) sugere tarefas permitidas para sua conta em inglês, espanhol ou português e abre uma área ou formulário para você revisar. Escolher um resultado não salva, envia, aprova nem emite nada. A busca de registros é um encaminhamento separado, exibido somente quando habilitado para sua conta; o destino verifica o acesso novamente. Com o texto ampliado em 200%, siga os rótulos visíveis e os links do resumo de erros enquanto o formulário se reorganiza e preserva os dados digitados. Perfis restritos de fornecedor continuam em Supplier team.',
+      'Use {{Search}} (Ctrl/⌘ K) para encontrar uma seção pelo nome em inglês, espanhol ou português, uma tarefa que sua conta pode fazer ou (se sua conta puder buscar registros) um projeto, cliente ou pessoa. Escolher um resultado só abre a página ou o formulário; nada é salvo, enviado ou aprovado até você fazer isso lá. O destino verifica seu acesso novamente. Coordenadores de fornecedor gerenciam a equipe em {{My team}}.',
     ],
   },
   time: {
@@ -216,38 +216,128 @@ const topics: Record<
     roles: ['supplier_coordinator', 'external_technician', 'owner_admin'],
     route: 'supplier/report',
     en: [
-      'Supplier coordination and operational report',
-      'The Owner authorizes a supplier and coordinator for a project and date range. The coordinator can select several technicians, apply shared hours or a time interval, save separate traceable drafts and submit selected drafts together. Only Owner reviews supplier time. Operational report contains no pay, rates or financial results; external accounts cannot open My Pay or worker statements.',
+      'Supplier access and operational report',
+      'The {{Owner}} authorizes a supplier and its coordinator for a project and a date range, and only the {{Owner}} reviews supplier hours. {{Operational report}} lists the hours and reports of the authorized projects; it contains no pay, rates or financial results. External accounts cannot open My Pay or worker statements.',
     ],
     es: [
-      'Coordinación de proveedores e informe operativo',
-      '{{Owner}} autoriza al proveedor y coordinador para un proyecto y unas fechas. El coordinador puede seleccionar varios técnicos, aplicar horas comunes o un intervalo, guardar borradores trazables separados y enviar los seleccionados juntos. Solo {{Owner}} revisa las horas de proveedor. {{Operational report}} no contiene pagos, tarifas ni resultados financieros; las cuentas externas no pueden abrir {{My Pay}} ni extractos.',
+      'Acceso de proveedor e informe operativo',
+      'El {{Owner}} autoriza al proveedor y a su coordinador para un proyecto y unas fechas, y solo el {{Owner}} revisa las horas de proveedor. {{Operational report}} muestra las horas e informes de los proyectos autorizados; no contiene pagos, tarifas ni resultados financieros. Las cuentas externas no pueden abrir {{My Pay}} ni extractos.',
     ],
     pt: [
-      'Coordenação de fornecedores e relatório operacional',
-      '{{Owner}} autoriza fornecedor e coordenador por projeto e datas. O coordenador pode selecionar vários técnicos, aplicar horas comuns ou intervalo, salvar rascunhos rastreáveis separados e enviar os selecionados juntos. Somente {{Owner}} revisa horas de fornecedor. {{Operational report}} não contém pagamentos, tarifas ou resultados financeiros; contas externas não podem abrir {{My Pay}} ou demonstrativos.',
+      'Acesso de fornecedor e relatório operacional',
+      'O {{Owner}} autoriza o fornecedor e seu coordenador por projeto e datas, e somente o {{Owner}} revisa as horas de fornecedor. {{Operational report}} mostra as horas e os relatórios dos projetos autorizados; não contém pagamentos, tarifas ou resultados financeiros. Contas externas não podem abrir {{My Pay}} ou demonstrativos.',
     ],
   },
 };
+// Supplier accounts (T81): their own wording instead of the J&A worker
+// topics, which promised a project-manager review, a worker reimbursement
+// queue and client sign-off work they never do.
+const supplierTopics: Record<
+  string,
+  {
+    profiles: string[];
+    route: string;
+    en: [string, string];
+    es: [string, string];
+    pt: [string, string];
+  }
+> = {
+  team: {
+    profiles: ['supplier_coordinator'],
+    route: 'supplier',
+    en: [
+      'Record hours for your team',
+      'In {{My team}} › {{Record team hours}} choose the authorized project and date, select the technicians and apply shared hours or a time interval. {{Save draft}} keeps one editable draft per technician; {{Submit}} sends the selected drafts to J&A, where the owner reviews them. If J&A sends hours back, the reason is shown next to the entry: fix the draft and send it again.',
+    ],
+    es: [
+      'Registrar horas de tu equipo',
+      'En {{My team}} › {{Record team hours}} elige el proyecto autorizado y la fecha, selecciona los técnicos y aplica horas comunes o un intervalo. {{Save draft}} guarda un borrador editable por técnico; {{Submit}} envía los borradores seleccionados a J&A, donde los revisa el propietario. Si J&A devuelve horas, el motivo aparece junto al registro: corrige el borrador y envíalo de nuevo.',
+    ],
+    pt: [
+      'Registrar horas da sua equipe',
+      'Em {{My team}} › {{Record team hours}} escolha o projeto autorizado e a data, selecione os técnicos e aplique horas comuns ou um intervalo. {{Save draft}} salva um rascunho editável por técnico; {{Submit}} envia os rascunhos selecionados à J&A, onde o proprietário os revisa. Se a J&A devolver horas, o motivo aparece junto ao registro: corrija o rascunho e envie novamente.',
+    ],
+  },
+  time: {
+    profiles: ['supplier_coordinator', 'external_technician'],
+    route: 'time',
+    en: [
+      'Record and send your hours',
+      'In {{Time}} record the actual hours on the authorized project and date. {{Save draft}} keeps an editable draft; {{Submit}} sends it to J&A, where the owner reviews it. If J&A sends it back, the reason is shown on the entry: fix the draft and send it again.',
+    ],
+    es: [
+      'Registrar y enviar tus horas',
+      'En {{Time}} registra las horas reales en el proyecto autorizado y la fecha. {{Save draft}} guarda un borrador editable; {{Submit}} lo envía a J&A, donde lo revisa el propietario. Si J&A lo devuelve, el motivo aparece en el registro: corrige el borrador y envíalo de nuevo.',
+    ],
+    pt: [
+      'Registrar e enviar suas horas',
+      'Em {{Time}} registre as horas reais no projeto autorizado e na data. {{Save draft}} salva um rascunho editável; {{Submit}} envia à J&A, onde o proprietário o revisa. Se a J&A devolver, o motivo aparece no registro: corrija o rascunho e envie novamente.',
+    ],
+  },
+  expenses: {
+    profiles: ['supplier_coordinator', 'external_technician'],
+    route: 'expenses',
+    en: [
+      'Record and send expenses',
+      '{{Record expense}} saves the receipt, vendor, date, currency, amount and who paid. {{Submit}} sends it to J&A for review. {{Approved}} means the expense was accepted, not that it was repaid.',
+    ],
+    es: [
+      'Registrar y enviar gastos',
+      '{{Record expense}} guarda el recibo, proveedor, fecha, moneda, importe y quién pagó. {{Submit}} lo envía a J&A para su revisión. {{Approved}} significa aceptado, no reembolsado.',
+    ],
+    pt: [
+      'Registrar e enviar despesas',
+      '{{Record expense}} salva comprovante, fornecedor, data, moeda, valor e pagador. {{Submit}} envia à J&A para revisão. {{Approved}} significa aceito, não reembolsado.',
+    ],
+  },
+  reports: {
+    profiles: ['supplier_coordinator', 'external_technician'],
+    route: 'reports',
+    en: [
+      'Daily and technical reports',
+      '{{Daily}} records completed work, blockers and next steps. {{Technical / PLC}} records the problem, diagnosis, change, validation and backup evidence, with its author. Save and send your report. Never sign for the customer.',
+    ],
+    es: [
+      'Informes diarios y técnicos',
+      '{{Daily}} recoge trabajo realizado, bloqueos y próximos pasos. {{Technical / PLC}} registra problema, diagnóstico, cambio, validación y copias de seguridad, con su autor. Guarda y envía tu informe. Nunca firmes por el cliente.',
+    ],
+    pt: [
+      'Relatórios diários e técnicos',
+      '{{Daily}} registra trabalho, impedimentos e próximos passos. {{Technical / PLC}} registra problema, diagnóstico, alteração, validação e cópias de segurança, com o autor. Salve e envie seu relatório. Nunca assine pelo cliente.',
+    ],
+  },
+};
+
+const isSupplierProfile = (profile: string | undefined): boolean =>
+  profile === 'supplier_coordinator' || profile === 'external_technician';
+
 export function helpWorkflows(
   role: string,
   profile: string | undefined,
   locale: PortalLocale,
 ): Topic[] {
   const effectiveRole = profile || role;
+  const render = (text: string) =>
+    text.replace(/\{\{([^}]+)\}\}/g, (_placeholder, key: string) => portalText(locale, key));
+  const toTopic = (topic: {
+    route: string;
+    en: [string, string];
+    es: [string, string];
+    pt: [string, string];
+  }) => ({
+    title: render(topic[locale][0]),
+    body: render(topic[locale][1]),
+    route: topic.route,
+  });
+  if (isSupplierProfile(profile)) {
+    const own = Object.values(supplierTopics).filter((topic) => topic.profiles.includes(profile!));
+    return [toTopic(topics.navigation!), ...own.map(toTopic), toTopic(topics.supplier!)];
+  }
   return Object.values(topics)
     .filter(
       (topic) =>
         topic.roles.includes(effectiveRole) ||
         (profile && ['time', 'expenses', 'reports'].includes(topic.route)),
     )
-    .map((topic) => {
-      const render = (text: string) =>
-        text.replace(/\{\{([^}]+)\}\}/g, (_placeholder, key: string) => portalText(locale, key));
-      return {
-        title: render(topic[locale][0]),
-        body: render(topic[locale][1]),
-        route: topic.route,
-      };
-    });
+    .map(toTopic);
 }

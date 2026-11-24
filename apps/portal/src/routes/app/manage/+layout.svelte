@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { browserForgetIdentity } from '$lib/portal/offline-controller';
   import PortalChrome from '$lib/PortalChrome.svelte';
@@ -13,7 +14,9 @@
   const locale = $derived(normalizePortalLocale(data.locale));
   const translate = (text: string) => portalText(locale, text);
   const navigation = $derived(
-    portalNavigationForRole(base, data.managementUser.role, data.managementUser.workforceProfile),
+    portalNavigationForRole(base, data.managementUser.role, data.managementUser.workforceProfile, {
+      crewChief: (page.data as { crewChief?: boolean }).crewChief === true,
+    }),
   );
   const chromeData = $derived({ section: 'manage', user: data.managementUser });
   const owner = $derived(data.managementUser.role === 'owner_admin');
@@ -73,6 +76,12 @@
     {changeLocale}
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
+    badges={{
+      approvals: Number((page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
+      notifications: Number(
+        (page.data as { unreadNotificationCount?: number }).unreadNotificationCount ?? 0,
+      ),
+    }}
   />
   <main id="portal-main" lang={locale}>{@render children()}</main>
 </div>

@@ -1,4 +1,5 @@
-import { minorDigitsFor } from './payment-money';
+import { paymentMoney } from './payment-money';
+import { documentLanguage } from '$lib/i18n/context';
 import type { PortalLocale } from '$lib/portal-i18n';
 
 const copy = {
@@ -387,16 +388,15 @@ export function journeyText(locale: PortalLocale, key: JourneyKey): string {
 export function journeyReason(locale: PortalLocale, code: string): string | null {
   return Object.hasOwn(copy, code) ? journeyText(locale, code as JourneyKey) : null;
 }
-/** Render exact minor units without converting financial values to floating point. */
+/**
+ * Render exact minor units without converting financial values to floating
+ * point. Same format as every other amount in the portal for the language
+ * (audit T35): "$3,025.00", "3.025,00 US$", "US$ 3.025,00".
+ */
 export function journeyMoney(minor: string, currency: string, locale: PortalLocale): string {
   try {
-    const value = BigInt(minor);
-    const absolute = value < 0n ? -value : value;
-    const digits = minorDigitsFor(currency);
-    const scale = 10n ** BigInt(digits);
-    const whole = new Intl.NumberFormat(locale).format(absolute / scale);
-    const fraction = digits ? `${locale === 'en' ? '.' : ','}${String(absolute % scale).padStart(digits, '0')}` : '';
-    return `${value < 0n ? '−' : ''}${whole}${fraction} ${currency}`;
+    BigInt(minor);
+    return paymentMoney(minor, currency, documentLanguage(locale));
   } catch {
     return '—';
   }

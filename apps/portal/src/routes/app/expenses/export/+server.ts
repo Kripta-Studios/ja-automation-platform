@@ -7,6 +7,8 @@ import {
   assertLiveSession,
 } from '@ja/database';
 import { expenseRegisterExport } from '@ja/reporting';
+import { localizedExpenseCsv } from '$lib/server/expense-csv';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { isRealIsoDate } from '$lib/server/iso-date';
@@ -174,7 +176,7 @@ function problemResponse(
   });
 }
 
-export const GET: RequestHandler = ({ locals, url }) => {
+export const GET: RequestHandler = ({ locals, url, cookies }) => {
   if (!locals.user || !locals.session)
     return problemResponse('signInRequired', locals.correlationId);
 
@@ -304,7 +306,21 @@ export const GET: RequestHandler = ({ locals, url }) => {
             : row.reimbursement_state === reimbursement)) &&
         expenseSearchMatches(row, query),
     );
-    const bytes = expenseRegisterExport(rows, format as 'pdf' | 'xlsx' | 'csv', `${from} — ${to}`);
+    // CSV follows the person's language (headers, words, separator, decimals);
+    // XLSX/PDF keep their typed cells and layout.
+    const bytes =
+      format === 'csv'
+        ? new TextEncoder().encode(
+            localizedExpenseCsv(
+              rows,
+              resolvePortalLocalePreference(
+                url.searchParams.get('lang'),
+                cookies?.get('ja.portal.locale'),
+                cookies?.get('ja.portal.locale'),
+              ),
+            ),
+          )
+        : expenseRegisterExport(rows, format as 'pdf' | 'xlsx', `${from} — ${to}`);
     return new Response(Buffer.from(bytes), {
       headers: {
         'content-type':

@@ -230,6 +230,10 @@
       });
   });
   const shownWeeks = $derived(weeks);
+  // T73: a crew chief's headline is his own money; each crew member keeps a
+  // separate subtotal on his own line. The owner's view still sums everyone.
+  const headlineRows = (week: Week): Row[] =>
+    isOwner ? week.rows : week.rows.filter((row) => text(row, 'worker_id') === me);
   const showPersonHeaders = $derived(mine.some((row) => text(row, 'worker_id') !== me));
   const canSubmitBlock = (block: PersonBlock): boolean =>
     !isAuditor && block.drafts.length > 0 && (block.workerId === me || isOwner);
@@ -914,16 +918,17 @@
       <section class="xp-week" aria-labelledby={`xp-week-${week.start}`}>
         <header class="xp-week-head">
           <h3 id={`xp-week-${week.start}`}>{c('week', { range: weekRange(week.start) })}</h3>
-          <strong class="xp-total"
-            >{#each totals(week.rows) as line (line)}<span>{line}</span>{/each}</strong
-          >
+          {#if headlineRows(week).length > 0}<strong class="xp-total"
+              >{#each totals(headlineRows(week)) as line (line)}<span>{line}</span>{/each}</strong
+            >{/if}
         </header>
         {#each week.people as block (block.workerId)}
           <div class="xp-person">
             {#if showPersonHeaders || (isOwner && block.workerId !== me)}
               <p class="xp-person-name">
                 {block.workerId === me ? c('me') : block.workerName}
-                {#if week.people.length > 1}<span class="xp-muted"
+                {#if week.people.length > 1 || (!isOwner && block.workerId !== me)}<span
+                    class="xp-muted"
                     >· {totals(block.rows).join(' · ')}</span
                   >{/if}
               </p>

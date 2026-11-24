@@ -1,4 +1,6 @@
 <script lang="ts">
+  import PortalNavIcon from '$lib/PortalNavIcon.svelte';
+  import { navIconPath } from '$lib/portal/nav-icons';
   import { base } from '$app/paths';
   import { onMount } from 'svelte';
   import { browserForgetIdentity } from '$lib/portal/offline-controller';
@@ -28,14 +30,8 @@
   const chromeData = $derived({ section: 'supplier', user: data.supplierUser });
   // Phone bottom bar (P7): the same compact navigation as the rest of the portal.
   const mobileNavigation = $derived(mobilePrimaryNavigationFor(navigation));
-  // "Crew hours" is the supplier page opened on its time workspace.
-  const crewHoursItem = $derived(
-    navigation.primary.find((item) => item.href?.includes('workspaceAction=time')),
-  );
   const activeDestination = $derived(
-    crewHoursItem && page.url.searchParams.get('workspaceAction') === 'time'
-      ? crewHoursItem
-      : activeNavItem([...navigation.primary, ...navigation.secondary], {
+    activeNavItem([...navigation.primary, ...navigation.secondary], {
       base,
       section: 'supplier',
       url: page.url,
@@ -104,6 +100,8 @@
         class:active={activeDestination === item}
         href={itemHref(item)}
         aria-current={activeDestination === item ? 'page' : undefined}
+        ><span class="bottom-nav-icon" aria-hidden="true"
+          ><PortalNavIcon path={navIconPath(item.label)} /></span
         ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span></a
       >
     {/each}
@@ -115,6 +113,9 @@
       onclick={() => (menuOpen = true)}
       class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
     >
+      <span class="bottom-nav-icon" aria-hidden="true"
+        ><PortalNavIcon path="M5 12h.01M12 12h.01M19 12h.01" /></span
+      >
       <span class="bottom-nav-label">{translate('More')}</span>
     </button>
   </nav>

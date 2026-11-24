@@ -163,9 +163,6 @@
       privateNote:
         'Your My Pay view is private. An estimate or statement is not a payslip and does not prove that money was paid.',
       support: 'For an invitation, access or password problem, contact admin@j-aautomation.com.',
-      loginTitle: 'Use the invitation linked to your mailbox',
-      loginBody:
-        'If your invitation is linked to a company mailbox, open it from that mailbox and sign in with the account it names. If you were invited as an external worker, use the single-use invitation link to create your account. There is no public sign-up.',
       taskTime:
         'Record actual work and travel under the correct project. Customer minimums do not change actual hours.',
       taskExpense:
@@ -210,9 +207,6 @@
         'Tu vista Mi pago es privada. Un estimado o estado no es una nómina ni demuestra que el dinero se haya pagado.',
       support:
         'Para problemas de invitación, acceso o contraseña, contacta con admin@j-aautomation.com.',
-      loginTitle: 'Usa la invitación vinculada a tu buzón',
-      loginBody:
-        'Si tu invitación está vinculada a un buzón corporativo, ábrela desde ese buzón e inicia sesión con la cuenta indicada. Si eres un trabajador externo, usa el enlace de invitación de un solo uso para crear tu cuenta. No hay registro público.',
       taskTime:
         'Registra el trabajo y el viaje reales en el proyecto correcto. Los mínimos del cliente no cambian las horas reales.',
       taskExpense:
@@ -257,9 +251,6 @@
       privateNote:
         'Sua visão Meu pagamento é privada. Uma estimativa ou declaração não é um contracheque e não prova que o dinheiro foi pago.',
       support: 'Para problemas de convite, acesso ou senha, contate admin@j-aautomation.com.',
-      loginTitle: 'Use o convite vinculado à sua caixa de e-mail',
-      loginBody:
-        'Se o convite estiver vinculado a uma caixa corporativa, abra-o nessa caixa e entre com a conta indicada. Se você foi convidado como colaborador externo, use o link de uso único para criar sua conta. Não existe cadastro público.',
       taskTime:
         'Registre o trabalho e a viagem reais no projeto correto. Os mínimos do cliente não mudam as horas reais.',
       taskExpense:
@@ -353,11 +344,6 @@
       </div>
     </div>
   </header>
-
-  <section class="notice notice-login" aria-labelledby="login-title">
-    <h2 id="login-title">{text('loginTitle')}</h2>
-    <p>{text('loginBody')}</p>
-  </section>
 
   {#if data.ownerTutorial}
     <OwnerTutorial tutorial={data.ownerTutorial} locale={data.locale} />
@@ -580,9 +566,6 @@
   }
   .notice h2 {
     margin-bottom: 0.45rem;
-  }
-  .notice-login {
-    border-left: 4px solid #848279;
   }
   .manual-grid {
     display: grid;

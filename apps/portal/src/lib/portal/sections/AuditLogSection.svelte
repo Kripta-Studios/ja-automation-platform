@@ -4,7 +4,7 @@
   import type { AuditFilter } from '../audit-log';
   import type { PortalRow } from '../portal-data';
   import { scaleCopy, scaleLocaleTag, type ScaleShellCopyKey } from './scale-shell-copy';
-  import { auditActionText, auditEntityTypeText } from '../audit-action-labels';
+  import { auditActionText, auditDisplayAction, auditEntityTypeText } from '../audit-action-labels';
   import { auditDetailLines, auditDetailText } from '../audit-detail';
 
   let {
@@ -105,7 +105,9 @@
   function humanAction(row: Record<string, unknown>): string {
     const shellLabel = actionLabel(row);
     return auditActionText(
-      shellLabel.startsWith('security.mfa.login') ? 'security.mfa.login' : String(row.action),
+      shellLabel.startsWith('security.mfa.login')
+        ? 'security.mfa.login'
+        : auditDisplayAction(String(row.action), row.details_json),
       locale,
     );
   }
@@ -206,11 +208,11 @@
   {:else}
     <ul class="audit-log__list">
       {#each rows as row (String(row.id))}
-        {@const detail = auditDetailLines(row.details_json, locale)}
+        {@const detail = auditDetailLines(row.display_details ?? row.details_json, locale)}
         <li>
           <details class="audit-log__row audit-event">
             <summary
-              aria-label={`${translate('View details')}: ${humanAction(row)} · ${String(row.entity_id)}`}
+              aria-label={`${translate('View details')}: ${humanAction(row)} · ${String(row.subject_label || row.entity_id)}`}
             >
               <time class="audit-log__time" datetime={utcIso(row.occurred_at)}
                 >{shortTime(row.occurred_at)}</time
@@ -220,7 +222,8 @@
               >
               <strong class="audit-log__action" title={String(row.action)}>{humanAction(row)}</strong>
               <span class="audit-log__entity"
-                >{humanType(String(row.entity_type))} · {shortRef(row.entity_id)}</span
+                >{humanType(String(row.entity_type))} · {String(row.subject_label ?? '') ||
+                  shortRef(row.entity_id)}</span
               >
             </summary>
             <div class="audit-log__detail">

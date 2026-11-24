@@ -606,6 +606,20 @@ export const actions: Actions = {
           'saveWorkItem',
           saved,
         );
+      // T41: a project manager creates follow-ups only on projects he manages
+      // (the same list the page offers), not where he is only a member.
+      if (
+        context.principal.role === 'project_manager' &&
+        !accessibleWorkflowProjects(context.sqlite, context.principal.userId, new Date()).some(
+          (project) => project.id === projectId,
+        )
+      )
+        return workflowInputFailure(
+          403,
+          'problem.digitalWorkers.invalidSelection',
+          'saveWorkItem',
+          saved,
+        );
       const repository = new DigitalWorkersRepository(context.sqlite);
       repository.saveWorkItem(context.principal, {
         projectId,

@@ -3,6 +3,7 @@ import { personDisplayName } from '$lib/portal/display-name';
 import { auditEntityTypeText } from '$lib/portal/audit-action-labels';
 import { isSystemAccount } from '$lib/portal/system-accounts';
 import { AUDIT_RANGES, type AuditFilter, type AuditRange } from '$lib/portal/audit-log';
+import { auditSubjects } from '$lib/server/audit-subjects';
 
 /**
  * Audit register at scale (hundreds of thousands of events): the server
@@ -21,6 +22,10 @@ export type AuditPageData = {
     entity_id: string;
     occurred_at: string;
     details_json: string;
+    /** T17: whose record ("Gabriel Lamoglia · C-0020-P-001"), not a bare id. */
+    subject_label: string;
+    /** T17: details with names for ids and the pay-rate values; raw JSON stays in details_json. */
+    display_details: string;
   }>;
   auditView: 'all' | 'business' | 'service';
   auditFilter: AuditFilter;
@@ -135,6 +140,7 @@ export function buildAuditPage(
         offset: (page - 1) * AUDIT_PAGE_SIZE,
       })
     : [];
+  const subjects = auditSubjects(context.sqlite, rows);
   // Display names, never raw ids, for every actor on this page.
   const people = context.sqlite
     .prepare('SELECT id,name,email FROM user ORDER BY name COLLATE NOCASE')
@@ -149,6 +155,8 @@ export function buildAuditPage(
     audit: rows.map((row) => ({
       ...row,
       actor_name: row.actor_id ? (names.get(String(row.actor_id)) ?? '') : '',
+      subject_label: subjects.get(row.id)?.subject_label ?? '',
+      display_details: subjects.get(row.id)?.display_details ?? row.details_json,
     })),
     auditView: filter.view,
     auditFilter: {

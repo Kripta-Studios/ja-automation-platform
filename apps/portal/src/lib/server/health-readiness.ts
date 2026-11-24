@@ -1,5 +1,6 @@
 import { lstatSync, statfsSync } from 'node:fs';
 import { parse, relative, resolve } from 'node:path';
+import { Worker } from 'node:worker_threads';
 import {
   openDatabase,
   readinessCheck,
@@ -216,12 +217,136 @@ export function clearIntegrityCache(): void {
   integrityCache = undefined;
 }
 
+export type IntegrityRunner = (databasePath: string) => Promise<string>;
+
+/** Same default as openDatabase(); the worker opens its own read-only connection. */
+export function configuredDatabasePath(): string {
+  return process.env.JA_DATABASE_PATH ?? resolve(process.cwd(), 'data/app.db');
+}
+
+// CommonJS source evaluated in a worker thread: node:sqlite is synchronous, so a
+// full integrity_check of the production file must never run on the request
+// thread (T97: one owner/auditor /api/health froze every user for 30 s+).
+const INTEGRITY_WORKER_SOURCE = `
+const { parentPort, workerData } = require('node:worker_threads');
+const { DatabaseSync } = require('node:sqlite');
+let db;
+try {
+  db = new DatabaseSync(workerData.path, { readOnly: true });
+  db.exec('PRAGMA busy_timeout = 5000');
+  const row = db.prepare('PRAGMA integrity_check').get();
+  parentPort.postMessage(String(row && row.integrity_check));
+} catch {
+  parentPort.postMessage('unavailable');
+} finally {
+  try { db && db.close(); } catch {}
+}
+`;
+
+export const INTEGRITY_WORKER_TIMEOUT_MS = 10 * 60_000;
+
+export function workerIntegrityCheck(
+  databasePath: string,
+  timeoutMs = INTEGRITY_WORKER_TIMEOUT_MS,
+): Promise<string> {
+  return new Promise((resolvePromise) => {
+    let settled = false;
+    const worker = new Worker(INTEGRITY_WORKER_SOURCE, {
+      eval: true,
+      workerData: { path: databasePath },
+    });
+    const finish = (value: string) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      void worker.terminate().catch(() => undefined);
+      resolvePromise(value);
+    };
+    const timer = setTimeout(() => finish('unavailable'), timeoutMs);
+    timer.unref?.();
+    worker.once('message', (value) => finish(String(value)));
+    worker.once('error', () => finish('unavailable'));
+    worker.once('exit', () => finish('unavailable'));
+  });
+}
+
+export type IntegrityMonitor = Readonly<{
+  /**
+   * The last known integrity result. A fresh "ok" is served from memory; a stale
+   * or failed result is returned at once while one background re-check runs.
+   * The very first call (no result yet) waits at most `firstWaitMs` for the
+   * worker and then answers INTEGRITY_CHECKING, so a health request never
+   * hangs for the minutes a full check of the production file can take.
+   */
+  current: (databasePath?: string) => Promise<string>;
+  clear: () => void;
+}>;
+
+/** Integrity not known yet: the first background check is still running. */
+export const INTEGRITY_CHECKING = 'checking';
+export const INTEGRITY_FIRST_WAIT_MS = 2_000;
+
+export function createIntegrityMonitor(
+  runner: IntegrityRunner = workerIntegrityCheck,
+  ttlMs = INTEGRITY_CACHE_TTL_MS,
+  firstWaitMs = INTEGRITY_FIRST_WAIT_MS,
+): IntegrityMonitor {
+  let last: { value: string; checkedAt: number } | undefined;
+  let running: Promise<string> | undefined;
+  const start = (databasePath: string) => {
+    if (!running)
+      running = runner(databasePath)
+        .catch(() => 'unavailable')
+        .then((value) => {
+          last = { value, checkedAt: Date.now() };
+          return value;
+        })
+        .finally(() => {
+          running = undefined;
+        });
+    return running;
+  };
+  return {
+    current(databasePath = configuredDatabasePath()) {
+      if (last && last.value === 'ok' && Date.now() - last.checkedAt < ttlMs)
+        return Promise.resolve(last.value);
+      // In-memory/special databases cannot be opened by a second connection.
+      if (databasePath.startsWith(':')) return Promise.resolve(last?.value ?? 'ok');
+      const pending = start(databasePath);
+      if (last) return Promise.resolve(last.value);
+      return new Promise<string>((resolvePromise) => {
+        const timer = setTimeout(() => resolvePromise(INTEGRITY_CHECKING), firstWaitMs);
+        timer.unref?.();
+        void pending.then((value) => {
+          clearTimeout(timer);
+          resolvePromise(value);
+        });
+      });
+    },
+    clear() {
+      last = undefined;
+    },
+  };
+}
+
+export const integrityMonitor = createIntegrityMonitor();
+
 export function cachedOperationalReadiness(): Promise<OperationalReadiness> {
-  return readinessGate.get(() => {
+  return readinessGate.get(async () => {
+    const integrity = await integrityMonitor.current();
     let db: ReturnType<typeof openDatabase> | undefined;
     try {
       db = openDatabase();
-      return operationalReadiness(db, undefined, cachedIntegrityCheck);
+      // T97: while the very first background check runs, readiness is decided
+      // on everything else and the integrity is reported as "checking" (the
+      // previous code also served a result up to 15 minutes old). A finished
+      // check that is not "ok" still fails readiness.
+      if (integrity === INTEGRITY_CHECKING)
+        return {
+          ...operationalReadiness(db, undefined, () => 'ok'),
+          integrity: INTEGRITY_CHECKING,
+        };
+      return operationalReadiness(db, undefined, () => integrity);
     } catch {
       return unavailableReadiness();
     } finally {

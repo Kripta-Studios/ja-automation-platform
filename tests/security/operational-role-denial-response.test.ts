@@ -46,55 +46,71 @@ beforeEach(() => {
 });
 
 describe('operational account route denial', () => {
-  it.each([
-    ['supplier_coordinator', '/supplier?lang=es', 'Proveedor'],
-    ['external_technician', '/time?lang=es', 'Horas'],
-  ] as const)(
-    'returns a localized 403 and allowed remedy for %s',
-    async (profile, suffix, label) => {
+  it.each(['supplier_coordinator', 'external_technician'] as const)(
+    'sends a denied page navigation of %s to the in-app restricted page (T18)',
+    async (profile) => {
       mocks.profile.mockReturnValue({ profile });
       const resolve = vi.fn(() => new Response('restricted projection'));
       const response = await handle({
-        event: requestFor('/finance', 'text/html', 'es'),
+        event: requestFor('/finance?lang=es', 'text/html', 'es'),
         resolve,
       } as never);
-      const body = await response.text();
 
-      expect(response.status).toBe(403);
-      expect(response.headers.get('content-type')).toContain('text/html');
+      expect(response.status).toBe(303);
+      expect(response.headers.get('location')).toBe(
+        '/j-aautomation/app/restricted?from=%2Ffinance&lang=es',
+      );
       expect(response.headers.get('cache-control')).toBe('private, no-store');
       expect(response.headers.get('x-correlation-id')).toBeTruthy();
-      expect(body).toContain('<html lang="es-ES">');
-      expect(body).toContain('Acceso restringido');
-      expect(body).toContain('Tu cuenta no tiene acceso');
-      expect(body).toContain('Consultar a un propietario');
-      expect(body).toContain(`href="/j-aautomation/app${suffix}">${label}</a>`);
-      expect(body).not.toContain('href="/j-aautomation/app/finance');
-      expect(body).not.toContain('restricted projection');
-      expect(body).not.toContain('Operational account: access denied');
+      expect(await response.text()).not.toContain('restricted projection');
       expect(resolve).not.toHaveBeenCalled();
     },
   );
 
-  it('answers My Pay for supplier people with a plain 200 explanation and no pay data (X3)', async () => {
-    mocks.profile.mockReturnValue({ profile: 'external_technician' });
+  it('sends My Pay for supplier people to the restricted page with its own explanation', async () => {
+    mocks.profile.mockReturnValue({ profile: 'supplier_coordinator' });
     const resolve = vi.fn(() => new Response('restricted projection'));
     const response = await handle({
       event: requestFor('/pay', 'text/html', 'en'),
       resolve,
     } as never);
-    const body = await response.text();
-    expect(response.status).toBe(200);
-    expect(body).toContain('Your pay is handled by your own company');
-    expect(body).toContain('rel="icon"');
-    expect(body).not.toContain('restricted projection');
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toBe(
+      '/j-aautomation/app/restricted?from=%2Fpay&lang=en',
+    );
     expect(resolve).not.toHaveBeenCalled();
   });
 
-  it('returns a stable machine-readable 403 for denied data requests', async () => {
+  it('answers a denied client-side navigation with a SvelteKit data redirect', async () => {
+    mocks.profile.mockReturnValue({ profile: 'external_technician' });
+    const resolve = vi.fn(() => new Response('restricted projection'));
+    const response = await handle({
+      event: requestFor('/projects/other/__data.json?x-sveltekit-invalidated=01', '*/*', 'pt'),
+      resolve,
+    } as never);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      type: 'redirect',
+      location: '/j-aautomation/app/restricted?from=%2Fprojects%2Fother&lang=pt',
+    });
+    expect(resolve).not.toHaveBeenCalled();
+  });
+
+  it('recognises a SvelteKit data request by its flag (event.url has no __data.json)', async () => {
+    mocks.profile.mockReturnValue({ profile: 'external_technician' });
+    const event = { ...requestFor('/finance', '*/*', 'es'), isDataRequest: true };
+    const response = await handle({ event, resolve: vi.fn() } as never);
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      type: 'redirect',
+      location: '/j-aautomation/app/restricted?from=%2Ffinance&lang=es',
+    });
+  });
+
+  it('returns a stable machine-readable 403 for denied API requests', async () => {
     mocks.profile.mockReturnValue({ profile: 'supplier_coordinator' });
     const response = await handle({
-      event: requestFor('/finance/__data.json?lang=pt', 'application/json'),
+      event: requestFor('/api/worker-statement?lang=pt', 'application/json'),
       resolve: vi.fn(() => new Response('restricted projection')),
     } as never);
 

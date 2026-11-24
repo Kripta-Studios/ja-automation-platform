@@ -397,7 +397,7 @@ describe('ASTRA scoped business notifications', () => {
     value.repository.submitReport(value.worker, 'technical', technical.id, technical.version);
 
     runAlert(value, 'business-approval-requested', 'business_notifications');
-    for (const userId of ['b5-owner', 'b5-finance', 'b5-manager']) {
+    for (const userId of ['b5-owner', 'b5-manager']) {
       expect(notifications(value, userId).map((row) => row.kind)).toEqual(
         expect.arrayContaining([
           'approval_requested_time',
@@ -407,6 +407,14 @@ describe('ASTRA scoped business notifications', () => {
         ]),
       );
     }
+    // D6: Finance never takes the operational time/expense step, so it is not
+    // asked to; it still reviews reports.
+    const financeKinds = notifications(value, 'b5-finance').map((row) => row.kind);
+    expect(financeKinds).not.toContain('approval_requested_time');
+    expect(financeKinds).not.toContain('approval_requested_expense');
+    expect(financeKinds).toEqual(
+      expect.arrayContaining(['approval_requested_daily', 'approval_requested_technical']),
+    );
     expect(notifications(value, 'b5-worker')).toHaveLength(0);
     expect(notifications(value, 'b5-outsider')).toHaveLength(0);
 

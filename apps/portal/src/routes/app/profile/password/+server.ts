@@ -1,4 +1,5 @@
-import { json, type RequestHandler } from '@sveltejs/kit';
+import { json, redirect, type RequestHandler } from '@sveltejs/kit';
+import { isDocumentNavigation } from '$lib/server/document-navigation';
 import { createDatabase } from '@ja/database';
 import {
   changeOwnPassword,
@@ -9,7 +10,9 @@ import {
 const headers = { 'cache-control': 'private, no-store' };
 
 /** Whether the signed-in user's password is also their Webmail password. */
-export const GET: RequestHandler = async ({ locals }) => {
+export const GET: RequestHandler = async ({ locals, request, url }) => {
+  if (isDocumentNavigation(request))
+    redirect(303, `/j-aautomation/app/profile${url.searchParams.get('lang') ? `?lang=${encodeURIComponent(url.searchParams.get('lang')!)}` : ''}`);
   if (!locals.user) return json({ linkedMailbox: false }, { status: 401, headers });
   const { sqlite } = createDatabase();
   try {

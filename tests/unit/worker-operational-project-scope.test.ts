@@ -614,9 +614,14 @@ describe('real own report list current Worker project scope', () => {
     },
   );
 
-  it('excludes past report rows when current assignment ends even though record dates remain covered', () => {
+  // T19 (2026-11-23): own records stay readable for the days the assignment
+  // covered after it ends; only a removed assignment, a closed project, an
+  // invalid timezone, a stale session or a revoked supplier grant hide them.
+  it('keeps past own report rows listed after the assignment ends while record dates remain covered (T19)', () => {
     reports();
     sqlite.exec("UPDATE project_member SET ends_on='2026-09-29' WHERE id='assignment'");
+    expect(new PortalRepository(sqlite).listOwnReports(worker)).toHaveLength(2);
+    sqlite.exec("UPDATE project_member SET status='inactive' WHERE id='assignment'");
     expect(new PortalRepository(sqlite).listOwnReports(worker)).toEqual([]);
   });
 
@@ -641,7 +646,8 @@ describe('real own report list current Worker project scope', () => {
     );
     expect(new PortalRepository(sqlite).listOwnReports(worker)).toHaveLength(2);
     vi.setSystemTime(new Date('2026-09-30T05:00:00Z'));
-    expect(new PortalRepository(sqlite).listOwnReports(worker)).toEqual([]);
+    // T19: the ended assignment still covers the report dates.
+    expect(new PortalRepository(sqlite).listOwnReports(worker)).toHaveLength(2);
     sqlite.exec("UPDATE project SET timezone='Invalid/Zone'");
     expect(new PortalRepository(sqlite).listOwnReports(worker)).toEqual([]);
   });
@@ -732,10 +738,14 @@ describe('Worker report detail and assigned-project list authorization coherence
         canEdit: true,
       });
     vi.setSystemTime(new Date('2026-09-30T05:00:00Z'));
-    expect(repository.listOwnReports(stalePrincipal)).toEqual([]);
+    // T19: after the assignment ends the own reports stay readable, not editable.
+    expect(repository.listOwnReports(stalePrincipal)).toHaveLength(2);
     expect(repository.listAssignedProjects(stalePrincipal)).toEqual([]);
     for (const id of ['daily', 'technical'])
-      expect(() => repository.reportDetail(stalePrincipal, id)).toThrow('Report access required');
+      expect(repository.reportDetail(stalePrincipal, id)).toMatchObject({
+        report: { id },
+        canEdit: false,
+      });
   });
 
   it.each(['closed', 'Invalid/Zone'])(
@@ -828,9 +838,11 @@ describe('Worker report detail and assigned-project list authorization coherence
     expect(() => repository.listProjectSchedule(expiredAssignment, 'assigned')).toThrow(
       'Project assignment access required',
     );
-    expect(() => repository.reportDetail(expiredAssignment, 'daily')).toThrow(
-      'Report access required',
-    );
+    // T19: the own report of a covered day stays readable, never editable.
+    expect(repository.reportDetail(expiredAssignment, 'daily')).toMatchObject({
+      report: { id: 'daily' },
+      canEdit: false,
+    });
     expect(repository.listAssignedProjects(expiredAssignment)).toEqual([]);
   });
 
@@ -843,7 +855,11 @@ describe('Worker report detail and assigned-project list authorization coherence
     const principal = repository.principalFor('worker', 'worker-session');
     expect([...principal.projectIds]).toEqual([]);
     expect(repository.listAssignedProjects(principal)).toEqual([]);
-    expect(() => repository.reportDetail(principal, 'technical')).toThrow('Report access required');
+    // T19: the own report of a covered day stays readable, never editable.
+    expect(repository.reportDetail(principal, 'technical')).toMatchObject({
+      report: { id: 'technical' },
+      canEdit: false,
+    });
   });
 
   it('rejects expired or empty provided Worker sessions while preserving legacy no-session and non-Worker construction', () => {
@@ -1110,6 +1126,10 @@ describe('Worker Time and Expense scope queries use current project-local author
     expect(expenses[0]).not.toHaveProperty('billing_amount_minor');
     expect(JSON.stringify(expenses)).not.toContain('987654321');
     vi.setSystemTime(new Date('2026-09-30T05:00:00Z'));
+    // T19: own entries of covered days stay listed after the assignment ends.
+    expect(repository.listTimeForScope(worker).map((row) => row.id)).toEqual(['time']);
+    expect(repository.listExpensesForScope(worker).map((row) => row.id)).toEqual(['expense']);
+    sqlite.exec("UPDATE project_member SET status='inactive' WHERE id='assignment'");
     expect(repository.listTimeForScope(worker)).toEqual([]);
     expect(repository.listExpensesForScope(worker)).toEqual([]);
   });
@@ -1132,7 +1152,7 @@ describe('Worker Time and Expense scope queries use current project-local author
     },
   );
 
-  it('retains current plus future record-day memberships while denying gaps and expired current access', () => {
+  it('retains current plus future record-day memberships while denying gaps (T19: ended assignments keep covered days)', () => {
     sqlite.exec(
       "UPDATE project_member SET ends_on='2026-09-30' WHERE id='assignment'; INSERT INTO project_member VALUES('future','assigned','worker','active','2026-10-05','2026-10-31')",
     );
@@ -1144,8 +1164,10 @@ describe('Worker Time and Expense scope queries use current project-local author
       'expense-future',
     ]);
     sqlite.exec("UPDATE project_member SET ends_on='2026-09-29' WHERE id='assignment'");
-    expect(repository.listTimeForScope(worker)).toEqual([]);
-    expect(repository.listExpensesForScope(worker)).toEqual([]);
+    expect(repository.listTimeForScope(worker).map((row) => row.id)).toEqual(['time-future']);
+    expect(repository.listExpensesForScope(worker).map((row) => row.id)).toEqual([
+      'expense-future',
+    ]);
   });
 
   it('requires live coordinator current and occurrence-date grants in both queries', () => {

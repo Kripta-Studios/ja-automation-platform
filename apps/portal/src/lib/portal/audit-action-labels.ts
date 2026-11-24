@@ -253,7 +253,40 @@ const SPECIAL: Record<string, Tuple> = {
   'time.create': ['Hours recorded', 'Registro de horas', 'Registro de horas'],
   'expense.create': ['Expense recorded', 'Registro de gasto', 'Registro de despesa'],
   'user.bootstrap': ['First administrator set up', 'Configuración del primer administrador', 'Configuração do primeiro administrador'],
+  'user.create': ['Person added', 'Alta de persona', 'Cadastro de pessoa'],
+  'user.password_reset': ['Portal password reset by the owner', 'Restablecimiento de contraseña del portal por el propietario', 'Redefinição de senha do portal pelo proprietário'],
+  'user.password_change': ['Portal password changed', 'Cambio de contraseña del portal', 'Alteração de senha do portal'],
 };
+
+/**
+ * T17: the reviewed audit registry is closed (a new stored code needs a
+ * migration), and two stored codes describe more than their name says:
+ * `supplier.technician.add` is also written when the owner adds an internal
+ * person (no supplier profile), and a portal password reset/change is written
+ * as `mailbox.sessions_revoke` with a `reason`. Read the event by what the
+ * details say happened; the stored code stays visible in Technical details.
+ */
+export function auditDisplayAction(action: string, details: unknown): string {
+  let parsed: unknown = details;
+  if (typeof details === 'string') {
+    try {
+      parsed = JSON.parse(details);
+    } catch {
+      return action;
+    }
+  }
+  const record =
+    parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : {};
+  if (action === 'supplier.technician.add' && 'supplierProfile' in record && !record.supplierProfile)
+    return 'user.create';
+  if (action === 'mailbox.sessions_revoke') {
+    if (record.reason === 'owner_password_reset') return 'user.password_reset';
+    if (record.reason === 'self_service_password_change') return 'user.password_change';
+  }
+  return action;
+}
 
 function lowerFirst(value: string): string {
   return value ? value.charAt(0).toLocaleLowerCase() + value.slice(1) : value;

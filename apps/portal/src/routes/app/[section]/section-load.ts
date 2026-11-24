@@ -338,12 +338,19 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const timeDay = requestedDay && isRealIsoDate(requestedDay) ? requestedDay : '';
         const weekStart = mondayOf(timeDay || url.searchParams.get('week'));
         const weekEnd = context.repository.listOwnTimeWeek(context.principal, weekStart).weekEnd;
-        const weekEntries = visibleProjectRecords(
-          context.repository.listTimeForScope(context.principal, {
-            from: weekStart,
-            to: weekEnd,
-          }),
-          timeScope.projectIds,
+        const ownWeekRows = context.repository.listTimeForScope(context.principal, {
+          from: weekStart,
+          to: weekEnd,
+        });
+        // T19: a worker's own list is already scoped by the repository (the
+        // assignment must cover the day; closed projects, stale sessions and
+        // revoked supplier grants excluded). Keep entries of an assignment that
+        // has ended visible (read-only) instead of filtering them by today's
+        // project list.
+        const weekEntries = (
+          context.principal.role === 'worker'
+            ? ownWeekRows
+            : visibleProjectRecords(ownWeekRows, timeScope.projectIds)
         )
           .filter(
             (row) =>
@@ -457,9 +464,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         // Scale: one bounded, server-filtered window of the register; the worker
         // picker of the create form loads assignments on demand
         // (/app/api/reports/eligible-workers).
-        const visibleReports = visibleProjectRecords(
-          context.repository.listOwnReports(context.principal),
-          scope.projectIds,
+        // T19: a worker's own reports are scoped by the repository (assignment
+        // covering the report date); an ended assignment keeps them listed.
+        const ownReports = context.repository.listOwnReports(context.principal);
+        const visibleReports = (
+          context.principal.role === 'worker'
+            ? ownReports
+            : visibleProjectRecords(ownReports, scope.projectIds)
         ) as PortalRow[];
         const reportRegister = buildReportWindow(
           visibleReports,
@@ -569,7 +580,12 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             return null;
           }
         })();
-        const visibleRecords = visibleProjectRecords(authorizedRecords, scope.projectIds);
+        // T19: a worker's own expenses are scoped by the repository (assignment
+        // covering the spend date); an ended assignment keeps them listed.
+        const visibleRecords =
+          context.principal.role === 'worker'
+            ? authorizedRecords
+            : visibleProjectRecords(authorizedRecords, scope.projectIds);
         // The auditor reads the same authorized, role-projected rows as an
         // overview only (no capture, no actions).
         const canReviewExpenses = [
@@ -761,6 +777,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           payActivities,
           payExpenses,
           payOutstanding: workerPayOutstanding(settlements, payExpenses),
+          // T41: link a project only when its page opens for this person.
+          payOpenableProjectIds: [
+            ...new Set(
+              [
+                ...((pay as { projectProgress?: Array<{ projectId?: unknown }> }).projectProgress ??
+                  []),
+                ...(settlements as Array<{ projectId?: unknown }>),
+              ]
+                .map((row) => String(row.projectId ?? ''))
+                .filter(Boolean),
+            ),
+          ].filter((projectId) => context.repository.canOpenProject(context.principal, projectId)),
         };
       }
       // The base project list is already role-scoped by the repository. Add

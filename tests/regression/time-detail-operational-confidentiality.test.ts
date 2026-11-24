@@ -68,7 +68,7 @@ async function detail(role: string, profile?: string) {
   const userId = role === 'project_manager' ? 'pm' : 'worker';
   openPortalRepository.mockReturnValue({
     principal: { userId, role },
-    repository: { timeDetail: vi.fn(() => ({ ...rawSource })) },
+    repository: { timeDetail: vi.fn(() => ({ ...rawSource })), canOpenProject: () => true },
     sqlite,
   });
   return await load({

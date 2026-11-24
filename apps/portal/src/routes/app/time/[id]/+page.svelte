@@ -335,7 +335,7 @@
       <a href={base + '/app/time'} data-origin-back
         ><DirectionIcon direction="left" /> {t('Time')}</a
       >
-      {#if !data.user?.workforceProfile}<a
+      {#if !data.user?.workforceProfile && data.canOpenProject !== false}<a
           href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a
         >{/if}
       {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}

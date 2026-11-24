@@ -19,6 +19,9 @@ import {
   cachedIntegrityCheck,
   cachedOperationalReadiness,
   clearIntegrityCache,
+  createIntegrityMonitor,
+  integrityMonitor,
+  workerIntegrityCheck,
   createReadinessGate,
   isRealDirectoryPath,
   operationalReadiness,
@@ -58,6 +61,7 @@ function fixtureDirectories() {
 
 beforeEach(() => {
   readinessGate.clear();
+  integrityMonitor.clear();
   mockedOpenDatabase.mockReturnValue({ close: vi.fn() } as never);
   mockedValidateContract.mockImplementation(() => ({
     directory: process.env.JA_MIGRATIONS_PATH ?? 'migrations',
@@ -230,6 +234,79 @@ describe('readiness integrity cache', () => {
     expect(cachedIntegrityCheck(probe.db, 0)).toBe('ok');
     expect(cachedIntegrityCheck(probe.db, 0)).toBe('ok');
     expect(probe.get).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('readiness integrity off the request thread (T97)', () => {
+  it('runs PRAGMA integrity_check in a worker thread against a real database file', async () => {
+    const { DatabaseSync } = await import('node:sqlite');
+    const root = mkdtempSync(join(tmpdir(), 'ja-integrity-'));
+    createdDirectories.push(root);
+    const path = join(root, 'probe.db');
+    const db = new DatabaseSync(path);
+    db.exec('CREATE TABLE t(id INTEGER PRIMARY KEY, v TEXT); INSERT INTO t(v) VALUES (1),(2);');
+    db.close();
+    expect(await workerIntegrityCheck(path)).toBe('ok');
+    expect(await workerIntegrityCheck(join(root, 'missing.db'))).toBe('unavailable');
+  });
+
+  it('keeps the event loop free while the check runs and serves the last result afterwards', async () => {
+    let release: (value: string) => void = () => undefined;
+    const runner = vi.fn(
+      () =>
+        new Promise<string>((resolvePromise) => {
+          release = resolvePromise;
+        }),
+    );
+    const monitor = createIntegrityMonitor(runner, 0);
+    const first = monitor.current('/data/app.db');
+    // Another tick can run while the first check is still pending.
+    let ticked = false;
+    await new Promise<void>((resolvePromise) =>
+      setImmediate(() => {
+        ticked = true;
+        resolvePromise();
+      }),
+    );
+    expect(ticked).toBe(true);
+    // Concurrent callers share the single running check.
+    const second = monitor.current('/data/app.db');
+    expect(runner).toHaveBeenCalledTimes(1);
+    release('ok');
+    expect(await first).toBe('ok');
+    expect(await second).toBe('ok');
+    // TTL 0: the stale result is returned at once while one re-check starts.
+    const stale = await monitor.current('/data/app.db');
+    expect(stale).toBe('ok');
+    expect(runner).toHaveBeenCalledTimes(2);
+    release('*** corruption');
+    await new Promise((resolvePromise) => setImmediate(resolvePromise));
+    expect(await monitor.current('/data/app.db')).toBe('*** corruption');
+  });
+
+  it('answers "checking" instead of waiting minutes for the very first check', async () => {
+    let release: (value: string) => void = () => undefined;
+    const runner = vi.fn(
+      () =>
+        new Promise<string>((resolvePromise) => {
+          release = resolvePromise;
+        }),
+    );
+    const monitor = createIntegrityMonitor(runner, 60_000, 5);
+    expect(await monitor.current('/data/app.db')).toBe('checking');
+    expect(await monitor.current('/data/app.db')).toBe('checking');
+    expect(runner).toHaveBeenCalledTimes(1);
+    release('ok');
+    await new Promise((resolvePromise) => setImmediate(resolvePromise));
+    expect(await monitor.current('/data/app.db')).toBe('ok');
+  });
+
+  it('serves a fresh ok result from memory without another check', async () => {
+    const runner = vi.fn(async () => 'ok');
+    const monitor = createIntegrityMonitor(runner, 60_000);
+    expect(await monitor.current('/data/app.db')).toBe('ok');
+    expect(await monitor.current('/data/app.db')).toBe('ok');
+    expect(runner).toHaveBeenCalledTimes(1);
   });
 });
 

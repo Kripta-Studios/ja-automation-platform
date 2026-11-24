@@ -181,10 +181,11 @@ describe('crew day GET filters', () => {
 
   it('returns a role-specific next step when no authorized projects exist', async () => {
     scenario.projects = [];
-    const worker = await day('?date=2026-09-27');
-    expect(worker.filterProblem).toMatchObject({
-      code: 'CREW_DAY_PROJECT_REQUIRED_CHIEF',
-      remedies: [{ id: 'contact_project_owner' }],
+    // T44: a person with no crew delegation at all gets the styled 403
+    // ("Crew hours is for crew chiefs"), not an invitation to ask for access.
+    await expect(day('?date=2026-09-27')).rejects.toMatchObject({
+      status: 403,
+      body: { message: 'crew.chief_required' },
     });
     scenario.projectCalls = 0;
     scenario.role = 'owner_admin';

@@ -699,7 +699,9 @@
       <a href={base + '/app/expenses'} data-origin-back
         ><DirectionIcon direction="left" /> {t('Expenses')}</a
       >
-      <a href={base + '/app/projects/' + String(record.project_id)}>{t('Open project')}</a>
+      {#if data.canOpenProject !== false}<a href={base + '/app/projects/' + String(record.project_id)}
+          >{t('Open project')}</a
+        >{/if}
       {#if record.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
         <a
           class="no-print"

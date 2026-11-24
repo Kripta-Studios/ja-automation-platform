@@ -24,6 +24,7 @@ import {
 import { createHash } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
+  canDecideOperationalApproval,
   canManageAssignments,
   canManageBilling,
   canManageClients,
@@ -2446,6 +2447,30 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ) {
+    this.assertOperationalApprovalRole(principal);
+    return this.decideOperationalTime(principal, id, decision, reason);
+  }
+
+  /**
+   * D6: the operational approval step (approve / send back / reject submitted
+   * time and expenses) belongs to the Owner and the project's manager. Finance
+   * reviews approved work for billing and pay, never the operational step. The
+   * project-level check (PM of this project, can_review) stays in
+   * assertOperationalReviewer. The only Finance exception is the audited
+   * "Approve & include" of invoice preparation (approveSourceForInvoice).
+   */
+  private assertOperationalApprovalRole(principal: Principal): void {
+    this.assertActive(principal);
+    if (!canDecideOperationalApproval(principal))
+      throw new AccessDeniedError('Owner or project manager approval required');
+  }
+
+  private decideOperationalTime(
+    principal: Principal,
+    id: string,
+    decision: 'approved' | 'needs_changes' | 'rejected',
+    reason?: string,
+  ) {
     return this.transaction(() => {
       if (principal.role === 'owner_admin' && decision === 'approved')
         this.assertCombinedApprovalOwner(principal);
@@ -2843,9 +2868,68 @@ export class PortalRepository {
       principal.role === 'auditor_read_only'
     )
       return true;
-    if (!this.hasEffectiveProjectObjectAccess(principal, projectId, objectDate)) return false;
+    if (!this.hasEffectiveProjectObjectAccess(principal, projectId, objectDate))
+      return this.ownRecordAssignmentCovers(principal, projectId, ownerId, objectDate);
     if (principal.role === 'project_manager') return true;
     return principal.role === 'worker' && principal.userId === ownerId;
+  }
+
+  /**
+   * T41: whether the project page would open for this person today. Lists that
+   * mention a project (My Pay progress, settlements, record details) render a
+   * link only when this is true, so a PM who worked on a project he does not
+   * manage is not sent to a 403 page.
+   */
+  canOpenProject(principal: Principal, projectId: string): boolean {
+    try {
+      this.assertActive(principal);
+      return this.hasEffectiveProjectObjectAccess(principal, projectId);
+    } catch (error) {
+      if (error instanceof AccessDeniedError) return false;
+      throw error;
+    }
+  }
+
+  /**
+   * T19/T41 read scope: people keep reading their OWN records for the days
+   * their assignment to the project covered, after the assignment ended (an
+   * external technician whose assignment closed, a PM who also worked as a
+   * member of a project he does not manage). Read only: every write keeps the
+   * current-assignment checks. Everything else that closes access still does:
+   * a removed (inactive) assignment, an inactive account, a stale session, a
+   * closed/archived project (a closing one stays readable: its pay and
+   * invoices are pending) or an invalid project timezone, and for a supplier
+   * coordinator a live supplier grant.
+   */
+  private ownRecordAssignmentCovers(
+    principal: Principal,
+    projectId: string,
+    ownerId: string,
+    objectDate: string,
+  ): boolean {
+    if (principal.userId !== ownerId) return false;
+    if (principal.role !== 'worker' && principal.role !== 'project_manager') return false;
+    try {
+      assertLiveSession(this.sqlite, principal, AccessDeniedError);
+    } catch {
+      return false;
+    }
+    const row = this.sqlite
+      .prepare(
+        `SELECT p.timezone FROM project_member pm
+           JOIN user u ON u.id=pm.user_id
+           JOIN project p ON p.id=pm.project_id
+          WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+            AND u.status='active' AND u.role=?
+            AND p.status IN ('active','planned','paused','closing')
+            AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
+          LIMIT 1`,
+      )
+      .get(projectId, ownerId, principal.role, objectDate, objectDate) as
+      | { timezone: string }
+      | undefined;
+    if (!row || !isValidIanaTimeZone(row.timezone)) return false;
+    return this.hasSupplierCoordinatorOperationalAccess(principal, projectId, objectDate);
   }
 
   private canMutateReport(
@@ -5614,6 +5698,16 @@ export class PortalRepository {
     decision: 'approved' | 'needs_changes' | 'rejected',
     reason?: string,
   ) {
+    this.assertOperationalApprovalRole(principal);
+    this.decideOperationalExpense(principal, id, decision, reason);
+  }
+
+  private decideOperationalExpense(
+    principal: Principal,
+    id: string,
+    decision: 'approved' | 'needs_changes' | 'rejected',
+    reason?: string,
+  ) {
     this.assertActive(principal);
     const reviewReason = reason?.trim() || undefined;
     if (decision !== 'approved' && !reviewReason) throw new ValidationError('A reason is required');
@@ -5716,6 +5810,11 @@ export class PortalRepository {
       );
     this.audit(principal, 'compensation_rule.create', 'compensation_rule', id, {
       workerId: input.workerId,
+      projectId: input.projectId ?? null,
+      currency: input.currency,
+      rateMinor: String(input.rateMinor),
+      rateBasis: input.rateBasis,
+      effectiveFrom: input.effectiveFrom,
     });
     return { id };
   }
@@ -7490,8 +7589,10 @@ export class PortalRepository {
       row = read()!;
     }
     if (row.approval_state === 'submitted') {
-      if (source.type === 'time') this.operationalApproveTime(principal, source.id, 'approved');
-      else this.operationalApproveExpense(principal, source.id, 'approved');
+      // Invoice preparation keeps its audited Finance "Approve & include" (owner
+      // decision 2026-11-17); the public operational path is Owner/PM only (D6).
+      if (source.type === 'time') this.decideOperationalTime(principal, source.id, 'approved');
+      else this.decideOperationalExpense(principal, source.id, 'approved');
       row = read()!;
     }
     if (row.approval_state !== 'approved')
@@ -11718,12 +11819,16 @@ export class PortalRepository {
     let technicalWithClause = '';
     if (principal.role === 'worker') {
       const instant = new Date();
-      const dailyScope = workerOperationalProjectScope(this.sqlite, principal, 'daily', instant);
+      // T19: own reports stay listed for the days the assignment covered.
+      const dailyScope = workerOperationalProjectScope(this.sqlite, principal, 'daily', instant, {
+        ownHistory: true,
+      });
       const technicalScope = workerOperationalProjectScope(
         this.sqlite,
         principal,
         'technical',
         instant,
+        { ownHistory: true },
       );
       dailyWithClause = dailyScope.withClause;
       technicalWithClause = technicalScope.withClause;
@@ -12279,7 +12384,15 @@ export class PortalRepository {
   ) {
     const conditions: string[] = [];
     const values: Array<string | number> = [];
-    if (options.view === 'business') conditions.push("action NOT LIKE 'service_job.%'");
+    // T40: ~99% of the log is service-job bookkeeping (entity_type 'job_run';
+    // the reviewed action registry binds every service_job.* action to it and
+    // nothing else). The extra range lets SQLite reach the ~1.6k business
+    // events through audit_entity_time_idx instead of reading the whole table,
+    // which froze the server for a search over "all time".
+    if (options.view === 'business')
+      conditions.push(
+        "action NOT LIKE 'service_job.%' AND (entity_type<'job_run' OR entity_type>'job_run')",
+      );
     if (options.view === 'service') conditions.push("action LIKE 'service_job.%'");
     if (options.from) {
       conditions.push('occurred_at>=?');
@@ -12344,7 +12457,7 @@ export class PortalRepository {
       .prepare(
         `SELECT id,actor_id,action,entity_type,entity_id,occurred_at,details_json
          FROM audit_event ${conditions.length ? `WHERE ${conditions.join(' AND ')}` : ''}
-         ORDER BY occurred_at DESC,id DESC LIMIT ? OFFSET ?`,
+         ORDER BY ${options.view === 'business' ? '+occurred_at' : 'occurred_at'} DESC,id DESC LIMIT ? OFFSET ?`,
       )
       .all(...values, bounded, Math.max(0, Math.trunc(options.offset ?? 0))) as Array<{
       id: string;
@@ -12383,14 +12496,27 @@ export class PortalRepository {
     );
   }
 
-  /** Entity types present in the audit log (index-only scan), for the filter. */
+  /**
+   * Entity types present in the audit log, for the filter. T40: a DISTINCT over
+   * ~500k events reads the whole index (11 s on a cold page cache, on the
+   * request path). The recursive skip-scan seeks once per distinct type on
+   * audit_entity_time_idx instead, so the cost grows with the number of kinds.
+   */
   listAuditEntityTypes(principal: Principal): string[] {
     this.assertReadable(principal);
     if (principal.role !== 'owner_admin' && principal.role !== 'auditor_read_only')
       throw new AccessDeniedError('Audit access required');
     return (
       this.sqlite
-        .prepare('SELECT DISTINCT entity_type FROM audit_event ORDER BY entity_type')
+        .prepare(
+          `WITH RECURSIVE kinds(entity_type) AS (
+             SELECT MIN(entity_type) FROM audit_event
+             UNION ALL
+             SELECT (SELECT MIN(a.entity_type) FROM audit_event a WHERE a.entity_type>kinds.entity_type)
+               FROM kinds WHERE kinds.entity_type IS NOT NULL
+           )
+           SELECT entity_type FROM kinds WHERE entity_type IS NOT NULL`,
+        )
         .all() as Array<{ entity_type: string }>
     ).map((row) => String(row.entity_type));
   }
@@ -12419,7 +12545,13 @@ export class PortalRepository {
     const values: Array<string> = [];
     let withClause = '';
     if (principal.role === 'worker') {
-      const scope = workerOperationalProjectScope(this.sqlite, principal, 'time');
+      // T19: own hours stay readable for the days the assignment covered (the
+      // ownHistory scope), also after the assignment ended. Closed projects,
+      // invalid timezones, stale sessions and revoked supplier grants still
+      // close the list.
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'time', new Date(), {
+        ownHistory: true,
+      });
       withClause = scope.withClause;
       clauses.push(scope.predicate);
       values.push(...scope.parameters);
@@ -12607,7 +12739,10 @@ export class PortalRepository {
     const values: Array<string> = [];
     let withClause = '';
     if (principal.role === 'worker') {
-      const scope = workerOperationalProjectScope(this.sqlite, principal, 'expense');
+      // T19: own expenses stay listed for the days the assignment covered.
+      const scope = workerOperationalProjectScope(this.sqlite, principal, 'expense', new Date(), {
+        ownHistory: true,
+      });
       withClause = scope.withClause;
       clauses.push(scope.predicate);
       values.push(...scope.parameters);

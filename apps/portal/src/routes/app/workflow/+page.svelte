@@ -12,6 +12,7 @@
   import { billingReadinessMessageKey } from '$lib/portal/billing-readiness';
   import { minutesToProjectHours } from '$lib/portal/sections/project-budget-input';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { workflowActionCopy, workflowStatus, workflowText } from '$lib/portal/workflow/copy';
   import type { ActionData, PageData } from './$types';
 
@@ -573,7 +574,7 @@
                 <select id="new-owner" name="ownerId" required bind:value={managerOwnerId}>
                   <option value="">{t('Choose an owner')}</option>
                   {#each ownerChoices(managerProjectId) as owner}<option value={owner.id}
-                      >{owner.name} · {workflowText(locale, owner.role)}</option
+                      >{owner.name} · {translateControlledValue(locale, 'role', owner.role)}</option
                     >{/each}
                 </select>
               </Field>
@@ -1046,7 +1047,7 @@
                   ><select id="policy-owner" name="ownerId" required bind:value={policyOwnerId}
                     ><option value="">{t('Choose an owner')}</option
                     >{#each policyOwners(policyProjectId) as owner}<option value={owner.id}
-                        >{owner.name} · {workflowText(locale, owner.role)}</option
+                        >{owner.name} · {translateControlledValue(locale, 'role', owner.role)}</option
                       >{/each}</select
                   ></Field
                 >

@@ -136,7 +136,9 @@ describe('standalone portal route locale boundary', () => {
     expect(boundary).toContain('$page.status');
     expect(boundary).toContain('$page.data');
     expect(boundary).toContain('applyStandaloneDocumentLocale');
-    expect(boundary).toContain("standaloneText(locale, 'No results')");
+    // T18: a 404 has its own localized "Page not found" copy, not search wording.
+    expect(boundary).toContain("err('notFoundTitle')");
+    expect(boundary).not.toContain("standaloneText(locale, 'No results')");
     expect(boundary).not.toMatch(/\{\s*\$page\.error\??\.message\s*\}/);
     const report = read('apps/portal/src/routes/app/reports/[id]/+page.svelte');
     expect(report).toContain("t('VERSION')");

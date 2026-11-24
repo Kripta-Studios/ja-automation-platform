@@ -51,10 +51,14 @@
   // Supplier and management routes already provide their own role-aware chrome
   // through nested layouts. Wrapping them here would duplicate the sidebar and
   // confuse assistive navigation landmarks.
+  // T18: an error replaces the page that would have drawn its own chrome, so
+  // error pages (403/404) always get this shell and the person keeps the menu.
   const standalone = $derived(
     Boolean(data.chromeUser) &&
-      !['/app/[section]', '/app', '/app/manage'].includes($page.route.id ?? '') &&
-      !/\/app\/(supplier|login|invite|accept-invitation)(\/|$)/.test($page.url.pathname),
+      !/\/app\/(login|invite|accept-invitation)(\/|$)/.test($page.url.pathname) &&
+      (Boolean($page.error) ||
+        (!['/app/[section]', '/app', '/app/manage'].includes($page.route.id ?? '') &&
+          !/\/app\/supplier(\/|$)/.test($page.url.pathname))),
   );
   const translate = (text: string) => portalText(locale, text);
   // Y6: standalone pages (project detail, crew, …) keep the phone bottom bar.

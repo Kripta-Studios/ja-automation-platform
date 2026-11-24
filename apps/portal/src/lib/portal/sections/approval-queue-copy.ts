@@ -5,6 +5,9 @@ const en = {
   help: 'Check each week and approve it. Send back anything that needs fixing — the worker sees your note.',
   helpOwner:
     'Check each week and approve it. Your approval also confirms it for billing and pay. Send back anything that needs fixing.',
+  // D6: Finance does not take the operational approval step.
+  helpFinance:
+    'Hours and expenses are approved by the owner or the project manager of each project. Here you can check what is approved and not invoiced yet.',
   tabsLabel: 'What to review',
   tabTime: 'Time',
   tabExpenses: 'Expenses',
@@ -135,6 +138,8 @@ const es: Record<CopyKey, string> = {
   help: 'Revisa cada semana y apruébala. Devuelve lo que haya que corregir: el trabajador verá tu nota.',
   helpOwner:
     'Revisa cada semana y apruébala. Tu aprobación también la confirma para facturación y pago. Devuelve lo que haya que corregir.',
+  helpFinance:
+    'Las horas y los gastos los aprueba el propietario o el jefe de proyecto de cada proyecto. Aquí puedes ver lo aprobado que aún no se ha facturado.',
   tabsLabel: 'Qué revisar',
   tabTime: 'Horas',
   tabExpenses: 'Gastos',
@@ -263,6 +268,8 @@ const pt: Record<CopyKey, string> = {
   help: 'Confira cada semana e aprove. Devolva o que precisar de correção: o trabalhador verá a sua nota.',
   helpOwner:
     'Confira cada semana e aprove. A sua aprovação também confirma para faturamento e pagamento. Devolva o que precisar de correção.',
+  helpFinance:
+    'As horas e despesas são aprovadas pelo proprietário ou pelo gerente de cada projeto. Aqui você confere o que foi aprovado e ainda não foi faturado.',
   tabsLabel: 'O que revisar',
   tabTime: 'Horas',
   tabExpenses: 'Despesas',

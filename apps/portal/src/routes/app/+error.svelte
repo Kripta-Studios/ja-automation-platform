@@ -10,6 +10,7 @@
     standaloneText,
   } from './standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { errorPageText, sectionLabelKey } from '$lib/portal/error-page-copy';
 
   const locale = $derived(
     resolveStandaloneLocale(
@@ -18,6 +19,25 @@
     ),
   );
   const status = $derived($page.status);
+  const errorCode = $derived(String($page.error?.message ?? ''));
+  const pageData = $derived(
+    $page.data as {
+      chromeUser?: { workforceProfile?: string } | null;
+      ownerContact?: { name: string; email: string } | null;
+    },
+  );
+  // T18: a refused supplier-workforce URL arrives as /restricted?from=<path>.
+  const routeRestricted = $derived(status === 403 && errorCode === 'operational.route_restricted');
+  const documentUnavailable = $derived(status === 404 && errorCode === 'document.unavailable');
+  const refusedPath = $derived(
+    routeRestricted || documentUnavailable
+      ? ($page.url.searchParams.get('from') ?? '')
+      : $page.url.pathname,
+  );
+  const payRefused = $derived(routeRestricted && /^\/(pay|my-pay)(\/|$)/u.test(refusedPath));
+  const crewChiefRequired = $derived(status === 403 && errorCode === 'crew.chief_required');
+  const err = (key: Parameters<typeof errorPageText>[1], params?: Record<string, string>) =>
+    errorPageText(locale, key, params);
   const financeProjectUnavailable = $derived(
     status === 404 && $page.error?.message === 'finance.project_unavailable',
   );
@@ -41,7 +61,7 @@
         : notificationDetailUnavailable
           ? translate('Notification unavailable')
           : status === 404
-            ? standaloneText(locale, 'No results')
+            ? err('notFoundTitle')
             : status === 403
               ? standaloneText(locale, 'Access restricted')
               : standaloneText(locale, 'Error'),
@@ -70,9 +90,19 @@
         : status === 404
           ? notificationDetailUnavailable
             ? translate('problem.notification.unavailable')
-            : translate('No records match that search in your access scope.')
+            : err('notFoundBody')
           : status === 403
-            ? closeoutFinanceDenied
+            ? payRefused
+              ? err(
+                  pageData.chromeUser?.workforceProfile === 'supplier_coordinator'
+                    ? 'payCoordinator'
+                    : 'payTechnician',
+                )
+              : routeRestricted
+                ? err('restrictedBody')
+                : crewChiefRequired
+                  ? err('crewChief')
+                  : closeoutFinanceDenied
               ? translate('problem.closeout.financeRoleRequired')
               : approvalRoleDenied
                 ? translate(
@@ -115,6 +145,10 @@
     const code = String($page.error?.message ?? '');
     if (auditHistoryCursorInvalid) return translate('Audit log');
     if (approvalRoleDenied) return translate('Approvals');
+    // T18: name the section of the URL that was opened (My Pay, Money, Audit
+    // log, …) instead of "Portal" or a guess from the error text.
+    const fromPath = sectionLabelKey(refusedPath);
+    if (fromPath) return translate(fromPath);
     if (code.includes('project') || $page.url.pathname.includes('/projects/'))
       return translate('Projects');
     if (code.includes('report')) return translate('Reports');
@@ -122,7 +156,8 @@
     if (code.includes('expense')) return translate('Expenses');
     if (code.includes('invoice')) return translate('Invoices');
     if (code.includes('notification')) return translate('Notifications');
-    return translate('Portal');
+    // No placeholder section name ("portal portal"): show none.
+    return '';
   });
 
   let errorHeading: HTMLHeadingElement | undefined;
@@ -141,13 +176,64 @@
 <main class="record-detail-page error-page">
   <nav class="detail-nav no-print" aria-label={translate('Portal navigation')}>
     <a href={recoveryHref}><DirectionIcon direction="left" /> {recoveryLabel}</a>
-    <span>{sectionLabel}</span>
+    {#if sectionLabel}<span>{sectionLabel}</span>{/if}
   </nav>
   <section class="detail-panel" role="alert">
-    <p class="portal-kicker">{sectionLabel}</p>
+    {#if sectionLabel}<p class="portal-kicker">{sectionLabel}</p>{/if}
     <h1 bind:this={errorHeading} tabindex="-1">{title}</h1>
     <p>{description}</p>
-    {#if closeoutFinanceDenied}<p>{translate('Contact an owner')}</p>{/if}
+    {#if status === 403}
+      {#if pageData.ownerContact?.email}
+        <p class="error-page__contact">
+          <a
+            href={`mailto:${pageData.ownerContact.email}?subject=${encodeURIComponent(
+              err('contactSubject', { page: sectionLabel || refusedPath }),
+            )}`}>{err('contact', { name: pageData.ownerContact.name || pageData.ownerContact.email })}</a
+          >
+        </p>
+      {:else}<p>{translate('Contact an owner')}</p>{/if}
+    {/if}
     <a class="secondary-button" href={recoveryHref}>{recoveryLabel}</a>
   </section>
 </main>
+
+<style>
+  /* T18: one readable refusal card: kicker above a real heading, no overlap,
+     no focus box from the programmatic focus, a visible contact link. */
+  .error-page .detail-panel {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 40rem;
+    padding: clamp(1.25rem, 4vw, 2rem);
+  }
+  .error-page .detail-panel > * {
+    margin: 0;
+  }
+  .error-page :global(.portal-kicker) {
+    display: block;
+    line-height: 1.4;
+  }
+  .error-page h1 {
+    font-size: clamp(1.4rem, 4vw, 1.9rem);
+    font-weight: 760;
+    line-height: 1.2;
+  }
+  /* The heading receives focus only programmatically (tabindex -1) so screen
+     readers announce it; it is not an interactive control. */
+  .error-page h1:focus {
+    outline: none;
+  }
+  .error-page__contact a {
+    color: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 0.18em;
+  }
+  .error-page .secondary-button {
+    justify-self: start;
+  }
+  /* Inside the app shell the layout already offers "Back" and the menu. */
+  :global(.standalone-workspace__content) .error-page .detail-nav {
+    display: none;
+  }
+</style>

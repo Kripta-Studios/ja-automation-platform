@@ -78,6 +78,10 @@ export const load: PageServerLoad = ({ locals, params, url, cookies }) => {
     }));
     return {
       user: locals.user,
+      // T41: "Open project" only when that page opens for this person.
+      canOpenProject:
+        !locals.user?.workforceProfile &&
+        context.repository.canOpenProject(context.principal, String(detail.report.project_id)),
       locale: resolvePortalLocalePreference(
         url.searchParams.get('lang'),
         cookies.get('ja.portal.locale'),

@@ -2,6 +2,37 @@ import type { LayoutServerLoad } from './$types';
 import { assistantCanonicalOwner } from '$lib/server/assistant-canonical-owner';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { readPendingApprovals } from '$lib/server/approval-queue';
+import { createDatabase } from '@ja/database';
+import { personDisplayName } from '$lib/portal/display-name';
+
+/**
+ * T18: the real person to ask when a page is not available ("Contact an
+ * owner" becomes a mail link). The company owner's business contact only;
+ * cached briefly so the layout does not open the database on every request.
+ */
+let ownerContactCache: { at: number; value: { name: string; email: string } | null } | null = null;
+function ownerContact(locals: App.Locals): { name: string; email: string } | null {
+  if (!locals.user || !locals.session) return null;
+  if (ownerContactCache && Date.now() - ownerContactCache.at < 600_000) return ownerContactCache.value;
+  let value: { name: string; email: string } | null = null;
+  try {
+    const { sqlite } = createDatabase();
+    try {
+      const owner = sqlite
+        .prepare(
+          "SELECT name,email FROM user WHERE role='owner_admin' AND status='active' AND email NOT LIKE '%.invalid' ORDER BY created_at LIMIT 1",
+        )
+        .get() as { name: string | null; email: string | null } | undefined;
+      if (owner?.email) value = { name: personDisplayName(owner.name, owner.email), email: owner.email };
+    } finally {
+      sqlite.close();
+    }
+  } catch {
+    value = null;
+  }
+  ownerContactCache = { at: Date.now(), value };
+  return value;
+}
 
 /**
  * The navigation "Approve" badge: the same pending count Home and the
@@ -41,4 +72,5 @@ export const load: LayoutServerLoad = ({ locals }) => ({
         }
       : null,
   approvalPendingCount: approvalPendingCount(locals),
+  ownerContact: ownerContact(locals),
 });

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { personDisplayName } from '$lib/portal/display-name';
 
 export type WorkflowProject = { id: string; number: string; name: string };
 export type WorkflowOwner = { id: string; name: string; role: string; projectIds: string[] };
@@ -80,6 +81,9 @@ export function accessibleWorkflowProjects(
           AND pm.user_id=? AND pm.status='active' AND pm.can_review=1
           AND pm.starts_on<=day.local_today
           AND (pm.ends_on IS NULL OR pm.ends_on>=day.local_today)
+          -- T41: follow-ups belong to projects the PM manages, not to projects
+          -- where the PM only works as a member.
+          AND (pm.assignment_role='project_manager' OR p.project_manager_id=pm.user_id)
         ORDER BY p.project_number,p.id`,
     )
     .all(...dayParameters(days), userId) as Array<{
@@ -106,7 +110,7 @@ export function workflowOwnersForProjects(
   const rows = sqlite
     .prepare(
       `${dayCte(days)}
-       SELECT DISTINCT p.id project_id,u.id,u.name,u.role
+       SELECT DISTINCT p.id project_id,u.id,u.name,u.email,u.role
          FROM current_project_days day
          JOIN project p ON p.id=day.project_id
          JOIN project_member pm ON pm.project_id=p.id
@@ -120,13 +124,20 @@ export function workflowOwnersForProjects(
     project_id: string;
     id: string;
     name: string | null;
+    email: string | null;
     role: string;
   }>;
   const owners = new Map<string, WorkflowOwner>();
   for (const row of rows) {
     let owner = owners.get(row.id);
     if (!owner) {
-      owner = { id: row.id, name: row.name ?? row.id, role: row.role, projectIds: [] };
+      // T41: display names, never login names or ids.
+      owner = {
+        id: row.id,
+        name: personDisplayName(row.name, row.email) || row.name || row.id,
+        role: row.role,
+        projectIds: [],
+      };
       owners.set(row.id, owner);
     }
     if (!owner.projectIds.includes(row.project_id)) owner.projectIds.push(row.project_id);

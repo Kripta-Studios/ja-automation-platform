@@ -25,15 +25,15 @@ const topics: Record<
     route: '',
     en: [
       'Find sections, tasks and records',
-      'Use {{Go to section}} (Ctrl/⌘ Shift K) for authorized actions, configuration and sections. {{Find a task}} (Ctrl/⌘ K) suggests tasks available to your account in English, Spanish or Portuguese, then opens a workspace or form for you to review. Choosing a result does not save, submit, approve or send anything. Record search is a separate handoff shown only when enabled for your account; the destination checks access again. At 200% text scaling, follow visible labels and error-summary links as forms reflow and retain entered values. Restricted supplier profiles stay in Supplier team.',
+      'Use {{Search}} (Ctrl/⌘ K) to find a section by its name in English, Spanish or Portuguese, a task your account can do, or (when your account can search records) a project, client or person. Choosing a result only opens the page or form; nothing is saved, sent or approved until you do it there. The destination checks your access again. Supplier accounts find their own sections and tasks; their team lives under {{My team}}.',
     ],
     es: [
       'Buscar secciones, tareas y registros',
-      'Usa {{Go to section}} (Ctrl/⌘ Shift K) para buscar acciones, configuración y secciones autorizadas. Buscar una tarea (Ctrl/⌘ K) sugiere tareas permitidas para tu cuenta en inglés, español o portugués y abre el espacio o formulario para que lo revises. Elegir un resultado no guarda, envía, aprueba ni emite nada. La búsqueda de registros es un acceso separado que solo aparece si está habilitado para tu cuenta; el destino vuelve a comprobar el acceso. Al ampliar el texto al 200 %, sigue las etiquetas y los enlaces del resumen de errores mientras el formulario se adapta y conserva los datos introducidos. Los perfiles de proveedor restringidos continúan en Supplier team.',
+      'Usa {{Search}} (Ctrl/⌘ K) para encontrar una sección por su nombre en inglés, español o portugués, una tarea que tu cuenta puede hacer o (si tu cuenta puede buscar registros) un proyecto, cliente o persona. Elegir un resultado solo abre la página o el formulario; no se guarda, envía ni aprueba nada hasta que lo hagas allí. El destino vuelve a comprobar tu acceso. Las cuentas de proveedor encuentran sus propias secciones y tareas; su equipo está en {{My team}}.',
     ],
     pt: [
       'Encontrar seções, tarefas e registros',
-      'Use {{Go to section}} (Ctrl/⌘ Shift K) para localizar ações, configurações e seções autorizadas. Buscar uma tarefa (Ctrl/⌘ K) sugere tarefas permitidas para sua conta em inglês, espanhol ou português e abre uma área ou formulário para você revisar. Escolher um resultado não salva, envia, aprova nem emite nada. A busca de registros é um encaminhamento separado, exibido somente quando habilitado para sua conta; o destino verifica o acesso novamente. Com o texto ampliado em 200%, siga os rótulos visíveis e os links do resumo de erros enquanto o formulário se reorganiza e preserva os dados digitados. Perfis restritos de fornecedor continuam em Supplier team.',
+      'Use {{Search}} (Ctrl/⌘ K) para encontrar uma seção pelo nome em inglês, espanhol ou português, uma tarefa que sua conta pode fazer ou (se sua conta puder buscar registros) um projeto, cliente ou pessoa. Escolher um resultado só abre a página ou o formulário; nada é salvo, enviado ou aprovado até você fazer isso lá. O destino verifica seu acesso novamente. Contas de fornecedor encontram suas próprias seções e tarefas; a equipe fica em {{My team}}.',
     ],
   },
   time: {

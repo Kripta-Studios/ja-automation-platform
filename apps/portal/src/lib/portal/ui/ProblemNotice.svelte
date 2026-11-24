@@ -82,6 +82,13 @@
               : 'problem.notice.actionNeeded',
       ),
   );
+  // The step-by-step dialog walks through fields to fix (or retries a failed
+  // save). A refusal with nothing to fix (permission, record state) has no
+  // steps, so the button would only repeat this message (audit T48).
+  const hasRecoverySteps = $derived(
+    kind === 'service' ||
+      (kind === 'error' && Object.keys(problem.fieldErrors ?? {}).length > 0),
+  );
   const visibleRemedies = $derived(
     (problem.remedies ?? [])
       .map((remedy: ProblemRemedy) => ({ remedy, link: remedyLinks[remedy.id] }))
@@ -120,7 +127,7 @@
       {/each}
     </ul>
   {/if}
-  {#if kind === 'error' || kind === 'service'}
+  {#if hasRecoverySteps}
     <button type="button" onclick={recover}
       >{portalText(locale, 'Complete the action step by step')}</button
     >

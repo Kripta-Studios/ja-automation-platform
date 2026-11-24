@@ -85,6 +85,16 @@
       pt: 'Técnico externo',
     },
   };
+  const chiefName: Record<Locale, string> = {
+    en: 'Crew chief',
+    es: 'Jefe de equipo',
+    pt: 'Chefe de equipe',
+  };
+  const chiefPath: Record<Locale, string> = {
+    en: 'Record and send hours and expenses for the crew members delegated to you on a project, during the dates of the delegation. The owner or the project manager reviews them.',
+    es: 'Registra y envía las horas y gastos de los miembros del equipo que te delegaron en un proyecto, dentro de las fechas de la delegación. El propietario o el responsable del proyecto los revisa.',
+    pt: 'Registre e envie as horas e despesas dos membros da equipe delegados a você em um projeto, dentro das datas da delegação. O proprietário ou o gerente do projeto os revisa.',
+  };
   const readingPaths: Record<Persona, Record<Locale, string>> = {
     worker: {
       en: 'Start with your assigned work, then time, expenses, reports and My Pay.',
@@ -371,19 +381,25 @@
           <p>{description(manual)}</p>
           {#if manual.audience !== 'quick-start'}
             <div class="role-guidance">
-              <div class="role-badges">
-                {#each manual.allowedPersonas as persona}
-                  <span>{roleNames[persona][data.locale]}</span>
+              {#if manual.id === 'bbs-chief-manual'}
+                <!-- The chief guide is about crew work, not the worker path (T81). -->
+                <div class="role-badges"><span>{chiefName[data.locale]}</span></div>
+                <p><strong>{chiefName[data.locale]}:</strong> {chiefPath[data.locale]}</p>
+              {:else}
+                <div class="role-badges">
+                  {#each manual.allowedPersonas as persona}
+                    <span>{roleNames[persona][data.locale]}</span>
+                  {/each}
+                </div>
+                <p>{text('sharedChapters')}</p>
+                <h3>{text('rolePaths')}</h3>
+                {#each visiblePaths(manual) as persona}
+                  <p>
+                    <strong>{roleNames[persona][data.locale]}:</strong>
+                    {readingPaths[persona][data.locale]}
+                  </p>
                 {/each}
-              </div>
-              <p>{text('sharedChapters')}</p>
-              <h3>{text('rolePaths')}</h3>
-              {#each visiblePaths(manual) as persona}
-                <p>
-                  <strong>{roleNames[persona][data.locale]}:</strong>
-                  {readingPaths[persona][data.locale]}
-                </p>
-              {/each}
+              {/if}
             </div>
           {/if}
           <div class="manual-actions">

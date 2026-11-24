@@ -41,12 +41,10 @@ describe('localized help workflow labels', () => {
           ? 'Buscar secciones, tareas y registros'
           : 'Encontrar seções, tarefas e registros',
       );
-      expect(navigation!.body).toContain(portalText(locale, 'Go to section'));
-      expect(navigation!.body).toContain(
-        locale === 'es' ? 'Buscar una tarea' : 'Buscar uma tarefa',
-      );
-      expect(navigation!.body).toContain(locale === 'es' ? '200 %' : '200%');
-      expect(navigation!.body).toContain(locale === 'es' ? 'Supplier team' : 'Supplier team');
+      // One search (Ctrl/⌘ K) with the same label as the top bar (audit T29).
+      expect(navigation!.body).toContain(`${portalText(locale, 'Search')} (Ctrl/⌘ K)`);
+      expect(navigation!.body).not.toContain('Shift K');
+      expect(navigation!.body).toContain(portalText(locale, 'My team'));
 
       const billing = topics.find((entry) => entry.route === 'billing');
       expect(billing).toBeDefined();

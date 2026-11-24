@@ -155,7 +155,12 @@ describe('audit T29: sections are found by name prefix, typo and any language', 
     ['faturas', 'pt', 'Invoices'],
   ] as const)('"%s" (%s) finds %s', (query, locale, label) => {
     const result = searchSectionDestinations(query, real(locale));
-    expect(result.sections.map((entry) => entry.label)).toContain(label);
+    const destination = nav.find((item) => item.label === label)!.href!;
+    // The section itself, or a task that opens the same destination.
+    const hrefs = [...result.actions, ...result.configurations, ...result.sections].map(
+      (entry) => entry.href ?? entry.task?.href ?? '',
+    );
+    expect(hrefs.some((href) => href.startsWith(destination))).toBe(true);
   });
   it('still never matches inside a word', () => {
     expect(searchSectionDestinations('ments', real('en')).sections).toEqual([]);

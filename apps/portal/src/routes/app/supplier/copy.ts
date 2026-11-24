@@ -41,6 +41,11 @@ export const supplierCopy = {
     assign: 'Assign existing technician',
     assigned: 'Technicians',
     future: 'Future',
+    assignedHelp:
+      "To change a technician's contact details or end an assignment early, ask J&A (the owner).",
+    reportLanguage: 'Report language',
+    overnightHint: 'Night shift? Record the hours after midnight on the next date.',
+    personHoursInvalid: 'Enter hours, for example 7.5 or 7:30.',
     time: 'Record team hours',
     batchHelp:
       'Pick one or more technicians and enter the hours once. Each person gets their own draft; check them, then send them to J&A.',
@@ -166,6 +171,12 @@ export const supplierCopy = {
     assign: 'Asignar técnico existente',
     assigned: 'Técnicos',
     future: 'Futuro',
+    assignedHelp:
+      'Para cambiar los datos de contacto de un técnico o terminar antes una asignación, pídelo a J&A (el propietario).',
+    reportLanguage: 'Idioma del informe',
+    overnightHint:
+      '¿Turno de noche? Registra las horas posteriores a medianoche en la fecha siguiente.',
+    personHoursInvalid: 'Introduce horas, por ejemplo 7,5 o 7:30.',
     time: 'Registrar horas del equipo',
     batchHelp:
       'Elige uno o varios técnicos e indica las horas una sola vez. Cada persona recibe su propio borrador; revísalos y envíalos a J&A.',
@@ -291,6 +302,11 @@ export const supplierCopy = {
     assign: 'Atribuir técnico existente',
     assigned: 'Técnicos',
     future: 'Futuro',
+    assignedHelp:
+      'Para alterar os dados de contato de um técnico ou encerrar uma atribuição antes do previsto, peça à J&A (o proprietário).',
+    reportLanguage: 'Idioma do relatório',
+    overnightHint: 'Turno noturno? Registre as horas após a meia-noite na data seguinte.',
+    personHoursInvalid: 'Informe as horas, por exemplo 7,5 ou 7:30.',
     time: 'Registrar horas da equipe',
     batchHelp:
       'Escolha um ou mais técnicos e informe as horas uma só vez. Cada pessoa recebe o próprio rascunho; confira e envie para a J&A.',
@@ -500,17 +516,21 @@ export const supplierAccessCopy = {
     revokedAssignments: '{count} assignments ended.',
     revokedAssignmentsOne: '1 assignment ended.',
     coordinatorPickSupplier: 'Choose the supplier first to see its coordinators.',
-    coordinatorNone: 'This supplier has no coordinator yet. Give an account the coordinator profile in Setup and access.',
+    coordinatorNone:
+      'This supplier has no coordinator yet. Give an account the coordinator profile in Setup and access.',
     showOtherAccounts: 'Also list J&A accounts without a supplier profile',
-    profileConfirm: 'I confirm this access change. The account will only see the supplier workspace.',
-    profileConfirmStandard: 'I confirm this access change. The account returns to normal J&A permissions.',
+    profileConfirm:
+      'I confirm this access change. The account will only see the supplier workspace.',
+    profileConfirmStandard:
+      'I confirm this access change. The account returns to normal J&A permissions.',
     noLinkedAccounts: 'No account has a supplier profile yet.',
     accessEndedTitle: 'Your installation access has ended',
     accessEndedBody:
       'J&A ended your authorization. You cannot record new hours here. Hours already sent stay with J&A; contact J&A if you need access again.',
     accessEndedItem: '{project} · ended {date}',
     accessNoneTitle: 'No installation authorized yet',
-    accessNoneBody: 'J&A has not authorized an installation for you yet. Contact J&A to get access.',
+    accessNoneBody:
+      'J&A has not authorized an installation for you yet. Contact J&A to get access.',
   },
   es: {
     revokeOpen: 'Retirar acceso…',
@@ -522,17 +542,20 @@ export const supplierAccessCopy = {
     revokedAssignments: '{count} asignaciones finalizadas.',
     revokedAssignmentsOne: '1 asignación finalizada.',
     coordinatorPickSupplier: 'Elige primero el proveedor para ver sus coordinadores.',
-    coordinatorNone: 'Este proveedor aún no tiene coordinador. Asigna el perfil de coordinador a una cuenta en Configuración y acceso.',
+    coordinatorNone:
+      'Este proveedor aún no tiene coordinador. Asigna el perfil de coordinador a una cuenta en Configuración y acceso.',
     showOtherAccounts: 'Mostrar también cuentas de J&A sin perfil de proveedor',
     profileConfirm: 'Confirmo este cambio de acceso. La cuenta solo verá el espacio del proveedor.',
-    profileConfirmStandard: 'Confirmo este cambio de acceso. La cuenta vuelve a los permisos normales de J&A.',
+    profileConfirmStandard:
+      'Confirmo este cambio de acceso. La cuenta vuelve a los permisos normales de J&A.',
     noLinkedAccounts: 'Ninguna cuenta tiene aún perfil de proveedor.',
     accessEndedTitle: 'Tu acceso a la instalación ha terminado',
     accessEndedBody:
       'J&A ha finalizado tu autorización. Ya no puedes registrar horas aquí. Las horas enviadas se conservan en J&A; contacta con J&A si necesitas acceso de nuevo.',
     accessEndedItem: '{project} · finalizado el {date}',
     accessNoneTitle: 'Aún no hay instalaciones autorizadas',
-    accessNoneBody: 'J&A aún no te ha autorizado ninguna instalación. Contacta con J&A para obtener acceso.',
+    accessNoneBody:
+      'J&A aún no te ha autorizado ninguna instalación. Contacta con J&A para obtener acceso.',
   },
   pt: {
     revokeOpen: 'Revogar acesso…',
@@ -544,17 +567,20 @@ export const supplierAccessCopy = {
     revokedAssignments: '{count} atribuições encerradas.',
     revokedAssignmentsOne: '1 atribuição encerrada.',
     coordinatorPickSupplier: 'Escolha primeiro o fornecedor para ver seus coordenadores.',
-    coordinatorNone: 'Este fornecedor ainda não tem coordenador. Dê o perfil de coordenador a uma conta em Configuração e acesso.',
+    coordinatorNone:
+      'Este fornecedor ainda não tem coordenador. Dê o perfil de coordenador a uma conta em Configuração e acesso.',
     showOtherAccounts: 'Listar também contas da J&A sem perfil de fornecedor',
     profileConfirm: 'Confirmo esta mudança de acesso. A conta verá apenas o espaço do fornecedor.',
-    profileConfirmStandard: 'Confirmo esta mudança de acesso. A conta volta às permissões normais da J&A.',
+    profileConfirmStandard:
+      'Confirmo esta mudança de acesso. A conta volta às permissões normais da J&A.',
     noLinkedAccounts: 'Nenhuma conta tem perfil de fornecedor ainda.',
     accessEndedTitle: 'Seu acesso à instalação terminou',
     accessEndedBody:
       'A J&A encerrou sua autorização. Você não pode mais registrar horas aqui. As horas já enviadas ficam com a J&A; fale com a J&A se precisar de acesso novamente.',
     accessEndedItem: '{project} · encerrado em {date}',
     accessNoneTitle: 'Nenhuma instalação autorizada ainda',
-    accessNoneBody: 'A J&A ainda não autorizou nenhuma instalação para você. Fale com a J&A para obter acesso.',
+    accessNoneBody:
+      'A J&A ainda não autorizou nenhuma instalação para você. Fale com a J&A para obter acesso.',
   },
 } as const;
 
@@ -565,8 +591,10 @@ export const supplierDraftCopy = {
     editOrDiscard: 'Edit or discard',
     reviewedConfirm: 'I checked these hours. Send them to J&A for approval.',
     reviewNote: 'Reviewer note',
-    returnedHint: 'J&A sent these hours back. Correct them below; the correction goes back to J&A for approval.',
-    rejectedHint: 'J&A rejected these hours; they are not counted. Record them again only if the reviewer asks for it.',
+    returnedHint:
+      'J&A sent these hours back. Correct them below; the correction goes back to J&A for approval.',
+    rejectedHint:
+      'J&A rejected these hours; they are not counted. Record them again only if the reviewer asks for it.',
     needsChangesBanner: '{count} records need changes. Open the report to correct them.',
     needsChangesBannerOne: '1 record needs changes. Open the report to correct it.',
     openReturned: 'Show records to correct',
@@ -576,8 +604,10 @@ export const supplierDraftCopy = {
     editOrDiscard: 'Editar o descartar',
     reviewedConfirm: 'He revisado estas horas. Enviarlas a J&A para su aprobación.',
     reviewNote: 'Nota del revisor',
-    returnedHint: 'J&A ha devuelto estas horas. Corrígelas abajo; la corrección vuelve a J&A para su aprobación.',
-    rejectedHint: 'J&A ha rechazado estas horas; no se cuentan. Regístralas de nuevo solo si el revisor lo pide.',
+    returnedHint:
+      'J&A ha devuelto estas horas. Corrígelas abajo; la corrección vuelve a J&A para su aprobación.',
+    rejectedHint:
+      'J&A ha rechazado estas horas; no se cuentan. Regístralas de nuevo solo si el revisor lo pide.',
     needsChangesBanner: '{count} registros necesitan cambios. Abre el informe para corregirlos.',
     needsChangesBannerOne: '1 registro necesita cambios. Abre el informe para corregirlo.',
     openReturned: 'Ver registros a corregir',
@@ -587,9 +617,12 @@ export const supplierDraftCopy = {
     editOrDiscard: 'Editar ou descartar',
     reviewedConfirm: 'Conferi estas horas. Enviá-las à J&A para aprovação.',
     reviewNote: 'Nota do revisor',
-    returnedHint: 'A J&A devolveu estas horas. Corrija-as abaixo; a correção volta à J&A para aprovação.',
-    rejectedHint: 'A J&A rejeitou estas horas; elas não são contadas. Registre-as novamente só se o revisor pedir.',
-    needsChangesBanner: '{count} registros precisam de alterações. Abra o relatório para corrigi-los.',
+    returnedHint:
+      'A J&A devolveu estas horas. Corrija-as abaixo; a correção volta à J&A para aprovação.',
+    rejectedHint:
+      'A J&A rejeitou estas horas; elas não são contadas. Registre-as novamente só se o revisor pedir.',
+    needsChangesBanner:
+      '{count} registros precisam de alterações. Abra o relatório para corrigi-los.',
     needsChangesBannerOne: '1 registro precisa de alterações. Abra o relatório para corrigi-lo.',
     openReturned: 'Ver registros a corrigir',
   },

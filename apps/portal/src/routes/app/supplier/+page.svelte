@@ -3,6 +3,7 @@
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
   import { supplierRosterForDate } from '$lib/portal/supplier-roster';
+  import { validSupplierPersonHours } from '$lib/portal/supplier-person-hours';
   import { centerNavigationTarget } from '$lib/portal/ui/navigation-target';
   import {
     filterSuppliersByProjectRelations,
@@ -579,6 +580,23 @@
       new Date(`${raw}T00:00:00Z`),
     );
   }
+  /** T70: per-person hours accept 7.5, 7,5 or 7:30 (more than 0, at most 24 h). */
+  const validPersonHours = validSupplierPersonHours;
+  function personHoursValidity(node: HTMLInputElement, text: string) {
+    const apply = (current: string) =>
+      node.setCustomValidity(
+        current.trim() && !validPersonHours(current) ? c.personHoursInvalid : '',
+      );
+    apply(text);
+    return { update: apply };
+  }
+  /** The server refused the batch because of per-person hours: mark the bad inputs. */
+  const workerHoursRejected = $derived(
+    form?.operation === 'createTimeBatch' &&
+      Boolean(
+        currentProblem && Object.keys(currentProblem.fieldErrors ?? {}).includes('workerHours'),
+      ),
+  );
   /** "on the team since Nov 19, 2026" instead of "2026-11-19 — …" (P7). */
   function teamPeriod(startsOn: unknown, endsOn: unknown): string {
     return endsOn
@@ -788,35 +806,41 @@
     {#if data.owner}
       <button
         type="button"
-        class:active={workspaceAction === 'directory'} aria-pressed={workspaceAction === 'directory'}
+        class:active={workspaceAction === 'directory'}
+        aria-pressed={workspaceAction === 'directory'}
         onclick={() => selectWorkspaceAction('directory')}>{m.directory}</button
       >
       <button
         type="button"
-        class:active={workspaceAction === 'setup'} aria-pressed={workspaceAction === 'setup'}
+        class:active={workspaceAction === 'setup'}
+        aria-pressed={workspaceAction === 'setup'}
         onclick={() => selectWorkspaceAction('setup')}>{m.setup}</button
       >
       <button
         type="button"
-        class:active={workspaceAction === 'authorize'} aria-pressed={workspaceAction === 'authorize'}
+        class:active={workspaceAction === 'authorize'}
+        aria-pressed={workspaceAction === 'authorize'}
         onclick={() => selectWorkspaceAction('authorize')}>{c.grant}</button
       >
     {/if}
     <button
       type="button"
-      class:active={workspaceAction === 'personnel'} aria-pressed={workspaceAction === 'personnel'}
+      class:active={workspaceAction === 'personnel'}
+      aria-pressed={workspaceAction === 'personnel'}
       onclick={() => selectWorkspaceAction('personnel')}>{m.personnel}</button
     >
     {#if !data.owner}
       <button
         type="button"
-        class:active={workspaceAction === 'time'} aria-pressed={workspaceAction === 'time'}
+        class:active={workspaceAction === 'time'}
+        aria-pressed={workspaceAction === 'time'}
         onclick={() => selectWorkspaceAction('time')}>{c.time}</button
       >
     {/if}
     <button
       type="button"
-      class:active={workspaceAction === 'report'} aria-pressed={workspaceAction === 'report'}
+      class:active={workspaceAction === 'report'}
+      aria-pressed={workspaceAction === 'report'}
       onclick={() => selectWorkspaceAction('report')}>{c.report}</button
     >
   </nav>
@@ -838,14 +862,13 @@
     {#if form?.success}<p role="status">
         {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
           {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
-          {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(form.outcome.workDate)} · {decimalHours(
-            form.outcome.totalMinutes,
-          )}
+          {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(
+            form.outcome.workDate,
+          )} · {decimalHours(form.outcome.totalMinutes)}
           {c.teamHours}
         {:else if form.success && form.operation === 'submitTimeBatch' && form.outcome}
-          {form.outcome.submittedCount} {form.outcome.submittedCount === 1
-            ? c.draftSubmitted
-            : c.draftsSubmitted}
+          {form.outcome.submittedCount}
+          {form.outcome.submittedCount === 1 ? c.draftSubmitted : c.draftsSubmitted}
         {:else if form.success && form.operation === 'revoke' && form.outcome}
           {g.revokedSaved}
           {Number(form.outcome.endedAssignments) === 1
@@ -853,7 +876,7 @@
             : g.revokedAssignments.replace('{count}', String(form.outcome.endedAssignments ?? 0))}
         {:else}{savedMessage(form.operation)}{/if}
       </p>{/if}
-    {#if currentProblem && !(submissionFailure && data.projects.length && workspaceAction === 'report') && !(editor && form?.operation === editor.operation) && !['assignTechnician', 'createTimeBatch'].includes(form?.operation ?? '')}
+    {#if currentProblem && !(submissionFailure && data.projects.length && workspaceAction === 'report') && !(editor && form?.operation === editor.operation) && !['assignTechnician', 'addTechnician', 'createTimeBatch'].includes(form?.operation ?? '')}
       <ProblemNotice
         problem={currentProblem}
         kind={currentProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
@@ -1211,7 +1234,7 @@
             >{/if}</label
         >
         <label data-ui="field"
-          >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
+          >{c.reportLanguage}<select name="lang" value={data.locale}
             ><option value="en">{portalText(data.locale, 'English')}</option><option value="es"
               >{portalText(data.locale, 'Spanish')}</option
             ><option value="pt">{portalText(data.locale, 'Portuguese')}</option></select
@@ -1242,7 +1265,9 @@
           'projectId',
           ['grant', 'addTechnician', 'assignTechnician'].includes(operation) &&
             !data.projects.some((project) => project.id === $page.url.searchParams.get('projectId'))
-            ? ''
+            ? operation !== 'grant' && data.projects.length === 1
+              ? String(data.projects[0]?.id ?? '')
+              : ''
             : data.projectId,
         )}
         ><option value="">{c.select}</option>{#each data.projects as p}<option value={p.id}
@@ -1284,7 +1309,16 @@
       /></label
     >
     <label data-ui="field"
-      >{c.ends}<input name="endsOn" type="date" value={value(operation, 'endsOn')} /></label
+      >{c.ends}<input
+        name="endsOn"
+        type="date"
+        min={value(
+          operation,
+          'startsOn',
+          operation === 'assignTechnician' && assignDefaultStart ? assignDefaultStart : today,
+        ) || undefined}
+        value={value(operation, 'endsOn')}
+      /></label
     >
   {/snippet}
   {#if data.owner && workspaceAction === 'setup'}
@@ -1364,7 +1398,8 @@
             onchange={(event) => selectProfileAccount(event.currentTarget.value)}
             ><option value="">{c.select}</option>{#each filteredAccounts as account}<option
                 value={account.id}
-                >{account.name}{account.email ? ` <${account.email}>` : ''} · {account.profile === 'supplier_coordinator'
+                >{account.name}{account.email ? ` <${account.email}>` : ''} · {account.profile ===
+                'supplier_coordinator'
                   ? c.coordinator
                   : account.profile === 'external_technician'
                     ? c.technician
@@ -1423,8 +1458,8 @@
             required
             disabled={!grantSupplierId || !grantCoordinators.length}
             value={value('grant', 'coordinatorId')}
-            ><option value="">{c.select}</option
-            >{#each grantCoordinators as account}<option value={account.id}
+            ><option value="">{c.select}</option>{#each grantCoordinators as account}<option
+                value={account.id}
                 >{account.name}{account.email ? ` <${account.email}>` : ''}</option
               >{/each}</select
           >
@@ -1481,6 +1516,13 @@
         data-supplier-operation="addTechnician"
         use:formValidation
       >
+        {#if currentProblem && form?.operation === 'addTechnician' && !Object.keys(currentProblem.fieldErrors ?? {}).length}
+          <ProblemNotice
+            problem={currentProblem}
+            kind={currentProblem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+            {remedyLinks}
+          />
+        {/if}
         {#if data.owner}{@render suppliers('addTechnician')}{/if}
         {@render projects('addTechnician')}
         <label data-ui="field"
@@ -1554,9 +1596,10 @@
       </form>
     </SectionCard>
     <SectionCard title={c.assigned}
-      ><ul>
+      ><p class="muted">{c.assignedHelp}</p>
+      <ul>
         {#each data.assigned as t}<li>
-            {t.name} · {t.startsOn} — {t.endsOn || '…'}
+            {t.name} · {teamPeriod(t.startsOn, t.endsOn)}
             {#if today && t.startsOn > today}<StatusBadge variant="neutral">{c.future}</StatusBadge
               >{/if}
           </li>{/each}
@@ -1598,7 +1641,9 @@
                 .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
             )}
           />
-          <h3 class="drafts-title">{d.draftsTitle.replace('{count}', String(openDrafts.length))}</h3>
+          <h3 class="drafts-title">
+            {d.draftsTitle.replace('{count}', String(openDrafts.length))}
+          </h3>
           <div class="drafts-table-wrap">
             <table class="drafts-table">
               <thead>
@@ -1629,7 +1674,12 @@
             </table>
           </div>
           <label class="check"
-            ><input type="checkbox" required name="reviewed" value="yes" />{d.reviewedConfirm}</label
+            ><input
+              type="checkbox"
+              required
+              name="reviewed"
+              value="yes"
+            />{d.reviewedConfirm}</label
           >
           <button class="primary-button" disabled={submissionNeedsReview}
             >{(openDrafts.length === 1 ? c.submitDraftsOne : c.submitDrafts).replace(
@@ -1694,7 +1744,8 @@
                   disabled={selectedWorkerIds.length >= batchLimit &&
                     !selectedWorkerIds.includes(String(technician.id))}
                 />
-                <span>{technician.name} · {teamPeriod(technician.startsOn, technician.endsOn)}</span>
+                <span>{technician.name} · {teamPeriod(technician.startsOn, technician.endsOn)}</span
+                >
               </label>
             {:else}<p class="muted">{m.noMatches}</p>{/each}
           </div>
@@ -1723,12 +1774,15 @@
           >
         </fieldset>
         {#if batchMode === 'shared'}
-          <TimeIntervalFields
-            translate={(key) => portalText(data.locale, key)}
-            initialStart={value('createTimeBatch', 'startTime')}
-            initialEnd={value('createTimeBatch', 'endTime')}
-            initialBreak={Number(value('createTimeBatch', 'breakMinutes', '0'))}
-          />
+          <div class="time-interval-block">
+            <TimeIntervalFields
+              translate={(key) => portalText(data.locale, key)}
+              initialStart={value('createTimeBatch', 'startTime')}
+              initialEnd={value('createTimeBatch', 'endTime')}
+              initialBreak={Number(value('createTimeBatch', 'breakMinutes', '0'))}
+            />
+            <p class="muted">{c.overnightHint}</p>
+          </div>
         {:else}
           <div class="batch-technicians">
             {#each eligibleAssigned.filter( (technician) => selectedWorkerIds.includes(String(technician.id)), ) as technician}
@@ -1740,6 +1794,11 @@
                   autocomplete="off"
                   placeholder="7.5"
                   required
+                  aria-invalid={workerHoursRejected &&
+                  !validPersonHours(workerHours[String(technician.id)] ?? '')
+                    ? 'true'
+                    : undefined}
+                  use:personHoursValidity={workerHours[String(technician.id)] ?? ''}
                   bind:value={workerHours[String(technician.id)]}
                 />
               </label>
@@ -1919,8 +1978,8 @@
                   )}
                   required
                   >{#each supplierTimeCategories as category (category)}<option value={category}
-                >{supplierCategoryLabel(data.locale, category)}</option
-              >{/each}</select
+                      >{supplierCategoryLabel(data.locale, category)}</option
+                    >{/each}</select
                 ></label
               >
               {#if entry.startTime && entry.endTime}
@@ -2060,8 +2119,8 @@
                         : entry.category,
                     )}
                     >{#each supplierTimeCategories as category (category)}<option value={category}
-                >{supplierCategoryLabel(data.locale, category)}</option
-              >{/each}</select
+                        >{supplierCategoryLabel(data.locale, category)}</option
+                      >{/each}</select
                   ></label
                 >
                 {#if entry.startTime && entry.endTime}
@@ -2380,7 +2439,21 @@
     margin-top: 2rem;
   }
   .batch-team,
-  .time-interval {
+  .time-interval,
+  .time-interval-block {
+    grid-column: 1 / -1;
+  }
+  .time-interval-block {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .time-interval-block :global(label:not(.time-range-choice)),
+  form > :global(label:not([data-ui]):not(.check)) {
+    display: grid;
+    gap: 0.4rem;
+  }
+  form > :global([data-validation-summary]),
+  form > :global([data-ui='problem-notice']) {
     grid-column: 1 / -1;
   }
   .batch-team {

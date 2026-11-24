@@ -515,6 +515,13 @@ export function formValidation(form: HTMLFormElement): ActionResult {
     queueMicrotask(() => {
       if (active) updateReportedErrors(form);
     });
+    // Component effects (Svelte) may set custom validity after that microtask; check
+    // once more before the next paint so a fixed field's error and summary go away
+    // while typing, not on blur (which shifted the layout under a tapped button, T23).
+    if (typeof requestAnimationFrame === 'function')
+      requestAnimationFrame(() => {
+        if (active) updateReportedErrors(form);
+      });
   };
   const onReset = (event: Event): void => {
     queueMicrotask(() => {

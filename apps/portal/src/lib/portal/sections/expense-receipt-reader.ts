@@ -101,7 +101,11 @@ async function readNow(
       // Busy (another tab, or two reads at once on the server): wait and retry quietly.
       if (response.status === 429) continue;
       if (!response.ok) return done(fromName);
-      const result = (await response.json()) as { text?: unknown; busy?: unknown; retryAfterMs?: unknown };
+      const result = (await response.json()) as {
+        text?: unknown;
+        busy?: unknown;
+        retryAfterMs?: unknown;
+      };
       if (result.busy === true) {
         const delay = Number(result.retryAfterMs);
         await wait(Number.isFinite(delay) && delay > 0 ? Math.min(delay, 10_000) + 300 : 10_500);
@@ -110,7 +114,11 @@ async function readNow(
       const facts =
         typeof result.text === 'string' ? receiptFactsFromText(result.text, { locale, today }) : {};
       // A deliberate file name ("2026-11-14_89.90.jpg") wins over OCR guesses.
-      return done({ amount: fromName.amount ?? facts.amount, date: fromName.date ?? facts.date });
+      return done({
+        amount: fromName.amount ?? facts.amount,
+        date: fromName.date ?? facts.date,
+        ...(facts.currency ? { currency: facts.currency } : {}),
+      });
     } catch {
       return done(fromName);
     }

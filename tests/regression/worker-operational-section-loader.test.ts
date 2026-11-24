@@ -119,6 +119,15 @@ beforeEach(() => {
     ALTER TABLE project ADD COLUMN name TEXT;
     ALTER TABLE project ADD COLUMN project_number TEXT;
     ALTER TABLE project ADD COLUMN po_number TEXT;
+    -- Time reviewer outcomes (audit T07/T76): returned/rejected entries, recorders, PM names.
+    ALTER TABLE project ADD COLUMN project_manager_id TEXT;
+    ALTER TABLE user ADD COLUMN name TEXT;
+    ALTER TABLE user ADD COLUMN email TEXT;
+    CREATE TABLE time_entry(id TEXT,project_id TEXT,worker_id TEXT,work_date TEXT,category TEXT,minutes INTEGER,approval_state TEXT,submitted_at TEXT);
+    CREATE TABLE approval_event(id TEXT,entity_type TEXT,entity_id TEXT,from_state TEXT,to_state TEXT,actor_id TEXT,reason TEXT,occurred_at TEXT);
+    CREATE TABLE record_correction_link(record_type TEXT,original_id TEXT,correction_id TEXT);
+    CREATE TABLE crew_time_entry_recorder(time_entry_id TEXT,recorded_by_user_id TEXT);
+    CREATE TABLE supplier_time_entry_recorder(time_entry_id TEXT,recorded_by_user_id TEXT);
     UPDATE project SET timezone='UTC',name=id,project_number=id;
     INSERT INTO expense VALUES('expired-expense','expired-project','worker','2026-09-30','','Expired expense summary','meals',NULL);
     INSERT INTO daily_report VALUES('expired-report','expired-project','worker','2026-09-30','Expired report summary');
@@ -161,7 +170,7 @@ describe('operational section loader safe Worker DTOs', () => {
       sqlite.exec(`
         UPDATE project_member SET status='inactive' WHERE project_id='expired-project';
         UPDATE project_member SET starts_on='2026-09-28',ends_on='${currentEndsOn}' WHERE project_id='current-project';
-        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL);
+        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL,NULL);
         INSERT INTO project_member VALUES('future-hidden-project','worker','active','2026-10-02','2026-10-04');
         INSERT INTO schedule VALUES('future-hidden-project','2026-09-01',NULL,600,600,600,600,600,0,0);
       `);
@@ -191,7 +200,7 @@ describe('operational section loader safe Worker DTOs', () => {
       sqlite.exec(`
       UPDATE project_member SET status='inactive' WHERE project_id='expired-project';
       UPDATE project_member SET starts_on='2026-09-28',ends_on='2026-10-04' WHERE project_id='current-project';
-      INSERT INTO project VALUES('unrelated-project','${projectStatus}','UTC','Private unrelated project','Unrelated number',NULL);
+      INSERT INTO project VALUES('unrelated-project','${projectStatus}','UTC','Private unrelated project','Unrelated number',NULL,NULL);
       INSERT INTO project_member VALUES('unrelated-project','${workerId}','${memberStatus}','2026-10-02','2026-10-04');
     `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
@@ -210,7 +219,7 @@ describe('operational section loader safe Worker DTOs', () => {
         INSERT INTO supplier_user_profile VALUES('worker','${profile}','supplier');
         INSERT INTO supplier VALUES('supplier','active');
         INSERT INTO supplier_project_grant VALUES('supplier','worker','current-project','active','2026-09-30','2026-10-03');
-        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL);
+        INSERT INTO project VALUES('future-hidden-project','active','UTC','Private future project','Future project number',NULL,NULL);
         INSERT INTO project_member VALUES('future-hidden-project','worker','active','2026-10-02','2026-10-04');
       `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;

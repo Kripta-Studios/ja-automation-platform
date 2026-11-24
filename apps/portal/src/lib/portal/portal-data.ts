@@ -147,7 +147,20 @@ export type PortalData = {
   timeWorkers?: Array<{ id: string; name: string }>;
   timeWorkerId?: string;
   weekEntries?: PortalRow[];
-  weekSheets?: Array<{ id: string; projectId: string; filename: string; createdAt: string }>;
+  weekSheets?: Array<{
+    id: string;
+    projectId: string;
+    filename: string;
+    createdAt: string;
+    /** The uploader (or owner) may remove it while the week is not sent (audit T38). */
+    removable?: boolean;
+  }>;
+  /** Sent-back time entries in any week (audit T07). */
+  timeReturns?: PortalRow[];
+  /** Entries a reviewer rejected this week, with the note (audit T07). */
+  weekRejected?: PortalRow[];
+  /** Project id -> who reviews this person's hours (audit T07/T83). */
+  timeReviewers?: Record<string, string>;
   recordsTotal?: number;
   timeDay?: string;
   timeView?: 'capture' | 'overview';

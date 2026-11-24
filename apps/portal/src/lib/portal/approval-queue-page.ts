@@ -220,6 +220,8 @@ export type ApprovalQueuePage = {
    * owner approves (P8), with the owner's display name.
    */
   ownerOnlyTime?: { count: number; ownerName: string } | null;
+  /** PM only: display name of the owner who approves the PM's own entries. */
+  ownApprover?: string;
   options: QueueFilterOptions;
   filtersActive: boolean;
   /** Pending rows in the active tab that match search/filters. */

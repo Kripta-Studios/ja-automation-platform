@@ -13,8 +13,14 @@ import { error, redirect } from '@sveltejs/kit';
 import { defaultLookbackPeriod, isRealIsoDate } from '$lib/server/iso-date';
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import {
+  openReturnedTime,
+  projectManagerNames,
+  rejectedTimeInRange,
+  timeRecorders,
+} from '$lib/server/time-returns';
 import { mondayOf } from '$lib/server/portal-week';
-import { listSignedWeekSheets } from '$lib/server/signed-week-sheets';
+import { listSignedWeekSheets, signedSheetWeekSent } from '$lib/server/signed-week-sheets';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
@@ -430,7 +436,32 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           projectIds: timeProjectIds,
           workerId: timeWorkerId,
           weekStart,
-        }).map(({ id, projectId, filename, createdAt }) => ({ id, projectId, filename, createdAt }));
+        }).map(({ id, projectId, workerId: sheetWorkerId, filename, createdAt, uploadedBy }) => ({
+          id,
+          projectId,
+          filename,
+          createdAt,
+          // T38: the uploader (or the owner) may remove it while the week is not sent.
+          removable:
+            (uploadedBy === context.principal.userId || context.principal.role === 'owner_admin') &&
+            !signedSheetWeekSent(context.sqlite, { projectId, workerId: sheetWorkerId, weekStart }),
+        }));
+        // Reviewer outcomes (T07): sent-back entries in any week (landing banner with
+        // links) and rejected entries of this week (read-only, with the note).
+        const timeReturns =
+          timeView === 'capture'
+            ? openReturnedTime(context.sqlite, timeWorkerId, timeProjectIds)
+            : [];
+        const weekRejected =
+          timeView === 'capture'
+            ? rejectedTimeInRange(context.sqlite, timeWorkerId, timeProjectIds, weekStart, weekEnd)
+            : [];
+        const recorders = timeRecorders(
+          context.sqlite,
+          weekEntries.map((row) => String(row.id)),
+          timeWorkerId,
+        );
+        const timeReviewers = projectManagerNames(context.sqlite, timeProjectIds);
         return {
           ...common,
           projects: timeProjects,
@@ -440,8 +471,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           timeDay,
           timeView,
           canReviewTime: canReview,
-          weekEntries,
+          weekEntries: weekEntries.map((row) =>
+            recorders.has(String(row.id))
+              ? { ...row, recorded_by_name: personDisplayName(recorders.get(String(row.id))!) }
+              : row,
+          ),
           weekSheets,
+          timeReturns,
+          timeReviewers,
+          weekRejected,
           overview,
           timeFilter: {
             category: '',
@@ -558,7 +596,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           return {
             get: (id: string) =>
               (statement ??= context.sqlite.prepare(
-                "SELECT reason FROM approval_event WHERE entity_type='expense' AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+                "SELECT reason FROM approval_event WHERE entity_type='expense' AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR (reason NOT LIKE 'Superseded by append-only correction retry %' AND reason NOT LIKE 'Superseded by correction %')) ORDER BY occurred_at DESC,id DESC LIMIT 1",
               )).get(id),
           };
         })();
@@ -635,9 +673,27 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 }
               : row,
           );
+        // T54 (finance-43): capture lists only projects this person can book on. The
+        // owner records for anyone; Finance and project managers only where they hold an
+        // active assignment themselves (the server refuses the others anyway).
+        const captureProjects =
+          context.principal.role === 'finance_admin' || context.principal.role === 'project_manager'
+            ? (() => {
+                const own = new Set(
+                  (
+                    context.sqlite
+                      .prepare(
+                        "SELECT DISTINCT project_id FROM project_member WHERE user_id=? AND status='active' AND (ends_on IS NULL OR ends_on>=date('now','-90 days'))",
+                      )
+                      .all(context.principal.userId) as Array<{ project_id: string }>
+                  ).map((row) => row.project_id),
+                );
+                return scope.projects.filter((project) => own.has(String(project.id)));
+              })()
+            : scope.projects;
         return {
           ...common,
-          projects: scope.projects,
+          projects: captureProjects,
           expenseView,
           records,
           expenseCapture: {

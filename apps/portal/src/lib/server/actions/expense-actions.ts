@@ -1,3 +1,4 @@
+import { newId } from '@ja/domain';
 import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
 import { relative, resolve } from 'node:path';
@@ -9,7 +10,6 @@ import {
   V3AccessDeniedError,
   V3ConflictError,
   ValidationError,
-  recordAuditEvent,
 } from '@ja/database';
 import { z, type ZodError } from 'zod';
 import { mondayOf } from '$lib/server/portal-week';
@@ -33,6 +33,7 @@ import {
 } from './action-message';
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { expenseCategories } from '$lib/portal/expense-categories';
+import { normalizeAmountText } from '$lib/portal/payment-money';
 import type { DatabaseSync } from 'node:sqlite';
 
 const expenseCategorySchema = z.enum([
@@ -227,7 +228,10 @@ const expenseUpdateSchema = versionedRecordSchema
 /** Normalize the browser's decimal controls into the exact minor-unit update contract. */
 export function parseExpenseUpdateForm(object: Record<string, unknown>) {
   const payload = { ...object };
-  const amountMinor = decimalToMinor(normalizeExpenseAmount(payload.amount), payload.amountCurrency);
+  const amountMinor = decimalToMinor(
+    normalizeExpenseAmount(payload.amount, payload.amountCurrency),
+    payload.amountCurrency,
+  );
   payload.amountMinor = amountMinor ?? payload.amount;
   delete payload.amount;
   delete payload.amountCurrency;
@@ -710,12 +714,16 @@ function expenseWeekFailure(
 }
 
 /** Phone keyboards in ES/PT locales type "12,50"; accept one decimal comma as the separator. */
-export function normalizeExpenseAmount(value: unknown): unknown {
-  return typeof value === 'string' && /^\s*\d+,\d{1,2}\s*$/u.test(value)
-    ? value.trim().replace(',', '.')
-    : typeof value === 'string'
-      ? value.trim()
-      : value;
+/**
+ * Typed amount to the canonical "1234.50" the minor-unit converter expects. Uses the
+ * same locale-tolerant parser as the form (T56: "2.940,00" in pt/es, "2,940.00" in en).
+ */
+export function normalizeExpenseAmount(value: unknown, currency?: unknown): unknown {
+  if (typeof value !== 'string') return value;
+  return (
+    normalizeAmountText(value, typeof currency === 'string' && currency ? currency : 'USD') ??
+    value.trim()
+  );
 }
 
 /**
@@ -811,6 +819,47 @@ export async function validateExpenseReceipt(file: File): Promise<Uint8Array> {
   } catch {
     throw new ValidationError('Expense receipt content invalid');
   }
+}
+
+/**
+ * The signed-in person's own expense that already carries a receipt with these bytes
+ * (T46). Only the uploader's own files are compared, so the answer never reveals other
+ * people's records; naming the expense tells the person where the photo is used.
+ */
+function ownReceiptUse(
+  context: ReturnType<typeof openPortalRepository>,
+  sha256: string,
+): { spentOn: string; category: string; vendor: string } | undefined {
+  return context.sqlite
+    .prepare(
+      `SELECT e.spent_on spentOn,e.category category,COALESCE(e.vendor,'') vendor
+         FROM expense e JOIN document d ON d.id=e.receipt_document_id
+        WHERE d.sha256=? AND d.owner_id=? AND d.artifact_type='receipt'
+          AND e.approval_state<>'void'
+        ORDER BY e.created_at DESC,e.id DESC LIMIT 1`,
+    )
+    .get(sha256, context.principal.userId) as
+    | { spentOn: string; category: string; vendor: string }
+    | undefined;
+}
+
+function receiptAlreadyAttached(
+  use: { spentOn: string; category: string; vendor: string },
+  values: Record<string, unknown>,
+) {
+  const expense = [use.vendor, use.category].filter(Boolean).join(' · ');
+  return actionFail(
+    409,
+    'problem.expense.receiptAlreadyAttached',
+    { spentOn: use.spentOn, expense },
+    `This receipt is already attached to your expense of ${use.spentOn} (${expense}). No new expense was saved. Open that expense instead, or choose another photo.`,
+    {
+      code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
+      values,
+      fieldErrors: {},
+      remedies: [{ id: 'review_expenses' }],
+    },
+  );
 }
 
 /** A batch receipt is already stored or repeated in the batch: nothing saved, rows named. */
@@ -1131,7 +1180,10 @@ export const expenseActions = withOperationalActionNames({
         category: row.category,
         description: row.description,
         currency: object.currency,
-        amountMinor: decimalToMinor(row.amount, object.currency),
+        amountMinor: decimalToMinor(
+          normalizeExpenseAmount(row.amount, object.currency),
+          object.currency,
+        ),
         whoPaid: object.whoPaid,
         receiptRequired: false,
       }),
@@ -1231,26 +1283,32 @@ export const expenseActions = withOperationalActionNames({
             context.repository.expenseDetail(context.principal, id);
           return { created: details.expenseWeekCount, replayed: true };
         }
-        const created = inputs.map((input) => {
+        // The batch's retry identity rides on the first expense's own expense.create
+        // audit event, so every expense has exactly one "Expense recorded" event.
+        const ids = inputs.map(() => newId());
+        const created = inputs.map((input, index) => {
           if (!input.success) throw new ValidationError('Expense fields are invalid');
-          return context.repository.createExpense(context.principal, input.data, workerId);
+          return context.repository.createExpense(
+            context.principal,
+            input.data,
+            workerId,
+            undefined,
+            {
+              id: ids[index],
+              ...(index === 0
+                ? {
+                    auditDetails: {
+                      projectId: String(object.projectId),
+                      expenseWeekRequestId: requestId,
+                      expenseWeekPayloadHash: payloadHash,
+                      expenseWeekCount: inputs.length,
+                      expenseIds: ids,
+                    },
+                  }
+                : {}),
+            },
+          );
         });
-        // Reuse the reviewed expense.create audit contract to record this batch's
-        // retry identity. The rows and identity commit together; no schema write.
-        recordAuditEvent(
-          context.sqlite,
-          context.principal,
-          'expense.create',
-          'expense',
-          created[0]!.id,
-          {
-            projectId: String(object.projectId),
-            expenseWeekRequestId: requestId,
-            expenseWeekPayloadHash: payloadHash,
-            expenseWeekCount: created.length,
-            expenseIds: created.map((row) => row.id),
-          },
-        );
         return { created: created.length, replayed: false };
       });
       return actionSuccess(
@@ -1324,7 +1382,10 @@ export const expenseActions = withOperationalActionNames({
         spentOn: object[`spentOn_${index}`],
         category: object[`category_${index}`],
         currency: object.currency,
-        amountMinor: decimalToMinor(normalizeExpenseAmount(amount), object.currency),
+        amountMinor: decimalToMinor(
+          normalizeExpenseAmount(amount, object.currency),
+          object.currency,
+        ),
         description: String(object[`note_${index}`] ?? '').trim(),
         whoPaid: 'worker',
         receiptRequired: Boolean(receiptFile),
@@ -1392,7 +1453,8 @@ export const expenseActions = withOperationalActionNames({
         else seen.add(key);
         if (storedContent.get(sha256, rowBytes.byteLength)) duplicateRows.add(row.index);
       }
-      if (duplicateRows.size) return duplicateBatchReceipt([...duplicateRows].sort((a, b) => a - b));
+      if (duplicateRows.size)
+        return duplicateBatchReceipt([...duplicateRows].sort((a, b) => a - b));
       for (const row of rows)
         row.input.whoPaid = defaultExpensePayer(context.sqlite, {
           projectId: String(row.input.projectId),
@@ -1464,28 +1526,35 @@ export const expenseActions = withOperationalActionNames({
       const result = expenseWeekTransaction(context, () => {
         const replayed = prior();
         if (replayed) return replayed;
-        const created = rows.map((row) => {
+        // Retry identity on the first expense's own expense.create event (no duplicate).
+        const ids = rows.map(() => newId());
+        const created = rows.map((row, index) => {
           const parsed = expenseInputSchema.safeParse(row.input);
           if (!parsed.success) throw new ValidationError('Expense fields are invalid');
-          return context.repository.createExpense(context.principal, parsed.data, workerId);
+          return context.repository.createExpense(
+            context.principal,
+            parsed.data,
+            workerId,
+            undefined,
+            {
+              id: ids[index],
+              ...(index === 0
+                ? {
+                    auditDetails: {
+                      projectId: String(object.projectId),
+                      expenseBatchRequestId: requestId,
+                      expenseBatchPayloadHash: payloadHash,
+                      expenseBatchCount: rows.length,
+                      expenseIds: ids,
+                    },
+                  }
+                : {}),
+            },
+          );
         });
         if (submitNow)
           for (const row of created)
             context.repository.submitExpense(context.principal, row.id, row.version);
-        recordAuditEvent(
-          context.sqlite,
-          context.principal,
-          'expense.create',
-          'expense',
-          created[0]!.id,
-          {
-            projectId: String(object.projectId),
-            expenseBatchRequestId: requestId,
-            expenseBatchPayloadHash: payloadHash,
-            expenseBatchCount: created.length,
-            expenseIds: created.map((row) => row.id),
-          },
-        );
         return { created: created.length, replayed: false };
       });
       if (result.replayed) await cleanup();
@@ -1540,7 +1609,10 @@ export const expenseActions = withOperationalActionNames({
     delete object.receipt;
     object.receiptRequired =
       object.receiptRequired === 'on' || (receiptFile !== undefined && receiptFile.size > 0);
-    object.amountMinor = decimalToMinor(normalizeExpenseAmount(object.amount), object.currency);
+    object.amountMinor = decimalToMinor(
+      normalizeExpenseAmount(object.amount, object.currency),
+      object.currency,
+    );
     delete object.amount;
     for (const key of ['paymentMethod', 'receiptDocumentId', 'vendor']) {
       if (object[key] === '') object[key] = undefined;
@@ -1616,7 +1688,25 @@ export const expenseActions = withOperationalActionNames({
           'Expense draft already saved. No duplicate was created.',
         );
       if (receiptFile && bytes) {
-        uploaded = await saveExpenseReceipt(context, String(object.projectId), receiptFile, bytes);
+        try {
+          uploaded = await saveExpenseReceipt(
+            context,
+            String(object.projectId),
+            receiptFile,
+            bytes,
+          );
+        } catch (error) {
+          // Access and validation run first (inside the reservation). Only when the bytes are
+          // already stored is the person's OWN expense with that receipt named (T46).
+          const use =
+            receiptHash &&
+            error instanceof Error &&
+            error.message === 'Upload conflicts with existing content'
+              ? ownReceiptUse(context, receiptHash)
+              : undefined;
+          if (use) return receiptAlreadyAttached(use, values);
+          throw error;
+        }
         object.receiptDocumentId = uploaded.id;
       }
       const parsed = expenseInputSchema.safeParse(object);
@@ -1650,28 +1740,28 @@ export const expenseActions = withOperationalActionNames({
             ) as { id: string } | undefined;
           if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
         }
+        // The retry identity is stored on the expense's own expense.create audit
+        // event: one "Expense recorded" per expense (T17 double emit).
         const created = context.repository.createExpense(
           context.principal,
           parsed.data,
           workerId,
           requestId,
-          { allowSeparateExpense },
+          {
+            allowSeparateExpense,
+            ...(retryIdentity
+              ? {
+                  auditDetails: {
+                    projectId: parsed.data.projectId,
+                    expenseRequestId: retryIdentity,
+                    expensePayloadHash: payloadHash,
+                  },
+                }
+              : {}),
+          },
         );
         if (submitNow && !created.replayed)
           context.repository.submitExpense(context.principal, created.id, created.version);
-        if (retryIdentity && !created.replayed)
-          recordAuditEvent(
-            context.sqlite,
-            context.principal,
-            'expense.create',
-            'expense',
-            created.id,
-            {
-              projectId: parsed.data.projectId,
-              expenseRequestId: retryIdentity,
-              expensePayloadHash: payloadHash,
-            },
-          );
         return created;
       });
       if (created.replayed) await uploaded?.cleanup();

@@ -104,6 +104,7 @@ const en = {
   fullReport: 'Full report',
   reportTasks: 'Work done',
   reportProblems: 'Problems',
+  reportOpenItems: 'Problems or open items',
   reportBlockers: 'Blockers',
   reportNextDay: 'Next day',
   reportSafety: 'Safety',
@@ -130,6 +131,15 @@ const en = {
   ownerApprovesSupplierOne: 'Supplier and crew hours are approved by the owner ({name}). Waiting now: 1 entry.',
   noMatches: 'Nothing matches these filters.',
   reportEmpty: 'No details written.',
+  // Audit 2026-11-22 (T10, T36).
+  approveWeekConfirm: 'Approve {summary}? Approvals cannot be undone.',
+  approveWeekYes: 'Yes, approve',
+  approveOne: 'Approve',
+  rejectConfirm: 'Reject is final: the worker cannot fix and resend it.',
+  rejectYes: 'Yes, reject',
+  estimateEcb: '≈ {amount} (ECB {date})',
+  convertLink: 'Conversions',
+  ownEntriesBy: 'Your own entries — {name} (owner) approves them ({summary})',
 };
 
 type CopyKey = keyof typeof en;
@@ -236,6 +246,7 @@ const es: Record<CopyKey, string> = {
   fullReport: 'Informe completo',
   reportTasks: 'Trabajo realizado',
   reportProblems: 'Problemas',
+  reportOpenItems: 'Problemas o pendientes',
   reportBlockers: 'Bloqueos',
   reportNextDay: 'Día siguiente',
   reportSafety: 'Seguridad',
@@ -262,6 +273,15 @@ const es: Record<CopyKey, string> = {
   ownerApprovesSupplierOne: 'Las horas de proveedores y cuadrillas las aprueba el propietario ({name}). En espera: 1 registro.',
   noMatches: 'Nada coincide con estos filtros.',
   reportEmpty: 'Sin detalles escritos.',
+  // Audit 2026-11-22 (T10, T36).
+  approveWeekConfirm: '¿Aprobar {summary}? Las aprobaciones no se pueden deshacer.',
+  approveWeekYes: 'Sí, aprobar',
+  approveOne: 'Aprobar',
+  rejectConfirm: 'Rechazar es definitivo: el trabajador no podrá corregirlo ni reenviarlo.',
+  rejectYes: 'Sí, rechazar',
+  estimateEcb: '≈ {amount} (BCE {date})',
+  convertLink: 'Conversiones',
+  ownEntriesBy: 'Tus propios registros — los aprueba {name} (propietario) ({summary})',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -366,6 +386,7 @@ const pt: Record<CopyKey, string> = {
   fullReport: 'Relatório completo',
   reportTasks: 'Trabalho feito',
   reportProblems: 'Problemas',
+  reportOpenItems: 'Problemas ou pendências',
   reportBlockers: 'Bloqueios',
   reportNextDay: 'Próximo dia',
   reportSafety: 'Segurança',
@@ -392,6 +413,15 @@ const pt: Record<CopyKey, string> = {
   ownerApprovesSupplierOne: 'As horas de fornecedores e equipes são aprovadas pelo proprietário ({name}). Aguardando: 1 registro.',
   noMatches: 'Nada corresponde a estes filtros.',
   reportEmpty: 'Sem detalhes escritos.',
+  // Audit 2026-11-22 (T10, T36).
+  approveWeekConfirm: 'Aprovar {summary}? Aprovações não podem ser desfeitas.',
+  approveWeekYes: 'Sim, aprovar',
+  approveOne: 'Aprovar',
+  rejectConfirm: 'Rejeitar é definitivo: o trabalhador não poderá corrigir nem reenviar.',
+  rejectYes: 'Sim, rejeitar',
+  estimateEcb: '≈ {amount} (BCE {date})',
+  convertLink: 'Conversões',
+  ownEntriesBy: 'Seus próprios registros — {name} (proprietário) os aprova ({summary})',
 };
 
 export type ApprovalQueueCopyKey = CopyKey;

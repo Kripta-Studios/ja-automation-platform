@@ -42,7 +42,52 @@ export const receiptStateLabels: Record<ReceiptState, string> = {
   not_required: 'Receipt not required',
 };
 
-export type ReceiptFacts = { amount?: string; date?: string };
+export type ReceiptFacts = {
+  amount?: string;
+  date?: string;
+  /** ISO code printed on the receipt ("MXN", "R$", "€"); absent when unclear (bare "$"). */
+  currency?: string;
+};
+
+/**
+ * Currency printed on a receipt (T22: an MXN receipt was saved as USD, ~20x over).
+ * Codes and unambiguous symbols only. A bare "$" is used by USD, MXN, CAD, ARS…,
+ * so it never picks a currency: the form then asks the person to check it.
+ */
+export function receiptCurrencyFromText(text: string): string | undefined {
+  const source = text.slice(0, 20_000);
+  const counts = new Map<string, number>();
+  const add = (code: string, weight = 1) => counts.set(code, (counts.get(code) ?? 0) + weight);
+  for (const match of source.matchAll(/\b(USD|EUR|MXN|BRL|CAD|GBP|CHF|ARS|CNY|JPY|RMB)\b/gu))
+    add(match[1] === 'RMB' ? 'CNY' : match[1]!, 2);
+  for (const match of source.matchAll(/\b(MX\$|M\.N\.|US\$|U\$S|C\$|CA\$|R\$|AR\$)/gu)) {
+    const symbol = match[1]!;
+    add(
+      symbol === 'MX$' || symbol === 'M.N.'
+        ? 'MXN'
+        : symbol === 'US$' || symbol === 'U$S'
+          ? 'USD'
+          : symbol === 'R$'
+            ? 'BRL'
+            : symbol === 'AR$'
+              ? 'ARS'
+              : 'CAD',
+      2,
+    );
+  }
+  for (const match of source.matchAll(/(R\$|€|£|¥)/gu)) {
+    const symbol = match[1]!;
+    if (symbol === 'R$') continue; // counted above
+    add(symbol === '€' ? 'EUR' : symbol === '£' ? 'GBP' : 'JPY');
+  }
+  if (/pesos?\s+mexicanos?|moneda\s+nacional/iu.test(source)) add('MXN', 2);
+  if (/\breais\b|\breal\s+brasileiro/iu.test(source)) add('BRL', 2);
+  const ranked = [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  if (!ranked.length) return undefined;
+  // Two currencies equally present (e.g. "USD 10 = MXN 200"): do not guess.
+  if (ranked.length > 1 && ranked[0]![1] === ranked[1]![1]) return undefined;
+  return ranked[0]![0];
+}
 
 /** Normalize "1.234,56" / "1,234.56" / "12,50" / "12.5" into an exact "1234.56" decimal string. */
 export function normalizeReceiptAmount(raw: string): string | undefined {
@@ -122,6 +167,8 @@ export function receiptFactsFromText(
     }
     if (best) facts.amount = best.value;
   }
+  const currency = receiptCurrencyFromText(source);
+  if (currency) facts.currency = currency;
   return facts;
 }
 

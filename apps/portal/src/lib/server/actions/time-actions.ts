@@ -14,7 +14,11 @@ import {
 import { decimalToMinor, formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { mondayOf } from '$lib/server/portal-week';
 import { withAssignmentFinanceTransaction } from './assignment-finance';
-import { SignedSheetInputError, storeSignedWeekSheet } from '$lib/server/signed-week-sheets';
+import {
+  SignedSheetInputError,
+  removeSignedWeekSheet,
+  storeSignedWeekSheet,
+} from '$lib/server/signed-week-sheets';
 import { decimalHoursToMinutes, weekDates } from '$lib/portal/sections/time-entry-actions';
 import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
 import { parseCellDetail, parseHoursText, type CellDetail } from '$lib/portal/sections/time-hours';
@@ -584,6 +588,37 @@ const timeProblems: Record<string, TimeProblem> = {
     field: 'breakMinutes',
     remedy: 'review_time',
   },
+  // Correction paths (sent-back entries fixed from the week/day sheet, /time/<id>).
+  'Correction duration is invalid': {
+    status: 400,
+    code: 'TIME_CORRECTION_DURATION_INVALID',
+    key: 'problem.time.correctionDurationInvalid',
+    message: 'Enter hours between 0 and 24 and, with start and end times, a break shorter than the shift.',
+    field: 'minutes',
+    remedy: 'review_time',
+  },
+  'Change at least one operational field before creating a correction': {
+    status: 400,
+    code: 'TIME_CORRECTION_NO_CHANGE',
+    key: 'problem.time.correctionNoChange',
+    message: 'Change the hours, times or note before sending the correction.',
+    field: 'minutes',
+    remedy: 'review_time',
+  },
+  'A correction draft already exists for this original record': {
+    status: 409,
+    code: 'TIME_CORRECTION_EXISTS',
+    key: 'problem.time.correctionExists',
+    message: 'A correction for this entry already exists. Open it from the day to continue.',
+    remedy: 'review_time',
+  },
+  'Correction field is not allowed': {
+    status: 400,
+    code: 'TIME_CORRECTION_FIELD_INVALID',
+    key: 'problem.time.correctionFieldInvalid',
+    message: 'This change cannot be made on a sent-back entry. Change only the hours, times or note.',
+    remedy: 'review_time',
+  },
   'Minutes must equal elapsed time less break minutes': {
     status: 400,
     code: 'TIME_DURATION_MISMATCH',
@@ -1105,6 +1140,36 @@ export const timeActions = withOperationalActionNames({
       if (error instanceof ConflictError || (error instanceof Error && /existing content/i.test(error.message)))
         return sheetFail(409, 'problem.time.sheetDuplicate', 'This file is already stored. Choose the signed sheet for this week.', 'TIME_SHEET_DUPLICATE');
       return timeActionFailure(error, values);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /** Remove a signed sheet attached by mistake to a week not yet sent (T38). */
+  removeWeekSheet: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'time')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const object = await formObject(request);
+    const documentId = String(object.documentId ?? '').trim();
+    if (!documentId || documentId.length > 100) return invalidSheet();
+    const context = openPortalRepository(locals);
+    try {
+      removeSignedWeekSheet(context, documentId);
+      return actionSuccess('action.time.sheetRemoved', {}, 'Signed sheet removed from the week.');
+    } catch (error) {
+      if (error instanceof SignedSheetInputError)
+        return actionFail(
+          error.code === 'sent' ? 409 : 403,
+          error.code === 'sent' ? 'problem.time.sheetWeekSent' : 'problem.time.sheetRemoveScope',
+          {},
+          error.message,
+          {
+            code: error.code === 'sent' ? 'TIME_SHEET_WEEK_SENT' : 'TIME_SHEET_REMOVE_SCOPE',
+            values: { documentId },
+            fieldErrors: {},
+            remedies: [{ id: 'review_week' }],
+          },
+        );
+      return timeActionFailure(error, { documentId });
     } finally {
       context.sqlite.close();
     }

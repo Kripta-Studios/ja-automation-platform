@@ -13,6 +13,8 @@
   } from '../../standalone-locale';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
   import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { clockHoursText, personName } from '$lib/portal/sections/time-hours';
+  import { timeWeekText } from '$lib/portal/sections/time-week-copy';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
   import type { ProblemData } from '$lib/problem/contract';
@@ -232,10 +234,32 @@
     if (language) params.set('lang', language);
     return `${base}/app/expenses?${params.toString()}`;
   });
+  // T51: same h:mm notation as the Time screens ("9:00 h", never "9 h").
   function hours(minutes: unknown): string {
-    const value = decimalHoursFromMinutes(minutes);
-    return value === '—' ? value : `${value} h`;
+    if (decimalHoursFromMinutes(minutes) === '—') return '—';
+    return `${clockHoursText(minutes)} h`;
   }
+  /** Work date as people read it ("vie, 20 nov 2026"), never ISO that wraps on phones. */
+  const workDateText = $derived.by(() => {
+    const iso = String(record.work_date ?? '');
+    if (!/^\d{4}-\d{2}-\d{2}$/u.test(iso)) return iso;
+    try {
+      return new Intl.DateTimeFormat(
+        locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-GB',
+        { timeZone: 'UTC', weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' },
+      ).format(new Date(`${iso}T12:00:00Z`));
+    } catch {
+      return iso;
+    }
+  });
+  const workerDisplay = $derived(personName(record.worker_name));
+  /** Same words as the Time form (Work / Travel / Overtime / Standby). */
+  const categoryText = (category: unknown): string =>
+    category === 'regular'
+      ? timeWeekText(locale, 'work')
+      : category === 'travel' || category === 'overtime' || category === 'standby'
+        ? timeWeekText(locale, category)
+        : controlled('timeCategory', category);
   const localMoment = (value: unknown): string => {
     if (!value) return t('Not submitted');
     const date = new Date(String(value));
@@ -289,7 +313,7 @@
       <div>
         <span class="portal-kicker">{t('Read-only operational review')}</span>
         <h1>{t('Time entry')} · {record.project_number}</h1>
-        <p>{record.project_name} · {record.work_date}</p>
+        <p>{record.project_name} · {workDateText}</p>
       </div>
       <span class="state-tag">{controlled('status', record.approval_state)}</span>
     </header>
@@ -298,7 +322,7 @@
       <dl class="record-facts">
         <div>
           <dt>{t('Worker')}</dt>
-          <dd>{record.worker_name}</dd>
+          <dd>{workerDisplay}</dd>
         </div>
         <div>
           <dt>{t('Project')}</dt>
@@ -306,7 +330,7 @@
         </div>
         <div>
           <dt>{t('Date')}</dt>
-          <dd>{record.work_date}</dd>
+          <dd>{workDateText}</dd>
         </div>
         <div>
           <dt>{t('Status')}</dt>
@@ -355,9 +379,9 @@
     </nav>
     <header class="record-detail-header">
       <div>
-        <span class="portal-kicker">{t('TIME ENTRY · SOURCE RECORD')}</span>
-        <h1>{record.project_number} · {record.work_date}</h1>
-        <p>{record.project_name} · {record.worker_name}</p>
+        <span class="portal-kicker">{t('Time entry')}</span>
+        <h1>{record.project_number} · <span style="white-space: nowrap">{workDateText}</span></h1>
+        <p>{record.project_name} · {workerDisplay}</p>
       </div>
       <span class="state-tag">{statusLabel}</span>
     </header>
@@ -394,7 +418,7 @@
     <section class="record-detail-grid">
       <article><span>{t('ACTUAL TIME')}</span><strong>{hours(record.minutes)}</strong></article>
       <article>
-        <span>{t('CATEGORY')}</span><strong>{controlled('timeCategory', record.category)}</strong>
+        <span>{t('CATEGORY')}</span><strong>{categoryText(record.category)}</strong>
       </article>
       {#if financialView && record.approval_state !== 'void' && 'billability_state' in record}
         <article>
@@ -438,7 +462,16 @@
         </div>
         <div>
           <dt>{t('Approved')}</dt>
-          <dd>{record.approved_at ? localMoment(record.approved_at) : t('Not approved')}</dd>
+          <!-- T51: a pending entry is "Pending approval", not "Not approved" (reads as rejected). -->
+          <dd>
+            {record.approved_at
+              ? localMoment(record.approved_at)
+              : record.approval_state === 'submitted'
+                ? t('Pending approval')
+                : record.approval_state === 'rejected'
+                  ? controlled('status', 'rejected')
+                  : '—'}
+          </dd>
         </div>
       </dl>
     </section>

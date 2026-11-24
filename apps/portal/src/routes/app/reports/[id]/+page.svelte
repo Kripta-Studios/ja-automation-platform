@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import { personDisplayName } from '$lib/portal/display-name';
   import { base } from '$app/paths';
   import { beforeNavigate } from '$app/navigation';
   import { deserialize } from '$app/forms';
@@ -84,6 +85,12 @@
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  // T58: workers, external technicians and supplier coordinators open their report to fix it.
+  const fieldRole = $derived(
+    !['owner_admin', 'finance_admin', 'project_manager', 'auditor_read_only'].includes(
+      String(data.user?.role ?? ''),
+    ),
+  );
   const reportHref = $derived(
     `${base}/app/reports/${encodeURIComponent(String(data.detail.report.id))}`,
   );
@@ -184,6 +191,24 @@
     );
   const report = $derived(data.detail.report as Report);
   const history = $derived((data.detail.history ?? []) as HistoryRow[]);
+  /** T58: the reviewer's reason for sending the report back, shown at the top. */
+  const reviewerNote = $derived.by(() => {
+    const returns = history
+      .filter((event) => String(event.action ?? '').endsWith('.needs_changes'))
+      .sort((a, b) => String(b.occurred_at ?? '').localeCompare(String(a.occurred_at ?? '')));
+    for (const event of returns) {
+      try {
+        const reason = (JSON.parse(String(event.details_json ?? '{}')) as { reason?: unknown })
+          .reason;
+        if (typeof reason === 'string' && reason.trim()) return reason.trim();
+      } catch {
+        /* unreadable details: no note */
+      }
+    }
+    return '';
+  });
+  /** Workers see their report first; the audit trail stays available but folded. */
+  const fieldPerson = $derived(data.user?.role === 'worker');
   const attachments = $derived((data.detail.attachments ?? []) as Attachment[]);
   const isDaily = $derived(data.detail.type === 'daily');
   // Explicit operational fields only; do not render arbitrary DTO keys or audit payloads.
@@ -1282,7 +1307,7 @@
         </div>
         <div>
           <dt>{t('Work performed by')}</dt>
-          <dd>{display(report.author_name)}</dd>
+          <dd>{personDisplayName(display(report.author_name))}</dd>
         </div>
       </dl>
     </div>
@@ -1293,46 +1318,76 @@
     </div>
   </header>
 
-  <div class="no-print report-localized-pdf-slot">
-    <LocalizedPdfPanel
-      compact
-      sourceVersion={currentReportVersion}
-      ownerType={isDaily ? 'daily_report' : 'technical_report'}
-      ownerId={String(report.id)}
-      {locale}
-      title={t('PDF')}
-    />
-  </div>
+  {#if data.detail.canEdit && report.approval_state === 'needs_changes'}
+    <section class="change-alert" aria-labelledby="report-change-alert-title">
+      <strong id="report-change-alert-title"
+        >{t('This report needs changes before it can be approved.')}</strong
+      >
+      {#if reviewerNote}
+        <p class="change-alert-note" data-report-reviewer-note>
+          <strong>{t('Reviewer note')}:</strong>
+          {reviewerNote}
+        </p>
+      {/if}
+      <span
+        >{t(
+          'Update the fields below and submit it again. The owner and admin team can see exactly what changed.',
+        )}</span
+      >
+    </section>
+  {/if}
 
-  <ReportDocumentPreview
-    src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
-    revision={currentReportVersion}
-    {locale}
-    fields={previewEditableFields}
-    sourceFields={[
-      ...(data.canOpenProject !== false
-        ? [
-            {
-              name: 'projectSettings',
-              label: t('Open project'),
-              href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
-            },
-          ]
-        : []),
-      ...(data.detail.canCreateCorrection
-        ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
-            name: field.name,
-            label: t('Request a correction'),
-            href: `${reportHref}#report-correction-title`,
-          }))
-        : []),
-    ]}
-    getField={previewField}
-    updateField={updatePreviewField}
-    saveField={finishReportEdits}
-    saveState={autosaveState}
-    saveMessage={autosaveMessage}
-  />
+  {#snippet reportDocumentPanels()}
+    <div class="no-print report-localized-pdf-slot">
+      <LocalizedPdfPanel
+        compact
+        sourceVersion={currentReportVersion}
+        ownerType={isDaily ? 'daily_report' : 'technical_report'}
+        ownerId={String(report.id)}
+        {locale}
+        title={t('PDF')}
+      />
+    </div>
+
+    <ReportDocumentPreview
+      src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
+      revision={currentReportVersion}
+      {locale}
+      fields={previewEditableFields}
+      sourceFields={[
+        ...(data.canOpenProject !== false
+          ? [
+              {
+                name: 'projectSettings',
+                label: t('Open project'),
+                href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
+              },
+            ]
+          : []),
+        ...(data.detail.canCreateCorrection
+          ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
+              name: field.name,
+              label: t('Request a correction'),
+              href: `${reportHref}#report-correction-title`,
+            }))
+          : []),
+      ]}
+      getField={previewField}
+      updateField={updatePreviewField}
+      saveField={finishReportEdits}
+      saveState={autosaveState}
+      saveMessage={autosaveMessage}
+    />
+  {/snippet}
+  {#if fieldRole}
+    <!-- Field roles see the reviewer's reason first; PDF and print preview stay one tap away. -->
+    <details class="no-print report-document-fold" data-report-document-fold>
+      <summary>{t('PDF and print preview')}</summary>
+      {@render reportDocumentPanels()}
+    </details>
+  {:else}
+    {@render reportDocumentPanels()}
+  {/if}
 
   {#if problem}
     <div data-report-problem>
@@ -1445,19 +1500,6 @@
         requestId={data.correctionRequestId}
       />
     </details>
-  {/if}
-
-  {#if data.detail.canEdit && report.approval_state === 'needs_changes'}
-    <section class="change-alert" aria-labelledby="report-change-alert-title">
-      <strong id="report-change-alert-title"
-        >{t('This report needs changes before it can be approved.')}</strong
-      >
-      <span
-        >{t(
-          'Update the fields below and submit it again. The owner and admin team can see exactly what changed.',
-        )}</span
-      >
-    </section>
   {/if}
 
   {#if data.detail.canEdit}
@@ -2235,6 +2277,14 @@
         status={controlled('status', report.approval_state)}
         {remedyLinks}
       />
+    {:else if report.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+      <p class="change-alert" role="note" data-report-review-note>
+        {t('This report is waiting for review. Approve it or send it back in Approvals.')}
+        <a
+          href={`${base}/app/approvals?project=${encodeURIComponent(String(report.project_id))}&tab=reports&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+          >{t('Review in approvals')}</a
+        >
+      </p>
     {:else}
       <p class="change-alert" role="note">
         {t(
@@ -2256,20 +2306,20 @@
         >
       </article>
       <article>
-        <span>{t('WORK PERFORMED BY')}</span><strong>{display(report.author_name)}</strong><small
-          >{display(report.author_email)}</small
-        >
+        <span>{t('WORK PERFORMED BY')}</span><strong
+          >{personDisplayName(display(report.author_name))}</strong
+        ><small>{display(report.author_email)}</small>
       </article>
       <article>
         <span>{t('REPORT CREATED BY')}</span><strong
-          >{display(report.created_by_name || report.author_name)}</strong
+          >{personDisplayName(display(report.created_by_name || report.author_name))}</strong
         ><small>{display(report.created_by_email || report.author_email)}</small>
       </article>
       {#if report.reviewed_by_name}
         <article>
-          <span>{t('REVIEWED BY')}</span><strong>{display(report.reviewed_by_name)}</strong><small
-            >{display(report.reviewed_by_email)}</small
-          >
+          <span>{t('REVIEWED BY')}</span><strong
+            >{personDisplayName(display(report.reviewed_by_name))}</strong
+          ><small>{display(report.reviewed_by_email)}</small>
         </article>
       {/if}
       <article>
@@ -2292,35 +2342,37 @@
     class="report-history-panel"
     data-history-panel
   >
-    <div class="report-history-intro">
-      <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
-      <span class="history-count">{history.length} {t('events')}</span>
-    </div>
-    {#each history as event}
-      <article class="history-event">
-        <div>
-          <strong>{eventAction(event.action)}</strong>
-          <small
-            >{display(event.actor_name) || t('System / machine')} · {display(event.occurred_at)
-              .replace('T', ' ')
-              .slice(0, 19)}</small
-          >
-        </div>
-        {#if changedFields(event.details_json).length > 0}
-          <span class="change-summary"
-            >{t('Changed')}: {changedFields(event.details_json).join(', ')}</span
-          >
-        {/if}
-        {#each auditSummary(event.details_json) as entry}
-          <p class="change-summary"><strong>{entry.label}:</strong> {entry.value}</p>
-        {/each}
-        {#if event.details_json}
-          <details>
-            <summary>{t('Audit details')}</summary><code>{display(event.details_json)}</code>
-          </details>
-        {/if}
-      </article>
-    {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
+    <details class="report-history-fold" open={!fieldPerson}>
+      <summary class="report-history-intro">
+        <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
+        <span class="history-count">{history.length} {t('events')}</span>
+      </summary>
+      {#each history as event}
+        <article class="history-event">
+          <div>
+            <strong>{eventAction(event.action)}</strong>
+            <small
+              >{display(event.actor_name) || t('System / machine')} · {display(event.occurred_at)
+                .replace('T', ' ')
+                .slice(0, 19)}</small
+            >
+          </div>
+          {#if changedFields(event.details_json).length > 0}
+            <span class="change-summary"
+              >{t('Changed')}: {changedFields(event.details_json).join(', ')}</span
+            >
+          {/if}
+          {#each auditSummary(event.details_json) as entry}
+            <p class="change-summary"><strong>{entry.label}:</strong> {entry.value}</p>
+          {/each}
+          {#if event.details_json}
+            <details>
+              <summary>{t('Audit details')}</summary><code>{display(event.details_json)}</code>
+            </details>
+          {/if}
+        </article>
+      {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
+    </details>
   </SectionCard>
 
   {#if data.detail.canDelete}
@@ -2362,6 +2414,17 @@
 </main>
 
 <style>
+  .change-alert-note {
+    margin: 0.35rem 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 4px solid #b26a00;
+    background: #fff7e8;
+    color: #1c2430;
+  }
+  .report-history-fold > summary {
+    cursor: pointer;
+    list-style: revert;
+  }
   .report-detail-nav {
     display: flex;
     flex-wrap: wrap;
@@ -2626,5 +2689,16 @@
     .report-attachments-panel {
       display: none;
     }
+  }
+  .report-document-fold {
+    border: 1px solid var(--ja-line, #dedbd2);
+    border-radius: 12px;
+    background: var(--ja-surface, #fff);
+  }
+  .report-document-fold > summary {
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
   }
 </style>

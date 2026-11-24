@@ -5,12 +5,25 @@ export function localToday(now = new Date()): string {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 }
 
+/**
+ * Net minutes between start and end, less the break. An end earlier than the
+ * start is an overnight shift that ends the next day (same rule as the server's
+ * effective-entry check and the Time sheet); equal start and end is no shift.
+ */
 export function intervalMinutes(start: string, end: string, pause = 0): number | null {
   const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
   if (!clock.test(start) || !clock.test(end) || !Number.isInteger(pause) || pause < 0) return null;
   const minutes = (value: string) => Number(value.slice(0, 2)) * 60 + Number(value.slice(3));
-  const result = minutes(end) - minutes(start) - pause;
+  if (minutes(end) === minutes(start)) return null;
+  const elapsed = (minutes(end) - minutes(start) + 1440) % 1440;
+  const result = elapsed - pause;
   return result > 0 ? result : null;
+}
+
+/** True when the interval ends on the next calendar day (overnight shift). */
+export function endsNextDay(start: string, end: string): boolean {
+  const clock = /^(?:[01]\d|2[0-3]):[0-5]\d$/u;
+  return clock.test(start) && clock.test(end) && end < start;
 }
 
 /**

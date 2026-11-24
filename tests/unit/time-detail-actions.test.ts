@@ -14,7 +14,7 @@ const eligible = {
 };
 
 describe('Owner correction detail submission affordance', () => {
-  it.each(['owner_admin', 'finance_admin'])(
+  it.each(['owner_admin', 'finance_admin', 'project_manager'])(
     'offers the current version for an unlocked correction authored by %s',
     (role) => {
       expect(ownerCorrectionDraftVersion({ ...eligible, role })).toBe(3);
@@ -23,7 +23,6 @@ describe('Owner correction detail submission affordance', () => {
 
   it.each([
     { role: 'worker' },
-    { role: 'project_manager' },
     { role: 'auditor_read_only' },
     { correctionActor: null },
     { correctionActor: 'another-user' },

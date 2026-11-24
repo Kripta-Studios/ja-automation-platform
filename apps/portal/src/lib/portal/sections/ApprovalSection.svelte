@@ -189,9 +189,46 @@
       if (!currency || !/^-?\d+$/u.test(raw)) continue;
       totals.set(currency, (totals.get(currency) ?? 0n) + BigInt(raw));
     }
-    return [...totals]
+    const text = [...totals]
       .map(([currency, minor]) => money(minor.toString(), currency, language))
       .join(' + ');
+    const estimate = estimatedTotal(items);
+    return estimate && totals.size > 1 ? `${text} (≈ ${estimate})` : text;
+  }
+  /**
+   * T36: ECB indicative total in the project currency when every expense either is
+   * in that currency or carries an estimate. Never stored, only shown with "≈".
+   */
+  function estimatedTotal(items: readonly Item[]): string {
+    let currency = '';
+    let total = 0n;
+    for (const item of items) {
+      const estimateCurrency = value(item.row, 'expense_estimate_currency');
+      if (estimateCurrency) {
+        if (currency && currency !== estimateCurrency) return '';
+        currency = estimateCurrency;
+      }
+    }
+    if (!currency) return '';
+    for (const item of items) {
+      const own = value(item.row, 'expense_currency');
+      const raw =
+        own === currency
+          ? value(item.row, 'expense_amount_minor')
+          : value(item.row, 'expense_estimate_minor');
+      if (!/^\d+$/u.test(raw)) return '';
+      total += BigInt(raw);
+    }
+    return money(total.toString(), currency, language);
+  }
+  function rowEstimate(row: Row): string {
+    const minor = value(row, 'expense_estimate_minor');
+    const currency = value(row, 'expense_estimate_currency');
+    if (!minor || !currency) return '';
+    return t('estimateEcb', {
+      amount: money(minor, currency, language),
+      date: dayLabel(value(row, 'expense_estimate_rate_date')),
+    });
   }
   function groupTitle(group: Group): string {
     return `${group.workerName} · ${t('week', { range: weekRange(group.weekStart) })}`;
@@ -514,6 +551,9 @@
   // ---------- disclosure / selection state ----------
   let expanded = $state<Record<string, boolean>>({});
   let sendBackFor = $state<string | null>(null);
+  /** T10: Approve week asks once ("cannot be undone"); Reject asks once ("final"). */
+  let confirmApproveFor = $state<string | null>(null);
+  let confirmRejectFor = $state<string | null>(null);
   let selected = $state<Record<string, boolean>>({});
   let confirmOpen = $state(false);
   let busyKey = $state<string | null>(null);
@@ -669,6 +709,8 @@
               banner === 'approvedBanner' || banner === 'reportApprovedBanner' ? 'success' : 'info',
           };
           sendBackFor = null;
+          confirmApproveFor = null;
+          confirmRejectFor = null;
           confirmOpen = false;
           selected = {};
           if (key === 'all') closeApproveAll();
@@ -707,6 +749,7 @@
   const reportLabels: Record<string, ApprovalQueueCopyKey> = {
     tasks: 'reportTasks',
     problems: 'reportProblems',
+    open_items: 'reportOpenItems',
     blockers: 'reportBlockers',
     next_day: 'reportNextDay',
     safety: 'reportSafety',
@@ -752,6 +795,22 @@
       : '';
   }
   const queueEmpty = $derived(queue.summary.total === 0);
+  /** Esc closes an inline confirm / send-back panel (keyboard listener via an action). */
+  function escapeCloses(node: HTMLElement, close: () => void) {
+    let current = close;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') current();
+    };
+    node.addEventListener('keydown', onKey);
+    return {
+      update(next: () => void) {
+        current = next;
+      },
+      destroy() {
+        node.removeEventListener('keydown', onKey);
+      },
+    };
+  }
 </script>
 
 <div class="aq">
@@ -1111,10 +1170,15 @@
                     <span class="aq-muted">{t('readOnly')}</span>
                   {:else if group.actionable.length === 0}
                     <span class="aq-muted">{t('ownRecord')}</span>
-                  {:else}
+                  {:else if confirmApproveFor === group.key}
                     <form
+                      class="aq-confirm"
                       method="POST"
                       action="?/approveBatch"
+                      aria-label={t('approveWeekConfirm', {
+                        summary: groupFacts(group, group.actionable),
+                      })}
+                      use:escapeCloses={() => (confirmApproveFor = null)}
                       use:enhance={decide(
                         group.key,
                         `${groupTitle(group)} · ${groupFacts(group, group.actionable)}`,
@@ -1124,10 +1188,33 @@
                       {#each group.actionable as item (item.id)}
                         <input type="hidden" name="item" value={token(item)} />
                       {/each}
-                      <button type="submit" class="aq-primary" disabled={busyKey !== null}>
-                        {busyKey === group.key ? t('approving') : t('approveWeek')}
+                      <p>
+                        {t('approveWeekConfirm', { summary: groupFacts(group, group.actionable) })}
+                      </p>
+                      <button
+                        type="submit"
+                        class="aq-primary"
+                        disabled={busyKey !== null}
+                        data-testid="aq-approve-week-yes"
+                      >
+                        {busyKey === group.key ? t('approving') : t('approveWeekYes')}
                       </button>
+                      <button
+                        type="button"
+                        class="aq-secondary"
+                        onclick={() => (confirmApproveFor = null)}>{t('cancel')}</button
+                      >
                     </form>
+                  {:else}
+                    <button
+                      type="button"
+                      class="aq-primary"
+                      disabled={busyKey !== null}
+                      onclick={() => (confirmApproveFor = group.key)}
+                      data-testid="aq-approve-week"
+                    >
+                      {t('approveWeek')}
+                    </button>
                   {/if}
                 </div>
               </div>
@@ -1162,6 +1249,16 @@
                                 language,
                               )}</span
                             >
+                            {#if rowEstimate(item.row)}
+                              <span class="aq-estimate" data-testid="aq-expense-estimate"
+                                >{rowEstimate(
+                                  item.row,
+                                )}{#if role === 'owner_admin' || role === 'finance_admin'}
+                                  {' · '}<a href={`${base}/app/finance/conversions`}
+                                    >{t('convertLink')}</a
+                                  >{/if}</span
+                              >
+                            {/if}
                           {/if}
                           <span class="aq-day-detail">
                             {controlledValue(
@@ -1200,6 +1297,25 @@
                       </div>
                       <div class="aq-day-actions">
                         <a class="aq-link" href={recordHref(item.row)}>{t('open')}</a>
+                        {#if canDecide && !item.own && group.actionable.some((entry) => entry.id === item.id)}
+                          <!-- One-item batch: pinned to the version on screen, like Approve week. -->
+                          <form
+                            method="POST"
+                            action="?/approveBatch"
+                            use:enhance={decide(`one:${item.id}`, itemSummary(item), 'approved')}
+                          >
+                            <input type="hidden" name="item" value={token(item)} />
+                            <button
+                              type="submit"
+                              class="aq-secondary"
+                              disabled={busyKey !== null}
+                              data-testid="aq-approve-one"
+                              >{busyKey === `one:${item.id}`
+                                ? t('approving')
+                                : t('approveOne')}</button
+                            >
+                          </form>
+                        {/if}
                         {#if canDecide && !item.own}
                           <button
                             type="button"
@@ -1217,6 +1333,10 @@
                           action="?/approveRecord"
                           use:formValidation
                           use:enhance={decide(`back:${item.id}`, itemSummary(item), 'sentBack')}
+                          use:escapeCloses={() => {
+                            sendBackFor = null;
+                            confirmRejectFor = null;
+                          }}
                         >
                           <input type="hidden" name="type" value={item.type} />
                           <input type="hidden" name="id" value={item.id} />
@@ -1247,14 +1367,28 @@
                               class="aq-secondary"
                               onclick={() => (sendBackFor = null)}>{t('cancel')}</button
                             >
-                            <button
-                              type="submit"
-                              name="decision"
-                              value="rejected"
-                              class="aq-danger-link"
-                              title={t('rejectHint')}
-                              disabled={busyKey !== null}>{t('reject')}</button
-                            >
+                            {#if confirmRejectFor === item.id}
+                              <span class="aq-reject-confirm" role="alert">
+                                <span>{t('rejectConfirm')}</span>
+                                <button
+                                  type="submit"
+                                  name="decision"
+                                  value="rejected"
+                                  class="aq-danger"
+                                  disabled={busyKey !== null}
+                                  data-testid="aq-reject-yes">{t('rejectYes')}</button
+                                >
+                              </span>
+                            {:else}
+                              <button
+                                type="button"
+                                class="aq-danger-link"
+                                title={t('rejectHint')}
+                                disabled={busyKey !== null}
+                                onclick={() => (confirmRejectFor = item.id)}
+                                data-testid="aq-reject">{t('reject')}</button
+                              >
+                            {/if}
                           </div>
                         </form>
                       {/if}
@@ -1389,7 +1523,8 @@
       {@const own = queue.ownEntries!}
       <details class="aq-more" data-approval-own>
         <summary
-          >{t('ownEntries', {
+          >{t(queue.ownApprover ? 'ownEntriesBy' : 'ownEntries', {
+            name: queue.ownApprover ?? '',
             summary:
               activeTab === 'time'
                 ? `${countLabel('time', own.count)} · ${hoursText(own.minutes)}`
@@ -1433,7 +1568,8 @@
     {/if}
 
     <!-- Approved, not invoiced: a separate list, loaded only on request. -->
-    {#if !approvedView}
+    <!-- Reports are never invoiced: the reports tab has no such link. -->
+    {#if !approvedView && activeTab !== 'reports'}
       <p class="aq-more-row">
         <a
           class="aq-link"
@@ -1442,7 +1578,7 @@
           data-approved-open>{t('approvedOpen')}</a
         >
       </p>
-    {:else}
+    {:else if approvedView}
       <section
         class="aq-more aq-approved"
         data-approved-list
@@ -2099,6 +2235,44 @@
     flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
+  }
+  .aq-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+  .aq-confirm p {
+    margin: 0;
+    flex-basis: 100%;
+    text-align: right;
+    font-size: 0.9rem;
+  }
+  .aq-reject-confirm {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    color: var(--ja-danger, #c62828);
+    font-size: 0.9rem;
+  }
+  .aq-danger {
+    min-height: 44px;
+    padding: 0 1rem;
+    border: 1px solid var(--ja-danger, #c62828);
+    border-radius: 999px;
+    background: var(--ja-danger, #c62828);
+    color: #fff;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .aq-estimate {
+    color: var(--ja-steel, #5b6573);
+    font-size: 0.85rem;
+    font-variant-numeric: tabular-nums;
   }
 
   /* Secondary lists */

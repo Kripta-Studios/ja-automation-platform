@@ -14,6 +14,7 @@ const en = {
   choosePerson: 'Choose person',
   me: 'Me',
   category: 'Category',
+  chooseCategory: 'Choose…',
   more: 'More…',
   moreCategories: 'Other category',
   amount: 'Amount',
@@ -109,6 +110,8 @@ const en = {
   saveAll: 'Save {n} expenses',
   recent: 'My recent expenses',
   recentOwner: 'Your entries and drafts to submit',
+  recentOwnerRecorded: 'Expenses you recorded (for you or others) and drafts to submit',
+  sendsWithTime: 'Will be sent with the time week',
   ovTitle: 'Expenses overview',
   ovIntro:
     'Totals by worker, project and category for the period. Open a group to see each expense.',
@@ -156,6 +159,12 @@ const en = {
   readingReceipts: 'Reading {n} receipts…',
   readingReceiptsOne: 'Reading 1 receipt…',
   checkAmount: 'Suggested from the receipt — check it matches.',
+  checkCurrency: 'Check the currency printed on the receipt.',
+  receiptTooBig: '{name} is larger than 10 MB. Take a new photo or choose a smaller file.',
+  receiptTooBigShort: 'This file is larger than 10 MB. Choose a smaller one.',
+  receiptCurrencyDiffers:
+    'This receipt is in {code}, not {batch}. Save it on its own with the right currency.',
+  currencyFromReceipt: 'Currency read from the receipt ({code}) — check it.',
   receiptAttached: 'Receipt',
   confirmBodyOne:
     '1 expense will be sent for review. You cannot change it after submitting unless the reviewer returns it.',
@@ -188,6 +197,7 @@ const es: Copy = {
   choosePerson: 'Elige persona',
   me: 'Yo',
   category: 'Categoría',
+  chooseCategory: 'Elige…',
   more: 'Más…',
   moreCategories: 'Otra categoría',
   amount: 'Importe',
@@ -283,6 +293,8 @@ const es: Copy = {
   saveAll: 'Guardar {n} gastos',
   recent: 'Mis gastos recientes',
   recentOwner: 'Tus registros y borradores por enviar',
+  recentOwnerRecorded: 'Gastos que registraste (tuyos o de otras personas) y borradores por enviar',
+  sendsWithTime: 'Se enviará con la semana de horas',
   ovTitle: 'Resumen de gastos',
   ovIntro:
     'Totales por trabajador, proyecto y categoría del periodo. Abre un grupo para ver cada gasto.',
@@ -329,6 +341,12 @@ const es: Copy = {
   readingReceipts: 'Leyendo {n} tickets…',
   readingReceiptsOne: 'Leyendo 1 ticket…',
   checkAmount: 'Sugerido a partir del ticket: comprueba que coincide.',
+  checkCurrency: 'Comprueba la moneda impresa en el ticket.',
+  receiptTooBig: '{name} pesa más de 10 MB. Haz otra foto o elige un archivo más pequeño.',
+  receiptTooBigShort: 'Este archivo pesa más de 10 MB. Elige uno más pequeño.',
+  receiptCurrencyDiffers:
+    'Este ticket está en {code}, no en {batch}. Guárdalo aparte con la moneda correcta.',
+  currencyFromReceipt: 'Moneda leída del ticket ({code}): compruébala.',
   receiptAttached: 'Ticket',
   confirmBodyOne:
     'Se enviará 1 gasto a revisión. No podrás cambiarlo después de enviarlo, salvo que el revisor lo devuelva.',
@@ -359,6 +377,7 @@ const pt: Copy = {
   choosePerson: 'Escolha a pessoa',
   me: 'Eu',
   category: 'Categoria',
+  chooseCategory: 'Escolha…',
   more: 'Mais…',
   moreCategories: 'Outra categoria',
   amount: 'Valor',
@@ -454,6 +473,9 @@ const pt: Copy = {
   saveAll: 'Salvar {n} despesas',
   recent: 'Minhas despesas recentes',
   recentOwner: 'Seus lançamentos e rascunhos a enviar',
+  recentOwnerRecorded:
+    'Despesas que você registrou (suas ou de outras pessoas) e rascunhos a enviar',
+  sendsWithTime: 'Será enviada com a semana de horas',
   ovTitle: 'Visão geral de despesas',
   ovIntro:
     'Totais por colaborador, projeto e categoria no período. Abra um grupo para ver cada despesa.',
@@ -501,6 +523,12 @@ const pt: Copy = {
   readingReceipts: 'Lendo {n} recibos…',
   readingReceiptsOne: 'Lendo 1 recibo…',
   checkAmount: 'Sugerido a partir do recibo — confira se está certo.',
+  checkCurrency: 'Confira a moeda impressa no recibo.',
+  receiptTooBig: '{name} tem mais de 10 MB. Tire outra foto ou escolha um arquivo menor.',
+  receiptTooBigShort: 'Este arquivo tem mais de 10 MB. Escolha um menor.',
+  receiptCurrencyDiffers:
+    'Este recibo está em {code}, não em {batch}. Salve-o separadamente com a moeda certa.',
+  currencyFromReceipt: 'Moeda lida do recibo ({code}) — confira.',
   receiptAttached: 'Recibo',
   confirmBodyOne:
     '1 despesa será enviada para revisão. Você não poderá alterá-la depois do envio, a menos que o revisor a devolva.',

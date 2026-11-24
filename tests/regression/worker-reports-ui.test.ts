@@ -50,13 +50,16 @@ describe('Client Essential reports UI', () => {
     expect(source).toContain('data-report-generator-cta');
   });
 
-  it('orders field reports and keeps the attention card scoped to the selected field tab', () => {
+  it('orders field reports and counts both field report types in the attention card', () => {
     const source = read('lib/portal/sections/ReportSection.svelte');
 
     expect(source).toContain("let order = $state<OperationalOrder>('newest')");
     expect(source).toContain('operationalStatusMatches(');
-    expect(source).toContain('fieldReportsForActiveTab');
-    expect(source).toContain("registerHref({ view: activeFieldTab, status: 'attention' })");
+    // Audit T57 (pm-6): a waiting technical report must not show 0 from the daily tab.
+    expect(source).toContain(
+      'const pendingReportCount = $derived(pendingDailyCount + pendingTechnicalCount);',
+    );
+    expect(source).toContain("registerHref({ view: attentionTab, status: 'attention' })");
     expect(source).toContain('const statusOptions = $derived(reportStatusOptions(activeTab));');
     expect(source).toContain('function reportStatusOptions(tab: ReportTab): string[]');
     expect(source).toContain("tab === 'signoff'");

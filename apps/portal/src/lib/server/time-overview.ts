@@ -106,6 +106,21 @@ export function overviewFilters(params: URLSearchParams): OverviewFilters {
   };
 }
 
+const settled = (state: unknown) => ['approved', 'locked'].includes(String(state));
+
+/**
+ * One effective record per correction chain (T09, same rule as the project hub):
+ * an APPROVED original keeps counting until its correction is approved, and that
+ * correction counts only once approved. A sent-back original is replaced by its
+ * correction as soon as the correction exists.
+ */
+export function countsAsEffectiveTime(row: Readonly<Record<string, unknown>>): boolean {
+  if (row.active_correction_id)
+    return settled(row.approval_state) && !settled(row.active_correction_state);
+  if (Number(row.corrects_approved ?? 0) === 1) return settled(row.approval_state);
+  return true;
+}
+
 /** Rows that count in the overview, projected to operational fields. */
 export function overviewEntries(
   rows: ReadonlyArray<Record<string, unknown>>,
@@ -116,8 +131,7 @@ export function overviewEntries(
   const entries: OverviewEntry[] = [];
   for (const row of rows) {
     if (['void', 'rejected'].includes(String(row.approval_state))) continue;
-    // A returned entry superseded by its correction counts once, as the correction.
-    if (row.active_correction_id) continue;
+    if (!countsAsEffectiveTime(row)) continue;
     const workerName = personName(row.worker_name ?? row.worker_id ?? '');
     workers.set(String(row.worker_id), workerName);
     if (filters.workerId && String(row.worker_id) !== filters.workerId) continue;

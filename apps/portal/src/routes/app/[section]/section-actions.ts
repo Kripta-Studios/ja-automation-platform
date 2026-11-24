@@ -102,6 +102,7 @@ export const sectionActions: Actions = {
   createTime: timeActions.createTime,
   saveTimeWeek: timeActions.saveTimeWeek,
   attachWeekSheet: timeActions.attachWeekSheet,
+  removeWeekSheet: timeActions.removeWeekSheet,
   createTimeBatch: timeActions.createTimeBatch,
   copyTimeLayout: timeActions.copyTimeLayout,
   updateTime: timeActions.updateTime,

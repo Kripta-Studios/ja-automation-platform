@@ -283,6 +283,9 @@
   let receiptUnread = $state(false);
   /** Amount came from the receipt reader: highlighted until the person checks/edits it. */
   let amountSuggested = $state(false);
+  /** T22: the currency field is highlighted whenever the amount is suggested from a receipt. */
+  let currencyFromReceipt = $state('');
+  let currencyTouched = $state(false);
   let amountTouched = false;
   let dateTouched = false;
   let crewOptions = $state<Array<{ id: string; name: string }>>([]);
@@ -342,6 +345,7 @@
     receiptUnread = false;
     receiptReading = false;
     amountSuggested = false;
+    currencyFromReceipt = '';
     if (receiptInput) receiptInput.value = '';
   }
   /** Camera photo: move it into the named receipt input so the form sends it. */
@@ -354,8 +358,16 @@
     (event.currentTarget as HTMLInputElement).value = '';
     receiptInput.dispatchEvent(new Event('change', { bubbles: true }));
   }
+  /** Same limit as the server (expense-actions validateExpenseReceipt): checked before upload. */
+  const RECEIPT_MAX_BYTES = 10_000_000;
+  let receiptTooBig = $state('');
   function onReceiptChange(event: Event): void {
-    const file = (event.currentTarget as HTMLInputElement).files?.[0];
+    const input = event.currentTarget as HTMLInputElement;
+    const picked = input.files?.[0];
+    // T54: a too-large photo is refused here, once, before a slow phone upload.
+    receiptTooBig = picked && picked.size > RECEIPT_MAX_BYTES ? picked.name : '';
+    if (receiptTooBig) input.value = '';
+    const file = receiptTooBig ? undefined : picked;
     if (receiptUrl) URL.revokeObjectURL(receiptUrl);
     receiptName = file?.name ?? '';
     receiptIsImage = Boolean(file?.type.startsWith('image/'));
@@ -371,6 +383,15 @@
         if (!current()) return;
         receiptUnread = facts.unread && !fAmount.trim();
         let filled = false;
+        if (
+          facts.currency &&
+          (CURRENCIES as readonly string[]).includes(facts.currency) &&
+          !currencyTouched
+        ) {
+          fCurrency = facts.currency;
+          currencyFromReceipt = facts.currency;
+          filled = true;
+        }
         if (facts.amount && !amountTouched && !fAmount.trim()) {
           fAmount = facts.amount;
           amountSuggested = true;
@@ -399,7 +420,15 @@
       : projects.length === 1
         ? text(projects[0], 'id')
         : rememberedProject();
-    fWorker = isOwner ? (people.some((p) => p.id === requestedWorker) ? requestedWorker : '') : '';
+    // T20: never leave Person blank. The owner starts on the requested person (or
+    // "me" = ''); a crew chief starts on the requested crew member, else himself.
+    // The crew list loads after the form opens; the effect below falls back to "me"
+    // when the requested person is not one of the chief's crew.
+    fWorker = isOwner
+      ? people.some((p) => p.id === requestedWorker)
+        ? requestedWorker
+        : ''
+      : requestedWorker || me;
     fCategory = rememberedCategory();
     moreCategories = !primaryExpenseCategories.some((item) => item.value === fCategory);
     fAmount = '';
@@ -409,6 +438,7 @@
     requestId = crypto.randomUUID();
     savedAnother = false;
     amountTouched = false;
+    currencyTouched = false;
     dateTouched = false;
     formError = '';
     formProblem = null;
@@ -454,6 +484,7 @@
   $effect(() => {
     if (mode !== 'create' || role !== 'worker' || !fProject || !fDate) {
       crewOptions = [];
+      if (mode === 'create' && role !== 'owner_admin' && fWorker !== me) fWorker = me;
       return;
     }
     const controller = new AbortController();
@@ -467,8 +498,9 @@
         const payload = (await response.json()) as {
           workers?: Array<{ id: string; name: string }>;
         };
-        if (!controller.signal.aborted)
-          crewOptions = (payload.workers ?? []).filter((worker) => worker.id !== me);
+        if (controller.signal.aborted) return;
+        crewOptions = (payload.workers ?? []).filter((worker) => worker.id !== me);
+        if (fWorker !== me && !crewOptions.some((worker) => worker.id === fWorker)) fWorker = me;
       })
       .catch(() => {
         /* Lookup failures leave the expense recorded for the signed-in worker. */
@@ -503,6 +535,7 @@
         fVendor = '';
         fTimeEntryId = '';
         amountTouched = false;
+        currencyTouched = false;
         requestId = crypto.randomUUID();
         formError = '';
         formProblem = null;
@@ -596,6 +629,10 @@
     filled?: boolean;
     /** The reader found no amount: the person types it. */
     unread?: boolean;
+    /** The chosen file is over the receipt size limit (refused before upload, T54). */
+    tooBig?: boolean;
+    /** Currency printed on this receipt when it differs from the batch currency (T22). */
+    receiptCurrency?: string;
     key: number;
     date: string;
     category: string;
@@ -623,10 +660,12 @@
   const MORE_CATEGORY = '__more';
   const isPrimaryCategory = (value: string) =>
     primaryExpenseCategories.some((item) => item.value === value);
+  // T54: rows of 'Add several' start without a category (a remembered 'Hotel' was silently
+  // applied to every receipt); the person picks one per row that has an amount or receipt.
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
     date,
-    category: rememberedCategory(),
+    category: '',
     amount: '',
     note: '',
     file: '',
@@ -663,6 +702,7 @@
       row.filled = true;
     }
     if (facts.unread && !row.amount.trim()) row.unread = true;
+    if (facts.currency && facts.currency !== bulkCurrency) row.receiptCurrency = facts.currency;
     if (facts.date) {
       row.date = facts.date;
       row.filled = true;
@@ -701,7 +741,10 @@
   function decimalMinor(value: string): bigint | null {
     return inputTextToMinor(value, bulkCurrency);
   }
-  const bulkFilled = $derived(bulkRows.filter((row) => row.amount.trim() || row.file));
+  // T54: a row with amount 0 and no receipt is not an expense to send.
+  const bulkFilled = $derived(
+    bulkRows.filter((row) => row.file || (decimalMinor(row.amount) ?? 0n) > 0n),
+  );
   /** Receipts still being read: saving now would send rows without an amount. */
   const bulkPending = $derived(bulkRows.filter((row) => row.queued || row.reading).length);
   const bulkTotal = $derived(
@@ -820,7 +863,8 @@
   <div class="xp">
     <header class="xp-head">
       <div>
-        <h2>{isOwner ? c('recentOwner') : c('mine')}</h2>
+        <!-- T68: the owner's list holds what the owner recorded, also for other people. -->
+        <h2>{isOwner ? c('recentOwnerRecorded') : c('mine')}</h2>
         <p>{c('intro')}</p>
         <p class="xp-muted" data-expense-scope>
           {c('captureScope', { weeks: capture.weeks, n: visible.length })}
@@ -868,7 +912,7 @@
         </header>
         {#each week.people as block (block.workerId)}
           <div class="xp-person">
-            {#if showPersonHeaders}
+            {#if showPersonHeaders || (isOwner && block.workerId !== me)}
               <p class="xp-person-name">
                 {block.workerId === me ? c('me') : block.workerName}
                 {#if week.people.length > 1}<span class="xp-muted"
@@ -927,7 +971,7 @@
                         >{c('edit')}</button
                       >
                     {:else if row.approval_state === 'draft' && row.linked_pair_time_id}
-                      <span class="xp-muted">{c('withTime')}</span>
+                      <span class="xp-muted">{c('sendsWithTime')}</span>
                     {:else if row.approval_state === 'needs_changes' && (text(row, 'worker_id') === me || isOwner)}
                       {#if row.active_correction_id}
                         <a
@@ -1109,12 +1153,19 @@
             <label class="xp-field">
               <span>{c('category')}</span>
               <select
-                value={isPrimaryCategory(row.category) ? row.category : MORE_CATEGORY}
+                value={!row.category
+                  ? ''
+                  : isPrimaryCategory(row.category)
+                    ? row.category
+                    : MORE_CATEGORY}
+                required={Boolean(row.file || row.amount.trim())}
+                data-bulk-category
                 onchange={(event) => {
                   const value = event.currentTarget.value;
                   row.category = value === MORE_CATEGORY ? 'parking' : value;
                 }}
               >
+                <option value="" disabled>{c('chooseCategory')}</option>
                 {#each primaryExpenseCategories as item (item.value)}
                   <option value={item.value}>{c(item.copy as ExpenseCopyKey)}</option>
                 {/each}
@@ -1127,7 +1178,7 @@
                 name={`amount_${index}`}
                 inputmode="decimal"
                 autocomplete="off"
-                placeholder={minorDigitsFor(bulkCurrency) === 0 ? '0' : '0.00'}
+                placeholder={minorDigitsFor(bulkCurrency) === 0 ? '0' : locale === 'en' ? '0.00' : '0,00'}
                 pattern={amountPattern(bulkCurrency)}
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('amount')}`}
                 bind:value={row.amount}
@@ -1141,7 +1192,10 @@
                 accept="image/*,.heic,.heif,application/pdf"
                 aria-label={`${c('rowLabel', { n: index + 1 })} · ${c('receipt')}`}
                 onchange={(event) => {
-                  const file = event.currentTarget.files?.[0];
+                  const picked = event.currentTarget.files?.[0];
+                  row.tooBig = Boolean(picked && picked.size > RECEIPT_MAX_BYTES);
+                  if (row.tooBig) event.currentTarget.value = '';
+                  const file = row.tooBig ? undefined : picked;
                   row.file = file?.name ?? '';
                   row.filled = false;
                   bulkDuplicateKeys = bulkDuplicateKeys.filter((key) => key !== row.key);
@@ -1150,7 +1204,7 @@
               />
               <span>{row.file || c('receipt')}</span>
             </label>
-            {#if !isPrimaryCategory(row.category)}
+            {#if row.category && !isPrimaryCategory(row.category)}
               <label class="xp-field xp-bulk-more">
                 <span>{c('moreCategories')}</span>
                 <select bind:value={row.category} data-bulk-more-category>
@@ -1164,15 +1218,19 @@
               <span>{c('note')}</span>
               <input name={`note_${index}`} maxlength="5000" bind:value={row.note} />
             </label>
-            {#if bulkDuplicateKeys.includes(row.key)}
+            {#if row.tooBig}
+              <p class="xp-warn xp-bulk-status" role="alert" data-bulk-status="too-big">{c('receiptTooBigShort')}</p>
+            {:else if bulkDuplicateKeys.includes(row.key)}
               <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="duplicate">{c('receiptUsed')}</p>
             {:else if row.queued}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="queued">{c('waitingToRead')}</p>
             {:else if row.reading}
               <p class="xp-muted xp-bulk-status" role="status" data-bulk-status="reading">{c('readingReceipt')}</p>
+            {:else if row.receiptCurrency && row.receiptCurrency !== bulkCurrency}
+              <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="currency">{c('receiptCurrencyDiffers', { code: row.receiptCurrency, batch: bulkCurrency })}</p>
             {:else if row.filled}
               <p class="xp-ok xp-bulk-status" role="status" data-bulk-status="filled">{c('filledFromReceiptShort')}</p>
-            {:else if row.unread}
+            {:else if row.unread && !row.amount.trim()}
               <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="unread">{c('notReadType')}</p>
             {/if}
             {#if bulkRows.length > 1}
@@ -1288,13 +1346,19 @@
         {:else if crewOptions.length > 0}
           <label class="xp-field">
             <span>{c('person')}</span>
-            <select name="workerId" bind:value={fWorker}>
-              <option value={me}>{c('me')}</option>
+            <!-- Linked to a time entry: the person is that entry's worker (locked). -->
+            <select name="workerId" bind:value={fWorker} disabled={Boolean(fTimeEntryId)}>
+              <option value={me}>{c('me')} ({personDisplayName(data.user.name)})</option>
               {#each crewOptions as person (person.id)}
-                <option value={person.id}>{person.name}</option>
+                <option value={person.id}>{personDisplayName(person.name)}</option>
               {/each}
             </select>
+            {#if fTimeEntryId}
+              <input type="hidden" name="workerId" value={fWorker} />
+            {/if}
           </label>
+        {:else if fWorker && fWorker !== me}
+          <input type="hidden" name="workerId" value={fWorker} />
         {/if}
         {#if projects.length === 1}
           <input type="hidden" name="projectId" value={fProject} />
@@ -1345,10 +1409,14 @@
             accept="image/*,.heic,.heif,application/pdf"
             onchange={onReceiptChange}
           />
-          {#if receiptUrl}
+          {#if receiptTooBig}
+            <span class="xp-warn" role="alert" data-expense-receipt-too-big
+              >{c('receiptTooBig', { name: receiptTooBig })}</span
+            >
+          {:else if receiptUrl}
             <span class="receipt-preview">
               {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
-              <span>{receiptName}</span>
+              <span style="overflow-wrap: anywhere; word-break: normal">{receiptName}</span>
             </span>
           {:else}
             <span class="xp-receipt-cta"
@@ -1443,7 +1511,7 @@
             inputmode="decimal"
             autocomplete="off"
             pattern={amountPattern(fCurrency)}
-            placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : '0.00'}
+            placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : locale === 'en' ? '0.00' : '0,00'}
             data-expense-amount
             class:xp-suggested={amountSuggested}
             style={amountSuggested
@@ -1463,11 +1531,32 @@
             <input value={fCurrency} readonly aria-readonly="true" />
             <input type="hidden" name="amountCurrency" value={fCurrency} />
           {:else}
-            <select name="currency" bind:value={fCurrency} required>
+            <select
+              name="currency"
+              bind:value={fCurrency}
+              required
+              data-expense-currency
+              style={amountSuggested || currencyFromReceipt
+                ? 'border: 2px solid #b26a00; background: #fff7e8; color: #1c2430;'
+                : undefined}
+              onchange={() => {
+                currencyTouched = true;
+                currencyFromReceipt = '';
+              }}
+            >
               {#each CURRENCIES as code (code)}
                 <option value={code}>{code}</option>
               {/each}
             </select>
+            {#if currencyFromReceipt}
+              <small class="xp-suggested-note" data-expense-currency-suggested
+                >{c('currencyFromReceipt', { code: currencyFromReceipt })}</small
+              >
+            {:else if amountSuggested}
+              <small class="xp-suggested-note" data-expense-currency-suggested
+                >{c('checkCurrency')}</small
+              >
+            {/if}
           {/if}
         </label>
       </div>

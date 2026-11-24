@@ -477,13 +477,15 @@
   {/if}
 
   {#if recordType === 'time_entry'}
-    <!-- Time entries no longer carry a required activity summary; a note is optional. -->
+    <!-- The entry's own activity summary, prefilled from the original. What changed and
+         why belongs in the correction reason below (stored on the correction link), so
+         the worker's description is never silently replaced by a reviewer note (T09). -->
     <label>
-      <span>{translate('What changed (optional)')}</span>
+      <span>{translate('Activity summary')}</span>
       <textarea
         name="activitySummary"
         maxlength="5000"
-        value={String(values.activitySummary ?? '')}
+        value={fieldValue('activitySummary', 'activity_summary')}
       ></textarea>
     </label>
   {/if}

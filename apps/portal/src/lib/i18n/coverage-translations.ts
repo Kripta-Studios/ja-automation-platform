@@ -766,6 +766,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Ya hay un archivo con el mismo contenido. No se guardó otro documento. Revisa los documentos a los que tienes acceso antes de elegir otro archivo.',
     'Já existe um arquivo com o mesmo conteúdo. Nenhum novo documento foi salvo. Revise os documentos aos quais você tem acesso antes de escolher outro arquivo.',
   ],
+  'problem.expense.receiptAlreadyAttached': [
+    'Este recibo ya está adjunto a tu gasto del {spentOn} ({expense}). No se guardó otro gasto. Abre ese gasto o elige otra foto.',
+    'Este recibo já está anexado à sua despesa de {spentOn} ({expense}). Nenhuma nova despesa foi salva. Abra essa despesa ou escolha outra foto.',
+  ],
   'problem.expense.receiptDuplicateContent': [
     'Este recibo coincide con contenido privado ya guardado. No se guardó otro gasto. Revisa los gastos a los que tienes acceso o contacta con la persona responsable del proyecto.',
     'Este recibo corresponde a conteúdo privado já salvo. Nenhuma nova despesa foi salva. Revise as despesas às quais você tem acesso ou entre em contato com a pessoa responsável pelo projeto.',
@@ -2062,6 +2066,14 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.time.batchEntryInvalid': [
     'Una entrada diaria tiene datos inválidos de proyecto, fecha, categoría, duración o trabajo. Revisa el lote antes de guardar.',
     'Uma entrada diária tem dados inválidos de projeto, data, categoria, duração ou trabalho. Revise o lote antes de salvar.',
+  ],
+  'problem.time.sheetWeekSent': [
+    'Esta semana ya se envió para aprobación, así que su hoja firmada se queda adjunta.',
+    'Esta semana já foi enviada para aprovação, então a folha assinada continua anexada.',
+  ],
+  'problem.time.sheetRemoveScope': [
+    'Solo quien adjuntó esta hoja puede quitarla.',
+    'Somente quem anexou esta folha pode removê-la.',
   ],
   'problem.time.sheetScope': ['Solo puedes adjuntar una hoja firmada a una semana de un proyecto al que la persona está asignada.', 'Só é possível anexar uma folha assinada a uma semana de um projeto ao qual a pessoa está atribuída.'],
   'problem.time.sheetFile': ['Usa un PDF o una foto de la hoja firmada (hasta 20 MB).', 'Use um PDF ou uma foto da folha assinada (até 20 MB).'],
@@ -5166,6 +5178,22 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.time.durationMismatch': [
     'Las horas registradas deben coincidir con el tiempo entre el inicio y el fin, descontando el descanso.',
     'As horas registradas devem corresponder ao tempo entre o início e o fim, descontando o intervalo.',
+  ],
+  'problem.time.correctionDurationInvalid': [
+    'Indica entre 0 y 24 horas y, con hora de inicio y fin, una pausa más corta que el turno.',
+    'Informe entre 0 e 24 horas e, com horário de início e término, um intervalo menor que o turno.',
+  ],
+  'problem.time.correctionNoChange': [
+    'Cambia las horas, el horario o la nota antes de enviar la corrección.',
+    'Altere as horas, os horários ou a observação antes de enviar a correção.',
+  ],
+  'problem.time.correctionExists': [
+    'Ya existe una corrección para este registro. Ábrela desde el día para continuar.',
+    'Já existe uma correção para este registro. Abra-a pelo dia para continuar.',
+  ],
+  'problem.time.correctionFieldInvalid': [
+    'Este cambio no se puede hacer en un registro devuelto. Cambia solo las horas, el horario o la nota.',
+    'Esta alteração não pode ser feita em um registro devolvido. Altere apenas as horas, os horários ou a observação.',
   ],
   'problem.expense.submissionChanged': [
     'Este borrador cambió desde que lo abriste. Revisa el gasto actualizado antes de enviarlo.',
@@ -8985,6 +9013,7 @@ const actionExact: Record<string, readonly [string, string]> = {
   'action.time.hoursDeleted': ['Horas eliminadas.', 'Horas excluídas.'],
   'action.time.submitted': ['Registro de horas enviado.', 'Registro de horas enviado.'],
   'action.time.sheetAttached': ['Hoja firmada adjuntada a la semana.', 'Folha assinada anexada à semana.'],
+  'action.time.sheetRemoved': ['Hoja firmada quitada de la semana.', 'Folha assinada removida da semana.'],
   'action.time.savedAndApproved': ['{count} registros de horas guardados y aprobados ({hours} h).', '{count} registros de horas salvos e aprovados ({hours} h).'],
   'action.time.weekSubmitted': [
     'Semana enviada a aprobación: {timeSubmitted} registros de horas y {mealsSubmitted} gastos de comida.',
@@ -9484,6 +9513,7 @@ function englishActionMessage(key: string): string {
     'action.validation.timeRecord': 'Invalid time record.',
     'action.time.submitted': 'Time submitted.',
     'action.time.sheetAttached': 'Signed sheet attached to the week.',
+    'action.time.sheetRemoved': 'Signed sheet removed from the week.',
     'action.time.savedAndApproved': '{count} time entries saved and approved ({hours} h).',
     'action.time.weekSubmitted':
       'Week sent for approval: {timeSubmitted} hour entries and {mealsSubmitted} meal expenses.',
@@ -9888,6 +9918,8 @@ const problemEnglish: Record<string, string> = {
   'problem.remedy.contactAccessOwner': 'Contact an owner to review access',
   'problem.document.duplicateContent':
     'A file with the same content is already stored. No new document was saved. Review the documents you can access before choosing another file.',
+  'problem.expense.receiptAlreadyAttached':
+    'This receipt is already attached to your expense of {spentOn} ({expense}). No new expense was saved. Open that expense instead, or choose another photo.',
   'problem.expense.receiptDuplicateContent':
     'This receipt file matches existing private content. No new expense was saved. Review expenses you can access or contact the project owner.',
   'problem.expenseLookup.signInRequired':
@@ -11178,6 +11210,9 @@ const problemEnglish: Record<string, string> = {
   'problem.time.batchCountInvalid': 'Choose between 1 and 31 daily entries for this batch.',
   'problem.time.batchEntryInvalid':
     'A daily entry has invalid project, date, category, duration, or work details. Review the batch before saving.',
+  'problem.time.sheetWeekSent':
+    'This week was already sent for approval, so its signed sheet stays attached.',
+  'problem.time.sheetRemoveScope': 'Only the person who attached this sheet can remove it.',
   'problem.time.sheetScope': 'You can attach a signed sheet only to a week of a project the person is assigned to.',
   'problem.time.sheetFile': 'Use a PDF or photo of the signed sheet (up to 20 MB).',
   'problem.time.sheetDuplicate': 'This file is already stored. Choose the signed sheet for this week.',
@@ -11671,6 +11706,14 @@ const problemEnglish: Record<string, string> = {
   'problem.time.breakInvalid': 'Enter a valid break in decimal hours within the shift.',
   'problem.time.durationMismatch':
     'Recorded hours must equal the time between start and end, less the break.',
+  'problem.time.correctionDurationInvalid':
+    'Enter hours between 0 and 24 and, with start and end times, a break shorter than the shift.',
+  'problem.time.correctionNoChange':
+    'Change the hours, times or note before sending the correction.',
+  'problem.time.correctionExists':
+    'A correction for this entry already exists. Open it from the day to continue.',
+  'problem.time.correctionFieldInvalid':
+    'This change cannot be made on a sent-back entry. Change only the hours, times or note.',
   'problem.expense.submissionChanged':
     'This draft changed since you opened it. Review the updated expense before submitting.',
   'problem.expense.submissionNotDraft':

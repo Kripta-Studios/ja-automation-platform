@@ -28,6 +28,7 @@
     DAY_MAX_MINUTES,
     DAY_WARN_MINUTES,
     hoursAndMinutesText,
+    isoDateInZone,
     parseClockText,
     parseHoursText,
     personName,
@@ -73,6 +74,10 @@
     !isAuditor && !(data.user.role === 'project_manager' && workerId !== data.user.id),
   );
   const entries = $derived((data.weekEntries ?? []) as Row[]);
+  /** Sent-back entries in any week (T07): the landing banner links to each day. */
+  const timeReturns = $derived((data.timeReturns ?? []) as Row[]);
+  /** Entries a reviewer rejected this week: read-only, with the reviewer's note. */
+  const weekRejected = $derived((data.weekRejected ?? []) as Row[]);
   const assignments = $derived((data.timeAssignments ?? []) as Row[]);
   const projects = $derived((data.projects ?? []) as Row[]);
 
@@ -121,6 +126,9 @@
   let addingRow = $state(false);
   let newRowProject = $state('');
   let newRowCategory = $state('travel');
+  /** T53: on the phone list a new row appears on this day only (other days stay compact). */
+  let newRowDay = $state('');
+  let extraRowDays = $state<Record<string, string[]>>({});
   let confirmDialog = $state<HTMLDialogElement | null>(null);
   let sheetForm = $state<HTMLFormElement | null>(null);
 
@@ -147,6 +155,7 @@
   );
 
   const cellKey = (row: SheetRow, date: string) => `${row.key}|${date}`;
+  const cellDate = (cell: { key: string }): string => cell.key.slice(cell.key.lastIndexOf('|') + 1);
   const cellEntries = (row: SheetRow, date: string) =>
     entries.filter(
       (entry) =>
@@ -227,14 +236,48 @@
     const end = parseClockText(detail.end);
     return Boolean(start && end && end <= start);
   };
-  const detailSummary = (detail: DetailDraft) =>
+  /** "20/11": the day an overnight shift ends (T53), in the person's language. */
+  const nextDayShort = (date: string): string => {
+    const next = new Date(`${date}T12:00:00Z`);
+    next.setUTCDate(next.getUTCDate() + 1);
+    return new Intl.DateTimeFormat(language, { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(next);
+  };
+  const detailSummary = (detail: DetailDraft, date?: string) =>
     detail.start && detail.end
-      ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${Number(detail.breakMinutes || 0) ? ` −${Number(detail.breakMinutes)} min` : ''}`
+      ? `${parseClockText(detail.start) ?? detail.start}–${parseClockText(detail.end) ?? detail.end}${date && overnight(detail) ? ` (${t('endsOn', { date: nextDayShort(date) })})` : ''}${Number(detail.breakMinutes || 0) ? ` · ${t('breakShort', { min: Number(detail.breakMinutes) })}` : ''}`
       : detail.start.trim() || detail.end.trim()
         ? `${parseClockText(detail.start) ?? '…'}–${parseClockText(detail.end) ?? '…'}`
         : detail.note.trim()
           ? '✎'
           : '';
+
+  /** T53: an added row shows on the day it was added for (all days when none chosen). */
+  const extraRowOnDay = (key: string, date: string): boolean =>
+    extraRows.some((row) => row.key === key) &&
+    (!extraRowDays[key]?.length || extraRowDays[key]!.includes(date));
+  /**
+   * T53: the empty default "Work" row is hidden on a day that already has another type
+   * for the project (e.g. only Travel), so the phone list does not invite a blank entry.
+   */
+  const otherRowsOnDay = (projectId: string, index: number): boolean => {
+    const date = days[index];
+    if (!date) return false;
+    const regularKey = `${projectId}|regular`;
+    const regular = entries.some(
+      (entry) =>
+        String(entry.project_id) === projectId &&
+        String(entry.work_date) === date &&
+        String(entry.category) === 'regular',
+    );
+    if (regular || Object.keys(edits).some((key) => key === `${regularKey}|${date}`)) return false;
+    return entries.some(
+      (entry) =>
+        String(entry.project_id) === projectId &&
+        String(entry.work_date) === date &&
+        String(entry.category) !== 'regular' &&
+        String(entry.approval_state) !== 'void',
+    );
+  };
 
   const cellFor = (row: SheetRow, date: string): Cell => {
     const key = cellKey(row, date);
@@ -417,7 +460,14 @@
     date.setUTCDate(date.getUTCDate() + offset * 7);
     return date.toISOString().slice(0, 10);
   };
-  const currentWeek = weekStartForDate(today) ?? today;
+  // T52: "this week" is the project's week (a Monday 01:00 in Madrid is still Sunday
+  // on a site in Mexico), not the browser's.
+  const projectZone = $derived(
+    String(rowProjects[0]?.timezone ?? projects[0]?.timezone ?? '') || undefined,
+  );
+  const projectToday = $derived(projectZone ? isoDateInZone(projectZone) : today);
+  const currentWeek = $derived(weekStartForDate(projectToday) ?? projectToday);
+  const pastWeek = $derived(weekStart < currentWeek);
 
   const sheetHref = (changes: Record<string, string | null>) => {
     const query = new URLSearchParams($page.url.searchParams);
@@ -439,6 +489,7 @@
     edits = {};
     detailEdits = {};
     extraRows = [];
+    extraRowDays = {};
     void goto(sheetHref({ worker: value }), { noScroll: true, keepFocus: true });
   };
 
@@ -460,6 +511,8 @@
       detailEdits = {};
       detailKey = '';
       extraRows = [];
+      extraRowDays = {};
+    extraRowDays = {};
       reason = '';
     }
     sheetIdentity = identity;
@@ -552,6 +605,9 @@
         detailEdits = {};
         detailKey = '';
         extraRows = [];
+        extraRowDays = {};
+      extraRowDays = {};
+    extraRowDays = {};
         reason = '';
         rememberDayChoice();
       }
@@ -581,10 +637,11 @@
   };
   const addRow = () => {
     if (!newRowProject) return;
-    extraRows = [
-      ...extraRows,
-      { key: `${newRowProject}|${newRowCategory}`, projectId: newRowProject, category: newRowCategory },
-    ];
+    const key = `${newRowProject}|${newRowCategory}`;
+    if (!extraRows.some((row) => row.key === key))
+      extraRows = [...extraRows, { key, projectId: newRowProject, category: newRowCategory }];
+    if (newRowDay)
+      extraRowDays = { ...extraRowDays, [key]: [...(extraRowDays[key] ?? []), newRowDay] };
     addingRow = false;
   };
 
@@ -609,6 +666,25 @@
       sheetMessage = text && text !== failure?.messageKey ? text : t('sheetFailed');
     };
   };
+  const removeSheet: SubmitFunction = ({ cancel }) => {
+    if (!confirm(t('sheetRemoveConfirm'))) {
+      cancel();
+      return;
+    }
+    sheetBusy = true;
+    sheetMessage = null;
+    return async ({ result: outcome, update }) => {
+      sheetBusy = false;
+      if (outcome.type === 'success') {
+        await update({ reset: false, invalidateAll: true });
+        sheetMessage = 'removed';
+        return;
+      }
+      const failure = outcome.type === 'failure' ? (outcome.data as SheetResult | undefined) : undefined;
+      const text = failure?.messageKey ? translate(failure.messageKey) : '';
+      sheetMessage = text && text !== failure?.messageKey ? text : t('sheetRemoveFailed');
+    };
+  };
   /** Owner logging for another person: "Save & approve" (same audited approval path). */
   const forOther = $derived(delegating && workerId !== data.user.id);
   const canApproveNow = $derived(forOther && data.user.role === 'owner_admin' && canSubmit);
@@ -623,6 +699,11 @@
       : days.includes(today)
         ? today
         : (days[0] ?? today),
+  );
+  const shownRejected = $derived(
+    mode === 'day'
+      ? weekRejected.filter((entry) => String(entry.work_date) === selectedDay)
+      : weekRejected,
   );
   const shiftDay = (offset: number) => {
     const date = new SvelteDate(`${selectedDay}T00:00:00.000Z`);
@@ -709,11 +790,24 @@
         /* Ignore unreadable preferences. */
       }
     }
-    // "Edit draft" links open the draft's own project and type (the day comes from ?day=).
+  });
+  // "Edit draft" / "Fix" links open the entry's own project and type (the day comes
+  // from ?day=). Runs on every navigation so in-page links preload the entry too.
+  // Without a link, a day that has a sent-back entry opens on that entry (T07):
+  // the banner says "change the hours", so the form must show the returned hours.
+  afterNavigate(() => {
     const linkedProject = $page.url.searchParams.get('project');
     const linkedCategory = $page.url.searchParams.get('category');
-    if (linkedProject) dayProjectChoice = linkedProject;
-    if (isCaptureTimeCategory(linkedCategory)) dayCategory = linkedCategory;
+    if (linkedProject || isCaptureTimeCategory(linkedCategory)) {
+      chooseDay(linkedProject ?? dayProjectChoice, isCaptureTimeCategory(linkedCategory) ? linkedCategory : dayCategory);
+      return;
+    }
+    const returnedToday = entries.find(
+      (entry) =>
+        String(entry.work_date) === selectedDay && String(entry.approval_state) === 'needs_changes',
+    );
+    if (returnedToday && isCaptureTimeCategory(String(returnedToday.category)))
+      chooseDay(String(returnedToday.project_id), String(returnedToday.category));
   });
   // Home "Log hours" opens One day for today with the cursor in Hours (after
   // navigation, so the router's focus reset does not steal it).
@@ -762,8 +856,29 @@
   );
   // "Submit week" reminder only near the end of the week (Fri-Sun) or for past weeks.
   const weekEndNear = $derived(
-    weekStart < String(weekStartForDate(today) ?? today) || new Date(`${today}T00:00:00Z`).getUTCDay() % 6 === 0 || new Date(`${today}T00:00:00Z`).getUTCDay() === 5,
+    pastWeek ||
+      new Date(`${projectToday}T00:00:00Z`).getUTCDay() % 6 === 0 ||
+      new Date(`${projectToday}T00:00:00Z`).getUTCDay() === 5,
   );
+  /** T52: per day, what the confirm dialog sends now vs. what was already sent. */
+  const daySendMinutes = (index: number): number => {
+    let minutes = 0;
+    for (const line of grid) {
+      const cell = line.cells[index];
+      if (!cell) continue;
+      const date = days[index]!;
+      const list = cellEntries(line.row, date);
+      if (cell.kind === 'new' || cell.kind === 'fix') minutes += cell.minutes ?? 0;
+      else if (cell.kind === 'draft' && cell.changed) minutes += cell.minutes ?? 0;
+      else
+        minutes += list
+          .filter((entry) => String(entry.approval_state) === 'draft')
+          .reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
+    }
+    return minutes;
+  };
+  const sendNowMinutes = $derived(days.reduce((sum, _, index) => sum + daySendMinutes(index), 0));
+  const sendNowDays = $derived(days.filter((_, index) => daySendMinutes(index) > 0).length);
   const dayModeTotal = $derived(
     dayCell
       ? dayEntries.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0) -
@@ -831,13 +946,21 @@
     void tick().then(() => sheetForm?.requestSubmit());
   };
   /** Why a sent entry cannot be changed here (the state machine has no "unsend"). */
+  const reviewerNames = $derived((data.timeReviewers ?? {}) as Record<string, string>);
+  /** Who can send hours back: the PM by name, the owner for a PM's own hours, the coordinator for supplier staff. */
+  const reviewerFor = (projectId: string): string => {
+    if (data.user.workforceProfile === 'external_technician') return t('whoSupplier');
+    const manager = reviewerNames[projectId];
+    if (data.user.role === 'project_manager' && workerId === data.user.id) return t('whoOwner');
+    return manager ? t('whoManager', { name: manager }) : t('whoOwner');
+  };
   const lockedHelp = (cell: Cell): string =>
     cell.kind !== 'locked'
       ? ''
       : cell.status === 'submitted'
-        ? t('submittedHelp')
+        ? t('submittedHelpWho', { who: reviewerFor(cell.entry ? String(cell.entry.project_id) : dayProject) })
         : cell.status === 'approved'
-          ? t('approvedHelp')
+          ? t('approvedHelpWho', { who: reviewerFor(cell.entry ? String(cell.entry.project_id) : dayProject) })
           : '';
   const fixingNow = $derived(
     mode === 'day' ? Boolean(dayCell?.changed && dayCell.kind === 'fix') : fixingCells.length > 0,
@@ -890,13 +1013,13 @@
       aria-label={t('detailLabel', { project: `${projectLabel(line.row.projectId)} (${categoryLabel(line.row.category)})`, day: dayName(date, 'long') })}
       title={t('detailHint')}
       onclick={() => (detailKey = detailKey === cell.key ? '' : cell.key)}
-      data-testid="time-detail-toggle">{hasDetail(cell.detail) ? detailSummary(cell.detail) : t('detailAdd')}</button
+      data-testid="time-detail-toggle">{hasDetail(cell.detail) ? detailSummary(cell.detail, cellDate(cell)) : t('detailAdd')}</button
     >
   {:else}
     <span
       class="hours-locked"
       data-status={cell.kind === 'unassigned' ? 'unassigned' : cell.status}
-      title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail) : '', cell.detail.note].filter(Boolean).join(' · ')}
+      title={[cellTitle(cell), detailSummary(cell.detail) !== '✎' ? detailSummary(cell.detail, cellDate(cell)) : '', cell.detail.note].filter(Boolean).join(' · ')}
       aria-label={`${label}: ${cell.kind === 'unassigned' ? cellTitle(cell) : `${hoursText(cell.originalMinutes) || '0:00'} ${t('hoursUnit')} · ${statusLabel(cell.status ?? 'submitted')}`}`}
     >
       {#if cell.kind === 'unassigned'}
@@ -910,7 +1033,7 @@
       {/if}
     </span>
     {#if cell.kind !== 'unassigned' && hasDetail(cell.detail)}
-      <small class="detail-ro" title={cell.detail.note}>{detailSummary(cell.detail)}</small>
+      <small class="detail-ro" title={cell.detail.note}>{detailSummary(cell.detail, cellDate(cell))}</small>
     {/if}
   {/if}
 {/snippet}
@@ -1068,7 +1191,7 @@
     >
     {#if weekStart !== currentWeek}
       <a class="this-week" href={sheetHref({ mode: 'week', week: null, day: null })} onclick={leaveGuard} data-sveltekit-noscroll
-        >{t('thisWeek')}</a
+        >{t('goThisWeek')}</a
       >
     {/if}
   </nav>
@@ -1102,16 +1225,41 @@
   </nav>
   {/if}
 
-  {#if returned.length}
+  {#if returned.length || timeReturns.length}
+    {@const outside = timeReturns.filter((entry) => !days.includes(String(entry.work_date)))}
     <div class="returned" role="status" data-testid="time-needs-changes">
-      <p><strong>{t('statusNeedsChanges')}.</strong> {mode === 'day' && canSubmit ? t('needsChangesHelpDay') : t('needsChangesHelp')}</p>
+      <p>
+        <strong>{returned.length + outside.length === 1 ? t('returnedCountOne') : t('returnedCount', { n: returned.length + outside.length })}</strong>
+        {mode === 'day' && canSubmit ? t('needsChangesHelpDay') : t('needsChangesHelp')}
+      </p>
       <ul>
-        {#each returned as entry (entry.id)}
+        {#each [...returned, ...outside] as entry (entry.id)}
           <li>
-            <span>{dayName(String(entry.work_date))} · {projectLabel(String(entry.project_id))}</span>
+            <a
+              href={sheetHref({ day: String(entry.work_date), week: null, project: String(entry.project_id), category: String(entry.category) })}
+              onclick={leaveGuard}
+              data-sveltekit-noscroll
+              data-testid="time-returned-link"
+              >{dayName(String(entry.work_date), 'long')} · {projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))} {hm(entry.minutes)} {t('hoursUnit')}</a
+            >
             <span class="note"
               >{t('reviewerNote')}: {entry.review_reason ? String(entry.review_reason) : t('noNote')}</span
             >
+          </li>
+        {/each}
+      </ul>
+    </div>
+  {/if}
+
+  {#if shownRejected.length}
+    <div class="rejected-list" data-testid="time-rejected">
+      <p><strong>{t('rejectedTitle')}</strong> {t('rejectedHelp')}</p>
+      <ul>
+        {#each shownRejected as entry (entry.id)}
+          <li>
+            <span>{dayName(String(entry.work_date), 'long')} · {projectLabel(String(entry.project_id))} · {categoryLabel(String(entry.category))} {hm(entry.minutes)} {t('hoursUnit')}</span>
+            <StatusBadge variant="danger" text={t('statusRejected')} />
+            <span class="note">{t('reviewerNote')}: {entry.review_reason ? String(entry.review_reason) : t('noNote')}</span>
           </li>
         {/each}
       </ul>
@@ -1244,14 +1392,16 @@
                 {:else if minutesHint(dayCell.minutes)}
                   <small class="muted">{minutesHint(dayCell.minutes)}</small>
                 {/if}
-                {#if dayCell.kind === 'draft'}<small class="muted">{t('dayDraftHint')}</small>{/if}
+                {#if dayCell.kind === 'draft'}<small class="muted"
+                    >{typeof dayCell.detailMinutes === 'number' ? t('dayDraftDetailHint') : t('dayDraftHint')}</small
+                  >{/if}
               {:else if dayCell}
                 <span class="hours-locked big" data-status={dayCell.status}
                   >{hoursText(dayCell.originalMinutes) || '0:00'} {t('hoursUnit')}</span
                 >
                 <small class="muted">{cellTitle(dayCell)}</small>
                 {#if lockedHelp(dayCell)}<small class="locked-help" data-testid="time-day-locked-help">{lockedHelp(dayCell)}</small>{/if}
-                {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail)} {dayCell.detail.note}</small>{/if}
+                {#if hasDetail(dayCell.detail)}<small class="muted">{detailSummary(dayCell.detail, selectedDay)} {dayCell.detail.note}</small>{/if}
               {/if}
             </label>
             {#if dayCell && (dayCell.kind === 'new' || dayCell.kind === 'draft' || dayCell.kind === 'fix')}
@@ -1265,7 +1415,7 @@
                   aria-expanded="false"
                   onclick={() => (detailKey = dayCell.key)}
                   data-testid="time-detail-toggle"
-                  >{hasDetail(dayCell.detail) ? `${t('ovDetail')}: ${detailSummary(dayCell.detail)}` : t('detailAdd')}</button
+                  >{hasDetail(dayCell.detail) ? `${t('ovDetail')}: ${detailSummary(dayCell.detail, selectedDay)}` : t('detailAdd')}</button
                 >
               {/if}
             {/if}
@@ -1302,6 +1452,10 @@
                   data-testid="time-day-send"
                   >{busy === 'submit_day' ? t('sendingDay') : t('saveAndSend')}</button
                 >
+              {/if}
+              {#if !busy && !invalidNow && !dirtyNow && dayDraftCount === 0}
+                <!-- T53: say why the buttons are disabled. -->
+                <small class="muted day-disabled-hint" data-testid="time-day-disabled-hint">{t('dayNothingYet')}</small>
               {/if}
               <button
                 type="button"
@@ -1354,6 +1508,10 @@
                     <strong>{hm(entry.minutes)} {t('hoursUnit')}</strong>
                   </button>
                   <StatusBadge variant={variant(entryStatus(entry))} text={statusLabel(entryStatus(entry))} />
+                  {#if entry.recorded_by_name}
+                    <small class="muted recorded-by" data-testid="time-recorded-by">{t('recordedBy', { name: String(entry.recorded_by_name) })}</small>
+                  {/if}
+                  <a class="entry-open" href={`${base}/app/time/${String(entry.id)}`} data-testid="time-entry-open">{t('openEntry')}</a>
                 </li>
               {/each}
             </ul>
@@ -1435,7 +1593,7 @@
             <ul>
               {#each grid as line (line.row.key)}
                 {@const cell = line.cells[index]!}
-                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && (line.row.category === 'regular' || cell.originalMinutes || cell.key in edits || extraRows.some((row) => row.key === line.row.key))}
+                {#if (cell.kind !== 'unassigned' || cell.originalMinutes) && ((line.row.category === 'regular' && !otherRowsOnDay(line.row.projectId, index)) || cell.originalMinutes || cell.key in edits || extraRowOnDay(line.row.key, date))}
                   <li class="day-line">
                     <span class="day-line-label">
                       <span class="project-name">{projectLabel(line.row.projectId)}</span>
@@ -1477,6 +1635,14 @@
                   {/each}
                 </select>
               </label>
+              <label class="add-row-day"
+                >{t('day')}
+                <select bind:value={newRowDay}>
+                  {#each days as date (date)}
+                    <option value={date}>{dayName(date, 'long')}</option>
+                  {/each}
+                </select>
+              </label>
               <button type="button" class="secondary" onclick={addRow}>{t('add')}</button>
               <button type="button" class="link" onclick={() => (addingRow = false)}>{t('cancel')}</button>
             </fieldset>
@@ -1486,6 +1652,7 @@
               class="link"
               onclick={() => {
                 newRowProject = String(rowProjects[0]?.id ?? '');
+                newRowDay = days.includes(projectToday) ? projectToday : (days[0] ?? '');
                 addingRow = true;
               }}>+ {t('addRow')}</button
             >
@@ -1525,14 +1692,20 @@
         {#if mode === 'day'}
           <div class="sheet-actions day-actions" data-testid="time-day-actions">
             <p class="week-summary">
-              {t('weekSoFar', { hours: hm(weekTotal) })}
+              {pastWeek
+                ? `${t('weekTotal')}: ${hm(weekTotal)} ${t('hoursUnit')}`
+                : t('weekSoFar', { hours: hm(weekTotal) })}
               {#if weekDraftMinutes && !weekEndNear}
                 · {t('notSubmittedHours', { hours: hm(weekDraftMinutes) })}
               {/if}
             </p>
             {#if weekDraftMinutes && weekEndNear && canSubmit}
               <div class="week-reminder" role="status" data-testid="time-week-reminder">
-                <span>{t('weekEndReminder', { hours: hm(weekDraftMinutes) })}</span>
+                <span
+                  >{t(pastWeek ? 'weekOverReminder' : 'weekEndReminder', {
+                    hours: hm(weekDraftMinutes),
+                  })}</span
+                >
                 <a href={sheetHref({ mode: 'week', day: null, week: weekStart })} onclick={leaveGuard} data-testid="time-day-to-week"
                   >{t('reviewSubmitWeek')} →</a
                 >
@@ -1593,10 +1766,19 @@
           <ul class="sheet-files">
             {#each weekSheets as sheet (sheet.id)}
               <li>
-                <a href={`${base}/app/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener" data-testid="time-week-sheet-link"
+                <!-- T38: the API URL is the same authorization and is open to external technicians. -->
+                <a href={`${base}/app/api/documents/${encodeURIComponent(sheet.id)}?view=1`} target="_blank" rel="noopener" data-testid="time-week-sheet-link"
                   >📄 {sheet.filename}</a
                 >
                 {#if rowProjects.length > 1}<span class="muted small">{projectLabel(sheet.projectId)}</span>{/if}
+                {#if sheet.removable}
+                  <form method="POST" action="?/removeWeekSheet" class="sheet-remove" use:enhance={removeSheet}>
+                    <input type="hidden" name="documentId" value={sheet.id} />
+                    <button type="submit" class="link-button" disabled={sheetBusy} data-testid="time-week-sheet-remove"
+                      >{t('sheetRemove')}</button
+                    >
+                  </form>
+                {/if}
               </li>
             {/each}
           </ul>
@@ -1630,7 +1812,9 @@
             >{sheetBusy ? t('sheetAttaching') : t('sheetAttach')}</button
           >
         </form>
-        {#if sheetMessage && sheetMessage !== 'done'}
+        {#if sheetMessage === 'removed'}
+          <p class="muted small" role="status">{t('sheetRemoved')}</p>
+        {:else if sheetMessage && sheetMessage !== 'done'}
           <p class="cell-error" role="alert">{sheetMessage}</p>
         {/if}
       </details>
@@ -1643,7 +1827,12 @@
         <tbody>
           {#each days as date, index (date)}
             {#if dayTotals[index]}
-              <tr class:day-long={dayLong(index)}><th scope="row">{dayName(date, 'long')}</th><td>{hm(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}</td></tr>
+              <tr class:day-long={dayLong(index)} class:day-sent={!daySendMinutes(index)}
+                ><th scope="row">{dayName(date, 'long')}</th><td
+                  >{hm(dayTotals[index])} {t('hoursUnit')}{dayLong(index) ? ' ⚠' : ''}{#if !daySendMinutes(index)}
+                    <span class="muted small"> · {t('alreadySent')}</span>{/if}</td
+                ></tr
+              >
             {/if}
           {/each}
         </tbody>
@@ -1651,6 +1840,7 @@
           <tr><th scope="row">{t('weekTotal')}</th><td><strong>{hm(weekTotal)} {t('hoursUnit')}</strong></td></tr>
         </tfoot>
       </table>
+      <p><strong>{t('sendNow', { hours: hm(sendNowMinutes), n: sendNowDays })}</strong></p>
       <p>{t('confirmEntries', { count: submitCount })}</p>
       <p class="muted">
         {forOther
@@ -1694,6 +1884,11 @@
   }
   .cell-warn {
     color: #8a5300;
+  }
+  tr.day-sent th,
+  tr.day-sent td {
+    color: var(--ja-muted, #5f6670);
+    font-weight: 400;
   }
   td.day-over,
   .day-card-total.day-over {
@@ -2027,8 +2222,51 @@
   .returned li {
     display: grid;
   }
-  .returned .note {
+  .returned .note,
+  .rejected-list .note {
     font-style: italic;
+  }
+  .returned a {
+    font-weight: 600;
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+  }
+  .rejected-list {
+    border-radius: var(--ja-radius, 10px);
+    padding: 0.75rem 1rem;
+    background: #fdf3f3;
+    border: 1px solid #e3a5a5;
+  }
+  .rejected-list p {
+    margin: 0;
+  }
+  .rejected-list ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .rejected-list li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+  }
+  .rejected-list li .note {
+    flex-basis: 100%;
+  }
+  .day-logged li {
+    flex-wrap: wrap;
+  }
+  .day-logged .recorded-by {
+    flex-basis: 100%;
+    padding-left: 0.5rem;
+  }
+  .day-logged .entry-open {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.5rem;
+    white-space: nowrap;
   }
   .sheet-problem {
     background: #fdecec;
@@ -2521,6 +2759,24 @@
   .sheet-files a {
     font-weight: 600;
     overflow-wrap: anywhere;
+  }
+  .sheet-files li {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.75rem;
+  }
+  .sheet-remove {
+    display: inline;
+  }
+  .sheet-remove button {
+    min-height: 44px;
+    border: 0;
+    background: none;
+    color: #9f1c1c;
+    text-decoration: underline;
+    font: inherit;
+    cursor: pointer;
   }
   .sheet-upload {
     display: flex;

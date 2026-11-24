@@ -2340,7 +2340,10 @@ export class PortalRepository {
             patch: {
               minutes,
               ...intervalPatch,
-              ...(detail !== undefined && note ? { summary: note } : {}),
+              // The detail note is the entry's activity summary (column
+              // activity_summary). The correction path accepts the canonical
+              // alias only; the reviewer-facing "what changed" is the reason.
+              ...(detail !== undefined && note ? { activitySummary: note } : {}),
             },
           };
           const result = withCell(cell, () =>
@@ -2731,6 +2734,7 @@ export class PortalRepository {
       'review_reason',
       'active_correction_id',
       'active_correction_state',
+      'corrects_approved',
     ]);
     return safeRows.map(
       (row) =>
@@ -4298,8 +4302,12 @@ export class PortalRepository {
             throw new ValidationError('Correction date is invalid');
           assertDate(patch[key], 'Correction date');
         }
+        // A time correction that drops its start/end interval also clears the
+        // break (NULL); the effective-entry check below still rejects a break
+        // that is left without an interval or does not fit inside one.
         if (
           (column === 'minutes' || column === 'break_minutes' || column === 'downtime_minutes') &&
+          !(input.recordType === 'time_entry' && column === 'break_minutes' && patch[key] === null) &&
           (!Number.isInteger(patch[key]) || Number(patch[key]) < 0 || Number(patch[key]) > 1440)
         )
           throw new ValidationError('Correction duration is invalid');
@@ -4846,7 +4854,13 @@ export class PortalRepository {
     input: ExpenseInput,
     workerId = principal.userId,
     requestId?: string,
-    options: Readonly<{ allowSeparateExpense?: boolean }> = {},
+    options: Readonly<{
+      allowSeparateExpense?: boolean;
+      /** Extra retry-identity details stored on the single expense.create audit event. */
+      auditDetails?: Readonly<Record<string, unknown>>;
+      /** Caller-reserved id (a batch names all its ids in the first row's audit event). */
+      id?: string;
+    }> = {},
   ) {
     this.assertActive(principal);
     return this.transaction(() => {
@@ -5005,7 +5019,7 @@ export class PortalRepository {
           if (duplicate) throw new DuplicateCrewExpenseError(duplicate.id);
         }
       }
-      const id = newId();
+      const id = options.id && /^[0-9a-f-]{16,64}$/u.test(options.id) ? options.id : newId();
       const timestamp = now();
       // Configuration is not data entry.  The operational intake deliberately
       // ignores legacy/forged commercial fields; Finance/Admin appends the
@@ -5058,6 +5072,7 @@ export class PortalRepository {
           .run(principal.userId, requestId as string, payloadHash as string, id, timestamp);
       }
       this.audit(principal, 'expense.create', 'expense', id, {
+        ...(options.auditDetails ?? {}),
         amountMinor: input.amountMinor.toString(),
         ...(grantId ? { recordedForWorkerId: workerId, crewGrantId: grantId } : {}),
       });
@@ -12599,6 +12614,16 @@ export class PortalRepository {
                   SELECT 1 FROM record_correction_link rcl
                    WHERE rcl.record_type='time_entry' AND rcl.correction_id=t.id
                 ) correction_linked,
+                (SELECT correction.approval_state FROM record_correction_link rcl
+                   JOIN time_entry correction ON correction.id=rcl.correction_id
+                  WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
+                    AND correction.approval_state NOT IN ('rejected','void')
+                  ORDER BY correction.created_at DESC LIMIT 1) active_correction_state,
+                EXISTS(
+                  SELECT 1 FROM record_correction_link rcl JOIN time_entry original ON original.id=rcl.original_id
+                   WHERE rcl.record_type='time_entry' AND rcl.correction_id=t.id
+                     AND original.approval_state IN ('approved','locked')
+                ) corrects_approved,
                 (SELECT rcl.correction_id FROM record_correction_link rcl
                    JOIN time_entry correction ON correction.id=rcl.correction_id
                   WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id
@@ -12661,7 +12686,7 @@ export class PortalRepository {
       .get(id) as { original_id: string } | undefined;
     const review = this.sqlite
       .prepare(
-        "SELECT reason FROM approval_event WHERE entity_type IN ('time','time_entry') AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+        "SELECT reason FROM approval_event WHERE entity_type IN ('time','time_entry') AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR (reason NOT LIKE 'Superseded by append-only correction retry %' AND reason NOT LIKE 'Superseded by correction %')) ORDER BY occurred_at DESC,id DESC LIMIT 1",
       )
       .get(id) as { reason: string | null } | undefined;
     const correction = this.sqlite
@@ -13107,7 +13132,10 @@ export class PortalRepository {
     const restrictedSupplier = Boolean(readSupplierProfile(this.sqlite, principal.userId));
     const expenseColumns =
       principal.role === 'project_manager'
-        ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,
+        ? // The reviewing PM sees what he approves: amount, currency and receipt (T10).
+          // Payment method, who paid, reimbursement and billing stay hidden.
+          `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,
+         e.currency,e.amount_minor,e.receipt_document_id,
          e.vendor,e.description,e.approval_state,e.version,e.created_at,e.updated_at`
         : restrictedSupplier
           ? `e.id,e.project_id,e.worker_id,e.spent_on,e.occurred_time_local,e.time_entry_id,e.category,e.currency,e.amount_minor,
@@ -13166,7 +13194,7 @@ export class PortalRepository {
       .get(id) as { original_id: string } | undefined;
     const review = this.sqlite
       .prepare(
-        "SELECT reason FROM approval_event WHERE entity_type='expense' AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR reason NOT LIKE 'Superseded by append-only correction retry %') ORDER BY occurred_at DESC,id DESC LIMIT 1",
+        "SELECT reason FROM approval_event WHERE entity_type='expense' AND entity_id=? AND to_state IN ('needs_changes','rejected') AND (reason IS NULL OR (reason NOT LIKE 'Superseded by append-only correction retry %' AND reason NOT LIKE 'Superseded by correction %')) ORDER BY occurred_at DESC,id DESC LIMIT 1",
       )
       .get(id) as { reason: string | null } | undefined;
     const correction = this.sqlite

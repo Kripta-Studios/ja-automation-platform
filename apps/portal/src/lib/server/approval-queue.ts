@@ -28,6 +28,7 @@ import {
   type ApprovalWorkerSummary,
 } from '$lib/portal/approval-queue-page';
 import { personDisplayName } from '$lib/portal/display-name';
+import { expenseEstimate } from './expense-estimate';
 import { projectManagerApprovalQueueProjection } from '../../routes/app/[section]/role-projections';
 
 type PortalContext = ReturnType<typeof openPortalRepository>;
@@ -42,25 +43,60 @@ function roleRows(context: PortalContext, rows: readonly Row[]): Row[] {
     : [...rows];
 }
 
-/** Exact expense money for owner/Finance rows; PMs get counts only. */
+/**
+ * Exact expense amount and currency for the people who decide on it: owner,
+ * Finance and the project's PM (T10: the PM approved expenses blind while the
+ * project hub already shows him the same amounts). Reimbursement, billing and
+ * payment details stay owner/Finance only.
+ */
 function withExpenseMoney(context: PortalContext, rows: Row[]): Row[] {
-  if (!['owner_admin', 'finance_admin'].includes(context.principal.role)) return rows;
+  if (!['owner_admin', 'finance_admin', 'project_manager'].includes(context.principal.role))
+    return rows;
   const ids = rows.filter((row) => row.type === 'expense').map((row) => text(row.id));
-  const money = new Map<string, { currency: string; amount_minor: string }>();
+  const money = new Map<
+    string,
+    { currency: string; amount_minor: string; project_currency: string; spent_on: string }
+  >();
   for (let offset = 0; offset < ids.length; offset += 500) {
     const batch = ids.slice(offset, offset + 500);
     for (const row of context.sqlite
       .prepare(
-        `SELECT id,currency,CAST(amount_minor AS TEXT) amount_minor FROM expense WHERE id IN (${batch.map(() => '?').join(',')})`,
+        `SELECT e.id,e.currency,CAST(e.amount_minor AS TEXT) amount_minor,p.currency project_currency,e.spent_on
+           FROM expense e JOIN project p ON p.id=e.project_id
+          WHERE e.id IN (${batch.map(() => '?').join(',')})`,
       )
-      .all(...batch) as Array<{ id: string; currency: string; amount_minor: string }>)
+      .all(...batch) as Array<{
+      id: string;
+      currency: string;
+      amount_minor: string;
+      project_currency: string;
+      spent_on: string;
+    }>)
       money.set(row.id, row);
   }
   return rows.map((row) => {
     const found = row.type === 'expense' ? money.get(text(row.id)) : undefined;
-    return found
-      ? { ...row, expense_currency: found.currency, expense_amount_minor: found.amount_minor }
-      : row;
+    if (!found) return row;
+    // ECB indicative amount in the project currency (T36), never stored.
+    const estimate = expenseEstimate(
+      context.sqlite,
+      found.amount_minor,
+      found.currency,
+      found.project_currency,
+      found.spent_on,
+    );
+    return {
+      ...row,
+      expense_currency: found.currency,
+      expense_amount_minor: found.amount_minor,
+      ...(estimate
+        ? {
+            expense_estimate_minor: estimate.minor,
+            expense_estimate_currency: estimate.currency,
+            expense_estimate_rate_date: estimate.rateDate,
+          }
+        : {}),
+    };
   });
 }
 
@@ -153,6 +189,17 @@ function ownerOnlyTime(
   return { count, ownerName: owner ? personDisplayName(owner.name, owner.email) : '' };
 }
 
+/** Who approves a PM's own time and expenses (the owner), named on the queue (T83). */
+function ownApprover(context: PortalContext): string {
+  if (context.principal.role !== 'project_manager') return '';
+  const owner = context.sqlite
+    .prepare(
+      "SELECT name,email FROM user WHERE role='owner_admin' AND status='active' ORDER BY created_at LIMIT 1",
+    )
+    .get() as { name: string | null; email: string | null } | undefined;
+  return owner ? personDisplayName(owner.name, owner.email) : '';
+}
+
 type Labels = {
   workerName: (id: string) => string;
   projectLabel: (id: string) => string;
@@ -220,7 +267,7 @@ function decorator(context: PortalContext, labels: Labels) {
     'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
   );
   const dailyDetail = context.sqlite.prepare(
-    `SELECT tasks_completed tasks,problems_found problems,blockers,next_day_plan next_day,
+    `SELECT tasks_completed tasks,problems_found problems,open_items open_items,blockers,next_day_plan next_day,
             safety_notes safety,downtime_minutes downtime FROM daily_report
       WHERE id=? AND project_id=? AND worker_id=?`,
   );
@@ -496,6 +543,7 @@ export function loadApprovalQueuePage(
     summary: pending.summary,
     reviewable: pending.reviewable,
     ownerOnlyTime: ownerOnlyTime(context, pending.visible.projectIds),
+    ownApprover: ownApprover(context),
     options,
     filtersActive: Boolean(query.search || query.worker || query.project || query.week),
     matching: {

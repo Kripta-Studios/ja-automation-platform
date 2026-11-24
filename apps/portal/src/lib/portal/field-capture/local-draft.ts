@@ -47,3 +47,13 @@ export async function clearLocalCaptureDraft(
   await db.delete('drafts', localDraftKey(userId, projectId, workDate));
   db.close();
 }
+
+/** Every draft this person saved on this device, newest first (survives reloads, T24). */
+export async function listLocalCaptureDrafts(userId: string): Promise<LocalCaptureDraft[]> {
+  const db = await database();
+  const rows = (await db.getAll('drafts')) as LocalCaptureDraft[];
+  db.close();
+  return rows
+    .filter((row) => row?.userId === userId && row.projectId && row.workDate)
+    .sort((a, b) => String(b.savedAt).localeCompare(String(a.savedAt)));
+}

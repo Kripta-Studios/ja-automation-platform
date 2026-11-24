@@ -284,6 +284,30 @@ describe('expense export download problems', () => {
     },
   );
 
+  it('exports only the worker’s own rows, never crew expenses he recorded (T92)', async () => {
+    state.listExpensesForScope.mockReturnValueOnce([
+      ...state.listExpensesForScope(),
+      {
+        id: 'crew-expense-of-maico',
+        spent_on: '2026-09-13',
+        project_id: 'project-1',
+        worker_id: 'crew-member-2',
+        client_name: 'Client',
+        category: 'meal',
+        currency: 'EUR',
+        amount_minor: 4200,
+        approval_state: 'approved',
+        reimbursement_state: 'pending',
+        receipt_required: 0,
+        vendor: 'Crew dinner',
+      },
+    ]);
+    const response = await request(valid);
+    expect(response.status).toBe(200);
+    const rows = state.exporter.mock.calls.at(-1)?.[0] as Array<{ id: string }>;
+    expect(rows.map((row) => row.id)).toEqual(['expense-1']);
+  });
+
   it('continues supporting deep links for existing status and reimbursement states', async () => {
     state.role = 'finance_admin';
     const response = await request(`${valid}&status=locked&reimbursement=scheduled`);

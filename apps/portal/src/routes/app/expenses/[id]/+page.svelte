@@ -72,6 +72,10 @@
   const canViewExpenseMoney = $derived(
     data.expenseMoneyVisible !== false && data.user?.role !== 'project_manager',
   );
+  /** Amount, currency and receipt: also for the reviewing PM (T10); payment details are not. */
+  const canViewExpenseAmount = $derived(
+    canViewExpenseMoney || (data.user?.role === 'project_manager' && record.amount_minor != null),
+  );
   let pmCorrectionForm: HTMLFormElement | undefined = $state();
   beforeNavigate((navigation) => {
     if (
@@ -1079,7 +1083,7 @@
       </div>
     {/if}
     <section class="record-detail-grid">
-      {#if canViewExpenseMoney}
+      {#if canViewExpenseAmount}
         <article>
           <span>{t('AMOUNT')}</span><strong
             >{money(record.amount_minor, String(record.currency))}</strong
@@ -1102,9 +1106,11 @@
       {#if canViewOwnReimbursement && record.approval_state !== 'void' && record.reimbursement_state}
         <article>
           <span>{t('REIMBURSEMENT')}</span><strong
-            >{financeClassificationPending
-              ? t('Needs Finance classification')
-              : controlled('status', record.reimbursement_state)}</strong
+            >{record.approval_state === 'rejected'
+              ? t('Not reimbursable')
+              : financeClassificationPending
+                ? t('Needs Finance classification')
+                : controlled('status', record.reimbursement_state)}</strong
           >
         </article>
       {/if}
@@ -1189,18 +1195,30 @@
             </dd>
           </div>
         {/if}
-        {#if canViewExpenseMoney}
+        {#if canViewExpenseAmount}
           <div>
             <dt>{t('Receipt')}</dt>
             <dd>
               {record.receipt_document_id
                 ? t('Registered private receipt')
                 : t('No receipt linked')}
+              {#if !record.receipt_document_id && record.worker_id === data.user?.id}
+                <!-- T55: say how a missing receipt can still be added. -->
+                <small class="receipt-path" data-expense-receipt-path
+                  >{record.approval_state === 'draft'
+                    ? t('Add the receipt with Edit before sending.')
+                    : record.approval_state === 'submitted'
+                      ? t('Sent without a receipt. It can be added when the reviewer sends it back, or with a correction after approval.')
+                      : data.canCreateCorrection
+                        ? t('To add the receipt, create a corrected draft below.')
+                        : ''}</small
+                >
+              {/if}
             </dd>
           </div>
         {/if}
       </dl>
-      {#if canViewExpenseMoney && record.receipt_document_id}
+      {#if canViewExpenseAmount && record.receipt_document_id}
         <a
           id="expense-receipt-preview"
           class="preview-link"
@@ -1226,6 +1244,12 @@
 {/if}
 
 <style>
+  .receipt-path {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--ja-muted, #5f6670);
+    font-size: 0.85rem;
+  }
   .expense-correction-panel > summary {
     cursor: pointer;
     list-style: none;

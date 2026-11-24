@@ -39,6 +39,7 @@
   import { journeyMoney } from '$lib/portal/project-invoice-journey';
   import RecordPaymentForm from '$lib/portal/sections/RecordPaymentForm.svelte';
   import { moneyText } from '$lib/portal/money-copy';
+  import { billingFixText, type BillingFixCopyKey } from '$lib/portal/billing-fix-copy';
   import { paymentMoney } from '$lib/portal/payment-money';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { documentLanguage } from '$lib/portal-i18n';
@@ -330,12 +331,23 @@
   let draftEditor = $state<HTMLDetailsElement>();
   let draftEditorForm = $state<HTMLFormElement>();
   let detailsSaving = $state(false);
-  const companyFields: Array<[string, string, string]> = [
-    ['companyDivision', 'Division', 'division'],
-    ['companyPhone', 'Phone', 'phone'],
-    ['companyEmail', 'Email', 'email'],
-    ['companyWebsite', 'Website', 'website'],
+  // Bank, payee and company contact details are company-wide issuer settings (decision D1):
+  // the draft shows them, Billing setup › Issuer settings changes them.
+  const companyWideFields = [
+    'bankSwiftNumber',
+    'bankAccountNumber',
+    'bankName',
+    'beneficiary',
+    'companyDivision',
+    'companyPhone',
+    'companyEmail',
+    'companyWebsite',
   ];
+  const fixText = (key: BillingFixCopyKey, params: Record<string, string | number> = {}) =>
+    billingFixText(locale, key, params);
+  const issuerSettingsHref = $derived(
+    `${base}/app/billing?view=setup&issuerSettings=${encodeURIComponent(String(invoice.issuer_legal_entity_id ?? ''))}&lang=${locale}#issuer-document-settings`,
+  );
   const projectHref = $derived(
     `${base}/app/projects/${encodeURIComponent(String(invoice.project_id ?? ''))}?lang=${locale}`,
   );
@@ -362,6 +374,10 @@
       return;
     }
     if (!canEditDraft) return;
+    if (companyWideFields.includes(name)) {
+      await navigateConfiguration(issuerSettingsHref);
+      return;
+    }
     if (['issuingAuthority', 'companyName', 'companyAddress'].includes(name)) {
       await navigateConfiguration(
         `${financeHref}&task=${encodeURIComponent('Project issuing authority')}#project-issuing-authority`,
@@ -1608,7 +1624,7 @@
                     'purchaseNo',
                     invoice.purchase_no !== '—' ? invoice.purchase_no : '',
                   )}
-                  placeholder={t('For example: BBS Mexico')}
+                  placeholder={fixText('purchaseNoPlaceholder')}
                 />
               </div>
               <div class="draft-field full-width">
@@ -1639,48 +1655,6 @@
                   )}</small
                 >
               </div>
-              <div class="draft-field">
-                <label for="edit-swift">{t('Bank Swift Number')}</label>
-                <input
-                  id="edit-swift"
-                  name="bankSwiftNumber"
-                  type="text"
-                  value={draftValue(
-                    'bankSwiftNumber',
-                    invoice.terms_and_instructions?.bankSwiftNumber,
-                  )}
-                />
-              </div>
-              <div class="draft-field">
-                <label for="edit-account">{t('Bank Account Number')}</label>
-                <input
-                  id="edit-account"
-                  name="bankAccountNumber"
-                  type="text"
-                  value={draftValue(
-                    'bankAccountNumber',
-                    invoice.terms_and_instructions?.bankAccountNumber,
-                  )}
-                />
-              </div>
-              <div class="draft-field">
-                <label for="edit-bank-name">{t('Bank Name')}</label>
-                <input
-                  id="edit-bank-name"
-                  name="bankName"
-                  type="text"
-                  value={draftValue('bankName', invoice.terms_and_instructions?.bankName)}
-                />
-              </div>
-              <div class="draft-field">
-                <label for="edit-beneficiary">{t('Beneficiary')}</label>
-                <input
-                  id="edit-beneficiary"
-                  name="beneficiary"
-                  type="text"
-                  value={draftValue('beneficiary', invoice.terms_and_instructions?.beneficiary)}
-                />
-              </div>
               <div class="draft-field full-width">
                 <label for="edit-past-due">{t('Past Due Notice')}</label>
                 <textarea
@@ -1692,22 +1666,14 @@
                 ></textarea>
               </div>
             </div>
-            <div class="draft-edit-grid">
-              {#each companyFields as [name, label, key]}
-                <div class="draft-field">
-                  <label for={`edit-${name}`}>{t(label)}</label>
-                  <input
-                    id={`edit-${name}`}
-                    {name}
-                    type="text"
-                    value={draftValue(name, invoice.company_info?.[key])}
-                  />
-                </div>
-              {/each}
-            </div>
-            <div class="invoice-source-guidance" aria-label={t('invoice.sourceSaveTitle')}>
-              <p>{t('invoice.sourceSaveIssuer')}</p>
-            </div>
+            <section class="invoice-source-guidance" data-company-wide-details>
+              <h4>{fixText('companyWideTitle')}</h4>
+              <p>{fixText('companyWideHelp')}</p>
+              {#if String(data.user?.role ?? '') !== 'owner_admin'}
+                <p>{fixText('companyWideFinanceNote')}</p>
+              {/if}
+              <a href={issuerSettingsHref}>{fixText('companyWideOwnerLink')}</a>
+            </section>
             <p>
               {t(
                 'Invoice and due dates apply to this draft. Issued invoices keep their original data.',

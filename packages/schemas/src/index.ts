@@ -62,7 +62,18 @@ export const offlineMutationSchema = z.object({
 });
 
 /** Keep aligned with CURRENCIES in @ja/money (curated ISO 4217 list). */
-export const currencySchema = z.enum(['USD', 'EUR', 'MXN', 'BRL', 'CAD', 'GBP', 'CHF', 'ARS', 'CNY', 'JPY']);
+export const currencySchema = z.enum([
+  'USD',
+  'EUR',
+  'MXN',
+  'BRL',
+  'CAD',
+  'GBP',
+  'CHF',
+  'ARS',
+  'CNY',
+  'JPY',
+]);
 export const reportLocaleSchema = z.enum(['en', 'pt', 'es']);
 export const uuidSchema = z.uuid();
 export const isValidIanaTimeZone = (value: string): boolean => {
@@ -724,6 +735,39 @@ export const invoiceDraftDetailsInputSchema = z
   })
   .strict();
 
+/** SWIFT/BIC: 4 bank letters, 2 country letters, 2 location characters, optional 3-character branch. */
+export function isValidBic(value: string): boolean {
+  return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/u.test(
+    value.replace(/\s+/gu, '').toUpperCase(),
+  );
+}
+
+/** A value written like an IBAN (country letters + check digits first), spaces ignored. */
+export function looksLikeIban(value: string): boolean {
+  return /^[A-Z]{2}[0-9]{2}[A-Z0-9]/u.test(value.replace(/\s+/gu, '').toUpperCase());
+}
+
+/** ISO 13616 mod-97 checksum. */
+export function isValidIban(value: string): boolean {
+  const compact = value.replace(/\s+/gu, '').toUpperCase();
+  if (!/^[A-Z]{2}[0-9]{2}[A-Z0-9]{11,30}$/u.test(compact)) return false;
+  const rearranged = `${compact.slice(4)}${compact.slice(0, 4)}`;
+  let remainder = 0;
+  for (const character of rearranged) {
+    const digits = /[A-Z]/u.test(character) ? String(character.charCodeAt(0) - 55) : character;
+    for (const digit of digits) remainder = (remainder * 10 + Number(digit)) % 97;
+  }
+  return remainder === 1;
+}
+
+/** Account numbers: an IBAN must pass its checksum; domestic numbers are digits, spaces and dashes. */
+export function isValidBankAccountNumber(value: string): boolean {
+  const trimmed = value.trim();
+  if (!trimmed) return true;
+  if (looksLikeIban(trimmed)) return isValidIban(trimmed);
+  return /^[0-9][0-9 -]{3,40}$/u.test(trimmed);
+}
+
 export const issuerDocumentSettingsInputSchema = z
   .object({
     legalEntityId: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/u),
@@ -738,7 +782,23 @@ export const issuerDocumentSettingsInputSchema = z
     companyEmail: z.union([z.email().max(254), z.literal('')]).optional(),
     companyWebsite: z.string().trim().max(500).optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.bankSwiftNumber && !isValidBic(value.bankSwiftNumber))
+      context.addIssue({
+        code: 'custom',
+        path: ['bankSwiftNumber'],
+        message: 'Enter a SWIFT/BIC code of 8 or 11 characters, for example WFBIUS6S.',
+      });
+    if (value.bankAccountNumber && !isValidBankAccountNumber(value.bankAccountNumber))
+      context.addIssue({
+        code: 'custom',
+        path: ['bankAccountNumber'],
+        message: looksLikeIban(value.bankAccountNumber)
+          ? 'This IBAN is not valid. Check the digits.'
+          : 'Enter the account number with digits only, or a valid IBAN.',
+      });
+  });
 
 export const invoicePeriodSchema = z.object({
   billingRuleId: uuidSchema,

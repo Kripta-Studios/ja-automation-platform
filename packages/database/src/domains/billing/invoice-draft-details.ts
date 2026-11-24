@@ -7,15 +7,15 @@ import { recordAuditEvent } from '../../core/audit.ts';
 import {
   readIssuerDocumentSettings,
   issuerSettingsPresentation,
-  updateIssuerDocumentSettings,
   invalidateDraftPresentation,
   releaseCopiedStreamPurchaseOrders,
-  resolveInvoiceIssuerAuthority,
   effectivePurchaseReference,
 } from './issuer-document-settings.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 
 type Row = Record<string, unknown>;
+export const INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE =
+  'Bank, payee and company contact details apply to every invoice of this issuing company. Change them in Billing setup › Issuer settings.';
 type ErrorConstructor = new (message: string) => Error;
 
 export function invoicePresentationObject(value: unknown): Row {
@@ -176,6 +176,11 @@ export function updateInvoiceDraftDetails(
       if (value !== undefined && value !== String(baselineCompany[name] ?? ''))
         issuerPatch[`company${name.charAt(0).toUpperCase()}${name.slice(1)}`] = value;
     }
+    // Bank, payee and company contact details are company-wide issuer settings. The per-draft
+    // form never changes them (decision D1): they are edited in Billing setup › Issuer settings,
+    // where the bank and payee part is owner-only, audited and notified.
+    if (Object.keys(issuerPatch).length)
+      throw new errors.validation(INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE);
     for (const name of ['name', 'address'] as const)
       if (
         data.companyInfo?.[name] !== undefined &&
@@ -191,10 +196,6 @@ export function updateInvoiceDraftDetails(
     if (projectChanged && data.expectedProjectVersion !== Number(invoice.project_version))
       throw new errors.conflict(
         'The project settings changed. Refresh the preview before changing the project purchase reference.',
-      );
-    if (Object.keys(issuerPatch).length && data.expectedIssuerSettingsVersion !== settings.version)
-      throw new errors.conflict(
-        'The issuing company payment or contact settings changed. Refresh before saving.',
       );
     if (data.invoiceDate !== undefined) after.invoiceDate = data.invoiceDate;
     if (data.dueDate !== undefined) after.dueDateOverride = data.dueDate;
@@ -313,38 +314,7 @@ export function updateInvoiceDraftDetails(
             invoice.client_po_reference,
           )
         : effectivePurchaseReference(null, data.purchaseNo, invoice.client_po_reference);
-    if (Object.keys(issuerPatch).length) {
-      const authority = resolveInvoiceIssuerAuthority(
-        sqlite,
-        String(invoice.project_id),
-        settings.legalEntityId,
-        settings.currency,
-        String(invoice.period_start),
-        String(invoice.period_end),
-      );
-      const otherAuthority = sqlite
-        .prepare(
-          'SELECT 1 FROM effective_project_legal_entity_assignment WHERE project_id=? AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)',
-        )
-        .get(String(invoice.project_id), String(invoice.period_start), String(invoice.period_end));
-      if (!authority && otherAuthority)
-        throw new errors.conflict(
-          'The project issuing authority does not match this billing stream. Review the issuing setup before changing company settings.',
-        );
-      const result = updateIssuerDocumentSettings(
-        sqlite,
-        principal,
-        {
-          legalEntityId: settings.legalEntityId,
-          currency: settings.currency,
-          expectedVersion: data.expectedIssuerSettingsVersion,
-          ...issuerPatch,
-        },
-        errors,
-        invoiceId,
-      );
-      after.issuerDocumentSettingsVersion = result.settings.version;
-    } else if (before.issuerDocumentSettingsVersion === undefined)
+    if (before.issuerDocumentSettingsVersion === undefined)
       after.issuerDocumentSettingsVersion = settings.version;
     if (!carryForward) {
       // Remember which values belong to this draft only, so they are not reported as
@@ -357,7 +327,7 @@ export function updateInvoiceDraftDetails(
       if (changedNotice) draftOnly.add('pastDueNotice');
       if (draftOnly.size) after.draftOnlyOverrides = [...draftOnly].sort();
     }
-    if (streamChanged || projectChanged || Object.keys(issuerPatch).length) {
+    if (streamChanged || projectChanged) {
       after.billingCalculationFingerprint = calculation.refreshCalculationFingerprint(invoice);
       after.billingRuleVersion = Number(invoice.stream_version) + (streamChanged ? 1 : 0);
     }
@@ -400,13 +370,12 @@ export function updateInvoiceDraftDetails(
       sourceChanges: {
         project: projectChanged,
         stream: streamChanged,
-        issuer: Object.keys(issuerPatch),
       },
     });
     return {
       success: true,
       version: data.expectedVersion + 1,
-      sourceSettingsChanged: streamChanged || projectChanged || Object.keys(issuerPatch).length > 0,
+      sourceSettingsChanged: streamChanged || projectChanged,
     };
   });
 }

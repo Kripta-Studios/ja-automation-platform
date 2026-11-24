@@ -249,6 +249,20 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Um limite do projeto ou da ordem de compra precisa de revisão no portal J&A Automation.',
     },
   },
+  issuer_payee_changed: {
+    en: {
+      subject: 'Invoice bank details changed',
+      body: 'The bank or payee details printed on invoices changed. Check them in Billing setup › Issuer settings and in the audit log.',
+    },
+    es: {
+      subject: 'Cambiaron los datos bancarios de las facturas',
+      body: 'Cambiaron los datos bancarios o de beneficiario que se imprimen en las facturas. Revísalos en Configuración de facturación › Datos del emisor y en el registro de auditoría.',
+    },
+    pt: {
+      subject: 'Os dados bancários das faturas foram alterados',
+      body: 'Os dados bancários ou de beneficiário impressos nas faturas foram alterados. Confira em Configuração de faturamento › Dados do emissor e no registro de auditoria.',
+    },
+  },
   settlement_status_changed: {
     en: {
       subject: 'Worker settlement status changed',

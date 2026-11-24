@@ -10,6 +10,9 @@ import {
   V3ConflictError,
   V3ValidationError,
   queueInvoiceEmail,
+  issuerPayeeFields,
+  ISSUER_PAYEE_OWNER_REQUIRED,
+  INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE,
 } from '@ja/database';
 import {
   accountingPackPeriodSchema,
@@ -1543,13 +1546,31 @@ export const billingActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      context.repository.updateIssuerDocumentSettings(context.principal, parsed.data);
-      return actionSuccess(
-        'action.billing.issuerSettingsSaved',
-        {},
-        'Issuer payment and contact settings saved.',
+      const saved = context.repository.updateIssuerDocumentSettings(
+        context.principal,
+        parsed.data,
       );
+      return (saved.changedFields ?? []).some((name) =>
+        (issuerPayeeFields as readonly string[]).includes(name),
+      )
+        ? actionSuccess(
+            'action.billing.issuerPayeeSaved',
+            {},
+            'Bank and payee details saved for every invoice of this issuing company. The owner was notified.',
+          )
+        : actionSuccess(
+            'action.billing.issuerSettingsSaved',
+            {},
+            'Issuer payment and contact settings saved.',
+          );
     } catch (error) {
+      if (error instanceof AccessDeniedError && error.message === ISSUER_PAYEE_OWNER_REQUIRED)
+        return actionFail(403, 'problem.billing.issuerPayeeOwnerOnly', {}, error.message, {
+          code: 'BILLING_ISSUER_PAYEE_OWNER_ONLY',
+          remedies: [{ id: 'review_billing_setup' }],
+          billingOperation: 'updateIssuerDocumentSettings',
+          values: safeBillingInputValues(formData),
+        });
       if (error instanceof ConflictError)
         return actionFail(
           409,
@@ -2849,6 +2870,10 @@ export const billingActions = {
       previewProblems[
         'The project issuing authority does not match this billing stream. Review the issuing setup before changing company settings.'
       ] = { key: 'problem.billing.previewIssuerMismatch', status: 409 };
+      previewProblems[INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE] = {
+        key: 'problem.billing.previewIssuerFieldsCompanyWide',
+        status: 400,
+      };
       const known = error instanceof Error ? previewProblems[error.message] : undefined;
       if (known && error instanceof Error)
         return actionFail(known.status, known.key, {}, error.message, {

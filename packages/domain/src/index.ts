@@ -63,6 +63,14 @@ export const canManageClients = (principal: Principal): boolean =>
 export const canManageBilling = (principal: Principal): boolean =>
   principal.role === 'owner_admin' || principal.role === 'finance_admin';
 
+/**
+ * Company bank and payee details (SWIFT/BIC, account/IBAN, bank, beneficiary) print on every
+ * invoice of an issuing company. Owner decision D1 (2026-11-23): only these roles change them.
+ */
+export const issuerPayeeEditorRoles: readonly Role[] = ['owner_admin'];
+export const canEditIssuerPayeeDetails = (principal: Pick<Principal, 'role'>): boolean =>
+  issuerPayeeEditorRoles.includes(principal.role);
+
 export const canReviewProject = (principal: Principal, projectId: string): boolean =>
   principal.role === 'owner_admin' ||
   (principal.role === 'project_manager' && principal.projectIds.has(projectId));

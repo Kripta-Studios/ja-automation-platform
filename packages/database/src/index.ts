@@ -1175,7 +1175,11 @@ export type {
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
 export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
-export { InvoiceLineLabels, expenseCategoryLabel, invoicePersonName } from './domains/billing/invoice-line-labels.ts';
+export {
+  InvoiceLineLabels,
+  expenseCategoryLabel,
+  invoicePersonName,
+} from './domains/billing/invoice-line-labels.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';
@@ -1239,7 +1243,11 @@ export { withCommercialRuleSnapshot } from './domains/commercial/assignment-comm
 export {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
+  issuerPayeeFields,
+  ISSUER_PAYEE_OWNER_REQUIRED,
+  ISSUER_PAYEE_CHANGED_NOTIFICATION,
 } from './domains/billing/issuer-document-settings.ts';
+export { INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE } from './domains/billing/invoice-draft-details.ts';
 
 export * from './domains/field-capture/index.ts';
 export * from './domains/digital-workers/index.ts';

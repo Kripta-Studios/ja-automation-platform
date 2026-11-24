@@ -672,6 +672,12 @@ const en = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Access Company Webmail',
   'Open corporate webmail in a new tab': 'Open corporate webmail in a new tab',
+  'action.billing.issuerPayeeSaved':
+    'Bank and payee details saved for every invoice of this issuing company. The owner was notified.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Only the owner can change the bank and payee details printed on invoices. The other fields can still be saved.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Bank, payee and company contact details apply to every invoice of this issuing company. Change them in Billing setup › Issuer settings.',
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1339,6 +1345,12 @@ const esBase: Record<keyof typeof en, string> = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Acceder al correo corporativo',
   'Open corporate webmail in a new tab': 'Abrir el correo corporativo en una pestaña nueva',
+  'action.billing.issuerPayeeSaved':
+    'Datos bancarios y de beneficiario guardados para todas las facturas de esta empresa emisora. Se avisó al propietario.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Solo el propietario puede cambiar los datos bancarios y de beneficiario que se imprimen en las facturas. Los demás campos sí se pueden guardar.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Los datos bancarios, de beneficiario y de contacto de la empresa valen para todas las facturas de esta empresa emisora. Cámbialos en Configuración de facturación › Datos del emisor.',
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -1994,6 +2006,12 @@ const ptBase: Record<keyof typeof en, string> = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Acessar e-mail corporativo',
   'Open corporate webmail in a new tab': 'Abrir o e-mail corporativo em uma nova guia',
+  'action.billing.issuerPayeeSaved':
+    'Dados bancários e de beneficiário salvos para todas as faturas desta empresa emissora. O proprietário foi avisado.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Somente o proprietário pode alterar os dados bancários e de beneficiário impressos nas faturas. Os demais campos podem ser salvos.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Os dados bancários, de beneficiário e de contato da empresa valem para todas as faturas desta empresa emissora. Altere-os em Configuração de faturamento › Dados do emissor.',
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

@@ -113,6 +113,7 @@
   import { clockHoursFromMinutes } from '../minute-hours';
   import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
   import { translateControlledValue } from '../../i18n/controlled-values';
+  import { billingFixText } from '../billing-fix-copy';
   import {
     quickInvoiceFormat,
     quickInvoiceText,
@@ -845,6 +846,9 @@
       {:else if item.kind === 'issuerBank' && item.issuer}
         {@const issuer = item.issuer}
         <h4 id={`qa-title-${index}`}><span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>{t('issuerBank')}</h4>
+        {#if role !== 'owner_admin'}
+          <p class="qa__muted">{billingFixText(locale, 'payeeReadOnlyNote')}</p>
+        {:else}
         <div class="qa__grid">
           <label class="qa__field"><span>{t('bankName')}</span><input bind:value={bank.bankName} placeholder={issuer.bankName} maxlength="300" /></label>
           <label class="qa__field"
@@ -867,6 +871,7 @@
           >
           {@render status('bank')}
         </div>
+        {/if}
       {:else if item.kind === 'purchaseOrder' && item.project}
         {@const project = item.project}
         <h4 id={`qa-title-${index}`}><span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>{t('poTitle')}</h4>

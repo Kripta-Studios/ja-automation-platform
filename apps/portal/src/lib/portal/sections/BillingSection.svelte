@@ -44,6 +44,7 @@
   import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
   import { dirtyFormGuard, hasUnsavedFormChanges } from '../dirty-form-guard';
   import { billingStreamDefaults } from '../billing-stream-defaults';
+  import { billingFixText } from '../billing-fix-copy';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -2137,6 +2138,14 @@
       });
   });
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
+  // Decision D1: bank and payee details printed on every invoice are owner-only.
+  const canEditIssuerPayee = $derived(data.user.role === 'owner_admin');
+  const issuerPayeeFieldNames: readonly string[] = [
+    'bankSwiftNumber',
+    'bankAccountNumber',
+    'bankName',
+    'beneficiary',
+  ];
   const numberingEntityId = $derived(
     (data.legalEntities ?? []).some(
       (entity) => rowValue(entity, 'id') === $page.url.searchParams.get('numberingEntity'),
@@ -5803,6 +5812,12 @@
                           name="expectedVersion"
                           value={issuerSetting(entity, 'version') || '0'}
                         />
+                        <p data-issuer-payee-note>
+                          {billingFixText(
+                            locale,
+                            canEditIssuerPayee ? 'payeeOwnerOnlyNote' : 'payeeReadOnlyNote',
+                          )}
+                        </p>
                         {#each issuerDocumentFields as [name, label]}
                           <label
                             ><span>{translate(label)}</span><input
@@ -5819,6 +5834,7 @@
                                       ? 160
                                       : 300}
                               disabled={Boolean(issuerSettingsSavingId)}
+                              readonly={issuerPayeeFieldNames.includes(name) && !canEditIssuerPayee}
                             /></label
                           >
                         {/each}

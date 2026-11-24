@@ -779,6 +779,16 @@ export class NotificationRepository {
         target: targetId ? `/app/projects/${targetId}` : null,
         title: kind === 'cap_exception' ? 'Project cap exception' : 'Project budget exception',
       };
+    if (kind === 'issuer_payee_changed') {
+      const legalEntityId = safeId(subjectId.split(':')[0] ?? null);
+      return {
+        sourceId: legalEntityId,
+        target: legalEntityId
+          ? `/app/billing?view=setup&issuerSettings=${legalEntityId}#issuer-document-settings`
+          : '/app/billing?view=setup',
+        title: 'Invoice bank details changed',
+      };
+    }
     if (kind === 'settlement_status_changed')
       return { sourceId, target: '/app/pay', title: 'Worker settlement status changed' };
     if (kind === 'assignment_published')

@@ -1,5 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { canManageBilling, type Principal } from '@ja/domain';
+import { canEditIssuerPayeeDetails, canManageBilling, newId, type Principal } from '@ja/domain';
 import { issuerDocumentSettingsInputSchema } from '@ja/schemas';
 import { assertActiveAccount, assertLiveSession } from '../../core/authorization.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
@@ -12,6 +12,17 @@ export type IssuerSettingsErrors = {
   conflict: ErrorConstructor;
   validation: ErrorConstructor;
 };
+/** Bank and payee fields: company-wide, owner-only (decision D1), audited and notified. */
+export const issuerPayeeFields = [
+  'bankSwiftNumber',
+  'bankAccountNumber',
+  'bankName',
+  'beneficiary',
+] as const;
+export const ISSUER_PAYEE_OWNER_REQUIRED =
+  'Only the owner can change the bank and payee details printed on invoices.';
+export const ISSUER_PAYEE_CHANGED_NOTIFICATION = 'issuer_payee_changed';
+
 const fields = {
   bankSwiftNumber: 'bank_swift_number',
   bankAccountNumber: 'bank_account_number',
@@ -132,7 +143,13 @@ export function updateIssuerDocumentSettings(
     const changed = (Object.keys(fields) as Array<keyof typeof fields>).filter(
       (name) => after[name] !== before[name],
     );
-    if (!changed.length) return { success: true, settings: before, affectedDrafts: 0 };
+    if (!changed.length)
+      return { success: true, settings: before, affectedDrafts: 0, changedFields: [] as string[] };
+    const payeeChanged = changed.filter((name) =>
+      (issuerPayeeFields as readonly string[]).includes(name),
+    );
+    if (payeeChanged.length && !canEditIssuerPayeeDetails({ role: role as Principal['role'] }))
+      throw new errors.access(ISSUER_PAYEE_OWNER_REQUIRED);
     const deployment = sqlite
       .prepare('SELECT tenant_id,deployment_id FROM deployment_identity WHERE singleton=1')
       .get();
@@ -191,9 +208,23 @@ export function updateIssuerDocumentSettings(
       'issuer_document_settings.update',
       'issuer_document_settings',
       `${data.legalEntityId}:${data.currency}`,
-      { before, after, changedFields: changed, affectedDrafts },
+      { before, after, changedFields: changed, payeeChanged, affectedDrafts },
     );
-    return { success: true, settings: after, affectedDrafts };
+    if (payeeChanged.length) {
+      // Security notice: every owner sees in-app that the payee details changed (and by whom
+      // in the audit log), including the owner who made the change.
+      const owners = sqlite
+        .prepare("SELECT id FROM user WHERE role='owner_admin' AND status='active'")
+        .all() as Array<{ id: string }>;
+      const subjectId = `${data.legalEntityId}:${data.currency}:v${after.version}`;
+      for (const owner of owners)
+        sqlite
+          .prepare(
+            'INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)',
+          )
+          .run(newId(), owner.id, ISSUER_PAYEE_CHANGED_NOTIFICATION, subjectId, timestamp);
+    }
+    return { success: true, settings: after, affectedDrafts, changedFields: changed as string[] };
   });
 }
 

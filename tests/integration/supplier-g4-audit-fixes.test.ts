@@ -388,3 +388,32 @@ describe('project manager and supplier staff hours (D5, T42)', () => {
     ).toThrow('Supplier staff hours are recorded by their coordinator');
   });
 });
+
+describe('planning supplier staff (D3, D5)', () => {
+  const window = { startsAt: `${today}T08:00:00`, endsAt: `${today}T16:00:00` };
+  it('never plans the supplier coordinator, and a project manager does not plan supplier staff', () => {
+    const { fixture, coordinator, technician } = setup();
+    expect(() =>
+      fixture.repository.createPlanningAssignment(fixture.owner, {
+        projectId: fixture.project.id,
+        workerId: coordinator.userId,
+        ...window,
+      }),
+    ).toThrow('Worker must have an effective project assignment for the planning window');
+    const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'g4-manager-plan');
+    expect(() =>
+      fixture.repository.createPlanningAssignment(manager, {
+        projectId: fixture.project.id,
+        workerId: technician.id,
+        ...window,
+      }),
+    ).toThrow('Supplier staff are planned by the owner or their coordinator');
+    expect(
+      fixture.repository.createPlanningAssignment(fixture.owner, {
+        projectId: fixture.project.id,
+        workerId: technician.id,
+        ...window,
+      }).id,
+    ).toBeTruthy();
+  });
+});

@@ -1481,7 +1481,7 @@
             <strong>{grant.supplierName}</strong> · {grant.projectName} · {grant.coordinatorName}
           </p>
           <p>
-            {grant.startsOn} — {grant.endsOn || '…'} · {supplierStateLabel(
+            {shortDate(grant.startsOn)} — {grant.endsOn ? shortDate(grant.endsOn) : '…'} · {supplierStateLabel(
               data.locale,
               grant.status,
             )}

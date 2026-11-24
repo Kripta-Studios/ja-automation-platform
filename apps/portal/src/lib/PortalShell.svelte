@@ -1763,6 +1763,9 @@
     (data.workers ?? []).filter(
       (worker) =>
         worker.status === 'active' &&
+        // D3/D5: a supplier coordinator is never planned; a PM does not plan supplier staff.
+        worker.workforce_profile !== 'supplier_coordinator' &&
+        !(data.user.role === 'project_manager' && worker.workforce_profile === 'external_technician') &&
         (data.assignments ?? []).some(
           (assignment) =>
             String(assignment.project_id) === planningProjectId &&

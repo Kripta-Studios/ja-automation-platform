@@ -122,6 +122,7 @@ export class PlanningRepository {
            JOIN user u ON u.id=pm.user_id
            WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
              AND u.status='active' AND u.role IN ('worker','project_manager')
+             AND pm.assignment_role<>'supplier_coordinator'
              AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
            LIMIT 1`,
         )
@@ -209,6 +210,7 @@ export class PlanningRepository {
     return this.deps.transaction(() => {
       this.assertOperationalProject(input.projectId);
       this.assertManagerScope(principal, input.projectId);
+      this.assertManagerMayPlanWorker(principal, input.workerId);
       this.validatePlanningWindow(input, '');
       return this.insertPlanningAssignment(principal, input);
     });
@@ -261,7 +263,10 @@ export class PlanningRepository {
       }
       // Validate the entire group before the first assignment is inserted.
       const assignments = workers.map((workerId) => ({ ...input, workerId }));
-      for (const assignment of assignments) this.validatePlanningWindow(assignment, '');
+      for (const assignment of assignments) {
+        this.assertManagerMayPlanWorker(principal, assignment.workerId);
+        this.validatePlanningWindow(assignment, '');
+      }
       const ids = assignments.map(
         (assignment) => this.insertPlanningAssignment(principal, assignment).id,
       );
@@ -326,6 +331,7 @@ export class PlanningRepository {
       if (Number(current.version) !== input.version)
         throw this.deps.errors.conflict('Planning assignment changed; reload before editing');
       this.assertOperationalProject(input.projectId);
+      this.assertManagerMayPlanWorker(principal, input.workerId);
       this.validatePlanningWindow(input, input.id);
       const timestamp = this.deps.now();
       const changed = this.deps.sqlite
@@ -386,6 +392,19 @@ export class PlanningRepository {
       });
       return { id: input.id, version: input.version + 1 };
     });
+  }
+
+  /** D5 (role audit 2026-11-22): supplier staff are planned by the owner or
+   * their supplier coordinator, never by a project manager. */
+  private assertManagerMayPlanWorker(principal: Principal, workerId: string): void {
+    if (principal.role !== 'project_manager') return;
+    const supplierStaff = this.deps.sqlite
+      .prepare(
+        "SELECT 1 FROM supplier_user_profile WHERE user_id=? AND profile IN ('external_technician','supplier_coordinator')",
+      )
+      .get(workerId);
+    if (supplierStaff)
+      throw this.deps.errors.accessDenied('Supplier staff are planned by the owner or their coordinator');
   }
 
   private validatePlanningWindow(input: PlanningAssignmentInput, excludeId: string): void {

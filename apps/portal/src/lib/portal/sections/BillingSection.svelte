@@ -8701,6 +8701,7 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 999px;
     background: #fff;
+    color: var(--portal-ink, #20201d);
     font: inherit;
     font-weight: 650;
   }

@@ -291,6 +291,7 @@
   ] as const;
   function generateLocalPassword(): void {
     localPassword = generateAccessPassword();
+    passwordCopied = false;
     revealPassword = true;
   }
   // Owner password reset inside "Edit team member".
@@ -308,6 +309,30 @@
       : null;
   });
   const resetPasswordDoneFor = $derived(resetPasswordSuccess?.userId ?? '');
+  // T32/owner-5: after Add person, say which address signs in and open the person.
+  const createdAccount = $derived.by(() => {
+    const candidate = form as unknown as Record<string, unknown> | null | undefined;
+    const payload = (
+      candidate?.data && typeof candidate.data === 'object' ? candidate.data : candidate
+    ) as Record<string, unknown> | null | undefined;
+    const key = typeof payload?.messageKey === 'string' ? payload.messageKey : '';
+    const params = payload?.messageParams as Record<string, unknown> | undefined;
+    return payload?.success === true && key.startsWith('action.access.localAccount.')
+      ? {
+          userId: typeof params?.userId === 'string' ? params.userId : '',
+          email: typeof params?.email === 'string' ? params.email : '',
+        }
+      : null;
+  });
+  let passwordCopied = $state(false);
+  async function copyText(text: string): Promise<boolean> {
+    try {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } catch {
+      return false;
+    }
+  }
   const resetPasswordDoneKey = $derived(resetPasswordSuccess?.key ?? '');
   $effect(() => {
     const done = resetPasswordSuccess?.userId;
@@ -2116,6 +2141,20 @@
             {/if}
           {/if}
         </div>
+        {#if canManageTeam && createdAccount?.userId}
+          <section class="team-directory__created" role="status" data-team-created>
+            <strong>{tc('createdTitle')}</strong>
+            {#if createdAccount.email}<p>{tc('createdSignIn', { email: createdAccount.email })}</p>{/if}
+            <div class="team-directory__created-actions">
+              {#if createdAccount.email}<button
+                  type="button"
+                  class="secondary-button"
+                  onclick={() => void copyText(createdAccount.email)}>{tc('copyEmail')}</button
+                >{/if}
+              <a class="primary-button" href={personHref(createdAccount.userId)}>{tc('openPerson')}</a>
+            </div>
+          </section>
+        {/if}
         {#if canManageTeam && (creatingUser || invitationPath)}
           <section
             class="team-directory__provisioning"
@@ -2211,8 +2250,15 @@
                       type="button"
                       class="team-directory__action team-directory__action--quiet"
                       onclick={generateLocalPassword}>{translate('Generate')}</button
+                    ><button
+                      type="button"
+                      class="team-directory__action team-directory__action--quiet"
+                      disabled={!localPassword}
+                      onclick={async () => (passwordCopied = await copyText(localPassword))}
+                      >{passwordCopied ? tc('passwordCopied') : tc('copyPassword')}</button
                     >
                   </div>
+                  <small class="team-directory__password-once">{tc('passwordOnce')}</small>
                   <small id="local-password-help"
                     >{localCreatesMailbox
                       ? translate(
@@ -3540,6 +3586,28 @@
 </div>
 
 <style>
+  .team-directory__created {
+    display: grid;
+    gap: 0.5rem;
+    padding: 1rem;
+    margin: 0.75rem 0;
+    border: 1px solid #12b76a;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, #12b76a 8%, transparent);
+  }
+  .team-directory__created p {
+    margin: 0;
+    overflow-wrap: anywhere;
+  }
+  .team-directory__created-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .team-directory__password-once {
+    display: block;
+    color: #b54708;
+  }
   /* Server-scoped lists: pager, scope line, degraded mail server notice. */
   .team-pager {
     display: flex;

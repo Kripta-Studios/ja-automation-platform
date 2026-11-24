@@ -1258,13 +1258,13 @@ export const accessActions = {
         }
         return actionSuccess(
           'action.access.localAccount.withMailbox',
-          { userId: created.userId, role: accessRole },
+          { userId: created.userId, role: accessRole, email },
           'Portal access and linked mailbox created.',
         );
       }
       return actionSuccess(
         'action.access.localAccount.provisioned',
-        { userId: created.userId, role: accessRole },
+        { userId: created.userId, role: accessRole, email },
         'Local portal access created',
       );
     } catch (error) {

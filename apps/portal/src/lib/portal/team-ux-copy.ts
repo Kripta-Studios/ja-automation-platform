@@ -243,6 +243,21 @@ const copy = {
   fixSaved: ['{count} names saved.', '{count} nombres guardados.', '{count} nomes salvos.'],
   fixNone: ['All names look right.', 'Todos los nombres están bien.', 'Todos os nomes estão corretos.'],
   fixUse: ['Fix', 'Corregir', 'Corrigir'],
+  copyPassword: ['Copy password', 'Copiar contraseña', 'Copiar senha'],
+  passwordCopied: ['Password copied.', 'Contraseña copiada.', 'Senha copiada.'],
+  passwordOnce: [
+    'Copy the password now and give it to the person: it is not shown again after you create the account.',
+    'Copia la contraseña ahora y entrégasela a la persona: no se vuelve a mostrar después de crear la cuenta.',
+    'Copie a senha agora e entregue-a à pessoa: ela não é mostrada de novo depois de criar a conta.',
+  ],
+  createdTitle: ['Account created', 'Cuenta creada', 'Conta criada'],
+  createdSignIn: [
+    'Sign-in address: {email}. Give the person this address and the password you set; the password is not shown again.',
+    'Dirección de acceso: {email}. Entrega a la persona esta dirección y la contraseña que pusiste; la contraseña no se vuelve a mostrar.',
+    'Endereço de acesso: {email}. Entregue à pessoa este endereço e a senha que você definiu; a senha não é mostrada de novo.',
+  ],
+  copyEmail: ['Copy address', 'Copiar dirección', 'Copiar endereço'],
+  openPerson: ['Open person', 'Abrir persona', 'Abrir pessoa'],
 } satisfies Record<string, CopyValue>;
 
 export type TeamCopyKey = keyof typeof copy;

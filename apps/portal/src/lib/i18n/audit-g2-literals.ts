@@ -78,4 +78,5 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Este informe espera revisión. Apruébalo o devuélvelo en Aprobaciones.',
     'Este relatório aguarda revisão. Aprove ou devolva em Aprovações.',
   ],
+  'PDF and print preview': ['PDF y vista previa de impresión', 'PDF e prévia de impressão'],
 };

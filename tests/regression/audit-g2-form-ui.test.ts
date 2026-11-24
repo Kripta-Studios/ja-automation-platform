@@ -58,4 +58,14 @@ describe('audit G2 form UI regressions', () => {
     expect(capture).toContain('if (!workDate) workDate = localToday();');
     expect(capture).toContain('data.projects.length === 1');
   });
+
+  it('T58: a returned report shows the reviewer reason before the PDF panels; field roles fold them', () => {
+    const page = read('apps/portal/src/routes/app/reports/[id]/+page.svelte');
+    const alert = page.indexOf('data-report-reviewer-note');
+    const pdf = page.indexOf('<LocalizedPdfPanel');
+    expect(alert).toBeGreaterThan(-1);
+    expect(alert).toBeLessThan(pdf);
+    expect(page).toContain('data-report-document-fold');
+    expect(page).toContain('{@render reportDocumentPanels()}');
+  });
 });

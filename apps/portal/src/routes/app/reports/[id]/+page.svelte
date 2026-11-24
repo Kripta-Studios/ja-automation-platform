@@ -85,6 +85,12 @@
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  // T58: workers, external technicians and supplier coordinators open their report to fix it.
+  const fieldRole = $derived(
+    !['owner_admin', 'finance_admin', 'project_manager', 'auditor_read_only'].includes(
+      String(data.user?.role ?? ''),
+    ),
+  );
   const reportHref = $derived(
     `${base}/app/reports/${encodeURIComponent(String(data.detail.report.id))}`,
   );
@@ -1310,156 +1316,6 @@
     </div>
   </header>
 
-  <div class="no-print report-localized-pdf-slot">
-    <LocalizedPdfPanel
-      compact
-      sourceVersion={currentReportVersion}
-      ownerType={isDaily ? 'daily_report' : 'technical_report'}
-      ownerId={String(report.id)}
-      {locale}
-      title={t('PDF')}
-    />
-  </div>
-
-  <ReportDocumentPreview
-    src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
-    revision={currentReportVersion}
-    {locale}
-    fields={previewEditableFields}
-    sourceFields={[
-      {
-        name: 'projectSettings',
-        label: t('Open project'),
-        href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
-      },
-      ...(data.detail.canCreateCorrection
-        ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
-            name: field.name,
-            label: t('Request a correction'),
-            href: `${reportHref}#report-correction-title`,
-          }))
-        : []),
-    ]}
-    getField={previewField}
-    updateField={updatePreviewField}
-    saveField={finishReportEdits}
-    saveState={autosaveState}
-    saveMessage={autosaveMessage}
-  />
-
-  {#if problem}
-    <div data-report-problem>
-      <ProblemNotice
-        {problem}
-        {locale}
-        {remedyLinks}
-        kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
-        status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
-      />
-    </div>
-  {:else if standaloneActionMessage(locale, form)}
-    <p class:success={form?.success} class="action-message" role="status" aria-live="polite">
-      {standaloneActionMessage(locale, form)}
-    </p>
-  {/if}
-
-  {#if retainedReportValues.length}
-    <SectionCard title={t('problem.report.retainedValuesTitle')} data-report-retained-values>
-      <p>{t('problem.report.retainedValuesHelp')}</p>
-      <dl class="retained-report-values">
-        {#each retainedReportValues as item}
-          <div>
-            <dt>{item.label}</dt>
-            <dd>{item.value}</dd>
-          </div>
-        {/each}
-      </dl>
-    </SectionCard>
-  {/if}
-
-  {#if data.detail.canSubmitDraft && !submissionBlocked}
-    <section class="detail-panel record-detail-copy" aria-label={t('Report actions')}>
-      <p>{t('Changes saved in this report still need an explicit submission for review.')}</p>
-      <form method="POST" action="?/submitReport" onsubmit={awaitAutosaveBeforeSubmit}>
-        <input type="hidden" name="type" value={data.detail.type} />
-        <input type="hidden" name="id" value={String(report.id)} />
-        <input type="hidden" name="version" value={autosaveVersion} />
-        <button type="submit">{t('Submit for review')}</button>
-      </form>
-    </section>
-  {/if}
-  {#if data.detail.canWithdrawCorrection}
-    <section class="detail-panel record-detail-copy" aria-label={t('Withdraw correction draft')}>
-      <form
-        method="POST"
-        action="?/withdrawCorrectionDraft"
-        class="record-correction-withdraw"
-        onsubmit={awaitAutosaveBeforeSubmit}
-      >
-        <input
-          type="hidden"
-          name="recordType"
-          value={isDaily ? 'daily_report' : 'technical_report'}
-        />
-        <input type="hidden" name="correctionId" value={String(report.id)} />
-        <input type="hidden" name="version" value={autosaveVersion} />
-        <label
-          ><span>{t('Why withdraw this draft?')}</span><input
-            name="reason"
-            minlength="3"
-            required
-          /></label
-        >
-        <button type="submit" class="destructive-button">{t('Withdraw correction draft')}</button>
-      </form>
-    </section>
-  {/if}
-
-  {#if !data.detail.canEdit}
-    <SectionCard
-      title={isDaily ? t('DAILY FIELD REPORT') : t('PLC / TECHNICAL REPORT')}
-      headingId="report-operational-content-title"
-      class="report-operational-content"
-      data-report-operational-content
-    >
-      <dl class="report-operational-fields">
-        {#each operationalReportFields as field}
-          <div
-            class:report-operational-narrative={field.kind === 'textarea'}
-            data-report-field={field.column}
-          >
-            <dt>{t(field.label)}</dt>
-            <dd>
-              {field.kind === 'checkbox'
-                ? field.value == null
-                  ? '—'
-                  : checked(field.value)
-                    ? t('Review required')
-                    : t('No safety flag')
-                : field.name === 'downtimeMinutes'
-                  ? decimalHoursFromMinutes(field.value)
-                  : display(field.value) || '—'}
-            </dd>
-          </div>
-        {/each}
-      </dl>
-    </SectionCard>
-  {/if}
-
-  {#if data.detail.canCreateCorrection}
-    <details class="detail-panel record-detail-copy no-print" bind:open={correctionOpen}>
-      <summary id="report-correction-title">{t('Create corrected draft')}</summary>
-      <CorrectionDraftForm
-        recordType={isDaily ? 'daily_report' : 'technical_report'}
-        record={report}
-        translate={t}
-        ownerOverride={data.user.role === 'owner_admin'}
-        values={reportForm?.values ?? {}}
-        requestId={data.correctionRequestId}
-      />
-    </details>
-  {/if}
-
   {#if data.detail.canEdit && report.approval_state === 'needs_changes'}
     <section class="change-alert" aria-labelledby="report-change-alert-title">
       <strong id="report-change-alert-title"
@@ -1471,6 +1327,173 @@
           {reviewerNote}
         </p>
       {/if}
+
+      {#snippet reportDocumentPanels()}
+        <div class="no-print report-localized-pdf-slot">
+          <LocalizedPdfPanel
+            compact
+            sourceVersion={currentReportVersion}
+            ownerType={isDaily ? 'daily_report' : 'technical_report'}
+            ownerId={String(report.id)}
+            {locale}
+            title={t('PDF')}
+          />
+        </div>
+
+        <ReportDocumentPreview
+          src={`${reportHref}/preview?lang=${encodeURIComponent(locale)}`}
+          revision={currentReportVersion}
+          {locale}
+          fields={previewEditableFields}
+          sourceFields={[
+            {
+              name: 'projectSettings',
+              label: t('Open project'),
+              href: `${base}/app/projects/${encodeURIComponent(String(report.project_id))}`,
+            },
+            ...(data.detail.canCreateCorrection
+              ? (isDaily ? dailyCorrectionFields : technicalCorrectionFields).map((field) => ({
+                  name: field.name,
+                  label: t('Request a correction'),
+                  href: `${reportHref}#report-correction-title`,
+                }))
+              : []),
+          ]}
+          getField={previewField}
+          updateField={updatePreviewField}
+          saveField={finishReportEdits}
+          saveState={autosaveState}
+          saveMessage={autosaveMessage}
+        />
+      {/snippet}
+      {#if fieldRole}
+        <!-- Field roles see the reviewer's reason first; PDF and print preview stay one tap away. -->
+        <details class="no-print report-document-fold" data-report-document-fold>
+          <summary>{t('PDF and print preview')}</summary>
+          {@render reportDocumentPanels()}
+        </details>
+      {:else}
+        {@render reportDocumentPanels()}
+      {/if}
+
+      {#if problem}
+        <div data-report-problem>
+          <ProblemNotice
+            {problem}
+            {locale}
+            {remedyLinks}
+            kind={problem.code === 'UNEXPECTED_ERROR' ? 'service' : 'error'}
+            status={`${t('Status')}: ${controlled('status', statusForDisplay)}`}
+          />
+        </div>
+      {:else if standaloneActionMessage(locale, form)}
+        <p class:success={form?.success} class="action-message" role="status" aria-live="polite">
+          {standaloneActionMessage(locale, form)}
+        </p>
+      {/if}
+
+      {#if retainedReportValues.length}
+        <SectionCard title={t('problem.report.retainedValuesTitle')} data-report-retained-values>
+          <p>{t('problem.report.retainedValuesHelp')}</p>
+          <dl class="retained-report-values">
+            {#each retainedReportValues as item}
+              <div>
+                <dt>{item.label}</dt>
+                <dd>{item.value}</dd>
+              </div>
+            {/each}
+          </dl>
+        </SectionCard>
+      {/if}
+
+      {#if data.detail.canSubmitDraft && !submissionBlocked}
+        <section class="detail-panel record-detail-copy" aria-label={t('Report actions')}>
+          <p>{t('Changes saved in this report still need an explicit submission for review.')}</p>
+          <form method="POST" action="?/submitReport" onsubmit={awaitAutosaveBeforeSubmit}>
+            <input type="hidden" name="type" value={data.detail.type} />
+            <input type="hidden" name="id" value={String(report.id)} />
+            <input type="hidden" name="version" value={autosaveVersion} />
+            <button type="submit">{t('Submit for review')}</button>
+          </form>
+        </section>
+      {/if}
+      {#if data.detail.canWithdrawCorrection}
+        <section
+          class="detail-panel record-detail-copy"
+          aria-label={t('Withdraw correction draft')}
+        >
+          <form
+            method="POST"
+            action="?/withdrawCorrectionDraft"
+            class="record-correction-withdraw"
+            onsubmit={awaitAutosaveBeforeSubmit}
+          >
+            <input
+              type="hidden"
+              name="recordType"
+              value={isDaily ? 'daily_report' : 'technical_report'}
+            />
+            <input type="hidden" name="correctionId" value={String(report.id)} />
+            <input type="hidden" name="version" value={autosaveVersion} />
+            <label
+              ><span>{t('Why withdraw this draft?')}</span><input
+                name="reason"
+                minlength="3"
+                required
+              /></label
+            >
+            <button type="submit" class="destructive-button"
+              >{t('Withdraw correction draft')}</button
+            >
+          </form>
+        </section>
+      {/if}
+
+      {#if !data.detail.canEdit}
+        <SectionCard
+          title={isDaily ? t('DAILY FIELD REPORT') : t('PLC / TECHNICAL REPORT')}
+          headingId="report-operational-content-title"
+          class="report-operational-content"
+          data-report-operational-content
+        >
+          <dl class="report-operational-fields">
+            {#each operationalReportFields as field}
+              <div
+                class:report-operational-narrative={field.kind === 'textarea'}
+                data-report-field={field.column}
+              >
+                <dt>{t(field.label)}</dt>
+                <dd>
+                  {field.kind === 'checkbox'
+                    ? field.value == null
+                      ? '—'
+                      : checked(field.value)
+                        ? t('Review required')
+                        : t('No safety flag')
+                    : field.name === 'downtimeMinutes'
+                      ? decimalHoursFromMinutes(field.value)
+                      : display(field.value) || '—'}
+                </dd>
+              </div>
+            {/each}
+          </dl>
+        </SectionCard>
+      {/if}
+
+      {#if data.detail.canCreateCorrection}
+        <details class="detail-panel record-detail-copy no-print" bind:open={correctionOpen}>
+          <summary id="report-correction-title">{t('Create corrected draft')}</summary>
+          <CorrectionDraftForm
+            recordType={isDaily ? 'daily_report' : 'technical_report'}
+            record={report}
+            translate={t}
+            ownerOverride={data.user.role === 'owner_admin'}
+            values={reportForm?.values ?? {}}
+            requestId={data.correctionRequestId}
+          />
+        </details>
+      {/if}
+
       <span
         >{t(
           'Update the fields below and submit it again. The owner and admin team can see exactly what changed.',
@@ -2666,5 +2689,16 @@
     .report-attachments-panel {
       display: none;
     }
+  }
+  .report-document-fold {
+    border: 1px solid var(--ja-line, #dedbd2);
+    border-radius: 12px;
+    background: var(--ja-surface, #fff);
+  }
+  .report-document-fold > summary {
+    cursor: pointer;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    font-weight: 600;
   }
 </style>

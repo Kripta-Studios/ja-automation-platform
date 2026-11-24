@@ -2181,12 +2181,13 @@
     margin-top: 0.5rem;
   }
   .drafts-title {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
     margin: 0;
     font-size: 1.05rem;
   }
   .drafts-table-wrap {
-    grid-column: 1 / -1;
+    flex-basis: 100%;
+    min-width: 0;
     overflow-x: auto;
   }
   .drafts-table {

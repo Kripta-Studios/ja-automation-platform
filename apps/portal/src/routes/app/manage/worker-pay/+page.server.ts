@@ -6,6 +6,8 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import type { ProblemData } from '$lib/problem/contract';
 import type { PageServerLoad } from './$types';
+import { isSystemAccount } from '$lib/portal/system-accounts';
+import { personDisplayName } from '$lib/portal/display-name';
 
 export const load: PageServerLoad = ({ locals, url }) => {
   if (!locals.user || !locals.session) redirect(303, '/j-aautomation/app/login');
@@ -20,11 +22,22 @@ export const load: PageServerLoad = ({ locals, url }) => {
     const periodStart = startValues[0] ?? fallback.periodStart;
     const periodEnd = endValues[0] ?? fallback.periodEnd;
     const workerId = workerValues[0] ?? '';
-    const workers = context.sqlite
-      .prepare(
-        "SELECT id,name FROM user WHERE role IN ('worker','project_manager') ORDER BY name,id",
-      )
-      .all() as Array<{ id: string; name: string }>;
+    // T30: people only (no company mailboxes or service senders), by display
+    // name; former people stay selectable because pay may still be owed.
+    const workers = (
+      context.sqlite
+        .prepare(
+          "SELECT id,name,email,status FROM user WHERE role IN ('worker','project_manager') ORDER BY name,id",
+        )
+        .all() as Array<{ id: string; name: string; email: string | null; status: string }>
+    )
+      .filter((worker) => !isSystemAccount(worker))
+      .map((worker) => ({
+        id: worker.id,
+        name: personDisplayName(worker.name, worker.email) || worker.id,
+        inactive: worker.status !== 'active',
+      }))
+      .sort((a, b) => Number(a.inactive) - Number(b.inactive) || a.name.localeCompare(b.name));
     const selectedWorker = workers.find((worker) => worker.id === workerId) ?? null;
     const duplicateFields = [
       ...(startValues.length > 1 ? ['start'] : []),

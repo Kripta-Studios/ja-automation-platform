@@ -141,6 +141,11 @@ const copy = {
   until: ['until {date}', 'hasta {date}', 'até {date}'],
   clientRate: ['Client rate', 'Tarifa cliente', 'Tarifa do cliente'],
   rateMissing: ['Missing', 'Falta', 'Falta'],
+  notBilledRole: [
+    'Not billed (management role)',
+    'No se factura (rol de gestión)',
+    'Não faturado (função de gestão)',
+  ],
   rateSet: ['Set', 'Poner', 'Definir'],
   rateSave: ['Save rate', 'Guardar tarifa', 'Salvar tarifa'],
   rateForPerson: [

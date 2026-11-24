@@ -1300,6 +1300,11 @@
       >{c.starts}<input
         name="startsOn"
         type="date"
+        oninput={(event) => {
+          // T70: the end date cannot be before the start the person just typed.
+          const end = event.currentTarget.form?.elements.namedItem('endsOn');
+          if (end instanceof HTMLInputElement) end.min = event.currentTarget.value;
+        }}
         value={value(
           operation,
           'startsOn',

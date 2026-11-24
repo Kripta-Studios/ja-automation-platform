@@ -91,6 +91,8 @@
   const missingRateCount = $derived(
     ratePeople
       ? currentAssignments.filter((row) => {
+          // D3: PM and supplier-coordinator scopes are not billed, so no rate is missing.
+          if (row.role === 'project_manager' || row.role === 'supplier_coordinator') return false;
           const rate = rateFor(row.workerId);
           return !rate || rate.customerRate === null;
         }).length
@@ -570,7 +572,10 @@
           {#if ratePeople}
             <div class="hub-team-rate">
               <span class="hub-label">{h('clientRate')}</span>
-              {#if rate?.customerRate !== null && rate}
+              {#if row.role === 'project_manager' || row.role === 'supplier_coordinator'}
+                <!-- D3: management and coordinator scopes record no billable client hours. -->
+                <span class="hub-missing-text" data-hub-not-billed>{h('notBilledRole')}</span>
+              {:else if rate?.customerRate !== null && rate}
                 <strong>{currency} {rate.customerRateAmount}/{rate.customerRateBasis === 'hourly' ? 'h' : rate.customerRateBasis}</strong>
               {:else if canSetRates}
                 <button

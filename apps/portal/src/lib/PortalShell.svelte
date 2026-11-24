@@ -6072,7 +6072,8 @@
               {translate}
               statusLabel={(value) => controlledValue('status', value)}
               label="Project"
-              status={$page.url.searchParams.get('status') ?? 'active'}
+              contextKey="register-d14"
+              status={$page.url.searchParams.get('status') ?? ''}
               showEmpty={availableProjects.length > 0}
             />
             {#each projectRegisterPage as row (row.id)}

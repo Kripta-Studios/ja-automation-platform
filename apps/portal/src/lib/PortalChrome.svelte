@@ -798,7 +798,7 @@
     display: grid;
     gap: 0.28rem;
   }
-  .nav-group-toggle {
+  summary.nav-group-toggle.nav-heading {
     display: flex;
     align-items: center;
     min-height: var(--ja-target-min, 44px);

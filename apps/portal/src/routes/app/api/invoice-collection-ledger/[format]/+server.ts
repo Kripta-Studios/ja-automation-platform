@@ -10,6 +10,8 @@ import {
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { isRealIsoDate } from '$lib/server/iso-date';
+import { ledgerReadableCsv } from '$lib/server/ledger-readable-csv';
+import { normalizePortalLocale } from '$lib/portal-i18n';
 import { sensitiveExportResponse } from '$lib/server/sensitive-export-response';
 import { agingBuckets, collectionAging, collectionMatches } from '$lib/portal/collections-analysis';
 import {
@@ -18,7 +20,9 @@ import {
   type CollectionReport,
 } from '$lib/server/collections-workbench-export';
 
-const financeRoles = new Set(['owner_admin', 'finance_admin']);
+// Decision D8 (audit 2026-11-22, T80): the read-only auditor may export the register too
+// (masterLedger already grants auditors read access; every export is audited).
+const financeRoles = new Set(['owner_admin', 'finance_admin', 'auditor_read_only']);
 const definitions = {
   signInRequired: [
     'SIGN_IN_REQUIRED',
@@ -241,7 +245,14 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
       ? collectionsWorkbenchCsv(ledger, asOf, report as CollectionReport)
       : format === 'xlsx'
         ? invoiceCollectionLedgerXlsx(ledger)
-        : invoiceCollectionLedgerCsv(ledger);
+        : url.searchParams.get('layout') === 'raw'
+          ? invoiceCollectionLedgerCsv(ledger)
+          : // T49: people open this in a spreadsheet: readable headers in their language,
+            // currency units and a BOM. `layout=raw` keeps the exact machine layout.
+            ledgerReadableCsv(
+              ledger as unknown as readonly Record<string, unknown>[],
+              normalizePortalLocale(url.searchParams.get('lang') ?? 'en'),
+            );
     const filename = period
       ? `ja-invoice-collection-ledger-${period.periodStart}-${period.periodEnd}.${format}`
       : `ja-invoice-collection-ledger-all.${format}`;

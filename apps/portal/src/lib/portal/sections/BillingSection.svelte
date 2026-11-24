@@ -44,6 +44,7 @@
   import { formatTaxBasisPoints, taxProfileComponents } from '../tax-profile-presentation';
   import { dirtyFormGuard, hasUnsavedFormChanges } from '../dirty-form-guard';
   import { billingStreamDefaults } from '../billing-stream-defaults';
+  import { billingFixText } from '../billing-fix-copy';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -88,14 +89,6 @@
   const discardApprovedWarning: ProblemData = {
     code: 'WARNING_BILLING_DISCARD_APPROVED',
     messageKey: 'problem.warning.billingDiscardApproved',
-    params: {},
-    fieldErrors: {},
-    remedies: [{ id: 'review_invoice' }],
-    correlationId: '',
-  };
-  const discardLinkedFinanceProblem: ProblemData = {
-    code: 'BILLING_DISCARD_LINKED_FINANCE',
-    messageKey: 'problem.warning.billingDiscardSourceLinkedFinance',
     params: {},
     fieldErrors: {},
     remedies: [{ id: 'review_invoice' }],
@@ -2137,6 +2130,14 @@
       });
   });
   const canManageIssuerAndNumbering = $derived(data.user.role === 'owner_admin');
+  // Decision D1: bank and payee details printed on every invoice are owner-only.
+  const canEditIssuerPayee = $derived(data.user.role === 'owner_admin');
+  const issuerPayeeFieldNames: readonly string[] = [
+    'bankSwiftNumber',
+    'bankAccountNumber',
+    'bankName',
+    'beneficiary',
+  ];
   const numberingEntityId = $derived(
     (data.legalEntities ?? []).some(
       (entity) => rowValue(entity, 'id') === $page.url.searchParams.get('numberingEntity'),
@@ -2353,6 +2354,12 @@
     return null;
   }
 
+  /** "Outstanding" is everything still owed, overdue included (audit 2026-11-22 T12). */
+  function invoiceInStage(invoice: Row, stage: Exclude<BillingStage, 'all'>): boolean {
+    const own = invoiceStage(invoice);
+    return own === stage || (stage === 'outstanding' && own === 'overdue');
+  }
+
   // Summary cards count the same project/search scope as the register; only
   // their stage differs. This keeps a project handoff's totals meaningful.
   const summaryInvoices = $derived.by(() => {
@@ -2386,7 +2393,7 @@
 
   const visibleInvoices = $derived(
     summaryInvoices.filter(
-      (invoice) => stageFilter === 'all' || invoiceStage(invoice) === stageFilter,
+      (invoice) => stageFilter === 'all' || invoiceInStage(invoice, stageFilter),
     ),
   );
 
@@ -3414,16 +3421,30 @@
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(reference)
     )
       return `${translate('Payment')} · ${reference}`;
-    const received = dateValue(payment.received_at);
+    const received = calendarDateValue(payment.received_at);
     return received && received !== '—'
       ? `${translate('Payment')} · ${received}`
       : translate('Payment');
   }
 
-  function paymentStatus(ledger: BillingLedgerRow | undefined): string {
-    return ledger
-      ? controlledValue('status', ledger.paymentStatus) || translate('Unpaid')
-      : translate('No ledger row');
+  function paymentStatus(ledger: BillingLedgerRow | undefined, invoice?: Row): string {
+    if (!ledger) return translate('No ledger row');
+    const own = controlledValue('status', ledger.paymentStatus) || translate('Unpaid');
+    // T60: one vocabulary with the invoice page. An overdue invoice reads "Overdue" here too,
+    // with the partial payment as a detail instead of a second, different state.
+    const payment = String(ledger.paymentStatus ?? '').toLowerCase();
+    if (invoice && invoiceStage(invoice) === 'overdue' && payment !== 'paid' && payment !== 'overdue')
+      return payment === 'partially_paid'
+        ? `${controlledValue('status', 'overdue')} · ${own}`
+        : controlledValue('status', 'overdue');
+    return own;
+  }
+
+  /** Business dates (issue, collection, payment, reversal) are calendar days: never show the
+   * synthetic end-of-day time a date-only entry is stored with (T60). */
+  function calendarDateValue(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    return raw ? raw.slice(0, 10) : '—';
   }
 
   function lifecycleStage(state: string): 'draft' | 'approved' | 'issued' | 'collected' {
@@ -3463,8 +3484,7 @@
 <div class="billing-section" data-ui="billing-section">
   <header class="billing-section__context">
     <div>
-      <p class="billing-section__eyebrow">{translate('Finance operations')}</p>
-      <h2>{translate('Billing')}</h2>
+      <!-- T84: the page title (Invoices) is the only title; no eyebrow or second 'Billing' heading. -->
       <p>
         {quickInvoiceText(locale, canManageBilling ? 'landingIntro' : 'landingIntroReadOnly')}
       </p>
@@ -5368,7 +5388,8 @@
         </div>
 
         <nav class="billing-section__setup-actions" aria-label={translate('Configure billing')}>
-          {#each setupActions as action}
+          <!-- T48: owner-only setup actions are not offered to finance (the note below says why). -->
+          {#each setupActions.filter((action) => canManageIssuerAndNumbering || (action.id !== 'entity' && action.id !== 'numbering')) as action}
             <button
               type="button"
               id={action.id === 'entity'
@@ -5377,12 +5398,6 @@
                   ? 'billing-tax-setup-action'
                   : undefined}
               aria-pressed={setupAction === action.id}
-              disabled={!canManageIssuerAndNumbering &&
-                (action.id === 'entity' || action.id === 'numbering')}
-              title={!canManageIssuerAndNumbering &&
-              (action.id === 'entity' || action.id === 'numbering')
-                ? translate('Owner access')
-                : undefined}
               onclick={() => void showSetupAction(action.id)}
             >
               {translate(action.label)}
@@ -5803,6 +5818,12 @@
                           name="expectedVersion"
                           value={issuerSetting(entity, 'version') || '0'}
                         />
+                        <p data-issuer-payee-note>
+                          {billingFixText(
+                            locale,
+                            canEditIssuerPayee ? 'payeeOwnerOnlyNote' : 'payeeReadOnlyNote',
+                          )}
+                        </p>
                         {#each issuerDocumentFields as [name, label]}
                           <label
                             ><span>{translate(label)}</span><input
@@ -5819,6 +5840,7 @@
                                       ? 160
                                       : 300}
                               disabled={Boolean(issuerSettingsSavingId)}
+                              readonly={issuerPayeeFieldNames.includes(name) && !canEditIssuerPayee}
                             /></label
                           >
                         {/each}
@@ -7178,24 +7200,24 @@
                 >
                   <div>
                     <span>{translate('Planned issue')}</span><strong
-                      >{dateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
+                      >{calendarDateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Actual issue')}</span><strong
-                      >{dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
+                      >{calendarDateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Expected collection')}</span><strong
-                      >{dateValue(
+                      >{calendarDateValue(
                         rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn'),
                       )}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Actual collection')}</span><strong
-                      >{dateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
+                      >{calendarDateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
                     >
                   </div>
                 </div>
@@ -7283,7 +7305,7 @@
                       <strong>{balanceDisplay(invoice, ledger)}</strong></span
                     >
                     <span
-                      >{translate('Payment state')}: <strong>{paymentStatus(ledger)}</strong></span
+                      >{translate('Payment state')}: <strong>{paymentStatus(ledger, invoice)}</strong></span
                     >
                   </div>
                 {/if}
@@ -7339,7 +7361,7 @@
                               payment.grossAmountMinor,
                               String(payment.currency ?? currency),
                             )} ·
-                            {dateValue(payment.received_at)} · {String(
+                            {calendarDateValue(payment.received_at)} · {String(
                               payment.reference ?? translate('No reference'),
                             )}
                           </small>
@@ -7511,7 +7533,7 @@
                                     reversal.amountMinor,
                                     String(reversal.currency ?? currency),
                                   )}</td
-                                ><td>{dateValue(reversal.effectiveAt)}</td><td
+                                ><td>{calendarDateValue(reversal.effectiveAt)}</td><td
                                   >{controlledValue('status', reversal.reasonCode)}</td
                                 ><td>{String(reversal.reason ?? '—')}</td></tr
                               >
@@ -7736,11 +7758,10 @@
                       />
                     {/if}
                     {#if data.user.role === 'finance_admin' && financeDraftHasKnownLinkedLines(invoice)}
-                      <ProblemNotice
-                        problem={discardLinkedFinanceProblem}
-                        kind="error"
-                        remedyLinks={invoiceReviewRemedyLinks(invoiceId)}
-                      />
+                      <!-- T48: a neutral note instead of a red error and a disabled discard form. -->
+                      <p class="billing-section__read-only" data-finance-discard-owner-only>
+                        {billingFixText(locale, 'financeDiscardOwnerOnly')}
+                      </p>
                     {:else}
                       <ProblemNotice
                         problem={discardDraftWarning}
@@ -7748,6 +7769,7 @@
                         remedyLinks={invoiceReviewRemedyLinks(invoiceId)}
                       />
                     {/if}
+{#if !(data.user.role === 'finance_admin' && financeDraftHasKnownLinkedLines(invoice))}
                     <form
                       method="POST"
                       action="?/deleteInvoice"
@@ -7767,14 +7789,9 @@
                           required
                         /></label
                       >
-                      <button
-                        type="submit"
-                        class="danger"
-                        disabled={data.user.role === 'finance_admin' &&
-                          financeDraftHasKnownLinkedLines(invoice)}
-                        >{translate('Discard draft')}</button
-                      >
+                      <button type="submit" class="danger">{translate('Discard draft')}</button>
                     </form>
+                    {/if}
                   {:else if invoiceStateValue === 'approved'}
                     {#if problemFor('recalculateApprovedInvoice', 'invoiceId', invoiceId)}
                       <ProblemNotice
@@ -8684,6 +8701,7 @@
     border: 1px solid var(--portal-border, #dfdedc);
     border-radius: 999px;
     background: #fff;
+    color: var(--portal-ink, #20201d);
     font: inherit;
     font-weight: 650;
   }
@@ -8745,22 +8763,6 @@
 
   .billing-section__context > div {
     min-width: 0;
-  }
-
-  .billing-section__eyebrow {
-    margin: 0 0 0.35rem;
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-    font-weight: 750;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .billing-section__context h2 {
-    margin: 0;
-    color: var(--portal-ink, #20201d);
-    font-size: clamp(1.55rem, 2vw, 2rem);
-    letter-spacing: -0.025em;
   }
 
   .billing-section__context p:last-child {

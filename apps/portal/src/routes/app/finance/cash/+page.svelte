@@ -83,13 +83,11 @@
 
 <svelte:head><title>{t.title} | J&A</title></svelte:head>
 <main class="cash-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
-  <a href={`${base}/app/finance?view=economic&lang=${locale}`} data-origin-back
-    ><DirectionIcon direction="left" /> {t.back}</a
-  >
+  <!-- T84: the shared header already has Back (to where the user came from). -->
   <h1>{t.title}</h1>
   <p>{t.explanation}</p>
   <p>{t.pending}</p>
-  <SectionCard title={t.group}>
+  <SectionCard title={t.filtersTitle}>
     {#if data.problem}
       <div id="cash-filter-problem" bind:this={problemContainer}>
         <ProblemNotice
@@ -125,7 +123,7 @@
             value={data.currency}
             aria-invalid={fieldError('currency') ? 'true' : undefined}
             aria-describedby={fieldError('currency') ? 'cash-currency-error' : undefined}
-            ><option value="">—</option
+            ><option value="">{t.allCurrencies}</option
             >{#if data.currency && !data.currencies.includes(data.currency)}<option
                 value={data.currency}
                 disabled>{portalText(locale, 'Unavailable')}</option
@@ -199,10 +197,13 @@
           ></Field
         >
       </FieldGroup>
-      <label
-        ><input type="checkbox" name="dated" value="1" checked={data.datedOnly} /> {ft.dates}</label
-      >
-      <button type="submit">{t.apply}</button>
+      <div class="cash-filter-actions">
+        <label class="cash-filter-check"
+          ><input type="checkbox" name="dated" value="1" checked={data.datedOnly} />
+          {ft.dates}</label
+        >
+        <button type="submit">{t.apply}</button>
+      </div>
     </form>
     {#if !data.problem && !data.datedOnly}<p>{t.unknownDateNote}</p>{/if}
   </SectionCard>
@@ -270,6 +271,19 @@
   p {
     line-height: 1.6;
     margin: 0.4rem 0;
+  }
+  .cash-filter-actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 1rem;
+  }
+  .cash-filter-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
   }
   .metrics {
     display: grid;

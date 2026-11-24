@@ -98,6 +98,7 @@ export function homeProjectFinance(context: PortalContext, projectId: string): H
         sourceType: source.sourceType,
         sourceId: source.sourceId,
         amountMinor: source.amountMinor,
+        ...(source.waitingCorrection === true ? { waitingCorrection: true } : {}),
       })),
       alerts: finance.alerts ?? [],
     };

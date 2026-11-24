@@ -1,7 +1,32 @@
 import type { DatabaseSync } from 'node:sqlite';
 
+/**
+ * Decision D15 (audit 2026-11-22): credit notes are their own document type with their own
+ * number series per issuer and year ("CN-<invoice prefix>-<year>-<n>"), never a negative
+ * number in the invoice sequence.
+ */
+export const CREDIT_NOTE_NUMBER_PREFIX = 'CN';
+export type FiscalDocumentKind = 'invoice' | 'credit_note';
+export const numberSequenceScope = (kind: FiscalDocumentKind) =>
+  kind === 'credit_note' ? 'credit_note' : 'invoice';
+export function formatDocumentNumber(
+  kind: FiscalDocumentKind,
+  prefix: string,
+  year: string | number,
+  sequence: number,
+  digits: number,
+): string {
+  const base = `${prefix}-${year}-${String(sequence).padStart(digits, '0')}`;
+  return kind === 'credit_note' ? `${CREDIT_NOTE_NUMBER_PREFIX}-${base}` : base;
+}
+
 /** Read the number issuance would allocate today, without reserving or consuming it. */
-export function previewInvoiceNumber(sqlite: DatabaseSync, legalEntityId: string, asOf: string) {
+export function previewInvoiceNumber(
+  sqlite: DatabaseSync,
+  legalEntityId: string,
+  asOf: string,
+  kind: FiscalDocumentKind = 'invoice',
+) {
   const policy = sqlite
     .prepare(
       `SELECT id,prefix,digits,effective_from FROM invoice_number_policy
@@ -14,8 +39,10 @@ export function previewInvoiceNumber(sqlite: DatabaseSync, legalEntityId: string
     | undefined;
   const year = asOf.slice(0, 4);
   const row = sqlite
-    .prepare("SELECT next_value FROM number_sequence WHERE scope='invoice' AND scope_id=?")
-    .get(`${legalEntityId}:${year}`) as { next_value: number } | undefined;
+    .prepare('SELECT next_value FROM number_sequence WHERE scope=? AND scope_id=?')
+    .get(numberSequenceScope(kind), `${legalEntityId}:${year}`) as
+    | { next_value: number }
+    | undefined;
   const sequence = row?.next_value ?? 1;
   const valid =
     policy &&
@@ -25,9 +52,8 @@ export function previewInvoiceNumber(sqlite: DatabaseSync, legalEntityId: string
     Number.isSafeInteger(sequence) &&
     sequence > 0;
   return {
-    number: valid
-      ? `${policy.prefix}-${year}-${String(sequence).padStart(policy.digits, '0')}`
-      : null,
+    number: valid ? formatDocumentNumber(kind, policy.prefix, year, sequence, policy.digits) : null,
+    kind,
     legalEntityId,
     asOf,
     policy: policy

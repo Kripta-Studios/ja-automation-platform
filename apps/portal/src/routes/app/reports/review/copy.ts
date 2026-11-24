@@ -170,6 +170,8 @@ const en: ReviewCopy = {
     pending_time_approval: 'A time source is still awaiting approval.',
     pending_time_correction: 'A time correction is still open.',
     missing_client_rate: 'A client rate is missing for a source.',
+    missing_overtime_client_rate:
+      'The overtime client rate is missing: overtime would be billed at $0.',
     missing_internal_cost: 'An internal cost is missing for a source.',
     missing_compensation_rule: 'A compensation rule is missing for a source.',
     missing_approved_daily_report: 'An approved daily report is missing.',
@@ -292,6 +294,8 @@ const es: ReviewCopy = {
     period_cutoff_mismatch: 'El período no coincide con la frecuencia de facturación configurada.',
     pending_time_approval: 'Un registro de horas espera aprobación.',
     missing_client_rate: 'Falta la tarifa del cliente para una fuente.',
+    missing_overtime_client_rate:
+      'Falta la tarifa de horas extra del cliente: se facturarían a $0.',
     missing_internal_cost: 'Falta el coste interno para una fuente.',
     missing_compensation_rule: 'Falta una regla de compensación para una fuente.',
     missing_receipt: 'Falta un recibo obligatorio.',
@@ -404,6 +408,7 @@ const pt: ReviewCopy = {
     period_cutoff_mismatch: 'O período não corresponde à cadência de faturamento configurada.',
     pending_time_approval: 'Um registro de horas aguarda aprovação.',
     missing_client_rate: 'A tarifa do cliente está ausente para uma fonte.',
+    missing_overtime_client_rate: 'Falta a tarifa de hora extra do cliente: seria faturada a $0.',
     missing_internal_cost: 'O custo interno está ausente para uma fonte.',
     missing_compensation_rule: 'A regra de remuneração está ausente para uma fonte.',
     missing_receipt: 'Um recibo obrigatório está ausente.',

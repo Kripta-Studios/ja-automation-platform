@@ -1,4 +1,5 @@
 import type { openPortalRepository } from '$lib/server/portal-repository';
+import { invoiceOpenBalance, netOutstandingByInvoice } from '$lib/server/invoice-balance';
 import { projectVisibility } from '$lib/portal/project-visibility';
 import { clientCalendarWindow, normalizeCalendarMonth } from '$lib/portal/client-work-calendar';
 import {
@@ -198,12 +199,13 @@ export function buildClientDirectory(
       if (project.client_id) projectClient.set(String(project.id), String(project.client_id));
     const wanted = new Set(pageClients.map((client) => String(client.id)));
     owedByClient = new Map();
+    const netOpen = netOutstandingByInvoice(context.v3, principal);
     for (const invoice of repository.listInvoices(principal) as unknown as Row[]) {
       const clientId = projectClient.get(String(invoice.project_id));
       if (!clientId || !wanted.has(clientId)) continue;
       if (noBalanceStates.has(String(invoice.state))) continue;
-      const outstanding =
-        BigInt(String(invoice.total_minor ?? 0)) - BigInt(String(invoice.paid_minor ?? 0));
+      // Net of payments and credit notes (T12), the same rule as Money and the client page.
+      const outstanding = invoiceOpenBalance(invoice as never, netOpen);
       if (outstanding <= 0n) continue;
       const perCurrency = owedByClient.get(clientId) ?? new Map<string, bigint>();
       const currency = String(invoice.currency);

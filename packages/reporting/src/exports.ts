@@ -452,6 +452,8 @@ const companyLogoCandidates = [
   process.env.JA_REPORTING_LOGO_PATH,
   resolve(process.cwd(), 'reporting-assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'packages/reporting/assets/logo-jaautomation.png'),
+  // Portal started from apps/portal (node build, preview): the workspace asset (audit T16).
+  resolve(process.cwd(), '../../packages/reporting/assets/logo-jaautomation.png'),
   resolve(process.cwd(), 'assets/logo-jaautomation.png'),
   fileURLToPath(new URL('../assets/logo-jaautomation.png', import.meta.url)),
   fileURLToPath(new URL('../../../Images/logo_jaautomation.png', import.meta.url)),

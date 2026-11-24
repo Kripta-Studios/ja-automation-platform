@@ -3,6 +3,7 @@
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { payCurrencyHeading, paySummaryText } from '$lib/portal/pay-summary-copy';
+  import { billingFixText } from '$lib/portal/billing-fix-copy';
   import {
     assignmentDirectoryView,
     assignmentFormAction,
@@ -4591,6 +4592,12 @@
                   )}</strong
                 >
                 <small>{paySummaryText(locale, 'waitingHint')}</small>
+                {#if (data.pay.returnedMinutes ?? 0) > 0 && (data.pay.currencyBreakdown?.length ?? 1) === 1}<small
+                    data-pay-returned
+                    >{paySummaryText(locale, 'returned', {
+                      hours: hoursFromMinutes(data.pay.returnedMinutes ?? 0),
+                    })}</small
+                  >{/if}
               </a>
               <a class="pay-summary-tile" href="{base}/app/expenses?lang={locale}">
                 <span>{paySummaryText(locale, 'toReceive')}</span>
@@ -4651,7 +4658,9 @@
                   disabled={workerStatementBusy || workerStatementPolling}
                   aria-busy={workerStatementBusy || workerStatementPolling}
                   onclick={() => void requestWorkerStatement()}
-                  >{translate('Generate report')}</button
+                  >{workerStatementBusy || workerStatementPolling
+                    ? billingFixText(locale, 'preparing')
+                    : translate('Generate report')}</button
                 >
               {/if}
               {#each ['pdf', 'csv'] as format}

@@ -10,6 +10,10 @@ import {
   V3ConflictError,
   V3ValidationError,
   queueInvoiceEmail,
+  issuerPayeeFields,
+  ISSUER_PAYEE_OWNER_REQUIRED,
+  INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE,
+  INVOICE_COLLECTION_BEFORE_ISSUE,
 } from '@ja/database';
 import {
   accountingPackPeriodSchema,
@@ -705,14 +709,23 @@ export function billingProblemFor(
     operation === 'createAccountingPack' &&
     error instanceof AccountingPackRevisionError &&
     message.startsWith('Accounting Pack source authority mismatch: ')
-  )
+  ) {
+    // T14: name the first mismatched source record and what does not match (no bare
+    // "contact support"): e.g. "invoice 01a2b3c4 · omitted from source cut".
+    const first = message.slice('Accounting Pack source authority mismatch: '.length).split(', ')[0] ?? '';
+    const [kind = '', id = '', ...rest] = first.split(':');
+    const source = [kind.replace(/_/gu, ' '), id.slice(0, 8)].filter(Boolean).join(' ');
+    const reason = rest.join(':').replace(/_/gu, ' ');
     return known(
       409,
       'ACCOUNTING_PACK_SOURCE_RECONCILIATION_REQUIRED',
-      'problem.billing.packSourceReconciliationRequired',
-      'This Accounting Pack does not reconcile with its preserved financial sources. Contact support to review the affected obligations and source history. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
+      'problem.billing.packSourceMismatchNamed',
+      `This Accounting Pack does not reconcile with its preserved financial sources: ${source}${reason ? ` (${reason})` : ''}. Choose dates that leave this record out, or send the record name to support. Your selected dates are retained; reversing a payment or changing historical records is not a repair.`,
       'contact_support',
+      undefined,
+      { source: source || '—', reason: reason || '—' },
     );
+  }
   if (
     operation === 'createAccountingPack' &&
     error instanceof AccountingPackRevisionError &&
@@ -767,12 +780,13 @@ export function billingProblemFor(
       projectCurrency: expense.projectCurrency,
       projectId: expense.projectId ?? '',
     };
+    // T14: the fix is a currency conversion (Money › Currency conversions), not editing the expense.
     return known(
       409,
       'ACCOUNTING_PACK_EXPENSE_CURRENCY_REVIEW_REQUIRED',
-      'problem.billing.packExpenseNeedsProjectCurrency',
-      `The ${amount} expense of ${params.spentOn} (project ${params.projectNumber}) has no verified amount in ${params.projectCurrency}, the project's currency. Open the expense and correct its currency or amount (or return it to the worker), then generate the pack again — or choose dates that leave out ${params.spentOn}.`,
-      'open_expense',
+      'problem.billing.packExpenseNeedsConversion',
+      `The ${amount} expense of ${params.spentOn} (project ${params.projectNumber}) has no verified amount in ${params.projectCurrency}, the project's currency. Convert it in Money › Currency conversions, then generate the pack again — or choose dates that leave out ${params.spentOn}.`,
+      'convert_currency',
       undefined,
       params,
     );
@@ -1381,7 +1395,7 @@ export function billingActionFailure(
         code: `BILLING_READINESS_${reasonCode.toUpperCase()}`,
         reasons: error.reasons,
         remedies: [{ id: remedyId }],
-        ...(reasonCode === 'missing_client_rate'
+        ...(reasonCode === 'missing_client_rate' || reasonCode === 'missing_overtime_client_rate'
           ? { fieldErrors: { hourlyRateMinor: [billingReadinessMessageKey(reasonCode)] } }
           : reasonCode === 'period_cutoff_mismatch' ||
               reasonCode === 'billing_rule_outside_effective_window'
@@ -1543,13 +1557,31 @@ export const billingActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      context.repository.updateIssuerDocumentSettings(context.principal, parsed.data);
-      return actionSuccess(
-        'action.billing.issuerSettingsSaved',
-        {},
-        'Issuer payment and contact settings saved.',
+      const saved = context.repository.updateIssuerDocumentSettings(
+        context.principal,
+        parsed.data,
       );
+      return (saved.changedFields ?? []).some((name) =>
+        (issuerPayeeFields as readonly string[]).includes(name),
+      )
+        ? actionSuccess(
+            'action.billing.issuerPayeeSaved',
+            {},
+            'Bank and payee details saved for every invoice of this issuing company. The owner was notified.',
+          )
+        : actionSuccess(
+            'action.billing.issuerSettingsSaved',
+            {},
+            'Issuer payment and contact settings saved.',
+          );
     } catch (error) {
+      if (error instanceof AccessDeniedError && error.message === ISSUER_PAYEE_OWNER_REQUIRED)
+        return actionFail(403, 'problem.billing.issuerPayeeOwnerOnly', {}, error.message, {
+          code: 'BILLING_ISSUER_PAYEE_OWNER_ONLY',
+          remedies: [{ id: 'review_billing_setup' }],
+          billingOperation: 'updateIssuerDocumentSettings',
+          values: safeBillingInputValues(formData),
+        });
       if (error instanceof ConflictError)
         return actionFail(
           409,
@@ -1599,6 +1631,14 @@ export const billingActions = {
         'Invoice planning dates saved',
       );
     } catch (error) {
+      if (error instanceof ValidationError && error.message === INVOICE_COLLECTION_BEFORE_ISSUE)
+        return actionFail(400, 'problem.billing.collectionBeforeIssue', {}, error.message, {
+          code: 'BILLING_COLLECTION_BEFORE_ISSUE',
+          fieldErrors: { expectedCollectionOn: ['problem.billing.collectionBeforeIssue'] },
+          remedies: [{ id: 'correct_field' }],
+          billingOperation: 'setInvoicePlanningDates',
+          values: safeBillingInputValues(object),
+        });
       return billingActionFailure(
         error,
         'setInvoicePlanningDates',
@@ -2849,6 +2889,10 @@ export const billingActions = {
       previewProblems[
         'The project issuing authority does not match this billing stream. Review the issuing setup before changing company settings.'
       ] = { key: 'problem.billing.previewIssuerMismatch', status: 409 };
+      previewProblems[INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE] = {
+        key: 'problem.billing.previewIssuerFieldsCompanyWide',
+        status: 400,
+      };
       const known = error instanceof Error ? previewProblems[error.message] : undefined;
       if (known && error instanceof Error)
         return actionFail(known.status, known.key, {}, error.message, {

@@ -3,6 +3,7 @@ import type { Principal } from '@ja/domain';
 import type { MoneyOverview, MoneyPeriodKey } from '../portal/money-overview-types';
 import { normalizeSelectSearch } from '../portal/searchable-selects';
 import { splitUnbilledSources } from '../portal/home-inbox';
+import { withNetOutstanding } from './invoice-balance';
 
 const big = (value: unknown): bigint => {
   const text = String(value ?? '0');
@@ -79,7 +80,8 @@ export function buildMoneyOverview(
 ): MoneyOverview {
   const today = options.today ?? new Date().toISOString().slice(0, 10);
   const period = moneyPeriod(requestedPeriod, today);
-  const ledger = v3.masterLedger(principal);
+  // Net of credit notes (T12): one open-balance rule for Money, projects, clients and payments.
+  const ledger = withNetOutstanding(v3.masterLedger(principal));
   const periodPortfolio = v3.financePortfolio(principal, period.from, period.to, {
     includeArchived: options.includeArchived,
   });

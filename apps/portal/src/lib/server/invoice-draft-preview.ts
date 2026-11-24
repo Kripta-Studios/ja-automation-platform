@@ -9,6 +9,13 @@ function minor(value: unknown): bigint {
   return BigInt(raw);
 }
 
+/** D15: a credit note is shown as a credit note that names the invoice it credits. */
+function creditNoteFields(invoice: Row): Record<string, unknown> {
+  return invoice.document_type === 'credit_note'
+    ? { documentType: 'credit_note', creditNoteFor: invoice.credit_note_for_invoice_number ?? null }
+    : {};
+}
+
 /** A read-only PDF projection of the same mutable lines shown on the draft page. */
 export function draftInvoiceTemplateSnapshot(
   preview: Preview,
@@ -52,6 +59,9 @@ export function draftInvoiceTemplateSnapshot(
 
   return {
     state: invoice.state,
+    ...creditNoteFields(invoice),
+    // A planned issue date is not the invoice date yet (audit T11): the preview labels it.
+    invoiceDatePlanned: Boolean(invoice.planned_issue_on),
     sourceVersion: invoice.source_version ?? invoice.version,
     number: provisionalNumber || 'DRAFT PREVIEW',
     invoiceNumber: provisionalNumber || 'DRAFT PREVIEW',
@@ -134,6 +144,14 @@ export function invoiceDocumentSnapshot(
       : {};
   return {
     state: preview.invoice.state,
+    ...creditNoteFields(preview.invoice),
+    ...(frozen.documentType === 'credit_note' ? { documentType: 'credit_note' } : {}),
+    ...(frozen.creditNoteFor && typeof frozen.creditNoteFor === 'object'
+      ? {
+          creditNoteFor:
+            (frozen.creditNoteFor as { invoiceNumber?: unknown }).invoiceNumber ?? null,
+        }
+      : {}),
     number: frozen.number ?? preview.invoice.invoice_number,
     invoiceNumber: frozen.invoiceNumber ?? preview.invoice.invoice_number,
     template: frozen.template as InvoiceTemplateSnapshot['template'],

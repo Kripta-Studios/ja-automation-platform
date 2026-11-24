@@ -2292,6 +2292,10 @@ export const PORTAL_LITERAL_KEYS = [
   'problem.access.workforceSupplierCue',
   'problem.access.workforceSupplierUnavailableOption',
   'problem.remedy.reviewSupplierStatus',
+  'action.billing.pdfViewHere',
+  'calculation.recordedHelp',
+  'calculation.notYetApproved',
+  'calculation.notYetApprovedHelp',
   ...extractedSectionCoverageKeys,
   ...Object.keys(explicitCoverageLiteralOverrides),
 ] as const;
@@ -2309,6 +2313,7 @@ export const PORTAL_ACTION_KEYS = [
   'action.billing.invoiceSourcesUpdated',
   'action.billing.invoiceDraftDetailsSaved',
   'action.billing.issuerSettingsSaved',
+  'action.billing.issuerPayeeSaved',
   'action.finance.unusedIssuerReplaced',
 
   'action.expense.draftAlreadySaved',

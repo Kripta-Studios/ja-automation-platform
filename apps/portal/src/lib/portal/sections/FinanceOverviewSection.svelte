@@ -16,6 +16,9 @@
   import { beforeNavigate } from '$app/navigation';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   import { base } from '$app/paths';
+  import { billingReadinessReviewPath } from '../billing-readiness';
+  import { billingDateTime, billingFixText } from '../billing-fix-copy';
+  import { personDisplayName } from '../display-name';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -454,6 +457,49 @@
       }
     };
   };
+  /** T64: a settlement payment is permanent evidence; confirm payee, amount and date first. */
+  function confirmCompensationPayment(name: string, currency: unknown): SubmitFunction {
+    return (input) => {
+      const amount = String(input.formData.get('amount') ?? '').trim();
+      const date = String(input.formData.get('paidOn') ?? '').trim();
+      if (
+        typeof window !== 'undefined' &&
+        !window.confirm(
+          billingFixText(locale, 'confirmRegisterSettlementPayment', {
+            amount: `${String(currency ?? '')} ${amount}`.trim(),
+            name,
+            date,
+          }),
+        )
+      ) {
+        input.cancel();
+        return;
+      }
+      return submitFinance(input);
+    };
+  }
+  /** T64: finalizing fixes the compensation amount; confirm worker and period first. */
+  function confirmFinalizeCompensation(event: SubmitEvent): void {
+    const form = event.currentTarget;
+    if (!(form instanceof HTMLFormElement)) return;
+    const data = new FormData(form);
+    const workerId = String(data.get('workerId') ?? '');
+    const worker = settlementWorkerChoices.find((choice) => String(choice.id) === workerId);
+    const name = personDisplayName(worker?.name) || String(worker?.name ?? '');
+    if (
+      !window.confirm(
+        billingFixText(locale, 'confirmFinalizeCompensation', {
+          name,
+          from: String(data.get('periodStart') ?? ''),
+          to: String(data.get('periodEnd') ?? ''),
+        }),
+      )
+    ) {
+      event.preventDefault();
+      return;
+    }
+    rememberFinanceScroll();
+  }
   const financeScrollKey = 'ja-finance-failed-form-scroll';
   function rememberFinanceScroll(): void {
     saveSessionItem(financeScrollKey, String(window.scrollY));
@@ -986,6 +1032,11 @@
       : displayBps(valueToFormat);
   }
 
+  function hasPlannedMinutes(minutes: unknown): boolean {
+    // Whole minutes only; compared as text so no money/number coercion happens in the component.
+    return /^[1-9][0-9]*$/u.test(String(minutes ?? '').trim());
+  }
+
   function displayHours(valueToFormat: unknown): string {
     const hours = clockHoursFromMinutes(valueToFormat);
     if (hours === '—') return hours;
@@ -1049,7 +1100,32 @@
 
   function statusLabel(status: unknown): string {
     const raw = String(status ?? '').trim();
+    // T64: settlement payment states read as words, not codes.
+    if (raw === 'reviewed') return billingFixText(locale, 'settlementState_reviewed');
+    if (raw === 'scheduled') return billingFixText(locale, 'settlementState_scheduled');
+    if (raw === 'incomplete') return billingFixText(locale, 'statusIncomplete');
     return raw ? controlledValue('status', raw) || translate(raw) : translate('Not available');
+  }
+
+  /** T64: people by display name ("Gabriel Lamoglia", not the login). */
+  function personName(row: Row | Record<string, unknown> | null | undefined): string {
+    if (!row) return '';
+    const raw = value(row as Row, 'workerName', 'worker_name');
+    return personDisplayName(raw) || raw;
+  }
+
+  /** T64: the source a compensation is computed from, in words. */
+  function settlementBasisLabel(basis: unknown): string {
+    const raw = String(basis ?? '').trim();
+    if (raw === 'APPROVED_TIME') return billingFixText(locale, 'settlementBasis_APPROVED_TIME');
+    if (raw === 'COLLECTED_ELIGIBLE_LABOR')
+      return billingFixText(locale, 'settlementBasis_COLLECTED_ELIGIBLE_LABOR');
+    return raw || '—';
+  }
+
+  /** T64: timestamps in the viewer's language, never raw ISO UTC. */
+  function localDateTime(raw: unknown): string {
+    return billingDateTime(raw, locale);
   }
 
   function categoryLabel(category: unknown): string {
@@ -1366,14 +1442,14 @@
       const person = (data.commercialTermsSummary ?? []).find(
         (row) => value(row, 'workerId', 'worker_id') === sourceId,
       );
-      const personName = person ? value(person, 'workerName', 'worker_name') : '';
+      const workerLabel = person ? personName(person) : '';
       const project = availableProjects.find(
         (item) => String(item.id) === String(data.selectedProjectId),
       );
       const context = [
         project ? `${translate('Project')}: ${projectName(project)}` : '',
         sourceId
-          ? `${translate('Worker')}: ${personName ? `${personName} · ` : ''}${sourceId}`
+          ? `${translate('Worker')}: ${workerLabel ? `${workerLabel} · ` : ''}${sourceId}`
           : '',
       ].filter(Boolean);
       return `${translate(message)}${context.length ? ` · ${context.join(' · ')}` : ''}`;
@@ -1385,7 +1461,7 @@
       (project) => String(project.id) === String(data.selectedProjectId),
     );
     const project = selectedProject ? projectName(selectedProject) : '';
-    const worker = source ? value(source, 'workerName', 'worker_name') : '';
+    const worker = source ? personName(source) : '';
     const workDate = timeSource
       ? value(timeSource, 'workDate', 'work_date')
       : expenseSource
@@ -1458,7 +1534,7 @@
   }
 
   function compensationTimeline(row: Row | Record<string, unknown>): string {
-    return `${translate('Expected payment')}: ${value(row, 'expectedPaymentOn', 'expected_payment_on') || '—'} · ${translate('Compensation finalized')}: ${value(row, 'settledAt', 'settled_at') || '—'}`;
+    return `${translate('Expected payment')}: ${value(row, 'expectedPaymentOn', 'expected_payment_on') || '—'} · ${translate('Compensation finalized')}: ${localDateTime(value(row, 'settledAt', 'settled_at')) || '—'}`;
   }
 
   const actualMetrics = $derived.by((): Metric[] => {
@@ -1612,9 +1688,9 @@
       id: value(row, 'workerId', 'worker_id', 'id'),
       href: portfolioWorkerSourceHref(row),
       linkLabel: translate('Open details'),
-      linkAriaLabel: `${translate('Open details')}: ${value(row, 'workerName', 'worker_name') || '—'}`,
+      linkAriaLabel: `${translate('Open details')}: ${personName(row) || '—'}`,
       cells: [
-        { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
+        { label: translate('Worker'), value: personName(row) || '—' },
         { label: translate('Currency'), value: value(row, 'currency') || '—' },
         {
           label: translate('Approved hours'),
@@ -1654,7 +1730,7 @@
       linkLabel: translate('Open details'),
       cells: [
         { label: translate('Date'), value: value(row, 'workDate', 'work_date') || '—' },
-        { label: translate('Worker'), value: value(row, 'workerName', 'worker_name') || '—' },
+        { label: translate('Worker'), value: personName(row) || '—' },
         { label: translate('Category'), value: categoryLabel(row.category) },
         {
           label: translate('Hours'),
@@ -2115,7 +2191,7 @@
           {#each provisionalRules as { kind, rule } (value(rule, 'id'))}
             <li>
               {translate(kind === 'internal' ? 'Internal loaded cost' : 'Worker compensation')} ·
-              {value(rule, 'workerName', 'worker_name') || translate('Assigned person')} ·
+              {personName(rule) || translate('Assigned person')} ·
               {translate('Effective from')}: {value(rule, 'effectiveFrom', 'effective_from')} →
               {value(rule, 'effectiveTo', 'effective_to') || translate('open-ended')}
             </li>
@@ -2250,8 +2326,11 @@
             <span>{translate('Hours')}</span>
             <strong>
               {displayHours(finance.actualMinutes ?? finance.approvedMinutes)}
-              /
-              {displayHours(finance.plannedMinutes)}
+              <small>{billingFixText(locale, 'hoursRecorded')}</small>
+              {#if hasPlannedMinutes(finance.plannedMinutes)}
+                / {displayHours(finance.plannedMinutes)}
+                <small>{billingFixText(locale, 'hoursPlanned')}</small>
+              {/if}
             </strong>
             <progress
               class="finance-overview__progress"
@@ -2261,7 +2340,11 @@
               max={100}
               value={progressValue(finance.hoursConsumedBps)}
             ></progress>
-            <small>{displayBps(finance.hoursConsumedBps)} {translate('Hours consumed')}</small>
+            <small
+              >{hasPlannedMinutes(finance.plannedMinutes)
+                ? `${displayBps(finance.hoursConsumedBps)} ${translate('Hours consumed')}`
+                : billingFixText(locale, 'hoursNotPlanned')}</small
+            >
           </a>
         </div>
 
@@ -2407,6 +2490,7 @@
                 contextKey={sourceTab}
                 {translate}
                 label="Source records"
+                statusLabel={statusLabel}
                 showEmpty={sourceTab !== 'settlements'}
               />
             {/key}
@@ -2578,7 +2662,7 @@
                             class="finance-overview__source-link"
                             href={portfolioWorkerSourceHref(row)}
                           >
-                            {value(row, 'workerName', 'worker_name') || '—'}
+                            {personName(row) || '—'}
                           </a>
                         </td>
                         <td>{value(row, 'currency') || '—'}</td>
@@ -2662,7 +2746,7 @@
                           >{value(row, 'workDate', 'work_date') || '—'}</a
                         >
                       </td>
-                      <td>{value(row, 'workerName', 'worker_name') || '—'}</td>
+                      <td>{personName(row) || '—'}</td>
                       <td>{categoryLabel(row.category)}</td>
                       <td>{displayHours(value(row, 'actualMinutes', 'actual_minutes'))}</td>
                       <td
@@ -2863,12 +2947,12 @@
                       )}</small
                     >
                     <small
-                      >{value(expense, 'workerName', 'worker_name') || translate('Worker')}</small
+                      >{personName(expense) || translate('Worker')}</small
                     >
                     {#if expense.description}<p>{String(expense.description)}</p>{/if}
                     <a
                       href={`${base}/app/expenses/${encodeURIComponent(expenseId)}?lang=${encodeURIComponent(locale)}`}
-                      aria-label={`${translate('Open expense')} · ${value(expense, 'workerName', 'worker_name')} · ${value(expense, 'spentOn', 'spent_on')} · ${displayMoney(value(expense, 'amountMinor', 'amount_minor'), value(expense, 'currency'))} · ${expenseId.slice(-8)}`}
+                      aria-label={`${translate('Open expense')} · ${personName(expense)} · ${value(expense, 'spentOn', 'spent_on')} · ${displayMoney(value(expense, 'amountMinor', 'amount_minor'), value(expense, 'currency'))} · ${expenseId.slice(-8)}`}
                       >{translate('Open expense')}</a
                     >
                   </div>
@@ -3239,6 +3323,7 @@
               method="POST"
               action={`?/settleCompensation&view=economic&source=settlements&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}
               class="finance-overview__action-form"
+              onsubmit={confirmFinalizeCompensation}
             >
               <input type="hidden" name="projectId" value={data.selectedProjectId} />
               <label>
@@ -3247,7 +3332,7 @@
                   <option value="">{translate('Select worker')}</option>
                   {#each settlementWorkerChoices as worker}
                     <option value={String(worker.id)}
-                      >{worker.name} · {translate(String(worker.assignmentRelation))}</option
+                      >{personDisplayName(worker.name) || worker.name} · {translate(String(worker.assignmentRelation))}</option
                     >
                   {/each}
                 </select>
@@ -3305,7 +3390,7 @@
                 cells: [
                   {
                     label: translate('Worker'),
-                    value: value(row, 'workerName', 'worker_name') || '—',
+                    value: personName(row) || '—',
                   },
                   {
                     label: translate('Period'),
@@ -3313,7 +3398,7 @@
                   },
                   {
                     label: translate('Basis'),
-                    value: value(row, 'sourceBasis', 'source_basis') || '—',
+                    value: settlementBasisLabel(value(row, 'sourceBasis', 'source_basis')),
                   },
                   {
                     label: translate('Source'),
@@ -3362,7 +3447,7 @@
                           class="finance-overview__source-link"
                           href={`#compensation-settlement-${encodeURIComponent(value(settlement, 'id'))}`}
                         >
-                          {value(settlement, 'workerName', 'worker_name') || '—'}
+                          {personName(settlement) || '—'}
                         </a>
                       </td>
                       <td
@@ -3372,7 +3457,7 @@
                           'period_end',
                         )}</td
                       >
-                      <td>{value(settlement, 'sourceBasis', 'source_basis') || '—'}</td>
+                      <td>{settlementBasisLabel(value(settlement, 'sourceBasis', 'source_basis'))}</td>
                       <td>{displaySettlementSource(settlement)}</td>
                       <td>{displayMoney(settlement.amountMinor, settlement.currency)}</td>
                       <td
@@ -3468,13 +3553,11 @@
                   {/if}
                   <label>
                     <span
-                      >{value(settlement, 'workerName', 'worker_name') || translate('Worker')}</span
+                      >{personName(settlement) || translate('Worker')}</span
                     >
                     <small
-                      >{translate('Actual settled')}: {value(
-                        settlement,
-                        'settledAt',
-                        'settled_at',
+                      >{translate('Actual settled')}: {localDateTime(
+                        value(settlement, 'settledAt', 'settled_at'),
                       ) ||
                         statusLabel(settlementState) ||
                         '—'}</small
@@ -3521,7 +3604,7 @@
                 >
                   <div class="finance-overview__payment-register-heading">
                     <div>
-                      <strong>{value(settlement, 'workerName', 'worker_name')}</strong>
+                      <strong>{personName(settlement)}</strong>
                       <small
                         >{value(settlement, 'periodStart', 'period_start')} → {value(
                           settlement,
@@ -3542,7 +3625,7 @@
                       class="finance-overview__payment-form"
                       data-finance-action="recordCompensationPayment"
                       use:formValidation
-                      use:enhance={submitFinance}
+                      use:enhance={confirmCompensationPayment(personName(settlement), settlement.currency)}
                       onsubmit={rememberFinanceScroll}
                     >
                       <input type="hidden" name="settlementId" value={settlementId} />
@@ -3574,7 +3657,7 @@
                           required
                         >
                           <option value={`person:${value(settlement, 'workerId', 'worker_id')}`}>
-                            {translate('Person')}: {value(settlement, 'workerName', 'worker_name')}
+                            {translate('Person')}: {personName(settlement)}
                           </option>
                           {#if value(settlement, 'supplierId', 'supplier_id')}
                             <option
@@ -3694,13 +3777,8 @@
                               )} · {value(payment, 'reference')}</small
                             >
                             <small
-                              >{translate('Payee')}: {value(
-                                payment,
-                                'payeeUserName',
-                                'payee_user_name',
-                                'payeeSupplierName',
-                                'payee_supplier_name',
-                              )}</small
+                              >{translate('Payee')}: {value(payment, 'payeeSupplierName', 'payee_supplier_name') ||
+                                personDisplayName(value(payment, 'payeeUserName', 'payee_user_name'))}</small
                             >
                           </div>
                           {#if eventType === 'payment' && (!paymentIsReversed(paymentId) || failedReversalFor(paymentId))}
@@ -3825,7 +3903,7 @@
                       class="finance-overview__source-link"
                       href={`${base}/app/expenses/${encodeURIComponent(value(reimbursement, 'id'))}?lang=${encodeURIComponent(locale)}`}
                     >
-                      {value(reimbursement, 'workerName', 'worker_name')} · {value(
+                      {personName(reimbursement)} · {value(
                         reimbursement,
                         'vendor',
                       ) || translate('Expense')}
@@ -3848,7 +3926,23 @@
                     )}</small
                   >
                 </div>
-                {#if canWriteFinance && reimbursementState !== 'reimbursed'}
+                {#if reimbursement.needsClassification && reimbursementState !== 'reimbursed'}
+                  <div data-reimbursement-needs-classification>
+                    <small>{billingFixText(locale, 'excludedReason_expense_unclassified')}</small>
+                    <strong
+                      >{displayMoney(
+                        reimbursement.reimbursementAmountMinor,
+                        reimbursement.currency,
+                      )}</strong
+                    >
+                    {#if canWriteFinance}
+                      <a
+                        href={`${base}/app${billingReadinessReviewPath(['missing_expense_classification'], String(reimbursement.projectId ?? ''), undefined, String(reimbursement.id))}`}
+                        >{billingFixText(locale, 'classifyExpense')}</a
+                      >
+                    {/if}
+                  </div>
+                {:else if canWriteFinance && reimbursementState !== 'reimbursed'}
                   <form
                     method="POST"
                     action={`?/recordReimbursement&view=economic&source=expenses&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}

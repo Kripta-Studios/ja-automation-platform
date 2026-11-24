@@ -201,6 +201,9 @@ export function splitUnbilledSources(
     const raw = text(source.amountMinor).trim();
     if (!/^-?\d+$/u.test(raw)) continue;
     const holder = holders.get(`${text(source.sourceType)}:${text(source.sourceId)}`);
+    // T15: approved hours whose correction still waits for approval are left out of the
+    // invoice composer; they are not "ready to invoice" either.
+    if (!holder && source.waitingCorrection === true) continue;
     if (!holder) ready += BigInt(raw);
     else if (holder === 'draft' || holder === 'approved') draft += BigInt(raw);
   }

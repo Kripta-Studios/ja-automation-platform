@@ -361,3 +361,36 @@ it('preserves the published status when editing a calendar planning assignment',
     site: 'Calendar corrected',
   });
 });
+
+it('T56: reads milestone amounts written with thousands or decimal-comma separators', () => {
+  // The fixture alone (the shared setup() also creates an expense, which is unrelated here).
+  const fixture = createB5LifecycleSecurityFixture();
+  fixtures.push(fixture);
+  const f = {
+    ...fixture,
+    owner: stepUpB5Principal(fixture.sqlite, fixture.owner, 'owner-management'),
+  };
+  const manager = new OwnerCatalogManagement(f.sqlite);
+  for (const [amount, minor] of [
+    ['50,000', 5_000_000],
+    ['2.940,00', 294_000],
+  ] as const) {
+    const created = manager.mutate(f.owner, {
+      kind: 'project_milestone',
+      operation: 'create',
+      reason: 'Create test milestone',
+      values: { project_id: f.project.id, name: `Milestone ${amount}`, amount, due_on: '2026-02-10' },
+    });
+    expect(
+      f.sqlite.prepare('SELECT amount_minor FROM project_milestone WHERE id=?').get(created.id),
+    ).toEqual({ amount_minor: minor });
+  }
+  expect(() =>
+    manager.mutate(f.owner, {
+      kind: 'project_milestone',
+      operation: 'create',
+      reason: 'Create test milestone',
+      values: { project_id: f.project.id, name: 'Bad', amount: '1,2345', due_on: '2026-02-10' },
+    }),
+  ).toThrow('Invalid amount');
+});

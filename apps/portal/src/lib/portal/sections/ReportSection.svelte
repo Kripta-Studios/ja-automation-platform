@@ -362,9 +362,18 @@
   let technicalPage = $state(1);
   let signoffPage = $state<Row[]>([]);
   let periodReportPage = $state<Row[]>([]);
-  let periodProjectId = $state(nativeReportValue('projectId'));
-  let periodFrom = $state(nativeReportValue('periodStart'));
-  let periodTo = $state(nativeReportValue('periodEnd'));
+  // T16 (audit 2026-11-22): the invoice "Get client sign-off" blocker deep-links here with
+  // ?refresh=period&project=…&from=…&to=…, opening period generation for exactly that period.
+  const signoffDeepLink = (() => {
+    const params = $page.url.searchParams;
+    const iso = (value: string | null) => (value && /^\d{4}-\d{2}-\d{2}$/u.test(value) ? value : '');
+    return params.get('refresh') === 'period'
+      ? { project: params.get('project') ?? '', from: iso(params.get('from')), to: iso(params.get('to')) }
+      : null;
+  })();
+  let periodProjectId = $state(nativeReportValue('projectId') || signoffDeepLink?.project || '');
+  let periodFrom = $state(nativeReportValue('periodStart') || signoffDeepLink?.from || '');
+  let periodTo = $state(nativeReportValue('periodEnd') || signoffDeepLink?.to || '');
   function visibleReportProjectName(id: string): string {
     if (!id) return '';
     const project = availableProjects.find((row) => String(row.id) === id);
@@ -565,6 +574,12 @@
   const canGeneratePeriodReports = $derived(
     !isAuditor && ['owner_admin', 'finance_admin'].includes(String(data.user.role ?? '')),
   );
+  let signoffDeepLinkOpened = false;
+  $effect(() => {
+    if (signoffDeepLinkOpened || !signoffDeepLink || !canGeneratePeriodReports) return;
+    signoffDeepLinkOpened = true;
+    if (!surface) surface = 'generate';
+  });
   const generatedStatusOptions = $derived(
     canGeneratePeriodReports
       ? [...new Set(periodReports.map((report) => rowText(report, 'state')).filter(Boolean))].sort()

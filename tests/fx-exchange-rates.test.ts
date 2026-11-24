@@ -11,6 +11,7 @@ import {
   parseEcbXml,
   proposeExchangeRate,
   recordCurrencyConversion,
+  verifiedExpenseProjectAmountMinor,
   refreshExchangeRates,
   storeEcbRates,
   CurrencyConversionError,
@@ -123,6 +124,34 @@ describe('audited currency conversion', () => {
       .run(id, f.project.id, now, now);
     return id;
   }
+
+  // T14 (audit 2026-11-22): a confirmed conversion is the verified project-currency amount
+  // for the Accounting Pack and the finance banner, even before it is projected on the expense.
+  it('treats a confirmed conversion of the receipt amount as the verified project amount', () => {
+    const f = fixture();
+    const owner = stepUpB5Principal(f.sqlite, f.owner, 'fx-verified');
+    const expenseId = seedMxnExpense(f, 'fx-verified');
+    const row = {
+      id: expenseId,
+      currency: 'MXN',
+      project_currency: 'EUR',
+      amount_minor: '100000',
+      project_currency_amount_minor: null,
+    };
+    expect(verifiedExpenseProjectAmountMinor(f.sqlite, row)).toBeNull();
+    recordCurrencyConversion(f.sqlite, owner, {
+      sourceKind: 'expense',
+      sourceId: expenseId,
+      targetCurrency: 'EUR',
+      rate: '0.05',
+      rateSource: 'manual',
+      idempotencyKey: 'conv-verified',
+      expectedCurrentId: null,
+    });
+    expect(verifiedExpenseProjectAmountMinor(f.sqlite, row)).toBe('5000');
+    // A conversion of another receipt amount is not this expense's verified amount.
+    expect(verifiedExpenseProjectAmountMinor(f.sqlite, { ...row, amount_minor: '90000' })).toBeNull();
+  });
 
   it('records the ECB proposal or a manual edit immutably with who confirmed, and audits it', () => {
     const f = fixture();

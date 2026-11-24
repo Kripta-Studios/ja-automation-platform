@@ -12,6 +12,7 @@
     canEdit,
     form,
     t,
+    projectStart = '',
   }: {
     projectId: string;
     currency: string;
@@ -20,6 +21,8 @@
     canEdit: boolean;
     form?: unknown;
     t: (key: string) => string;
+    /** T65: a project that starts later gets its start date as the default effective date. */
+    projectStart?: string;
   } = $props();
   type Feedback = {
     action?: string;
@@ -54,7 +57,12 @@
     const c = defaults?.config;
     return {
       effectiveFrom:
-        values?.effectiveFrom ?? defaults?.effectiveFrom ?? new Date().toISOString().slice(0, 10),
+        values?.effectiveFrom ??
+        defaults?.effectiveFrom ??
+        [new Date().toISOString().slice(0, 10), String(projectStart ?? '').slice(0, 10)]
+          .filter((date) => /^\d{4}-\d{2}-\d{2}$/u.test(date))
+          .sort()
+          .at(-1)!,
       customerHourlyRate: values?.customerHourlyRate ?? c?.customerHourlyRate ?? '',
       customerRateBasis: values?.customerRateBasis ?? c?.customerRateBasis ?? 'hourly',
       internalCostHourlyRate: values?.internalCostHourlyRate ?? c?.internalCostHourlyRate ?? '',

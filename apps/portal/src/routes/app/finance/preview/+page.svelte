@@ -1,6 +1,5 @@
 <script lang="ts">
   import { CURRENCIES } from '$lib/portal/currencies';
-  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import { SectionCard, FormCard, FieldGroup, Field, formValidation } from '$lib/portal/ui';
@@ -141,10 +140,6 @@
 
 <svelte:head><title>{t.title} | J&A</title></svelte:head>
 <main class="agreement-page" lang={locale === 'pt' ? 'pt-BR' : locale}>
-  <a
-    href={`${base}/app/finance?view=commercial&project=${encodeURIComponent(data.selectedProjectId)}&lang=${locale}`}
-    data-origin-back><DirectionIcon direction="left" /> {t.back}</a
-  >
   <h1>{t.title}</h1>
   <SectionCard title={t.summary}>
     <form method="GET" class="project-picker">

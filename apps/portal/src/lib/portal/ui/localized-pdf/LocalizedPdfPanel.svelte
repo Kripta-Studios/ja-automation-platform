@@ -523,7 +523,9 @@
               selectedVariant.sourceCurrent !== false &&
               !currentLayout(selectedVariant)
               ? 'pdf.generateCurrentLayout'
-              : 'Generate report',
+              : ownerType === 'invoice'
+                ? 'action.billing.generatePdf'
+                : 'Generate report',
           )}</button
         >{/if}
       {#if selectedVariant?.sourceCurrent !== false && selectedVariant?.status === 'ready' && currentLayout(selectedVariant)}
@@ -546,7 +548,9 @@
     </div>
     <p id={`${languageId}-help`} class="localized-pdf-help">
       {#if selectedVariant?.sourceCurrent === false}{t(
-          'The source changed. Generate a current PDF before downloading.',
+          readOnly
+            ? 'problem.localizedPdf.outdatedReadOnly'
+            : 'The source changed. Generate a current PDF before downloading.',
         )}{:else if selectedVariant && !currentLayout(selectedVariant)}{t('pdf.earlierLayout')} · {t(
           'pdf.currentLayoutHelp',
         )}{:else if selectedVariant}{variantStatus(selectedVariant)}{:else}{t(

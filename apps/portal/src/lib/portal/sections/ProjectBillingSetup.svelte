@@ -10,6 +10,10 @@
   import { localizedServerFieldMessage } from '$lib/portal/ui/form-validation';
   import { projectCopy } from '$lib/portal/project-ux-round3-copy';
   import { requestFinanceGuidedRecovery } from '../finance-guided-recovery';
+  import { personDisplayName } from '../display-name';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { normalizePortalLocale } from '$lib/portal-i18n';
+  import { billingFixText } from '../billing-fix-copy';
   type Row = Record<string, unknown>;
   type SetupTemplate = {
     id: string;
@@ -82,6 +86,7 @@
       termsFingerprint: string;
       needsReview: boolean;
       issues: string[];
+      managerOnly?: boolean;
     }>;
     version: number;
     rulesFingerprint: string;
@@ -722,17 +727,27 @@
   }
 
   const availableTaxes = $derived(matchingTax(legalEntityId));
+  /** T65: people by display name ("Gabriel Lamoglia", not the login). */
+  const personLabel = (name: string): string => personDisplayName(name) || name;
+  /** T65: the commercial model in words ("Time & materials"), never the code 'tm'. */
+  const commercialModelLabel = $derived(
+    translateControlledValue(normalizePortalLocale(locale), 'billingModel', commercialModel) ||
+      commercialModel,
+  );
   const missingPeople = $derived(
     people.filter(
       (person) =>
-        person.needsReview ||
+        // T65: a project-manager-only assignment is not billed and needs no terms.
+        !person.managerOnly &&
+        (person.needsReview ||
         !person.customerRate ||
         !person.payConfigured ||
-        !person.expenseConfigured,
+        !person.expenseConfigured),
     ),
   );
   function personProblems(person: (typeof people)[number]): string[] {
     const problems: string[] = [];
+    if (person.managerOnly) return problems;
     if (!person.customerRate)
       problems.push(t('Set a customer hourly rate effective for this assignment.'));
     if (!person.payConfigured) problems.push(t('Set this person’s compensation method and rate.'));
@@ -984,7 +999,7 @@
             {t('A template fills defaults only. Review the project and each person before saving.')}
           </p>
           <p class="hint">
-            {t('Current commercial model')}: <strong>{commercialModel}</strong> · {t(
+            {t('Current commercial model')}: <strong>{commercialModelLabel}</strong> · {t(
               'Current PO cap',
             )}: <strong>{poCap}</strong>. {#if canEditProject}<button
                 type="button"
@@ -992,6 +1007,15 @@
                 onclick={onEditProject}>{t('Edit project commercial model or cap')}</button
               >{/if}
           </p>
+          {#if entityChoices.length === 0}
+            <!-- T65: say on the first step that saving needs an issuer in the project currency. -->
+            <p class="warning" role="alert" data-issuer-required-step1>
+              {billingFixText(locale, 'issuerMissingForCurrency', { currency })}
+              <a href={`${base}/app/billing?view=setup&setup=entity`}
+                >{billingFixText(locale, 'createIssuerForCurrency', { currency })}</a
+              >
+            </p>
+          {/if}
           <div class="choice-grid">
             <label class:selected={mode === 'combined'}>
               <input type="radio" value="combined" data-recovery-field="mode" bind:group={mode} />
@@ -1314,7 +1338,7 @@
                   bind:value={personNavigatorId}
                   disabled={personSaveBusy}
                 >
-                  {#each people as person}<option value={person.id}>{person.name}</option>{/each}
+                  {#each people as person}<option value={person.id}>{personLabel(person.name)}</option>{/each}
                 </select>
               </label>
               <button
@@ -1338,7 +1362,7 @@
             >
               <strong>{t('Check person terms fields')}</strong>
               {#if failedPerson}
-                <p>{failedPerson.name}</p>
+                <p>{personLabel(failedPerson.name)}</p>
               {/if}
               {#if personSaveNotice}<p>{personSaveNotice}</p>{/if}
               {#if personFailure && namedPersonFailureMessage}<p>
@@ -1361,7 +1385,7 @@
               <label
                 >{t('Copy draft terms from')}
                 <select bind:value={bulkSourceId}>
-                  {#each people as person}<option value={person.id}>{person.name}</option>{/each}
+                  {#each people as person}<option value={person.id}>{personLabel(person.name)}</option>{/each}
                 </select>
               </label>
               <button
@@ -1395,7 +1419,11 @@
               {#if draft}
                 <div class="person-terms">
                   <div class="person-heading">
-                    <h4 id={personHeadingId(person.id)} tabindex="-1">{person.name}</h4>
+                    <h4 id={personHeadingId(person.id)} tabindex="-1">{personLabel(person.name)}</h4>
+                    {#if person.managerOnly}<StatusBadge
+                        variant="neutral"
+                        text={billingFixText(locale, 'managerNotBilled')}
+                      />{/if}
                     {#if canEdit && personIsDirty(person.id)}
                       <StatusBadge variant="warning" text={t('Unsaved changes')} />
                     {/if}
@@ -1459,7 +1487,7 @@
                   {#if personProblems(person).length > 0}
                     <ul
                       class="warning"
-                      aria-label={`${person.name}: ${t('Commercial setup needs attention')}`}
+                      aria-label={`${personLabel(person.name)}: ${t('Commercial setup needs attention')}`}
                     >
                       {#each personProblems(person) as problem}<li>{problem}</li>{/each}
                     </ul>
@@ -1869,7 +1897,7 @@
               </p>
               <ul>
                 {#each missingPeople as person}<li>
-                    <strong>{person.name}:</strong>
+                    <strong>{personLabel(person.name)}:</strong>
                     {personProblems(person).join(' ')}
                   </li>{/each}
               </ul>

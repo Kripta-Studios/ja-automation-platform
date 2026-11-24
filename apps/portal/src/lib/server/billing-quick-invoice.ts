@@ -503,9 +503,11 @@ const RECORD_LEVEL_CODES = new Set([
   'pending_time_submission',
   'pending_time_approval',
   'pending_time_finance_review',
+  'pending_time_correction',
   'pending_expense_approval',
   'missing_expense_classification',
   'missing_client_rate',
+  'missing_overtime_client_rate',
   'ambiguous_client_rate',
   'missing_internal_cost',
   'missing_compensation_rule',
@@ -522,11 +524,13 @@ const FIX_FOR: Record<string, QuickInvoiceWarning['fix']> = {
   pending_time_submission: 'time',
   pending_time_approval: 'approvals',
   pending_time_finance_review: 'finance_approvals',
+  pending_time_correction: 'approvals',
   pending_expense_approval: 'expenses',
   missing_expense_classification: 'expense_classification',
   missing_expense_currency_conversion: 'expense_classification',
   missing_expense_finance_projection: 'expense_classification',
   missing_client_rate: 'rates',
+  missing_overtime_client_rate: 'rates',
   ambiguous_client_rate: 'rates',
   missing_internal_cost: 'finance',
   missing_compensation_rule: 'finance',
@@ -739,7 +743,12 @@ function issuerWarnings(invoice: Row): QuickInvoiceWarning[] {
   if (!String(settings.bankAccountNumber ?? '').trim() || !String(settings.bankName ?? '').trim())
     add('missing_issuer_settings', 'issuer_settings', 'info');
   const po = String(invoice.purchase_no ?? '').trim();
-  if (!po || po === '—') add('missing_purchase_order', 'project_po', 'info');
+  // A project name or number is not a purchase order (audit T11: "PURCHASE NO. BBS Mexico").
+  const notAPo = [invoice.project_name, invoice.project_number]
+    .map((value) => String(value ?? '').trim().toLocaleLowerCase())
+    .filter(Boolean)
+    .includes(po.toLocaleLowerCase());
+  if (!po || po === '—' || notAPo) add('missing_purchase_order', 'project_po', 'info');
   return warnings;
 }
 
@@ -1090,6 +1099,12 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   );
   const readinessReasons = readiness.reasons as readonly ReadinessReason[];
   collected.push(...readinessReasons);
+  // T15 (audit 2026-11-22): approved hours left out because their correction still waits for
+  // approval are listed with the reason and a fix link, never dropped silently.
+  for (const record of (readiness as { timeReadiness?: { records?: readonly { sourceId: string; status: string }[] } | null })
+    .timeReadiness?.records ?? [])
+    if (record.status === 'pending_correction')
+      collected.push({ code: 'pending_time_correction', sourceId: record.sourceId } as ReadinessReason);
   const globalReasons = readinessReasons.filter(
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );
@@ -1385,6 +1400,7 @@ export function unsentInvoiceSources(
 
 const ATTENTION_CODES: Record<string, QuickInvoiceAttention['kind']> = {
   missing_client_rate: 'clientRate',
+  missing_overtime_client_rate: 'clientRate',
   ambiguous_client_rate: 'clientRate',
   hybrid_requires_hourly_client_rates: 'clientRate',
   missing_internal_cost: 'workerCost',
@@ -1409,7 +1425,12 @@ const APPROVAL_CODES = new Set([
   'no_new_client_unit_charges',
   'updates_existing_draft',
 ]);
-const CLIENT_RATE_CODES = new Set(['missing_client_rate', 'ambiguous_client_rate', 'hybrid_requires_hourly_client_rates']);
+const CLIENT_RATE_CODES = new Set([
+  'missing_client_rate',
+  'missing_overtime_client_rate',
+  'ambiguous_client_rate',
+  'hybrid_requires_hourly_client_rates',
+]);
 const COST_CODES = new Set(['missing_internal_cost', 'missing_compensation_rule']);
 const KIND_ORDER: QuickInvoiceAttention['kind'][] = [
   'approve',

@@ -9,6 +9,7 @@ import {
 import type { Principal } from '@ja/domain';
 import { personDisplayName } from '../portal/display-name';
 import { isStrictIsoCalendarDate, weeklyPeriod } from '@ja/billing-engine';
+import { withNetOutstanding } from './invoice-balance';
 
 export type CashMovement = {
   id: string;
@@ -94,7 +95,7 @@ function readCashMovementSnapshot(context: Context): CashMovement[] {
     entityCache.set(key, result);
     return result;
   };
-  for (const invoice of v3.masterLedger(principal)) {
+  for (const invoice of withNetOutstanding(v3.masterLedger(principal))) {
     const metadata = sqlite
       .prepare(
         `SELECT i.project_id,i.expected_collection_on,COALESCE(lr.legal_name,le.legal_name) legal_name,COALESCE(lb.legacy_legal_entity_id,'canonical:'||lr.series_id,br.legal_entity_id) entity_id FROM invoice i LEFT JOIN billing_rule br ON br.id=i.billing_rule_id LEFT JOIN legal_entity le ON le.id=br.legal_entity_id LEFT JOIN legal_entity_revision lr ON lr.revision_id=i.legal_entity_revision_id LEFT JOIN legal_entity_revision_bridge lb ON lb.canonical_revision_id=lr.revision_id WHERE i.id=?`,

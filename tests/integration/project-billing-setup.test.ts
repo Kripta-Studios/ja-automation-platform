@@ -447,6 +447,19 @@ describe('project-centered billing setup', () => {
         expect.objectContaining({ id: futureWorkerId, termsEffectiveFrom: futureDate }),
       ]),
     );
+    // T65: worker assignments need terms; only a project-manager-only assignment is not billed.
+    expect(people.find((person) => person.id === futureWorkerId)?.managerOnly).toBe(false);
+    value.sqlite
+      .prepare("UPDATE project_member SET assignment_role='project_manager' WHERE project_id=? AND user_id=?")
+      .run(value.project.id, futureWorkerId);
+    expect(
+      value.service
+        .peopleReview(value.finance, value.project.id, dayOffset(0))
+        .find((person) => person.id === futureWorkerId)?.managerOnly,
+    ).toBe(true);
+    value.sqlite
+      .prepare("UPDATE project_member SET assignment_role='worker' WHERE project_id=? AND user_id=?")
+      .run(value.project.id, futureWorkerId);
     const terms = (
       person: (typeof people)[number],
       effectiveFrom: string,

@@ -39,6 +39,7 @@ import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
+import { verifiedExpenseProjectAmountMinor } from './domains/fx/currency-conversion.ts';
 import {
   resolveAssignmentCommercialTerms,
   resolveClientLaborRule,
@@ -557,6 +558,11 @@ function asRecord(value: unknown): Readonly<Record<string, unknown>> {
 
 function isPendingApproval(value: string): boolean {
   return value === 'draft' || value === 'submitted' || value === 'needs_changes';
+}
+
+/** Sent by the worker and not decided yet (My Pay "waiting for approval", audit T13). */
+function isAwaitingApproval(value: string): boolean {
+  return value === 'submitted';
 }
 
 export class V3Repository {
@@ -1154,6 +1160,13 @@ export class V3Repository {
     }
     const id = newId();
     const now = timestamp();
+    // Audit 2026-11-22 T02: a supplier's technician is paid through the supplier
+    // (subcontractor settlement), never directly by J&A, so the rule is not shown to him as pay.
+    const paidViaSupplier = Boolean(
+      this.sqlite
+        .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=? LIMIT 1')
+        .get(input.workerId),
+    );
     this.sqlite
       .prepare(
         `INSERT INTO compensation_rule(
@@ -1172,7 +1185,7 @@ export class V3Repository {
         sqliteInteger(input.rateMinor ?? 0n, 'Compensation rate'),
         input.rateBasis ?? (input.ruleType === 'Daily' ? 'daily' : 'hourly'),
         input.dailyGuaranteeMinutes ?? null,
-        1,
+        paidViaSupplier ? 0 : 1,
         input.effectiveFrom,
         effectiveTo ?? null,
         now,
@@ -2713,6 +2726,29 @@ export class V3Repository {
         throw new V3ConflictError(
           `Active time correction ${activeCorrection.correction_id} blocks compensation settlement`,
         );
+      // Audit 2026-11-22 T02: the same hours must never be settled twice (e.g. a monthly
+      // settlement in Detailed analysis and a weekly one in Subcontractor settlement).
+      // Re-settling the identical period stays idempotent below.
+      const overlapping = this.sqlite
+        .prepare(
+          `SELECT id,period_start,period_end FROM compensation_settlement
+            WHERE worker_id=? AND project_id=? AND state='settled'
+              AND period_start<=? AND period_end>=?
+              AND NOT (period_start=? AND period_end=?)
+            ORDER BY period_start LIMIT 1`,
+        )
+        .get(
+          input.workerId,
+          input.projectId,
+          input.periodEnd,
+          input.periodStart,
+          input.periodStart,
+          input.periodEnd,
+        ) as { id: string; period_start: string; period_end: string } | undefined;
+      if (overlapping)
+        throw new V3ConflictError(
+          `These hours are already settled in ${overlapping.period_start} to ${overlapping.period_end} (settlement ${overlapping.id})`,
+        );
       const sourceRows = this.sqlite
         .prepare(
           `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.category,t.activity_code,t.minutes,
@@ -3660,6 +3696,7 @@ export class V3Repository {
                 CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 e.reimbursement_state,e.reimbursement_reference,e.expense_policy_required,
+                e.commercial_classification_state,
                 e.expected_reimbursement_on,e.reimbursed_at,
                 p.project_number,p.name project_name,
                 u.name worker_name
@@ -3667,8 +3704,11 @@ export class V3Repository {
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
-           AND (e.expense_policy_required=0 OR
-                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
+           -- Audit 2026-11-22 T13: what J&A owes the worker never depends on how the client
+           -- is billed. Approved worker-paid expenses that still wait for their finance
+           -- classification are listed too, marked, with the classification as the next step.
+           AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
+                OR e.reimbursement_amount_minor>0)
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -3693,6 +3733,9 @@ export class V3Repository {
       projectId: row.project_id,
       workerId: row.worker_id,
       workerName: row.worker_name,
+      // Not payable yet: the reimbursable amount is fixed by the finance classification.
+      needsClassification:
+        row.expense_policy_required === 1 && row.commercial_classification_state !== 'classified',
       spentOn: row.spent_on,
       vendor: row.vendor,
       category: row.category,
@@ -3701,7 +3744,11 @@ export class V3Repository {
       currency: row.currency,
       amountMinor: String(row.amount_minor),
       reimbursementAmountMinor: String(
-        row.expense_policy_required === 1 ? row.reimbursement_amount_minor : row.amount_minor,
+        row.expense_policy_required === 1
+          ? row.commercial_classification_state === 'classified'
+            ? row.reimbursement_amount_minor
+            : row.amount_minor
+          : row.amount_minor,
       ),
       reimbursementState: row.reimbursement_state,
       reimbursementReference: row.reimbursement_reference,
@@ -3883,6 +3930,9 @@ export class V3Repository {
     );
     let approvedMinutes = 0;
     let pendingMinutes = 0;
+    // Audit 2026-11-22 T13: "waiting for approval" is what the worker SENT (submitted). Drafts
+    // were never sent; hours sent back (needs_changes) wait for the worker, shown apart.
+    let returnedMinutes = 0;
     let guaranteedMinutes = 0;
     let missingRules = 0;
     let percentageRows = 0;
@@ -3947,7 +3997,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
-        else if (isPendingApproval(row.approval_state)) existing.pending = true;
+        else if (isAwaitingApproval(row.approval_state)) existing.pending = true;
         dailyRules.set(key, existing);
       } else if (
         rule?.rule_type === 'FixedPerBillingPeriod' ||
@@ -3963,7 +4013,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
-        else if (isPendingApproval(row.approval_state)) existing.pending = true;
+        else if (isAwaitingApproval(row.approval_state)) existing.pending = true;
         fixedRules.set(key, existing);
       }
       if (
@@ -3980,7 +4030,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approvedMinutes += row.minutes;
-        else if (isPendingApproval(row.approval_state)) existing.pendingMinutes += row.minutes;
+        else if (isAwaitingApproval(row.approval_state)) existing.pendingMinutes += row.minutes;
         dailyGuarantees.set(key, existing);
       }
       if (row.approval_state === 'approved' || row.approval_state === 'locked') {
@@ -3989,10 +4039,10 @@ export class V3Repository {
           row.project_id,
           (approvedByProject.get(row.project_id) ?? 0n) + amount,
         );
-      } else if (isPendingApproval(row.approval_state)) {
+      } else if (isAwaitingApproval(row.approval_state)) {
         pendingMinutes += row.minutes;
         pendingByProject.set(row.project_id, (pendingByProject.get(row.project_id) ?? 0n) + amount);
-      }
+      } else if (row.approval_state === 'needs_changes') returnedMinutes += row.minutes;
     }
     for (const {
       rule,
@@ -4044,13 +4094,16 @@ export class V3Repository {
     const reimbursementRows = this.sqlite
       .prepare(
         `SELECT e.approval_state,e.currency,
+                -- Until finance classifies an expense, the worker's own receipt amount is the
+                -- estimate (T13): a sent expense must never show as nothing to reimburse.
                 CAST(CASE WHEN e.expense_policy_required=1
+                               AND e.commercial_classification_state='classified'
                           THEN e.reimbursement_amount_minor ELSE e.amount_minor END AS TEXT) amount
          FROM expense e
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND (e.expense_policy_required=0 OR
-                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
+           AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
+                OR e.reimbursement_amount_minor>0)
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -4089,11 +4142,8 @@ export class V3Repository {
         estimatedApprovedMinor: amountFor(approvedByProject).toString(),
         estimatedPendingMinor: amountFor(pendingByProject).toString(),
         approvedReimbursementMinor: reimbursementFor(['approved', 'locked']).toString(),
-        pendingReimbursementMinor: reimbursementFor([
-          'draft',
-          'submitted',
-          'needs_changes',
-        ]).toString(),
+        pendingReimbursementMinor: reimbursementFor(['submitted']).toString(),
+        returnedReimbursementMinor: reimbursementFor(['needs_changes']).toString(),
       };
     });
     const singleCurrency = currencyBreakdown.length <= 1;
@@ -4142,7 +4192,7 @@ export class V3Repository {
             .filter((row) => row.approval_state === 'approved' || row.approval_state === 'locked')
             .reduce((sum, row) => sum + row.minutes, 0),
           pendingMinutes: ownRows
-            .filter((row) => isPendingApproval(row.approval_state))
+            .filter((row) => isAwaitingApproval(row.approval_state))
             .reduce((sum, row) => sum + row.minutes, 0),
           hoursRemaining: planned === null ? null : Math.max(0, planned - actual),
           estimatedApprovedMinor: (approvedByProject.get(projectId) ?? 0n).toString(),
@@ -4158,6 +4208,7 @@ export class V3Repository {
       projectIds: [...projectIds],
       approvedMinutes,
       pendingMinutes,
+      returnedMinutes,
       guaranteedMinutes,
       // Legacy scalar fields remain valid for a single currency. A mixed
       // statement must consume the typed breakdown and cannot expose a sum.
@@ -4220,7 +4271,13 @@ export class V3Repository {
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,u.name worker_name,t.work_date,t.category,t.activity_code,
                 t.minutes,t.approval_state,t.billability_state,t.billing_status,t.invoice_id,t.version,
-                p.currency project_currency
+                p.currency project_currency,
+                EXISTS (
+                  SELECT 1 FROM record_correction_link pcl
+                  JOIN time_entry pending ON pending.id=pcl.correction_id
+                  WHERE pcl.record_type='time_entry' AND pcl.original_id=t.id
+                    AND pending.approval_state IN ('draft','submitted','needs_changes')
+                ) pending_correction
          FROM time_entry t JOIN project p ON p.id=t.project_id
          JOIN user u ON u.id=t.worker_id
          WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
@@ -4235,7 +4292,7 @@ export class V3Repository {
            )
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
-      .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
+      .all(projectId, start, end) as Array<TimeRow & { worker_name: string; pending_correction?: number }>;
     // Rule resolution is a pure read of the configuration for (project, worker, category,
     // date, activity). Entries of the same person, day and category share the answer, so it
     // is resolved once per key for this read; failures are replayed so every entry still
@@ -4625,6 +4682,9 @@ export class V3Repository {
           amountMinor: revenue.toString(),
           workDate: row.work_date,
           workerId: row.worker_id,
+          // T15: the invoice composer leaves these out until the correction is approved, so
+          // "Ready to invoice" (Home, Money) must not count them either.
+          ...(row.pending_correction === 1 ? { waitingCorrection: true } : {}),
         });
       economics.push({
         id: row.id,
@@ -4784,8 +4844,15 @@ export class V3Repository {
       const isDirect = expense.who_paid === 'client' || treatment === 'client_direct';
       const isBillable =
         !isDirect && (treatment.startsWith('reimbursable') || treatment === 'allowance_per_diem');
+      // T14: the same verified-amount rule as the Accounting Pack and Currency conversions.
+      const verifiedConversion =
+        expense.currency !== project.currency &&
+        verifiedExpenseProjectAmountMinor(this.sqlite, {
+          ...expense,
+          project_currency: project.currency,
+        }) !== null;
       const foreignCostProjectionMissing =
-        expense.currency !== project.currency && expense.project_currency_amount_minor === null;
+        expense.currency !== project.currency && !verifiedConversion;
       const foreignBillingProjectionMissing =
         expense.currency !== project.currency && expense.billing_amount_minor === null;
       const foreignReimbursementProjectionMissing =
@@ -4809,10 +4876,11 @@ export class V3Repository {
           code: 'missing_expense_classification',
           sourceId: expense.id,
         });
-      if (costProjectionMissing || billingProjectionMissing)
+      // An unclassified expense has one next step (classify it), already reported above.
+      if (!isUnclassified && (costProjectionMissing || billingProjectionMissing))
         expenseFinanceReasons.push({
           code:
-            expense.currency === project.currency
+            expense.currency === project.currency || verifiedConversion
               ? 'missing_expense_finance_projection'
               : 'missing_expense_currency_conversion',
           sourceId: expense.id,
@@ -5960,6 +6028,35 @@ export class V3Repository {
       const voidAsOf = invoice.voided_at !== null && invoice.voided_at <= collectionAsOf;
       const collected = voidAsOf ? 0n : netCollected;
       const outstanding = voidAsOf ? 0n : BigInt(invoice.total_minor) - collected;
+      // Audit 2026-11-22 T12: credit notes reduce what the client still owes on the original
+      // invoice. One net figure for every balance screen (Money, project, clients, payments,
+      // home); outstandingMinor keeps the per-document value used by the Accounting Pack.
+      const appliedCredit = voidAsOf
+        ? 0n
+        : BigInt(
+            (
+              this.sqlite
+                .prepare(
+                  `SELECT CAST(COALESCE(SUM(-credit.total_minor),0) AS TEXT) amount
+                     FROM invoice_adjustment ia JOIN invoice credit ON credit.id=ia.adjustment_invoice_id
+                    WHERE ia.original_invoice_id=? AND ia.adjustment_type='credit'
+                      AND credit.total_minor<0 AND credit.issued_at IS NOT NULL AND credit.issued_at<=?
+                      AND (credit.voided_at IS NULL OR credit.voided_at>?)`,
+                )
+                .get(invoice.id, collectionAsOf, collectionAsOf) as { amount: string }
+            ).amount,
+          );
+      const creditNoteOf = this.sqlite
+        .prepare(
+          "SELECT original_invoice_id FROM invoice_adjustment WHERE adjustment_invoice_id=? AND adjustment_type='credit'",
+        )
+        .get(invoice.id) as { original_invoice_id: string } | undefined;
+      const netOutstanding =
+        voidAsOf || creditNoteOf
+          ? 0n
+          : outstanding - appliedCredit > 0n
+            ? outstanding - appliedCredit
+            : 0n;
       const contribution = BigInt(invoice.subtotal_minor) - directCost;
       const directCostComplete = directCostMissingSourceIds.length === 0;
       const creditBalance = BigInt(invoice.total_minor) < 0n;
@@ -6014,6 +6111,9 @@ export class V3Repository {
         netCollectedMinor: netCollected.toString(),
         collectedMinor: collected.toString(),
         outstandingMinor: outstanding.toString(),
+        appliedCreditMinor: appliedCredit.toString(),
+        netOutstandingMinor: netOutstanding.toString(),
+        creditNoteOfInvoiceId: creditNoteOf?.original_invoice_id ?? null,
         firstPaymentDate,
         lastPaymentDate,
         paidAt,
@@ -6748,6 +6848,19 @@ export class V3Repository {
       this.sqlite
         .prepare('UPDATE invoice SET state=?,updated_at=?,version=version+1 WHERE id=?')
         .run(totals.state, now, payment.invoice_id);
+      // Audit 2026-11-22 T17: a payment reversal is evidence like the payment itself
+      // (registered as payment.reverse by migration 0084).
+      this.audit(principal, 'payment.reverse', 'payment', payment.id, {
+        invoiceId: payment.invoice_id,
+        reversalId,
+        currency: payment.currency,
+        amountMinor: input.amountMinor.toString(),
+        effectiveAt,
+        reasonCode,
+        reason,
+        before: { state: payment.state },
+        after: { state: totals.state, outstandingMinor: totals.outstanding.toString() },
+      });
       return {
         id: reversalId,
         commandId: command.commandId,
@@ -9285,10 +9398,9 @@ export class V3Repository {
       const travelCostByCurrency = new Map<V3Currency, bigint>();
       const otherCostByCurrency = new Map<V3Currency, bigint>();
       const expenses = expenseRows.map((expense) => {
-        if (
-          expense.currency !== expense.project_currency &&
-          expense.project_currency_amount_minor === null
-        )
+        // T14: a confirmed conversion (Money › Currency conversions) is the verified amount.
+        const verifiedProjectMinor = verifiedExpenseProjectAmountMinor(this.sqlite, expense);
+        if (expense.currency !== expense.project_currency && verifiedProjectMinor === null)
           throw Object.assign(
             new V3ConflictError(
               `Expense ${expense.id} is missing its authoritative project-currency projection`,
@@ -9315,9 +9427,7 @@ export class V3Repository {
           throw new V3ConflictError(
             `Expense ${expense.id} needs an exact project-currency reimbursement projection`,
           );
-        const netProjectMinor = BigInt(
-          expense.project_currency_amount_minor ?? expense.amount_minor,
-        );
+        const netProjectMinor = BigInt(verifiedProjectMinor ?? expense.amount_minor);
         const companyCostMinor =
           expense.who_paid === 'client' || expense.treatment === 'client_direct'
             ? 0n
@@ -9592,7 +9702,8 @@ export class V3Repository {
       }>;
       const reimbursementByWorkerProject = new Map<string, bigint>();
       for (const row of reimbursementRows) {
-        if (row.currency !== row.project_currency && row.project_currency_amount_minor === null)
+        const verifiedProjectMinor = verifiedExpenseProjectAmountMinor(this.sqlite, row);
+        if (row.currency !== row.project_currency && verifiedProjectMinor === null)
           throw new V3ConflictError(
             `Expense ${row.id} is missing its authoritative project-currency projection`,
           );
@@ -9604,7 +9715,7 @@ export class V3Repository {
             BigInt(
               row.expense_policy_required === 1
                 ? (row.reimbursement_amount_minor ?? '0')
-                : (row.project_currency_amount_minor ?? row.amount_minor),
+                : (verifiedProjectMinor ?? row.amount_minor),
             ),
         );
       }

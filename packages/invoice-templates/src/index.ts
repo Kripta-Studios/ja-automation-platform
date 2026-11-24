@@ -1274,14 +1274,29 @@ const renderTotals = (
     calculation?.totalMinor ?? calculation?.total_minor ?? subtotalLessDiscountMinor;
   const terms = resolveTerms(snapshot);
 
+  // Empty optional fields are left off the client document (audit T11: no "Not provided").
+  const termFields = (
+    [
+      ['bankSwiftNumber', localized.bankSwiftNumber, terms.bankSwiftNumber],
+      ['bankAccountNumber', localized.bankAccountNumber, terms.bankAccountNumber],
+      ['bankName', localized.bankName, terms.bankName],
+      ['beneficiary', localized.beneficiary, terms.beneficiary],
+    ] as const
+  )
+    .filter(([, , value]) => nonEmptyString(value))
+    .map(
+      ([name, label, value]) =>
+        `<div class="terms-field" data-invoice-field="${name}"><strong>${escape(label)}:</strong> ${valueOrDash(value, localized)}</div>`,
+    )
+    .join('');
+  const notice = nonEmptyString(terms.pastDueNotice)
+    ? `<div class="terms-notice" data-invoice-field="pastDueNotice">${valueOrDash(terms.pastDueNotice, localized)}</div>`
+    : '';
   return `<div class="invoice-bottom-grid">
   <div class="invoice-terms-card">
-    <div class="terms-heading">${escape(localized.termsInstructions)}</div>
-    <div class="terms-field" data-invoice-field="bankSwiftNumber"><strong>${escape(localized.bankSwiftNumber)}:</strong> ${valueOrDash(terms.bankSwiftNumber, localized)}</div>
-    <div class="terms-field" data-invoice-field="bankAccountNumber"><strong>${escape(localized.bankAccountNumber)}:</strong> ${valueOrDash(terms.bankAccountNumber, localized)}</div>
-    <div class="terms-field" data-invoice-field="bankName"><strong>${escape(localized.bankName)}:</strong> ${valueOrDash(terms.bankName, localized)}</div>
-    <div class="terms-field" data-invoice-field="beneficiary"><strong>${escape(localized.beneficiary)}:</strong> ${valueOrDash(terms.beneficiary, localized)}</div>
-    <div class="terms-notice" data-invoice-field="pastDueNotice">${valueOrDash(terms.pastDueNotice, localized)}</div>
+    ${termFields || notice ? `<div class="terms-heading">${escape(localized.termsInstructions)}</div>` : ''}
+    ${termFields}
+    ${notice}
   </div>
   <div class="invoice-total">
     <div class="total-row"><span>${escape(localized.subtotal)}</span><span>${moneyOrDash(currency, subtotalMinor, locale, localized)}</span></div>

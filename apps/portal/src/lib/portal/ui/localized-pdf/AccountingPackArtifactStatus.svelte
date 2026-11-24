@@ -21,6 +21,7 @@
   import ActualPdfPreview from '../ActualPdfPreview.svelte';
   import LocalizedPdfPanel from './LocalizedPdfPanel.svelte';
   import { accountingUxRound2Text } from '../../accounting-ux-round2-copy';
+  import { billingDateTime } from '../../billing-fix-copy';
 
   type Pack = Record<string, unknown>;
   type AccountingPackExportType = 'pdf' | 'xlsx' | 'invoice_csv' | 'expense_csv' | 'json';
@@ -49,7 +50,7 @@
   const packHeadingId = $derived(`accounting-pack-period-${String(pack.id)}`);
 
   const packContext = $derived(
-    `${String(pack.period_start)} – ${String(pack.period_end)} · ${translate('Created')}: ${String(pack.created_at)}`,
+    `${String(pack.period_start)} – ${String(pack.period_end)} · ${translate('Created')}: ${billingDateTime(pack.created_at, locale)}`,
   );
 
   const accountingPackExportTypes: ReadonlyArray<{
@@ -542,7 +543,7 @@
 >
   <header class="accounting-pack-artifact-row__heading">
     <h3 id={packHeadingId}>{String(pack.period_start)} → {String(pack.period_end)}</h3>
-    <small>{packStatusLabel(packState)} · {String(pack.created_at)}</small>
+    <small>{packStatusLabel(packState)} · {billingDateTime(pack.created_at, locale)}</small>
     {#if pack.sourceStale}
       <span class="accounting-pack-stale-badge" data-ui="status-badge" data-variant="warning">
         {accountingUxRound2Text(locale, 'stalePack')}

@@ -12,7 +12,8 @@ describe('Billing section lifecycle surface', () => {
   it('uses a context, one New invoice action, a status filter and a list-first invoice register', () => {
     const value = source();
 
-    expect(value).toContain('Finance operations');
+    // T84 (audit 2026-11-22): one page title (the shell's "Invoices"), no eyebrow and no "Billing" H2.
+    expect(value).not.toContain("translate('Finance operations')");
     // Owner decision 2026-11-16: the seven KPI cards were replaced by one status filter.
     expect(value).not.toContain('Billing stage summary');
     expect(value).toContain("quickInvoiceText(locale, 'newInvoice')");

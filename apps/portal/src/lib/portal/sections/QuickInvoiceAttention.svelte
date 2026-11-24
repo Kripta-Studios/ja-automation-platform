@@ -113,6 +113,8 @@
   import { clockHoursFromMinutes } from '../minute-hours';
   import { clientBillingIssueText, clientBillingIssues } from '../client-billing-issues';
   import { translateControlledValue } from '../../i18n/controlled-values';
+  import { billingFixText } from '../billing-fix-copy';
+  import { personDisplayName } from '../display-name';
   import {
     quickInvoiceFormat,
     quickInvoiceText,
@@ -121,6 +123,7 @@
 
   let {
     locale = 'en',
+    nothingToBill = false,
     role = '',
     currency,
     attention,
@@ -137,6 +140,8 @@
     onExclude,
   }: {
     locale?: PortalLocale;
+    /** T15: no line to bill: never claim "Everything is ready". */
+    nothingToBill?: boolean;
     role?: string;
     currency: string;
     attention: AttentionItem[];
@@ -370,6 +375,30 @@
     conversions = { ...conversions, [row.ref.id]: { rate: '', amount: '', ...conversions[row.ref.id], ...patch } };
   }
 
+  /**
+   * T67: save the treatment shown in every row at once (the select already shows a
+   * choice, so confirming each expense one by one is not needed). Rows that still need
+   * a currency conversion keep their own message and are skipped.
+   */
+  let savingAll = $state(false);
+  const bulkTreatmentRows = (rows: ExpenseRow[]) =>
+    rows.filter(
+      (row) =>
+        !row.locked &&
+        (!row.foreign ||
+          Boolean(row.conversion) ||
+          Boolean(conversions[row.ref.id]?.rate.trim() || conversions[row.ref.id]?.amount.trim())),
+    );
+  async function saveAllTreatments(rows: ExpenseRow[]) {
+    if (savingAll) return;
+    savingAll = true;
+    try {
+      for (const row of bulkTreatmentRows(rows)) await saveTreatment(row);
+    } finally {
+      savingAll = false;
+    }
+  }
+
   async function applyConditions(rows: ExpenseRow[]) {
     for (const row of rows.filter((candidate) => candidate.policyAvailable)) {
       const result = await act(`conditions`, 'applyExpenseConditions', { source: row.ref, requestKey: newKey() });
@@ -442,7 +471,9 @@
 
 <div class="qa" bind:this={root} data-quick-invoice-attention={count}>
   <h3 class="qa__title">
-    {#if blockingCount}{f('attentionToFix', { count: blockingCount })}{:else}{t('attentionNone')} ✓{/if}{#if optionalCount}<span
+    {#if blockingCount}{f('attentionToFix', { count: blockingCount })}{:else if nothingToBill}<span data-attention-nothing
+        >{billingFixText(locale, 'nothingToBill')}</span
+      >{:else}{t('attentionNone')} ✓{/if}{#if optionalCount}<span
         class="qa__title-optional"
         data-attention-optional={optionalCount}>&nbsp;· {f('attentionOptional', { count: optionalCount })}</span
       >{/if}
@@ -707,6 +738,20 @@
             >
             {@render status('conditions')}
           </div>
+        {:else if bulkTreatmentRows(rows).length > 1}
+          <div class="qa__actions">
+            <button
+              type="button"
+              class="primary-button qa__btn"
+              data-attention-save-all-treatments={bulkTreatmentRows(rows).length}
+              disabled={disabled || Boolean(busy) || savingAll}
+              onclick={() => saveAllTreatments(rows)}
+              >{savingAll
+                ? billingFixText(locale, 'preparing')
+                : billingFixText(locale, 'classifyAll', { count: bulkTreatmentRows(rows).length })}</button
+            >
+            <small class="qa__muted">{billingFixText(locale, 'classifyAllHelp')}</small>
+          </div>
         {/if}
         <ul class="qa__people">
           {#each rows.slice(0, showAllPeople.expenses ? 50 : 5) as row (row.ref.id)}
@@ -845,6 +890,9 @@
       {:else if item.kind === 'issuerBank' && item.issuer}
         {@const issuer = item.issuer}
         <h4 id={`qa-title-${index}`}><span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>{t('issuerBank')}</h4>
+        {#if role !== 'owner_admin'}
+          <p class="qa__muted">{billingFixText(locale, 'payeeReadOnlyNote')}</p>
+        {:else}
         <div class="qa__grid">
           <label class="qa__field"><span>{t('bankName')}</span><input bind:value={bank.bankName} placeholder={issuer.bankName} maxlength="300" /></label>
           <label class="qa__field"
@@ -867,6 +915,7 @@
           >
           {@render status('bank')}
         </div>
+        {/if}
       {:else if item.kind === 'purchaseOrder' && item.project}
         {@const project = item.project}
         <h4 id={`qa-title-${index}`}><span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>{t('poTitle')}</h4>
@@ -934,7 +983,7 @@
   <li class="qa__person qa__expense" data-attention-expense={row.ref.id}>
     <div class="qa__person-main">
       <strong>{rowTitle(row)}</strong>
-      <span>{dateText(row.date)} · {row.workerName} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
+      <span>{dateText(row.date)} · {personDisplayName(row.workerName) || row.workerName} · {journeyMoney(row.amountMinor, row.currency, locale)}</span>
     </div>
     {#if row.locked}
       <small class="qa__muted">{t('expenseLocked')}</small>

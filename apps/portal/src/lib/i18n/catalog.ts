@@ -672,6 +672,40 @@ const en = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Access Company Webmail',
   'Open corporate webmail in a new tab': 'Open corporate webmail in a new tab',
+  'action.billing.issuerPayeeSaved':
+    'Bank and payee details saved for every invoice of this issuing company. The owner was notified.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Only the owner can change the bank and payee details printed on invoices. The other fields can still be saved.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Bank, payee and company contact details apply to every invoice of this issuing company. Change them in Billing setup › Issuer settings.',
+  'problem.finance.settlementOverlap':
+    'These hours are already settled in {start} to {end}. Review that settlement instead of settling them again.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Overtime rate missing: overtime would be billed at $0. Set the overtime client rate before invoicing.',
+  'problem.billing.packExpenseNeedsConversion':
+    "The {amount} expense of {spentOn} (project {projectNumber}) has no verified amount in {projectCurrency}, the project's currency. Convert it in Money › Currency conversions, then generate the pack again — or choose dates that leave out {spentOn}.",
+  'problem.billing.packSourceMismatchNamed':
+    'This Accounting Pack does not reconcile with its preserved financial sources: {source} ({reason}). Choose dates that leave this record out, or send the record name to support. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
+  'problem.billing.collectionBeforeIssue':
+    'The expected collection date must be on or after the planned issue date.',
+  "action.billing.pdfViewHere":
+    "View here",
+  "action.billing.generatePdf":
+    "Generate PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "This language version was made before the record last changed. Finance can generate a current one.",
+  "calculation.notYetApproved":
+    "Not yet approved",
+  "calculation.notYetApprovedHelp":
+    "{hours} of drafts and submitted hours, valued at the client rate",
+  "calculation.recordedHelp":
+    "All hours logged in the period (approved or not)",
+  "calculation.rowsHelp":
+    "Each person's rows show which rates were found for the work and how the person is paid. To review or change future rates, use Project billing setup.",
+  "calculation.rowsHelpReadOnly":
+    "Each person's rows show which rates were found for the work and how the person is paid. Ask Finance or an owner to review future rates.",
+  "calculation.issue.expenseClassification":
+    "An expense is not classified yet (bill to the client or absorb).",
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1339,6 +1373,40 @@ const esBase: Record<keyof typeof en, string> = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Acceder al correo corporativo',
   'Open corporate webmail in a new tab': 'Abrir el correo corporativo en una pestaña nueva',
+  'action.billing.issuerPayeeSaved':
+    'Datos bancarios y de beneficiario guardados para todas las facturas de esta empresa emisora. Se avisó al propietario.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Solo el propietario puede cambiar los datos bancarios y de beneficiario que se imprimen en las facturas. Los demás campos sí se pueden guardar.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Los datos bancarios, de beneficiario y de contacto de la empresa valen para todas las facturas de esta empresa emisora. Cámbialos en Configuración de facturación › Datos del emisor.',
+  'problem.finance.settlementOverlap':
+    'Estas horas ya están liquidadas en {start} a {end}. Revisa esa liquidación en lugar de liquidarlas otra vez.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Falta la tarifa de horas extra: las horas extra se facturarían a $0. Define la tarifa de horas extra del cliente antes de facturar.',
+  'problem.billing.packExpenseNeedsConversion':
+    'El gasto de {amount} del {spentOn} (proyecto {projectNumber}) no tiene un importe verificado en {projectCurrency}, la moneda del proyecto. Conviértelo en Dinero › Conversiones de moneda y vuelve a generar el paquete, o elige fechas que dejen fuera el {spentOn}.',
+  'problem.billing.packSourceMismatchNamed':
+    'Este paquete contable no cuadra con sus fuentes financieras conservadas: {source} ({reason}). Elige fechas que dejen fuera ese registro o envía su nombre a soporte. Tus fechas se conservan; revertir un pago o cambiar registros históricos no lo arregla.',
+  'problem.billing.collectionBeforeIssue':
+    'La fecha de cobro esperada debe ser igual o posterior a la fecha de emisión prevista.',
+  "action.billing.pdfViewHere":
+    "Ver aquí",
+  "action.billing.generatePdf":
+    "Generar PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "Esta versión de idioma se hizo antes del último cambio del registro. Finanzas puede generar una actual.",
+  "calculation.notYetApproved":
+    "Sin aprobar todavía",
+  "calculation.notYetApprovedHelp":
+    "{hours} de borradores y horas enviadas, valoradas a la tarifa del cliente",
+  "calculation.recordedHelp":
+    "Todas las horas registradas en el periodo (aprobadas o no)",
+  "calculation.rowsHelp":
+    "Las filas de cada persona muestran qué tarifas se encontraron para el trabajo y cómo se le paga. Para revisar o cambiar tarifas futuras, usa la configuración de facturación del proyecto.",
+  "calculation.rowsHelpReadOnly":
+    "Las filas de cada persona muestran qué tarifas se encontraron para el trabajo y cómo se le paga. Pide a Finanzas o a un propietario que revisen las tarifas futuras.",
+  "calculation.issue.expenseClassification":
+    "Un gasto aún no está clasificado (facturar al cliente o asumir).",
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -1994,6 +2062,40 @@ const ptBase: Record<keyof typeof en, string> = {
   Webmail: 'Webmail',
   'Access Company Webmail': 'Acessar e-mail corporativo',
   'Open corporate webmail in a new tab': 'Abrir o e-mail corporativo em uma nova guia',
+  'action.billing.issuerPayeeSaved':
+    'Dados bancários e de beneficiário salvos para todas as faturas desta empresa emissora. O proprietário foi avisado.',
+  'problem.billing.issuerPayeeOwnerOnly':
+    'Somente o proprietário pode alterar os dados bancários e de beneficiário impressos nas faturas. Os demais campos podem ser salvos.',
+  'problem.billing.previewIssuerFieldsCompanyWide':
+    'Os dados bancários, de beneficiário e de contato da empresa valem para todas as faturas desta empresa emissora. Altere-os em Configuração de faturamento › Dados do emissor.',
+  'problem.finance.settlementOverlap':
+    'Estas horas já foram liquidadas em {start} a {end}. Revise essa liquidação em vez de liquidá-las novamente.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Falta a tarifa de hora extra: a hora extra seria faturada a $0. Defina a tarifa de hora extra do cliente antes de faturar.',
+  'problem.billing.packExpenseNeedsConversion':
+    'A despesa de {amount} de {spentOn} (projeto {projectNumber}) não tem valor verificado em {projectCurrency}, a moeda do projeto. Converta-a em Dinheiro › Conversões de moeda e gere o pacote de novo, ou escolha datas que deixem de fora {spentOn}.',
+  'problem.billing.packSourceMismatchNamed':
+    'Este pacote contábil não fecha com as fontes financeiras preservadas: {source} ({reason}). Escolha datas que deixem esse registro de fora ou envie o nome dele ao suporte. Suas datas são mantidas; estornar um pagamento ou alterar registros históricos não resolve.',
+  'problem.billing.collectionBeforeIssue':
+    'A data de recebimento prevista deve ser igual ou posterior à data de emissão prevista.',
+  "action.billing.pdfViewHere":
+    "Ver aqui",
+  "action.billing.generatePdf":
+    "Gerar PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "Esta versão de idioma foi feita antes da última alteração do registro. O financeiro pode gerar uma atual.",
+  "calculation.notYetApproved":
+    "Ainda não aprovado",
+  "calculation.notYetApprovedHelp":
+    "{hours} de rascunhos e horas enviadas, valoradas pela tarifa do cliente",
+  "calculation.recordedHelp":
+    "Todas as horas registradas no período (aprovadas ou não)",
+  "calculation.rowsHelp":
+    "As linhas de cada pessoa mostram quais tarifas foram encontradas para o trabalho e como ela é paga. Para revisar ou alterar tarifas futuras, use a configuração de faturamento do projeto.",
+  "calculation.rowsHelpReadOnly":
+    "As linhas de cada pessoa mostram quais tarifas foram encontradas para o trabalho e como ela é paga. Peça ao Financeiro ou a um proprietário que revise as tarifas futuras.",
+  "calculation.issue.expenseClassification":
+    "Uma despesa ainda não foi classificada (faturar ao cliente ou absorver).",
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

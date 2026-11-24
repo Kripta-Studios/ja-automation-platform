@@ -1,6 +1,5 @@
 <script lang="ts">
   import { minorDigitsFor } from '$lib/portal/payment-money';
-  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -111,6 +110,7 @@
     missing_expense_currency_conversion:
       'Expense currency conversion is missing for a source record.',
     missing_person_forecast_rate: 'A planned worker needs a rate before the forecast is complete.',
+    missing_expense_classification: 'calculation.issue.expenseClassification',
   };
   function issueDisplay(issue: Issue): string {
     return issue.sourceKind === 'time'
@@ -395,13 +395,6 @@
 {/snippet}
 
 <main class="calculation-page" data-project-calculation-page>
-  <a
-    class="back-link"
-    href={`${base}/app/finance?project=${encodeURIComponent(project.id)}&view=economic`}
-  >
-    <DirectionIcon direction="left" />
-    {t('← Back to project finance').replace(/^←\s*/u, '')}
-  </a>
   <header class="page-header">
     <p>{t('PROJECT FINANCE EXPLANATION')}</p>
     <h1>{t('How this project is calculated')}</h1>
@@ -490,7 +483,12 @@
 
     <section class="totals" aria-label={t('Period totals')}>
       <article data-calculation-total="recorded">
-        <span>{t('Recorded')}</span><strong>{hours(explanation.totals.actualMinutes)}</strong>
+        <!-- T63: "Recorded" is every hour logged (approved or not), as in the per-person rows. -->
+        <span>{t('Recorded')}</span><strong
+          >{hours(
+            Number(explanation.totals.approvedMinutes ?? 0) + Number(explanation.totals.unapprovedMinutes ?? 0),
+          )}</strong
+        ><small>{t('calculation.recordedHelp')}</small>
       </article>
       <article data-calculation-total="approved">
         <span>{t('Approved')}</span><strong>{hours(explanation.totals.approvedMinutes)}</strong>
@@ -518,8 +516,12 @@
         >
       </article>
       <article data-calculation-total="pending-wip">
-        <span>{t('Pending WIP')}</span><strong
+        <span>{t('calculation.notYetApproved')}</span><strong
           >{money(explanation.totals.unapprovedWipMinor)}</strong
+        ><small
+          >{t('calculation.notYetApprovedHelp', {
+            hours: hours(Number(explanation.totals.unapprovedMinutes ?? 0)),
+          })}</small
         >
       </article>
       <article data-calculation-total="invoiced">
@@ -653,8 +655,8 @@
       <p class="provenance-unavailable">
         {t(
           data.user.role === 'auditor_read_only'
-            ? 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; ask Finance or an owner to review future terms in Project billing setup.'
-            : 'Rate-rule IDs and versions are not included in the canonical finance projection yet. Source rows below show the canonical configured/unavailable statuses and pay method; use Project billing setup to review or change future terms.',
+            ? 'calculation.rowsHelpReadOnly'
+            : 'calculation.rowsHelp',
         )}
       </p>
       <div class="people-list">
@@ -857,11 +859,6 @@
     padding: clamp(1rem, 3vw, 2.5rem);
     color: #172033;
   }
-  .back-link {
-    color: #1c5d99;
-    font-weight: 700;
-    text-decoration: none;
-  }
   .page-header {
     margin: 1.5rem 0;
   }
@@ -983,6 +980,12 @@
     display: block;
     color: #526379;
     font-size: 0.86rem;
+  }
+  .totals small {
+    display: block;
+    margin-top: 0.25rem;
+    color: #526379;
+    font-size: 0.76rem;
   }
   .totals strong {
     display: block;

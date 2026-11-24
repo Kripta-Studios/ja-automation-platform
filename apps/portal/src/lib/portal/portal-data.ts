@@ -309,6 +309,8 @@ export type PortalData = {
     projectIds?: string[];
     approvedMinutes: number;
     pendingMinutes: number;
+    /** Own hours sent back for changes (needs_changes): not waiting for approval. */
+    returnedMinutes?: number;
     estimatedApprovedMinor: string;
     estimatedPendingMinor: string;
     approvedReimbursementMinor: string;

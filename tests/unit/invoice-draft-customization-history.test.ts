@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { AccessDeniedError, ConflictError, PortalRepository } from '@ja/database';
+import { AccessDeniedError, ConflictError, PortalRepository, ValidationError } from '@ja/database';
 import type { Role } from '@ja/domain';
 
 function exercise(
@@ -7,6 +7,7 @@ function exercise(
   invoiceNumber: string | null,
   issuedAt: string | null,
   role: Role = 'finance_admin',
+  extra: Record<string, unknown> = {},
 ) {
   const run = vi.fn((_snapshot: string) => ({ changes: 1 }));
   const audit = vi.fn();
@@ -53,6 +54,7 @@ function exercise(
         purchaseNo: 'Revised purchase',
         companyInfo: { phone: 'QA-only' },
         discountMinor: '0',
+        ...extra,
       },
     );
   return { update, prepare, readInvoice, run, audit };
@@ -111,6 +113,19 @@ describe('invoice customization preserves historical issue markers', () => {
       expect.stringContaining('SELECT expires_at FROM session'),
     ]);
     expect(readInvoice).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
+    expect(audit).not.toHaveBeenCalled();
+  });
+
+  // T01 (audit 2026-11-22, decision D1): the per-draft form never rewrites the company-wide
+  // bank/payee details (it used to save a new issuer_document_settings version silently).
+  it.each([
+    [{ termsAndInstructions: { bankSwiftNumber: 'XXX', bankName: 'CANARY-BANK' } }],
+    [{ companyInfo: { phone: 'Changed phone' } }],
+  ])('refuses company-wide issuer fields on a draft (%j)', (extra) => {
+    const { update, run, audit } = exercise('draft', null, null, 'owner_admin', extra);
+    expect(update).toThrow(ValidationError);
+    expect(update).toThrow(/Billing setup › Issuer settings/);
     expect(run).not.toHaveBeenCalled();
     expect(audit).not.toHaveBeenCalled();
   });

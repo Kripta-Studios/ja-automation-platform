@@ -1039,6 +1039,21 @@ export function financeFailure(
           remedies: [{ id: 'review_approved_time' }],
         },
       );
+    const overlap =
+      /^These hours are already settled in (\d{4}-\d{2}-\d{2}) to (\d{4}-\d{2}-\d{2}) \(settlement [^\s]+\)$/u.exec(
+        message,
+      );
+    if (overlap)
+      return problem(
+        409,
+        'problem.finance.settlementOverlap',
+        { start: overlap[1]!, end: overlap[2]! },
+        `These hours are already settled in ${overlap[1]} to ${overlap[2]}. Review that settlement instead of settling them again.`,
+        {
+          code: 'FINANCE_SETTLEMENT_OVERLAP',
+          remedies: [{ id: 'review_worker_compensation_settlements' }],
+        },
+      );
     if (/^Settlement [^\s]+ is already settled with different final truth$/u.test(message))
       return problem(
         409,

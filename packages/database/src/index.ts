@@ -320,6 +320,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   81: 'assignment_purchase_order',
   82: 'multi_currency_fx',
   83: 'returned_record_supersession',
+  84: 'billing_finance_audit_fixes',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -328,7 +329,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'a10160b0961d58d776bb8ecb73937dcd83f25f5f7a5bac05419e88888af594c6';
+  'c0354b3ee6651573b1b17144ef64c39164b5be96aec32ef9ea02f5643f548698';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1176,7 +1177,11 @@ export type {
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
 export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
-export { InvoiceLineLabels, expenseCategoryLabel, invoicePersonName } from './domains/billing/invoice-line-labels.ts';
+export {
+  InvoiceLineLabels,
+  expenseCategoryLabel,
+  invoicePersonName,
+} from './domains/billing/invoice-line-labels.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
 export { assertLiveSession } from './core/authorization.ts';
@@ -1240,7 +1245,11 @@ export { withCommercialRuleSnapshot } from './domains/commercial/assignment-comm
 export {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
+  issuerPayeeFields,
+  ISSUER_PAYEE_OWNER_REQUIRED,
+  ISSUER_PAYEE_CHANGED_NOTIFICATION,
 } from './domains/billing/issuer-document-settings.ts';
+export { INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE } from './domains/billing/invoice-draft-details.ts';
 
 export * from './domains/field-capture/index.ts';
 export * from './domains/digital-workers/index.ts';

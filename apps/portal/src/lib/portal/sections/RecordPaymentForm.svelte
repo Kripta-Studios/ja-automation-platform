@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { billingFixText } from '../billing-fix-copy';
   /**
    * One-step "Record payment": amount (defaults to the balance), date (today),
    * method and an optional reference. Posts to the existing audited recordPayment
@@ -74,6 +75,16 @@
   const submit: SubmitFunction = ({ formData, cancel }) => {
     if (amountProblem || entered === null) {
       problem = amountProblem;
+      cancel();
+      return;
+    }
+    // T64 (audit 2026-11-22): a payment is permanent evidence; confirm the amount first.
+    if (
+      typeof window !== 'undefined' &&
+      !window.confirm(
+        billingFixText(locale, 'confirmRecordPayment', { amount: money(entered.toString(), currency) }),
+      )
+    ) {
       cancel();
       return;
     }

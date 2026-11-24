@@ -368,6 +368,8 @@ export class ProjectBillingSetupRepository {
     termsFingerprint: string;
     needsReview: boolean;
     issues: string[];
+    /** T65: only a project-manager assignment (no worker assignment): not billed, needs no terms. */
+    managerOnly: boolean;
   }> {
     this.assertReadable(principal);
     const projectCurrency =
@@ -378,7 +380,7 @@ export class ProjectBillingSetupRepository {
       )?.currency ?? 'USD';
     const rows = this.sqlite
       .prepare(
-        `SELECT pm.id,pm.user_id,pm.starts_on,pm.worker_expense_reimbursement_override,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
+        `SELECT pm.id,pm.user_id,pm.starts_on,pm.worker_expense_reimbursement_override,pm.assignment_role,u.name FROM project_member pm JOIN user u ON u.id=pm.user_id
        WHERE pm.project_id=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
          AND pm.status='active' AND u.status='active'
        ORDER BY u.name,CASE WHEN pm.starts_on<=? THEN 0 ELSE 1 END,pm.starts_on`,
@@ -388,8 +390,12 @@ export class ProjectBillingSetupRepository {
       user_id: string;
       starts_on: string;
       worker_expense_reimbursement_override: WorkerReimbursementMode | null;
+      assignment_role: string;
       name: string;
     }>;
+    const billableUsers = new Set(
+      rows.filter((row) => row.assignment_role !== 'project_manager').map((row) => row.user_id),
+    );
     const seen = new Set<string>();
     return rows
       .filter((row) => {
@@ -438,6 +444,7 @@ export class ProjectBillingSetupRepository {
             termsFingerprint: this.personTermsFingerprint(principal, projectId, row.user_id),
             needsReview: true,
             issues: ['commercial_terms_unavailable'],
+            managerOnly: !billableUsers.has(row.user_id),
           };
         }
         const basis = clientBillingUnit(terms.clientLaborRate?.rule.rate_basis);
@@ -538,6 +545,7 @@ export class ProjectBillingSetupRepository {
           termsFingerprint: this.personTermsFingerprint(principal, projectId, row.user_id),
           needsReview: terms.issues.length > 0,
           issues: terms.issues.map((issue) => issue.code),
+          managerOnly: !billableUsers.has(row.user_id),
         };
       });
   }

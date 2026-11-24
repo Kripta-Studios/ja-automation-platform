@@ -42,10 +42,13 @@ export function matchesCashFilter(item: CashMovement, filter: CashFilter, today:
       return !incoming && item.basis === 'actual';
     case 'unconfirmed':
       return item.basis === 'needs_confirmation';
+    // T61: cash in / cash out are sides, not signs. A reversal nets against the side of the
+    // payment it reverses (a reversed worker payment is not money received, a bounced
+    // customer receipt is not money paid out).
     case 'incoming':
-      return item.basis === 'actual' && BigInt(item.amountMinor) > 0n;
+      return item.basis === 'actual' && incoming;
     case 'outgoing':
-      return item.basis === 'actual' && BigInt(item.amountMinor) < 0n;
+      return item.basis === 'actual' && !incoming;
     default:
       return true;
   }

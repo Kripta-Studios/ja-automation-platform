@@ -355,6 +355,14 @@
             {:else}
               <span class="rates__muted">{t('noProjectRate')}</span>
             {/if}
+            {#if project.upcomingRateMinor && project.upcomingRateFrom}
+              <span class="rates__chip" data-rates-upcoming
+                >{t('upcomingProjectRate', {
+                  date: shortDate(project.upcomingRateFrom),
+                  rate: `${money(project.upcomingRateMinor, project.currency)}${unit(project.defaultRateBasis ?? 'hourly')}`,
+                })}</span
+              >
+            {/if}
             {#if canEdit && isOpen}
               <button
                 type="button"
@@ -444,7 +452,11 @@
                       <td data-label={t('ends')}
                         >{rule.effectiveTo ? shortDate(rule.effectiveTo) : '—'}</td
                       >
-                      <td data-label={t('status')}>{t(rule.status)}</td>
+                      <td data-label={t('status')}
+                        >{t(rule.status)}{#if rule.replacedFrom}<small class="rates__muted"
+                            >&nbsp;· {t('replacedFrom', { date: shortDate(rule.replacedFrom) })}</small
+                          >{/if}</td
+                      >
                     </tr>
                   {/each}
                 </tbody>
@@ -501,6 +513,14 @@
   <tr data-rate-person={row.assignmentId}>
     <th scope="row">
       <strong>{row.workerName}</strong>
+      {#if row.startsOn}<small class="rates__chip" data-rate-starts-on
+          >{t('startsOnPerson', { date: shortDate(row.startsOn) })}</small
+        >{/if}
+      {#if row.negativeMargin}<small
+          class="rates__chip rates__chip--missing"
+          title={t('negativeMarginHelp')}
+          data-rate-negative-margin>{t('negativeMargin')}</small
+        >{/if}
     </th>
     <td data-label={t('weCharge')}>
       {#if row.clientRateMinor}
@@ -557,7 +577,16 @@
       {/if}
     </td>
     <td data-label={t('laborCost')}>
-      {row.costRateMinor ? `${money(row.costRateMinor, row.currency)}${t('perHour')}` : '—'}
+      {#if row.costRateMinor}{money(row.costRateMinor, row.currency)}{t('perHour')}{:else if row.lastCost}<span
+          class="rates__muted"
+          data-rate-last-cost
+          >{row.lastCost.effectiveTo
+            ? t('lastCostUntil', {
+                rate: `${money(row.lastCost.rateMinor, row.currency)}${t('perHour')}`,
+                date: shortDate(row.lastCost.effectiveTo),
+              })
+            : `${money(row.lastCost.rateMinor, row.currency)}${t('perHour')}`}</span
+        >{:else}—{/if}
     </td>
   </tr>
   {#if editing === formKey('client', row.projectId, row.workerId) || editing === formKey('pay', row.projectId, row.workerId)}

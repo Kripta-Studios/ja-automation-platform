@@ -511,6 +511,18 @@
         >
       {/if}
     </div>
+  {:else if canSetRates && ratePeople && currentAssignments.length > 0}
+    <!-- T62: once every person has a rate, the project rate can still be changed here. -->
+    <div class="hub-rate-banner hub-rate-banner--set" data-hub-project-rate-change>
+      <p>{h('projectRateAllSet')}</p>
+      {#if rateFormFor === ''}
+        {@render rateForm(h('rateForProject', { currency }))}
+      {:else}
+        <button type="button" class="secondary-button" onclick={() => openRate('', today)}
+          >{h('projectRateChange')}</button
+        >
+      {/if}
+    </div>
   {/if}
 
   {#if currentAssignments.length === 0}

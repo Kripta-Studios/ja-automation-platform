@@ -113,7 +113,11 @@ import {
   releaseCopiedStreamPurchaseOrders,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
-import { previewInvoiceNumber } from './domains/billing/invoice-number-preview.ts';
+import {
+  formatDocumentNumber,
+  numberSequenceScope,
+  previewInvoiceNumber,
+} from './domains/billing/invoice-number-preview.ts';
 import { summarizeTimeReadiness } from './domains/billing/time-readiness-diagnostics.ts';
 import {
   acceptOwnerFinanceApproval,
@@ -656,6 +660,9 @@ function assertText(value: string, field: string, max = 5000): string {
   return trimmed;
 }
 
+export const INVOICE_COLLECTION_BEFORE_ISSUE =
+  'The expected collection date must be on or after the planned issue date.';
+
 export class PortalRepository {
   private readonly sqlite: DatabaseSync;
   private readonly clients: ClientRepository;
@@ -873,6 +880,23 @@ export class PortalRepository {
     details: unknown,
   ): void {
     recordAuditEvent(this.sqlite, principal, action, entityType, entityId, details);
+  }
+
+  /** The original invoice a credit-note adjustment credits (D15), or null for any other document. */
+  private creditNoteOriginal(
+    invoiceId: string,
+    streamType: unknown,
+  ): { invoiceId: string; invoiceNumber: string | null } | null {
+    if (streamType !== 'adjustment') return null;
+    const row = this.sqlite
+      .prepare(
+        `SELECT o.id,o.invoice_number FROM invoice_adjustment ia
+           JOIN invoice o ON o.id=ia.original_invoice_id
+           JOIN invoice c ON c.id=ia.adjustment_invoice_id
+          WHERE ia.adjustment_invoice_id=? AND ia.adjustment_type='credit' AND c.total_minor<0`,
+      )
+      .get(invoiceId) as { id: string; invoice_number: string | null } | undefined;
+    return row ? { invoiceId: row.id, invoiceNumber: row.invoice_number } : null;
   }
 
   private nextSequence(scope: string, scopeId: string): number {
@@ -6576,19 +6600,59 @@ export class PortalRepository {
     );
     if (invoiceRate !== null) return invoiceRate;
     if (slice.category === 'overtime') {
-      const overtime = this.findClientRateMinor(
-        principal,
-        projectId,
-        row.worker_id,
-        'overtime',
-        row.work_date,
-        row.activity_code,
-        slice.category,
-        execution,
-        billingRuleId,
-      );
-      if (overtime !== null) return overtime;
+      const priced = this.overtimeSliceClientRate(principal, projectId, slice, execution, billingRuleId);
+      // Decision D12: overtime is never billed silently at $0 while regular work has a price.
+      // A zero overtime price on a priced project is a missing overtime rate (a blocker).
+      if (priced === 0n) {
+        const regular = this.findClientRateMinor(
+          principal,
+          projectId,
+          row.worker_id,
+          row.category === 'overtime' ? 'regular' : row.category,
+          row.work_date,
+          row.activity_code,
+          'regular',
+          execution,
+          billingRuleId,
+        );
+        if (regular !== null && regular > 0n) return null;
+      }
+      return priced;
     }
+    return this.findClientRateMinor(
+      principal,
+      projectId,
+      row.worker_id,
+      row.category,
+      row.work_date,
+      row.activity_code,
+      slice.category,
+      execution,
+      billingRuleId,
+    );
+  }
+
+  /** Price of an overtime slice: its own overtime rate, else the category rate's overtime method. */
+  private overtimeSliceClientRate(
+    principal: Principal | null,
+    projectId: string,
+    slice: BillingTimeSlice,
+    execution?: FencedJobExecution,
+    billingRuleId?: string,
+  ): bigint | null {
+    const row = slice.row;
+    const overtime = this.findClientRateMinor(
+      principal,
+      projectId,
+      row.worker_id,
+      'overtime',
+      row.work_date,
+      row.activity_code,
+      slice.category,
+      execution,
+      billingRuleId,
+    );
+    if (overtime !== null) return overtime;
     return this.findClientRateMinor(
       principal,
       projectId,
@@ -7052,6 +7116,7 @@ export class PortalRepository {
           })),
       );
       const missingRateSources = new Set<string>();
+      const missingOvertimeRateSources = new Set<string>();
       const reservedTimeSources = new Set<string>();
       const checkedOwnerFinanceSources = new Set<string>();
       for (const slice of slices) {
@@ -7101,8 +7166,10 @@ export class PortalRepository {
             execution,
             billingRuleId,
           ) === null
-        )
+        ) {
           missingRateSources.add(row.id);
+          if (slice.category === 'overtime') missingOvertimeRateSources.add(row.id);
+        }
       }
       includedSourceCount = [...eligibleSourceIds].filter(
         (sourceId) => !missingRateSources.has(sourceId),
@@ -7110,7 +7177,10 @@ export class PortalRepository {
       excludedSourceCount = Math.max(0, candidateSourceIds.size - includedSourceCount);
       reasons.push(
         ...[...missingRateSources].map((sourceId) => ({
-          code: 'missing_client_rate',
+          // D12: say which rate is missing; overtime is never billed at $0 silently.
+          code: missingOvertimeRateSources.has(sourceId)
+            ? 'missing_overtime_client_rate'
+            : 'missing_client_rate',
           sourceId,
         })),
         ...[...reservedTimeSources].map((sourceId) => ({
@@ -8579,7 +8649,15 @@ export class PortalRepository {
             billingRuleId,
           );
           if (rate === null)
-            throw new ReadinessError([{ code: 'missing_client_rate', sourceId: row.id }]);
+            throw new ReadinessError([
+              {
+                code:
+                  slice.category === 'overtime'
+                    ? 'missing_overtime_client_rate'
+                    : 'missing_client_rate',
+                sourceId: row.id,
+              },
+            ]);
           const overrideRate = overrideRateFor(overrides, row.worker_id, slice.category);
           const overrideMinutes = billedPlan?.minutes.get(`${row.id}:${slice.sliceIndex}`);
           const sliceMinutes = overrideMinutes ?? slice.minutes;
@@ -10393,8 +10471,20 @@ export class PortalRepository {
         commercialSourceManifest as InvoiceIssueManifest[],
       );
       const year = new Date().getUTCFullYear();
-      const sequence = this.nextSequence('invoice', `${context.legal_entity_id}:${year}`);
-      const invoiceNumber = `${policy.prefix}-${year}-${String(sequence).padStart(policy.digits, '0')}`;
+      // D15: a credit note takes the next number of its own series (CN-...), linked to its original.
+      const creditNoteFor = this.creditNoteOriginal(invoiceId, invoice.stream_type);
+      const documentKind = creditNoteFor ? 'credit_note' : 'invoice';
+      const sequence = this.nextSequence(
+        numberSequenceScope(documentKind),
+        `${context.legal_entity_id}:${year}`,
+      );
+      const invoiceNumber = formatDocumentNumber(
+        documentKind,
+        policy.prefix,
+        year,
+        sequence,
+        policy.digits,
+      );
       const issuedAt = now();
       let draftCustomizations: Record<string, unknown> = {};
       if (invoice.snapshot_json) {
@@ -10448,6 +10538,15 @@ export class PortalRepository {
         },
         // New documents print client number/code, project and cost center in the header.
         documentHeaderVersion: 2,
+        ...(creditNoteFor
+          ? {
+              documentType: 'credit_note',
+              creditNoteFor: {
+                invoiceId: creditNoteFor.invoiceId,
+                invoiceNumber: creditNoteFor.invoiceNumber,
+              },
+            }
+          : {}),
         client: {
           code: context.client_code,
           legalName: context.client_legal_name,
@@ -11550,14 +11649,23 @@ export class PortalRepository {
       customSnapshot.legalEntity && typeof customSnapshot.legalEntity === 'object'
         ? (customSnapshot.legalEntity as Record<string, unknown>)
         : null;
+    const creditNoteOf = this.creditNoteOriginal(invoiceId, invoice.stream_type);
     const enrichedInvoice = {
       ...invoice,
       draft_number_preview:
         ['draft', 'approved'].includes(String(invoice.state)) &&
         invoice.invoice_number == null &&
         invoice.issued_at == null
-          ? previewInvoiceNumber(this.sqlite, String(invoice.issuer_legal_entity_id ?? ''), today())
+          ? previewInvoiceNumber(
+              this.sqlite,
+              String(invoice.issuer_legal_entity_id ?? ''),
+              today(),
+              creditNoteOf ? 'credit_note' : 'invoice',
+            )
           : null,
+      document_type: creditNoteOf ? 'credit_note' : 'invoice',
+      credit_note_for_invoice_id: creditNoteOf?.invoiceId ?? null,
+      credit_note_for_invoice_number: creditNoteOf?.invoiceNumber ?? null,
       // Issued HTML must show the same immutable issuer as its issued PDF, including
       // legacy invoices whose legal_entity_revision_id predates canonical revisions.
       display_issuer_name: frozenInvoice
@@ -13594,6 +13702,13 @@ export class PortalRepository {
       assertDate(input.plannedIssueOn, 'Planned invoice issue date');
     if (input.expectedCollectionOn !== null)
       assertDate(input.expectedCollectionOn, 'Expected collection date');
+    // T66 (audit 2026-11-22): money cannot be expected before the invoice is issued.
+    if (
+      input.plannedIssueOn !== null &&
+      input.expectedCollectionOn !== null &&
+      input.expectedCollectionOn < input.plannedIssueOn
+    )
+      throw new ValidationError(INVOICE_COLLECTION_BEFORE_ISSUE);
     return this.transaction(() => {
       const invoice = this.sqlite
         .prepare('SELECT id,state,issued_at,version FROM invoice WHERE id=?')

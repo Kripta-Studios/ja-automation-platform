@@ -689,14 +689,15 @@ describe('Client Essential private report routes', () => {
     });
   });
 
-  it('allows Finance and Owner ledger exports while denying PM, worker, auditor and anonymous users', async () => {
+  it('allows Finance, Owner and read-only auditor ledger exports while denying PM, worker and anonymous users', async () => {
     const signedOut = invoiceLedgerGet(event(null, 'ledger', 'csv')) as Response;
     expect(signedOut.status).toBe(401);
     await expect(signedOut.json()).resolves.toMatchObject({
       code: 'COLLECTION_LEDGER_EXPORT_SIGN_IN_REQUIRED',
       remedies: [{ id: 'sign_in_again' }],
     });
-    for (const role of ['project_manager', 'worker', 'auditor_read_only'] as const) {
+    // Decision D8 (audit 2026-11-22, T80): the read-only auditor may export the ledger.
+    for (const role of ['project_manager', 'worker'] as const) {
       const denied = invoiceLedgerGet(event(role, 'ledger', 'csv')) as Response;
       expect(denied.status).toBe(403);
       await expect(denied.json()).resolves.toMatchObject({
@@ -704,7 +705,13 @@ describe('Client Essential private report routes', () => {
         remedies: [{ id: 'contact_owner' }],
       });
     }
-    for (const role of ['finance_admin', 'owner_admin'] as const) {
+    const auditorCsv = invoiceLedgerGet(event('auditor_read_only', 'ledger', 'csv')) as Response;
+    expect(auditorCsv.status).toBe(200);
+    // T49: the spreadsheet CSV starts with a UTF-8 BOM and readable headers.
+    const auditorBytes = new Uint8Array(await auditorCsv.arrayBuffer());
+    expect([...auditorBytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]);
+    expect(new TextDecoder().decode(auditorBytes)).toContain('Invoice,Client,Project');
+    for (const role of ['finance_admin', 'owner_admin', 'auditor_read_only'] as const) {
       const response = invoiceLedgerGet(event(role, 'ledger', 'xlsx')) as Response;
       expect(response.status).toBe(200);
       expect(response.headers.get('content-disposition')).toContain(

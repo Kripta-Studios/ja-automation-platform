@@ -660,10 +660,12 @@
   const MORE_CATEGORY = '__more';
   const isPrimaryCategory = (value: string) =>
     primaryExpenseCategories.some((item) => item.value === value);
+  // T54: rows of 'Add several' start without a category (a remembered 'Hotel' was silently
+  // applied to every receipt); the person picks one per row that has an amount or receipt.
   const blankRow = (date: string): BulkRow => ({
     key: nextBulkKey++,
     date,
-    category: rememberedCategory(),
+    category: '',
     amount: '',
     note: '',
     file: '',
@@ -1151,12 +1153,19 @@
             <label class="xp-field">
               <span>{c('category')}</span>
               <select
-                value={isPrimaryCategory(row.category) ? row.category : MORE_CATEGORY}
+                value={!row.category
+                  ? ''
+                  : isPrimaryCategory(row.category)
+                    ? row.category
+                    : MORE_CATEGORY}
+                required={Boolean(row.file || row.amount.trim())}
+                data-bulk-category
                 onchange={(event) => {
                   const value = event.currentTarget.value;
                   row.category = value === MORE_CATEGORY ? 'parking' : value;
                 }}
               >
+                <option value="" disabled>{c('chooseCategory')}</option>
                 {#each primaryExpenseCategories as item (item.value)}
                   <option value={item.value}>{c(item.copy as ExpenseCopyKey)}</option>
                 {/each}
@@ -1195,7 +1204,7 @@
               />
               <span>{row.file || c('receipt')}</span>
             </label>
-            {#if !isPrimaryCategory(row.category)}
+            {#if row.category && !isPrimaryCategory(row.category)}
               <label class="xp-field xp-bulk-more">
                 <span>{c('moreCategories')}</span>
                 <select bind:value={row.category} data-bulk-more-category>
@@ -1221,7 +1230,7 @@
               <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="currency">{c('receiptCurrencyDiffers', { code: row.receiptCurrency, batch: bulkCurrency })}</p>
             {:else if row.filled}
               <p class="xp-ok xp-bulk-status" role="status" data-bulk-status="filled">{c('filledFromReceiptShort')}</p>
-            {:else if row.unread}
+            {:else if row.unread && !row.amount.trim()}
               <p class="xp-warn xp-bulk-status" role="status" data-bulk-status="unread">{c('notReadType')}</p>
             {/if}
             {#if bulkRows.length > 1}

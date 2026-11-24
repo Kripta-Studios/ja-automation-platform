@@ -14,6 +14,7 @@ const en = {
   choosePerson: 'Choose person',
   me: 'Me',
   category: 'Category',
+  chooseCategory: 'Choose category',
   more: 'More…',
   moreCategories: 'Other category',
   amount: 'Amount',
@@ -161,7 +162,8 @@ const en = {
   checkCurrency: 'Check the currency printed on the receipt.',
   receiptTooBig: '{name} is larger than 10 MB. Take a new photo or choose a smaller file.',
   receiptTooBigShort: 'This file is larger than 10 MB. Choose a smaller one.',
-  receiptCurrencyDiffers: 'This receipt is in {code}, not {batch}. Save it on its own with the right currency.',
+  receiptCurrencyDiffers:
+    'This receipt is in {code}, not {batch}. Save it on its own with the right currency.',
   currencyFromReceipt: 'Currency read from the receipt ({code}) — check it.',
   receiptAttached: 'Receipt',
   confirmBodyOne:
@@ -195,6 +197,7 @@ const es: Copy = {
   choosePerson: 'Elige persona',
   me: 'Yo',
   category: 'Categoría',
+  chooseCategory: 'Elige categoría',
   more: 'Más…',
   moreCategories: 'Otra categoría',
   amount: 'Importe',
@@ -341,7 +344,8 @@ const es: Copy = {
   checkCurrency: 'Comprueba la moneda impresa en el ticket.',
   receiptTooBig: '{name} pesa más de 10 MB. Haz otra foto o elige un archivo más pequeño.',
   receiptTooBigShort: 'Este archivo pesa más de 10 MB. Elige uno más pequeño.',
-  receiptCurrencyDiffers: 'Este ticket está en {code}, no en {batch}. Guárdalo aparte con la moneda correcta.',
+  receiptCurrencyDiffers:
+    'Este ticket está en {code}, no en {batch}. Guárdalo aparte con la moneda correcta.',
   currencyFromReceipt: 'Moneda leída del ticket ({code}): compruébala.',
   receiptAttached: 'Ticket',
   confirmBodyOne:
@@ -373,6 +377,7 @@ const pt: Copy = {
   choosePerson: 'Escolha a pessoa',
   me: 'Eu',
   category: 'Categoria',
+  chooseCategory: 'Escolha a categoria',
   more: 'Mais…',
   moreCategories: 'Outra categoria',
   amount: 'Valor',
@@ -468,7 +473,8 @@ const pt: Copy = {
   saveAll: 'Salvar {n} despesas',
   recent: 'Minhas despesas recentes',
   recentOwner: 'Seus lançamentos e rascunhos a enviar',
-  recentOwnerRecorded: 'Despesas que você registrou (suas ou de outras pessoas) e rascunhos a enviar',
+  recentOwnerRecorded:
+    'Despesas que você registrou (suas ou de outras pessoas) e rascunhos a enviar',
   sendsWithTime: 'Será enviada com a semana de horas',
   ovTitle: 'Visão geral de despesas',
   ovIntro:
@@ -520,7 +526,8 @@ const pt: Copy = {
   checkCurrency: 'Confira a moeda impressa no recibo.',
   receiptTooBig: '{name} tem mais de 10 MB. Tire outra foto ou escolha um arquivo menor.',
   receiptTooBigShort: 'Este arquivo tem mais de 10 MB. Escolha um menor.',
-  receiptCurrencyDiffers: 'Este recibo está em {code}, não em {batch}. Salve-o separadamente com a moeda certa.',
+  receiptCurrencyDiffers:
+    'Este recibo está em {code}, não em {batch}. Salve-o separadamente com a moeda certa.',
   currencyFromReceipt: 'Moeda lida do recibo ({code}) — confira.',
   receiptAttached: 'Recibo',
   confirmBodyOne:

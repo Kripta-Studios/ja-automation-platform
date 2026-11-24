@@ -4264,7 +4264,13 @@ export class V3Repository {
       .prepare(
         `SELECT t.id,t.project_id,t.worker_id,u.name worker_name,t.work_date,t.category,t.activity_code,
                 t.minutes,t.approval_state,t.billability_state,t.billing_status,t.invoice_id,t.version,
-                p.currency project_currency
+                p.currency project_currency,
+                EXISTS (
+                  SELECT 1 FROM record_correction_link pcl
+                  JOIN time_entry pending ON pending.id=pcl.correction_id
+                  WHERE pcl.record_type='time_entry' AND pcl.original_id=t.id
+                    AND pending.approval_state IN ('draft','submitted','needs_changes')
+                ) pending_correction
          FROM time_entry t JOIN project p ON p.id=t.project_id
          JOIN user u ON u.id=t.worker_id
          WHERE t.project_id=? AND t.work_date BETWEEN ? AND ?
@@ -4279,7 +4285,7 @@ export class V3Repository {
            )
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
-      .all(projectId, start, end) as Array<TimeRow & { worker_name: string }>;
+      .all(projectId, start, end) as Array<TimeRow & { worker_name: string; pending_correction?: number }>;
     // Rule resolution is a pure read of the configuration for (project, worker, category,
     // date, activity). Entries of the same person, day and category share the answer, so it
     // is resolved once per key for this read; failures are replayed so every entry still
@@ -4669,6 +4675,9 @@ export class V3Repository {
           amountMinor: revenue.toString(),
           workDate: row.work_date,
           workerId: row.worker_id,
+          // T15: the invoice composer leaves these out until the correction is approved, so
+          // "Ready to invoice" (Home, Money) must not count them either.
+          ...(row.pending_correction === 1 ? { waitingCorrection: true } : {}),
         });
       economics.push({
         id: row.id,

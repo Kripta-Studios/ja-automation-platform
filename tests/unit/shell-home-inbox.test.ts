@@ -117,6 +117,19 @@ describe('home inbox projections', () => {
     });
   });
 
+  it('does not count approved hours whose correction waits for approval as ready (T15)', () => {
+    const sources = [
+      { sourceType: 'time', sourceId: 't1', amountMinor: '45000', waitingCorrection: true },
+      { sourceType: 'time', sourceId: 't2', amountMinor: '677500' },
+    ];
+    expect(splitUnbilledSources(sources, new Map())).toEqual({ readyMinor: '677500', draftMinor: '0' });
+    // Once a draft holds it, it is reported where it sits.
+    expect(splitUnbilledSources(sources, new Map([['time:t1', 'draft']]))).toEqual({
+      readyMinor: '677500',
+      draftMinor: '45000',
+    });
+  });
+
   it('also lists projects whose logged hours still wait for approval (Approve & include on the invoice)', () => {
     expect(
       readyToInvoiceSummary([

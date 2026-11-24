@@ -380,10 +380,13 @@ export const supplierCopy = {
   },
 } as const;
 
+const discardedState = { en: 'Discarded', es: 'Descartado', pt: 'Descartado' } as const;
+
 export function supplierStateLabel(locale: PortalLocale, state: string): string {
-  return state === 'revoked'
-    ? supplierCopy[locale].revoked
-    : translateControlledValue(locale, 'status', state);
+  if (state === 'revoked') return supplierCopy[locale].revoked;
+  // T70: a discarded draft is a state, not the verb "Anular".
+  if (state === 'void') return discardedState[locale] ?? discardedState.en;
+  return translateControlledValue(locale, 'status', state);
 }
 
 /** One label per canonical category (T21/T96); legacy 'work' rows read as regular time. */

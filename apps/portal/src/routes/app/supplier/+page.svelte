@@ -788,35 +788,35 @@
     {#if data.owner}
       <button
         type="button"
-        class:active={workspaceAction === 'directory'}
+        class:active={workspaceAction === 'directory'} aria-pressed={workspaceAction === 'directory'}
         onclick={() => selectWorkspaceAction('directory')}>{m.directory}</button
       >
       <button
         type="button"
-        class:active={workspaceAction === 'setup'}
+        class:active={workspaceAction === 'setup'} aria-pressed={workspaceAction === 'setup'}
         onclick={() => selectWorkspaceAction('setup')}>{m.setup}</button
       >
       <button
         type="button"
-        class:active={workspaceAction === 'authorize'}
+        class:active={workspaceAction === 'authorize'} aria-pressed={workspaceAction === 'authorize'}
         onclick={() => selectWorkspaceAction('authorize')}>{c.grant}</button
       >
     {/if}
     <button
       type="button"
-      class:active={workspaceAction === 'personnel'}
+      class:active={workspaceAction === 'personnel'} aria-pressed={workspaceAction === 'personnel'}
       onclick={() => selectWorkspaceAction('personnel')}>{m.personnel}</button
     >
     {#if !data.owner}
       <button
         type="button"
-        class:active={workspaceAction === 'time'}
+        class:active={workspaceAction === 'time'} aria-pressed={workspaceAction === 'time'}
         onclick={() => selectWorkspaceAction('time')}>{c.time}</button
       >
     {/if}
     <button
       type="button"
-      class:active={workspaceAction === 'report'}
+      class:active={workspaceAction === 'report'} aria-pressed={workspaceAction === 'report'}
       onclick={() => selectWorkspaceAction('report')}>{c.report}</button
     >
   </nav>

@@ -20,7 +20,9 @@ export const GET: RequestHandler = ({ locals, params, url, cookies }) => {
       'x-content-type-options': 'nosniff',
       'content-security-policy': "default-src 'none'; img-src data:; style-src 'unsafe-inline'; font-src data:; script-src 'none'; connect-src 'none'; form-action 'none'; base-uri 'none'; frame-ancestors 'self'",
     } });
-  } catch {
+  } catch (cause) {
+    // T16: keep the reason in the server log (the response stays a neutral 404).
+    console.warn('period report preview unavailable', params.id, cause instanceof Error ? cause.message : cause);
     error(404, 'Period report preview is unavailable. Review your report access.');
   } finally {
     context.sqlite.close();

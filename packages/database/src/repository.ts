@@ -659,6 +659,9 @@ function assertText(value: string, field: string, max = 5000): string {
   return trimmed;
 }
 
+export const INVOICE_COLLECTION_BEFORE_ISSUE =
+  'The expected collection date must be on or after the planned issue date.';
+
 export class PortalRepository {
   private readonly sqlite: DatabaseSync;
   private readonly clients: ClientRepository;
@@ -13536,6 +13539,13 @@ export class PortalRepository {
       assertDate(input.plannedIssueOn, 'Planned invoice issue date');
     if (input.expectedCollectionOn !== null)
       assertDate(input.expectedCollectionOn, 'Expected collection date');
+    // T66 (audit 2026-11-22): money cannot be expected before the invoice is issued.
+    if (
+      input.plannedIssueOn !== null &&
+      input.expectedCollectionOn !== null &&
+      input.expectedCollectionOn < input.plannedIssueOn
+    )
+      throw new ValidationError(INVOICE_COLLECTION_BEFORE_ISSUE);
     return this.transaction(() => {
       const invoice = this.sqlite
         .prepare('SELECT id,state,issued_at,version FROM invoice WHERE id=?')

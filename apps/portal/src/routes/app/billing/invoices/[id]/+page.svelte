@@ -1646,6 +1646,9 @@
                   )}</small
                 >
               </div>
+              <!-- T93: no discount is configurable anywhere, so an empty read-only field is
+                   only shown when a (legacy) discount exists on this draft. -->
+              {#if defaultDiscount !== '0.00' && defaultDiscount !== '0'}
               <div class="draft-field">
                 <label for="edit-discount">{t('Discount Amount')}</label>
                 <input
@@ -1663,6 +1666,7 @@
                   )}</small
                 >
               </div>
+              {/if}
               <div class="draft-field full-width">
                 <label for="edit-past-due">{t('Past Due Notice')}</label>
                 <textarea

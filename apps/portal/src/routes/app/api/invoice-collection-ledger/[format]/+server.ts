@@ -18,7 +18,9 @@ import {
   type CollectionReport,
 } from '$lib/server/collections-workbench-export';
 
-const financeRoles = new Set(['owner_admin', 'finance_admin']);
+// Decision D8 (audit 2026-11-22, T80): the read-only auditor may export the register too
+// (masterLedger already grants auditors read access; every export is audited).
+const financeRoles = new Set(['owner_admin', 'finance_admin', 'auditor_read_only']);
 const definitions = {
   signInRequired: [
     'SIGN_IN_REQUIRED',

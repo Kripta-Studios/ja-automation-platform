@@ -13,6 +13,7 @@ import {
   issuerPayeeFields,
   ISSUER_PAYEE_OWNER_REQUIRED,
   INVOICE_DRAFT_ISSUER_FIELDS_COMPANY_WIDE,
+  INVOICE_COLLECTION_BEFORE_ISSUE,
 } from '@ja/database';
 import {
   accountingPackPeriodSchema,
@@ -1630,6 +1631,14 @@ export const billingActions = {
         'Invoice planning dates saved',
       );
     } catch (error) {
+      if (error instanceof ValidationError && error.message === INVOICE_COLLECTION_BEFORE_ISSUE)
+        return actionFail(400, 'problem.billing.collectionBeforeIssue', {}, error.message, {
+          code: 'BILLING_COLLECTION_BEFORE_ISSUE',
+          fieldErrors: { expectedCollectionOn: ['problem.billing.collectionBeforeIssue'] },
+          remedies: [{ id: 'correct_field' }],
+          billingOperation: 'setInvoicePlanningDates',
+          values: safeBillingInputValues(object),
+        });
       return billingActionFailure(
         error,
         'setInvoicePlanningDates',

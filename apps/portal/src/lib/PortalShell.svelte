@@ -3,6 +3,7 @@
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { payCurrencyHeading, paySummaryText } from '$lib/portal/pay-summary-copy';
+  import { billingFixText } from '$lib/portal/billing-fix-copy';
   import {
     assignmentDirectoryView,
     assignmentFormAction,
@@ -4651,7 +4652,9 @@
                   disabled={workerStatementBusy || workerStatementPolling}
                   aria-busy={workerStatementBusy || workerStatementPolling}
                   onclick={() => void requestWorkerStatement()}
-                  >{translate('Generate report')}</button
+                  >{workerStatementBusy || workerStatementPolling
+                    ? billingFixText(locale, 'preparing')
+                    : translate('Generate report')}</button
                 >
               {/if}
               {#each ['pdf', 'csv'] as format}

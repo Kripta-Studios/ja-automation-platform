@@ -1022,7 +1022,7 @@
       "version": 84,
       "canonicalName": "billing_finance_audit_fixes",
       "file": "0084_billing_finance_audit_fixes.sql",
-      "sha256": "b8afdb96802c78efb19f2f384f4893312bb4c32e1bdcfdecaf2a4a9f41d1b4c5",
+      "sha256": "4a6943ab7409fb3152b683ded16d1acc2c7e6fdfa5c69b1499d037d11b75aa73",
       "descriptor": "J&A B5 migration 84 billing_finance_audit_fixes",
       "descriptorSha256": "ca7a386cf1d78f61278431b987355185cb723c07d3e0fc15bad4ed92886eddb5",
       "projectionSha256": "dc0322e062bffce4ae3385824c2ed892c90e61448387a42a8f7f38fec5f3c029",

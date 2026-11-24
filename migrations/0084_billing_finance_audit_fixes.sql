@@ -10,6 +10,10 @@
 --    payable. They are paid through their supplier; the rule stays (subcontractor
 --    settlement needs it) and only stops being shown to the technician as his own pay.
 --    Amounts, dates and settlements are untouched.
+-- 4. My Pay statements (T25): the artifact and retry guards admitted only role 'worker', so a
+--    project manager's own statement (My Pay is offered to PMs; the repository allows it)
+--    failed with a constraint error (500). The guards now admit 'worker' and
+--    'project_manager'; every other condition is unchanged.
 
 DROP TRIGGER migration_contract_metadata_no_update;
 DROP TRIGGER migration_contract_metadata_no_delete;
@@ -90,3 +94,23 @@ BEGIN SELECT RAISE(ABORT,'audit action is not in the reviewed manifest'); END;
 UPDATE compensation_rule SET worker_visible=0
  WHERE worker_visible=1
    AND worker_id IN (SELECT user_id FROM supplier_user_profile);
+
+DROP TRIGGER worker_statement_artifact_insert_guard;
+CREATE TRIGGER worker_statement_artifact_insert_guard
+BEFORE INSERT ON worker_statement_artifact
+WHEN
+  NOT EXISTS(SELECT 1 FROM deployment_identity d WHERE d.singleton=1 AND d.tenant_id=NEW.tenant_id AND d.deployment_id=NEW.deployment_id) OR
+  NEW.requested_by<>NEW.worker_id OR
+  NOT EXISTS(SELECT 1 FROM user u WHERE u.id=NEW.worker_id AND u.role IN ('worker','project_manager') AND u.status='active') OR
+  NEW.status<>'queued' OR NEW.current_attempt_number<>1 OR NEW.integrity_blocked<>0 OR
+  NEW.media_type IS NOT NULL OR NEW.byte_length IS NOT NULL OR NEW.content_sha256 IS NOT NULL OR NEW.renderer_version IS NOT NULL OR NEW.ready_at IS NOT NULL OR NEW.error_code IS NOT NULL OR NEW.retryable IS NOT NULL OR NEW.started_at IS NOT NULL OR NEW.finished_at IS NOT NULL OR NEW.claimed_job_id IS NOT NULL OR NEW.claimed_job_run_id IS NOT NULL OR NEW.claimed_lease_fence IS NOT NULL
+BEGIN SELECT RAISE(ABORT,'invalid worker statement artifact'); END;
+
+DROP TRIGGER worker_statement_retry_decision_insert_guard;
+CREATE TRIGGER worker_statement_retry_decision_insert_guard
+BEFORE INSERT ON worker_statement_retry_decision
+WHEN NOT EXISTS(
+  SELECT 1 FROM worker_statement_artifact a JOIN user u ON u.id=NEW.requested_by
+  WHERE a.artifact_id=NEW.artifact_id AND a.status='failed' AND a.current_attempt_number=NEW.prior_attempt_number AND a.retryable=1 AND a.integrity_blocked=0 AND a.worker_id=NEW.requested_by AND a.current_attempt_number<a.max_attempts AND u.status='active' AND u.role IN ('worker','project_manager')
+)
+BEGIN SELECT RAISE(ABORT,'invalid worker statement retry decision'); END;

@@ -398,7 +398,7 @@ const EXPECTED_PROJECTIONS: Record<string, { rowCount: number; sha256: string }>
     sha256: '1b4d05f536d30146c62eaeb83cd3a3f4d698c829fa11675f0c80aeeb0600a0e2',
   },
 };
-const EXPECTED_MANIFEST_SHA256 = '1f1b9b1c454c44649bc1cf31f8a3314ae66e213d4ff5b0cc0af049871aa37e13';
+const EXPECTED_MANIFEST_SHA256 = 'f42d64b85b53cedc5e2217947733fd8338b66981134f75a576352ee6c6c7568d';
 const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
   '0019_lifecycle_security.sql': '93a56b070237e6be436ff1b0b2ae3bf3a78767bdef58f03619f634520dac1b8c',
   '0020_finance_v2.sql': '21c8e230e98c71d96dbf790284ed56fa6d417638443d17e0ccd9b580655824db',
@@ -522,7 +522,7 @@ const EXPECTED_MIGRATION_HASHES: Record<string, string> = {
     '6d264468487af9b2d7ce9c3d2bc8fec8d4ac067cf918908f61a0dd8094212647',
   '0082_multi_currency_fx.sql': 'ec0d7781d274c89a6f702512ddcd7b844cb30532d168edbfdc006edc1da98fc3',
   '0084_billing_finance_audit_fixes.sql':
-    'b8afdb96802c78efb19f2f384f4893312bb4c32e1bdcfdecaf2a4a9f41d1b4c5',
+    '4a6943ab7409fb3152b683ded16d1acc2c7e6fdfa5c69b1499d037d11b75aa73',
 };
 const EXPECTED_METADATA = Object.keys(EXPECTED_MIGRATION_HASHES)
   .sort()

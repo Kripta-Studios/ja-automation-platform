@@ -102,6 +102,8 @@
   let search = $state('');
   let selected = $state<Record<string, boolean>>({});
   let startsOn = $state('');
+  // T32: an optional last day, for people who join only for a known period.
+  let endsOn = $state('');
   let payMode = $derived<'defaults' | 'existing' | 'enter'>(
     hasPersonDefaults ? 'defaults' : 'existing',
   );
@@ -110,16 +112,12 @@
   let busy = $state(false);
   let addErrors = $state<string[]>([]);
 
-  function mondayOf(date: string): string {
-    const value = new SvelteDate(`${date}T00:00:00.000Z`);
-    value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
-    return value.toISOString().slice(0, 10);
-  }
-  // New people can log hours from the project start (owner decision
-  // 2026-11-19); without a project start, from this week's Monday.
+  // T32 (role audit 2026-11-22): new people start today, so a quick "Add"
+  // never back-dates an assignment by months; a project that has not started
+  // yet starts on its first day. The owner can still type an earlier date.
   // Always inside the project dates.
   const baseStart = $derived.by(() => {
-    let start = projectStart || mondayOf(today);
+    let start = projectStart && projectStart > today ? projectStart : today;
     if (projectEnd && start > projectEnd) start = projectEnd;
     return start;
   });
@@ -177,13 +175,18 @@
     return people
       .map((person) => ({
         id: person.id,
-        name: (counts.get(person.name) ?? 0) > 1 && person.email ? `${person.name} (${person.email})` : person.name,
+        name: person.name,
+        // T32: the e-mail is always shown under the name to tell look-alike
+        // names apart (for example a login and a display name of one person).
+        email: person.email,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
   const visible = $derived(
     available.filter((worker) =>
-      worker.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+      `${worker.name} ${worker.email}`
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase()),
     ),
   );
   const selectedIds = $derived(Object.keys(selected).filter((id) => selected[id]));
@@ -219,6 +222,7 @@
     for (const workerId of selectedIds) {
       const personStart = startFor(workerId);
       const fields: Record<string, string> = { projectId, workerId, startsOn: personStart };
+      if (endsOn) fields.endsOn = endsOn;
       if (isOwner && payMode === 'defaults') fields.useProjectDefaults = 'on';
       if (isOwner && payMode === 'existing') fields.useExistingFinanceRules = 'on';
       if (isOwner && payMode === 'enter') {
@@ -226,7 +230,7 @@
         fields.compensationRate = workerPay;
         fields.compensationBasis = 'hourly';
         fields.financeEffectiveFrom = personStart;
-        fields.financeEffectiveTo = '';
+        fields.financeEffectiveTo = endsOn;
       }
       try {
         const result = await post(`${base}/app/projects?/assignWorker`, fields);
@@ -434,7 +438,8 @@
             <label class="hub-pick"
               ><input type="checkbox" bind:checked={selected[worker.id]} data-hub-pick={worker.id} />
               <span
-                >{worker.name}{#if lastEndedOn[worker.id]}{#if overlapsEarlier(worker.id)}<small
+                >{worker.name}{#if worker.email}<small class="hub-pick-email">{worker.email}</small
+                  >{/if}{#if lastEndedOn[worker.id]}{#if overlapsEarlier(worker.id)}<small
                       class="hub-pick-note hub-pick-note--warn"
                       data-hub-overlap={worker.id}
                       >{h('rejoinOverlap', { ended: formatDate(lastEndedOn[worker.id]) })}</small
@@ -461,6 +466,15 @@
               oninput={() => (startTouched = true)}
               data-hub-starts-on
             /><small class="surface-intro">{h('startsOnHelp')}</small></label
+          >
+          <label
+            >{h('endsOnOptional')}<input
+              type="date"
+              min={startsOn || projectStart || undefined}
+              max={projectEnd || undefined}
+              bind:value={endsOn}
+              data-hub-ends-on
+            /><small class="surface-intro">{h('endsOnHelp')}</small></label
           >
           <fieldset>
             <legend>{h('payTerms')}</legend>
@@ -906,6 +920,12 @@
     flex-wrap: wrap;
     gap: 0.5rem 1.25rem;
     margin: 1rem 0 0;
+  }
+  .hub-pick-email {
+    display: block;
+    color: var(--ja-muted, #667085);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
   }
   .hub-check {
     display: flex;

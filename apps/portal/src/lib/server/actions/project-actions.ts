@@ -935,15 +935,19 @@ export const projectActions = {
     const context = openPortalRepository(locals);
     try {
       const result = context.repository.createClient(context.principal, parsed.data);
+      // T32/owner-9: confirm with the client code the owner typed, when one was given.
+      const typedCode =
+        typeof parsed.data.clientCode === 'string' ? parsed.data.clientCode.trim() : '';
+      const shownNumber = typedCode || result.clientNumber;
       return {
         ...actionSuccess(
           'action.projects.clientCreated',
-          { clientNumber: result.clientNumber },
-          `Created ${result.clientNumber}`,
+          { clientNumber: shownNumber },
+          `Created ${shownNumber}`,
         ),
         actionName: 'createClient',
         clientId: result.id,
-        clientNumber: result.clientNumber,
+        clientNumber: shownNumber,
       };
     } catch (error) {
       return (

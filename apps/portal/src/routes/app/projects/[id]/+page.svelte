@@ -681,6 +681,14 @@
     ];
     setTimeout(() => (hubToasts = hubToasts.filter((toast) => toast.id !== id)), 6000);
   }
+  // T32: arriving from "New project" (…?created=1) confirms the creation once.
+  onMount(() => {
+    if (page.url.searchParams.get('created') !== '1') return;
+    hubNotify(hubText(locale, 'projectCreatedToast', { number: String(project.project_number ?? '') }), 'success');
+    const url = new URL(page.url);
+    url.searchParams.delete('created');
+    replaceState(url, page.state);
+  });
   const financeExportUrl = $derived(
     base +
       '/app/api/projects/' +

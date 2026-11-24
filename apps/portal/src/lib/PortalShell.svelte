@@ -1579,7 +1579,7 @@
     if (!project || openedCreatedProject === project.id || data.section !== 'projects') return;
     openedCreatedProject = project.id;
     void goto(
-      `${base}/app/projects/${encodeURIComponent(project.id)}?tab=work&lang=${encodeURIComponent(locale)}`,
+      `${base}/app/projects/${encodeURIComponent(project.id)}?tab=work&created=1&lang=${encodeURIComponent(locale)}`,
       {
         replaceState: true,
       },

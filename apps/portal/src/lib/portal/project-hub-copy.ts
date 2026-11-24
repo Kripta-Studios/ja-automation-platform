@@ -181,6 +181,17 @@ const copy = {
   ],
   reason: ['Reason', 'Motivo', 'Motivo'],
   reasonDefault: ['Assignment finished', 'Asignación terminada', 'Atribuição encerrada'],
+  projectCreatedToast: [
+    'Project {number} created.',
+    'Proyecto {number} creado.',
+    'Projeto {number} criado.',
+  ],
+  endsOnOptional: ['Last day (optional)', 'Último día (opcional)', 'Último dia (opcional)'],
+  endsOnHelp: [
+    'Leave empty while the end is not known. You can end the assignment later.',
+    'Déjalo vacío si aún no se sabe. Puedes terminar la asignación más tarde.',
+    'Deixe vazio se ainda não souber. Você pode encerrar a atribuição depois.',
+  ],
   endResolveLater: [
     '{count} hour entries after the end date are not approved yet. Discard the unsent drafts and reject the pending ones with this reason, then end the assignment.',
     'Hay {count} registros de horas después de la fecha de fin sin aprobar. Descartar los borradores sin enviar y rechazar los pendientes con este motivo, y terminar la asignación.',

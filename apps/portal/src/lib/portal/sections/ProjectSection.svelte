@@ -1003,6 +1003,14 @@
           use:dirtyFormGuard={{ initialDirty: Boolean(assignmentProblem) }}
         >
           <h3>{translate('Assign worker')}</h3>
+          {#if role === 'project_manager'}
+            <!-- T39: staffing limits are stated before the PM fills the form. -->
+            <p class="form-help project-section__assignment-help" role="note">
+              {translate(
+                'If a worker is not listed, ask the owner to assign them to a project you manage first.',
+              )}
+            </p>
+          {/if}
           {#if displayedAssignmentProblem}
             <ProblemNotice
               problem={displayedAssignmentProblem}
@@ -1088,19 +1096,21 @@
             <span>{translate('Ends on (optional)')}</span>
             <input name="endsOn" type="date" value={String(assignmentValues?.endsOn ?? '')} />
           </label>
-          <div class="form-help project-section__assignment-finance-handoff" role="status">
-            <strong>{translate('Finance configuration')}</strong>
-            <p>
+          {#if role !== 'project_manager'}
+            <div class="form-help project-section__assignment-finance-handoff" role="status">
+              <strong>{translate('Finance configuration')}</strong>
+              <p>
+                {translate(
+                  'The assignment requires internal cost and compensation covering these dates. If they are missing, ask the project owner to set them before trying again.',
+                )}
+              </p>
+            </div>
+            <p class="form-help project-section__assignment-help">
               {translate(
-                'The assignment requires internal cost and compensation covering these dates. If they are missing, ask the project owner to set them before trying again.',
+                'If a worker is not listed, ask the owner to assign them to a project you manage first.',
               )}
             </p>
-          </div>
-          <p class="form-help project-section__assignment-help">
-            {translate(
-              'If a worker is not listed, ask the owner to assign them to a project you manage first.',
-            )}
-          </p>
+          {/if}
           <button type="submit" disabled={workers.length === 0 || Boolean(blockedAssignmentStatus)}
             >{translate('Assign')}</button
           >

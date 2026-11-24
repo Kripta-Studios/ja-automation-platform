@@ -10,6 +10,8 @@ import {
 import type { ProblemData } from '$lib/problem/contract';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { isRealIsoDate } from '$lib/server/iso-date';
+import { ledgerReadableCsv } from '$lib/server/ledger-readable-csv';
+import { normalizePortalLocale } from '$lib/portal-i18n';
 import { sensitiveExportResponse } from '$lib/server/sensitive-export-response';
 import { agingBuckets, collectionAging, collectionMatches } from '$lib/portal/collections-analysis';
 import {
@@ -243,7 +245,14 @@ export const GET: RequestHandler = ({ locals, params, url }) => {
       ? collectionsWorkbenchCsv(ledger, asOf, report as CollectionReport)
       : format === 'xlsx'
         ? invoiceCollectionLedgerXlsx(ledger)
-        : invoiceCollectionLedgerCsv(ledger);
+        : url.searchParams.get('layout') === 'raw'
+          ? invoiceCollectionLedgerCsv(ledger)
+          : // T49: people open this in a spreadsheet: readable headers in their language,
+            // currency units and a BOM. `layout=raw` keeps the exact machine layout.
+            ledgerReadableCsv(
+              ledger as unknown as readonly Record<string, unknown>[],
+              normalizePortalLocale(url.searchParams.get('lang') ?? 'en'),
+            );
     const filename = period
       ? `ja-invoice-collection-ledger-${period.periodStart}-${period.periodEnd}.${format}`
       : `ja-invoice-collection-ledger-all.${format}`;

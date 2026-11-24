@@ -25,7 +25,10 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       context.repository.markNotificationRead(context.principal, notification.id);
       readAt = new Date().toISOString();
     }
-    if (url.searchParams.get('open') === '1' && !notification.source_unavailable)
+    if (
+      url.searchParams.get('open') === '1' &&
+      !('source_unavailable' in notification && notification.source_unavailable)
+    )
       destination = notificationOpenTarget(url.searchParams.get('to'));
     if (!destination) return { user: locals.user, notification: { ...notification, read_at: readAt } };
   } finally {

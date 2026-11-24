@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '../ui/DirectionIcon.svelte';
   import { onMount } from 'svelte';
+  import { page } from '$app/state';
   import { portalText } from '../../portal-i18n';
   import { clockHoursFromMinutes } from '../minute-hours';
   import { planningAgenda, planningInterval, type AgendaAssignment } from '../planning-agenda';
@@ -40,6 +41,8 @@
     canCreateInvoiceDraft?: boolean;
     invoiceDraftHref?: string | null;
   } = $props();
+  // Active crew chiefs record hours for their crew (root layout flag).
+  const crewChief = $derived((page.data as { crewChief?: boolean }).crewChief === true);
 
   const activeProjects = $derived(
     availableProjects.filter((project) => project.status === 'active'),
@@ -504,6 +507,12 @@
           </span>
         </a>
       </div>
+      {#if crewChief}
+        <a class="worker-home-card worker-home-card--crew" href={link('crew')} data-home-crew>
+          <span class="worker-home-action">{h('crewHours')} <DirectionIcon /></span>
+          <span class="worker-home-status"><strong>{h('crewHoursDetail')}</strong></span>
+        </a>
+      {/if}
       <a class="worker-home-report" href={link('reports', { action: 'daily' })} data-home-report>{h('writeReport')} <DirectionIcon /></a>
     </section>
 

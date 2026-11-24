@@ -113,18 +113,10 @@ export function subsectionsForNavItem(
       link('Field operations overview', '#dashboard-overview'),
       link('Active project board', '#dashboard-project-board'),
     ];
-  if (item.section === 'time') {
-    return [
-      ...(owner ? [link('Enter a week in a table', '#time-owner-batch-title')] : []),
-      link('Filter time entries', '#time-filters'),
-      link('Recent time entries', '#time-records'),
-    ];
-  }
-  if (item.section === 'expenses')
-    return [
-      link('Filter expenses', '#expense-register-filters'),
-      link('Recent expenses', '#expense-records'),
-    ];
+  // Time and Expenses open on their overview; the former list anchors
+  // (#time-records, #expense-records, #time-owner-batch-title) no longer
+  // exist, so no shortcut points at them.
+  if (item.section === 'time' || item.section === 'expenses') return [];
   if (item.section === 'reports')
     return [
       link('Daily', '#report-panel-daily', { view: 'daily' }),
@@ -298,34 +290,33 @@ const grouped = (group: NavGroup, entry: NavItem): NavItem => ({ ...entry, group
  * the worker-safe menu so an incomplete session cannot reveal administrative
  * or financial destinations through the shell.
  */
+export type PortalNavigationOptions = Readonly<{
+  /** The worker holds an active crew-chief delegation today. */
+  crewChief?: boolean;
+}>;
+
 export function portalNavigationForRole(
   base: string,
   role?: string | null,
   workforceProfile?: string,
+  options: PortalNavigationOptions = {},
 ): PortalNavigation {
   const route = (section: string, view?: string): string =>
     `${base}/app/${section}${view ? `?view=${encodeURIComponent(view)}` : ''}`;
 
   if (workforceProfile === 'external_technician' || workforceProfile === 'supplier_coordinator') {
     const coordinator = workforceProfile === 'supplier_coordinator';
-    // One name on desktop and phone (Z6).
-    const supplierTeam = item('supplier', 'Supplier team', '◌');
+    // One "My team" entry (personnel, team hours and report are tabs inside
+    // it) instead of three overlapping entries; Time is the person's own.
+    const myTeam = item('supplier', 'My team', '◌', undefined, { shortLabel: 'Team' });
     const time = item('time', 'Time', '◷');
-    // Crew hours sit next to the coordinator's own Time (P7): one tap to
-    // record the team's hours instead of Supplier → Record team hours.
-    const crewHours = item('supplier', 'Crew hours', '◌', `${route('supplier')}?workspaceAction=time`);
     const expenses = item('expenses', 'Expenses', '◇');
+    const reports = item('reports', 'Reports', '▤');
     return {
       // Field work only (R9/W5): the digital-worker tools are not part of a
       // field worker's navigation (their routes keep their own authorization).
-      primary: [
-        ...(coordinator ? [supplierTeam] : []),
-        time,
-        ...(coordinator ? [crewHours] : []),
-        expenses,
-        item('reports', 'Reports', '▤'),
-      ],
-      ...(coordinator ? { mobile: [time, crewHours, expenses, supplierTeam] } : {}),
+      primary: [...(coordinator ? [myTeam] : []), time, expenses, reports],
+      ...(coordinator ? { mobile: [myTeam, time, expenses, reports] } : {}),
       secondary: [
         item('supplier', 'Operational report', '▤', route('supplier/report')),
         item('profile', 'Profile', '◎'),
@@ -336,20 +327,24 @@ export function portalNavigationForRole(
     };
   }
 
+  // Crew hours only for an active crew chief (T44/T73): then it sits in the
+  // daily bar next to the chief's own Time; everyone else never sees it.
+  const workerToday = item('today', 'Today', '⌂');
+  const workerTime = item('time', 'Time', '◷');
+  const workerCrew = item('crew', 'Crew hours', '◌', undefined, { shortLabel: 'Crew' });
+  const workerExpenses = item('expenses', 'Expenses', '◇');
   const worker: PortalNavigation = {
     primary: [
-      item('today', 'Today', '⌂'),
-      item('time', 'Time', '◷'),
-      item('expenses', 'Expenses', '◇'),
+      workerToday,
+      workerTime,
+      ...(options.crewChief ? [workerCrew] : []),
+      workerExpenses,
       item('reports', 'Reports', '▤'),
     ],
-    secondary: [
-      item('crew', 'Crew hours', '◌'),
-      item('pay', 'My Pay', '$'),
-      item('profile', 'Profile', '◎'),
-    ],
+    secondary: [item('pay', 'My Pay', '$'), item('profile', 'Profile', '◎')],
     admin: [],
     security: [],
+    ...(options.crewChief ? { mobile: [workerToday, workerTime, workerCrew, workerExpenses] } : {}),
   };
 
   switch (role) {
@@ -386,8 +381,14 @@ export function portalNavigationForRole(
         ],
         secondary: [
           item('approvals', 'Approve', '✓'),
-          item('accounting', 'Accounting', '▥'),
-          item('finance', 'Rates', '⚙', route('finance', 'commercial')),
+          grouped('finance', item('finance', 'Cash calendar', '▥', route('finance/cash'))),
+          grouped(
+            'finance',
+            item('finance', 'Subcontractor settlement', '▤', route('finance/subcontractors')),
+          ),
+          grouped('finance', item('finance', 'Currency conversions', '↔', route('finance/conversions'))),
+          grouped('finance', item('accounting', 'Accounting', '▥')),
+          grouped('finance', item('finance', 'Rates', '⚙', route('finance', 'commercial'))),
           item('documents', 'Documents', '▧'),
           item('profile', 'Profile', '◎'),
         ],
@@ -416,6 +417,12 @@ export function portalNavigationForRole(
           grouped('management', item('reports', 'Reports', '▤')),
           grouped('finance', item('finance', 'Money', '↗', route('finance', 'overview'))),
           grouped('finance', item('ledger', 'Payments', '▤')),
+          grouped('finance', item('finance', 'Cash calendar', '▥', route('finance/cash'))),
+          grouped(
+            'finance',
+            item('finance', 'Subcontractor settlement', '▤', route('finance/subcontractors')),
+          ),
+          grouped('finance', item('finance', 'Currency conversions', '↔', route('finance/conversions'))),
           grouped('finance', item('finance', 'Rates', '⚙', route('finance', 'commercial'))),
           grouped('finance', item('accounting', 'Accounting', '▥')),
           grouped('account', item('profile', 'Profile', '◎')),
@@ -425,17 +432,21 @@ export function portalNavigationForRole(
         mobile: [home, approve, time, invoices],
       };
     }
-    case 'auditor_read_only':
+    case 'auditor_read_only': {
+      const auditorMoney = item('finance', 'Money', '↗', route('finance', 'overview'));
+      const auditorProjects = item('projects', 'Projects', '▦');
+      const auditorInvoices = item('billing', 'Invoices', '◫');
+      const auditorPayments = item('ledger', 'Payments', '▤');
       return {
         // Read-only entries for every area the auditor may read (R6); the
         // server still enforces read-only access on each page and action.
         primary: [
-          item('finance', 'Money', '↗', route('finance', 'overview')),
-          item('projects', 'Projects', '▦'),
+          auditorMoney,
+          auditorProjects,
           item('time', 'Time', '◷'),
           item('expenses', 'Expenses', '◇'),
-          item('billing', 'Invoices', '◫'),
-          item('ledger', 'Payments', '▤'),
+          auditorInvoices,
+          auditorPayments,
         ],
         secondary: [
           item('finance', 'Detailed analysis', '∑', route('finance', 'economic')),
@@ -444,7 +455,10 @@ export function portalNavigationForRole(
         ],
         admin: [],
         security: [item('audit', 'Audit', '⌁')],
+        // Phone bar: the money registers the auditor reads most (T74).
+        mobile: [auditorMoney, auditorInvoices, auditorPayments, auditorProjects],
       };
+    }
     case 'worker':
     default:
       return worker;

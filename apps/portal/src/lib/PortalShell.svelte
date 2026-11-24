@@ -1,4 +1,6 @@
 <script lang="ts">
+  import PortalNavIcon from '$lib/PortalNavIcon.svelte';
+  import { navIconPath } from '$lib/portal/nav-icons';
   import { personDisplayName } from './portal/display-name';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -500,7 +502,9 @@
   }
 
   const roleNavigation = $derived(
-    portalNavigationForRole(base, data.user.role, data.user.workforceProfile),
+    portalNavigationForRole(base, data.user.role, data.user.workforceProfile, {
+      crewChief: ($page.data as { crewChief?: boolean }).crewChief === true,
+    }),
   );
   const canUseGlobalSearch = $derived(
     !['external_technician', 'supplier_coordinator'].includes(data.user.workforceProfile ?? ''),
@@ -3977,7 +3981,10 @@
       <section class="record-list full search-results" aria-live="polite">
         <div class="panel-title">
           <h2>{translate('Search results')}</h2>
-          <span>{data.searchResults?.length ?? 0} {translate('matches')}</span>
+          <span
+            >{data.searchResults?.length ?? 0}
+            {translate((data.searchResults?.length ?? 0) === 1 ? 'match' : 'matches')}</span
+          >
         </div>
         {#each groupedSearchResults as group}
           <div class="search-result-group" role="group" aria-label={group.label}>
@@ -4019,7 +4026,7 @@
         <!-- Y3: coordinators record their crew's hours on the supplier workspace. -->
         <p class="crew-hours-link">
           <a class="secondary-button" href={`${base}/app/supplier?workspaceAction=time`}
-            >{translate('Crew hours')} <DirectionIcon /></a
+            >{translate('Record team hours')} <DirectionIcon /></a
           >
         </p>
       {/if}
@@ -8104,6 +8111,8 @@
         aria-label={pending > 0
           ? `${translate(item.label)} · ${pending} ${translate('pending')}`
           : undefined}
+        ><span class="bottom-nav-icon" aria-hidden="true"
+          ><PortalNavIcon path={navIconPath(item.label)} /></span
         ><span class="bottom-nav-label">{translate(item.shortLabel ?? item.label)}</span
         >{#if pending > 0}<span class="bottom-nav-badge" aria-hidden="true"
             >{pending > 99 ? '99+' : pending}</span
@@ -8118,6 +8127,9 @@
       onclick={() => (menuOpen = true)}
       class:active={Boolean(activeDestination) && !mobileNavigation.includes(activeDestination!)}
     >
+      <span class="bottom-nav-icon" aria-hidden="true"
+        ><PortalNavIcon path="M5 12h.01M12 12h.01M19 12h.01" /></span
+      >
       <span class="bottom-nav-label">{translate('More')}</span>
     </button>
   </nav>

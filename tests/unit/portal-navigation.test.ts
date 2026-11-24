@@ -82,14 +82,21 @@ describe('searchable navigation settings', () => {
 
 describe('portal role navigation contract', () => {
   it('keeps the worker menu operational and free of administrative destinations', () => {
-    expect(labels('worker')).toEqual([
+    // Crew hours only for an active crew chief (audit T44/T73).
+    expect(labels('worker')).toEqual(['Today', 'Time', 'Expenses', 'Reports', 'My Pay', 'Profile']);
+    const chief = portalNavigationForRole('/j-aautomation', 'worker', undefined, { crewChief: true });
+    expect(chief.primary.map((item) => item.label)).toEqual([
       'Today',
       'Time',
+      'Crew hours',
       'Expenses',
       'Reports',
+    ]);
+    expect(mobilePrimaryNavigationFor(chief).map((item) => item.label)).toEqual([
+      'Today',
+      'Time',
       'Crew hours',
-      'My Pay',
-      'Profile',
+      'Expenses',
     ]);
     expect(labels('worker')).not.toEqual(
       expect.arrayContaining(['Projects', 'Billing', 'Finance']),
@@ -143,6 +150,10 @@ describe('portal role navigation contract', () => {
       'Invoices',
       'Payments',
       'Approve',
+      // Former orphan finance pages now have entries (audit T72).
+      'Cash calendar',
+      'Subcontractor settlement',
+      'Currency conversions',
       'Accounting',
       'Rates',
       'Documents',
@@ -192,7 +203,17 @@ describe('portal role navigation contract', () => {
       ],
       [
         'finance',
-        ['Money', 'Payments', 'Rates', 'Accounting', 'Data management', 'Audit'],
+        [
+          'Money',
+          'Payments',
+          'Cash calendar',
+          'Subcontractor settlement',
+          'Currency conversions',
+          'Rates',
+          'Accounting',
+          'Data management',
+          'Audit',
+        ],
       ],
     ]);
     // Profile lives in the account menu only.
@@ -216,6 +237,9 @@ describe('portal role navigation contract', () => {
       'Reports',
       'Money',
       'Payments',
+      'Cash calendar',
+      'Subcontractor settlement',
+      'Currency conversions',
       'Rates',
       'Accounting',
       'Profile',
@@ -417,7 +441,7 @@ describe('active portal navigation destination', () => {
     const nav = portalNavigationForRole(base, 'worker', 'supplier_coordinator');
     const items = [...nav.primary, ...nav.secondary];
     expect(activeNavItem(items, location('supplier?lang=pt', 'supplier'))?.label).toBe(
-      'Supplier team',
+      'My team',
     );
     expect(
       activeNavItem(items, location('supplier/report?month=2026-09&lang=pt', 'supplier'))?.label,
@@ -432,3 +456,25 @@ describe('active portal navigation destination', () => {
     expect(activeNavItem(items, location('help?lang=es', 'help', 'worker'))).toBeUndefined();
   });
 });
+
+describe('audit G5 phone bars and supplier navigation', () => {
+  it('gives the auditor a phone bar with the money registers (T74)', () => {
+    const auditor = portalNavigationForRole('/j-aautomation', 'auditor_read_only');
+    expect(mobilePrimaryNavigationFor(auditor).map((item) => item.label)).toEqual([
+      'Money',
+      'Invoices',
+      'Payments',
+      'Projects',
+    ]);
+  });
+
+  it('gives the supplier coordinator one team entry, no duplicate crew entry (T71/T34)', () => {
+    const coordinator = portalNavigationForRole('/j-aautomation', 'worker', 'supplier_coordinator');
+    const labels = [...coordinator.primary, ...coordinator.secondary].map((item) => item.label);
+    expect(labels).not.toContain('Crew hours');
+    expect(labels.filter((label) => label === 'My team')).toHaveLength(1);
+    const phone = mobilePrimaryNavigationFor(coordinator);
+    expect(new Set(phone.map((item) => item.section + (item.href ?? ''))).size).toBe(phone.length);
+  });
+});
+

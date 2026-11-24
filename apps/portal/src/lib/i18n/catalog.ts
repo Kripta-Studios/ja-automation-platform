@@ -28,6 +28,13 @@ export type PortalLocaleInput =
 export type DocumentLanguage = 'en-US' | 'es-ES' | 'pt-BR';
 
 const en = {
+  "My team": "My team",
+  "Record team hours": "Record team hours",
+  "Crew": "Crew",
+  "Crew hours": "Crew hours",
+  "Subcontractor settlement": "Subcontractor settlement",
+  "Currency conversions": "Currency conversions",
+  "match": "match",
   "unread": "unread",
   "Person": "Person",
   "Last change by": "Last change by",
@@ -687,6 +694,13 @@ export type PortalTranslationKey = keyof typeof en | (typeof supplementalKeys)[n
 type Catalog = Record<PortalTranslationKey, string>;
 
 const esBase: Record<keyof typeof en, string> = {
+  "My team": "Mi equipo",
+  "Record team hours": "Registrar horas del equipo",
+  "Crew": "Equipo",
+  "Crew hours": "Horas del equipo",
+  "Subcontractor settlement": "Liquidación de subcontratistas",
+  "Currency conversions": "Conversiones de moneda",
+  "match": "coincidencia",
   "unread": "sin leer",
   "Person": "Persona",
   "Last change by": "Último cambio de",
@@ -1348,6 +1362,13 @@ const esBase: Record<keyof typeof en, string> = {
 };
 
 const ptBase: Record<keyof typeof en, string> = {
+  "My team": "Minha equipe",
+  "Record team hours": "Registrar horas da equipe",
+  "Crew": "Equipe",
+  "Crew hours": "Horas da equipe",
+  "Subcontractor settlement": "Acerto de subcontratados",
+  "Currency conversions": "Conversões de moeda",
+  "match": "resultado",
   "unread": "não lidas",
   "Person": "Pessoa",
   "Last change by": "Última alteração por",

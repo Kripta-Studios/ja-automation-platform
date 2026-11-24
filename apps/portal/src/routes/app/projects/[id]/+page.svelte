@@ -524,6 +524,20 @@
   const pendingTotal = $derived(
     hub.pending.timeCount + hub.pending.expenseCount + hub.pending.reportCount,
   );
+  // The KPI counts what this viewer can approve (the Approve badge and Home
+  // use the same reviewable count); others' records are a sub-line. The
+  // auditor approves nothing, so it sees the full pending picture.
+  const waitingFigure = $derived.by(() => {
+    const source = isAuditor ? hub.pending : hub.reviewable;
+    const total = source.timeCount + source.expenseCount + source.reportCount;
+    return {
+      total,
+      timeMinutes: source.timeMinutes,
+      expenseCount: source.expenseCount,
+      reportCount: source.reportCount,
+      others: isAuditor ? 0 : Math.max(0, pendingTotal - total),
+    };
+  });
   function tabHref(tab: TabId, extra = ''): string {
     return `${projectHref}?tab=${tab}${extra}&lang=${locale}`;
   }
@@ -1421,18 +1435,24 @@
       <svelte:element
         this={isAuditor ? 'div' : 'a'}
         class="hub-figure"
-        class:hub-figure--attention={pendingTotal > 0}
+        class:hub-figure--attention={waitingFigure.total > 0}
         href={isAuditor ? undefined : approvalsHref}
       >
+        <!-- Same number as the Approve badge and Home: what this viewer can approve. -->
         <span>{h('figWaiting')}</span>
-        <strong>{pendingTotal}</strong>
+        <strong>{waitingFigure.total}</strong>
         <small
           >{h('figWaitingDetail', {
-            hours: hours(hub.pending.timeMinutes),
-            expenses: hub.pending.expenseCount,
-            reports: hub.pending.reportCount,
+            hours: hours(waitingFigure.timeMinutes),
+            expenses: h(waitingFigure.expenseCount === 1 ? 'expensesOne' : 'expensesOther', {
+              count: waitingFigure.expenseCount,
+            }),
+            reports: h(waitingFigure.reportCount === 1 ? 'reportsOne' : 'reportsOther', {
+              count: waitingFigure.reportCount,
+            }),
           })}</small
         >
+        {#if waitingFigure.others > 0}<small>{h('figWaitingOthers', { count: waitingFigure.others })}</small>{/if}
       </svelte:element>
     {/if}
   </section>

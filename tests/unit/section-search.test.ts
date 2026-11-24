@@ -135,3 +135,30 @@ describe('coordinated section and task search', () => {
     }
   });
 });
+
+describe('audit T29: sections are found by name prefix, typo and any language', () => {
+  const nav: NavItem[] = [
+    { section: 'ledger', label: 'Payments', icon: '▤', href: '/app/ledger' },
+    { section: 'billing', label: 'Invoices', icon: '◫', href: '/app/billing' },
+    { section: 'crew', label: 'Crew hours', icon: '◌', href: '/app/crew' },
+  ];
+  const real = (locale: 'en' | 'es' | 'pt') => ({
+    ...options('auditor_read_only', locale, nav),
+    translate: (key: string) => key,
+  });
+  it.each([
+    ['pay', 'en', 'Payments'],
+    ['inv', 'en', 'Invoices'],
+    ['invoce', 'en', 'Invoices'],
+    ['facturas', 'en', 'Invoices'],
+    ['cobros', 'es', 'Payments'],
+    ['faturas', 'pt', 'Invoices'],
+  ] as const)('"%s" (%s) finds %s', (query, locale, label) => {
+    const result = searchSectionDestinations(query, real(locale));
+    expect(result.sections.map((entry) => entry.label)).toContain(label);
+  });
+  it('still never matches inside a word', () => {
+    expect(searchSectionDestinations('ments', real('en')).sections).toEqual([]);
+  });
+});
+

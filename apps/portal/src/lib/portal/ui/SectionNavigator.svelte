@@ -105,6 +105,13 @@
       .filter((task): task is AssistantTask => Boolean(task))
       .slice(0, 4);
   });
+  // The example task is one this account can really do (never "create
+  // invoice" for a worker), and records are only promised when searchable.
+  const hint = $derived.by(() => {
+    const example = suggestedTasks[0]?.title[locale]?.toLowerCase();
+    if (!example) return copy.hint;
+    return (canSearchRecords ? copy.hintTaskRecords : copy.hintTask).replace('{task}', example);
+  });
   const resultTotal = $derived(
     query.trim() ? results.count + records.length : items.length + suggestedTasks.length,
   );
@@ -247,7 +254,7 @@
       aria-label={translate('Close')}>×</button
     >
   </div>
-  <p id={`${id}-description`}>{copy.hint}</p>
+  <p id={`${id}-description`}>{hint}</p>
   <label class="visually-hidden" for={`${id}-search`}>{copy.label}</label>
   <input
     id={`${id}-search`}

@@ -14,7 +14,9 @@
   const locale = $derived(normalizePortalLocale(data.locale));
   const translate = (text: string) => portalText(locale, text);
   const navigation = $derived(
-    portalNavigationForRole(base, data.managementUser.role, data.managementUser.workforceProfile),
+    portalNavigationForRole(base, data.managementUser.role, data.managementUser.workforceProfile, {
+      crewChief: (page.data as { crewChief?: boolean }).crewChief === true,
+    }),
   );
   const chromeData = $derived({ section: 'manage', user: data.managementUser });
   const owner = $derived(data.managementUser.role === 'owner_admin');

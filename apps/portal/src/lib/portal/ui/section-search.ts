@@ -1,6 +1,7 @@
 import { searchAssistantTasks } from '../assistant/matcher';
 import type { AssistantContext, AssistantLocale, AssistantTask } from '../assistant/types';
 import { portalLandingForRole, type NavItem, type NavShortcut } from '../../portal-navigation';
+import { portalText } from '../../portal-i18n';
 
 export type SectionSearchKind = 'action' | 'configuration' | 'section';
 
@@ -53,9 +54,66 @@ export function workspaceRecordSearchHref(
   return `${target.pathname}${target.search}${target.hash}`;
 }
 
+/** Levenshtein distance capped at 2 (enough for a one-letter typo check). */
+function editDistanceAtMost1(left: string, right: string): boolean {
+  if (Math.abs(left.length - right.length) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let edits = 0;
+  while (i < left.length && j < right.length) {
+    if (left[i] === right[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    edits += 1;
+    if (edits > 1) return false;
+    if (left.length > right.length) i += 1;
+    else if (right.length > left.length) j += 1;
+    else {
+      i += 1;
+      j += 1;
+    }
+  }
+  return edits + (left.length - i) + (right.length - j) <= 1;
+}
+
+/**
+ * A query word matches a label word when it is the start of it ("pay" →
+ * "Payments", "inv" → "Invoices") or, for words of five letters or more, one
+ * typo away ("invoce" → "invoice"). Matching stays word-anchored, so "iva"
+ * never matches "privado".
+ */
+export function sectionTokenMatches(queryToken: string, candidateToken: string): boolean {
+  if (candidateToken === queryToken) return true;
+  if (queryToken.length >= 2 && candidateToken.startsWith(queryToken)) return true;
+  if (queryToken.length < 5) return false;
+  // One typo in the word or in the start of a longer word.
+  return [
+    candidateToken,
+    candidateToken.slice(0, queryToken.length),
+    candidateToken.slice(0, queryToken.length + 1),
+  ].some((candidate) => editDistanceAtMost1(queryToken, candidate));
+}
+
 function containsEveryQueryToken(queryTokens: readonly string[], candidate: string): boolean {
-  const candidateTokens = new Set(sectionSearchTokens(candidate));
-  return queryTokens.every((token) => candidateTokens.has(token));
+  const candidateTokens = [...new Set(sectionSearchTokens(candidate))];
+  return queryTokens.every((token) =>
+    candidateTokens.some((candidateToken) => sectionTokenMatches(token, candidateToken)),
+  );
+}
+
+/** A section is found by its name in any portal language (EN/ES/PT-BR). */
+function labelInEveryLocale(label: string, translate: (key: string) => string): string {
+  const names = new Set([translate(label), label]);
+  for (const locale of ['en', 'es', 'pt'] as const) {
+    try {
+      names.add(portalText(locale, label));
+    } catch {
+      // Untranslated labels still match in the current language.
+    }
+  }
+  return [...names].join(' ');
 }
 
 function isConfigurationTask(task: AssistantTask): boolean {
@@ -125,7 +183,12 @@ export function searchSectionDestinations(
       'parentLabel' in item && typeof item.parentLabel === 'string'
         ? translate(item.parentLabel)
         : undefined;
-    if (!containsEveryQueryToken(queryTokens, `${label} ${parentLabel ?? ''}`)) continue;
+    const searchable = `${labelInEveryLocale(item.label, translate)} ${
+      'parentLabel' in item && typeof item.parentLabel === 'string'
+        ? labelInEveryLocale(item.parentLabel, translate)
+        : ''
+    }`;
+    if (!containsEveryQueryToken(queryTokens, searchable)) continue;
 
     const href = itemHref(item);
     const key = destinationKey(href);

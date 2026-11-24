@@ -889,11 +889,12 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
       .get() as { migration_version: number; migration_name: string } | undefined;
 
     expect({ version, metadata: metadata ?? null }).toEqual({
-      version: 82,
+      version: 85,
       metadata: { migration_version: 28, migration_name: 'client_essential_20260824' },
     });
     expect(sqlite.prepare('SELECT version FROM schema_migration ORDER BY version').all()).toEqual(
-      Array.from({ length: 82 }, (_, index) => ({ version: index + 1 })),
+      // Versions 83 and 84 are reserved by parallel work packets; this branch ships 85 on top of 82.
+      [...Array.from({ length: 82 }, (_, index) => ({ version: index + 1 })), { version: 85 }],
     );
   });
 
@@ -1871,7 +1872,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
     expect(sqlite.prepare('PRAGMA foreign_key_check').all()).toEqual([]);
     expect(integrityCheck(sqlite)).toBe('ok');
     expect(sqlite.prepare('SELECT MAX(version) AS version FROM schema_migration').get()).toEqual({
-      version: 82,
+      version: 85,
     });
   });
 
@@ -1950,7 +1951,11 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
           'SELECT migration_version FROM migration_contract_metadata ORDER BY migration_version',
         )
         .all(),
-    ).toEqual(Array.from({ length: 64 }, (_, index) => ({ migration_version: index + 19 })));
+    ).toEqual([
+      // 19..82, then 85 (83 and 84 are reserved by parallel work packets).
+      ...Array.from({ length: 64 }, (_, index) => ({ migration_version: index + 19 })),
+      { migration_version: 85 },
+    ]);
     expect(() =>
       sqlite
         .prepare(

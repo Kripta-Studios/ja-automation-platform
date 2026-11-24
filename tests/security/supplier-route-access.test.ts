@@ -50,12 +50,13 @@ describe('supplier operational surface', () => {
 
   it.each(profiles)('preserves existing operational routes for %s', (profile) => {
     for (const path of [
-      '/time',
+      ...(profile === 'external_technician'
+        ? ['/time', '/time/__data.json', '/expenses', '/expenses/__data.json']
+        : []),
       '/time/own-id',
       '/crew',
       '/crew/__data.json',
       '/crew/time/own-id',
-      '/expenses',
       '/expenses/own-id',
       '/help/employee-field-guide/download',
       '/help/worker-reference/download',
@@ -65,7 +66,6 @@ describe('supplier operational surface', () => {
       '/supplier',
       '/supplier/report',
       '/supplier/report.csv',
-      '/time/__data.json',
       '/api/localized-pdf',
       '/api/expenses/crew-workers',
       '/api/expenses/time-options',
@@ -80,6 +80,16 @@ describe('supplier operational surface', () => {
     ]) {
       expect(supplierRouteAllowed(path, profile)).toBe(true);
     }
+  });
+
+  it('gives a supplier coordinator no own timesheet or expense claims (D3)', () => {
+    for (const path of ['/time', '/time/__data.json', '/expenses', '/expenses/__data.json']) {
+      expect(supplierRouteAllowed(path, 'supplier_coordinator')).toBe(false);
+      expect(supplierRouteAllowed(path, 'external_technician')).toBe(true);
+    }
+    // Earlier own records stay readable by id; the team hours live in /supplier.
+    expect(supplierRouteAllowed('/time/own-id', 'supplier_coordinator')).toBe(true);
+    expect(supplierRouteAllowed('/supplier', 'supplier_coordinator')).toBe(true);
   });
 
   it('allows Digital Workers capture only for external technicians', () => {

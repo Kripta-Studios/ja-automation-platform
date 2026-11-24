@@ -4,6 +4,14 @@ export type RestrictedWorkforceProfile = 'external_technician' | 'supplier_coord
 
 export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceProfile): boolean {
   const route = path.replace(/\/__data\.json$/u, '').replace(/\/$/u, '') || '/';
+  // D3: a supplier coordinator records his technicians' hours in the supplier
+  // workspace; he has no own J&A timesheet or expense claims. His earlier
+  // own records stay readable by id.
+  if (
+    profile === 'supplier_coordinator' &&
+    ['/time', '/expenses'].includes(route)
+  )
+    return false;
   if (
     profile === 'external_technician' &&
     ['/workflow', '/workflow/capture', '/api/workflow/extract'].includes(route)

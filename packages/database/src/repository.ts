@@ -4765,6 +4765,10 @@ export class PortalRepository {
     options: Readonly<{ allowSeparateExpense?: boolean }> = {},
   ) {
     this.assertActive(principal);
+    // D3: a supplier coordinator is not a J&A worker; J&A does not reimburse
+    // his own expenses. His company invoices J&A for its own costs.
+    if (workerId === principal.userId && isSupplierCoordinator(this.sqlite, workerId))
+      throw new AccessDeniedError('Supplier coordinators do not record own expenses here');
     return this.transaction(() => {
       const delegated = principal.role === 'worker' && workerId !== principal.userId;
       const grantId = delegated

@@ -268,6 +268,12 @@
   // ---------- end assignment ----------
   let endingId = $state('');
   let endReason = $state('');
+  // T19: unapproved hours after the end date can be resolved with the removal.
+  let laterTimeCount = $state(0);
+  let resolveLaterTime = $state(false);
+  // D5/T42: supplier staff assignments are the owner's (and the supplier's).
+  const isSupplierStaff = (row: Assignment) =>
+    row.role === 'external_technician' || row.role === 'supplier_coordinator';
   async function endAssignment(row: Assignment) {
     if (busy) return;
     busy = true;
@@ -276,12 +282,32 @@
         assignmentId: row.id,
         version: String(row.version),
         reason: endReason.trim() || h('reasonDefault'),
+        ...(resolveLaterTime && laterTimeCount ? { resolveLaterTime: 'yes' } : {}),
       });
       if (result.type === 'success') {
-        notify(h('ended', { name: row.name }), 'success');
+        const done = (result.data ?? {}) as { discardedLaterTime?: number; rejectedLaterTime?: number };
+        notify(
+          done.discardedLaterTime || done.rejectedLaterTime
+            ? h('endResolvedLater', {
+                name: row.name,
+                discarded: String(done.discardedLaterTime ?? 0),
+                rejected: String(done.rejectedLaterTime ?? 0),
+              })
+            : h('ended', { name: row.name }),
+          'success',
+        );
         endingId = '';
+        laterTimeCount = 0;
+        resolveLaterTime = false;
         await invalidateAll();
-      } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
+      } else {
+        const failure = result.type === 'failure' ? result.data : null;
+        const resolvable = Number(
+          (failure as { resolvableLaterTime?: unknown } | null)?.resolvableLaterTime ?? 0,
+        );
+        if (resolvable > 0 && !resolveLaterTime) laterTimeCount = resolvable;
+        notify(describe(failure), 'danger');
+      }
     } catch {
       notify(describe(null), 'danger');
     } finally {
@@ -563,7 +589,9 @@
               {/if}
             </div>
           {/if}
-          {#if canManage && (isOwner || row.workerId !== viewerId)}
+          {#if canManage && !isOwner && isSupplierStaff(row)}
+            <small class="surface-intro">{h('supplierStaffByOwner')}</small>
+          {:else if canManage && (isOwner || row.workerId !== viewerId)}
             <!-- Y5: a project manager does not end their own membership (the owner does). -->
             <button
               type="button"
@@ -572,6 +600,8 @@
               onclick={() => {
                 endingId = endingId === row.id ? '' : row.id;
                 endReason = h('reasonDefault');
+                laterTimeCount = 0;
+                resolveLaterTime = false;
               }}>{h('endAssignment')}</button
             >
           {/if}
@@ -606,6 +636,12 @@
               <strong>{h('endAssignmentTitle', { name: row.name })}</strong>
               <p>{h('endAssignmentHelp')}</p>
               <label>{h('reason')}<input bind:value={endReason} maxlength="2000" /></label>
+              {#if laterTimeCount}
+                <label class="hub-check" data-hub-end-resolve
+                  ><input type="checkbox" bind:checked={resolveLaterTime} />
+                  {h('endResolveLater', { count: laterTimeCount })}</label
+                >
+              {/if}
               <div class="hub-inline-actions">
                 <button type="button" class="secondary-button" onclick={() => (endingId = '')}
                   >{h('cancel')}</button
@@ -870,6 +906,12 @@
     flex-wrap: wrap;
     gap: 0.5rem 1.25rem;
     margin: 1rem 0 0;
+  }
+  .hub-check {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin: 0.5rem 0;
   }
   .danger-button {
     min-height: var(--ja-target-min, 2.75rem);

@@ -14160,7 +14160,7 @@ export class PortalRepository {
     principal: Principal,
     assignmentId: string,
     input: AssignmentRemovalInput,
-  ): void {
+  ): { discarded: number; rejected: number } {
     return this.workforce.removeAssignment(principal, assignmentId, input);
   }
 

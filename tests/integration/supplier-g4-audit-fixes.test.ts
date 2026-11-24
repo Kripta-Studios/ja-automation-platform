@@ -271,3 +271,77 @@ describe('revoking an installation authorization (T06)', () => {
     );
   });
 });
+
+describe('ending an assignment with later unapproved hours (T19) and supplier staff (T42)', () => {
+  function laterHours() {
+    const context = setup();
+    const { fixture, suppliers, coordinator, technician } = context;
+    const later = (days: number, summary: string) =>
+      suppliers.createTime(coordinator, {
+        workerId: technician.id,
+        projectId: fixture.project.id,
+        workDate: shift(today, days),
+        category: 'regular',
+        minutes: 120,
+        summary,
+      });
+    const draft = later(2, 'Planned commissioning');
+    const pending = later(3, 'Planned commissioning, sent');
+    suppliers.submitTime(coordinator, { id: pending.id, version: pending.version });
+    const assignment = fixture.sqlite
+      .prepare("SELECT id,version FROM project_member WHERE user_id=? AND status='active'")
+      .get(technician.id) as { id: string; version: number };
+    return { ...context, draft, pending, assignment };
+  }
+  const state = (fixture: B5LifecycleSecurityFixture, id: string) =>
+    (
+      fixture.sqlite.prepare('SELECT approval_state s FROM time_entry WHERE id=?').get(id) as {
+        s: string;
+      }
+    ).s;
+
+  it('names the resolvable later hours, then discards drafts and rejects pending ones on request', () => {
+    const { fixture, draft, pending, assignment } = laterHours();
+    let refusal: unknown;
+    try {
+      fixture.repository.removeAssignment(fixture.owner, assignment.id, {
+        reason: 'Installation finished early',
+        version: assignment.version,
+      });
+    } catch (error) {
+      refusal = error;
+    }
+    expect(refusal).toMatchObject({ resolvableLaterTime: 2 });
+    expect(state(fixture, draft.id)).toBe('draft');
+
+    expect(
+      fixture.repository.removeAssignment(fixture.owner, assignment.id, {
+        reason: 'Installation finished early',
+        version: assignment.version,
+        resolveLaterTime: true,
+      }),
+    ).toEqual({ discarded: 1, rejected: 1 });
+    expect(state(fixture, draft.id)).toBe('void');
+    expect(state(fixture, pending.id)).toBe('rejected');
+    expect(
+      fixture.sqlite
+        .prepare("SELECT reason FROM approval_event WHERE entity_id=? AND to_state='rejected'")
+        .get(pending.id),
+    ).toEqual({ reason: 'Assignment ended: Installation finished early' });
+    expect(
+      fixture.sqlite.prepare('SELECT status,ends_on FROM project_member WHERE id=?').get(assignment.id),
+    ).toEqual({ status: 'inactive', ends_on: today });
+  });
+
+  it('lets no project manager end or change a supplier technician assignment (D5)', () => {
+    const { fixture, assignment } = laterHours();
+    const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'g4-manager');
+    expect(() =>
+      fixture.repository.removeAssignment(manager, assignment.id, {
+        reason: 'PM tries to end supplier staff',
+        version: assignment.version,
+        resolveLaterTime: true,
+      }),
+    ).toThrow('Supplier staff assignments are managed by the owner');
+  });
+});

@@ -165,6 +165,14 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
       'You cannot change project settings with this access. Contact an owner or finance administrator.',
     remedy: 'contact_owner',
   },
+  'Supplier staff assignments are managed by the owner': {
+    status: 403,
+    code: 'ASSIGNMENT_SUPPLIER_STAFF_OWNER',
+    messageKey: 'problem.assignment.supplierStaffOwner',
+    message:
+      'Supplier staff assignments are managed by the owner and the supplier coordinator. Ask the owner to change this assignment.',
+    remedy: 'contact_owner',
+  },
   'Assignment administration required': {
     status: 403,
     code: 'ASSIGNMENT_ADMIN_REQUIRED',
@@ -2361,7 +2369,13 @@ export const projectActions = {
         ) {
           if (!assignmentStartWithinProjectDates(context.sqlite, after.project_id, after.starts_on))
             throw new ValidationError('Worker assignment start date must be within project dates');
+          // T19: shortening an assignment never needs new finance rules; only
+          // dates that reach outside the old interval must be covered.
+          const extends_ =
+            after.starts_on < before.starts_on ||
+            (after.ends_on ?? '9999-12-31') > (before.ends_on ?? '9999-12-31');
           if (
+            extends_ &&
             !hasAssignmentFinanceCoverage(
               context.sqlite,
               after.project_id,
@@ -2450,21 +2464,32 @@ export const projectActions = {
       );
     const context = openPortalRepository(locals);
     try {
-      context.repository.removeAssignment(context.principal, id, {
+      const resolved = context.repository.removeAssignment(context.principal, id, {
         endsOn: formData.get('endsOn')?.toString() || undefined,
         reason,
         version,
+        resolveLaterTime: formData.get('resolveLaterTime')?.toString() === 'yes',
       });
-      return actionSuccess('action.projects.assignmentDeleted', {}, 'Assignment removed');
+      return {
+        ...actionSuccess('action.projects.assignmentDeleted', {}, 'Assignment removed'),
+        discardedLaterTime: resolved?.discarded ?? 0,
+        rejectedLaterTime: resolved?.rejected ?? 0,
+      };
     } catch (error) {
-      return (
-        knownProjectFailure(error, {
-          correlationId: locals.correlationId,
-          recordId: id,
-          actionName: 'removeAssignment',
-          values: extras.values,
-        }) ?? actionFailure(error, extras)
-      );
+      // T19: say how many unapproved hours after the end date could be
+      // resolved together with the removal, so the form can offer it.
+      const resolvable = (error as { resolvableLaterTime?: unknown } | null)?.resolvableLaterTime;
+      const known = knownProjectFailure(error, {
+        correlationId: locals.correlationId,
+        recordId: id,
+        actionName: 'removeAssignment',
+        values: extras.values,
+      });
+      if (known && typeof resolvable === 'number' && resolvable > 0) {
+        const data = (known as { data?: Record<string, unknown> }).data;
+        if (data) data.resolvableLaterTime = resolvable;
+      }
+      return known ?? actionFailure(error, extras);
     } finally {
       context.sqlite.close();
     }

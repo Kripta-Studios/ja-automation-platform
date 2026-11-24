@@ -135,6 +135,8 @@ const en = {
     'Enable project defaults for this assignment, or use individual terms.',
   'problem.assignment.recordedHistory':
     'These dates would exclude recorded time, expenses or reports. Keep dates that cover the recorded work, then save again.',
+  'problem.assignment.supplierStaffOwner':
+    'Supplier staff assignments are managed by the owner and the supplier coordinator. Ask the owner to change this assignment.',
   'problem.assignment.projectDefaultsUnavailable':
     'No saved project defaults cover this assignment start date. Configure defaults or enter individual terms.',
 
@@ -794,6 +796,8 @@ const esBase: Record<keyof typeof en, string> = {
     'Activa los valores predeterminados del proyecto para esta asignación o introduce condiciones individuales.',
   'problem.assignment.recordedHistory':
     'Estas fechas excluirían horas, gastos o informes registrados. Mantén fechas que cubran el trabajo registrado y vuelve a guardar.',
+  'problem.assignment.supplierStaffOwner':
+    'Las asignaciones del personal del proveedor las gestionan el propietario y el coordinador del proveedor. Pide al propietario que cambie esta asignación.',
   'problem.assignment.projectDefaultsUnavailable':
     'Ningún valor predeterminado guardado cubre el inicio de esta asignación. Configura los valores predeterminados o introduce condiciones individuales.',
   'problem.finance.reimbursementDateInvalid':
@@ -1452,6 +1456,8 @@ const ptBase: Record<keyof typeof en, string> = {
     'Ative os padrões do projeto para esta atribuição ou informe condições individuais.',
   'problem.assignment.recordedHistory':
     'Estas datas excluiriam horas, despesas ou relatórios registrados. Mantenha datas que cubram o trabalho registrado e salve novamente.',
+  'problem.assignment.supplierStaffOwner':
+    'As atribuições da equipe do fornecedor são geridas pelo proprietário e pelo coordenador do fornecedor. Peça ao proprietário para alterar esta atribuição.',
   'problem.assignment.projectDefaultsUnavailable':
     'Nenhum padrão salvo abrange o início desta atribuição. Configure os padrões ou informe condições individuais.',
   'problem.finance.reimbursementDateInvalid':

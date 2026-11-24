@@ -181,6 +181,21 @@ const copy = {
   ],
   reason: ['Reason', 'Motivo', 'Motivo'],
   reasonDefault: ['Assignment finished', 'Asignación terminada', 'Atribuição encerrada'],
+  endResolveLater: [
+    '{count} hour entries after the end date are not approved yet. Discard the unsent drafts and reject the pending ones with this reason, then end the assignment.',
+    'Hay {count} registros de horas después de la fecha de fin sin aprobar. Descartar los borradores sin enviar y rechazar los pendientes con este motivo, y terminar la asignación.',
+    'Há {count} registros de horas após a data de término ainda não aprovados. Descartar os rascunhos não enviados e rejeitar os pendentes com este motivo, e encerrar a atribuição.',
+  ],
+  endResolvedLater: [
+    '{name}: assignment ended. {discarded} drafts discarded, {rejected} pending entries rejected.',
+    '{name}: asignación terminada. {discarded} borradores descartados, {rejected} registros pendientes rechazados.',
+    '{name}: atribuição encerrada. {discarded} rascunhos descartados, {rejected} registros pendentes rejeitados.',
+  ],
+  supplierStaffByOwner: [
+    'Supplier staff: the owner and the supplier coordinator manage this assignment.',
+    'Personal del proveedor: el propietario y el coordinador del proveedor gestionan esta asignación.',
+    'Equipe do fornecedor: o proprietário e o coordenador do fornecedor gerem esta atribuição.',
+  ],
   cancel: ['Cancel', 'Cancelar', 'Cancelar'],
   ended: ['{name} removed from the project', '{name} ya no está en el proyecto', '{name} saiu do projeto'],
   addPeopleTitle: ['Add people to this project', 'Añadir personas al proyecto', 'Adicionar pessoas ao projeto'],

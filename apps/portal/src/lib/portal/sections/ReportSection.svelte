@@ -48,7 +48,7 @@
   import LocalDictation from '../local-dictation/LocalDictation.svelte';
   import { applyAction, deserialize } from '$app/forms';
   import { invalidateAll } from '$app/navigation';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { clockHoursFromMinutes } from '../minute-hours';
   import { reportQuickText, type ReportQuickCopyKey } from './report-quick-copy';
 
   let {
@@ -2303,7 +2303,7 @@
         {/if}
         <p class="quick-fact quick-hours" data-report-quick-hours>
           {#if quickHours > 0}
-            {q('loggedHours', { hours: decimalHoursFromMinutes(quickHours) })}
+            {q('loggedHours', { hours: clockHoursFromMinutes(quickHours) })}
           {:else}
             {q('noHours')}
             <a class="quick-link" href={`${base}/app/time?focus=hours&lang=${reportLocale}`}

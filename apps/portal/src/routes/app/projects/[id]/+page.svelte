@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { formatPortalBps } from '$lib/i18n/format';
   import { minorDigitsFor } from '$lib/portal/payment-money';
   import ProjectInvoiceComposer from '$lib/portal/sections/ProjectInvoiceComposer.svelte';
   import { journeyText } from '$lib/portal/project-invoice-journey';
@@ -895,19 +896,7 @@
   }
 
   function percentageFromBps(value: unknown): string {
-    const raw = String(value ?? '').trim();
-    if (!/^-?\d+$/.test(raw)) return '—';
-    let bps: bigint;
-    try {
-      bps = BigInt(raw);
-    } catch {
-      return '—';
-    }
-    const negative = bps < 0n;
-    const absolute = negative ? -bps : bps;
-    const whole = absolute / 100n;
-    const fraction = (absolute % 100n).toString().padStart(2, '0');
-    return `${negative ? '-' : ''}${whole.toString()}.${fraction}%`;
+    return formatPortalBps(value, locale);
   }
 
   function money(minor: unknown, currency = String(project.currency ?? 'USD')): string {

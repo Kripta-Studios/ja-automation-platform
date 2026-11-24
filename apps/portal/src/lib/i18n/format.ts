@@ -86,3 +86,34 @@ export function formatPortalDuration(totalMinutes: number, locale: PortalLocale)
   const minutes = rounded % 60;
   return locale === 'en' ? `${hours} hr ${minutes} min` : `${hours} h ${minutes} min`;
 }
+
+/**
+ * Percentage from integer basis points ("1196" → 11.96 %), in the reader's
+ * language (decimal comma and spacing for ES/PT). Display only: the digits
+ * come straight from the integer, so nothing is rounded (audit T78).
+ */
+export function formatPortalBps(value: unknown, locale: PortalLocaleInput): string {
+  const raw = String(value ?? '').trim();
+  if (!/^-?\d+$/.test(raw)) return '—';
+  const negative = raw.startsWith('-');
+  const digits = (negative ? raw.slice(1) : raw).padStart(3, '0');
+  const whole = digits.slice(0, -2).replace(/^0+(?=\d)/, '') || '0';
+  const fraction = digits.slice(-2);
+  // Let Intl decide separator and spacing on a sample, then put exact digits in.
+  const parts = new Intl.NumberFormat(intlLocale(locale), {
+    style: 'percent',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+    useGrouping: 'always',
+  }).formatToParts(negative ? -0.0123 : 0.0123);
+  const group =
+    new Intl.NumberFormat(intlLocale(locale), { useGrouping: 'always' })
+      .formatToParts(1000000)
+      .find((part) => part.type === 'group')?.value ?? ',';
+  const groupedWhole = whole.replace(/\B(?=(\d{3})+(?!\d))/g, group);
+  return parts
+    .map((part) =>
+      part.type === 'integer' ? groupedWhole : part.type === 'fraction' ? fraction : part.value,
+    )
+    .join('');
+}

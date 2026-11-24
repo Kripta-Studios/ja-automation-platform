@@ -333,6 +333,90 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
       body: 'Um relatório foi devolvido para alterações. Entre no portal J&A Automation para revisar o motivo.',
     },
   },
+  approval_rejected_time: {
+    en: {
+      subject: 'Time record rejected',
+      body: 'A reviewer rejected this time record. Open it to read the reason.',
+    },
+    es: {
+      subject: 'Registro de horas rechazado',
+      body: 'Un revisor rechazó este registro de horas. Ábrelo para ver el motivo.',
+    },
+    pt: {
+      subject: 'Registro de horas rejeitado',
+      body: 'Um revisor rejeitou este registro de horas. Abra-o para ver o motivo.',
+    },
+  },
+  approval_rejected_expense: {
+    en: {
+      subject: 'Expense rejected',
+      body: 'A reviewer rejected this expense. Open it to read the reason.',
+    },
+    es: {
+      subject: 'Gasto rechazado',
+      body: 'Un revisor rechazó este gasto. Ábrelo para ver el motivo.',
+    },
+    pt: {
+      subject: 'Despesa rejeitada',
+      body: 'Um revisor rejeitou esta despesa. Abra-a para ver o motivo.',
+    },
+  },
+  approval_rejected_daily: {
+    en: {
+      subject: 'Daily report rejected',
+      body: 'A reviewer rejected this daily report. Open it to read the reason.',
+    },
+    es: {
+      subject: 'Informe diario rechazado',
+      body: 'Un revisor rechazó este informe diario. Ábrelo para ver el motivo.',
+    },
+    pt: {
+      subject: 'Relatório diário rejeitado',
+      body: 'Um revisor rejeitou este relatório diário. Abra-o para ver o motivo.',
+    },
+  },
+  approval_rejected_technical: {
+    en: {
+      subject: 'Technical report rejected',
+      body: 'A reviewer rejected this technical report. Open it to read the reason.',
+    },
+    es: {
+      subject: 'Informe técnico rechazado',
+      body: 'Un revisor rechazó este informe técnico. Ábrelo para ver el motivo.',
+    },
+    pt: {
+      subject: 'Relatório técnico rejeitado',
+      body: 'Um revisor rejeitou este relatório técnico. Abra-o para ver o motivo.',
+    },
+  },
+  report_modified: {
+    en: {
+      subject: 'Report changed',
+      body: 'A report you follow was changed. Open it to see what changed.',
+    },
+    es: {
+      subject: 'Informe modificado',
+      body: 'Se modificó un informe que sigues. Ábrelo para ver qué cambió.',
+    },
+    pt: {
+      subject: 'Relatório alterado',
+      body: 'Um relatório que você acompanha foi alterado. Abra-o para ver o que mudou.',
+    },
+  },
+  workspace_activity: {
+    en: {
+      subject: 'Record no longer available',
+      body: 'You can no longer open the record behind this notification. Ask an owner if you still need it.',
+    },
+    es: {
+      subject: 'Registro ya no disponible',
+      body: 'Ya no puedes abrir el registro de esta notificación. Pregunta a un propietario si aún lo necesitas.',
+    },
+    pt: {
+      subject: 'Registro não disponível',
+      body: 'Você não pode mais abrir o registro desta notificação. Fale com um proprietário se ainda precisar dele.',
+    },
+  },
 };
 
 const fallback: Readonly<Record<NotificationLocale, CopyPair>> = {
@@ -349,6 +433,17 @@ const fallback: Readonly<Record<NotificationLocale, CopyPair>> = {
     body: 'Entre no portal J&A Automation para revisar o registro atual.',
   },
 };
+
+const removedNote: Readonly<Record<NotificationLocale, string>> = {
+  en: 'The record behind this notification was removed, so there is nothing left to open.',
+  es: 'El registro de esta notificación se eliminó, así que no hay nada que abrir.',
+  pt: 'O registro desta notificação foi removido, então não há nada para abrir.',
+};
+
+/** Shown instead of the record details when the source record no longer exists. */
+export function notificationRemovedNote(locale: NotificationLocale | unknown = 'en'): string {
+  return removedNote[normalizeNotificationLocale(locale)];
+}
 
 export function normalizeNotificationLocale(value: unknown): NotificationLocale {
   const language = typeof value === 'string' ? value.trim().toLowerCase().split('-')[0] : '';

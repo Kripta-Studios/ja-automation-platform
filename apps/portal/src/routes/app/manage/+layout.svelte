@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { page } from '$app/state';
   import { onMount } from 'svelte';
   import { browserForgetIdentity } from '$lib/portal/offline-controller';
   import PortalChrome from '$lib/PortalChrome.svelte';
@@ -73,6 +74,12 @@
     {changeLocale}
     onMenuToggle={() => (menuOpen = !menuOpen)}
     onCloseMenu={() => (menuOpen = false)}
+    badges={{
+      approvals: Number((page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
+      notifications: Number(
+        (page.data as { unreadNotificationCount?: number }).unreadNotificationCount ?? 0,
+      ),
+    }}
   />
   <main id="portal-main" lang={locale}>{@render children()}</main>
 </div>

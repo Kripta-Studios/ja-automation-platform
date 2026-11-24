@@ -2529,6 +2529,9 @@
   );
   const navigationBadges = $derived({
     approvals: Number(($page.data as { approvalPendingCount?: number }).approvalPendingCount ?? 0),
+    notifications: Number(
+      ($page.data as { unreadNotificationCount?: number }).unreadNotificationCount ?? 0,
+    ),
   });
   const printableSection = $derived(['reports', 'finance'].includes(data.section));
   // "Include archived" is a list filter: only on list sections, only for review

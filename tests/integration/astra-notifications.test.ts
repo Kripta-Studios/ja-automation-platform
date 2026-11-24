@@ -356,7 +356,7 @@ describe('ASTRA scoped business notifications', () => {
     });
   });
 
-  it('notifies active operational reviewers for submitted records and only the owner after return', () => {
+  it('notifies owner and reviewing PMs (not finance) for submitted records and only the owner after return', () => {
     const value = fixture();
     const time = value.repository.createTimeEntry(value.worker, {
       projectId: value.project.id,
@@ -397,7 +397,11 @@ describe('ASTRA scoped business notifications', () => {
     value.repository.submitReport(value.worker, 'technical', technical.id, technical.version);
 
     runAlert(value, 'business-approval-requested', 'business_notifications');
-    for (const userId of ['b5-owner', 'b5-finance', 'b5-manager']) {
+    // Finance does not approve operational records (owner decision D6).
+    expect(
+      notifications(value, 'b5-finance').filter((row) => row.kind.startsWith('approval_requested_')),
+    ).toEqual([]);
+    for (const userId of ['b5-owner', 'b5-manager']) {
       expect(notifications(value, userId).map((row) => row.kind)).toEqual(
         expect.arrayContaining([
           'approval_requested_time',
@@ -631,5 +635,111 @@ describe('ASTRA scoped business notifications', () => {
     expect(notifications(value, 'b5-worker').map((row) => row.kind)).toContain(
       'worker_payment_status',
     );
+  });
+});
+
+describe('G5 notification lifecycle (audit T27/T28)', () => {
+  function insertNotification(
+    value: B5LifecycleSecurityFixture,
+    id: string,
+    userId: string,
+    kind: string,
+    subjectId: string,
+  ): void {
+    value.sqlite
+      .prepare('INSERT INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,?,?,?)')
+      .run(id, userId, kind, subjectId, new Date().toISOString());
+  }
+  function readAt(value: B5LifecycleSecurityFixture, id: string): string | null {
+    return (
+      value.sqlite.prepare('SELECT read_at FROM notification WHERE id=?').get(id) as {
+        read_at: string | null;
+      }
+    ).read_at;
+  }
+
+  it('resolves a missing-time reminder once time for that day is sent, but not for a draft', () => {
+    const value = fixture();
+    const subject = (day: string) => `missing-time:${value.project.id}:b5-worker:${day}`;
+    insertNotification(value, 'reminder-draft', 'b5-worker', 'missing_time', subject('2026-08-25'));
+    insertNotification(value, 'reminder-sent', 'b5-worker', 'missing_time', subject('2026-08-26'));
+    value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-25',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Draft only',
+    });
+    const sent = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-26',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Sent',
+    });
+    value.repository.submitTime(value.worker, sent.id, sent.version);
+
+    expect(value.repository.countUnreadNotifications(value.worker)).toBe(1);
+    expect(readAt(value, 'reminder-sent')).not.toBeNull();
+    expect(readAt(value, 'reminder-draft')).toBeNull();
+  });
+
+  it('resolves approval requests once the record is reviewed and notifies rejections', () => {
+    const value = fixture();
+    const time = value.repository.createTimeEntry(value.worker, {
+      projectId: value.project.id,
+      workDate: '2026-08-27',
+      category: 'regular',
+      minutes: 60,
+      summary: 'Will be rejected',
+    });
+    value.repository.submitTime(value.worker, time.id, time.version);
+    runAlert(value, 'g5-requested', 'business_notifications');
+    const request = notifications(value, 'b5-owner').find(
+      (row) => row.kind === 'approval_requested_time',
+    );
+    expect(request).toBeDefined();
+    value.sqlite
+      .prepare(
+        "UPDATE time_entry SET approval_state='rejected',version=version+1,updated_at=? WHERE id=?",
+      )
+      .run(new Date().toISOString(), time.id);
+    runAlert(value, 'g5-rejected', 'business_notifications');
+    expect(notifications(value, 'b5-worker').map((row) => row.kind)).toContain(
+      'approval_rejected_time',
+    );
+    const ownerRequest = value.sqlite
+      .prepare(
+        "SELECT read_at FROM notification WHERE user_id='b5-owner' AND kind='approval_requested_time'",
+      )
+      .get() as { read_at: string | null };
+    expect(ownerRequest.read_at).not.toBeNull();
+  });
+
+  it('keeps the notice type of a removed record and opens one notification by id', () => {
+    const value = fixture();
+    insertNotification(
+      value,
+      'orphan-request',
+      'b5-owner',
+      'approval_requested_time',
+      'time:01a00000-0000-7000-8000-000000000000:v2',
+    );
+    for (let index = 0; index < 60; index += 1)
+      insertNotification(
+        value,
+        `filler-${index}`,
+        'b5-owner',
+        'invoice_overdue',
+        `invoice:missing-${index}:overdue:v1`,
+      );
+    const row = value.repository.getNotification(value.owner, 'orphan-request') as
+      | { kind: string; source_unavailable: boolean; target: string | null }
+      | undefined;
+    expect(row).toMatchObject({
+      kind: 'approval_requested_time',
+      source_unavailable: true,
+      target: null,
+    });
   });
 });

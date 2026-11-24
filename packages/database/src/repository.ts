@@ -11817,6 +11817,7 @@ export class PortalRepository {
     options: Readonly<{ unreadOnly?: boolean; page?: number; pageSize?: number }> = {},
   ) {
     const pageSize = Math.max(1, Math.min(100, Math.trunc(options.pageSize ?? 25)));
+    this.resolveOwnStaleNotifications(principal);
     const counts = this.sqlite
       .prepare(
         'SELECT COUNT(*) total, COALESCE(SUM(read_at IS NULL),0) unread FROM notification WHERE user_id=?',
@@ -11842,6 +11843,34 @@ export class PortalRepository {
     };
   }
 
+  /**
+   * Reminders and approval requests that no longer ask for anything (time was
+   * sent, the record was reviewed or removed) are marked read before counting,
+   * so the inbox and the bell badge only count what still needs the person.
+   */
+  private resolveOwnStaleNotifications(principal: Principal): void {
+    new NotificationRepository({
+      sqlite: this.sqlite,
+      transaction: <T>(work: () => T): T => this.transaction(work),
+      now,
+    }).resolveStaleNotifications(now(), principal.userId);
+  }
+
+  /** Unread count for the bell badge (same resolution as the inbox). */
+  countUnreadNotifications(principal: Principal): number {
+    this.assertReadable(principal);
+    this.resolveOwnStaleNotifications(principal);
+    const row = this.sqlite
+      .prepare('SELECT COUNT(*) unread FROM notification WHERE user_id=? AND read_at IS NULL')
+      .get(principal.userId) as { unread: number };
+    return Number(row.unread);
+  }
+
+  /** One notification of the signed-in person, with the inbox projection. */
+  getNotification(principal: Principal, notificationId: string) {
+    return this.listNotifications(principal, { id: notificationId, limit: 1 })[0];
+  }
+
   /** Marks every unread notification of the signed-in person as read. */
   markAllNotificationsRead(principal: Principal): number {
     this.assertActive(principal);
@@ -11859,6 +11888,7 @@ export class PortalRepository {
       unreadOnly?: boolean;
       limit?: number;
       offset?: number;
+      id?: string;
     }> = {},
   ) {
     this.assertReadable(principal);
@@ -11879,12 +11909,13 @@ export class PortalRepository {
     const notifications = this.sqlite
       .prepare(
         `SELECT id,kind,subject_id,read_at,created_at FROM notification
-          WHERE user_id=?${options.unreadOnly ? ' AND read_at IS NULL' : ''}
+          WHERE user_id=?${options.unreadOnly ? ' AND read_at IS NULL' : ''}${options.id === undefined ? '' : ' AND id=?'}
           ORDER BY ${options.unreadFirst ? '(read_at IS NULL) DESC,' : ''}created_at DESC${options.unreadFirst ? ',id DESC' : ''}
           LIMIT ? OFFSET ?`,
       )
       .all(
         principal.userId,
+        ...(options.id === undefined ? [] : [options.id]),
         Math.max(1, Math.min(100, Math.trunc(options.limit ?? 50))),
         Math.max(0, Math.trunc(options.offset ?? 0)),
       );
@@ -11961,6 +11992,36 @@ export class PortalRepository {
             project_name: string;
           }
         | undefined;
+      // A crew chief who recorded a crew member's time or expense is told when
+      // it comes back (returned or rejected) and may open it from the inbox.
+      const recordedBy = (() => {
+        if (!source || !view.sourceId) return null;
+        const recorder = /_(time|expense)$/u.exec(row.kind)?.[1];
+        if (!recorder || !/^approval_(?:returned|rejected)_/u.test(row.kind)) return null;
+        const found = this.sqlite
+          .prepare(
+            recorder === 'time'
+              ? 'SELECT recorded_by_user_id id FROM crew_time_entry_recorder WHERE time_entry_id=?'
+              : 'SELECT recorded_by_user_id id FROM crew_expense_recorder WHERE expense_id=?',
+          )
+          .get(view.sourceId) as { id: string } | undefined;
+        return found?.id ?? null;
+      })();
+      const kindVisibleToRole =
+        !(
+          [
+            'invoice_overdue',
+            'period_ready',
+            'period_blocked',
+            'budget_exception',
+            'cap_exception',
+          ].includes(row.kind) &&
+          !['owner_admin', 'finance_admin', 'auditor_read_only'].includes(principal.role)
+        ) &&
+        !(
+          ['settlement_status_changed', 'worker_payment_status'].includes(row.kind) &&
+          principal.role === 'project_manager'
+        );
       const sourceAuthorized = (() => {
         const financeOnly = [
           'invoice_overdue',
@@ -12017,7 +12078,9 @@ export class PortalRepository {
             );
           return (
             Boolean(membership) &&
-            (source.owner_id === null || source.owner_id === principal.userId)
+            (source.owner_id === null ||
+              source.owner_id === principal.userId ||
+              recordedBy === principal.userId)
           );
         }
         const objectDate = projectNotice ? current : source.date || current;
@@ -12042,7 +12105,12 @@ export class PortalRepository {
       if (!sourceAuthorized || !source)
         return {
           id: row.id,
-          kind: 'workspace_activity',
+          // A removed record keeps its notice type (the person was told about
+          // it), but no detail; a record the person can no longer open is
+          // fully masked.
+          kind: !source && kindVisibleToRole ? row.kind : 'workspace_activity',
+          source_unavailable: true,
+          person_name: null,
           subject_id: null,
           read_at: row.read_at,
           created_at: row.created_at,
@@ -12073,10 +12141,26 @@ export class PortalRepository {
           changedFields = [];
         }
       }
+      const recorderTarget =
+        recordedBy === principal.userId && source.owner_id !== principal.userId && safeView.sourceId
+          ? row.kind.endsWith('_time')
+            ? `/app/crew/time/${safeView.sourceId}`
+            : '/app/crew'
+          : null;
+      const personName =
+        source.owner_id && source.owner_id !== principal.userId
+          ? ((
+              this.sqlite.prepare('SELECT name FROM user WHERE id=?').get(source.owner_id) as
+                | { name: string }
+                | undefined
+            )?.name ?? null)
+          : null;
       return {
         ...row,
+        person_name: personName,
+        source_unavailable: false,
         source_id: safeView.sourceId,
-        target: safeView.target,
+        target: recorderTarget ?? safeView.target,
         title: safeView.title,
         actor_name: sourceAuthorized ? (audit?.actor_name ?? null) : null,
         changed_fields: changedFields,

@@ -155,6 +155,7 @@
   const globalNavigation = $derived(
     portalGlobalNavigationForRole(data.user.role, data.user.workforceProfile),
   );
+  const unreadNotifications = $derived(Math.max(0, Number(badges.notifications ?? 0)));
   const notificationsItem = $derived(
     globalNavigation.find((item) => item.section === 'notifications'),
   );
@@ -571,7 +572,9 @@
       class:active={itemIsCurrent(notificationsItem)}
       href={itemHref(notificationsItem)}
       title={translate('Notifications')}
-      aria-label={translate('Notifications')}
+      aria-label={unreadNotifications > 0
+        ? `${translate('Notifications')} · ${unreadNotifications} ${translate('unread')}`
+        : translate('Notifications')}
       aria-current={itemIsCurrent(notificationsItem) ? 'page' : undefined}
     >
       <svg
@@ -584,7 +587,9 @@
         stroke-linecap="round"
         stroke-linejoin="round"
         aria-hidden="true"><path d={navIconPaths.Notifications} /></svg
-      >
+      >{#if unreadNotifications > 0}<span class="bell-badge" aria-hidden="true"
+          >{unreadNotifications > 99 ? '99+' : unreadNotifications}</span
+        >{/if}
     </a>
   {/if}
   <label class="locale-switcher">
@@ -823,10 +828,32 @@
     outline-offset: 2px;
   }
 
+  .portal-notifications-link {
+    position: relative;
+  }
+  .bell-badge {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    min-width: 1.25rem;
+    height: 1.25rem;
+    padding: 0 0.3rem;
+    border-radius: 999px;
+    background: var(--ja-red, #b42318);
+    color: #fff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1.25rem;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+    box-shadow: 0 0 0 2px #fff;
+  }
   @media (max-width: 520px) {
-    /* The fully labelled inbox remains in Account and Go to section on phones. */
+    /* The bell stays on phones: it is the only place the unread count shows. */
     .portal-notifications-link {
-      display: none;
+      flex-basis: 40px;
+      width: 40px;
+      height: 40px;
     }
   }
 </style>

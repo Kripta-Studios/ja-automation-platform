@@ -14,7 +14,7 @@
   } from '../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
-  import { notificationCopy } from '$lib/notifications/copy';
+  import { notificationCopy, notificationRemovedNote } from '$lib/notifications/copy';
   import { notificationTargetPath } from '$lib/notifications/target';
 
   type Value = string | number | boolean | string[] | null | undefined;
@@ -26,7 +26,11 @@
   );
   const t = (key: string): string => standaloneText(locale, key);
   const notification = $derived(data.notification as Notification);
-  const kind = $derived(notificationCopy(String(notification.kind), locale).subject);
+  const copy = $derived(notificationCopy(String(notification.kind), locale));
+  const kind = $derived(copy.subject);
+  const removed = $derived(
+    notification.source_unavailable === true && notification.kind !== 'workspace_activity',
+  );
   const changedFields = $derived(
     Array.isArray(notification.changed_fields) ? notification.changed_fields : [],
   );
@@ -108,14 +112,12 @@
     </p>{/if}
   <section class="detail-panel record-detail-copy">
     <div class="panel-title">
-      <h2>{notification.record_title ?? t('Workspace activity')}</h2>
-      <span>{notification.project_number ?? '—'}</span>
+      <h2>{notification.record_title ?? kind}</h2>
+      <span>{notification.project_number ?? ''}</span>
     </div>
-    <p>
-      {notification.actor_name ?? t('A workspace user')}
-      {t('generated this activity for')}
-      {notification.project_name ?? t('the workspace')}.
-    </p>
+    <p data-notification-body>{removed ? notificationRemovedNote(locale) : copy.body}</p>
+    {#if notification.person_name}<p>{t('Person')}: <b>{notification.person_name}</b></p>{/if}
+    {#if notification.actor_name}<p>{t('Last change by')}: {notification.actor_name}</p>{/if}
     <dl class="record-facts">
       <div>
         <dt>{t('Project')}</dt>
@@ -124,10 +126,6 @@
       <div>
         <dt>{t('Record date')}</dt>
         <dd>{notification.record_date ?? '—'}</dd>
-      </div>
-      <div>
-        <dt>{t('Source ID')}</dt>
-        <dd>{notification.source_id ?? notification.subject_id ?? '—'}</dd>
       </div>
     </dl>
     {#if changedFields.length > 0}<p class="change-summary">

@@ -4,20 +4,34 @@ import { error, redirect } from '@sveltejs/kit';
 import { actionFail, actionFailure, actionSuccess } from '$lib/server/actions/action-message';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { formObject } from '$lib/server/action-utils';
+import { base } from '$app/paths';
+import { notificationOpenTarget } from '$lib/notifications/target';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = ({ locals, params }) => {
+/**
+ * Opening a notification marks it read. The inbox links through
+ * `?open=1&to=<app path>` so one click both marks it read and lands on the
+ * record (see notificationOpenTarget for the allowed destinations).
+ */
+export const load: PageServerLoad = ({ locals, params, url }) => {
   if (!locals.user) redirect(303, '/j-aautomation/app/login');
   const context = openPortalRepository(locals);
+  let destination: string | null = null;
   try {
-    const notification = context.repository
-      .listNotifications(context.principal)
-      .find((row) => row.id === params.id);
+    const notification = context.repository.getNotification(context.principal, params.id);
     if (!notification) error(404, 'detail.notification.notFound');
-    return { user: locals.user, notification };
+    let readAt = notification.read_at;
+    if (!readAt) {
+      context.repository.markNotificationRead(context.principal, notification.id);
+      readAt = new Date().toISOString();
+    }
+    if (url.searchParams.get('open') === '1' && !notification.source_unavailable)
+      destination = notificationOpenTarget(url.searchParams.get('to'));
+    if (!destination) return { user: locals.user, notification: { ...notification, read_at: readAt } };
   } finally {
     context.sqlite.close();
   }
+  redirect(303, `${base}${destination}`);
 };
 
 export const actions: Actions = {

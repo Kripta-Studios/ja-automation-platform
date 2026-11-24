@@ -25,6 +25,21 @@ function approvalPendingCount(locals: App.Locals): number {
   }
 }
 
+/** Unread inbox count for the bell badge. Presentation only; failures never block the page. */
+function unreadNotificationCount(locals: App.Locals): number {
+  if (!locals.user || !locals.session) return 0;
+  try {
+    const context = openPortalRepository(locals);
+    try {
+      return context.repository.countUnreadNotifications(context.principal);
+    } finally {
+      context.sqlite.close();
+    }
+  } catch {
+    return 0;
+  }
+}
+
 // Identity only. Every child loader retains its own object authorization and safe DTO.
 export const load: LayoutServerLoad = ({ locals }) => ({
   offlineEnabled:
@@ -41,4 +56,5 @@ export const load: LayoutServerLoad = ({ locals }) => ({
         }
       : null,
   approvalPendingCount: approvalPendingCount(locals),
+  unreadNotificationCount: unreadNotificationCount(locals),
 });

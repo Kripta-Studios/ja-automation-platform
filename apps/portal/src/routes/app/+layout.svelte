@@ -233,7 +233,10 @@
       {changeLocale}
       onMenuToggle={() => (menuOpen = !menuOpen)}
       onCloseMenu={() => (menuOpen = false)}
-      badges={{ approvals: Number(data.approvalPendingCount ?? 0) }}
+      badges={{
+        approvals: Number(data.approvalPendingCount ?? 0),
+        notifications: Number(data.unreadNotificationCount ?? 0),
+      }}
     />
     <div id="portal-main" class="standalone-workspace__content" use:restoreOriginBack>
       {#if !ownBackLink}

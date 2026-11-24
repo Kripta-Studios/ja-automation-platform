@@ -694,6 +694,18 @@ const en = {
     "Generate PDF",
   "problem.localizedPdf.outdatedReadOnly":
     "This language version was made before the record last changed. Finance can generate a current one.",
+  "calculation.notYetApproved":
+    "Not yet approved",
+  "calculation.notYetApprovedHelp":
+    "{hours} of drafts and submitted hours, valued at the client rate",
+  "calculation.recordedHelp":
+    "All hours logged in the period (approved or not)",
+  "calculation.rowsHelp":
+    "Each person's rows show which rates were found for the work and how the person is paid. To review or change future rates, use Project billing setup.",
+  "calculation.rowsHelpReadOnly":
+    "Each person's rows show which rates were found for the work and how the person is paid. Ask Finance or an owner to review future rates.",
+  "calculation.issue.expenseClassification":
+    "An expense is not classified yet (bill to the client or absorb).",
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1383,6 +1395,18 @@ const esBase: Record<keyof typeof en, string> = {
     "Generar PDF",
   "problem.localizedPdf.outdatedReadOnly":
     "Esta versión de idioma se hizo antes del último cambio del registro. Finanzas puede generar una actual.",
+  "calculation.notYetApproved":
+    "Sin aprobar todavía",
+  "calculation.notYetApprovedHelp":
+    "{hours} de borradores y horas enviadas, valoradas a la tarifa del cliente",
+  "calculation.recordedHelp":
+    "Todas las horas registradas en el periodo (aprobadas o no)",
+  "calculation.rowsHelp":
+    "Las filas de cada persona muestran qué tarifas se encontraron para el trabajo y cómo se le paga. Para revisar o cambiar tarifas futuras, usa la configuración de facturación del proyecto.",
+  "calculation.rowsHelpReadOnly":
+    "Las filas de cada persona muestran qué tarifas se encontraron para el trabajo y cómo se le paga. Pide a Finanzas o a un propietario que revisen las tarifas futuras.",
+  "calculation.issue.expenseClassification":
+    "Un gasto aún no está clasificado (facturar al cliente o asumir).",
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -2060,6 +2084,18 @@ const ptBase: Record<keyof typeof en, string> = {
     "Gerar PDF",
   "problem.localizedPdf.outdatedReadOnly":
     "Esta versão de idioma foi feita antes da última alteração do registro. O financeiro pode gerar uma atual.",
+  "calculation.notYetApproved":
+    "Ainda não aprovado",
+  "calculation.notYetApprovedHelp":
+    "{hours} de rascunhos e horas enviadas, valoradas pela tarifa do cliente",
+  "calculation.recordedHelp":
+    "Todas as horas registradas no período (aprovadas ou não)",
+  "calculation.rowsHelp":
+    "As linhas de cada pessoa mostram quais tarifas foram encontradas para o trabalho e como ela é paga. Para revisar ou alterar tarifas futuras, use a configuração de faturamento do projeto.",
+  "calculation.rowsHelpReadOnly":
+    "As linhas de cada pessoa mostram quais tarifas foram encontradas para o trabalho e como ela é paga. Peça ao Financeiro ou a um proprietário que revise as tarifas futuras.",
+  "calculation.issue.expenseClassification":
+    "Uma despesa ainda não foi classificada (faturar ao cliente ou absorver).",
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

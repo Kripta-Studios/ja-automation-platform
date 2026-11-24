@@ -109,7 +109,7 @@
   // invoice" for a worker), and records are only promised when searchable.
   const hint = $derived.by(() => {
     const example = suggestedTasks[0]?.title[locale]?.toLowerCase();
-    if (!example) return copy.hint;
+    if (!example) return canSearchRecords ? copy.hintSectionsRecords : copy.hintSections;
     return (canSearchRecords ? copy.hintTaskRecords : copy.hintTask).replace('{task}', example);
   });
   const resultTotal = $derived(

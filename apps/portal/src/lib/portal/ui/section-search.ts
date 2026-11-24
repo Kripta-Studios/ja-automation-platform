@@ -177,7 +177,9 @@ export function searchSectionDestinations(
   }
 
   const seenNavigationDestinations = new Set<string>();
-  for (const item of [...shortcuts, ...items]) {
+  // Sections first: a shortcut to the same page (only a different anchor)
+  // must not hide the section itself ("pay" → Payments, not "Filter collections").
+  for (const item of [...items, ...shortcuts]) {
     const label = translate(item.label);
     const parentLabel =
       'parentLabel' in item && typeof item.parentLabel === 'string'
@@ -202,7 +204,9 @@ export function searchSectionDestinations(
         ? 'configuration'
         : 'section';
     const entry: SectionSearchEntry = {
-      id: `navigation:${item.section}:${item.label}`,
+      // The same label can lead to two views (Invoices sidebar entry and its
+      // Invoices shortcut); the destination keeps each result key unique.
+      id: `navigation:${item.section}:${item.label}:${key}`,
       kind,
       label,
       ...(parentLabel ? { parentLabel } : {}),

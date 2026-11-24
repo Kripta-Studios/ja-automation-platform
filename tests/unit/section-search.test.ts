@@ -167,3 +167,18 @@ describe('audit T29: sections are found by name prefix, typo and any language', 
   });
 });
 
+describe('audit T29: result keys stay unique with prefix matching', () => {
+  it('gives a section and a same-named shortcut different ids', () => {
+    const items: NavItem[] = [{ section: 'billing', label: 'Invoices', icon: '◫', href: '/app/billing' }];
+    const shortcuts = [
+      { ...items[0]!, label: 'Invoices', href: '/app/billing?view=invoices', parentLabel: 'Invoices' },
+    ];
+    const result = searchSectionDestinations('invoce', {
+      ...options('auditor_read_only', 'en', items),
+      shortcuts,
+    });
+    const ids = [...result.actions, ...result.configurations, ...result.sections].map((e) => e.id);
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+});
+

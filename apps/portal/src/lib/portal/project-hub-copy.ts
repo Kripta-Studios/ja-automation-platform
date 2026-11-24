@@ -20,6 +20,7 @@ const copy = {
   noManager: ['Unassigned', 'Sin asignar', 'Não atribuído'],
   noSite: ['No site', 'Sin planta', 'Sem planta'],
   figHoursMonth: ['Hours this month', 'Horas este mes', 'Horas neste mês'],
+  figHoursMonthOwn: ['Your hours this month', 'Tus horas este mes', 'Suas horas neste mês'],
   figHoursTotal: ['{hours} in total', '{hours} en total', '{hours} no total'],
   figUnbilled: ['Approved, not invoiced', 'Aprobado sin facturar', 'Aprovado sem faturar'],
   figUnbilledHours: ['{hours} approved', '{hours} aprobadas', '{hours} aprovadas'],

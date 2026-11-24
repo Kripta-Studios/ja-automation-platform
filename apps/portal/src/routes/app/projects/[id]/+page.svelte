@@ -682,6 +682,18 @@
     ];
     setTimeout(() => (hubToasts = hubToasts.filter((toast) => toast.id !== id)), 6000);
   }
+  // T75: a deep link to a settings group (…?tab=billing, ?group=…) opens that
+  // group and brings it into view instead of leaving Settings collapsed.
+  onMount(() => {
+    if (activeTab !== 'settings' || !settingsGroup) return;
+    requestAnimationFrame(() => {
+      const target =
+        document.querySelector<HTMLElement>(`[data-hub-group="${settingsGroup}"]`) ??
+        document.querySelector<HTMLElement>('[data-hub-group="details"]');
+      if (target instanceof HTMLDetailsElement) target.open = true;
+      target?.scrollIntoView({ block: 'start' });
+    });
+  });
   // T32: arriving from "New project" (…?created=1) confirms the creation once.
   onMount(() => {
     if (page.url.searchParams.get('created') !== '1') return;
@@ -1377,8 +1389,17 @@
   </header>
 
   <section class="hub-figures" aria-label={t('Project status summary')} data-hub-figures>
-    <a class="hub-figure" href={tabHref('hours')} onclick={(event) => tabLink(event, 'hours')}>
-      <span>{h('figHoursMonth')}</span>
+    <!-- T75: a worker has no Hours tab; his own month links to Time. -->
+    <a
+      class="hub-figure"
+      href={isWorker
+        ? `${base}/app/time?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`
+        : tabHref('hours')}
+      onclick={(event) => {
+        if (!isWorker) tabLink(event, 'hours');
+      }}
+    >
+      <span>{isWorker ? h('figHoursMonthOwn') : h('figHoursMonth')}</span>
       <strong data-hub-fig-hours>{hours(hub.hours.monthMinutes)}</strong>
       <small>{h('figHoursTotal', { hours: hours(hub.hours.totalMinutes) })}</small>
     </a>
@@ -2397,7 +2418,13 @@
         <p class="surface-intro">
           {isAuditor || !canEditProjectDetails ? h('settingsIntroReadOnly') : h('settingsIntro')}
         </p>
-        <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
+        <details
+          class="hub-group"
+          open={!settingsGroup ||
+            settingsGroup === 'details' ||
+            (settingsGroup === 'billing' && !billingSetup)}
+          data-hub-group="details"
+        >
           <summary>{h('setDetails')}</summary>
           <div class="hub-group__body">
             {#if canEditProjectDetails}

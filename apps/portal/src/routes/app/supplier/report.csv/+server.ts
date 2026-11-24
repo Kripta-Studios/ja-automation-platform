@@ -10,7 +10,8 @@ import {
 import { randomUUID } from 'node:crypto';
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { openSupplierContext, supplierPeriod } from '$lib/server/supplier-context';
-import { supplierCsv, supplierHoursFromMinutes } from '$lib/server/supplier-csv';
+import { supplierCsv, supplierLocalizedHours } from '$lib/server/supplier-csv';
+import { personDisplayName } from '$lib/portal/display-name';
 import { supplierCopy, supplierStateLabel, supplierCategoryLabel } from '../copy';
 
 const privateHeaders = {
@@ -161,24 +162,24 @@ export const GET: RequestHandler = ({ locals, url, cookies }) => {
       ],
       ...report.rows.map((row) => [
         report.project.name,
-        row.workerName,
+        personDisplayName(row.workerName),
         row.workDate,
         supplierCategoryLabel(locale, row.category),
         ...(hasIntervals
           ? [
               row.startTime ?? '',
               row.endTime ?? '',
-              row.startTime && row.endTime ? supplierHoursFromMinutes(row.breakMinutes ?? 0) : '',
+              row.startTime && row.endTime ? supplierLocalizedHours(row.breakMinutes ?? 0, locale) : '',
             ]
           : []),
-        supplierHoursFromMinutes(row.minutes),
+        supplierLocalizedHours(row.minutes, locale),
         row.summary,
         row.isSuperseded
           ? `${supplierStateLabel(locale, row.state)} (${c.superseded})`
           : supplierStateLabel(locale, row.state),
-        row.recordedByName,
+        personDisplayName(row.recordedByName),
       ]),
-    ]);
+    ], locale);
     // Report generation may outlive a grant or project status change. Recheck
     // immediately before returning the CSV so stale rows never leave this route.
     assertLiveSession(ctx.sqlite, ctx.principal, AccessDeniedError);

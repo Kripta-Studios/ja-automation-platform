@@ -13,9 +13,11 @@ import {
   projectVisibility,
   visibleProjectRecords,
 } from '$lib/portal/project-visibility';
-import { normalizePortalLocale } from '$lib/portal-i18n';
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { timeWeekText } from '$lib/portal/sections/time-week-copy';
 import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+import { localizedCsv } from '$lib/server/localized-csv';
+import { personDisplayName } from '$lib/portal/display-name';
 import type { RequestHandler } from './$types';
 
 /**
@@ -25,13 +27,8 @@ import type { RequestHandler } from './$types';
  */
 const reviewRoles = ['owner_admin', 'project_manager', 'finance_admin', 'auditor_read_only'];
 
-const csvCell = (value: unknown) => {
-  let text = String(value ?? '');
-  if (/^[=+\-@\t\r]/u.test(text)) text = `'${text}`;
-  return /[",\n;]/u.test(text) ? `"${text.replace(/"/gu, '""')}"` : text;
-};
 
-export const GET: RequestHandler = ({ locals, url }) => {
+export const GET: RequestHandler = ({ locals, url, cookies }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in again before downloading hours.');
   if (!reviewRoles.includes(locals.user.role ?? '')) error(403, 'Hours overview access required');
   const context = openPortalRepository(locals);
@@ -55,7 +52,11 @@ export const GET: RequestHandler = ({ locals, url }) => {
       ),
       overviewFilters(url.searchParams),
     );
-    const locale = normalizePortalLocale(url.searchParams.get('lang') ?? 'en');
+    const locale = resolvePortalLocalePreference(
+      url.searchParams.get('lang'),
+      cookies?.get('ja.portal.locale'),
+      cookies?.get('ja.portal.locale'),
+    );
     const t = (key: Parameters<typeof timeWeekText>[1]) => timeWeekText(locale, key);
     const status = (state: string) =>
       state === 'approved' || state === 'locked'
@@ -82,7 +83,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
     const lines = sortedOverviewEntries(entries).map((entry) =>
       [
         entry.work_date,
-        entry.worker_name,
+        personDisplayName(entry.worker_name),
         [entry.project_number, entry.project_name].filter(Boolean).join(' · '),
         category(entry.category),
         decimalHoursFromMinutes(entry.minutes),
@@ -91,11 +92,10 @@ export const GET: RequestHandler = ({ locals, url }) => {
         entry.end_time ?? '',
         entry.start_time ? String(entry.break_minutes ?? 0) : '',
         entry.note ?? '',
-      ]
-        .map(csvCell)
-        .join(','),
+      ],
     );
-    return new Response(`\uFEFF${[header.map(csvCell).join(','), ...lines].join('\r\n')}`, {
+    // Hours (column 4) use the locale's decimal mark; ES/PT files use `;`.
+    return new Response(localizedCsv([header, ...lines], locale, new Set([4])), {
       headers: {
         'content-type': 'text/csv; charset=utf-8',
         'content-disposition': `attachment; filename="hours-${period.from}-to-${period.to}.csv"`,

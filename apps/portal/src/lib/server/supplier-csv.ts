@@ -4,8 +4,18 @@ export function supplierCsvCell(value: unknown): string {
   if (/^[\s]*[=+@-]/u.test(text) || /^[\t\r\n]/u.test(text)) text = `'${text}`;
   return `"${text.replaceAll('"', '""')}"`;
 }
-export function supplierCsv(rows: unknown[][]): string {
-  return '\uFEFF' + rows.map((row) => row.map(supplierCsvCell).join(',')).join('\r\n') + '\r\n';
+/** ES/PT spreadsheets expect `;` between cells (their decimal mark is a comma). */
+export function supplierCsv(rows: unknown[][], locale: 'en' | 'es' | 'pt' = 'en'): string {
+  const separator = locale === 'en' ? ',' : ';';
+  return (
+    '\uFEFF' + rows.map((row) => row.map(supplierCsvCell).join(separator)).join('\r\n') + '\r\n'
+  );
+}
+
+/** Decimal hours with the locale's decimal mark ("1.25" → "1,25" in ES/PT). */
+export function supplierLocalizedHours(value: unknown, locale: 'en' | 'es' | 'pt'): string {
+  const hours = supplierHoursFromMinutes(value);
+  return locale === 'en' ? hours : hours.replace('.', ',');
 }
 
 /** Decimal hours with enough precision to round-trip each canonical whole minute. */

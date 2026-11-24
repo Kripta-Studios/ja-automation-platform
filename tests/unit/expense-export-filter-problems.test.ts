@@ -59,7 +59,10 @@ vi.mock('$lib/server/portal-repository', async () => {
     },
   };
 });
-vi.mock('@ja/reporting', () => ({ expenseRegisterExport: state.exporter }));
+vi.mock('@ja/reporting', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@ja/reporting')>()),
+  expenseRegisterExport: state.exporter,
+}));
 
 import { GET } from '../../apps/portal/src/routes/app/expenses/export/+server';
 
@@ -251,7 +254,20 @@ describe('expense export download problems', () => {
     });
   });
 
-  it.each(['csv', 'xlsx', 'pdf'])('keeps a successful %s download unchanged', async (format) => {
+  it('renders CSV in the requested language from the scoped rows (audit T49)', async () => {
+    const response = await request('from=2026-09-01&to=2026-09-30&format=csv&lang=es');
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('text/csv');
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    expect([...bytes.slice(0, 3)]).toEqual([0xef, 0xbb, 0xbf]); // UTF-8 BOM
+    const text = new TextDecoder().decode(bytes);
+    expect(text.startsWith('Fecha;Cliente;Proyecto;Trabajador')).toBe(true);
+    expect(text).not.toContain('not-in-project-scope');
+    expect(state.exporter).not.toHaveBeenCalled();
+    expect(state.close).toHaveBeenCalledOnce();
+  });
+
+  it.each(['xlsx', 'pdf'])('keeps a successful %s download unchanged', async (format) => {
     const response = await request(`from=2026-09-01&to=2026-09-30&format=${format}`);
     expect(response.status).toBe(200);
     expect(response.headers.get('content-disposition')).toContain(
@@ -270,7 +286,9 @@ describe('expense export download problems', () => {
     'exports only repository-scoped rows for %s',
     async (role) => {
       state.role = role;
-      const response = await request(`${valid}&worker=worker-1`);
+      const response = await request(
+        `${valid.replace('format=csv', 'format=xlsx')}&worker=worker-1`,
+      );
       expect(response.status).toBe(200);
       expect(state.listExpensesForScope).toHaveBeenCalledWith(
         expect.objectContaining({ role, userId: 'worker-1' }),
@@ -278,7 +296,7 @@ describe('expense export download problems', () => {
       expect(state.exporter).toHaveBeenCalledOnce();
       expect(state.exporter).toHaveBeenCalledWith(
         [expect.objectContaining({ id: 'expense-1', project_id: 'project-1' })],
-        'csv',
+        'xlsx',
         '2026-09-01 — 2026-09-30',
       );
     },
@@ -297,7 +315,7 @@ describe('expense export download problems', () => {
     });
     const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     try {
-      const { response, body } = await problem(valid);
+      const { response, body } = await problem(valid.replace('format=csv', 'format=xlsx'));
       expect(response.status).toBe(503);
       expect(body).toMatchObject({
         code: 'EXPENSE_EXPORT_UNAVAILABLE',

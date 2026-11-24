@@ -74,6 +74,13 @@ const copy = {
     'Algumas horas não têm tarifa do cliente e não podem ser faturadas',
   ],
   attMissingRateAction: ['Set the rate', 'Poner la tarifa', 'Definir a tarifa'],
+  // T62 (audit 2026-11-22): the project rate can be changed from Team once it is set.
+  projectRateAllSet: [
+    'Everyone on this project has a client rate.',
+    'Todas las personas de este proyecto tienen tarifa de cliente.',
+    'Todas as pessoas deste projeto têm tarifa de cliente.',
+  ],
+  projectRateChange: ['Change the project rate', 'Cambiar la tarifa del proyecto', 'Alterar a tarifa do projeto'],
   projectRateSome: [
     '{count} person(s) have no client rate. Set one project rate for them; personal rates stay as they are.',
     '{count} persona(s) sin tarifa de cliente. Pon una tarifa del proyecto para ellas; las tarifas personales no cambian.',

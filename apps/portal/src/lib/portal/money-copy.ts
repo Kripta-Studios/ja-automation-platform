@@ -202,6 +202,12 @@ const en = {
   issuerHelp: 'Only reviewed issuing companies can be chosen.',
   planningOnly: 'Planning only; it does not change recorded payments',
   allProjectsFilter: 'All projects',
+  upcomingProjectRate: 'From {date}: {rate}',
+  startsOnPerson: 'Joins {date}',
+  negativeMargin: 'Costs more than we charge',
+  negativeMarginHelp: 'Our hourly cost for this person is above the client rate: every hour loses money.',
+  lastCostUntil: 'Last {rate} (until {date})',
+  replacedFrom: 'Replaced from {date}',
 } as const;
 
 export type MoneyCopyKey = keyof typeof en;
@@ -411,6 +417,12 @@ const es: Record<MoneyCopyKey, string> = {
   issuerHelp: 'Solo se pueden elegir empresas emisoras revisadas.',
   planningOnly: 'Solo planificación; no cambia los pagos registrados',
   allProjectsFilter: 'Todos los proyectos',
+  upcomingProjectRate: 'Desde el {date}: {rate}',
+  startsOnPerson: 'Entra el {date}',
+  negativeMargin: 'Cuesta más de lo que cobramos',
+  negativeMarginHelp: 'Nuestro coste por hora de esta persona supera la tarifa del cliente: cada hora pierde dinero.',
+  lastCostUntil: 'Última {rate} (hasta el {date})',
+  replacedFrom: 'Sustituida desde el {date}',
 };
 
 const pt: Record<MoneyCopyKey, string> = {
@@ -618,6 +630,12 @@ const pt: Record<MoneyCopyKey, string> = {
   issuerHelp: 'Só é possível escolher empresas emissoras revisadas.',
   planningOnly: 'Apenas planejamento; não altera os pagamentos registrados',
   allProjectsFilter: 'Todos os projetos',
+  upcomingProjectRate: 'A partir de {date}: {rate}',
+  startsOnPerson: 'Entra em {date}',
+  negativeMargin: 'Custa mais do que cobramos',
+  negativeMarginHelp: 'Nosso custo por hora desta pessoa é maior que a tarifa do cliente: cada hora dá prejuízo.',
+  lastCostUntil: 'Última {rate} (até {date})',
+  replacedFrom: 'Substituída a partir de {date}',
 };
 
 const catalogs = { en, es, pt } as const;

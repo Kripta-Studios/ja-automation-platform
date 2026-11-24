@@ -84,6 +84,12 @@ export type RatePersonRow = {
   costRateMinor: string | null;
   costRuleId: string | null;
   issues: string[];
+  /** Set when the person joins later: the rates shown apply from that day (T62). */
+  startsOn?: string | null;
+  /** Hourly cost (or pay) is above the hourly client rate: we lose money on each hour (T62). */
+  negativeMargin?: boolean;
+  /** No cost rule applies today; the latest dated one, for context (T62). */
+  lastCost?: { rateMinor: string; effectiveTo: string | null } | null;
 };
 
 export type RateRuleRow = {
@@ -100,6 +106,8 @@ export type RateRuleRow = {
   effectiveFrom: string;
   effectiveTo: string | null;
   status: 'current' | 'scheduled' | 'ended';
+  /** A later rule of the same scope replaces this one from that day (T62). */
+  replacedFrom?: string | null;
 };
 
 export type RatesProjectRow = {
@@ -114,6 +122,9 @@ export type RatesProjectRow = {
   /** Active people on the project today, and how many of them have no client rate. */
   peopleCount: number;
   missingCount: number;
+  /** The next project-wide client rate that starts later, if any (T62). */
+  upcomingRateMinor?: string | null;
+  upcomingRateFrom?: string | null;
 };
 
 export type RatesOverview = {

@@ -3484,8 +3484,7 @@
 <div class="billing-section" data-ui="billing-section">
   <header class="billing-section__context">
     <div>
-      <p class="billing-section__eyebrow">{translate('Finance operations')}</p>
-      <h2>{translate('Billing')}</h2>
+      <!-- T84: the page title (Invoices) is the only title; no eyebrow or second 'Billing' heading. -->
       <p>
         {quickInvoiceText(locale, canManageBilling ? 'landingIntro' : 'landingIntroReadOnly')}
       </p>
@@ -8763,22 +8762,6 @@
 
   .billing-section__context > div {
     min-width: 0;
-  }
-
-  .billing-section__eyebrow {
-    margin: 0 0 0.35rem;
-    color: var(--portal-muted, #67675f);
-    font-size: 0.8125rem;
-    font-weight: 750;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-  }
-
-  .billing-section__context h2 {
-    margin: 0;
-    color: var(--portal-ink, #20201d);
-    font-size: clamp(1.55rem, 2vw, 2rem);
-    letter-spacing: -0.025em;
   }
 
   .billing-section__context p:last-child {

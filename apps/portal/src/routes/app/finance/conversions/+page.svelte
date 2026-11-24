@@ -29,7 +29,6 @@
 <svelte:head><title>{t('title')}</title></svelte:head>
 
 <main class="fxp" data-conversions-page>
-  <p><a href={`${base}/app/finance?view=overview`}>← {t('back')}</a></p>
   <h1>{t('title')}</h1>
   <p class="fxp__intro">{t('intro')}</p>
   <p class="fxp__muted">{data.latestRateDate ? t('latest', { date: date(data.latestRateDate) }) : t('noRates')}</p>

@@ -1,6 +1,5 @@
 <script lang="ts">
   import { minorDigitsFor } from '$lib/portal/payment-money';
-  import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import { base } from '$app/paths';
   import { afterNavigate } from '$app/navigation';
   import { page } from '$app/stores';
@@ -396,13 +395,6 @@
 {/snippet}
 
 <main class="calculation-page" data-project-calculation-page>
-  <a
-    class="back-link"
-    href={`${base}/app/finance?project=${encodeURIComponent(project.id)}&view=economic`}
-  >
-    <DirectionIcon direction="left" />
-    {t('← Back to project finance').replace(/^←\s*/u, '')}
-  </a>
   <header class="page-header">
     <p>{t('PROJECT FINANCE EXPLANATION')}</p>
     <h1>{t('How this project is calculated')}</h1>
@@ -866,11 +858,6 @@
     margin: 0 auto;
     padding: clamp(1rem, 3vw, 2.5rem);
     color: #172033;
-  }
-  .back-link {
-    color: #1c5d99;
-    font-weight: 700;
-    text-decoration: none;
   }
   .page-header {
     margin: 1.5rem 0;

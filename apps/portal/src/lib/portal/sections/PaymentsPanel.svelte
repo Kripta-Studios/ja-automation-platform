@@ -83,10 +83,10 @@
       : '—';
 </script>
 
-<section class="payments" aria-labelledby="payments-title" data-payments>
+<!-- T84: the shell H1 already says Payments; no second (hidden) Payments heading. -->
+<section class="payments" aria-label={t('paymentsTitle')} data-payments>
   <header class="payments__head">
     <div>
-      <h2 id="payments-title" class="page-title-hidden">{t('paymentsTitle')}</h2>
       <p class="payments__muted">{t(canRecord ? 'paymentsIntro' : 'paymentsIntroReadOnly')}</p>
     </div>
     <a class="secondary-button" href={`${base}/app/finance?view=overview&lang=${locale}`}
@@ -176,15 +176,6 @@
 </section>
 
 <style>
-  /* The portal header already shows the page title. */
-  .page-title-hidden {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0 0 0 0);
-    white-space: nowrap;
-  }
   .payments {
     display: grid;
     gap: 1rem;

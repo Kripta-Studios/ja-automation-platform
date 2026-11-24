@@ -36,7 +36,6 @@
     quickInvoiceWarningText,
     type QuickInvoiceCopyKey,
   } from '$lib/portal/billing-quick-invoice-copy';
-  import { journeyMoney } from '$lib/portal/project-invoice-journey';
   import RecordPaymentForm from '$lib/portal/sections/RecordPaymentForm.svelte';
   import { moneyText } from '$lib/portal/money-copy';
   import { billingFixText, type BillingFixCopyKey } from '$lib/portal/billing-fix-copy';
@@ -214,8 +213,13 @@
   const canManageInvoice = $derived(
     ['owner_admin', 'finance_admin'].includes(String(data.user?.role ?? '')),
   );
+  // T35: the same money format as the balance and the document ("US$ 3.025,00", not "3.025,00 USD").
   const invoiceTotalText = $derived(
-    journeyMoney(String(invoice.total_minor ?? '0'), String(invoice.currency ?? ''), locale),
+    paymentMoney(
+      String(invoice.total_minor ?? '0'),
+      String(invoice.currency ?? 'USD'),
+      documentLanguage(locale),
+    ),
   );
   const invoiceBalance = $derived(
     (data as { balance?: { outstandingMinor: string; collectedMinor: string; currency: string } | null })

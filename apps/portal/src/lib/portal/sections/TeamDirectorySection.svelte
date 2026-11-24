@@ -1517,7 +1517,20 @@
   <header class="team-directory__header">
     <div>
       <h2>{tc('title')}</h2>
-      <p>{canManageTeam ? tc('intro') : `${tc('introPm')}`}</p>
+      <!-- T47: the subtitle says what this role really sees and can do. -->
+      <p>
+        {canManageTeam
+          ? tc('intro')
+          : viewerRole === 'finance_admin'
+            ? tc('introFinance')
+            : viewerRole === 'project_manager'
+              ? tc('introPmManage')
+              : viewerRole === 'auditor_read_only'
+                ? tc('introAuditor')
+                : viewerRole === 'worker'
+                  ? tc('introWorker')
+                  : tc('introPm')}
+      </p>
     </div>
   </header>
 
@@ -2719,7 +2732,13 @@
           {/if}
         </p>
         {#if peopleRows.length === 0}
-          <p class="team-directory__empty team-directory__empty--large">{tc('empty')}</p>
+          <p class="team-directory__empty team-directory__empty--large">
+            {viewerRole === 'auditor_read_only'
+              ? tc('introAuditor')
+              : viewerRole === 'worker'
+                ? tc('introWorker')
+                : tc('empty')}
+          </p>
         {:else}
           <div class="people__table" role="table" aria-label={tc('title')}>
             <div class="people__row people__row--head" role="row">

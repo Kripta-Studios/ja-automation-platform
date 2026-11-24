@@ -16,6 +16,26 @@ const copy = {
     'Personas de tus proyectos. Solo lectura.',
     'Pessoas dos seus projetos. Somente leitura.',
   ],
+  introPmManage: [
+    'People on your projects. Change their assignment dates or end an assignment on the project Team tab.',
+    'Personas de tus proyectos. Cambia las fechas o termina una asignación en la pestaña Equipo del proyecto.',
+    'Pessoas dos seus projetos. Altere datas ou encerre uma atribuição na aba Equipe do projeto.',
+  ],
+  introFinance: [
+    'Everyone who works with J&A, with their projects. Read only: the owner manages access.',
+    'Todas las personas que trabajan con J&A y sus proyectos. Solo lectura: el propietario gestiona el acceso.',
+    'Todas as pessoas que trabalham com a J&A e seus projetos. Somente leitura: o proprietário gere o acesso.',
+  ],
+  introAuditor: [
+    'There is no team list for the auditor role. People appear by name in Audit, Time and Expenses.',
+    'El rol de auditor no tiene lista de equipo. Las personas aparecen por nombre en Auditoría, Horas y Gastos.',
+    'O papel de auditor não tem lista de equipe. As pessoas aparecem pelo nome em Auditoria, Horas e Despesas.',
+  ],
+  introWorker: [
+    'The team list is for the owner and project managers. Your crew is on Crew hours; your projects are on Projects.',
+    'La lista del equipo es para el propietario y los responsables de proyecto. Tu cuadrilla está en Horas de la cuadrilla; tus proyectos, en Proyectos.',
+    'A lista da equipe é para o proprietário e os gerentes de projeto. Sua equipe está em Horas da equipe; seus projetos, em Projetos.',
+  ],
   addPerson: ['Add person', 'Añadir persona', 'Adicionar pessoa'],
   closeAdd: ['Close', 'Cerrar', 'Fechar'],
   fixNames: ['Fix names ({count})', 'Corregir nombres ({count})', 'Corrigir nomes ({count})'],

@@ -3429,16 +3429,30 @@
       !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu.test(reference)
     )
       return `${translate('Payment')} · ${reference}`;
-    const received = dateValue(payment.received_at);
+    const received = calendarDateValue(payment.received_at);
     return received && received !== '—'
       ? `${translate('Payment')} · ${received}`
       : translate('Payment');
   }
 
-  function paymentStatus(ledger: BillingLedgerRow | undefined): string {
-    return ledger
-      ? controlledValue('status', ledger.paymentStatus) || translate('Unpaid')
-      : translate('No ledger row');
+  function paymentStatus(ledger: BillingLedgerRow | undefined, invoice?: Row): string {
+    if (!ledger) return translate('No ledger row');
+    const own = controlledValue('status', ledger.paymentStatus) || translate('Unpaid');
+    // T60: one vocabulary with the invoice page. An overdue invoice reads "Overdue" here too,
+    // with the partial payment as a detail instead of a second, different state.
+    const payment = String(ledger.paymentStatus ?? '').toLowerCase();
+    if (invoice && invoiceStage(invoice) === 'overdue' && payment !== 'paid' && payment !== 'overdue')
+      return payment === 'partially_paid'
+        ? `${controlledValue('status', 'overdue')} · ${own}`
+        : controlledValue('status', 'overdue');
+    return own;
+  }
+
+  /** Business dates (issue, collection, payment, reversal) are calendar days: never show the
+   * synthetic end-of-day time a date-only entry is stored with (T60). */
+  function calendarDateValue(value: unknown): string {
+    const raw = String(value ?? '').trim();
+    return raw ? raw.slice(0, 10) : '—';
   }
 
   function lifecycleStage(state: string): 'draft' | 'approved' | 'issued' | 'collected' {
@@ -7200,24 +7214,24 @@
                 >
                   <div>
                     <span>{translate('Planned issue')}</span><strong
-                      >{dateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
+                      >{calendarDateValue(rowValue(invoice, 'planned_issue_on', 'plannedIssueOn'))}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Actual issue')}</span><strong
-                      >{dateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
+                      >{calendarDateValue(rowValue(invoice, 'issued_at', 'issuedAt'))}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Expected collection')}</span><strong
-                      >{dateValue(
+                      >{calendarDateValue(
                         rowValue(invoice, 'expected_collection_on', 'expectedCollectionOn'),
                       )}</strong
                     >
                   </div>
                   <div>
                     <span>{translate('Actual collection')}</span><strong
-                      >{dateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
+                      >{calendarDateValue(ledger?.paidAt ?? ledger?.lastPaymentDate)}</strong
                     >
                   </div>
                 </div>
@@ -7305,7 +7319,7 @@
                       <strong>{balanceDisplay(invoice, ledger)}</strong></span
                     >
                     <span
-                      >{translate('Payment state')}: <strong>{paymentStatus(ledger)}</strong></span
+                      >{translate('Payment state')}: <strong>{paymentStatus(ledger, invoice)}</strong></span
                     >
                   </div>
                 {/if}
@@ -7361,7 +7375,7 @@
                               payment.grossAmountMinor,
                               String(payment.currency ?? currency),
                             )} ·
-                            {dateValue(payment.received_at)} · {String(
+                            {calendarDateValue(payment.received_at)} · {String(
                               payment.reference ?? translate('No reference'),
                             )}
                           </small>
@@ -7533,7 +7547,7 @@
                                     reversal.amountMinor,
                                     String(reversal.currency ?? currency),
                                   )}</td
-                                ><td>{dateValue(reversal.effectiveAt)}</td><td
+                                ><td>{calendarDateValue(reversal.effectiveAt)}</td><td
                                   >{controlledValue('status', reversal.reasonCode)}</td
                                 ><td>{String(reversal.reason ?? '—')}</td></tr
                               >

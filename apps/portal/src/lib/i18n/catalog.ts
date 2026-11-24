@@ -688,6 +688,12 @@ const en = {
     'This Accounting Pack does not reconcile with its preserved financial sources: {source} ({reason}). Choose dates that leave this record out, or send the record name to support. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
   'problem.billing.collectionBeforeIssue':
     'The expected collection date must be on or after the planned issue date.',
+  "action.billing.pdfViewHere":
+    "View here",
+  "action.billing.generatePdf":
+    "Generate PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "This language version was made before the record last changed. Finance can generate a current one.",
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1371,6 +1377,12 @@ const esBase: Record<keyof typeof en, string> = {
     'Este paquete contable no cuadra con sus fuentes financieras conservadas: {source} ({reason}). Elige fechas que dejen fuera ese registro o envía su nombre a soporte. Tus fechas se conservan; revertir un pago o cambiar registros históricos no lo arregla.',
   'problem.billing.collectionBeforeIssue':
     'La fecha de cobro esperada debe ser igual o posterior a la fecha de emisión prevista.',
+  "action.billing.pdfViewHere":
+    "Ver aquí",
+  "action.billing.generatePdf":
+    "Generar PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "Esta versión de idioma se hizo antes del último cambio del registro. Finanzas puede generar una actual.",
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -2042,6 +2054,12 @@ const ptBase: Record<keyof typeof en, string> = {
     'Este pacote contábil não fecha com as fontes financeiras preservadas: {source} ({reason}). Escolha datas que deixem esse registro de fora ou envie o nome dele ao suporte. Suas datas são mantidas; estornar um pagamento ou alterar registros históricos não resolve.',
   'problem.billing.collectionBeforeIssue':
     'A data de recebimento prevista deve ser igual ou posterior à data de emissão prevista.',
+  "action.billing.pdfViewHere":
+    "Ver aqui",
+  "action.billing.generatePdf":
+    "Gerar PDF",
+  "problem.localizedPdf.outdatedReadOnly":
+    "Esta versão de idioma foi feita antes da última alteração do registro. O financeiro pode gerar uma atual.",
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

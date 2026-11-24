@@ -51,14 +51,27 @@ describe('Owner financial overview', () => {
     expect(summary.months[5]).toEqual({
       from: '2026-09-01',
       to: '2026-09-30',
-      incoming: '60000',
-      outgoing: '11200',
+      // T61: reversals net against their own side.
+      incoming: '50000',
+      outgoing: '1200',
     });
     expect(
       rows
         .filter((item) => matchesCashFilter(item, 'overdue', '2026-09-10'))
         .map((item) => item.id),
     ).toEqual(['due']);
+  });
+  it('never counts a reversed worker payment as cash in (T61)', () => {
+    const rows = [
+      row('in', { amountMinor: '84000' }),
+      row('pay', { kind: 'worker_compensation', amountMinor: '-200750' }),
+      row('pay-reversed', { kind: 'worker_compensation', amountMinor: '200750' }),
+      row('pay-again', { kind: 'worker_compensation', amountMinor: '-200750' }),
+      row('reimb', { kind: 'worker_reimbursement', amountMinor: '-16500' }),
+    ];
+    const month = ownerFinanceSummary(rows, '2026-09-10').currencies[0].months[5];
+    expect(month.incoming).toBe('84000');
+    expect(month.outgoing).toBe('217250');
   });
   it('keeps large integers and currencies exact, and six months across year boundaries', () => {
     const result = ownerFinanceSummary(

@@ -221,6 +221,13 @@
     (data as { balance?: { outstandingMinor: string; collectedMinor: string; currency: string } | null })
       .balance ?? null,
   );
+  /** T60: an overdue invoice with a payment reads "Overdue · Partly paid" everywhere. */
+  const overduePartlyPaid = $derived(
+    invoiceState === 'overdue' &&
+      invoiceBalance !== null &&
+      BigInt(invoiceBalance.collectedMinor || '0') > 0n &&
+      BigInt(invoiceBalance.outstandingMinor || '0') > 0n,
+  );
   let paymentOpen = $state(false);
   let paymentNotice = $state('');
   const paymentFormat = (minor: unknown, currency?: string) =>
@@ -1047,7 +1054,11 @@
     >
     <StatusBadge
       variant={invoiceStatusVariant(invoiceState)}
-      text={invoiceState === 'paid' ? `✓ ${invoiceStatusLabel}` : invoiceStatusLabel}
+      text={invoiceState === 'paid'
+        ? `✓ ${invoiceStatusLabel}`
+        : overduePartlyPaid
+          ? `${invoiceStatusLabel} · ${q('partlyPaidTitle')}`
+          : invoiceStatusLabel}
       data-invoice-status={invoiceState}
     />
   </nav>
@@ -1191,7 +1202,7 @@
                     : invoiceState === 'sent'
                       ? 'sentTitle'
                       : 'issuedTitle',
-            )} · {invoice.invoice_number}
+            )}{overduePartlyPaid ? ` · ${q('partlyPaidTitle')}` : ''} · {invoice.invoice_number}
           </p>
           <strong>{invoiceTotalText}</strong>
           <span
@@ -1355,7 +1366,6 @@
         >
       </div>
       {#if pdfStatus === 'ready'}
-        <p class="invoice-pdf-panel__help">{t('Ready')}</p>
         {#if issuedPdfProblem}
           <div
             class="invoice-pdf-panel__problem"
@@ -1382,7 +1392,7 @@
               ? t('Loading')
               : securePdfPreviewOpen
                 ? t('Close')
-                : t('Open PDF')}</button
+                : t('action.billing.pdfViewHere')}</button
           >
           <a
             class="invoice-pdf-panel__action invoice-pdf-panel__action--secondary"

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { canonicalMoneyAmountText } from '../billing/money-amount-text.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { PERIOD_REPORT_TEMPLATE_VERSION, newId, type Principal } from '@ja/domain';
 import { ConflictError, ValidationError } from '../../repository.ts';
@@ -234,7 +235,8 @@ export class OwnerCatalogManagement {
           values.approval_state = 'draft';
           if (input.operation === 'create') values.author_id = principal.userId;
         } else if (input.kind === 'project_milestone') {
-          const amount = String(values.amount);
+          // T56: "50,000" and "2.940,00" are amounts too (thousands and decimal separators).
+          const amount = canonicalMoneyAmountText(values.amount) ?? '';
           if (!/^\d+(\.\d{1,2})?$/.test(amount)) throw new ValidationError('Invalid amount');
           const [whole, cents = ''] = amount.split('.');
           const minor = BigInt(whole!) * 100n + BigInt(cents.padEnd(2, '0'));

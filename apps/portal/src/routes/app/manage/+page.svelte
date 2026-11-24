@@ -8,6 +8,7 @@
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { formatPortalMoney } from '$lib/i18n/format';
   import { SectionCard, StatusBadge, formValidation } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
@@ -313,7 +314,14 @@
               {row.archived_at ? t('Archived') : String(row.starts_at ?? row.due_on ?? '')} · {controlled(
                 row.status || row.approval_state ? 'status' : 'availability',
                 row.status ?? row.approval_state ?? row.availability,
-              )}{#if data.area === 'planning_assignment' && row.planned_minutes != null}
+              )}{#if data.area === 'project_milestone' && row.amount_minor != null && row.currency}
+                · <strong data-milestone-amount
+                  >{formatPortalMoney(
+                    BigInt(String(row.amount_minor)),
+                    normalizePortalLocale(data.locale),
+                    String(row.currency),
+                  )}</strong
+                >{/if}{#if data.area === 'planning_assignment' && row.planned_minutes != null}
                 · {t('Planned hours (optional)')}: {decimalHoursFromMinutes(row.planned_minutes)} h{/if}
             </p>
             <details

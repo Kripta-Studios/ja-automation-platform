@@ -2525,6 +2525,7 @@
               currency={String(project.currency)}
               defaults={data.personDefaults}
               revision={data.personDefaultsRevision}
+              projectStart={String(project.start_date ?? '')}
               canEdit={canWriteFinance}
               {form}
               {t}

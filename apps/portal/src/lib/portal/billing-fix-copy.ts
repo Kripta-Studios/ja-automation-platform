@@ -60,6 +60,10 @@ const en = {
   financeDiscardOwnerOnly:
     'Only the owner can discard a draft that already has invoice lines. Ask the owner, or approve and correct it with a credit note after issue.',
   packReadyAuditor: 'Available for review or download',
+  managerNotBilled: 'Project manager · not billed',
+  issuerMissingForCurrency:
+    'There is no invoice issuer in {currency} yet, so this setup cannot be saved. Create one first, then come back here.',
+  createIssuerForCurrency: 'Create a {currency} invoice issuer',
 };
 
 type BillingFixCopyKey = keyof typeof en;
@@ -126,6 +130,10 @@ const es: Record<BillingFixCopyKey, string> = {
   financeDiscardOwnerOnly:
     'Solo el propietario puede descartar un borrador que ya tiene líneas de factura. Pídeselo al propietario o, tras emitirla, corrígela con una nota de crédito.',
   packReadyAuditor: 'Disponible para revisar o descargar',
+  managerNotBilled: 'Jefe de proyecto · no se factura',
+  issuerMissingForCurrency:
+    'Aún no hay un emisor de facturas en {currency}, así que esta configuración no se puede guardar. Créalo primero y vuelve aquí.',
+  createIssuerForCurrency: 'Crear un emisor de facturas en {currency}',
 };
 
 const pt: Record<BillingFixCopyKey, string> = {
@@ -191,6 +199,10 @@ const pt: Record<BillingFixCopyKey, string> = {
   financeDiscardOwnerOnly:
     'Somente o proprietário pode descartar um rascunho que já tem linhas de fatura. Peça ao proprietário ou, depois de emitida, corrija com uma nota de crédito.',
   packReadyAuditor: 'Disponível para revisar ou baixar',
+  managerNotBilled: 'Gerente de projeto · não faturado',
+  issuerMissingForCurrency:
+    'Ainda não há um emissor de faturas em {currency}, então esta configuração não pode ser salva. Crie um primeiro e volte aqui.',
+  createIssuerForCurrency: 'Criar um emissor de faturas em {currency}',
 };
 
 const catalogs = { en, es, pt } as const;

@@ -18,7 +18,10 @@ describe('project budget form display', () => {
     expect(minorToProjectAmount('1500000')).toBe('15000.00');
     expect(projectAmountToMinor('15000.00')).toBe('1500000');
     expect(projectAmountToMinor('15000,25')).toBe('1500025');
-    expect(projectAmountToMinor('1,000.25')).toBe('');
+    // Shared locale parser (audit T56): a grouped thousands mark is read, malformed text refused.
+    expect(projectAmountToMinor('1,000.25')).toBe('100025');
+    expect(projectAmountToMinor('1.000,25')).toBe('100025');
+    expect(projectAmountToMinor('2,94,0.00')).toBe('');
   });
 
   it('shows planned effort in hours while submitting integral minutes', () => {

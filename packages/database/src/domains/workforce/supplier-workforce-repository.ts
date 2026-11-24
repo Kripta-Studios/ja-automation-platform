@@ -79,6 +79,8 @@ export type SupplierOperationalTimeRow = Readonly<{
   recordedByName: string;
   isCorrection: number;
   isSuperseded: number;
+  /** The reviewer's reason when the entry was sent back or rejected (T07). */
+  reviewNote: string | null;
 }>;
 
 export type LocalPortalProvisionInput = Readonly<{
@@ -1503,7 +1505,11 @@ export class SupplierWorkforceRepository {
                 EXISTS(
                   SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                    WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'
-                ) isSuperseded
+                ) isSuperseded,
+                  CASE WHEN t.approval_state IN ('needs_changes','rejected') THEN (
+                    SELECT ae.reason FROM approval_event ae
+                     WHERE ae.entity_type='time' AND ae.entity_id=t.id AND ae.to_state=t.approval_state
+                     ORDER BY ae.occurred_at DESC LIMIT 1) END reviewNote
            FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
            LEFT JOIN supplier_time_entry_recorder rec ON rec.time_entry_id=t.id
            LEFT JOIN user ru ON ru.id=rec.recorded_by_user_id
@@ -1539,7 +1545,11 @@ export class SupplierWorkforceRepository {
                   EXISTS(
                     SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                      WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'
-                  ) isSuperseded
+                  ) isSuperseded,
+                  CASE WHEN t.approval_state IN ('needs_changes','rejected') THEN (
+                    SELECT ae.reason FROM approval_event ae
+                     WHERE ae.entity_type='time' AND ae.entity_id=t.id AND ae.to_state=t.approval_state
+                     ORDER BY ae.occurred_at DESC LIMIT 1) END reviewNote
              FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
              LEFT JOIN supplier_time_entry_recorder rec ON rec.time_entry_id=t.id
              LEFT JOIN user ru ON ru.id=rec.recorded_by_user_id

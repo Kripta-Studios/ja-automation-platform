@@ -907,6 +907,12 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         ]
       : [];
     const period = supplierPeriod(url, locals.correlationId);
+    // T26/T07: the coordinator's whole history on this project (drafts and
+    // returned records are never hidden by the report period).
+    const allTeamRows =
+      !owner && projectId
+        ? ctx.supplier.listTime(ctx.principal, { projectId, from: '2000-01-01', to: '2999-12-31' })
+        : [];
     return {
       owner,
       currentUserId: ctx.principal.userId,
@@ -955,6 +961,18 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         projectId && !period.periodProblem
           ? ctx.supplier.listTime(ctx.principal, { projectId, from: period.from, to: period.to })
           : [],
+      // T26: every unsent draft of the coordinator's team on this project,
+      // whatever its date, so a draft after the report's "To" date never hides.
+      openDrafts: allTeamRows.filter((entry) => entry.state === 'draft'),
+      // T07: records J&A sent back that still wait for a correction.
+      returned: (() => {
+        const rows = allTeamRows.filter(
+          (entry) => entry.state === 'needs_changes' && !entry.isSuperseded,
+        );
+        return rows.length
+          ? { count: rows.length, from: rows[0]!.workDate, to: rows[rows.length - 1]!.workDate }
+          : null;
+      })(),
       // T45: people only (no company mailboxes or service senders), with the
       // e-mail to tell look-alike names apart. Accounts that already carry a
       // supplier profile are listed first by the page; others on request.

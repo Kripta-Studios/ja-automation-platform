@@ -22,6 +22,8 @@
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import {
     supplierAccessCopy,
+    supplierCategoryLabel,
+    supplierDraftCopy,
     supplierCopy,
     supplierStateLabel,
     supplierManagementCopy,
@@ -60,6 +62,11 @@
   }
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
   const g = $derived(supplierAccessCopy[data.locale as keyof typeof supplierAccessCopy]);
+  const d = $derived(supplierDraftCopy[data.locale as keyof typeof supplierDraftCopy]);
+  // T21: the same categories the server accepts and the rest of the app shows.
+  const supplierTimeCategories = ['regular', 'overtime', 'travel', 'standby'] as const;
+  const canonicalCategory = (category: unknown) =>
+    String(category ?? '') === 'work' ? 'regular' : String(category ?? 'regular');
   const currentProblem = $derived(
     form && !form.success && 'code' in form ? (form as unknown as ProblemData) : null,
   );
@@ -439,6 +446,7 @@
       selectedWorkerIds = selectedWorkerIds.filter((id) => eligibleIds.has(id));
   });
   const draftEntries = $derived(data.entries.filter((entry) => entry.state === 'draft'));
+  const openDrafts = $derived(data.openDrafts ?? []);
   const selectedDraftPayload = $derived(
     draftEntries
       .filter((entry) => selectedDraftIds.includes(String(entry.id)))
@@ -762,6 +770,19 @@
             </li>{/each}
         </ul>{/if}
     </section>
+  {/if}
+  {#if !data.owner && data.returned}
+    <div class="review-note" role="status">
+      <p>
+        {data.returned.count === 1
+          ? d.needsChangesBannerOne
+          : d.needsChangesBanner.replace('{count}', String(data.returned.count))}
+        <a
+          href={`?${new URLSearchParams({ projectId: data.projectId, from: data.returned.from, to: data.returned.to, lang: data.locale, workspaceAction: 'report' }).toString()}#supplier-report`}
+          >{d.openReturned}</a
+        >
+      </p>
+    </div>
   {/if}
   <nav class="supplier-jump-links" aria-label={c.title}>
     {#if data.owner}
@@ -1558,8 +1579,8 @@
           onclick={() => selectWorkspaceAction('report')}>{c.seeReport} <DirectionIcon /></button
         >
       {/if}
-      {#if draftEntries.length}
-        <!-- Y3: send the saved drafts to J&A from the screen where they were recorded. -->
+      {#if openDrafts.length}
+        <!-- T26: every unsent draft (any date), reviewed in a table before it is sent. -->
         <form
           method="POST"
           action={actionUrl('submitTimeBatch')}
@@ -1572,23 +1593,48 @@
             type="hidden"
             name="entries"
             value={JSON.stringify(
-              draftEntries
+              openDrafts
                 .slice(0, batchLimit)
                 .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
             )}
           />
-          <ul class="crew-draft-list">
-            {#each draftEntries.slice(0, batchLimit) as entry (entry.id)}
-              <li>
-                {entry.workerName} · {shortDate(entry.workDate)} · {decimalHours(entry.minutes)}
-                {c.actualHours}
-              </li>
-            {/each}
-          </ul>
+          <h3 class="drafts-title">{d.draftsTitle.replace('{count}', String(openDrafts.length))}</h3>
+          <div class="drafts-table-wrap">
+            <table class="drafts-table">
+              <thead>
+                <tr>
+                  <th scope="col">{c.worker}</th>
+                  <th scope="col">{c.date}</th>
+                  <th scope="col">{c.category}</th>
+                  <th scope="col">{c.actualHours}</th>
+                  <th scope="col">{c.summary}</th>
+                  <th scope="col"><span class="visually-hidden">{c.edit}</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each openDrafts.slice(0, batchLimit) as entry (entry.id)}
+                  <tr>
+                    <td>{entry.workerName}</td>
+                    <td>{shortDate(entry.workDate)}</td>
+                    <td>{supplierCategoryLabel(data.locale, entry.category)}</td>
+                    <td
+                      >{#if entry.startTime && entry.endTime}{entry.startTime}–{entry.endTime} ·
+                      {/if}{decimalHours(entry.minutes)} h</td
+                    >
+                    <td>{entry.summary}</td>
+                    <td><a href={reportEntryHref(entry)}>{d.editOrDiscard}</a></td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+          <label class="check"
+            ><input type="checkbox" required name="reviewed" value="yes" />{d.reviewedConfirm}</label
+          >
           <button class="primary-button" disabled={submissionNeedsReview}
-            >{(draftEntries.length === 1 ? c.submitDraftsOne : c.submitDrafts).replace(
+            >{(openDrafts.length === 1 ? c.submitDraftsOne : c.submitDrafts).replace(
               '{count}',
-              String(Math.min(draftEntries.length, batchLimit)),
+              String(Math.min(openDrafts.length, batchLimit)),
             )}</button
           >
         </form>
@@ -1657,9 +1703,12 @@
           >{c.date}<input type="date" name="workDate" bind:value={batchWorkDate} required /></label
         >
         <label data-ui="field"
-          >{c.category}<select name="category" value={value('createTimeBatch', 'category', 'work')}
-            ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
-            ></select
+          >{c.category}<select
+            name="category"
+            value={canonicalCategory(value('createTimeBatch', 'category', 'regular'))}
+            >{#each supplierTimeCategories as category (category)}<option value={category}
+                >{supplierCategoryLabel(data.locale, category)}</option
+              >{/each}</select
           ></label
         >
         <fieldset>
@@ -1831,6 +1880,14 @@
           <p>{entry.summary}</p>
           <p>{c.recordedBy}: {entry.recordedByName || entry.workerName}</p>
           {#if entry.isSuperseded}<p>{c.superseded}</p>{/if}
+          {#if !entry.isSuperseded && (entry.state === 'needs_changes' || entry.state === 'rejected')}
+            <div class="review-note" role="note">
+              {#if entry.reviewNote}<p><strong>{d.reviewNote}:</strong> {entry.reviewNote}</p>{/if}
+              {#if !data.owner}<p>
+                  {entry.state === 'needs_changes' ? d.returnedHint : d.rejectedHint}
+                </p>{/if}
+            </div>
+          {/if}
           {#if !data.owner && entry.state === 'needs_changes' && !entry.isSuperseded}
             <form
               method="POST"
@@ -1857,10 +1914,13 @@
               <label data-ui="field"
                 >{c.category}<select
                   name="category"
-                  value={correctionValue(String(entry.id), 'category', String(entry.category))}
+                  value={canonicalCategory(
+                    correctionValue(String(entry.id), 'category', String(entry.category)),
+                  )}
                   required
-                  ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
-                  ></select
+                  >{#each supplierTimeCategories as category (category)}<option value={category}
+                >{supplierCategoryLabel(data.locale, category)}</option
+              >{/each}</select
                 ></label
               >
               {#if entry.startTime && entry.endTime}
@@ -1994,11 +2054,14 @@
                 <label data-ui="field"
                   >{c.category}<select
                     name="category"
-                    value={form?.operation === 'updateTime' && form.values?.id === entry.id
-                      ? form.values.category
-                      : String(entry.category)}
-                    ><option value="work">{c.work}</option><option value="travel">{c.travel}</option
-                    ></select
+                    value={canonicalCategory(
+                      form?.operation === 'updateTime' && form.values?.id === entry.id
+                        ? form.values.category
+                        : entry.category,
+                    )}
+                    >{#each supplierTimeCategories as category (category)}<option value={category}
+                >{supplierCategoryLabel(data.locale, category)}</option
+              >{/each}</select
                   ></label
                 >
                 {#if entry.startTime && entry.endTime}
@@ -2116,6 +2179,44 @@
 <style>
   .revoke-grant {
     margin-top: 0.5rem;
+  }
+  .drafts-title {
+    grid-column: 1 / -1;
+    margin: 0;
+    font-size: 1.05rem;
+  }
+  .drafts-table-wrap {
+    grid-column: 1 / -1;
+    overflow-x: auto;
+  }
+  .drafts-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .drafts-table th,
+  .drafts-table td {
+    text-align: left;
+    padding: 0.45rem 0.5rem;
+    border-bottom: 1px solid var(--ja-border, #e4e7ec);
+    vertical-align: top;
+  }
+  .drafts-table td:nth-child(4) {
+    white-space: nowrap;
+  }
+  .visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .review-note {
+    border-left: 3px solid #b54708;
+    padding: 0.35rem 0.75rem;
+    background: color-mix(in srgb, #b54708 8%, transparent);
+    border-radius: 0.25rem;
   }
   .revoke-grant > summary {
     cursor: pointer;

@@ -68,10 +68,11 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
               correlationId: reference,
             }
           : {
+              // T95: neutral wording; the project may never have been granted.
               code: 'SUPPLIER_REPORT_PROJECT_SCOPE_CHANGED',
-              messageKey: 'problem.supplier.reportProjectScopeChanged',
+              messageKey: 'problem.supplier.reportProjectNotInAccess',
               message:
-                'This project is no longer available in your operational report scope. Choose an available project or ask the owner to review your access.',
+                'This project is not available under your access. Choose one of your projects, or ask J&A if you should have access to it.',
               params: {},
               fieldErrors: {},
               remedies: [{ id: 'contact_owner' }],

@@ -3821,6 +3821,10 @@ const exact: Record<string, readonly [string, string]> = {
     'Selecciona un proyecto operativo.',
     'Selecione um projeto operacional.',
   ],
+  'problem.supplier.reportProjectNotInAccess': [
+    'Este proyecto no está disponible con tu acceso. Elige uno de tus proyectos o pregunta a J&A si deberías tener acceso.',
+    'Este projeto não está disponível com o seu acesso. Escolha um dos seus projetos ou pergunte à J&A se deveria ter acesso.',
+  ],
   'problem.supplier.coordinatorOtherSupplier': [
     'Este coordinador pertenece a otro proveedor. Elige un coordinador del proveedor seleccionado.',
     'Este coordenador pertence a outro fornecedor. Escolha um coordenador do fornecedor selecionado.',
@@ -10560,6 +10564,8 @@ const problemEnglish: Record<string, string> = {
   'problem.supplier.technicianStatusBlocked': 'Active or suspended supplier technician required',
   'problem.supplier.operationalProjectRequired': 'Operational project required',
   'problem.supplier.coordinatorUnavailable': 'Active supplier coordinator required',
+  'problem.supplier.reportProjectNotInAccess':
+    'This project is not available under your access. Choose one of your projects, or ask J&A if you should have access to it.',
   'problem.supplier.coordinatorOtherSupplier':
     'This coordinator belongs to another supplier. Choose a coordinator of the selected supplier.',
   'problem.supplier.revokeReasonRequired': 'Enter the reason for revoking access.',

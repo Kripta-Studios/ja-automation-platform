@@ -386,10 +386,13 @@ export function supplierStateLabel(locale: PortalLocale, state: string): string 
     : translateControlledValue(locale, 'status', state);
 }
 
+/** One label per canonical category (T21/T96); legacy 'work' rows read as regular time. */
 export function supplierCategoryLabel(locale: PortalLocale, category: string): string {
-  return category === 'work'
-    ? supplierCopy[locale].work
-    : translateControlledValue(locale, 'timeCategory', category);
+  return translateControlledValue(
+    locale,
+    'timeCategory',
+    category === 'work' ? 'regular' : category,
+  );
 }
 
 export const supplierManagementCopy = {
@@ -549,5 +552,64 @@ export const supplierAccessCopy = {
     accessEndedItem: '{project} · encerrado em {date}',
     accessNoneTitle: 'Nenhuma instalação autorizada ainda',
     accessNoneBody: 'A J&A ainda não autorizou nenhuma instalação para você. Fale com a J&A para obter acesso.',
+  },
+} as const;
+
+/** Drafts review and reviewer feedback in the supplier workspace (T07, T26). */
+export const supplierDraftCopy = {
+  en: {
+    draftsTitle: 'Not sent to J&A yet ({count})',
+    editOrDiscard: 'Edit or discard',
+    reviewedConfirm: 'I checked these hours. Send them to J&A for approval.',
+    reviewNote: 'Reviewer note',
+    returnedHint: 'J&A sent these hours back. Correct them below; the correction goes back to J&A for approval.',
+    rejectedHint: 'J&A rejected these hours; they are not counted. Record them again only if the reviewer asks for it.',
+    needsChangesBanner: '{count} records need changes. Open the report to correct them.',
+    needsChangesBannerOne: '1 record needs changes. Open the report to correct it.',
+    openReturned: 'Show records to correct',
+  },
+  es: {
+    draftsTitle: 'Aún sin enviar a J&A ({count})',
+    editOrDiscard: 'Editar o descartar',
+    reviewedConfirm: 'He revisado estas horas. Enviarlas a J&A para su aprobación.',
+    reviewNote: 'Nota del revisor',
+    returnedHint: 'J&A ha devuelto estas horas. Corrígelas abajo; la corrección vuelve a J&A para su aprobación.',
+    rejectedHint: 'J&A ha rechazado estas horas; no se cuentan. Regístralas de nuevo solo si el revisor lo pide.',
+    needsChangesBanner: '{count} registros necesitan cambios. Abre el informe para corregirlos.',
+    needsChangesBannerOne: '1 registro necesita cambios. Abre el informe para corregirlo.',
+    openReturned: 'Ver registros a corregir',
+  },
+  pt: {
+    draftsTitle: 'Ainda não enviados à J&A ({count})',
+    editOrDiscard: 'Editar ou descartar',
+    reviewedConfirm: 'Conferi estas horas. Enviá-las à J&A para aprovação.',
+    reviewNote: 'Nota do revisor',
+    returnedHint: 'A J&A devolveu estas horas. Corrija-as abaixo; a correção volta à J&A para aprovação.',
+    rejectedHint: 'A J&A rejeitou estas horas; elas não são contadas. Registre-as novamente só se o revisor pedir.',
+    needsChangesBanner: '{count} registros precisam de alterações. Abra o relatório para corrigi-los.',
+    needsChangesBannerOne: '1 registro precisa de alterações. Abra o relatório para corrigi-lo.',
+    openReturned: 'Ver registros a corrigir',
+  },
+} as const;
+
+/** Operational report page (T70, T95). */
+export const supplierReportCopy = {
+  en: {
+    backToTime: 'Back to my hours',
+    allSuppliers: 'All suppliers',
+    workDone: 'Work performed',
+    breakShort: 'break',
+  },
+  es: {
+    backToTime: 'Volver a mis horas',
+    allSuppliers: 'Todos los proveedores',
+    workDone: 'Trabajo realizado',
+    breakShort: 'pausa',
+  },
+  pt: {
+    backToTime: 'Voltar às minhas horas',
+    allSuppliers: 'Todos os fornecedores',
+    workDone: 'Trabalho realizado',
+    breakShort: 'pausa',
   },
 } as const;

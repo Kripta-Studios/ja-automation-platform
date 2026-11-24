@@ -3464,6 +3464,7 @@ export const PORTAL_ACTION_KEYS = [
   'problem.supplier.operationalProjectRequired',
   'problem.supplier.coordinatorUnavailable',
   'problem.supplier.coordinatorOtherSupplier',
+  'problem.supplier.reportProjectNotInAccess',
   'problem.supplier.revokeReasonRequired',
   'problem.supplier.confirmProfileChange',
   'problem.supplier.coordinatorLoginRequired',

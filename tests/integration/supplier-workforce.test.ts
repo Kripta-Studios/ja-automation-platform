@@ -189,7 +189,7 @@ describe('supplier workforce canonical time', () => {
     expect(() => create(60, '19:00', '20:00')).toThrow();
 
     const grant = suppliers.listGrants(fixture.owner)[0] as { id: string };
-    suppliers.revokeProject(fixture.owner, { id: grant.id });
+    suppliers.revokeProject(fixture.owner, { id: grant.id, reason: 'Installation finished' });
     expect(() => create(1)).toThrow(AccessDeniedError);
   });
 
@@ -297,7 +297,7 @@ describe('supplier workforce canonical time', () => {
     ).toEqual({ count: 42 });
     const grant = suppliers.listGrants(fixture.owner).find((row) => row.status === 'active');
     if (!grant) throw new Error('Expected active supplier project grant');
-    suppliers.revokeProject(fixture.owner, { id: grant.id });
+    suppliers.revokeProject(fixture.owner, { id: grant.id, reason: 'Installation finished' });
     expect(() => suppliers.createTimeBatch(coordinator, batchInput)).toThrow(AccessDeniedError);
   });
 
@@ -350,13 +350,27 @@ describe('supplier workforce canonical time', () => {
 
   it('revokes a coordinator installation across ordinary own time and report methods', () => {
     const { fixture, suppliers, coordinator, technician } = setup();
-    const ownTime = fixture.repository.createTimeEntry(coordinator, {
-      projectId: fixture.project.id,
-      workDate: operationalDate,
-      category: 'regular',
-      minutes: 15,
-      summary: 'Coordinator own installation work',
-    });
+    // D3: a coordinator records no own J&A hours any more...
+    expect(() =>
+      fixture.repository.createTimeEntry(coordinator, {
+        projectId: fixture.project.id,
+        workDate: operationalDate,
+        category: 'regular',
+        minutes: 15,
+        summary: 'Coordinator own installation work',
+      }),
+    ).toThrow(AccessDeniedError);
+    // ...but a row recorded before that rule stays his own history until revocation.
+    const legacyId = 'legacy-coordinator-own-time';
+    const stamp = new Date().toISOString();
+    fixture.sqlite
+      .prepare(
+        `INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,
+           activity_summary,site,start_time,end_time,break_minutes,approval_state,billability_state,created_at,updated_at)
+         VALUES(?,?,?,?,'regular',NULL,15,'UTC','Coordinator own installation work',NULL,NULL,NULL,NULL,'draft','non_billable',?,?)`,
+      )
+      .run(legacyId, fixture.project.id, coordinator.userId, operationalDate, stamp, stamp);
+    const ownTime = { id: legacyId, version: 1 };
     const ownReport = fixture.repository.createDailyReport(coordinator, {
       projectId: fixture.project.id,
       workDate: operationalDate,
@@ -374,7 +388,7 @@ describe('supplier workforce canonical time', () => {
 
     const grant = suppliers.listGrants(fixture.owner).find((row) => row.status === 'active');
     if (!grant) throw new Error('Expected active supplier project grant');
-    suppliers.revokeProject(fixture.owner, { id: grant.id });
+    suppliers.revokeProject(fixture.owner, { id: grant.id, reason: 'Installation finished' });
 
     expect(() =>
       fixture.repository.createTimeEntry(coordinator, {
@@ -407,9 +421,9 @@ describe('supplier workforce canonical time', () => {
     expect(() => fixture.repository.timeDetail(coordinator, ownTime.id)).toThrow(AccessDeniedError);
     expect(fixture.repository.listAssignedProjects(coordinator)).toEqual([]);
 
-    // Revoking this coordinator's grant does not alter an independently
-    // assigned external technician's own membership authority.
-    expect(
+    // T06: revoking the authorization also ends the technician assignment the
+    // supplier workspace created under it, so no new hours can be logged.
+    expect(() =>
       fixture.repository.createTimeEntry(
         authenticatedWorker(fixture, technician.id),
         {
@@ -417,10 +431,10 @@ describe('supplier workforce canonical time', () => {
           workDate: operationalDate,
           category: 'regular',
           minutes: 1,
-          summary: 'Technician membership remains owner-managed',
+          summary: 'Technician assignment ended with the authorization',
         },
       ),
-    ).toEqual(expect.objectContaining({ id: expect.any(String), version: 1 }));
+    ).toThrow(AccessDeniedError);
 
     expect(fixture.repository.listOwnReports(coordinator)).not.toEqual(
       expect.arrayContaining([expect.objectContaining({ id: ownReport.id })]),
@@ -489,7 +503,7 @@ describe('supplier workforce canonical time', () => {
       }),
     ).toEqual(expect.objectContaining({ id: expect.any(String) }));
 
-    suppliers.revokeProject(fixture.owner, { id: activeGrant!.id });
+    suppliers.revokeProject(fixture.owner, { id: activeGrant!.id, reason: 'Installation finished' });
     expect(() =>
       suppliers.createTime(coordinator, {
         workerId: technician.id,

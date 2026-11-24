@@ -101,7 +101,10 @@ describe('supplier report routes with invalid periods', () => {
         fieldErrors: { to: ['problem.supplier.reportPeriodOrderInvalid'] },
       },
     });
-    expect(state.listTime).not.toHaveBeenCalled();
+    // T26/T07 (role audit 2026-11-22): unsent drafts and returned records are
+    // loaded for the whole history, never for the invalid period itself.
+    for (const call of state.listTime.mock.calls)
+      expect(JSON.stringify(call)).toContain('"from":"2000-01-01","to":"2999-12-31"');
     expect(state.close).toHaveBeenCalledOnce();
   });
 

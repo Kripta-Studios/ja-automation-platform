@@ -91,6 +91,8 @@
   const missingRateCount = $derived(
     ratePeople
       ? currentAssignments.filter((row) => {
+          // D3: PM and supplier-coordinator scopes are not billed, so no rate is missing.
+          if (row.role === 'project_manager' || row.role === 'supplier_coordinator') return false;
           const rate = rateFor(row.workerId);
           return !rate || rate.customerRate === null;
         }).length
@@ -102,6 +104,8 @@
   let search = $state('');
   let selected = $state<Record<string, boolean>>({});
   let startsOn = $state('');
+  // T32: an optional last day, for people who join only for a known period.
+  let endsOn = $state('');
   let payMode = $derived<'defaults' | 'existing' | 'enter'>(
     hasPersonDefaults ? 'defaults' : 'existing',
   );
@@ -110,16 +114,12 @@
   let busy = $state(false);
   let addErrors = $state<string[]>([]);
 
-  function mondayOf(date: string): string {
-    const value = new SvelteDate(`${date}T00:00:00.000Z`);
-    value.setUTCDate(value.getUTCDate() - ((value.getUTCDay() + 6) % 7));
-    return value.toISOString().slice(0, 10);
-  }
-  // New people can log hours from the project start (owner decision
-  // 2026-11-19); without a project start, from this week's Monday.
+  // T32 (role audit 2026-11-22): new people start today, so a quick "Add"
+  // never back-dates an assignment by months; a project that has not started
+  // yet starts on its first day. The owner can still type an earlier date.
   // Always inside the project dates.
   const baseStart = $derived.by(() => {
-    let start = projectStart || mondayOf(today);
+    let start = projectStart && projectStart > today ? projectStart : today;
     if (projectEnd && start > projectEnd) start = projectEnd;
     return start;
   });
@@ -177,13 +177,18 @@
     return people
       .map((person) => ({
         id: person.id,
-        name: (counts.get(person.name) ?? 0) > 1 && person.email ? `${person.name} (${person.email})` : person.name,
+        name: person.name,
+        // T32: the e-mail is always shown under the name to tell look-alike
+        // names apart (for example a login and a display name of one person).
+        email: person.email,
       }))
       .sort((a, b) => a.name.localeCompare(b.name));
   });
   const visible = $derived(
     available.filter((worker) =>
-      worker.name.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()),
+      `${worker.name} ${worker.email}`
+        .toLocaleLowerCase()
+        .includes(search.trim().toLocaleLowerCase()),
     ),
   );
   const selectedIds = $derived(Object.keys(selected).filter((id) => selected[id]));
@@ -219,6 +224,7 @@
     for (const workerId of selectedIds) {
       const personStart = startFor(workerId);
       const fields: Record<string, string> = { projectId, workerId, startsOn: personStart };
+      if (endsOn) fields.endsOn = endsOn;
       if (isOwner && payMode === 'defaults') fields.useProjectDefaults = 'on';
       if (isOwner && payMode === 'existing') fields.useExistingFinanceRules = 'on';
       if (isOwner && payMode === 'enter') {
@@ -226,7 +232,7 @@
         fields.compensationRate = workerPay;
         fields.compensationBasis = 'hourly';
         fields.financeEffectiveFrom = personStart;
-        fields.financeEffectiveTo = '';
+        fields.financeEffectiveTo = endsOn;
       }
       try {
         const result = await post(`${base}/app/projects?/assignWorker`, fields);
@@ -268,6 +274,12 @@
   // ---------- end assignment ----------
   let endingId = $state('');
   let endReason = $state('');
+  // T19: unapproved hours after the end date can be resolved with the removal.
+  let laterTimeCount = $state(0);
+  let resolveLaterTime = $state(false);
+  // D5/T42: supplier staff assignments are the owner's (and the supplier's).
+  const isSupplierStaff = (row: Assignment) =>
+    row.role === 'external_technician' || row.role === 'supplier_coordinator';
   async function endAssignment(row: Assignment) {
     if (busy) return;
     busy = true;
@@ -276,12 +288,32 @@
         assignmentId: row.id,
         version: String(row.version),
         reason: endReason.trim() || h('reasonDefault'),
+        ...(resolveLaterTime && laterTimeCount ? { resolveLaterTime: 'yes' } : {}),
       });
       if (result.type === 'success') {
-        notify(h('ended', { name: row.name }), 'success');
+        const done = (result.data ?? {}) as { discardedLaterTime?: number; rejectedLaterTime?: number };
+        notify(
+          done.discardedLaterTime || done.rejectedLaterTime
+            ? h('endResolvedLater', {
+                name: row.name,
+                discarded: String(done.discardedLaterTime ?? 0),
+                rejected: String(done.rejectedLaterTime ?? 0),
+              })
+            : h('ended', { name: row.name }),
+          'success',
+        );
         endingId = '';
+        laterTimeCount = 0;
+        resolveLaterTime = false;
         await invalidateAll();
-      } else notify(describe(result.type === 'failure' ? result.data : null), 'danger');
+      } else {
+        const failure = result.type === 'failure' ? result.data : null;
+        const resolvable = Number(
+          (failure as { resolvableLaterTime?: unknown } | null)?.resolvableLaterTime ?? 0,
+        );
+        if (resolvable > 0 && !resolveLaterTime) laterTimeCount = resolvable;
+        notify(describe(failure), 'danger');
+      }
     } catch {
       notify(describe(null), 'danger');
     } finally {
@@ -408,7 +440,8 @@
             <label class="hub-pick"
               ><input type="checkbox" bind:checked={selected[worker.id]} data-hub-pick={worker.id} />
               <span
-                >{worker.name}{#if lastEndedOn[worker.id]}{#if overlapsEarlier(worker.id)}<small
+                >{worker.name}{#if worker.email}<small class="hub-pick-email">{worker.email}</small
+                  >{/if}{#if lastEndedOn[worker.id]}{#if overlapsEarlier(worker.id)}<small
                       class="hub-pick-note hub-pick-note--warn"
                       data-hub-overlap={worker.id}
                       >{h('rejoinOverlap', { ended: formatDate(lastEndedOn[worker.id]) })}</small
@@ -435,6 +468,15 @@
               oninput={() => (startTouched = true)}
               data-hub-starts-on
             /><small class="surface-intro">{h('startsOnHelp')}</small></label
+          >
+          <label
+            >{h('endsOnOptional')}<input
+              type="date"
+              min={startsOn || projectStart || undefined}
+              max={projectEnd || undefined}
+              bind:value={endsOn}
+              data-hub-ends-on
+            /><small class="surface-intro">{h('endsOnHelp')}</small></label
           >
           <fieldset>
             <legend>{h('payTerms')}</legend>
@@ -542,7 +584,10 @@
           {#if ratePeople}
             <div class="hub-team-rate">
               <span class="hub-label">{h('clientRate')}</span>
-              {#if rate?.customerRate !== null && rate}
+              {#if row.role === 'project_manager' || row.role === 'supplier_coordinator'}
+                <!-- D3: management and coordinator scopes record no billable client hours. -->
+                <span class="hub-missing-text" data-hub-not-billed>{h('notBilledRole')}</span>
+              {:else if rate?.customerRate !== null && rate}
                 <strong>{currency} {rate.customerRateAmount}/{rate.customerRateBasis === 'hourly' ? 'h' : rate.customerRateBasis}</strong>
               {:else if canSetRates}
                 <button
@@ -575,7 +620,9 @@
               {/if}
             </div>
           {/if}
-          {#if canManage && (isOwner || row.workerId !== viewerId)}
+          {#if canManage && !isOwner && isSupplierStaff(row)}
+            <small class="surface-intro">{h('supplierStaffByOwner')}</small>
+          {:else if canManage && (isOwner || row.workerId !== viewerId)}
             <!-- Y5: a project manager does not end their own membership (the owner does). -->
             <button
               type="button"
@@ -584,6 +631,8 @@
               onclick={() => {
                 endingId = endingId === row.id ? '' : row.id;
                 endReason = h('reasonDefault');
+                laterTimeCount = 0;
+                resolveLaterTime = false;
               }}>{h('endAssignment')}</button
             >
           {/if}
@@ -618,6 +667,12 @@
               <strong>{h('endAssignmentTitle', { name: row.name })}</strong>
               <p>{h('endAssignmentHelp')}</p>
               <label>{h('reason')}<input bind:value={endReason} maxlength="2000" /></label>
+              {#if laterTimeCount}
+                <label class="hub-check" data-hub-end-resolve
+                  ><input type="checkbox" bind:checked={resolveLaterTime} />
+                  {h('endResolveLater', { count: laterTimeCount })}</label
+                >
+              {/if}
               <div class="hub-inline-actions">
                 <button type="button" class="secondary-button" onclick={() => (endingId = '')}
                   >{h('cancel')}</button
@@ -882,6 +937,18 @@
     flex-wrap: wrap;
     gap: 0.5rem 1.25rem;
     margin: 1rem 0 0;
+  }
+  .hub-pick-email {
+    display: block;
+    color: var(--ja-muted, #667085);
+    font-size: 0.85rem;
+    overflow-wrap: anywhere;
+  }
+  .hub-check {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-start;
+    margin: 0.5rem 0;
   }
   .danger-button {
     min-height: var(--ja-target-min, 2.75rem);

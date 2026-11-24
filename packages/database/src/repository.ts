@@ -4887,6 +4887,10 @@ export class PortalRepository {
     }> = {},
   ) {
     this.assertActive(principal);
+    // D3: a supplier coordinator is not a J&A worker; J&A does not reimburse
+    // his own expenses. His company invoices J&A for its own costs.
+    if (workerId === principal.userId && isSupplierCoordinator(this.sqlite, workerId))
+      throw new AccessDeniedError('Supplier coordinators do not record own expenses here');
     return this.transaction(() => {
       const delegated = principal.role === 'worker' && workerId !== principal.userId;
       const grantId = delegated
@@ -13765,10 +13769,13 @@ export class PortalRepository {
     principal: Principal,
     userId: string,
     status: 'active' | 'suspended' | 'offboarded' | 'archived',
+    /** T33: the owner's own words for the audit trail (suspend, offboard, restore). */
+    reason?: string,
   ): void {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin')
       throw new AccessDeniedError('Owner administration required');
+    const ownerReason = reason?.trim().slice(0, 2000) || undefined;
     this.assertLiveSession(principal);
     if (userId === principal.userId)
       throw new ValidationError('The owner cannot change their own status');
@@ -13795,7 +13802,7 @@ export class PortalRepository {
       this.audit(principal, 'user.status.update', 'user', userId, {
         before: { status: target.status },
         after: { status },
-        reason: `Owner set account status to ${status}`,
+        reason: ownerReason ?? `Owner set account status to ${status}`,
       });
     });
   }
@@ -14434,7 +14441,7 @@ export class PortalRepository {
     principal: Principal,
     assignmentId: string,
     input: AssignmentRemovalInput,
-  ): void {
+  ): { discarded: number; rejected: number } {
     return this.workforce.removeAssignment(principal, assignmentId, input);
   }
 

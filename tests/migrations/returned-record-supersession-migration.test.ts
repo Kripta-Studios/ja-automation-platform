@@ -111,7 +111,7 @@ describe('returned record supersession migration83 (T08)', () => {
     const upgraded = { sqlite: createDatabase(join(f.directory, 'app.db')).sqlite };
     f.sqlite = upgraded.sqlite;
     expect(upgraded.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 84,
+      version: 85,
     });
     expect(integrityCheck(upgraded.sqlite)).toBe('ok');
     expect(state(upgraded, 'expense', expenseOriginal)).toBe('rejected');

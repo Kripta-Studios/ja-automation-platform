@@ -58,6 +58,9 @@
       !/\/app\/(login|invite|accept-invitation)(\/|$)/.test($page.url.pathname) &&
       (Boolean($page.error) ||
         (!['/app/[section]', '/app', '/app/manage'].includes($page.route.id ?? '') &&
+          // T30: every /app/manage/* page (e.g. Worker pay review) gets its chrome
+          // from the manage layout; wrapping it here rendered the shell twice.
+          !($page.route.id ?? '').startsWith('/app/manage/') &&
           !/\/app\/supplier(\/|$)/.test($page.url.pathname))),
   );
   const translate = (text: string) => portalText(locale, text);

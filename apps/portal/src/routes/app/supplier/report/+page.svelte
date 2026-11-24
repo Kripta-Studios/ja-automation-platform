@@ -6,11 +6,19 @@
   import { privateDownloadFilename } from '$lib/portal/ui/private-document-download';
   import { portalText } from '$lib/portal-i18n';
   import { ProblemNotice, SectionCard } from '$lib/portal/ui';
-  import { supplierCopy, supplierStateLabel, supplierCategoryLabel } from '../copy';
+  import {
+    supplierCopy,
+    supplierDraftCopy,
+    supplierReportCopy,
+    supplierStateLabel,
+    supplierCategoryLabel,
+  } from '../copy';
   import { tick } from 'svelte';
   import { page } from '$app/stores';
   let { data } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
+  const d = $derived(supplierDraftCopy[data.locale as keyof typeof supplierDraftCopy]);
+  const r = $derived(supplierReportCopy[data.locale as keyof typeof supplierReportCopy]);
   const fromError = $derived(data.periodProblem?.fieldErrors.from?.[0] ?? '');
   const toError = $derived(data.periodProblem?.fieldErrors.to?.[0] ?? '');
   const periodDateInvalid = $derived(
@@ -332,7 +340,7 @@
 
 <svelte:head><title>{c.report} · J&A</title></svelte:head>
 <div class="supplier-page" lang={data.locale}>
-  <nav><a href={backHref}>{c.back}</a></nav>
+  <nav><a href={backHref}>{data.technician ? r.backToTime : c.back}</a></nav>
   <h1 class="supplier-title">{c.report}</h1>
   <p>{c.reportNote}</p>
   {#if data.projectProblem}
@@ -392,7 +400,7 @@
         value={data.projectId}
         aria-invalid={data.projectProblem?.fieldErrors.projectId ? 'true' : undefined}
         aria-describedby={data.projectProblem ? 'supplier-report-project-problem' : undefined}
-        ><option value="">—</option>
+        ><option value="" disabled={data.projects.length > 0}>{c.select}</option>
         {#if data.unavailableProject}
           <option value={data.unavailableProject.id}
             >{data.owner && data.unavailableProject.name
@@ -411,7 +419,7 @@
           value={data.supplierId || ''}
           aria-invalid={data.supplierProblem ? 'true' : undefined}
           aria-describedby={data.supplierProblem ? 'supplier-report-supplier-problem' : undefined}
-          ><option value="">—</option>{#if data.supplierProblem && data.supplierId}<option
+          ><option value="">{r.allSuppliers}</option>{#if data.supplierProblem && data.supplierId}<option
               value={data.supplierId}
               >{portalText(data.locale, 'problem.supplier.reportSupplierUnavailable')}</option
             >{/if}{#each data.suppliers as supplier}<option value={supplier.id}
@@ -471,31 +479,48 @@
         </div>
       {/if}
       <SectionCard title={c.reportEntries}>
-        {#each data.report.rows as row}
-          <article>
-            <h3>{row.workerName} · {shortDate(row.workDate)}</h3>
-            <dl>
-              <dt>{c.category}</dt>
-              <dd>{supplierCategoryLabel(data.locale, row.category)}</dd>
-              {#if row.startTime && row.endTime}
-                <dt>{c.interval}</dt>
-                <dd>{row.startTime} – {row.endTime}</dd>
-                <dt>{c.breakHours}</dt>
-                <dd>{decimalHours(row.breakMinutes ?? 0)}</dd>
-              {/if}
-              <dt>{c.actualHours}</dt>
-              <dd>{decimalHours(row.minutes)}</dd>
-              <dt>{c.state}</dt>
-              <dd>
-                {supplierStateLabel(data.locale, row.state)}{#if row.isSuperseded}
-                  · {c.superseded}{/if}
-              </dd>
-              <dt>{c.recordedBy}</dt>
-              <dd>{row.recordedByName}</dd>
-            </dl>
-            <p>{row.summary}</p>
-          </article>
-        {:else}<p>{c.reportEmpty}</p>{/each}
+        {#if data.report.rows.length}
+          <!-- T70: one row per entry under column headers instead of loose cards. -->
+          <div class="report-table-wrap">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th scope="col">{c.worker}</th>
+                  <th scope="col">{c.date}</th>
+                  <th scope="col">{c.category}</th>
+                  <th scope="col">{c.interval}</th>
+                  <th scope="col">{c.actualHours}</th>
+                  <th scope="col">{c.state}</th>
+                  <th scope="col">{c.recordedBy}</th>
+                  <th scope="col">{r.workDone}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {#each data.report.rows as row}
+                  <tr class:superseded={row.isSuperseded}>
+                    <td>{row.workerName}</td>
+                    <td class="nowrap">{shortDate(row.workDate)}</td>
+                    <td>{supplierCategoryLabel(data.locale, row.category)}</td>
+                    <td class="nowrap"
+                      >{#if row.startTime && row.endTime}{row.startTime} – {row.endTime}{#if row.breakMinutes}
+                          · {r.breakShort} {decimalHours(row.breakMinutes)} h{/if}{:else}—{/if}</td
+                    >
+                    <td class="nowrap">{decimalHours(row.minutes)} h</td>
+                    <td>
+                      {supplierStateLabel(data.locale, row.state)}{#if row.isSuperseded}
+                        · {c.superseded}{/if}
+                      {#if !row.isSuperseded && row.reviewNote && (row.state === 'needs_changes' || row.state === 'rejected')}
+                        <p class="review-note"><strong>{d.reviewNote}:</strong> {row.reviewNote}</p>
+                      {/if}
+                    </td>
+                    <td>{row.recordedByName}</td>
+                    <td>{row.summary}</td>
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          </div>
+        {:else}<p>{c.reportEmpty}</p>{/if}
       </SectionCard>
     {:else if !data.periodProblem && !data.projectProblem && !data.supplierProblem}<p>
         {c.reportEmpty}
@@ -534,8 +559,38 @@
   }
   input,
   select {
+    width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+  }
+  .report-table-wrap {
+    overflow-x: auto;
+  }
+  .report-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+  }
+  .report-table th,
+  .report-table td {
+    text-align: left;
+    vertical-align: top;
+    padding: 0.5rem;
+    border-bottom: 1px solid #d4d3d0;
+  }
+  .report-table thead th {
+    background: #f2f4f7;
+  }
+  .report-table .nowrap {
+    white-space: nowrap;
+  }
+  .report-table tr.superseded td {
+    color: #667085;
+  }
+  .review-note {
+    margin: 0.35rem 0 0;
+    border-left: 3px solid #b54708;
+    padding-left: 0.5rem;
   }
   nav {
     display: flex;
@@ -545,20 +600,6 @@
   }
   a {
     padding: 0.65rem 0;
-  }
-  article {
-    padding: 1rem 0;
-    border-bottom: 1px solid #d4d3d0;
-    break-inside: avoid;
-    overflow-wrap: anywhere;
-  }
-  dl {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 0.4rem;
-  }
-  dd {
-    margin: 0;
   }
   @media print {
     nav,

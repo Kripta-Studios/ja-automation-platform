@@ -70,7 +70,7 @@
 </script>
 
 <svelte:head><title>{t('Worker pay review')} · J&amp;A</title></svelte:head>
-<main class="owner-pay">
+<section class="owner-pay">
   <a href={`${base}/app/manage`} class="back-link"
     ><DirectionIcon direction="left" /> {t('Data management')}</a
   >
@@ -126,7 +126,9 @@
               value={data.requestedWorkerId}
               disabled>{t('problem.workerPay.unavailableWorkerOption')}</option
             >{/if}
-          {#each data.workers as worker}<option value={worker.id}>{worker.name}</option>{/each}
+          {#each data.workers as worker}<option value={worker.id}
+              >{worker.name}{worker.inactive ? ` (${t('Inactive')})` : ''}</option
+            >{/each}
         </select>
         {#if fieldError('worker')}<small id="worker-pay-worker-error"
             >{fieldErrorText('worker')}</small
@@ -310,7 +312,7 @@
   {:else if !filterProblem}
     <p class="empty-note">{t('Select a worker to review their current pay statement.')}</p>
   {/if}
-</main>
+</section>
 
 <style>
   .owner-pay {

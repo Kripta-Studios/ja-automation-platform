@@ -45,8 +45,11 @@ describe('published planning assignment lifecycle', () => {
       id: f.outsider.userId,
       name: f.outsider.userId,
       status: 'active',
+      // D3/D5: only the supplier profile is added, so the planner can hide
+      // coordinators and (for a PM) supplier staff. No contact or pay data.
+      workforce_profile: null,
     });
-    expect(Object.keys(planningOption ?? {})).toEqual(['id', 'name', 'status']);
+    expect(Object.keys(planningOption ?? {})).toEqual(['id', 'name', 'status', 'workforce_profile']);
     expect(
       f.repository.createPlanningAssignment(f.manager, {
         projectId: f.project.id,

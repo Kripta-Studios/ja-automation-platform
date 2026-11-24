@@ -16,6 +16,26 @@ const copy = {
     'Personas de tus proyectos. Solo lectura.',
     'Pessoas dos seus projetos. Somente leitura.',
   ],
+  introPmManage: [
+    'People on your projects. Change their assignment dates or end an assignment on the project Team tab.',
+    'Personas de tus proyectos. Cambia las fechas o termina una asignación en la pestaña Equipo del proyecto.',
+    'Pessoas dos seus projetos. Altere datas ou encerre uma atribuição na aba Equipe do projeto.',
+  ],
+  introFinance: [
+    'Everyone who works with J&A, with their projects. Read only: the owner manages access.',
+    'Todas las personas que trabajan con J&A y sus proyectos. Solo lectura: el propietario gestiona el acceso.',
+    'Todas as pessoas que trabalham com a J&A e seus projetos. Somente leitura: o proprietário gere o acesso.',
+  ],
+  introAuditor: [
+    'There is no team list for the auditor role. People appear by name in Audit, Time and Expenses.',
+    'El rol de auditor no tiene lista de equipo. Las personas aparecen por nombre en Auditoría, Horas y Gastos.',
+    'O papel de auditor não tem lista de equipe. As pessoas aparecem pelo nome em Auditoria, Horas e Despesas.',
+  ],
+  introWorker: [
+    'The team list is for the owner and project managers. Your crew is on Crew hours; your projects are on Projects.',
+    'La lista del equipo es para el propietario y los responsables de proyecto. Tu cuadrilla está en Horas de la cuadrilla; tus proyectos, en Proyectos.',
+    'A lista da equipe é para o proprietário e os gerentes de projeto. Sua equipe está em Horas da equipe; seus projetos, em Projetos.',
+  ],
   addPerson: ['Add person', 'Añadir persona', 'Adicionar pessoa'],
   closeAdd: ['Close', 'Cerrar', 'Fechar'],
   fixNames: ['Fix names ({count})', 'Corregir nombres ({count})', 'Corrigir nomes ({count})'],
@@ -243,6 +263,60 @@ const copy = {
   fixSaved: ['{count} names saved.', '{count} nombres guardados.', '{count} nomes salvos.'],
   fixNone: ['All names look right.', 'Todos los nombres están bien.', 'Todos os nomes estão corretos.'],
   fixUse: ['Fix', 'Corregir', 'Corrigir'],
+  copyPassword: ['Copy password', 'Copiar contraseña', 'Copiar senha'],
+  statusReason: ['Reason (kept in the audit log)', 'Motivo (queda en el registro de auditoría)', 'Motivo (fica no registro de auditoria)'],
+  suspendOpen: ['Suspend access…', 'Suspender acceso…', 'Suspender acesso…'],
+  offboardOpen: ['Remove access (offboard)…', 'Retirar acceso (dar de baja)…', 'Remover acesso (desligar)…'],
+  offboardConfirm: ['Remove access now', 'Retirar acceso ahora', 'Remover acesso agora'],
+  suspendConfirm: ['Suspend access now', 'Suspender acceso ahora', 'Suspender acesso agora'],
+  restoreConfirm: ['Restore access', 'Restaurar acceso', 'Restaurar acesso'],
+  checklistTitle: ['Before you continue', 'Antes de continuar', 'Antes de continuar'],
+  checklistLoading: ['Checking open work…', 'Revisando trabajo pendiente…', 'Verificando trabalho pendente…'],
+  checklistClear: [
+    'Nothing open: no drafts, no pending records, no running assignments, no unpaid hours or expenses.',
+    'Nada pendiente: sin borradores, registros pendientes, asignaciones en curso ni horas o gastos sin pagar.',
+    'Nada pendente: sem rascunhos, registros pendentes, atribuições em andamento nem horas ou despesas sem pagar.',
+  ],
+  checklistDrafts: [
+    '{time} hour drafts and {expenses} expense drafts were never sent; they stay as drafts.',
+    '{time} borradores de horas y {expenses} borradores de gastos nunca se enviaron; quedan como borradores.',
+    '{time} rascunhos de horas e {expenses} rascunhos de despesas nunca foram enviados; ficam como rascunhos.',
+  ],
+  checklistPending: [
+    '{time} hour records and {expenses} expenses still wait for a decision in Approve.',
+    '{time} registros de horas y {expenses} gastos aún esperan una decisión en Aprobar.',
+    '{time} registros de horas e {expenses} despesas ainda aguardam decisão em Aprovar.',
+  ],
+  checklistAssignments: [
+    'Still assigned to: {projects}. End these assignments on the project Team tab.',
+    'Sigue asignado a: {projects}. Termina estas asignaciones en la pestaña Equipo del proyecto.',
+    'Ainda alocado em: {projects}. Encerre estas atribuições na aba Equipe do projeto.',
+  ],
+  checklistPay: [
+    '{hours} h of approved hours are not in a settled pay period and {expenses} expenses are not reimbursed yet.',
+    '{hours} h aprobadas no están en un periodo de pago liquidado y {expenses} gastos aún no se han reembolsado.',
+    '{hours} h aprovadas não estão em um período de pagamento liquidado e {expenses} despesas ainda não foram reembolsadas.',
+  ],
+  checklistOpenPay: ['Open pay', 'Abrir pago', 'Abrir pagamento'],
+  suspendedOffboardHelp: [
+    'Suspended. Restore access, or remove access for good if the person left.',
+    'Suspendido. Restaura el acceso o retíralo definitivamente si la persona se fue.',
+    'Suspenso. Restaure o acesso ou remova-o de vez se a pessoa saiu.',
+  ],
+  passwordCopied: ['Password copied.', 'Contraseña copiada.', 'Senha copiada.'],
+  passwordOnce: [
+    'Copy the password now and give it to the person: it is not shown again after you create the account.',
+    'Copia la contraseña ahora y entrégasela a la persona: no se vuelve a mostrar después de crear la cuenta.',
+    'Copie a senha agora e entregue-a à pessoa: ela não é mostrada de novo depois de criar a conta.',
+  ],
+  createdTitle: ['Account created', 'Cuenta creada', 'Conta criada'],
+  createdSignIn: [
+    'Sign-in address: {email}. Give the person this address and the password you set; the password is not shown again.',
+    'Dirección de acceso: {email}. Entrega a la persona esta dirección y la contraseña que pusiste; la contraseña no se vuelve a mostrar.',
+    'Endereço de acesso: {email}. Entregue à pessoa este endereço e a senha que você definiu; a senha não é mostrada de novo.',
+  ],
+  copyEmail: ['Copy address', 'Copiar dirección', 'Copiar endereço'],
+  openPerson: ['Open person', 'Abrir persona', 'Abrir pessoa'],
 } satisfies Record<string, CopyValue>;
 
 export type TeamCopyKey = keyof typeof copy;

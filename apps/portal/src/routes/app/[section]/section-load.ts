@@ -1048,6 +1048,15 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 WHERE p.user_id=?`,
             )
           : null;
+        const supplierProfiles = new Map(
+          context.principal.role !== 'worker' && projectPeopleLoaded
+            ? (
+                context.sqlite
+                  .prepare('SELECT user_id,profile FROM supplier_user_profile')
+                  .all() as Array<{ user_id: string; profile: string }>
+              ).map((row) => [String(row.user_id), String(row.profile)])
+            : [],
+        );
         const projectWorkers =
           context.principal.role !== 'worker' && projectPeopleLoaded
             ? context.repository
@@ -1061,8 +1070,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     url.searchParams.get('status') === 'inactive' ||
                     worker.status === 'active',
                 )
-                .map((worker) => ({
+                .map((worker): Record<string, unknown> => ({
                   ...worker,
+                  // T47: every viewer sees the person's real role ("Supplier
+                  // coordinator", "External technician"), not "Worker".
+                  ...(supplierProfiles.has(String(worker.id))
+                    ? { workforce_profile: supplierProfiles.get(String(worker.id)) }
+                    : {}),
                   ...(canonicalOwner
                     ? {
                         ...(supplierDirectoryForUser?.get(String(worker.id)) ?? {}),
@@ -1456,11 +1470,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           requestedWorkerId && workers.some((worker) => String(worker.id) === requestedWorkerId)
             ? requestedWorkerId
             : undefined;
-        const fallbackWorkerId = String(
-          workers.find((worker) => String(worker.id) === context.principal.userId)?.id ??
-            workers[0]?.id ??
-            context.principal.userId,
-        );
+        // T43: Profile always opens on the signed-in person; inspecting another
+        // worker is an explicit choice (?worker=…), never the first list entry.
+        const fallbackWorkerId = context.principal.userId;
         const targetWorkerId = canInspectWorkforce
           ? (validRequestedWorkerId ?? fallbackWorkerId)
           : context.principal.userId;
@@ -1478,6 +1490,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             context.principal,
             targetWorkerId,
           ),
+          // D13/T31: availability is typed and shown in the time zone of the
+          // person's current (or latest) project; UTC only without a project.
+          availabilityTimeZone:
+            (
+              context.sqlite
+                .prepare(
+                  `SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id
+                    WHERE pm.user_id=? AND pm.status='active'
+                    ORDER BY (pm.ends_on IS NULL OR pm.ends_on>=date('now')) DESC, pm.starts_on DESC LIMIT 1`,
+                )
+                .get(targetWorkerId) as { timezone?: string } | undefined
+            )?.timezone ?? 'UTC',
         };
       }
       case 'notifications': {

@@ -321,6 +321,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   82: 'multi_currency_fx',
   83: 'returned_record_supersession',
   84: 'billing_finance_audit_fixes',
+  85: 'projects_team_supplier_fixes',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -329,7 +330,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'c0354b3ee6651573b1b17144ef64c39164b5be96aec32ef9ea02f5643f548698';
+  'bdc335fabe7f916b16a9665dd37e04963c7e3c89cfe5d52efc5b04df6464433f';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1193,6 +1194,7 @@ export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';
 export * from './domains/workforce/supplier-access.ts';
 export * from './domains/workforce/supplier-workforce-repository.ts';
+export * from './domains/workforce/offboarding-checklist.ts';
 export * from './domains/workforce/crew-leader-repository.ts';
 export * from './domains/expenses/crew-shared-expense-allocation-repository.ts';
 export {

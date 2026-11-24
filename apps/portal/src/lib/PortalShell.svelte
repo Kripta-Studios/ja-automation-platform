@@ -129,6 +129,7 @@
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
   import { scaleWindowText } from './portal/sections/scale-window-copy';
+  import { utcToZonedLocal, zoneLabel } from './portal/zoned-time';
   import {
     hasControlledValue,
     translateControlledValue,
@@ -1586,7 +1587,7 @@
     if (!project || openedCreatedProject === project.id || data.section !== 'projects') return;
     openedCreatedProject = project.id;
     void goto(
-      `${base}/app/projects/${encodeURIComponent(project.id)}?tab=work&lang=${encodeURIComponent(locale)}`,
+      `${base}/app/projects/${encodeURIComponent(project.id)}?tab=work&created=1&lang=${encodeURIComponent(locale)}`,
       {
         replaceState: true,
       },
@@ -1769,6 +1770,9 @@
     (data.workers ?? []).filter(
       (worker) =>
         worker.status === 'active' &&
+        // D3/D5: a supplier coordinator is never planned; a PM does not plan supplier staff.
+        worker.workforce_profile !== 'supplier_coordinator' &&
+        !(data.user.role === 'project_manager' && worker.workforce_profile === 'external_technician') &&
         (data.assignments ?? []).some(
           (assignment) =>
             String(assignment.project_id) === planningProjectId &&
@@ -1988,6 +1992,34 @@
   );
   const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
   const showAdmin = $derived(visibleAdmin.length > 0 || securityAdmin.length > 0);
+  // D13/T31: planning is typed and shown on each project's wall clock.
+  const zoneCopy = $derived(
+    (
+      {
+        es: {
+          in: 'Horas en',
+          each: 'El calendario muestra cada turno en la zona horaria de su proyecto. La planificación nunca crea horas reales.',
+          pick: 'Elige el proyecto: las horas se introducen en su zona horaria.',
+        },
+        pt: {
+          in: 'Horários em',
+          each: 'O calendário mostra cada turno no fuso horário do seu projeto. O planejamento nunca cria horas reais.',
+          pick: 'Escolha o projeto: os horários são informados no fuso horário dele.',
+        },
+      } as Record<string, { in: string; each: string; pick: string }>
+    )[String(locale).slice(0, 2)] ?? {
+      in: 'Times in',
+      each: "The calendar shows each shift in its project's time zone. Planning never creates actual hours.",
+      pick: "Choose the project first: times are entered in its time zone.",
+    },
+  );
+  const planningRowZone = (row: Row): string => String(row.project_timezone ?? 'UTC');
+  const planningCreateZone = $derived(
+    String(
+      (data.projects ?? []).find((project) => String(project.id) === planningProjectId)?.timezone ??
+        '',
+    ),
+  );
   const availableProjects = $derived(
     data.projects && data.projects.length > 0
       ? data.projects
@@ -3504,6 +3536,52 @@
   function reviewCurrentMfaStatus(event: MouseEvent): void {
     event.preventDefault();
     window.location.reload();
+  }
+
+  // T82: the shared secret from the otpauth link, in groups of four for typing.
+  const mfaSetupKey = $derived.by(() => {
+    try {
+      const secret = new URL(mfaSetupUri).searchParams.get('secret') ?? '';
+      return secret.replace(/(.{4})/gu, '$1 ').trim();
+    } catch {
+      return '';
+    }
+  });
+  const mfaKeyCopy = $derived(
+    (
+      {
+        es: { key: 'Clave para tu app de autenticación:', copy: 'Copiar clave', link: 'Ver enlace completo', cancel: 'Cancelar configuración' },
+        pt: { key: 'Chave para o seu app autenticador:', copy: 'Copiar chave', link: 'Ver link completo', cancel: 'Cancelar configuração' },
+      } as Record<string, { key: string; copy: string; link: string; cancel: string }>
+    )[String(locale).slice(0, 2)] ?? {
+      key: 'Key for your authenticator app:',
+      copy: 'Copy key',
+      link: 'Show the full link',
+      cancel: 'Cancel setup',
+    },
+  );
+  function cancelMfaSetup(): void {
+    mfaSetupUri = '';
+    mfaBackupCodes = [];
+    mfaCode = '';
+    mfaProblem = null;
+    securityMessage = '';
+  }
+  /** T82: an availability window as readable dates on the person's project clock. */
+  function availabilityWindowText(startsAt: unknown, endsAt: unknown): string {
+    const zone = String((data as { availabilityTimeZone?: string }).availabilityTimeZone ?? 'UTC');
+    const format = (value: unknown) => {
+      const raw = String(value ?? '');
+      const instant = new Date(/[zZ]|[+-]\d{2}:\d{2}$/u.test(raw) ? raw : `${raw}Z`);
+      return Number.isNaN(instant.getTime())
+        ? raw
+        : new Intl.DateTimeFormat(locale, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: zone,
+          }).format(instant);
+    };
+    return `${format(startsAt)} → ${format(endsAt)}`;
   }
 
   async function toggleMfa(action: 'enable' | 'verify' | 'disable'): Promise<void> {
@@ -6014,7 +6092,8 @@
               {translate}
               statusLabel={(value) => controlledValue('status', value)}
               label="Project"
-              status={$page.url.searchParams.get('status') ?? 'active'}
+              contextKey="register-d14"
+              status={$page.url.searchParams.get('status') ?? ''}
               showEmpty={availableProjects.length > 0}
             />
             {#each projectRegisterPage as row (row.id)}
@@ -6790,7 +6869,11 @@
               >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
-                value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
+                value={planningEditValue(
+                  row,
+                  'startsAt',
+                  utcToZonedLocal(String(row.starts_at), planningRowZone(row)),
+                ).slice(0, 16)}
                 required
               /></label
             >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
@@ -6802,7 +6885,11 @@
               >{translate('End (optional)')}<input
                 name="endsAt"
                 type="datetime-local"
-                value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
+                value={planningEditValue(
+                  row,
+                  'endsAt',
+                  row.ends_at == null ? '' : utcToZonedLocal(String(row.ends_at), planningRowZone(row)),
+                ).slice(0, 16)}
               /></label
             >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
                 class="field-error"
@@ -6876,18 +6963,20 @@
           {translate}
           {locale}
           agendaId="planning-day-agenda"
+          zoneNote={false}
           initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.planningCalendar ?? data.records ?? []).map((row) => ({
             id: String(row.id),
             title: `${personDisplayName(row.worker_name)} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
-            startsAt: String(row.starts_at),
-            endsAt: row.ends_at == null ? undefined : String(row.ends_at),
+            startsAt: utcToZonedLocal(String(row.starts_at), planningRowZone(row)),
+            endsAt:
+              row.ends_at == null ? undefined : utcToZonedLocal(String(row.ends_at), planningRowZone(row)),
             href: planningRecordHref(row),
           }))}
           onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
         />
         <p class="form-help">
-          {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
+          {zoneCopy.each}
         </p>
         {#if focusedPlanningRecord}
           <section
@@ -7253,12 +7342,10 @@
                 >{/if}
             </fieldset>
             <p class="form-help">
-              {translate(
-                'Enter dates and times in UTC. The worker agenda also shows times in UTC.',
-              )}
+              {planningCreateZone ? `${zoneCopy.in} ${zoneLabel(planningCreateZone)}` : zoneCopy.pick}
             </p>
             <label
-              >{translate('Start (UTC)')}<input
+              >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
                 bind:value={planningStarts}
@@ -7268,7 +7355,7 @@
                 class="field-error"
                 role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
               >{/if}<label
-              >{translate('End (UTC, optional)')}<input
+              >{translate('End (optional)')}<input
                 name="endsAt"
                 type="datetime-local"
                 bind:value={planningEnds}
@@ -7729,7 +7816,9 @@
               records={data.availability ?? []}
               workerId={profileWorkerId}
               currentUserId={String(data.user.id)}
-              readOnly={isAuditor}
+              timeZone={String((data as { availabilityTimeZone?: string }).availabilityTimeZone ?? 'UTC')}
+              readOnly={isAuditor ||
+                (data.user.role === 'finance_admin' && profileWorkerId !== String(data.user.id))}
               {form}
               {translate}
               {locale}
@@ -7899,11 +7988,7 @@
               ><tbody
                 >{#each data.availability ?? [] as item}<tr
                     ><td
-                      >{String(item.starts_at).replace('T', ' ').slice(0, 16)} → {String(
-                        item.ends_at,
-                      )
-                        .replace('T', ' ')
-                        .slice(0, 16)}</td
+                      >{availabilityWindowText(item.starts_at, item.ends_at)}</td
                     ><td>{controlledValue('availability', item.availability)}</td><td
                       >{item.note ?? '—'}</td
                     ></tr
@@ -8032,7 +8117,23 @@
                     'Add this URI to your authenticator, then enter the current six-digit code to confirm the device. Recovery codes are shown once; store them securely.',
                   )}
                 </p>
-                <code class="security-uri">{mfaSetupUri}</code>
+                <!-- T82: a key to type into the app (no raw link as the only way), and a way out. -->
+                {#if mfaSetupKey}
+                  <p class="security-key">
+                    <span>{mfaKeyCopy.key}</span>
+                    <code data-mfa-setup-key>{mfaSetupKey}</code>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => void navigator.clipboard?.writeText(mfaSetupKey.replaceAll(' ', ''))}
+                      >{mfaKeyCopy.copy}</button
+                    >
+                  </p>
+                {/if}
+                <details>
+                  <summary>{mfaKeyCopy.link}</summary>
+                  <code class="security-uri">{mfaSetupUri}</code>
+                </details>
                 {#if mfaBackupCodes.length}
                   <p class="security-codes" aria-label={translate('One-time recovery codes')}>
                     {mfaBackupCodes.join(' · ')}
@@ -8061,6 +8162,8 @@
                       {portalText(locale, mfaProblem.fieldErrors.code[0], mfaProblem.params)}
                     </p>{/if}<button type="submit" disabled={mfaBusy || mfaNeedsReview}
                     >{translate('Verify MFA')}</button
+                  ><button type="button" class="secondary-button" onclick={cancelMfaSetup}
+                    >{mfaKeyCopy.cancel}</button
                   >
                 </form>
               </div>

@@ -65,6 +65,10 @@
   const role = $derived(String(data.user.role));
   const me = $derived(String(data.user.id));
   const isOwner = $derived(role === 'owner_admin');
+  const isSupplierTechnician = $derived(
+    ($page.data as { chromeUser?: { workforceProfile?: string | null } | null }).chromeUser
+      ?.workforceProfile === 'external_technician',
+  );
   const canOverridePayer = $derived(['owner_admin', 'finance_admin'].includes(role));
   const canRecord = $derived(!isAuditor);
   const text = (row: Row | undefined, key: string): string => {
@@ -866,6 +870,10 @@
         <!-- T68: the owner's list holds what the owner recorded, also for other people. -->
         <h2>{isOwner ? c('recentOwnerRecorded') : c('mine')}</h2>
         <p>{c('intro')}</p>
+        {#if isSupplierTechnician}
+          <!-- T69 (D4 parked): no promise about who refunds; point to the coordinator. -->
+          <p class="xp-muted" data-supplier-expense-note>{c('supplierTechnicianNote')}</p>
+        {/if}
         <p class="xp-muted" data-expense-scope>
           {c('captureScope', { weeks: capture.weeks, n: visible.length })}
         </p>

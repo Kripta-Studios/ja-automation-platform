@@ -47,7 +47,21 @@ export type AssignmentRemovalInput = Readonly<{
   endsOn?: string;
   reason: string;
   version?: number;
+  /**
+   * T19: hours logged after the end date that nobody approved yet are resolved
+   * with the removal: unsent drafts are discarded (void) and pending or
+   * returned hours are rejected with the removal reason. Approved, locked or
+   * invoiced hours, expenses and reports still block the end date.
+   */
+  resolveLaterTime?: boolean;
 }>;
+
+/** A supplier's technician or coordinator (D5: managed by the supplier workspace). */
+function isSupplierStaff(sqlite: DatabaseSync, userId: string): boolean {
+  return Boolean(
+    sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=? LIMIT 1').get(userId),
+  );
+}
 
 export type WorkforceRepositoryDependencies = Readonly<{
   sqlite: DatabaseSync;
@@ -155,14 +169,16 @@ export class WorkforceRepository {
       if (ids.length === 0) return [];
       return this.deps.sqlite
         .prepare(
-          `SELECT DISTINCT u.id,u.name,u.status
+          `SELECT DISTINCT u.id,u.name,u.status,sp.profile workforce_profile
            FROM user u
+           LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
            JOIN project_member pm ON pm.user_id=u.id
            JOIN project p ON p.id=pm.project_id
            JOIN project_member scope_pm ON scope_pm.project_id=pm.project_id
            WHERE p.status IN ('active','planned','paused')
              AND u.status='active' AND u.role IN ('worker','project_manager')
              AND pm.status='active' AND pm.project_id IN (${ids.map(() => '?').join(',')})
+             AND pm.assignment_role<>'supplier_coordinator'
              AND (pm.ends_on IS NULL OR pm.ends_on>=?)
              AND scope_pm.user_id=? AND scope_pm.status='active'
              AND scope_pm.starts_on<=? AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=?)
@@ -178,7 +194,12 @@ export class WorkforceRepository {
       throw this.deps.errors.accessDenied('Planning worker selection required');
     return this.deps.sqlite
       .prepare(
-        "SELECT id,name,status FROM user WHERE status='active' AND role IN ('worker','project_manager') ORDER BY name,id",
+        // D3/D5: the supplier profile lets the planner hide coordinators and,
+        // for a project manager, supplier staff.
+        `SELECT u.id,u.name,u.status,sp.profile workforce_profile
+           FROM user u LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
+          WHERE u.status='active' AND u.role IN ('worker','project_manager')
+          ORDER BY u.name,u.id`,
       )
       .all();
   }
@@ -359,11 +380,21 @@ export class WorkforceRepository {
       throw this.deps.errors.validation('Active worker not found');
     if (principal.role === 'worker' && principal.userId !== input.workerId)
       throw this.deps.errors.accessDenied('Worker availability ownership required');
+    // D5/T43: finance never writes someone else's availability; a project
+    // manager only for workers on a project he manages (the project's
+    // designated manager), not on every project he is merely a member of.
+    if (principal.role === 'finance_admin' && principal.userId !== input.workerId)
+      throw this.deps.errors.accessDenied('Worker availability ownership required');
     if (principal.role === 'project_manager' && principal.userId !== input.workerId) {
       const assigned = [...principal.projectIds].some(
         (projectId) =>
-          this.effectiveLaborAssignment(projectId, input.workerId) &&
-          this.effectiveLaborAssignment(projectId, principal.userId),
+          Boolean(
+            this.deps.sqlite
+              .prepare('SELECT 1 FROM project WHERE id=? AND project_manager_id=?')
+              .get(projectId, principal.userId),
+          ) &&
+          this.effectiveLaborAssignment(projectId, principal.userId) &&
+          this.effectiveLaborAssignment(projectId, input.workerId),
       );
       if (!assigned)
         throw this.deps.errors.accessDenied('Worker availability is outside the project scope');
@@ -602,8 +633,10 @@ export class WorkforceRepository {
     const excluded = this.deps.sqlite
       .prepare(
         `SELECT 1 FROM (
+           -- Rejected hours are not recorded work (T19): they never hold an
+           -- assignment open.
            SELECT work_date source_date FROM time_entry
-            WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+            WHERE project_id=? AND worker_id=? AND approval_state NOT IN ('void','rejected')
            UNION ALL
            SELECT spent_on source_date FROM expense
             WHERE project_id=? AND worker_id=? AND approval_state<>'void'
@@ -667,6 +700,8 @@ export class WorkforceRepository {
       if (!canManageAssignments(principal, existing.project_id))
         throw this.deps.errors.accessDenied('Assignment administration required');
       this.assertPrincipalProjectScope(principal, existing.project_id);
+      if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
+        throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
 
       assertPlannedMinutes(input.plannedMinutes, this.deps.errors.validation);
       const startsOn = input.startsOn !== undefined ? input.startsOn : existing.starts_on;
@@ -748,6 +783,10 @@ export class WorkforceRepository {
       if (!canManageAssignments(principal, existing.project_id))
         throw this.deps.errors.accessDenied('Assignment administration required');
       this.assertPrincipalProjectScope(principal, existing.project_id);
+      // D5/T42: supplier staff assignments are ended by the owner (or the
+      // supplier's own authorization), never by a project manager.
+      if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
+        throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
 
       const reason = this.deps.assertText(input.reason, 'Removal reason', 2000);
       const today = this.today();
@@ -768,7 +807,21 @@ export class WorkforceRepository {
         throw this.deps.errors.validation('Immediate removal cannot use a future end date');
       if (startsBeforeToday && effectiveEnd < existing.starts_on)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
-      this.assertAssignmentSourceDates(existing, existing.starts_on, effectiveEnd);
+      const resolvedLaterTime = input.resolveLaterTime
+        ? this.resolveTimeAfterEnd(principal, existing, startsBeforeToday ? effectiveEnd : null, reason)
+        : { discarded: 0, rejected: 0 };
+      try {
+        this.assertAssignmentSourceDates(existing, existing.starts_on, effectiveEnd);
+      } catch (error) {
+        if (error instanceof Error)
+          Object.assign(error, {
+            resolvableLaterTime: this.resolvableTimeAfterEnd(
+              existing,
+              startsBeforeToday ? effectiveEnd : null,
+            ),
+          });
+        throw error;
+      }
 
       const changed = this.deps.sqlite
         .prepare(
@@ -784,8 +837,86 @@ export class WorkforceRepository {
         endsOn: effectiveEnd,
         cancelBeforeStart: !startsBeforeToday,
         reason,
+        ...(input.resolveLaterTime ? { resolvedLaterTime } : {}),
       });
+      return resolvedLaterTime;
     });
+  }
+
+  /** Unapproved, unlocked time of this assignment after the new end (null = whole assignment). */
+  private laterTimeRows(existing: AssignmentRow, end: string | null) {
+    return this.deps.sqlite
+      .prepare(
+        `SELECT t.id,t.approval_state,t.version FROM time_entry t
+          WHERE t.project_id=? AND t.worker_id=? AND t.work_date>=?
+            AND (? IS NULL OR t.work_date<=?)
+            AND (? IS NULL OR t.work_date>?)
+            AND t.approval_state IN ('draft','submitted','needs_changes')
+            AND t.invoice_id IS NULL AND t.billing_status='unlocked'
+            AND t.billing_lock_id IS NULL AND t.locked_at IS NULL
+            AND t.finance_approved_at IS NULL
+            AND NOT EXISTS(SELECT 1 FROM invoice_source s WHERE s.source_type='time' AND s.source_id=t.id)
+          ORDER BY t.work_date,t.id`,
+      )
+      .all(
+        existing.project_id,
+        existing.user_id,
+        existing.starts_on,
+        existing.ends_on,
+        existing.ends_on,
+        end,
+        end,
+      ) as { id: string; approval_state: string; version: number }[];
+  }
+
+  private resolvableTimeAfterEnd(existing: AssignmentRow, end: string | null): number {
+    return this.laterTimeRows(existing, end).length;
+  }
+
+  private resolveTimeAfterEnd(
+    principal: Principal,
+    existing: AssignmentRow,
+    end: string | null,
+    reason: string,
+  ): { discarded: number; rejected: number } {
+    let discarded = 0;
+    let rejected = 0;
+    const timestamp = this.deps.now();
+    for (const row of this.laterTimeRows(existing, end)) {
+      const toState = row.approval_state === 'draft' ? 'void' : 'rejected';
+      const changed = this.deps.sqlite
+        .prepare(
+          `UPDATE time_entry SET approval_state=?,updated_at=?,version=version+1
+            WHERE id=? AND version=? AND approval_state=? AND invoice_id IS NULL
+              AND billing_status='unlocked' AND billing_lock_id IS NULL AND locked_at IS NULL`,
+        )
+        .run(toState, timestamp, row.id, row.version, row.approval_state);
+      if (changed.changes !== 1)
+        throw this.deps.errors.conflict('Assignment changed before removal');
+      this.deps.sqlite
+        .prepare(
+          'INSERT INTO approval_event(id,entity_type,entity_id,from_state,to_state,actor_id,reason,occurred_at) VALUES(?,?,?,?,?,?,?,?)',
+        )
+        .run(
+          newId(),
+          'time',
+          row.id,
+          row.approval_state,
+          toState,
+          principal.userId,
+          `Assignment ended: ${reason}`,
+          timestamp,
+        );
+      this.deps.audit(principal, toState === 'void' ? 'time.void' : 'time.rejected', 'time_entry', row.id, {
+        version: row.version,
+        operation: 'assignment_end',
+        assignmentId: existing.id,
+        reason,
+      });
+      if (toState === 'void') discarded++;
+      else rejected++;
+    }
+    return { discarded, rejected };
   }
 
   deleteAssignment(principal: Principal, id: string): void {

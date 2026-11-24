@@ -79,6 +79,8 @@ export type SupplierOperationalTimeRow = Readonly<{
   recordedByName: string;
   isCorrection: number;
   isSuperseded: number;
+  /** The reviewer's reason when the entry was sent back or rejected (T07). */
+  reviewNote: string | null;
 }>;
 
 export type LocalPortalProvisionInput = Readonly<{
@@ -96,6 +98,31 @@ export type LocalPortalProvisionInput = Readonly<{
 }>;
 
 const DATE = /^\d{4}-\d{2}-\d{2}$/u;
+/** Categories a supplier coordinator may record for his technicians. They are
+ * the canonical time categories of the rest of the app (T21): the form's
+ * "Work" is ordinary 'regular' time, never a separate 'work' key. */
+export const SUPPLIER_TIME_CATEGORIES: readonly string[] = [
+  'regular',
+  'overtime',
+  'travel',
+  'standby',
+];
+/** Older coordinator forms posted 'work' for ordinary time. */
+export function canonicalSupplierTimeCategory(category: string): string {
+  const trimmed = String(category ?? '').trim();
+  return trimmed === 'work' ? 'regular' : trimmed;
+}
+/** One canonical category or a field-specific validation error (T21). */
+function requiredSupplierTimeCategory(category: string): string {
+  const canonical = canonicalSupplierTimeCategory(category);
+  if (!canonical) throw new ValidationError('Category is required');
+  if (!SUPPLIER_TIME_CATEGORIES.includes(canonical))
+    throw new ValidationError('Choose a valid time category');
+  return canonical;
+}
+/** A grant's coordinator membership only scopes the supplier workspace (D3):
+ * it is not a billable J&A worker assignment and cannot carry own hours. */
+export const SUPPLIER_COORDINATOR_ASSIGNMENT_ROLE = 'supplier_coordinator';
 const EMAIL = /^\S+@\S+\.\S+$/u;
 const now = (): string => new Date().toISOString();
 const today = (): string => now().slice(0, 10);
@@ -117,6 +144,23 @@ function requiredText(value: string, field: string, max = 5000): string {
   const normalized = value.trim();
   if (!normalized || normalized.length > max) throw new ValidationError(`${field} is required`);
   return normalized;
+}
+
+/**
+ * End date of an assignment ended by a grant revocation: today, an earlier
+ * planned end, or the last recorded day when work was recorded after today.
+ * An assignment that has not started yet is cancelled (end before start),
+ * the same convention as an immediate assignment removal.
+ */
+export function revokedMembershipEnd(
+  membership: { starts_on: string; ends_on: string | null },
+  current: string,
+  lastRecorded: string | null,
+): string {
+  let end = membership.ends_on && membership.ends_on < current ? membership.ends_on : current;
+  if (lastRecorded && lastRecorded > end) end = lastRecorded;
+  if (membership.starts_on > current && !lastRecorded) return current;
+  return end;
 }
 
 /** Operational-only supplier personnel and delegated canonical time workflow. */
@@ -615,7 +659,8 @@ export class SupplierWorkforceRepository {
         const grants = this.sqlite
           .prepare("SELECT id FROM supplier_project_grant WHERE supplier_id=? AND status='active'")
           .all(input.id);
-        for (const grant of grants) this.revokeProject(principal, { id: String(grant.id) });
+        for (const grant of grants)
+          this.revokeProject(principal, { id: String(grant.id), reason: 'Supplier deactivated' });
         this.sqlite
           .prepare(
             'DELETE FROM session WHERE user_id IN (SELECT user_id FROM supplier_user_profile WHERE supplier_id=?)',
@@ -829,7 +874,16 @@ export class SupplierWorkforceRepository {
               )`,
         )
         .get(input.coordinatorId, input.supplierId);
-      if (!coordinator) throw new ValidationError('Active supplier coordinator required');
+      if (!coordinator) {
+        const otherSupplier = this.sqlite
+          .prepare(
+            "SELECT 1 FROM supplier_user_profile WHERE user_id=? AND profile='supplier_coordinator' AND supplier_id<>?",
+          )
+          .get(input.coordinatorId, input.supplierId);
+        if (otherSupplier)
+          throw new ValidationError('This coordinator belongs to another supplier');
+        throw new ValidationError('Active supplier coordinator required');
+      }
       const project = this.sqlite
         .prepare("SELECT 1 FROM project WHERE id=? AND status IN ('active','planned','paused')")
         .get(input.projectId);
@@ -863,7 +917,7 @@ export class SupplierWorkforceRepository {
             assignmentId,
             input.projectId,
             input.coordinatorId,
-            'worker',
+            SUPPLIER_COORDINATOR_ASSIGNMENT_ROLE,
             input.startsOn,
             endsOn,
             timestamp,
@@ -879,6 +933,7 @@ export class SupplierWorkforceRepository {
             projectId: input.projectId,
             workerId: input.coordinatorId,
             supplierId: input.supplierId,
+            assignmentRole: SUPPLIER_COORDINATOR_ASSIGNMENT_ROLE,
           },
         );
       }
@@ -911,9 +966,26 @@ export class SupplierWorkforceRepository {
     });
   }
 
-  revokeProject(principal: Principal, input: { id: string }) {
+  /**
+   * Revoking an installation authorization also ends the assignments that the
+   * supplier workspace created on that project (T06): the coordinator's
+   * scope membership and the supplier's technicians, unless another active
+   * authorization still covers them. Recorded history stays inside the ended
+   * assignment, so the end date never cuts off a recorded day.
+   */
+  revokeProject(principal: Principal, input: { id: string; reason?: string }) {
     this.assertOwner(principal);
+    const reason = requiredText(input.reason ?? '', 'Reason', 2000);
     return this.transaction(() => {
+      const grant = this.sqlite
+        .prepare(
+          `SELECT id,supplier_id supplierId,project_id projectId,coordinator_id coordinatorId
+             FROM supplier_project_grant WHERE id=? AND status='active'`,
+        )
+        .get(input.id) as
+        | { id: string; supplierId: string; projectId: string; coordinatorId: string }
+        | undefined;
+      if (!grant) throw new ConflictError('Active supplier project grant required');
       const timestamp = now();
       const result = this.sqlite
         .prepare(
@@ -923,16 +995,107 @@ export class SupplierWorkforceRepository {
         )
         .run(timestamp, principal.userId, timestamp, input.id);
       if (result.changes !== 1) throw new ConflictError('Active supplier project grant required');
+      const ended = this.endRevokedGrantMemberships(principal, grant, reason);
       recordAuditEvent(
         this.sqlite,
         principal,
         'supplier.revoke',
         'supplier_project_grant',
         input.id,
-        {},
+        { reason, endedAssignmentIds: ended },
       );
-      return { id: input.id };
+      return { id: input.id, endedAssignments: ended.length };
     });
+  }
+
+  private endRevokedGrantMemberships(
+    principal: Principal,
+    grant: { id: string; supplierId: string; projectId: string; coordinatorId: string },
+    reason: string,
+  ): string[] {
+    const current = today();
+    const otherActiveGrant = (coordinatorId: string | null) =>
+      Boolean(
+        this.sqlite
+          .prepare(
+            `SELECT 1 FROM supplier_project_grant
+              WHERE id<>? AND supplier_id=? AND project_id=? AND status='active'
+                AND (? IS NULL OR coordinator_id=?)
+                AND (ends_on IS NULL OR ends_on>=?) LIMIT 1`,
+          )
+          .get(grant.id, grant.supplierId, grant.projectId, coordinatorId, coordinatorId, current),
+      );
+    const candidates: Array<{ id: string; user_id: string; starts_on: string; ends_on: string | null; version: number }> = [];
+    if (!otherActiveGrant(grant.coordinatorId))
+      candidates.push(
+        ...(this.sqlite
+          .prepare(
+            `SELECT pm.id,pm.user_id,pm.starts_on,pm.ends_on,pm.version FROM project_member pm
+              WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+                AND (pm.assignment_role=? OR EXISTS(
+                  SELECT 1 FROM audit_event a WHERE a.entity_type='project_member'
+                     AND a.entity_id=pm.id AND a.action='supplier.assignment.create'))`,
+          )
+          .all(grant.projectId, grant.coordinatorId, SUPPLIER_COORDINATOR_ASSIGNMENT_ROLE) as typeof candidates),
+      );
+    if (!otherActiveGrant(null))
+      candidates.push(
+        ...(this.sqlite
+          .prepare(
+            `SELECT pm.id,pm.user_id,pm.starts_on,pm.ends_on,pm.version FROM project_member pm
+               JOIN supplier_user_profile sup ON sup.user_id=pm.user_id
+              WHERE pm.project_id=? AND pm.status='active'
+                AND sup.supplier_id=? AND sup.profile='external_technician'
+                AND EXISTS(
+                  SELECT 1 FROM audit_event a WHERE a.entity_type='project_member'
+                     AND a.entity_id=pm.id AND a.action='supplier.assignment.create')`,
+          )
+          .all(grant.projectId, grant.supplierId) as typeof candidates),
+      );
+    const endedIds: string[] = [];
+    for (const membership of candidates) {
+      const lastRecorded = (
+        this.sqlite
+          .prepare(
+            `SELECT MAX(source_date) last FROM (
+               SELECT work_date source_date FROM time_entry
+                WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+               UNION ALL SELECT spent_on FROM expense
+                WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+               UNION ALL SELECT work_date FROM daily_report
+                WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+               UNION ALL SELECT report_date FROM technical_report
+                WHERE project_id=? AND author_id=? AND approval_state<>'void')`,
+          )
+          .get(
+            grant.projectId,
+            membership.user_id,
+            grant.projectId,
+            membership.user_id,
+            grant.projectId,
+            membership.user_id,
+            grant.projectId,
+            membership.user_id,
+          ) as { last: string | null }
+      ).last;
+      const endsOn = revokedMembershipEnd(membership, current, lastRecorded);
+      const changed = this.sqlite
+        .prepare(
+          "UPDATE project_member SET status='inactive',ends_on=?,updated_at=?,version=version+1 WHERE id=? AND status='active' AND version=?",
+        )
+        .run(endsOn, now(), membership.id, membership.version);
+      if (changed.changes !== 1) throw new ConflictError('Assignment changed before revocation');
+      recordAuditEvent(this.sqlite, principal, 'assignment.delete', 'project_member', membership.id, {
+        operation: 'supplier_grant_revoked',
+        grantId: grant.id,
+        projectId: grant.projectId,
+        workerId: membership.user_id,
+        endsOn,
+        reason,
+      });
+      endedIds.push(membership.id);
+    }
+    return endedIds;
   }
 
   listGrants(principal: Principal): SupplierGrantDto[] {
@@ -1350,7 +1513,11 @@ export class SupplierWorkforceRepository {
                 EXISTS(
                   SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                    WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'
-                ) isSuperseded
+                ) isSuperseded,
+                  CASE WHEN t.approval_state IN ('needs_changes','rejected') THEN (
+                    SELECT ae.reason FROM approval_event ae
+                     WHERE ae.entity_type='time' AND ae.entity_id=t.id AND ae.to_state=t.approval_state
+                     ORDER BY ae.occurred_at DESC LIMIT 1) END reviewNote
            FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
            LEFT JOIN supplier_time_entry_recorder rec ON rec.time_entry_id=t.id
            LEFT JOIN user ru ON ru.id=rec.recorded_by_user_id
@@ -1386,7 +1553,11 @@ export class SupplierWorkforceRepository {
                   EXISTS(
                     SELECT 1 FROM record_correction_link rcl JOIN time_entry correction ON correction.id=rcl.correction_id
                      WHERE rcl.record_type='time_entry' AND rcl.original_id=t.id AND correction.approval_state<>'rejected'
-                  ) isSuperseded
+                  ) isSuperseded,
+                  CASE WHEN t.approval_state IN ('needs_changes','rejected') THEN (
+                    SELECT ae.reason FROM approval_event ae
+                     WHERE ae.entity_type='time' AND ae.entity_id=t.id AND ae.to_state=t.approval_state
+                     ORDER BY ae.occurred_at DESC LIMIT 1) END reviewNote
              FROM time_entry t JOIN user u ON u.id=t.worker_id JOIN project p ON p.id=t.project_id
              LEFT JOIN supplier_time_entry_recorder rec ON rec.time_entry_id=t.id
              LEFT JOIN user ru ON ru.id=rec.recorded_by_user_id
@@ -1421,7 +1592,26 @@ export class SupplierWorkforceRepository {
 
   createTime(principal: Principal, input: TimeEntryInput & { workerId: string }) {
     this.assertCoordinatorScope(principal, input.workerId, input.projectId, input.workDate);
-    return this.time.createTimeEntryForWorker(principal, input.workerId, input);
+    const category = requiredSupplierTimeCategory(input.category);
+    return this.time.createTimeEntryForWorker(principal, input.workerId, { ...input, category });
+  }
+
+  /**
+   * One identical refusal for every time entry outside the coordinator's own
+   * supplier technicians, before any existence or state check (T46): a
+   * coordinator cannot learn whether an id is a real J&A entry or a draft.
+   */
+  private assertSupplierTimeEntryScope(principal: Principal, id: string): void {
+    const coordinator = this.assertCoordinator(principal);
+    const inScope = this.sqlite
+      .prepare(
+        `SELECT 1 FROM time_entry t
+           JOIN supplier_user_profile sup ON sup.user_id=t.worker_id
+          WHERE t.id=? AND sup.profile='external_technician' AND sup.supplier_id=?
+          LIMIT 1`,
+      )
+      .get(String(id ?? ''), coordinator.supplierId);
+    if (!inScope) throw new AccessDeniedError('Supplier technician project scope required');
   }
 
   createTimeBatch(
@@ -1438,6 +1628,8 @@ export class SupplierWorkforceRepository {
     if (workerIds.length === 0) throw new ValidationError('Select at least one technician');
     if (workerIds.length > 100)
       throw new ValidationError('A time batch is limited to 100 technicians');
+    const category = requiredSupplierTimeCategory(input.category);
+    input = { ...input, category };
     const workerMinutes = input.workerMinutes;
     if (workerMinutes) {
       if (input.startTime || input.endTime || input.breakMinutes)
@@ -1541,6 +1733,7 @@ export class SupplierWorkforceRepository {
   }
 
   submitTime(principal: Principal, input: { id: string; version: number }) {
+    this.assertSupplierTimeEntryScope(principal, input.id);
     return this.time.submitTime(principal, input.id, input.version);
   }
 
@@ -1553,17 +1746,26 @@ export class SupplierWorkforceRepository {
     if (unique.size === 0) throw new ValidationError('Select at least one draft');
     if (unique.size > 100) throw new ValidationError('A submission batch is limited to 100 drafts');
     return this.transaction(() => {
+      for (const id of unique.keys()) this.assertSupplierTimeEntryScope(principal, id);
       for (const [id, version] of unique) this.time.submitTime(principal, id, version);
       return { submitted: unique.size };
     });
   }
 
   updateTime(principal: Principal, input: TimeEntryUpdateInput) {
+    this.assertSupplierTimeEntryScope(principal, input.id);
+    if (input.category !== undefined) {
+      const category = canonicalSupplierTimeCategory(input.category);
+      if (!SUPPLIER_TIME_CATEGORIES.includes(category))
+        throw new ValidationError('Choose a valid time category');
+      input = { ...input, category };
+    }
     return this.time.updateTimeEntry(principal, input);
   }
 
   discardTime(principal: Principal, input: { id: string; version: number }) {
     this.assertActive(principal);
+    this.assertSupplierTimeEntryScope(principal, input.id);
     if (!Number.isInteger(input.version) || input.version < 1)
       throw new ValidationError('Refresh this draft before discarding it');
     const recorder = this.sqlite
@@ -1575,6 +1777,17 @@ export class SupplierWorkforceRepository {
   }
 
   createTimeCorrection(principal: Principal, input: TimeEntryCorrectionInput) {
+    // Form fields first: a missing request or reason reveals nothing about the record.
+    if (!String(input.requestId ?? '').trim())
+      throw new ValidationError('Correction request is required');
+    if (!String(input.reason ?? '').trim()) throw new ValidationError('Correction reason is required');
+    this.assertSupplierTimeEntryScope(principal, input.originalId);
+    if (input.patch?.category !== undefined) {
+      const category = canonicalSupplierTimeCategory(String(input.patch.category));
+      if (!SUPPLIER_TIME_CATEGORIES.includes(category))
+        throw new ValidationError('Choose a valid time category');
+      input = { ...input, patch: { ...input.patch, category } };
+    }
     return this.time.createCorrectionDraft(principal, input);
   }
 

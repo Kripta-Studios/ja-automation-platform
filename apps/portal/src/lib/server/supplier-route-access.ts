@@ -57,3 +57,19 @@ export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceP
   if (/^\/api\/reports\/[^/]+\/attachments(?:\/|$)/u.test(route)) return true;
   return false;
 }
+
+/**
+ * D3: a supplier coordinator records his technicians' hours in the supplier
+ * workspace; he has no own J&A timesheet or expense claims (the repository
+ * refuses them). Opening Time or Expenses leads to the team's hours instead
+ * of an empty personal timesheet. Earlier own records stay readable by id.
+ */
+export function supplierCoordinatorOwnRecordRedirect(
+  section: string | undefined,
+  profile: string | undefined,
+): string | null {
+  if (profile !== 'supplier_coordinator') return null;
+  if (section === 'time') return 'supplier?workspaceAction=time';
+  if (section === 'expenses') return 'supplier';
+  return null;
+}

@@ -1258,13 +1258,13 @@ export const accessActions = {
         }
         return actionSuccess(
           'action.access.localAccount.withMailbox',
-          { userId: created.userId, role: accessRole },
+          { userId: created.userId, role: accessRole, email },
           'Portal access and linked mailbox created.',
         );
       }
       return actionSuccess(
         'action.access.localAccount.provisioned',
-        { userId: created.userId, role: accessRole },
+        { userId: created.userId, role: accessRole, email },
         'Local portal access created',
       );
     } catch (error) {
@@ -1559,6 +1559,7 @@ export const accessActions = {
         context.principal,
         userId,
         status as 'active' | 'suspended' | 'offboarded' | 'archived',
+        typeof object.reason === 'string' ? object.reason : undefined,
       );
       // The portal change is committed first; the mailbox step is best effort
       // and its outcome is reported (never undoes or blocks the status change).

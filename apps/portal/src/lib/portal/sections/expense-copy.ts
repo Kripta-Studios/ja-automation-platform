@@ -4,6 +4,8 @@ import type { PortalLocale } from '../../portal-i18n';
 const en = {
   title: 'Expenses',
   intro: 'Add each expense with a receipt photo, then submit the week for approval.',
+  supplierTechnicianNote:
+    'J&A reviews the expenses you submit. How they are refunded (by J&A or through your own company) depends on your supplier agreement; ask your supplier coordinator.',
   ownerIntro: 'Record expenses for your team and follow their approval status.',
   add: 'Add expense',
   editTitle: 'Edit expense',
@@ -187,6 +189,8 @@ type Copy = Record<keyof typeof en, string>;
 const es: Copy = {
   title: 'Gastos',
   intro: 'Añade cada gasto con la foto del ticket y luego envía la semana a aprobación.',
+  supplierTechnicianNote:
+    'J&A revisa los gastos que envías. Cómo se reembolsan (por J&A o a través de tu propia empresa) depende del acuerdo con tu proveedor; consulta a tu coordinador del proveedor.',
   ownerIntro: 'Registra gastos de tu equipo y sigue su estado de aprobación.',
   add: 'Añadir gasto',
   editTitle: 'Editar gasto',
@@ -367,6 +371,8 @@ const es: Copy = {
 const pt: Copy = {
   title: 'Despesas',
   intro: 'Adicione cada despesa com a foto do recibo e depois envie a semana para aprovação.',
+  supplierTechnicianNote:
+    'A J&A revisa as despesas que você envia. Como são reembolsadas (pela J&A ou pela sua própria empresa) depende do acordo com o seu fornecedor; consulte o coordenador do fornecedor.',
   ownerIntro: 'Registre despesas da equipe e acompanhe o status de aprovação.',
   add: 'Adicionar despesa',
   editTitle: 'Editar despesa',

@@ -106,6 +106,9 @@ const copy: Record<string, CopyValue> = {
   ],
   resetFilters: ['Reset filters', 'Restablecer filtros', 'Redefinir filtros'],
   showingOne: ['Showing 1 project', 'Mostrando 1 proyecto', 'Mostrando 1 projeto'],
+  statusCurrent: ['Active and closing', 'Activos y en cierre', 'Ativos e em encerramento'],
+  openEnded: ['No end date', 'Sin fecha de fin', 'Sem data de término'],
+  showFilters: ['Filters', 'Filtros', 'Filtros'],
   showing: [
     'Showing {count} projects',
     'Mostrando {count} proyectos',

@@ -164,6 +164,16 @@ describe('CORE-01/02/15 availability calendar edits', () => {
     const value = fixture();
     const input = { ...windowInput, workerId: value.worker.userId };
     const created = value.repository.setWorkerAvailability(value.owner, input);
+    // D5/T43: only the project's designated manager, never a mere member; never finance.
+    expect(() =>
+      value.repository.setWorkerAvailability(value.manager, { ...input, ...created }),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      value.repository.setWorkerAvailability(value.finance, { ...input, ...created }),
+    ).toThrow(AccessDeniedError);
+    value.sqlite
+      .prepare('UPDATE project SET project_manager_id=? WHERE id=?')
+      .run(value.manager.userId, value.project.id);
     expect(value.repository.setWorkerAvailability(value.manager, { ...input, ...created })).toEqual(
       { id: created.id, version: 2 },
     );
@@ -339,7 +349,43 @@ describe('calendar datetime action boundary', () => {
     expect(openPortalRepository).not.toHaveBeenCalled();
   });
 
-  it.each(['2026-09-21T08:00', '2026-09-21T08:00:00.000Z'])(
+  it('converts planning typed on the project wall clock to UTC (D13, T31)', async () => {
+    const createPlanningAssignments = vi.fn(() => ({ replayed: false }));
+    const context = {
+      repository: { createPlanningAssignments },
+      principal: { userId: uuid },
+      sqlite: {
+        close: vi.fn(),
+        prepare: vi.fn(() => ({ get: () => ({ timezone: 'America/Mexico_City' }) })),
+      },
+    };
+    openPortalRepository.mockReturnValue(context);
+    const result = await reportActions.createPlanning({
+      locals: {},
+      params: { section: 'planning' },
+      request: new Request('http://localhost/app/planning?/createPlanning', {
+        method: 'POST',
+        body: new URLSearchParams({
+          projectId: uuid,
+          workerId: uuid,
+          requestKey: uuid,
+          startsAt: '2026-11-24T08:00',
+          endsAt: '2026-11-24T16:00',
+          plannedMinutes: '480',
+        }),
+      }),
+    } as never);
+    expect(result).toMatchObject({ success: true });
+    expect(createPlanningAssignments).toHaveBeenCalledWith(
+      context.principal,
+      expect.objectContaining({
+        startsAt: '2026-11-24T14:00:00.000Z',
+        endsAt: '2026-11-24T22:00:00.000Z',
+      }),
+    );
+  });
+
+  it.each(['2026-09-21T08:00:00.000Z'])(
     'publishes a planning entry from %s using canonical timestamps',
     async (startsAt) => {
       const createPlanningAssignments = vi.fn(() => ({ replayed: false }));

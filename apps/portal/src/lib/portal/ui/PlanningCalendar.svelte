@@ -21,6 +21,7 @@
     agendaId,
     headingLevel = 2,
     zoneNote = true,
+    zoneText = '',
   }: {
     events: PlanningEvent[];
     translate: (text: string) => string;
@@ -32,6 +33,8 @@
     headingLevel?: 2 | 3;
     /** Workers see times as entered, without a "UTC" note (Z7, as on Home). */
     zoneNote?: boolean;
+    /** D13/T31: events are wall-clock values of this zone; replaces the UTC note. */
+    zoneText?: string;
   } = $props();
 
   const today = calendarDate(new Date());
@@ -132,7 +135,7 @@
   </div>
   <p class="calendar-hint">
     {translate('Select a day to see its agenda.')}
-    {#if zoneNote}{translate('Times shown in UTC.')}{/if}
+    {#if zoneText}{zoneText}{:else if zoneNote}{translate('Times shown in UTC.')}{/if}
   </p>
   <div class="calendar-grid" aria-label={monthLabel}>
     {#each weekdays as weekday}

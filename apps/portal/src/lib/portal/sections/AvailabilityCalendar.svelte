@@ -8,6 +8,7 @@
   import type { ProblemData } from '$lib/problem/contract';
   import { normalizePortalLocale, portalText } from '$lib/portal-i18n';
   import { onMount, tick, untrack } from 'svelte';
+  import { utcToZonedLocal, zoneLabel } from '../zoned-time';
 
   let {
     records,
@@ -17,6 +18,7 @@
     translate,
     locale,
     form,
+    timeZone = 'UTC',
   }: {
     records: PortalRow[];
     workerId: string;
@@ -25,7 +27,12 @@
     translate: (key: string) => string;
     locale: string;
     form?: PortalActionResult;
+    /** D13/T31: the person's project time zone; times are typed and shown in it. */
+    timeZone?: string;
   } = $props();
+  const zoneText = $derived(
+    `${({ es: 'Horas en', pt: 'Horários em' } as Record<string, string>)[normalizePortalLocale(locale)] ?? 'Times in'} ${zoneLabel(timeZone)}`,
+  );
   type AvailabilityFailure = ProblemData & {
     success?: boolean;
     operation?: string;
@@ -218,6 +225,7 @@
   });
   let pending = $state(false);
   let failed = $state(false);
+  let savedNotice = $state(false);
   const stateLabel = (state: unknown) =>
     translate(
       state === 'unavailable' ? 'Unavailable' : state === 'tentative' ? 'Tentative' : 'Available',
@@ -226,8 +234,9 @@
     records.map((row) => ({
       id: String(row.id),
       title: `${stateLabel(row.availability)}${row.note ? ` · ${row.note}` : ''}`,
-      startsAt: String(row.starts_at),
-      endsAt: String(row.ends_at),
+      // Wall-clock values of the person's time zone (the calendar shows them as given).
+      startsAt: utcToZonedLocal(String(row.starts_at), timeZone),
+      endsAt: utcToZonedLocal(String(row.ends_at), timeZone),
       tone:
         row.availability === 'unavailable'
           ? ('danger' as const)
@@ -253,8 +262,8 @@
     dismissedProblemId = problem?.correlationId ?? '';
     enhancedProblem = null;
     editing = row;
-    startsAt = String(row.starts_at).slice(0, 16);
-    endsAt = String(row.ends_at).slice(0, 16);
+    startsAt = utcToZonedLocal(String(row.starts_at), timeZone);
+    endsAt = utcToZonedLocal(String(row.ends_at), timeZone);
     availability = String(row.availability);
     note = String(row.note ?? '');
     failed = false;
@@ -274,6 +283,9 @@
       if (result.type === 'success') {
         open = false;
         enhancedProblem = null;
+        // T82: say that the window was saved.
+        savedNotice = true;
+        setTimeout(() => (savedNotice = false), 6000);
       } else if (result.type === 'failure' && result.data && 'code' in result.data) {
         enhancedProblem = result.data as AvailabilityFailure;
       } else failed = true;
@@ -313,6 +325,10 @@
       onclick={() => add(new Date().toISOString().slice(0, 10))}
       >{translate('Add availability')}</button
     >{/if}
+  <p class="form-help">{zoneText}</p>
+  {#if savedNotice}<p class="availability-saved" role="status">
+      {translate('action.planning.availabilitySaved')}
+    </p>{/if}
   <PlanningCalendar
     zoneNote={false}
     headingLevel={3}
@@ -355,7 +371,7 @@
         name="version"
         value={bindingVersion}
       />{/if}
-    <p class="form-help">{translate('UTC time')}</p>
+    <p class="form-help" data-availability-zone>{zoneText}</p>
     <label
       >{translate('Starts')}<input
         type="datetime-local"
@@ -386,8 +402,9 @@
       >{translate('Note')}<textarea name="note" rows="3" maxlength="1000" bind:value={note}
       ></textarea></label
     >
-    <input type="hidden" name="startsAt" value={startsAt ? `${startsAt}:00.000Z` : ''} />
-    <input type="hidden" name="endsAt" value={endsAt ? `${endsAt}:00.000Z` : ''} />
+    <!-- The server converts the wall-clock values from the person's time zone. -->
+    <input type="hidden" name="startsAt" value={startsAt} />
+    <input type="hidden" name="endsAt" value={endsAt} />
     {#if failed && !problem}<p role="alert">
         {translate(
           'Availability could not be saved. Check the dates or reload if another person changed this window.',
@@ -400,6 +417,12 @@
 </ResponsiveSheet>
 
 <style>
+  .availability-saved {
+    margin: 0.5rem 0;
+    padding: 0.5rem 0.75rem;
+    border-left: 3px solid #12b76a;
+    background: color-mix(in srgb, #12b76a 8%, transparent);
+  }
   .admin-form-grid.availability-editor {
     grid-template-columns: minmax(0, 1fr);
   }

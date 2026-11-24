@@ -20,6 +20,7 @@ const copy = {
   noManager: ['Unassigned', 'Sin asignar', 'Não atribuído'],
   noSite: ['No site', 'Sin planta', 'Sem planta'],
   figHoursMonth: ['Hours this month', 'Horas este mes', 'Horas neste mês'],
+  figHoursMonthOwn: ['Your hours this month', 'Tus horas este mes', 'Suas horas neste mês'],
   figHoursTotal: ['{hours} in total', '{hours} en total', '{hours} no total'],
   figUnbilled: ['Approved, not invoiced', 'Aprobado sin facturar', 'Aprovado sem faturar'],
   figUnbilledHours: ['{hours} approved', '{hours} aprobadas', '{hours} aprovadas'],
@@ -147,6 +148,11 @@ const copy = {
   until: ['until {date}', 'hasta {date}', 'até {date}'],
   clientRate: ['Client rate', 'Tarifa cliente', 'Tarifa do cliente'],
   rateMissing: ['Missing', 'Falta', 'Falta'],
+  notBilledRole: [
+    'Not billed (management role)',
+    'No se factura (rol de gestión)',
+    'Não faturado (função de gestão)',
+  ],
   rateSet: ['Set', 'Poner', 'Definir'],
   rateSave: ['Save rate', 'Guardar tarifa', 'Salvar tarifa'],
   rateForPerson: [
@@ -188,6 +194,32 @@ const copy = {
   ],
   reason: ['Reason', 'Motivo', 'Motivo'],
   reasonDefault: ['Assignment finished', 'Asignación terminada', 'Atribuição encerrada'],
+  projectCreatedToast: [
+    'Project {number} created.',
+    'Proyecto {number} creado.',
+    'Projeto {number} criado.',
+  ],
+  endsOnOptional: ['Last day (optional)', 'Último día (opcional)', 'Último dia (opcional)'],
+  endsOnHelp: [
+    'Leave empty while the end is not known. You can end the assignment later.',
+    'Déjalo vacío si aún no se sabe. Puedes terminar la asignación más tarde.',
+    'Deixe vazio se ainda não souber. Você pode encerrar a atribuição depois.',
+  ],
+  endResolveLater: [
+    '{count} hour entries after the end date are not approved yet. Discard the unsent drafts and reject the pending ones with this reason, then end the assignment.',
+    'Hay {count} registros de horas después de la fecha de fin sin aprobar. Descartar los borradores sin enviar y rechazar los pendientes con este motivo, y terminar la asignación.',
+    'Há {count} registros de horas após a data de término ainda não aprovados. Descartar os rascunhos não enviados e rejeitar os pendentes com este motivo, e encerrar a atribuição.',
+  ],
+  endResolvedLater: [
+    '{name}: assignment ended. {discarded} drafts discarded, {rejected} pending entries rejected.',
+    '{name}: asignación terminada. {discarded} borradores descartados, {rejected} registros pendientes rechazados.',
+    '{name}: atribuição encerrada. {discarded} rascunhos descartados, {rejected} registros pendentes rejeitados.',
+  ],
+  supplierStaffByOwner: [
+    'Supplier staff: the owner and the supplier coordinator manage this assignment.',
+    'Personal del proveedor: el propietario y el coordinador del proveedor gestionan esta asignación.',
+    'Equipe do fornecedor: o proprietário e o coordenador do fornecedor gerem esta atribuição.',
+  ],
   cancel: ['Cancel', 'Cancelar', 'Cancelar'],
   ended: ['{name} removed from the project', '{name} ya no está en el proyecto', '{name} saiu do projeto'],
   addPeopleTitle: ['Add people to this project', 'Añadir personas al proyecto', 'Adicionar pessoas ao projeto'],

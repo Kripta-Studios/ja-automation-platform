@@ -15,6 +15,7 @@
   import ProjectHubTeam from '$lib/portal/sections/ProjectHubTeam.svelte';
   import { personDisplayName } from '$lib/portal/display-name';
   import { isSystemAccount } from '$lib/portal/system-accounts';
+  import { utcToZonedLocal, zoneLabel } from '$lib/portal/zoned-time';
   import ProjectHubLifecycle from '$lib/portal/sections/ProjectHubLifecycle.svelte';
   import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
   import type { ProjectHubData, HubMoney } from '$lib/server/project-hub';
@@ -681,6 +682,26 @@
     ];
     setTimeout(() => (hubToasts = hubToasts.filter((toast) => toast.id !== id)), 6000);
   }
+  // T75: a deep link to a settings group (…?tab=billing, ?group=…) opens that
+  // group and brings it into view instead of leaving Settings collapsed.
+  onMount(() => {
+    if (activeTab !== 'settings' || !settingsGroup) return;
+    requestAnimationFrame(() => {
+      const target =
+        document.querySelector<HTMLElement>(`[data-hub-group="${settingsGroup}"]`) ??
+        document.querySelector<HTMLElement>('[data-hub-group="details"]');
+      if (target instanceof HTMLDetailsElement) target.open = true;
+      target?.scrollIntoView({ block: 'start' });
+    });
+  });
+  // T32: arriving from "New project" (…?created=1) confirms the creation once.
+  onMount(() => {
+    if (page.url.searchParams.get('created') !== '1') return;
+    hubNotify(hubText(locale, 'projectCreatedToast', { number: String(project.project_number ?? '') }), 'success');
+    const url = new URL(page.url);
+    url.searchParams.delete('created');
+    replaceState(url, page.state);
+  });
   const financeExportUrl = $derived(
     base +
       '/app/api/projects/' +
@@ -928,7 +949,8 @@
       : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
   }
 
-  function formatProjectTimestamp(value: unknown): string {
+  /** D13/T31: a planned shift on the project's wall clock. */
+  function formatPlanTime(value: unknown): string {
     const raw = String(value ?? '').trim();
     if (!raw) return '—';
     const timestamp = /(?:z|[+-]\d{2}:\d{2})$/iu.test(raw) ? raw : `${raw.replace(' ', 'T')}Z`;
@@ -938,9 +960,10 @@
       : new Intl.DateTimeFormat(locale, {
           dateStyle: 'medium',
           timeStyle: 'short',
-          timeZone: 'UTC',
+          timeZone: String(project.timezone ?? 'UTC'),
         }).format(date);
   }
+
 
   function expenseAmount(row: Row): string {
     return money(row.amount_minor, String(row.currency ?? project.currency ?? 'USD'));
@@ -1366,8 +1389,17 @@
   </header>
 
   <section class="hub-figures" aria-label={t('Project status summary')} data-hub-figures>
-    <a class="hub-figure" href={tabHref('hours')} onclick={(event) => tabLink(event, 'hours')}>
-      <span>{h('figHoursMonth')}</span>
+    <!-- T75: a worker has no Hours tab; his own month links to Time. -->
+    <a
+      class="hub-figure"
+      href={isWorker
+        ? `${base}/app/time?project=${encodeURIComponent(String(project.id))}&lang=${encodeURIComponent(locale)}`
+        : tabHref('hours')}
+      onclick={(event) => {
+        if (!isWorker) tabLink(event, 'hours');
+      }}
+    >
+      <span>{isWorker ? h('figHoursMonthOwn') : h('figHoursMonth')}</span>
       <strong data-hub-fig-hours>{hours(hub.hours.monthMinutes)}</strong>
       <small>{h('figHoursTotal', { hours: hours(hub.hours.totalMinutes) })}</small>
     </a>
@@ -1609,12 +1641,16 @@
               translate={t}
               {locale}
               zoneNote={!isWorker}
+              zoneText={`${({ es: 'Horas en', pt: 'Horários em' } as Record<string, string>)[String(locale)] ?? 'Times in'} ${zoneLabel(String(project.timezone ?? 'UTC'))}`}
               onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),
                 title: `${display(plan.worker_name)}${plan.planned_minutes == null ? '' : ` · ${hours(plan.planned_minutes)}`}`,
-                startsAt: String(plan.starts_at),
-                endsAt: plan.ends_at == null ? undefined : String(plan.ends_at),
+                startsAt: utcToZonedLocal(String(plan.starts_at), String(project.timezone ?? 'UTC')),
+                endsAt:
+                  plan.ends_at == null
+                    ? undefined
+                    : utcToZonedLocal(String(plan.ends_at), String(project.timezone ?? 'UTC')),
                 href:
                   data.user.role === 'owner_admin'
                     ? `${base}/app/manage?area=planning_assignment&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(plan.id))}&lang=${encodeURIComponent(locale)}`
@@ -1658,9 +1694,9 @@
                   >
                     <strong>{display(plan.worker_name, t('Assigned worker'))}</strong></a
                   ><small>{display(plan.site)} · {display(plan.required_skill)}</small><span
-                    >{formatProjectTimestamp(plan.starts_at)}{plan.ends_at
-                      ? ` → ${formatProjectTimestamp(plan.ends_at)}`
-                      : ''} · {projectUx2('utc')}</span
+                    >{formatPlanTime(plan.starts_at)}{plan.ends_at
+                      ? ` → ${formatPlanTime(plan.ends_at)}`
+                      : ''} · {zoneLabel(String(project.timezone ?? 'UTC'))}</span
                   >
                 </article>
               {:else}
@@ -2382,7 +2418,13 @@
         <p class="surface-intro">
           {isAuditor || !canEditProjectDetails ? h('settingsIntroReadOnly') : h('settingsIntro')}
         </p>
-        <details class="hub-group" open={!settingsGroup || settingsGroup === 'details'} data-hub-group="details">
+        <details
+          class="hub-group"
+          open={!settingsGroup ||
+            settingsGroup === 'details' ||
+            (settingsGroup === 'billing' && !billingSetup)}
+          data-hub-group="details"
+        >
           <summary>{h('setDetails')}</summary>
           <div class="hub-group__body">
             {#if canEditProjectDetails}

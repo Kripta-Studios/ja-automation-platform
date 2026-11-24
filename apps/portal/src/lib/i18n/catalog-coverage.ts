@@ -1344,6 +1344,7 @@ export const PORTAL_LITERAL_KEYS = [
   'Mark sent records a manual delivery only. It does not send an email.',
   'action.billing.invoiceEmail.queued',
   'action.billing.invoiceEmail.accepted',
+  'action.planning.availabilitySaved',
   'action.billing.invoiceEmail.failed',
   'action.billing.invoiceEmail.retrying',
 
@@ -3475,6 +3476,10 @@ export const PORTAL_ACTION_KEYS = [
   'problem.supplier.technicianStatusBlocked',
   'problem.supplier.operationalProjectRequired',
   'problem.supplier.coordinatorUnavailable',
+  'problem.supplier.coordinatorOtherSupplier',
+  'problem.supplier.reportProjectNotInAccess',
+  'problem.supplier.revokeReasonRequired',
+  'problem.supplier.confirmProfileChange',
   'problem.supplier.coordinatorLoginRequired',
   'problem.supplier.profileWorkerRequired',
   'problem.supplier.profileHistoryLocked',

@@ -3833,6 +3833,22 @@ const exact: Record<string, readonly [string, string]> = {
     'Selecciona un proyecto operativo.',
     'Selecione um projeto operacional.',
   ],
+  'problem.supplier.reportProjectNotInAccess': [
+    'Este proyecto no está disponible con tu acceso. Elige uno de tus proyectos o pregunta a J&A si deberías tener acceso.',
+    'Este projeto não está disponível com o seu acesso. Escolha um dos seus projetos ou pergunte à J&A se deveria ter acesso.',
+  ],
+  'problem.supplier.coordinatorOtherSupplier': [
+    'Este coordinador pertenece a otro proveedor. Elige un coordinador del proveedor seleccionado.',
+    'Este coordenador pertence a outro fornecedor. Escolha um coordenador do fornecedor selecionado.',
+  ],
+  'problem.supplier.revokeReasonRequired': [
+    'Indica el motivo para retirar el acceso.',
+    'Informe o motivo para revogar o acesso.',
+  ],
+  'problem.supplier.confirmProfileChange': [
+    'Confirma el cambio de perfil de acceso antes de guardar.',
+    'Confirme a mudança de perfil de acesso antes de salvar.',
+  ],
   'problem.supplier.coordinatorUnavailable': [
     'Se requiere un coordinador activo del proveedor.',
     'É necessário um coordenador ativo do fornecedor.',
@@ -10580,6 +10596,12 @@ const problemEnglish: Record<string, string> = {
   'problem.supplier.technicianStatusBlocked': 'Active or suspended supplier technician required',
   'problem.supplier.operationalProjectRequired': 'Operational project required',
   'problem.supplier.coordinatorUnavailable': 'Active supplier coordinator required',
+  'problem.supplier.reportProjectNotInAccess':
+    'This project is not available under your access. Choose one of your projects, or ask J&A if you should have access to it.',
+  'problem.supplier.coordinatorOtherSupplier':
+    'This coordinator belongs to another supplier. Choose a coordinator of the selected supplier.',
+  'problem.supplier.revokeReasonRequired': 'Enter the reason for revoking access.',
+  'problem.supplier.confirmProfileChange': 'Confirm the access profile change before saving.',
   'problem.supplier.coordinatorLoginRequired':
     'Supplier coordinators require a usable login account',
   'problem.supplier.profileWorkerRequired':

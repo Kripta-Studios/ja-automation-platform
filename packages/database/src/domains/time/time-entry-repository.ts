@@ -3,7 +3,7 @@ import { workerOperationalProjectScope } from '../../core/project-access.ts';
 import type { DatabaseSync } from 'node:sqlite';
 import { createHash } from 'node:crypto';
 import { newId, type Principal } from '@ja/domain';
-import { isSupplierTimeEntry } from '../workforce/supplier-access.ts';
+import { isSupplierCoordinator, isSupplierTimeEntry } from '../workforce/supplier-access.ts';
 
 type ErrorFactory = (message: string) => never;
 
@@ -349,6 +349,31 @@ export class TimeEntryRepository {
     if (!assignment) throw this.deps.errors.accessDenied('Project assignment access required');
   }
 
+  /**
+   * Initial billability of a new time row (D3). Only a worker assignment is
+   * billable work: a person whose assignments on that day are all
+   * project-manager or supplier-coordinator scopes records the hours as
+   * non-billable, so they are never charged to the client by default.
+   */
+  private initialBillability(projectId: string, workerId: string, workDate: string) {
+    const billable = this.deps.sqlite
+      .prepare(
+        `SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+           AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)
+           AND assignment_role NOT IN ('project_manager','supplier_coordinator') LIMIT 1`,
+      )
+      .get(projectId, workerId, workDate, workDate);
+    return billable ? 'pending' : 'non_billable';
+  }
+
+  /** Supplier coordinators record their technicians' hours, never their own (D3). */
+  private assertNotSupplierCoordinatorOwnTime(principal: Principal, workerId: string): void {
+    if (workerId === principal.userId && isSupplierCoordinator(this.deps.sqlite, workerId))
+      throw this.deps.errors.accessDenied(
+        'Supplier coordinators record their team hours in the supplier workspace',
+      );
+  }
+
   createTimeEntry(principal: Principal, input: TimeEntryInput) {
     return this.createTimeEntryForWorker(principal, principal.userId, input);
   }
@@ -370,6 +395,15 @@ export class TimeEntryRepository {
       // worker cannot use malformed values as a validation oracle.  This
       // checks both the current assignment and the object date; the timezone
       // lookup below is only data retrieval, not authorization.
+      this.assertNotSupplierCoordinatorOwnTime(principal, workerId);
+      // D5/T42: supplier staff hours are recorded by the supplier coordinator
+      // (or the technician), never by a J&A project manager on their behalf.
+      if (
+        principal.role === 'project_manager' &&
+        workerId !== principal.userId &&
+        this.deps.sqlite.prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=?').get(workerId)
+      )
+        throw this.deps.errors.accessDenied('Supplier staff hours are recorded by their coordinator');
       this.assertEffectiveMembership(principal, input.projectId, workerId, input.workDate);
       this.deps.assertDate(input.workDate, 'Work date');
       if (!Number.isInteger(input.minutes) || input.minutes < 0 || input.minutes > 1440)
@@ -448,7 +482,7 @@ export class TimeEntryRepository {
           input.endTime ?? null,
           input.breakMinutes ?? null,
           'draft',
-          'pending',
+          this.initialBillability(input.projectId, workerId, input.workDate),
           timestamp,
           timestamp,
         );
@@ -1037,7 +1071,7 @@ export class TimeEntryRepository {
           `INSERT INTO time_entry(id,project_id,worker_id,work_date,category,activity_code,minutes,project_timezone,
              activity_summary,site,start_time,end_time,break_minutes,approval_state,billability_state,billing_status,
              created_at,updated_at,version)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'draft','pending','unlocked',?,?,1)`,
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,'draft',?,'unlocked',?,?,1)`,
         )
         .run(
           correctionId,
@@ -1055,6 +1089,7 @@ export class TimeEntryRepository {
           startTime,
           endTime,
           breakMinutes,
+          this.initialBillability(original.project_id, original.worker_id, workDate),
           timestamp,
           timestamp,
         );
@@ -1294,6 +1329,7 @@ export class TimeEntryRepository {
     targetWeekStart: string,
   ): { created: number; skipped: number; sourceWeekStart: string; targetWeekStart: string } {
     this.deps.assertActive(principal);
+    this.assertNotSupplierCoordinatorOwnTime(principal, principal.userId);
     this.deps.assertDate(sourceWeekStart, 'Source week start');
     this.deps.assertDate(targetWeekStart, 'Target week start');
     if (sourceWeekStart === targetWeekStart)
@@ -1372,7 +1408,7 @@ export class TimeEntryRepository {
             assignment.timezone,
             row.activity_summary,
             'draft',
-            'pending',
+            this.initialBillability(row.project_id, principal.userId, targetDate),
             nowValue,
             nowValue,
           );

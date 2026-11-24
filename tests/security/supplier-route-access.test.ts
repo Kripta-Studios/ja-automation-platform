@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { supplierRouteAllowed } from '../../apps/portal/src/lib/server/supplier-route-access';
+import {
+  supplierCoordinatorOwnRecordRedirect,
+  supplierRouteAllowed,
+} from '../../apps/portal/src/lib/server/supplier-route-access';
 import {
   supplierCsvCell,
   supplierCsv,
@@ -51,11 +54,13 @@ describe('supplier operational surface', () => {
   it.each(profiles)('preserves existing operational routes for %s', (profile) => {
     for (const path of [
       '/time',
+      '/time/__data.json',
+      '/expenses',
+      '/expenses/__data.json',
       '/time/own-id',
       '/crew',
       '/crew/__data.json',
       '/crew/time/own-id',
-      '/expenses',
       '/expenses/own-id',
       '/help/employee-field-guide/download',
       '/help/worker-reference/download',
@@ -65,7 +70,6 @@ describe('supplier operational surface', () => {
       '/supplier',
       '/supplier/report',
       '/supplier/report.csv',
-      '/time/__data.json',
       '/api/localized-pdf',
       '/api/expenses/crew-workers',
       '/api/expenses/time-options',
@@ -82,6 +86,16 @@ describe('supplier operational surface', () => {
     ]) {
       expect(supplierRouteAllowed(path, profile)).toBe(true);
     }
+  });
+
+  it('sends a supplier coordinator from own Time/Expenses to the team hours (D3)', () => {
+    expect(supplierCoordinatorOwnRecordRedirect('time', 'supplier_coordinator')).toBe(
+      'supplier?workspaceAction=time',
+    );
+    expect(supplierCoordinatorOwnRecordRedirect('expenses', 'supplier_coordinator')).toBe('supplier');
+    expect(supplierCoordinatorOwnRecordRedirect('reports', 'supplier_coordinator')).toBeNull();
+    expect(supplierCoordinatorOwnRecordRedirect('time', 'external_technician')).toBeNull();
+    expect(supplierCoordinatorOwnRecordRedirect('time', undefined)).toBeNull();
   });
 
   it('allows Digital Workers capture only for external technicians', () => {

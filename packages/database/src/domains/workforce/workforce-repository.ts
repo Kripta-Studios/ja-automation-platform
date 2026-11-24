@@ -169,14 +169,16 @@ export class WorkforceRepository {
       if (ids.length === 0) return [];
       return this.deps.sqlite
         .prepare(
-          `SELECT DISTINCT u.id,u.name,u.status
+          `SELECT DISTINCT u.id,u.name,u.status,sp.profile workforce_profile
            FROM user u
+           LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
            JOIN project_member pm ON pm.user_id=u.id
            JOIN project p ON p.id=pm.project_id
            JOIN project_member scope_pm ON scope_pm.project_id=pm.project_id
            WHERE p.status IN ('active','planned','paused')
              AND u.status='active' AND u.role IN ('worker','project_manager')
              AND pm.status='active' AND pm.project_id IN (${ids.map(() => '?').join(',')})
+             AND pm.assignment_role<>'supplier_coordinator'
              AND (pm.ends_on IS NULL OR pm.ends_on>=?)
              AND scope_pm.user_id=? AND scope_pm.status='active'
              AND scope_pm.starts_on<=? AND (scope_pm.ends_on IS NULL OR scope_pm.ends_on>=?)
@@ -192,7 +194,12 @@ export class WorkforceRepository {
       throw this.deps.errors.accessDenied('Planning worker selection required');
     return this.deps.sqlite
       .prepare(
-        "SELECT id,name,status FROM user WHERE status='active' AND role IN ('worker','project_manager') ORDER BY name,id",
+        // D3/D5: the supplier profile lets the planner hide coordinators and,
+        // for a project manager, supplier staff.
+        `SELECT u.id,u.name,u.status,sp.profile workforce_profile
+           FROM user u LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
+          WHERE u.status='active' AND u.role IN ('worker','project_manager')
+          ORDER BY u.name,u.id`,
       )
       .all();
   }

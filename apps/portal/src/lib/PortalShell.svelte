@@ -3528,6 +3528,52 @@
     window.location.reload();
   }
 
+  // T82: the shared secret from the otpauth link, in groups of four for typing.
+  const mfaSetupKey = $derived.by(() => {
+    try {
+      const secret = new URL(mfaSetupUri).searchParams.get('secret') ?? '';
+      return secret.replace(/(.{4})/gu, '$1 ').trim();
+    } catch {
+      return '';
+    }
+  });
+  const mfaKeyCopy = $derived(
+    (
+      {
+        es: { key: 'Clave para tu app de autenticación:', copy: 'Copiar clave', link: 'Ver enlace completo', cancel: 'Cancelar configuración' },
+        pt: { key: 'Chave para o seu app autenticador:', copy: 'Copiar chave', link: 'Ver link completo', cancel: 'Cancelar configuração' },
+      } as Record<string, { key: string; copy: string; link: string; cancel: string }>
+    )[String(locale).slice(0, 2)] ?? {
+      key: 'Key for your authenticator app:',
+      copy: 'Copy key',
+      link: 'Show the full link',
+      cancel: 'Cancel setup',
+    },
+  );
+  function cancelMfaSetup(): void {
+    mfaSetupUri = '';
+    mfaBackupCodes = [];
+    mfaCode = '';
+    mfaProblem = null;
+    securityMessage = '';
+  }
+  /** T82: an availability window as readable dates on the person's project clock. */
+  function availabilityWindowText(startsAt: unknown, endsAt: unknown): string {
+    const zone = String((data as { availabilityTimeZone?: string }).availabilityTimeZone ?? 'UTC');
+    const format = (value: unknown) => {
+      const raw = String(value ?? '');
+      const instant = new Date(/[zZ]|[+-]\d{2}:\d{2}$/u.test(raw) ? raw : `${raw}Z`);
+      return Number.isNaN(instant.getTime())
+        ? raw
+        : new Intl.DateTimeFormat(locale, {
+            dateStyle: 'medium',
+            timeStyle: 'short',
+            timeZone: zone,
+          }).format(instant);
+    };
+    return `${format(startsAt)} → ${format(endsAt)}`;
+  }
+
   async function toggleMfa(action: 'enable' | 'verify' | 'disable'): Promise<void> {
     if (mfaBusy || mfaNeedsReview || (action === 'enable' && mfaSetupUri)) return;
     mfaBusy = true;
@@ -7921,11 +7967,7 @@
               ><tbody
                 >{#each data.availability ?? [] as item}<tr
                     ><td
-                      >{String(item.starts_at).replace('T', ' ').slice(0, 16)} → {String(
-                        item.ends_at,
-                      )
-                        .replace('T', ' ')
-                        .slice(0, 16)}</td
+                      >{availabilityWindowText(item.starts_at, item.ends_at)}</td
                     ><td>{controlledValue('availability', item.availability)}</td><td
                       >{item.note ?? '—'}</td
                     ></tr
@@ -8054,7 +8096,23 @@
                     'Add this URI to your authenticator, then enter the current six-digit code to confirm the device. Recovery codes are shown once; store them securely.',
                   )}
                 </p>
-                <code class="security-uri">{mfaSetupUri}</code>
+                <!-- T82: a key to type into the app (no raw link as the only way), and a way out. -->
+                {#if mfaSetupKey}
+                  <p class="security-key">
+                    <span>{mfaKeyCopy.key}</span>
+                    <code data-mfa-setup-key>{mfaSetupKey}</code>
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => void navigator.clipboard?.writeText(mfaSetupKey.replaceAll(' ', ''))}
+                      >{mfaKeyCopy.copy}</button
+                    >
+                  </p>
+                {/if}
+                <details>
+                  <summary>{mfaKeyCopy.link}</summary>
+                  <code class="security-uri">{mfaSetupUri}</code>
+                </details>
                 {#if mfaBackupCodes.length}
                   <p class="security-codes" aria-label={translate('One-time recovery codes')}>
                     {mfaBackupCodes.join(' · ')}
@@ -8083,6 +8141,8 @@
                       {portalText(locale, mfaProblem.fieldErrors.code[0], mfaProblem.params)}
                     </p>{/if}<button type="submit" disabled={mfaBusy || mfaNeedsReview}
                     >{translate('Verify MFA')}</button
+                  ><button type="button" class="secondary-button" onclick={cancelMfaSetup}
+                    >{mfaKeyCopy.cancel}</button
                   >
                 </form>
               </div>

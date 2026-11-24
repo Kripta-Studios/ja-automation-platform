@@ -25,15 +25,15 @@ const topics: Record<
     route: '',
     en: [
       'Find sections, tasks and records',
-      'Use {{Search}} (Ctrl/⌘ K) to find a section by its name in English, Spanish or Portuguese, a task your account can do, or (when your account can search records) a project, client or person. Choosing a result only opens the page or form; nothing is saved, sent or approved until you do it there. The destination checks your access again. Supplier accounts find their own sections and tasks; their team lives under {{My team}}.',
+      'Use {{Search}} (Ctrl/⌘ K) to find a section by its name in English, Spanish or Portuguese, a task your account can do, or (when your account can search records) a project, client or person. Choosing a result only opens the page or form; nothing is saved, sent or approved until you do it there. The destination checks your access again. Supplier coordinators manage their team under {{My team}}.',
     ],
     es: [
       'Buscar secciones, tareas y registros',
-      'Usa {{Search}} (Ctrl/⌘ K) para encontrar una sección por su nombre en inglés, español o portugués, una tarea que tu cuenta puede hacer o (si tu cuenta puede buscar registros) un proyecto, cliente o persona. Elegir un resultado solo abre la página o el formulario; no se guarda, envía ni aprueba nada hasta que lo hagas allí. El destino vuelve a comprobar tu acceso. Las cuentas de proveedor encuentran sus propias secciones y tareas; su equipo está en {{My team}}.',
+      'Usa {{Search}} (Ctrl/⌘ K) para encontrar una sección por su nombre en inglés, español o portugués, una tarea que tu cuenta puede hacer o (si tu cuenta puede buscar registros) un proyecto, cliente o persona. Elegir un resultado solo abre la página o el formulario; no se guarda, envía ni aprueba nada hasta que lo hagas allí. El destino vuelve a comprobar tu acceso. Los coordinadores de proveedor gestionan su equipo en {{My team}}.',
     ],
     pt: [
       'Encontrar seções, tarefas e registros',
-      'Use {{Search}} (Ctrl/⌘ K) para encontrar uma seção pelo nome em inglês, espanhol ou português, uma tarefa que sua conta pode fazer ou (se sua conta puder buscar registros) um projeto, cliente ou pessoa. Escolher um resultado só abre a página ou o formulário; nada é salvo, enviado ou aprovado até você fazer isso lá. O destino verifica seu acesso novamente. Contas de fornecedor encontram suas próprias seções e tarefas; a equipe fica em {{My team}}.',
+      'Use {{Search}} (Ctrl/⌘ K) para encontrar uma seção pelo nome em inglês, espanhol ou português, uma tarefa que sua conta pode fazer ou (se sua conta puder buscar registros) um projeto, cliente ou pessoa. Escolher um resultado só abre a página ou o formulário; nada é salvo, enviado ou aprovado até você fazer isso lá. O destino verifica seu acesso novamente. Coordenadores de fornecedor gerenciam a equipe em {{My team}}.',
     ],
   },
   time: {

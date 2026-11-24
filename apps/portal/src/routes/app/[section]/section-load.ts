@@ -985,7 +985,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                     url.searchParams.get('status') === 'inactive' ||
                     worker.status === 'active',
                 )
-                .map((worker) => ({
+                .map((worker): Record<string, unknown> => ({
                   ...worker,
                   // T47: every viewer sees the person's real role ("Supplier
                   // coordinator", "External technician"), not "Worker".

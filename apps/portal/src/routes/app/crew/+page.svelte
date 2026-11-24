@@ -572,12 +572,14 @@
     const start = data.weekStart || data.workDate;
     if (!start) return [] as string[];
     return Array.from({ length: 7 }, (_, index) => {
+      // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not state
       const day = new Date(`${start}T00:00:00.000Z`);
       day.setUTCDate(day.getUTCDate() + index);
       return day.toISOString().slice(0, 10);
     });
   });
   const weekPeople = $derived.by(() => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not state
     const people = new Map<string, string>();
     for (const person of data.assigned ?? []) people.set(person.id, person.name);
     for (const entry of data.weekEntries ?? []) people.set(entry.workerId, entry.workerName);

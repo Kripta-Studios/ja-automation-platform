@@ -238,6 +238,7 @@
   };
   /** "20/11": the day an overnight shift ends (T53), in the person's language. */
   const nextDayShort = (date: string): string => {
+    // eslint-disable-next-line svelte/prefer-svelte-reactivity -- local, not state
     const next = new Date(`${date}T12:00:00Z`);
     next.setUTCDate(next.getUTCDate() + 1);
     return new Intl.DateTimeFormat(language, { day: '2-digit', month: '2-digit', timeZone: 'UTC' }).format(next);

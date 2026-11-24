@@ -158,6 +158,6 @@ export function ledgerReadableCsv(rows: readonly LedgerRow[], locale: PortalLoca
     return values.map((value, index) => cell(value, numericColumns.has(index))).join(',');
   });
   return new TextEncoder().encode(
-    `﻿${[header.map((value) => cell(value)).join(','), ...lines].join('\r\n')}\r\n`,
+    `\uFEFF${[header.map((value) => cell(value)).join(','), ...lines].join('\r\n')}\r\n`,
   );
 }

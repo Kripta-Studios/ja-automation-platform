@@ -11,7 +11,7 @@
 export function canonicalMoneyAmountText(raw: unknown): string | null {
   const text = String(raw ?? '')
     .trim()
-    .replace(/[\s  ']/gu, '');
+    .replace(/[\s\u00A0\u202F']/gu, '');
   if (!text || !/^\d[\d.,]*$/u.test(text)) return null;
   const lastDot = text.lastIndexOf('.');
   const lastComma = text.lastIndexOf(',');

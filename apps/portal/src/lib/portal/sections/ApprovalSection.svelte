@@ -1254,7 +1254,7 @@
                                 >{rowEstimate(
                                   item.row,
                                 )}{#if role === 'owner_admin' || role === 'finance_admin'}
-                                  {' · '}<a href={`${base}/app/finance/conversions`}
+                                  · <a href={`${base}/app/finance/conversions`}
                                     >{t('convertLink')}</a
                                   >{/if}</span
                               >

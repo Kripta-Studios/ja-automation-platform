@@ -682,6 +682,10 @@ const en = {
     'These hours are already settled in {start} to {end}. Review that settlement instead of settling them again.',
   'action.billing.readiness.missingOvertimeClientRate':
     'Overtime rate missing: overtime would be billed at $0. Set the overtime client rate before invoicing.',
+  'problem.billing.packExpenseNeedsConversion':
+    "The {amount} expense of {spentOn} (project {projectNumber}) has no verified amount in {projectCurrency}, the project's currency. Convert it in Money › Currency conversions, then generate the pack again — or choose dates that leave out {spentOn}.",
+  'problem.billing.packSourceMismatchNamed':
+    'This Accounting Pack does not reconcile with its preserved financial sources: {source} ({reason}). Choose dates that leave this record out, or send the record name to support. Your selected dates are retained; reversing a payment or changing historical records is not a repair.',
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1359,6 +1363,10 @@ const esBase: Record<keyof typeof en, string> = {
     'Estas horas ya están liquidadas en {start} a {end}. Revisa esa liquidación en lugar de liquidarlas otra vez.',
   'action.billing.readiness.missingOvertimeClientRate':
     'Falta la tarifa de horas extra: las horas extra se facturarían a $0. Define la tarifa de horas extra del cliente antes de facturar.',
+  'problem.billing.packExpenseNeedsConversion':
+    'El gasto de {amount} del {spentOn} (proyecto {projectNumber}) no tiene un importe verificado en {projectCurrency}, la moneda del proyecto. Conviértelo en Dinero › Conversiones de moneda y vuelve a generar el paquete, o elige fechas que dejen fuera el {spentOn}.',
+  'problem.billing.packSourceMismatchNamed':
+    'Este paquete contable no cuadra con sus fuentes financieras conservadas: {source} ({reason}). Elige fechas que dejen fuera ese registro o envía su nombre a soporte. Tus fechas se conservan; revertir un pago o cambiar registros históricos no lo arregla.',
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -2024,6 +2032,10 @@ const ptBase: Record<keyof typeof en, string> = {
     'Estas horas já foram liquidadas em {start} a {end}. Revise essa liquidação em vez de liquidá-las novamente.',
   'action.billing.readiness.missingOvertimeClientRate':
     'Falta a tarifa de hora extra: a hora extra seria faturada a $0. Defina a tarifa de hora extra do cliente antes de faturar.',
+  'problem.billing.packExpenseNeedsConversion':
+    'A despesa de {amount} de {spentOn} (projeto {projectNumber}) não tem valor verificado em {projectCurrency}, a moeda do projeto. Converta-a em Dinheiro › Conversões de moeda e gere o pacote de novo, ou escolha datas que deixem de fora {spentOn}.',
+  'problem.billing.packSourceMismatchNamed':
+    'Este pacote contábil não fecha com as fontes financeiras preservadas: {source} ({reason}). Escolha datas que deixem esse registro de fora ou envie o nome dele ao suporte. Suas datas são mantidas; estornar um pagamento ou alterar registros históricos não resolve.',
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

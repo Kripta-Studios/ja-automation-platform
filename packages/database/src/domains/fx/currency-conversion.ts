@@ -141,6 +141,35 @@ export function currentCurrencyConversion(
   return row ? mapRow(row) : null;
 }
 
+/**
+ * One "has a verified project-currency amount" rule (audit 2026-11-22 T14): the amount
+ * projected onto the expense, or else the current audited conversion of exactly this receipt
+ * amount (Money › Currency conversions). Null when nothing verified exists yet.
+ */
+export function verifiedExpenseProjectAmountMinor(
+  sqlite: DatabaseSync,
+  expense: Readonly<{
+    id: string;
+    currency: string;
+    project_currency: string;
+    amount_minor: string | number | bigint;
+    project_currency_amount_minor: string | number | bigint | null;
+  }>,
+): string | null {
+  if (expense.project_currency_amount_minor !== null)
+    return String(expense.project_currency_amount_minor);
+  if (expense.currency === expense.project_currency) return String(expense.amount_minor);
+  const conversion = currentCurrencyConversion(
+    sqlite,
+    'expense',
+    expense.id,
+    expense.project_currency,
+  );
+  return conversion && conversion.sourceAmountMinor === String(expense.amount_minor)
+    ? conversion.targetAmountMinor
+    : null;
+}
+
 export function currencyConversionHistory(
   sqlite: DatabaseSync,
   sourceKind: CurrencyConversionSourceKind,

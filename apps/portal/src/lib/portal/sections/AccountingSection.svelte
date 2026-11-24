@@ -15,6 +15,7 @@
   import type { ProblemData } from '../../problem/contract';
   import { navigationUxText } from '../navigation-ux-copy';
   import { accountingUxRound2Text } from '../accounting-ux-round2-copy';
+  import { billingFixText } from '../billing-fix-copy';
 
   const accountingVersionWarning: ProblemData = {
     code: 'WARNING_ACCOUNTING_PACK_NEW_VERSION',
@@ -125,6 +126,10 @@
           ? { issuerSettings: createPackProblem.params.legalEntityId }
           : {}),
       }).toString()}`,
+    },
+    convert_currency: {
+      label: billingFixText(locale, 'convertCurrency'),
+      href: `${base}/app/finance/conversions?lang=${encodeURIComponent(locale)}`,
     },
     open_expense: {
       label: translate('problem.remedy.openExpense'),

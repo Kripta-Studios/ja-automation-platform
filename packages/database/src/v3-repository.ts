@@ -39,6 +39,7 @@ import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.
 import { verifyPrivatePdfArtifact } from './core/private-pdf-proof.ts';
 import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
+import { verifiedExpenseProjectAmountMinor } from './domains/fx/currency-conversion.ts';
 import {
   resolveAssignmentCommercialTerms,
   resolveClientLaborRule,
@@ -4827,8 +4828,15 @@ export class V3Repository {
       const isDirect = expense.who_paid === 'client' || treatment === 'client_direct';
       const isBillable =
         !isDirect && (treatment.startsWith('reimbursable') || treatment === 'allowance_per_diem');
+      // T14: the same verified-amount rule as the Accounting Pack and Currency conversions.
+      const verifiedConversion =
+        expense.currency !== project.currency &&
+        verifiedExpenseProjectAmountMinor(this.sqlite, {
+          ...expense,
+          project_currency: project.currency,
+        }) !== null;
       const foreignCostProjectionMissing =
-        expense.currency !== project.currency && expense.project_currency_amount_minor === null;
+        expense.currency !== project.currency && !verifiedConversion;
       const foreignBillingProjectionMissing =
         expense.currency !== project.currency && expense.billing_amount_minor === null;
       const foreignReimbursementProjectionMissing =
@@ -4852,10 +4860,11 @@ export class V3Repository {
           code: 'missing_expense_classification',
           sourceId: expense.id,
         });
-      if (costProjectionMissing || billingProjectionMissing)
+      // An unclassified expense has one next step (classify it), already reported above.
+      if (!isUnclassified && (costProjectionMissing || billingProjectionMissing))
         expenseFinanceReasons.push({
           code:
-            expense.currency === project.currency
+            expense.currency === project.currency || verifiedConversion
               ? 'missing_expense_finance_projection'
               : 'missing_expense_currency_conversion',
           sourceId: expense.id,
@@ -9373,10 +9382,9 @@ export class V3Repository {
       const travelCostByCurrency = new Map<V3Currency, bigint>();
       const otherCostByCurrency = new Map<V3Currency, bigint>();
       const expenses = expenseRows.map((expense) => {
-        if (
-          expense.currency !== expense.project_currency &&
-          expense.project_currency_amount_minor === null
-        )
+        // T14: a confirmed conversion (Money › Currency conversions) is the verified amount.
+        const verifiedProjectMinor = verifiedExpenseProjectAmountMinor(this.sqlite, expense);
+        if (expense.currency !== expense.project_currency && verifiedProjectMinor === null)
           throw Object.assign(
             new V3ConflictError(
               `Expense ${expense.id} is missing its authoritative project-currency projection`,
@@ -9403,9 +9411,7 @@ export class V3Repository {
           throw new V3ConflictError(
             `Expense ${expense.id} needs an exact project-currency reimbursement projection`,
           );
-        const netProjectMinor = BigInt(
-          expense.project_currency_amount_minor ?? expense.amount_minor,
-        );
+        const netProjectMinor = BigInt(verifiedProjectMinor ?? expense.amount_minor);
         const companyCostMinor =
           expense.who_paid === 'client' || expense.treatment === 'client_direct'
             ? 0n
@@ -9680,7 +9686,8 @@ export class V3Repository {
       }>;
       const reimbursementByWorkerProject = new Map<string, bigint>();
       for (const row of reimbursementRows) {
-        if (row.currency !== row.project_currency && row.project_currency_amount_minor === null)
+        const verifiedProjectMinor = verifiedExpenseProjectAmountMinor(this.sqlite, row);
+        if (row.currency !== row.project_currency && verifiedProjectMinor === null)
           throw new V3ConflictError(
             `Expense ${row.id} is missing its authoritative project-currency projection`,
           );
@@ -9692,7 +9699,7 @@ export class V3Repository {
             BigInt(
               row.expense_policy_required === 1
                 ? (row.reimbursement_amount_minor ?? '0')
-                : (row.project_currency_amount_minor ?? row.amount_minor),
+                : (verifiedProjectMinor ?? row.amount_minor),
             ),
         );
       }

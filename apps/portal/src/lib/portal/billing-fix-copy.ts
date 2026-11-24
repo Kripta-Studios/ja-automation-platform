@@ -1,5 +1,6 @@
 /** Copy for the 2026-11 billing/finance fixes (G3): invoices, credit notes, settlements, pay (EN/ES/PT). */
 const en = {
+  convertCurrency: 'Open Currency conversions',
   classifyExpense: 'Classify the expense',
   companyWideTitle: 'Bank, payee and company contact',
   companyWideHelp:
@@ -50,6 +51,7 @@ const en = {
 type BillingFixCopyKey = keyof typeof en;
 
 const es: Record<BillingFixCopyKey, string> = {
+  convertCurrency: 'Abrir Conversiones de moneda',
   classifyExpense: 'Clasificar el gasto',
   companyWideTitle: 'Banco, beneficiario y contacto de la empresa',
   companyWideHelp:
@@ -99,6 +101,7 @@ const es: Record<BillingFixCopyKey, string> = {
 };
 
 const pt: Record<BillingFixCopyKey, string> = {
+  convertCurrency: 'Abrir Conversões de moeda',
   classifyExpense: 'Classificar a despesa',
   companyWideTitle: 'Banco, beneficiário e contato da empresa',
   companyWideHelp:

@@ -35,11 +35,11 @@
       stop: 'Parar ditado',
       checking: 'A verificar voz local…',
       listening: 'A ouvir neste dispositivo…',
-      note: 'Usa um pacote de voz já instalado no dispositivo, quando compatível. Reveja as palavras transcritas. Sem alternativa na nuvem.',
+      note: 'Usa um pacote de voz já instalado no dispositivo, quando compatível. Revise as palavras transcritas. Sem alternativa na nuvem.',
       unavailable:
         'O ditado local não está disponível neste navegador ou idioma. Escreva as suas notas.',
       error: 'Ditado parado. Verifique a permissão do microfone ou escreva as notas.',
-      done: 'Ditado parado. Reveja as palavras adicionadas às notas.',
+      done: 'Ditado parado. Revise as palavras adicionadas às notas.',
     },
   };
   let copy = $derived(words[locale]);

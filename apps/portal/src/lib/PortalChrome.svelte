@@ -167,7 +167,7 @@
         : value === 'finance_admin'
           ? 'finance'
           : value === 'project_manager'
-            ? 'manager'
+            ? 'project_manager'
             : value === 'auditor_read_only'
               ? 'auditor_read_only'
               : value === 'worker' && data.user.workforceProfile
@@ -557,6 +557,10 @@
         >{/if}
     </a>
   {/if}
+  {#if data.user.role === 'auditor_read_only'}
+    <!-- One shell-level indicator instead of per-page wording (auditor-3). -->
+    <span class="readonly-chip" title={translate('Read-only')}>{translate('Read-only')}</span>
+  {/if}
   <label class="locale-switcher">
     <span class="visually-hidden">{translate('Language')}</span>
     <select aria-label={translate('Language')} value={locale} onchange={changeLocale}>
@@ -598,7 +602,10 @@
         <div class="account-menu-summary" role="presentation">
           <span class="portal-kicker">{translate('SIGNED IN')}</span>
           <strong>{displayName}</strong>
-          <small>{roleLabel(data.user.role)} {translate('workspace access')}</small>
+          <small
+            >{translate('Role')}: {roleLabel(data.user.role)}{#if data.user.role === 'auditor_read_only'}
+              · {translate('Read-only')}{/if}</small
+          >
         </div>
         {#each accountNavigation as item}
           {@const accountDetail =
@@ -609,8 +616,7 @@
                 : item.section === 'profile'
                   ? 'Personal details, MFA and availability'
                   : ''}
-          {@const accountIcon =
-            item.section === 'pay' ? '€' : item.section === 'documents' ? '□' : '◎'}
+          {@const accountIcon = item.section === 'documents' ? '□' : '◎'}
           <a
             role="menuitem"
             href={itemHref(item)}
@@ -618,7 +624,19 @@
             onclick={() => (accountOpen = false)}
           >
             <span class="account-menu-icon" aria-hidden="true">
-              {#if item.section === 'notifications'}
+              {#if item.section === 'pay'}
+                <!-- Neutral wallet: pay can be in USD, MXN, EUR or BRL. -->
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"><path d={navIconPaths['My Pay']} /></svg
+                >
+              {:else if item.section === 'notifications'}
                 <svg
                   viewBox="0 0 24 24"
                   width="20"
@@ -676,7 +694,7 @@
             >
           </span>
           <span
-            ><b>{translate('Log out')}</b><small
+            ><b>{translate('Sign out')}</b><small
               >{translate('End this session on this device')}</small
             ></span
           >
@@ -795,6 +813,22 @@
 
   .portal-notifications-link {
     position: relative;
+  }
+  .readonly-chip {
+    flex: 0 0 auto;
+    padding: 0.3rem 0.6rem;
+    border: 1px solid var(--ja-border-subdued, #d6d5d2);
+    border-radius: 999px;
+    background: var(--ja-canvas, #f6f6f1);
+    color: var(--ja-text-secondary, #55534c);
+    font-size: 0.75rem;
+    font-weight: 650;
+    white-space: nowrap;
+  }
+  @media (max-width: 520px) {
+    .readonly-chip {
+      display: none;
+    }
   }
   .bell-badge {
     position: absolute;

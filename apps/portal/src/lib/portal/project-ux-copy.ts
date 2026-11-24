@@ -118,8 +118,8 @@ const copy: Record<string, CopyValue> = {
     'Crie um projeto para começar a registrar trabalho, atribuições e faturas.',
   ],
   detailShortcuts: ['Next actions', 'Siguientes acciones', 'Próximas ações'],
-  logTime: ['Log time', 'Registrar horas', 'Registar horas'],
-  recordExpense: ['Record expense', 'Registrar gasto', 'Registar despesa'],
+  logTime: ['Log time', 'Registrar horas', 'Registrar horas'],
+  recordExpense: ['Record expense', 'Registrar gasto', 'Registrar despesa'],
   createWorkReport: [
     'Create work report',
     'Crear informe de trabajo',

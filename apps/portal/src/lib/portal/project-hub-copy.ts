@@ -12,11 +12,7 @@ const copy = {
   tabInvoices: ['Invoices', 'Facturas', 'Faturas'],
   tabReports: ['Reports', 'Informes', 'Relatórios'],
   tabSettings: ['Settings', 'Ajustes', 'Configurações'],
-  projectManager: [
-    'Designated project lead',
-    'Responsable principal designado',
-    'Responsável principal designado',
-  ],
+  projectManager: ['Project manager', 'Responsable del proyecto', 'Gerente do projeto'],
   noManager: ['Unassigned', 'Sin asignar', 'Não atribuído'],
   noSite: ['No site', 'Sin planta', 'Sem planta'],
   figHoursMonth: ['Hours this month', 'Horas este mes', 'Horas neste mês'],

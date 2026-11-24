@@ -253,7 +253,7 @@
       taskTime:
         'Registre o trabalho e a viagem reais no projeto correto. Os mínimos do cliente não mudam as horas reais.',
       taskExpense:
-        'Envie o comprovante completo, escolha o pagador real e guarde o original até confirmar o upload.',
+        'Envie o comprovante completo, escolha o pagador real e salve o original até confirmar o upload.',
       taskCorrection:
         'Leia o motivo de um item devolvido. O histórico aprovado exige o fluxo de correção e um motivo.',
       taskReport:

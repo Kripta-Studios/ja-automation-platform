@@ -623,7 +623,7 @@ export const portalTitles: Record<string, string> = {
 export const portalViewTitles: Record<string, Record<string, string>> = {
   projects: {
     clients: 'Clients',
-    team: 'Team access',
+    team: 'Team',
   },
   reports: {
     technical: 'PLC / technical reports',

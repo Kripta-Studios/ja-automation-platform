@@ -14,7 +14,7 @@ describe('digital worker action recovery copy', () => {
       'Introduce un importe mayor que cero.',
     );
     expect(workflowCaptureValidationCopy('pt', 'Expense amount must be positive')).toBe(
-      'Introduza um valor superior a zero.',
+      'Informe um valor superior a zero.',
     );
 
     const unknown = 'private database field: billing_amount_minor';
@@ -34,7 +34,7 @@ describe('digital worker action recovery copy', () => {
       'Resuelve los bloqueos del registro de fuentes y actualiza el caso antes de volver a intentarlo.',
     );
     expect(workflowActionCopy('pt', { messageKey: 'problem.digitalWorkers.conflict' })).toContain(
-      'Atualize e reveja a versão atual.',
+      'Atualize e revise a versão atual.',
     );
   });
 

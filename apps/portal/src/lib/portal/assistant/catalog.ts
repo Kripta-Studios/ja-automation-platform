@@ -4,7 +4,7 @@ import type { AssistantContext, AssistantRole, AssistantTask } from './types';
 export const assistantTasks: readonly AssistantTask[] = [
   {
     id: 'workflow-today',
-    title: { en: 'Finish today', es: 'Completar mi jornada', pt: 'Concluir o meu dia' },
+    title: { en: 'Finish today', es: 'Completar mi jornada', pt: 'Concluir meu dia' },
     category: 'time',
     roles: ['worker'],
     profiles: ['standard'],
@@ -28,7 +28,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Record the facts once and prepare your time, daily report and expense drafts.',
       es: 'Registra los hechos una vez y prepara borradores de horas, informe diario y gasto.',
-      pt: 'Registe os factos uma vez e prepare rascunhos de horas, relatório diário e despesa.',
+      pt: 'Registre os factos uma vez e prepare rascunhos de horas, relatório diário e despesa.',
     },
   },
   {
@@ -61,7 +61,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Review pending work and track the next action with its responsible person.',
       es: 'Revisa el trabajo pendiente y sigue la próxima acción con su responsable.',
-      pt: 'Reveja o trabalho pendente e acompanhe a próxima ação e o seu responsável.',
+      pt: 'Revise o trabalho pendente e acompanhe a próxima ação e o seu responsável.',
     },
   },
   {
@@ -90,7 +90,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Account for period sources, review current evidence and prepare an eligible invoice draft.',
       es: 'Controla los registros del periodo, revisa la evidencia vigente y prepara un borrador válido.',
-      pt: 'Confira os registros do período, reveja a evidência atual e prepare um rascunho elegível.',
+      pt: 'Confira os registros do período, revise a evidência atual e prepare um rascunho elegível.',
     },
   },
   {
@@ -141,7 +141,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -163,7 +163,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -187,7 +187,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -211,7 +211,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -235,7 +235,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -243,7 +243,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'View project team',
       es: 'Ver equipo del proyecto',
-      pt: 'Ver equipa do projeto',
+      pt: 'Ver equipe do projeto',
     },
     category: 'project',
     roles: ['owner_admin', 'finance_admin', 'project_manager'],
@@ -254,12 +254,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['View project team'],
       es: ['Ver equipo del proyecto'],
-      pt: ['Ver equipa do projeto'],
+      pt: ['Ver equipe do projeto'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -284,7 +284,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -309,7 +309,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -334,7 +334,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -357,7 +357,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -380,7 +380,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -403,7 +403,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -425,7 +425,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -447,7 +447,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -470,7 +470,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -492,7 +492,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -514,7 +514,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -522,7 +522,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Search team specialists',
       es: 'Buscar especialistas del equipo',
-      pt: 'Pesquisar especialistas da equipa',
+      pt: 'Pesquisar especialistas da equipe',
     },
     category: 'team',
     roles: ['owner_admin', 'project_manager'],
@@ -531,12 +531,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Search team specialists'],
       es: ['Buscar especialistas del equipo'],
-      pt: ['Pesquisar especialistas da equipa'],
+      pt: ['Pesquisar especialistas da equipe'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -544,7 +544,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Create portal user access',
       es: 'Crear acceso de usuario',
-      pt: 'Criar acesso de utilizador',
+      pt: 'Criar acesso de usuário',
     },
     category: 'team',
     roles: ['owner_admin'],
@@ -554,12 +554,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Create portal user access', 'add person', 'new user', 'create user', 'create account'],
       es: ['Crear acceso de usuario', 'añadir persona', 'nuevo usuario', 'crear cuenta'],
-      pt: ['Criar acesso de utilizador', 'adicionar pessoa', 'novo usuário', 'criar conta'],
+      pt: ['Criar acesso de usuário', 'adicionar pessoa', 'novo usuário', 'criar conta'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -567,7 +567,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Invite a team member',
       es: 'Invitar miembro del equipo',
-      pt: 'Convidar membro da equipa',
+      pt: 'Convidar membro da equipe',
     },
     category: 'team',
     roles: ['owner_admin'],
@@ -586,7 +586,7 @@ export const assistantTasks: readonly AssistantTask[] = [
         'convidar',
         'convidar trabalhador',
         'convidar pessoa',
-        'convidar membro da equipa',
+        'convidar membro da equipe',
         'enviar convite',
       ],
     },
@@ -594,7 +594,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -602,7 +602,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Activate or suspend a team account',
       es: 'Activar o suspender cuenta del equipo',
-      pt: 'Ativar ou suspender conta da equipa',
+      pt: 'Ativar ou suspender conta da equipe',
     },
     category: 'team',
     roles: ['owner_admin'],
@@ -630,7 +630,7 @@ export const assistantTasks: readonly AssistantTask[] = [
         'restablecer contraseña',
       ],
       pt: [
-        'Ativar ou suspender conta da equipa',
+        'Ativar ou suspender conta da equipe',
         'suspender',
         'suspender usuário',
         'desligar pessoa',
@@ -642,7 +642,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -665,7 +665,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -688,7 +688,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -711,7 +711,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -734,7 +734,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -757,7 +757,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -780,7 +780,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -803,7 +803,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -825,7 +825,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -847,7 +847,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -869,7 +869,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -891,7 +891,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -914,7 +914,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -922,7 +922,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record supplier personnel time',
       es: 'Registrar horas del proveedor',
-      pt: 'Registar horas do fornecedor',
+      pt: 'Registrar horas do fornecedor',
     },
     category: 'supplier',
     roles: ['owner_admin', 'worker'],
@@ -932,12 +932,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record supplier personnel time'],
       es: ['Registrar horas del proveedor'],
-      pt: ['Registar horas do fornecedor'],
+      pt: ['Registrar horas do fornecedor'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -960,7 +960,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -983,7 +983,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -991,7 +991,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Assign a crew chief',
       es: 'Asignar jefe de equipo',
-      pt: 'Atribuir chefe de equipa',
+      pt: 'Atribuir chefe de equipe',
     },
     category: 'crew',
     roles: ['owner_admin'],
@@ -1000,12 +1000,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Assign a crew chief'],
       es: ['Asignar jefe de equipo'],
-      pt: ['Atribuir chefe de equipa'],
+      pt: ['Atribuir chefe de equipe'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1013,7 +1013,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record delegated crew hours',
       es: 'Registrar horas del equipo delegado',
-      pt: 'Registar horas da equipa delegada',
+      pt: 'Registrar horas da equipe delegada',
     },
     category: 'crew',
     roles: ['worker'],
@@ -1022,12 +1022,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open crew entry. An active crew-chief delegation and valid project assignments are required.',
       es: 'Abrir registro de equipo. Requiere delegación activa y asignaciones válidas.',
-      pt: 'Abrir registo da equipa. Exige delegação ativa e atribuições válidas.',
+      pt: 'Abrir registro da equipe. Exige delegação ativa e atribuições válidas.',
     },
     phrases: {
       en: ['Record delegated crew hours'],
       es: ['Registrar horas del equipo delegado'],
-      pt: ['Registar horas da equipa delegada'],
+      pt: ['Registrar horas da equipe delegada'],
     },
   },
   {
@@ -1035,7 +1035,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record delegated crew expenses',
       es: 'Registrar gastos del equipo delegado',
-      pt: 'Registar despesas da equipa delegada',
+      pt: 'Registrar despesas da equipe delegada',
     },
     category: 'crew',
     roles: ['worker'],
@@ -1044,12 +1044,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record delegated crew expenses'],
       es: ['Registrar gastos del equipo delegado'],
-      pt: ['Registar despesas da equipa delegada'],
+      pt: ['Registrar despesas da equipe delegada'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1057,7 +1057,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Log time',
       es: 'Registrar horas',
-      pt: 'Registar horas',
+      pt: 'Registrar horas',
     },
     category: 'time',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1067,12 +1067,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['log time', 'record hours', 'add time entry', 'create time', 'clock hours'],
       es: ['registrar horas', 'anotar tiempo', 'crear parte de horas'],
-      pt: ['registar horas', 'registrar tempo', 'criar horas'],
+      pt: ['registrar horas', 'registrar tempo', 'criar horas'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1080,7 +1080,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'View time entries',
       es: 'Ver partes de horas',
-      pt: 'Ver registos de horas',
+      pt: 'Ver registros de horas',
     },
     category: 'time',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1089,12 +1089,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['View time entries'],
       es: ['Ver partes de horas'],
-      pt: ['Ver registos de horas'],
+      pt: ['Ver registros de horas'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1102,7 +1102,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Enter a week of time in a table',
       es: 'Registrar semana de horas en tabla',
-      pt: 'Registar semana de horas numa tabela',
+      pt: 'Registrar semana de horas numa tabela',
     },
     category: 'time',
     roles: ['owner_admin'],
@@ -1111,12 +1111,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Enter a week of time in a table'],
       es: ['Registrar semana de horas en tabla'],
-      pt: ['Registar semana de horas numa tabela'],
+      pt: ['Registrar semana de horas numa tabela'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1124,7 +1124,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Edit or correct a time entry',
       es: 'Editar o corregir parte de horas',
-      pt: 'Editar ou corrigir registo de horas',
+      pt: 'Editar ou corrigir registro de horas',
     },
     category: 'time',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1135,12 +1135,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Edit or correct a time entry'],
       es: ['Editar o corregir parte de horas'],
-      pt: ['Editar ou corrigir registo de horas'],
+      pt: ['Editar ou corrigir registro de horas'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1148,7 +1148,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Submit time for approval',
       es: 'Enviar horas para aprobación',
-      pt: 'Submeter horas para aprovação',
+      pt: 'Enviar horas para aprovação',
     },
     category: 'time',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1157,12 +1157,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Submit time for approval'],
       es: ['Enviar horas para aprobación'],
-      pt: ['Submeter horas para aprovação'],
+      pt: ['Enviar horas para aprovação'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1184,7 +1184,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1192,7 +1192,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record an expense',
       es: 'Registrar un gasto',
-      pt: 'Registar uma despesa',
+      pt: 'Registrar uma despesa',
     },
     category: 'expense',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1202,12 +1202,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['record expense', 'add expense', 'create expense', 'upload receipt'],
       es: ['registrar gasto', 'añadir gasto', 'guardar recibo'],
-      pt: ['registar despesa', 'adicionar despesa', 'guardar recibo'],
+      pt: ['registrar despesa', 'adicionar despesa', 'guardar recibo'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1229,7 +1229,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1237,7 +1237,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record or submit weekly expenses',
       es: 'Registrar o enviar gastos semanales',
-      pt: 'Registar ou submeter despesas semanais',
+      pt: 'Registrar ou enviar despesas semanais',
     },
     category: 'expense',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1246,12 +1246,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record or submit weekly expenses'],
       es: ['Registrar o enviar gastos semanales'],
-      pt: ['Registar ou submeter despesas semanais'],
+      pt: ['Registrar ou enviar despesas semanais'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1275,7 +1275,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1283,7 +1283,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Submit an expense for approval',
       es: 'Enviar gasto para aprobación',
-      pt: 'Submeter despesa para aprovação',
+      pt: 'Enviar despesa para aprovação',
     },
     category: 'expense',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1292,12 +1292,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Submit an expense for approval'],
       es: ['Enviar gasto para aprobación'],
-      pt: ['Submeter despesa para aprovação'],
+      pt: ['Enviar despesa para aprovação'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1319,7 +1319,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1342,7 +1342,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1365,7 +1365,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1387,7 +1387,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1411,7 +1411,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1419,7 +1419,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Submit a report for approval',
       es: 'Enviar informe para aprobación',
-      pt: 'Submeter relatório para aprovação',
+      pt: 'Enviar relatório para aprovação',
     },
     category: 'report',
     roles: ['owner_admin', 'project_manager', 'worker'],
@@ -1428,12 +1428,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Submit a report for approval'],
       es: ['Enviar informe para aprobación'],
-      pt: ['Submeter relatório para aprovação'],
+      pt: ['Enviar relatório para aprovação'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1456,7 +1456,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1464,7 +1464,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Open client report sign-off controls',
       es: 'Abrir controles de firma de informe',
-      pt: 'Abrir controlos de assinatura do relatório',
+      pt: 'Abrir controles de assinatura do relatório',
     },
     category: 'report',
     roles: ['owner_admin', 'project_manager'],
@@ -1473,12 +1473,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Open client report sign-off controls'],
       es: ['Abrir controles de firma de informe'],
-      pt: ['Abrir controlos de assinatura do relatório'],
+      pt: ['Abrir controles de assinatura do relatório'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1500,7 +1500,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1522,7 +1522,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1544,7 +1544,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1566,7 +1566,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1590,7 +1590,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1621,7 +1621,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1645,7 +1645,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1653,7 +1653,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'View project reports and files',
       es: 'Ver informes y archivos del proyecto',
-      pt: 'Ver relatórios e ficheiros do projeto',
+      pt: 'Ver relatórios e arquivos do projeto',
     },
     category: 'project',
     roles: ['owner_admin', 'project_manager'],
@@ -1664,12 +1664,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['View project reports and files'],
       es: ['Ver informes y archivos del proyecto'],
-      pt: ['Ver relatórios e ficheiros do projeto'],
+      pt: ['Ver relatórios e arquivos do projeto'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1693,7 +1693,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1717,7 +1717,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1741,7 +1741,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1765,7 +1765,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1792,7 +1792,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1815,7 +1815,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1842,7 +1842,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1865,7 +1865,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1888,7 +1888,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1911,7 +1911,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1934,7 +1934,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1957,7 +1957,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -1980,7 +1980,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2003,7 +2003,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2025,7 +2025,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2033,7 +2033,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Review economic source records',
       es: 'Revisar registros económicos de origen',
-      pt: 'Rever registos económicos de origem',
+      pt: 'Rever registros económicos de origem',
     },
     category: 'finance',
     roles: ['owner_admin', 'finance_admin', 'auditor_read_only'],
@@ -2042,12 +2042,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Review economic source records', 'Review worker compensation settlements'],
       es: ['Revisar registros económicos de origen', 'Revisar liquidaciones de remuneración'],
-      pt: ['Rever registos económicos de origem', 'Rever liquidações de remuneração'],
+      pt: ['Rever registros económicos de origem', 'Rever liquidações de remuneração'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2055,7 +2055,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record or reverse worker compensation payment',
       es: 'Registrar o revertir pago de remuneración',
-      pt: 'Registar ou reverter pagamento de remuneração',
+      pt: 'Registrar ou reverter pagamento de remuneração',
     },
     category: 'finance',
     roles: ['owner_admin', 'finance_admin'],
@@ -2068,12 +2068,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record or reverse worker compensation payment'],
       es: ['Registrar o revertir pago de remuneración'],
-      pt: ['Registar ou reverter pagamento de remuneração'],
+      pt: ['Registrar ou reverter pagamento de remuneração'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2081,7 +2081,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record worker reimbursement',
       es: 'Registrar reembolso del trabajador',
-      pt: 'Registar reembolso do trabalhador',
+      pt: 'Registrar reembolso do trabalhador',
     },
     category: 'finance',
     roles: ['owner_admin', 'finance_admin'],
@@ -2090,12 +2090,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record worker reimbursement'],
       es: ['Registrar reembolso del trabajador'],
-      pt: ['Registar reembolso do trabalhador'],
+      pt: ['Registrar reembolso do trabalhador'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2118,7 +2118,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2140,7 +2140,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2164,7 +2164,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2188,7 +2188,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2212,7 +2212,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2236,7 +2236,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2260,7 +2260,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2284,7 +2284,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2308,7 +2308,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2332,7 +2332,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2340,7 +2340,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record client invoice payment',
       es: 'Registrar pago de factura del cliente',
-      pt: 'Registar pagamento de fatura do cliente',
+      pt: 'Registrar pagamento de fatura do cliente',
     },
     category: 'invoice',
     roles: ['owner_admin', 'finance_admin'],
@@ -2351,12 +2351,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record client invoice payment'],
       es: ['Registrar pago de factura del cliente'],
-      pt: ['Registar pagamento de fatura do cliente'],
+      pt: ['Registrar pagamento de fatura do cliente'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2380,7 +2380,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2402,7 +2402,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2424,7 +2424,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2451,7 +2451,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2473,7 +2473,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2495,7 +2495,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2517,7 +2517,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2525,7 +2525,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Record collection follow-up',
       es: 'Registrar seguimiento de cobros',
-      pt: 'Registar acompanhamento de cobranças',
+      pt: 'Registrar acompanhamento de cobranças',
     },
     category: 'ledger',
     roles: ['owner_admin', 'finance_admin'],
@@ -2534,12 +2534,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Record collection follow-up'],
       es: ['Registrar seguimiento de cobros'],
-      pt: ['Registar acompanhamento de cobranças'],
+      pt: ['Registrar acompanhamento de cobranças'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2561,7 +2561,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2583,7 +2583,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2605,7 +2605,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2638,7 +2638,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2660,7 +2660,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2668,7 +2668,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Register a private document',
       es: 'Registrar documento privado',
-      pt: 'Registar documento privado',
+      pt: 'Registrar documento privado',
     },
     category: 'documents',
     roles: ['owner_admin', 'finance_admin', 'project_manager'],
@@ -2677,12 +2677,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Register a private document'],
       es: ['Registrar documento privado'],
-      pt: ['Registar documento privado'],
+      pt: ['Registrar documento privado'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2704,7 +2704,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2726,7 +2726,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2734,7 +2734,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'View work planning',
       es: 'Ver planificación del trabajo',
-      pt: 'Ver planeamento do trabalho',
+      pt: 'Ver planejamento do trabalho',
     },
     category: 'planning',
     roles: ['owner_admin', 'project_manager'],
@@ -2743,12 +2743,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['View work planning'],
       es: ['Ver planificación del trabajo'],
-      pt: ['Ver planeamento do trabalho'],
+      pt: ['Ver planejamento do trabalho'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2756,7 +2756,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     title: {
       en: 'Publish a planning assignment',
       es: 'Publicar asignación de planificación',
-      pt: 'Publicar atribuição de planeamento',
+      pt: 'Publicar atribuição de planejamento',
     },
     category: 'planning',
     roles: ['owner_admin', 'project_manager'],
@@ -2765,12 +2765,12 @@ export const assistantTasks: readonly AssistantTask[] = [
     phrases: {
       en: ['Publish a planning assignment'],
       es: ['Publicar asignación de planificación'],
-      pt: ['Publicar atribuição de planeamento'],
+      pt: ['Publicar atribuição de planejamento'],
     },
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2798,7 +2798,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2820,7 +2820,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2849,7 +2849,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2871,7 +2871,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2893,7 +2893,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2915,7 +2915,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
   {
@@ -2944,7 +2944,7 @@ export const assistantTasks: readonly AssistantTask[] = [
     description: {
       en: 'Open the existing controls for this task. Review and save changes there.',
       es: 'Abre los controles de esta tarea. Allí revisas y guardas los cambios.',
-      pt: 'Abra os controlos desta tarefa. Reveja e guarde as alterações nessa área.',
+      pt: 'Abra os controles desta tarefa. Revise e salve as alterações nessa área.',
     },
   },
 ];

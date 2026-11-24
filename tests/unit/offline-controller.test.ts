@@ -183,7 +183,7 @@ describe('offline controller', () => {
       'No se pudo completar la sincronización sin conexión. Revisa los borradores guardados antes de volver a intentarlo.',
     );
     expect(translate('pt', state.syncMessage)).toBe(
-      'Não foi possível concluir a sincronização sem ligação. Reveja os rascunhos guardados antes de tentar novamente.',
+      'Não foi possível concluir a sincronização sem ligação. Revise os rascunhos guardados antes de tentar novamente.',
     );
   });
 
@@ -347,7 +347,7 @@ describe('offline controller', () => {
       'Server records changed while offline. Review conflicts, saved records, and remaining drafts before retrying.',
     );
     expect(translate('es', state.syncMessage)).toContain('Revisa los conflictos');
-    expect(translate('pt', state.syncMessage)).toContain('Reveja os conflitos');
+    expect(translate('pt', state.syncMessage)).toContain('Revise os conflitos');
   });
 
   it.each([

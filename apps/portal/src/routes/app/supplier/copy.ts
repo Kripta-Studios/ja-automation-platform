@@ -354,7 +354,7 @@ export const supplierCopy = {
     totalHours: 'Total de horas reais',
     empty: 'Não há instalações autorizadas ou registros para esta seleção.',
     reportEmpty:
-      'Não há registos de trabalho para este projeto e período. Reveja as datas ou escolha outro projeto.',
+      'Não há registros de trabalho para este projeto e período. Revise as datas ou escolha outro projeto.',
     saved: 'Alterações salvas.',
     savedSupplier: 'Fornecedor salvo.',
     savedTechnician: 'Técnico salvo.',

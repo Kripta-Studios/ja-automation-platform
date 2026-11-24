@@ -28,7 +28,7 @@ describe('requested portal UI regressions (RED characterization)', () => {
     const navigation = readSource('apps/portal/src/lib/portal-navigation.ts');
     const routeSource = `${source}\n${navigation}`;
     expect(navigation).toMatch(
-      /projects:\s*\{[\s\S]*?clients:\s*'Clients',[\s\S]*?team:\s*'Team access'/,
+      /projects:\s*\{[\s\S]*?clients:\s*'Clients',[\s\S]*?team:\s*'Team'/,
     );
     expect(navigation).toMatch(/reports:\s*\{[\s\S]*?technical:\s*'PLC \/ technical reports'/);
     expect(navigation).toMatch(/billing:\s*\{[\s\S]*?invoices:\s*'Invoices'/);
@@ -98,7 +98,9 @@ describe('requested portal UI regressions (RED characterization)', () => {
     expect(chrome).not.toMatch(/class="account-chevron"[^>]*>[\s\S]*[⌄⌃]/);
     expect(chrome).toMatch(/class="account-chevron"[\s\S]*?<svg[\s\S]*?<path/);
 
-    const settingsPath = chrome.match(/Settings:\s*['"]([^'"]+)['"]/)?.[1] ?? '';
+    // Icon paths live in the shared nav-icons module (sidebar and phone bar).
+    const icons = readSource('apps/portal/src/lib/portal/nav-icons.ts');
+    const settingsPath = icons.match(/Settings:\s*['"]([^'"]+)['"]/)?.[1] ?? '';
     expect(settingsPath, 'Settings must use the centered gear path').toContain('M12 8a4');
     const navIcon = readSource('apps/portal/src/lib/PortalNavIcon.svelte');
     expect(navIcon).toMatch(/<circle\s+cx="12"\s+cy="12"/);

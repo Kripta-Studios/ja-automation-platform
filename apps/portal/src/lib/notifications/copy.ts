@@ -22,7 +22,7 @@ const copy: Readonly<Record<string, Readonly<Record<NotificationLocale, CopyPair
     },
     pt: {
       subject: 'Acompanhamento de tarefa pendente',
-      body: 'Reveja a tarefa atribuída, as evidências e o próximo passo em Trabalhadores digitais.',
+      body: 'Revise a tarefa atribuída, as evidências e o próximo passo em Trabalhadores digitais.',
     },
   },
   missing_time: {

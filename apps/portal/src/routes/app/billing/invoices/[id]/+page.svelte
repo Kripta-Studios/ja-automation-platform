@@ -243,8 +243,16 @@
           href: String(data.user?.role) === 'owner_admin' ? numberingHref : null,
           label: 'fix_numbering',
         },
+        // T16: open period generation prefilled with this invoice's project and period.
         customer_signoff_required: {
-          href: `${base}/app/projects/${encodeURIComponent(String(invoice.project_id ?? ''))}?tab=reports&lang=${locale}#project-reports`,
+          href: `${base}/app/reports?${new URLSearchParams({
+            view: 'signoff',
+            refresh: 'period',
+            project: String(invoice.project_id ?? ''),
+            from: String(invoice.period_start ?? ''),
+            to: String(invoice.period_end ?? ''),
+            lang: locale,
+          }).toString()}`,
           label: 'fix_signoff',
         },
       };

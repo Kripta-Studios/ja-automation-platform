@@ -503,6 +503,7 @@ const RECORD_LEVEL_CODES = new Set([
   'pending_time_submission',
   'pending_time_approval',
   'pending_time_finance_review',
+  'pending_time_correction',
   'pending_expense_approval',
   'missing_expense_classification',
   'missing_client_rate',
@@ -523,6 +524,7 @@ const FIX_FOR: Record<string, QuickInvoiceWarning['fix']> = {
   pending_time_submission: 'time',
   pending_time_approval: 'approvals',
   pending_time_finance_review: 'finance_approvals',
+  pending_time_correction: 'approvals',
   pending_expense_approval: 'expenses',
   missing_expense_classification: 'expense_classification',
   missing_expense_currency_conversion: 'expense_classification',
@@ -1097,6 +1099,12 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   );
   const readinessReasons = readiness.reasons as readonly ReadinessReason[];
   collected.push(...readinessReasons);
+  // T15 (audit 2026-11-22): approved hours left out because their correction still waits for
+  // approval are listed with the reason and a fix link, never dropped silently.
+  for (const record of (readiness as { timeReadiness?: { records?: readonly { sourceId: string; status: string }[] } | null })
+    .timeReadiness?.records ?? [])
+    if (record.status === 'pending_correction')
+      collected.push({ code: 'pending_time_correction', sourceId: record.sourceId } as ReadinessReason);
   const globalReasons = readinessReasons.filter(
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );

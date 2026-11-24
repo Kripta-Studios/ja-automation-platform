@@ -669,6 +669,11 @@ export function quickInvoiceWarningText(locale: PortalLocale, warning: Warning):
       `${n} ${n === 1 ? 'registro de horas necesita' : 'registros de horas necesitan'} revisión financiera${h}.`,
       `${n} ${n === 1 ? 'registro de horas precisa' : 'registros de horas precisam'} de revisão financeira${h}.`,
     ],
+    pending_time_correction: [
+      `${n} approved time ${n === 1 ? 'entry is' : 'entries are'} left out: ${n === 1 ? 'its correction waits' : 'their corrections wait'} for approval${h}.`,
+      `${n} ${n === 1 ? 'registro de horas aprobado queda' : 'registros de horas aprobados quedan'} fuera: ${n === 1 ? 'su corrección espera' : 'sus correcciones esperan'} aprobación${h}.`,
+      `${n} ${n === 1 ? 'registro de horas aprovado fica' : 'registros de horas aprovados ficam'} de fora: ${n === 1 ? 'a correção aguarda' : 'as correções aguardam'} aprovação${h}.`,
+    ],
     pending_expense_approval: [
       `${n} ${n === 1 ? 'expense is' : 'expenses are'} waiting for approval.`,
       `${n} ${n === 1 ? 'gasto espera' : 'gastos esperan'} aprobación.`,

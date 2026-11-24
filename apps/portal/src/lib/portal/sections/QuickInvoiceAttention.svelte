@@ -122,6 +122,7 @@
 
   let {
     locale = 'en',
+    nothingToBill = false,
     role = '',
     currency,
     attention,
@@ -138,6 +139,8 @@
     onExclude,
   }: {
     locale?: PortalLocale;
+    /** T15: no line to bill: never claim "Everything is ready". */
+    nothingToBill?: boolean;
     role?: string;
     currency: string;
     attention: AttentionItem[];
@@ -443,7 +446,9 @@
 
 <div class="qa" bind:this={root} data-quick-invoice-attention={count}>
   <h3 class="qa__title">
-    {#if blockingCount}{f('attentionToFix', { count: blockingCount })}{:else}{t('attentionNone')} ✓{/if}{#if optionalCount}<span
+    {#if blockingCount}{f('attentionToFix', { count: blockingCount })}{:else if nothingToBill}<span data-attention-nothing
+        >{billingFixText(locale, 'nothingToBill')}</span
+      >{:else}{t('attentionNone')} ✓{/if}{#if optionalCount}<span
         class="qa__title-optional"
         data-attention-optional={optionalCount}>&nbsp;· {f('attentionOptional', { count: optionalCount })}</span
       >{/if}

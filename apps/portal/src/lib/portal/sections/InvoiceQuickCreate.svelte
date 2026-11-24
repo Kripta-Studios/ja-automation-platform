@@ -1100,7 +1100,8 @@
       case 'project_po':
         return `${portal}/projects/${project}?tab=overview&${lang}`;
       case 'signoff':
-        return `${portal}/projects/${project}?tab=reports&${lang}#project-reports`;
+        // T16: straight to period generation for this project and period.
+        return `${portal}/reports?view=signoff&refresh=period&project=${project}${period ? `&from=${encodeURIComponent(period.start)}&to=${encodeURIComponent(period.end)}` : ''}&${lang}`;
       case 'billing_setup':
         return `${portal}/projects/${project}?tab=billing&${lang}#project-panel-billing`;
       case 'invoice':
@@ -1488,6 +1489,7 @@
             {#if (preview.state !== 'existing' && (preview.attention.length || shown)) || existingExpenseSetup.length}
               <QuickInvoiceAttention
                 {locale}
+                nothingToBill={preview.state === 'empty'}
                 role={preview.capabilities.role || role}
                 currency={preview.currency}
                 attention={preview.state === 'existing' ? existingExpenseSetup : preview.attention}

@@ -413,6 +413,9 @@ function reportNotice(kind = 'report_daily_updated', source = 'secret-report') {
 const genericNotice = {
   id: 'notice',
   kind: 'workspace_activity',
+  // Redacted notices say the record is unavailable, without naming anyone.
+  source_unavailable: true,
+  person_name: null,
   subject_id: null,
   read_at: null,
   created_at: '2026-09-30',

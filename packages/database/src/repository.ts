@@ -655,6 +655,14 @@ function assertText(value: string, field: string, max = 5000): string {
   return trimmed;
 }
 
+/**
+ * Notice types the inbox can name. When a notice's record was removed, the
+ * inbox keeps one of these types (the person was told about it) but no
+ * detail; any other raw kind stays fully redacted.
+ */
+const KNOWN_NOTIFICATION_KIND =
+  /^(?:approval_(?:requested|returned|rejected)_(?:time|expense|daily|technical)|missing_time|missing_receipt|period_ready|period_blocked|signature_outstanding|invoice_overdue|budget_exception|cap_exception|settlement_status_changed|worker_payment_status|assignment_published|report_(?:submitted|approved|needs_changes|modified))$/u;
+
 export class PortalRepository {
   private readonly sqlite: DatabaseSync;
   private readonly clients: ClientRepository;
@@ -12108,7 +12116,10 @@ export class PortalRepository {
           // A removed record keeps its notice type (the person was told about
           // it), but no detail; a record the person can no longer open is
           // fully masked.
-          kind: !source && kindVisibleToRole ? row.kind : 'workspace_activity',
+          kind:
+            !source && kindVisibleToRole && KNOWN_NOTIFICATION_KIND.test(row.kind)
+              ? row.kind
+              : 'workspace_activity',
           source_unavailable: true,
           person_name: null,
           subject_id: null,

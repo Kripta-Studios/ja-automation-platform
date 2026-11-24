@@ -3,6 +3,7 @@
   import { base } from '$app/paths';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
+  import { invalidateAll } from '$app/navigation';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import {
@@ -52,6 +53,8 @@
     );
   });
   onMount(() => {
+    // Refresh the layout so the bell no longer counts this notification.
+    if ((data as { justRead?: boolean }).justRead) void invalidateAll();
     localeOverride = resolveStandaloneLocale($page.url.searchParams.get('lang'), data.locale);
     persistStandaloneLocale(locale);
     applyStandaloneDocumentLocale(locale);
@@ -113,12 +116,12 @@
   <section class="detail-panel record-detail-copy">
     <div class="panel-title">
       <h2>{notification.record_title ?? kind}</h2>
-      <span>{notification.project_number ?? ''}</span>
+      {#if notification.project_number}<span>{notification.project_number}</span>{/if}
     </div>
     <p data-notification-body>{removed ? notificationRemovedNote(locale) : copy.body}</p>
     {#if notification.person_name}<p>{t('Person')}: <b>{notification.person_name}</b></p>{/if}
     {#if notification.actor_name}<p>{t('Last change by')}: {notification.actor_name}</p>{/if}
-    <dl class="record-facts">
+    {#if !removed}<dl class="record-facts">
       <div>
         <dt>{t('Project')}</dt>
         <dd>{notification.project_name ?? '—'}</dd>
@@ -127,7 +130,7 @@
         <dt>{t('Record date')}</dt>
         <dd>{notification.record_date ?? '—'}</dd>
       </div>
-    </dl>
+    </dl>{/if}
     {#if changedFields.length > 0}<p class="change-summary">
         {t('Changed fields')}: {changedFields.join(', ')}
       </p>{/if}

@@ -30,7 +30,13 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       !('source_unavailable' in notification && notification.source_unavailable)
     )
       destination = notificationOpenTarget(url.searchParams.get('to'));
-    if (!destination) return { user: locals.user, notification: { ...notification, read_at: readAt } };
+    if (!destination)
+      return {
+        user: locals.user,
+        notification: { ...notification, read_at: readAt },
+        // The bell count in the layout was computed alongside this load.
+        justRead: !notification.read_at,
+      };
   } finally {
     context.sqlite.close();
   }

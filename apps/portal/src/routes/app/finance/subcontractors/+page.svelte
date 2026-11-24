@@ -4,6 +4,7 @@
   import { paymentMoney } from '$lib/portal/payment-money';
   import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import { settlementText, type SettlementCopyKey } from './copy';
+  import { billingFixText } from '$lib/portal/billing-fix-copy';
 
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
@@ -38,6 +39,7 @@
   const issueLabel = (issue: string | null) =>
     issue === 'missing_rule' ? t('missingRule') : issue === 'currency_mismatch' ? t('currencyMismatch') : issue === 'not_hourly' ? t('notHourly') : '';
   const rateHref = `${base}/app/finance?view=commercial&task=Worker%20compensation#finance-worker-compensation`;
+  const compensationHref = $derived(`${base}/app/finance?view=economic&source=settlements&lang=${locale}#worker-payments`);
   let saving = $state(false);
   const submit = () => {
     saving = true;
@@ -104,7 +106,11 @@
                 {#each row.totals as total (total.currency)}<strong>{fmt(total.minor, total.currency)}</strong>{/each}
                 <small>{row.status === 'draft' ? t('estimate') : t('owed')}</small>
               </span>
-              <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}>{t(row.status)}</span>
+              {#if row.payable}
+                <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}>{t(row.status)}</span>
+              {:else}
+                <span class="sub__badge sub__badge--info" data-internal-worker>{billingFixText(locale, 'internalPaidViaCompensation')}</span>
+              {/if}
             </a>
           </li>
         {/each}
@@ -122,8 +128,18 @@
           <h2>{detail.payee.name}</h2>
           <p class="sub__muted">{detail.payee.kind === 'supplier' ? t('supplier') : t('person')} · {t('weekLabel', { week: data.week.week, range })}</p>
         </div>
-        <span class={`sub__badge sub__badge--${statusVariant(detail.status)}`} data-settlement-status={detail.status}>{t(detail.status)}</span>
+        {#if detail.payable}
+          <span class={`sub__badge sub__badge--${statusVariant(detail.status)}`} data-settlement-status={detail.status}>{t(detail.status)}</span>
+        {:else}
+          <span class="sub__badge sub__badge--info" data-internal-worker>{billingFixText(locale, 'internalPaidViaCompensation')}</span>
+        {/if}
       </header>
+      {#if !detail.payable}
+        <p class="sub__muted" data-internal-worker-help>
+          {billingFixText(locale, 'internalPaidViaCompensationHelp')}
+          <a href={compensationHref}>{billingFixText(locale, 'openCompensationSettlements')}</a>
+        </p>
+      {/if}
 
       <div class="sub__totals" data-settlement-totals>
         {#each detail.totals as total (total.currency)}
@@ -185,7 +201,9 @@
       {/if}
 
       <div class="sub__actions">
-        {#if detail.status === 'draft' && detail.entries.length > 0}
+        {#if !detail.payable}
+          <!-- Internal worker: paid via compensation (decision D7), never approved or paid here. -->
+        {:else if detail.status === 'draft' && detail.entries.length > 0}
           <form method="POST" action="?/approve" use:enhance={submit}>
             <input type="hidden" name="payee" value={detail.payee.key} />
             <input type="hidden" name="week" value={data.week.start} />

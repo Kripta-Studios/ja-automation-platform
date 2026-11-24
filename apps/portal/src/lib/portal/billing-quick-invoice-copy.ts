@@ -694,6 +694,11 @@ export function quickInvoiceWarningText(locale: PortalLocale, warning: Warning):
       `Falta la tarifa de cliente para ${n} ${n === 1 ? 'registro' : 'registros'} de horas${h}.`,
       `Falta a tarifa do cliente para ${n} ${n === 1 ? 'registro' : 'registros'} de horas${h}.`,
     ],
+    missing_overtime_client_rate: [
+      `Overtime rate missing: ${n} time ${n === 1 ? 'entry has' : 'entries have'} overtime${h} that would be billed at $0. Set the overtime rate.`,
+      `Falta la tarifa de horas extra: ${n} ${n === 1 ? 'registro tiene' : 'registros tienen'} horas extra${h} que se facturarían a $0. Define la tarifa de horas extra.`,
+      `Falta a tarifa de hora extra: ${n} ${n === 1 ? 'registro tem' : 'registros têm'} hora extra${h} que seria faturada a $0. Defina a tarifa de hora extra.`,
+    ],
     ambiguous_client_rate: [
       `More than one client rate fits ${n} time ${n === 1 ? 'entry' : 'entries'}${h}.`,
       `Hay más de una tarifa posible para ${n} ${n === 1 ? 'registro' : 'registros'}${h}.`,

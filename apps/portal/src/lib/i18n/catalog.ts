@@ -678,6 +678,10 @@ const en = {
     'Only the owner can change the bank and payee details printed on invoices. The other fields can still be saved.',
   'problem.billing.previewIssuerFieldsCompanyWide':
     'Bank, payee and company contact details apply to every invoice of this issuing company. Change them in Billing setup › Issuer settings.',
+  'problem.finance.settlementOverlap':
+    'These hours are already settled in {start} to {end}. Review that settlement instead of settling them again.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Overtime rate missing: overtime would be billed at $0. Set the overtime client rate before invoicing.',
 } as const;
 
 const supplementalKeys = [...new Set(PORTAL_COVERAGE_KEYS)].filter((key) => !(key in en));
@@ -1351,6 +1355,10 @@ const esBase: Record<keyof typeof en, string> = {
     'Solo el propietario puede cambiar los datos bancarios y de beneficiario que se imprimen en las facturas. Los demás campos sí se pueden guardar.',
   'problem.billing.previewIssuerFieldsCompanyWide':
     'Los datos bancarios, de beneficiario y de contacto de la empresa valen para todas las facturas de esta empresa emisora. Cámbialos en Configuración de facturación › Datos del emisor.',
+  'problem.finance.settlementOverlap':
+    'Estas horas ya están liquidadas en {start} a {end}. Revisa esa liquidación en lugar de liquidarlas otra vez.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Falta la tarifa de horas extra: las horas extra se facturarían a $0. Define la tarifa de horas extra del cliente antes de facturar.',
 };
 
 const ptBase: Record<keyof typeof en, string> = {
@@ -2012,6 +2020,10 @@ const ptBase: Record<keyof typeof en, string> = {
     'Somente o proprietário pode alterar os dados bancários e de beneficiário impressos nas faturas. Os demais campos podem ser salvos.',
   'problem.billing.previewIssuerFieldsCompanyWide':
     'Os dados bancários, de beneficiário e de contato da empresa valem para todas as faturas desta empresa emissora. Altere-os em Configuração de faturamento › Dados do emissor.',
+  'problem.finance.settlementOverlap':
+    'Estas horas já foram liquidadas em {start} a {end}. Revise essa liquidação em vez de liquidá-las novamente.',
+  'action.billing.readiness.missingOvertimeClientRate':
+    'Falta a tarifa de hora extra: a hora extra seria faturada a $0. Defina a tarifa de hora extra do cliente antes de faturar.',
 };
 
 const supplementalEnglish: Record<string, string> = Object.fromEntries(

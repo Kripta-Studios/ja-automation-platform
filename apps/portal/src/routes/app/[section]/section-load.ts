@@ -18,6 +18,7 @@ import { listSignedWeekSheets } from '$lib/server/signed-week-sheets';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
 import { listProjectSettlementWorkers } from '$lib/server/finance-settlement-workers';
 import { buildMoneyOverview, slimFinancePortfolio } from '$lib/server/money-overview';
+import { withNetOutstanding } from '$lib/server/invoice-balance';
 import { buildRatesOverview } from '$lib/server/rates-overview';
 import { loadApprovalQueuePage } from '$lib/server/approval-queue';
 import {
@@ -1441,7 +1442,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             // identical replay of the current form remains idempotent.
             paymentCommandToken: randomBytes(32).toString('base64url'),
           })),
-          ledger: context.v3.masterLedger(context.principal),
+          // Payments: open balances net of credit notes (T12), as on Money and Clients.
+          ledger: withNetOutstanding(context.v3.masterLedger(context.principal)),
           projects: scope.projects,
           legalEntities: context.repository.listLegalEntities(context.principal),
           taxProfiles: context.repository.listTaxProfiles(context.principal),

@@ -506,6 +506,7 @@ const RECORD_LEVEL_CODES = new Set([
   'pending_expense_approval',
   'missing_expense_classification',
   'missing_client_rate',
+  'missing_overtime_client_rate',
   'ambiguous_client_rate',
   'missing_internal_cost',
   'missing_compensation_rule',
@@ -527,6 +528,7 @@ const FIX_FOR: Record<string, QuickInvoiceWarning['fix']> = {
   missing_expense_currency_conversion: 'expense_classification',
   missing_expense_finance_projection: 'expense_classification',
   missing_client_rate: 'rates',
+  missing_overtime_client_rate: 'rates',
   ambiguous_client_rate: 'rates',
   missing_internal_cost: 'finance',
   missing_compensation_rule: 'finance',
@@ -739,7 +741,12 @@ function issuerWarnings(invoice: Row): QuickInvoiceWarning[] {
   if (!String(settings.bankAccountNumber ?? '').trim() || !String(settings.bankName ?? '').trim())
     add('missing_issuer_settings', 'issuer_settings', 'info');
   const po = String(invoice.purchase_no ?? '').trim();
-  if (!po || po === '—') add('missing_purchase_order', 'project_po', 'info');
+  // A project name or number is not a purchase order (audit T11: "PURCHASE NO. BBS Mexico").
+  const notAPo = [invoice.project_name, invoice.project_number]
+    .map((value) => String(value ?? '').trim().toLocaleLowerCase())
+    .filter(Boolean)
+    .includes(po.toLocaleLowerCase());
+  if (!po || po === '—' || notAPo) add('missing_purchase_order', 'project_po', 'info');
   return warnings;
 }
 
@@ -1385,6 +1392,7 @@ export function unsentInvoiceSources(
 
 const ATTENTION_CODES: Record<string, QuickInvoiceAttention['kind']> = {
   missing_client_rate: 'clientRate',
+  missing_overtime_client_rate: 'clientRate',
   ambiguous_client_rate: 'clientRate',
   hybrid_requires_hourly_client_rates: 'clientRate',
   missing_internal_cost: 'workerCost',
@@ -1409,7 +1417,12 @@ const APPROVAL_CODES = new Set([
   'no_new_client_unit_charges',
   'updates_existing_draft',
 ]);
-const CLIENT_RATE_CODES = new Set(['missing_client_rate', 'ambiguous_client_rate', 'hybrid_requires_hourly_client_rates']);
+const CLIENT_RATE_CODES = new Set([
+  'missing_client_rate',
+  'missing_overtime_client_rate',
+  'ambiguous_client_rate',
+  'hybrid_requires_hourly_client_rates',
+]);
 const COST_CODES = new Set(['missing_internal_cost', 'missing_compensation_rule']);
 const KIND_ORDER: QuickInvoiceAttention['kind'][] = [
   'approve',

@@ -1154,6 +1154,13 @@ export class V3Repository {
     }
     const id = newId();
     const now = timestamp();
+    // Audit 2026-11-22 T02: a supplier's technician is paid through the supplier
+    // (subcontractor settlement), never directly by J&A, so the rule is not shown to him as pay.
+    const paidViaSupplier = Boolean(
+      this.sqlite
+        .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=? LIMIT 1')
+        .get(input.workerId),
+    );
     this.sqlite
       .prepare(
         `INSERT INTO compensation_rule(
@@ -1172,7 +1179,7 @@ export class V3Repository {
         sqliteInteger(input.rateMinor ?? 0n, 'Compensation rate'),
         input.rateBasis ?? (input.ruleType === 'Daily' ? 'daily' : 'hourly'),
         input.dailyGuaranteeMinutes ?? null,
-        1,
+        paidViaSupplier ? 0 : 1,
         input.effectiveFrom,
         effectiveTo ?? null,
         now,
@@ -2705,6 +2712,29 @@ export class V3Repository {
       if (activeCorrection)
         throw new V3ConflictError(
           `Active time correction ${activeCorrection.correction_id} blocks compensation settlement`,
+        );
+      // Audit 2026-11-22 T02: the same hours must never be settled twice (e.g. a monthly
+      // settlement in Detailed analysis and a weekly one in Subcontractor settlement).
+      // Re-settling the identical period stays idempotent below.
+      const overlapping = this.sqlite
+        .prepare(
+          `SELECT id,period_start,period_end FROM compensation_settlement
+            WHERE worker_id=? AND project_id=? AND state='settled'
+              AND period_start<=? AND period_end>=?
+              AND NOT (period_start=? AND period_end=?)
+            ORDER BY period_start LIMIT 1`,
+        )
+        .get(
+          input.workerId,
+          input.projectId,
+          input.periodEnd,
+          input.periodStart,
+          input.periodStart,
+          input.periodEnd,
+        ) as { id: string; period_start: string; period_end: string } | undefined;
+      if (overlapping)
+        throw new V3ConflictError(
+          `These hours are already settled in ${overlapping.period_start} to ${overlapping.period_end} (settlement ${overlapping.id})`,
         );
       const sourceRows = this.sqlite
         .prepare(
@@ -5953,6 +5983,35 @@ export class V3Repository {
       const voidAsOf = invoice.voided_at !== null && invoice.voided_at <= collectionAsOf;
       const collected = voidAsOf ? 0n : netCollected;
       const outstanding = voidAsOf ? 0n : BigInt(invoice.total_minor) - collected;
+      // Audit 2026-11-22 T12: credit notes reduce what the client still owes on the original
+      // invoice. One net figure for every balance screen (Money, project, clients, payments,
+      // home); outstandingMinor keeps the per-document value used by the Accounting Pack.
+      const appliedCredit = voidAsOf
+        ? 0n
+        : BigInt(
+            (
+              this.sqlite
+                .prepare(
+                  `SELECT CAST(COALESCE(SUM(-credit.total_minor),0) AS TEXT) amount
+                     FROM invoice_adjustment ia JOIN invoice credit ON credit.id=ia.adjustment_invoice_id
+                    WHERE ia.original_invoice_id=? AND ia.adjustment_type='credit'
+                      AND credit.total_minor<0 AND credit.issued_at IS NOT NULL AND credit.issued_at<=?
+                      AND (credit.voided_at IS NULL OR credit.voided_at>?)`,
+                )
+                .get(invoice.id, collectionAsOf, collectionAsOf) as { amount: string }
+            ).amount,
+          );
+      const creditNoteOf = this.sqlite
+        .prepare(
+          "SELECT original_invoice_id FROM invoice_adjustment WHERE adjustment_invoice_id=? AND adjustment_type='credit'",
+        )
+        .get(invoice.id) as { original_invoice_id: string } | undefined;
+      const netOutstanding =
+        voidAsOf || creditNoteOf
+          ? 0n
+          : outstanding - appliedCredit > 0n
+            ? outstanding - appliedCredit
+            : 0n;
       const contribution = BigInt(invoice.subtotal_minor) - directCost;
       const directCostComplete = directCostMissingSourceIds.length === 0;
       const creditBalance = BigInt(invoice.total_minor) < 0n;
@@ -6007,6 +6066,9 @@ export class V3Repository {
         netCollectedMinor: netCollected.toString(),
         collectedMinor: collected.toString(),
         outstandingMinor: outstanding.toString(),
+        appliedCreditMinor: appliedCredit.toString(),
+        netOutstandingMinor: netOutstanding.toString(),
+        creditNoteOfInvoiceId: creditNoteOf?.original_invoice_id ?? null,
         firstPaymentDate,
         lastPaymentDate,
         paidAt,

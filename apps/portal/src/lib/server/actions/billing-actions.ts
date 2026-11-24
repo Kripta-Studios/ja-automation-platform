@@ -1384,7 +1384,7 @@ export function billingActionFailure(
         code: `BILLING_READINESS_${reasonCode.toUpperCase()}`,
         reasons: error.reasons,
         remedies: [{ id: remedyId }],
-        ...(reasonCode === 'missing_client_rate'
+        ...(reasonCode === 'missing_client_rate' || reasonCode === 'missing_overtime_client_rate'
           ? { fieldErrors: { hourlyRateMinor: [billingReadinessMessageKey(reasonCode)] } }
           : reasonCode === 'period_cutoff_mismatch' ||
               reasonCode === 'billing_rule_outside_effective_window'

@@ -2362,6 +2362,12 @@
     return null;
   }
 
+  /** "Outstanding" is everything still owed, overdue included (audit 2026-11-22 T12). */
+  function invoiceInStage(invoice: Row, stage: Exclude<BillingStage, 'all'>): boolean {
+    const own = invoiceStage(invoice);
+    return own === stage || (stage === 'outstanding' && own === 'overdue');
+  }
+
   // Summary cards count the same project/search scope as the register; only
   // their stage differs. This keeps a project handoff's totals meaningful.
   const summaryInvoices = $derived.by(() => {
@@ -2395,7 +2401,7 @@
 
   const visibleInvoices = $derived(
     summaryInvoices.filter(
-      (invoice) => stageFilter === 'all' || invoiceStage(invoice) === stageFilter,
+      (invoice) => stageFilter === 'all' || invoiceInStage(invoice, stageFilter),
     ),
   );
 

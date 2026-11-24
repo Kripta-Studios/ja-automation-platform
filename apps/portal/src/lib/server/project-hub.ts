@@ -10,6 +10,7 @@
 import { isSupplierTimeEntry, projectCalendarDate } from '@ja/database';
 import { personDisplayName } from '$lib/portal/display-name';
 import type { openPortalRepository } from './portal-repository';
+import { invoiceOpenBalance, netOutstandingByInvoice } from './invoice-balance';
 
 type Context = ReturnType<typeof openPortalRepository>;
 
@@ -329,12 +330,12 @@ export function projectHubData(
              FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
         )
         .get(projectId) as ProjectHubData['clientBilling'] | undefined) ?? null;
+    const netOpen = netOutstandingByInvoice(context.v3, principal, { projectId });
     invoices = context.repository
       .listInvoices(principal)
       .filter((invoice) => String(invoice.project_id) === projectId)
       .map((invoice) => {
         const total = BigInt(String(invoice.total_minor ?? 0));
-        const paid = BigInt(String((invoice as { paid_minor?: string }).paid_minor ?? 0));
         const state = String(invoice.state);
         return {
           id: String(invoice.id),
@@ -342,7 +343,8 @@ export function projectHubData(
           state,
           currency: String(invoice.currency),
           totalMinor: total.toString(),
-          outstandingMinor: closedInvoiceStates.has(state) ? '0' : (total - paid > 0n ? total - paid : 0n).toString(),
+          // Net of payments and credit notes (T12); drafts, void and credit notes carry none.
+          outstandingMinor: closedInvoiceStates.has(state) ? '0' : invoiceOpenBalance(invoice, netOpen).toString(),
           periodStart: invoice.period_start ? String(invoice.period_start) : null,
           periodEnd: invoice.period_end ? String(invoice.period_end) : null,
           issuedAt: invoice.issued_at ? String(invoice.issued_at) : null,

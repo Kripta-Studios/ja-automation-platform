@@ -32,7 +32,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
         .find((entry) => entry.invoiceId === params.id);
       if (row)
         balance = {
-          outstandingMinor: String(row.outstandingMinor),
+          // What the client still owes: net of payments and of credit notes (T12).
+          outstandingMinor: String(row.netOutstandingMinor ?? row.outstandingMinor),
           collectedMinor: String(row.collectedMinor),
           currency: String(row.currency),
         };

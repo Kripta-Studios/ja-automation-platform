@@ -34,6 +34,16 @@ export function invoicePersonName(name: unknown): string {
     : local;
 }
 
+/**
+ * Imported/legacy expenses carry placeholder vendors such as "None" or "N/A" (audit T11): they
+ * are blank, so the line falls back to the expense description instead of printing "None".
+ */
+const PLACEHOLDER_TEXT = new Set(['none', 'null', 'n/a', 'na', '-', '—', 'undefined', 'not provided']);
+export function meaningfulText(value: unknown): string {
+  const text = typeof value === 'string' ? value.trim() : '';
+  return PLACEHOLDER_TEXT.has(text.toLocaleLowerCase()) ? '' : text;
+}
+
 /** Client-facing names of the canonical expense categories (printed on invoice lines). */
 const EXPENSE_CATEGORY_LABELS: Readonly<Record<string, string>> = {
   hotel: 'Hotel',
@@ -173,7 +183,7 @@ export class InvoiceLineLabels {
     },
     invoiceCurrency: string,
   ): string {
-    const what = input.vendor?.trim() || input.description?.trim() || '';
+    const what = meaningfulText(input.vendor) || meaningfulText(input.description);
     const category = expenseCategoryLabel(input.category);
     let original: string | null = null;
     if (input.currency !== invoiceCurrency) {

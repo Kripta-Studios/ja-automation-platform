@@ -1,6 +1,7 @@
 import { error, redirect } from '@sveltejs/kit';
 import { AccessDeniedError, ValidationError } from '@ja/database';
 import { openPortalRepository } from '$lib/server/portal-repository';
+import { invoiceOpenBalance, netOutstandingByInvoice } from '$lib/server/invoice-balance';
 import type { PageServerLoad } from './$types';
 
 /**
@@ -92,14 +93,15 @@ export const load: PageServerLoad = ({ locals, params }) => {
       null;
     if (financeVisible) {
       const projectIds = new Set(ids);
+      const netOpen = netOutstandingByInvoice(context.v3, principal);
       invoices = repository
         .listInvoices(principal)
         .filter((invoice) => projectIds.has(String(invoice.project_id)))
         .map((invoice) => {
           const total = BigInt(String(invoice.total_minor ?? 0));
-          const paid = BigInt(String((invoice as { paid_minor?: string }).paid_minor ?? 0));
           const state = String(invoice.state);
-          const outstanding = unpaidStates.has(state) ? 0n : total - paid > 0n ? total - paid : 0n;
+          // Net of payments and credit notes (T12), the same rule as Money and Payments.
+          const outstanding = unpaidStates.has(state) ? 0n : invoiceOpenBalance(invoice, netOpen);
           return {
             id: String(invoice.id),
             number: invoice.invoice_number ? String(invoice.invoice_number) : null,

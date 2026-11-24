@@ -22,6 +22,18 @@ export type SettlementStatus = 'draft' | 'approved' | 'paid';
 
 const ISO = /^\d{4}-\d{2}-\d{2}$/u;
 
+/**
+ * Decision D7 (audit 2026-11-22): J&A's own workers (no supplier link) are paid through their
+ * compensation (Detailed analysis › Settlements). The weekly subcontractor settlement shows
+ * them read-only as "Internal – paid via compensation" and never offers Approve / Mark as paid,
+ * so the same hours cannot be paid twice. Flip to true only if J&A pays individuals weekly here.
+ */
+export const SUBCONTRACTOR_SETTLEMENT_PAYS_INTERNAL_WORKERS = false;
+
+export function isPayableSubcontractor(kind: 'supplier' | 'person'): boolean {
+  return kind === 'supplier' || SUBCONTRACTOR_SETTLEMENT_PAYS_INTERNAL_WORKERS;
+}
+
 function addDays(iso: string, days: number): string {
   const date = new Date(`${iso}T00:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -111,10 +123,29 @@ function settlementsFor(sqlite: DatabaseSync, workerIds: readonly string[], star
                 WHERE p.settlement_id=cs.id AND p.event_type='payment' ORDER BY p.created_at DESC LIMIT 1) last_reference
          FROM compensation_settlement cs
         WHERE cs.worker_id IN (${placeholders}) AND cs.state='settled'
-          AND cs.period_start>=? AND cs.period_end<=?
+          AND cs.period_start<=? AND cs.period_end>=?
         ORDER BY cs.worker_id,cs.project_id,cs.period_start`,
     )
-    .all(...workerIds, start, end) as SettlementRow[];
+    .all(...workerIds, end, start) as SettlementRow[];
+}
+
+/** Settled compensation that covers this entry's date (any period: week, month, assignment). */
+function coveringSettlement(
+  settlements: readonly SettlementRow[],
+  entry: Readonly<{ workerId: string; projectId: string; workDate: string }>,
+): SettlementRow | undefined {
+  return settlements.find(
+    (row) =>
+      row.worker_id === entry.workerId &&
+      row.project_id === entry.projectId &&
+      row.period_start <= entry.workDate &&
+      row.period_end >= entry.workDate,
+  );
+}
+
+/** Settlements whose whole period lies inside the week: only these are approved/paid from here. */
+function withinWeek(settlements: readonly SettlementRow[], start: string, end: string) {
+  return settlements.filter((row) => row.period_start >= start && row.period_end <= end);
 }
 
 export type PayeeSummary = {
@@ -149,18 +180,32 @@ function groupPayees(rows: readonly WorkerHours[]): PayeeSummary[] {
 
 type Entry = ReturnType<V3Repository['subcontractorSettlementPreview']>[number];
 
-function summarize(entries: readonly Entry[], settlements: readonly SettlementRow[]) {
+function summarize(
+  entries: readonly Entry[],
+  allSettlements: readonly SettlementRow[],
+  week: Readonly<{ start: string; end: string }>,
+) {
   const pairs = new Map<string, { minutes: number }>();
+  const uncovered = new Set<string>();
   for (const entry of entries) {
     const key = `${entry.workerId}|${entry.projectId}`;
     pairs.set(key, { minutes: (pairs.get(key)?.minutes ?? 0) + entry.minutes });
+    // Match per entry date: a monthly (or longer) settlement covers the week's hours too.
+    if (!coveringSettlement(allSettlements, entry)) uncovered.add(key);
   }
+  const covering = allSettlements.filter((row) =>
+    entries.some((entry) => coveringSettlement([row], entry)),
+  );
+  // Amounts owed/remaining come from settlements of this week only; a longer settlement
+  // (e.g. the month) is shown with this week's estimate and paid where it was created.
+  const settlements = withinWeek(covering, week.start, week.end);
+  const coveredByLongerPeriod = covering.length > settlements.length;
   const settledPairs = new Map<string, bigint>();
   for (const row of settlements) {
     const key = `${row.worker_id}|${row.project_id}`;
     settledPairs.set(key, (settledPairs.get(key) ?? 0n) + BigInt(row.source_amount_minor));
   }
-  const unsettled = [...pairs.keys()].filter((key) => !settledPairs.has(key));
+  const unsettled = [...pairs.keys()].filter((key) => uncovered.has(key));
   // Hourly settlements record approved minutes as their source amount.
   const changed = [...pairs.entries()].filter(
     ([key, value]) => settledPairs.has(key) && settledPairs.get(key)! !== BigInt(value.minutes) && settledPairs.get(key)! > 0n,
@@ -176,7 +221,12 @@ function summarize(entries: readonly Entry[], settlements: readonly SettlementRo
   const estimate = entries
     .filter((entry) => entry.amountMinor !== null)
     .map((entry) => ({ currency: entry.currency, minorUnits: BigInt(entry.amountMinor!) }));
-  const remainingTotal = remaining.reduce((sum, row) => sum + row.minorUnits, 0n);
+  const remainingTotal = [
+    ...remaining,
+    ...covering
+      .filter((row) => !settlements.includes(row))
+      .map((row) => ({ minorUnits: BigInt(row.amount_minor) - BigInt(row.paid_minor) })),
+  ].reduce((sum, row) => sum + row.minorUnits, 0n);
   const status: SettlementStatus =
     pairs.size === 0 || unsettled.length > 0 ? 'draft' : remainingTotal > 0n ? 'approved' : 'paid';
   return {
@@ -184,15 +234,19 @@ function summarize(entries: readonly Entry[], settlements: readonly SettlementRo
     unsettledPairs: unsettled.length,
     changedPairs: changed.length,
     issues: entries.filter((entry) => entry.issue && entry.issue !== 'not_hourly').length,
-    totals: (status === 'draft' ? totalsByCurrency(estimate) : totalsByCurrency(owed)).map((row) => ({
+    coveredByLongerPeriod,
+    totals: (status === 'draft' || coveredByLongerPeriod
+      ? totalsByCurrency(estimate)
+      : totalsByCurrency(owed)
+    ).map((row) => ({
       currency: row.currency,
       minor: row.minorUnits.toString(),
     })),
     remaining: totalsByCurrency(remaining)
       .filter((row) => row.minorUnits !== 0n)
       .map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() })),
-    paidOn: settlements.map((row) => row.last_paid_on).filter(Boolean).sort().at(-1) ?? null,
-    reference: settlements.find((row) => row.last_reference)?.last_reference ?? null,
+    paidOn: covering.map((row) => row.last_paid_on).filter(Boolean).sort().at(-1) ?? null,
+    reference: covering.find((row) => row.last_reference)?.last_reference ?? null,
   };
 }
 
@@ -209,17 +263,19 @@ export function settlementOverview(
       )
     : payees;
   // Price only the payees that can be shown (status filter needs each summary).
-  const rows: Array<PayeeSummary & ReturnType<typeof summarize>> = [];
+  const rows: Array<PayeeSummary & ReturnType<typeof summarize> & { payable: boolean }> = [];
   let matched = 0;
   for (const payee of searched) {
     const ids = payee.workers.map((worker) => worker.id);
     const summary = summarize(
       context.v3.subcontractorSettlementPreview(context.principal, { workerIds: ids, periodStart: input.start, periodEnd: input.end }),
       settlementsFor(context.sqlite, ids, input.start, input.end),
+      input,
     );
     if (input.status !== 'all' && summary.status !== input.status) continue;
     matched += 1;
-    if (rows.length < input.limit) rows.push({ ...payee, ...summary });
+    if (rows.length < input.limit)
+      rows.push({ ...payee, ...summary, payable: isPayableSubcontractor(payee.kind) });
   }
   return { rows, total: matched, payeeCount: payees.length };
 }
@@ -264,17 +320,39 @@ export function settlementDetail(
       ).map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() })),
     };
   });
-  return { payee, workers, entries, ...summarize(entries, settlements) };
+  return {
+    payee,
+    workers,
+    entries,
+    ...summarize(entries, settlements, input),
+    payable: isPayableSubcontractor(payee.kind),
+  };
 }
 
 export class SettlementActionError extends Error {}
+export const INTERNAL_PAID_VIA_COMPENSATION =
+  'J&A workers are paid through their compensation settlements, not in the subcontractor settlement';
 
 /** Approve: create (or confirm) one compensation settlement per worker × project in the period. */
 export function approveSettlement(context: SettlementContext, input: Readonly<{ payee: PayeeKey; start: string; end: string }>) {
   const detail = settlementDetail(context, input);
   if (!detail || detail.entries.length === 0) throw new SettlementActionError('No approved hours to settle');
+  if (!detail.payable) throw new SettlementActionError(INTERNAL_PAID_VIA_COMPENSATION);
   if (detail.issues > 0) throw new SettlementActionError('Set the missing pay rates first');
-  const pairs = [...new Set(detail.entries.map((entry) => `${entry.workerId}|${entry.projectId}`))];
+  const allSettlements = settlementsFor(
+    context.sqlite,
+    detail.payee.workers.map((worker) => worker.id),
+    input.start,
+    input.end,
+  );
+  // Pairs whose hours are already covered by a settled period (any length) are not settled again.
+  const pairs = [
+    ...new Set(
+      detail.entries
+        .filter((entry) => !coveringSettlement(allSettlements, entry))
+        .map((entry) => `${entry.workerId}|${entry.projectId}`),
+    ),
+  ];
   let created = 0;
   for (const pair of pairs) {
     const [workerId, projectId] = pair.split('|') as [string, string];
@@ -300,11 +378,13 @@ export function markSettlementPaid(
 ) {
   const detail = settlementDetail(context, input);
   if (!detail) throw new SettlementActionError('Subcontractor not found');
+  if (!detail.payable) throw new SettlementActionError(INTERNAL_PAID_VIA_COMPENSATION);
   if (detail.status === 'draft') throw new SettlementActionError('Approve the settlement first');
   const [kind, payeeId] = input.payee.split(':') as ['supplier' | 'person', string];
   const ids = detail.payee.workers.map((worker) => worker.id);
   let recorded = 0;
-  for (const row of settlementsFor(context.sqlite, ids, input.start, input.end)) {
+  // Only settlements of this week are paid here; a longer period is paid where it was settled.
+  for (const row of withinWeek(settlementsFor(context.sqlite, ids, input.start, input.end), input.start, input.end)) {
     const remaining = BigInt(row.amount_minor) - BigInt(row.paid_minor);
     if (remaining <= 0n) continue;
     context.v3.recordCompensationPayment(context.principal, {

@@ -60,6 +60,36 @@ const labels = {
   ],
 } as const;
 
+/** D15: credit notes print as credit notes, name the invoice they credit and have no due date. */
+const creditNoteLabels = {
+  en: {
+    draft: 'DRAFT CREDIT NOTE',
+    title: 'CREDIT NOTE',
+    number: 'CREDIT NOTE NUMBER',
+    date: 'CREDIT NOTE DATE',
+    creditsInvoice: 'CREDITS INVOICE',
+  },
+  es: {
+    draft: 'NOTA DE CRÉDITO BORRADOR',
+    title: 'NOTA DE CRÉDITO',
+    number: 'N.º DE NOTA DE CRÉDITO',
+    date: 'FECHA DE LA NOTA',
+    creditsInvoice: 'ABONA LA FACTURA',
+  },
+  pt: {
+    draft: 'NOTA DE CRÉDITO RASCUNHO',
+    title: 'NOTA DE CRÉDITO',
+    number: 'N.º DA NOTA DE CRÉDITO',
+    date: 'DATA DA NOTA',
+    creditsInvoice: 'CREDITA A FATURA',
+  },
+} as const;
+const plannedDateLabels = {
+  en: 'PLANNED ISSUE DATE',
+  es: 'FECHA DE EMISIÓN PREVISTA',
+  pt: 'DATA DE EMISSÃO PREVISTA',
+} as const;
+
 const identifierLabels = {
   en: { clientNumber: 'Client no.', clientCode: 'Code', project: 'PROJECT', costCenter: 'COST CENTER', taxId: 'Tax ID' },
   es: { clientNumber: 'Cliente n.º', clientCode: 'Código', project: 'PROYECTO', costCenter: 'CENTRO DE COSTE', taxId: 'NIF/CIF' },
@@ -125,6 +155,8 @@ export function renderInvoiceDocument(
 ) {
   const rendered = renderInvoiceTemplate(snapshot);
   const l = labels[rendered.locale];
+  const creditNote = snapshot.documentType === 'credit_note';
+  const cn = creditNoteLabels[rendered.locale];
   const company = record(snapshot.companyInfo ?? snapshot.company_info);
   const issuer = record(snapshot.legalEntity);
   const client = record(snapshot.client);
@@ -260,20 +292,28 @@ export function renderInvoiceDocument(
     : '';
   const metadata = [
     [l[4], field('purchaseNo', snapshot.purchaseNo ?? snapshot.purchase_no ?? project.poNumber)],
-    [l[5], field('invoiceNumber', number, fieldContext.details) + numberNotice],
+    [creditNote ? cn.number : l[5], field('invoiceNumber', number, fieldContext.details) + numberNotice],
     [
-      l[6],
+      creditNote
+        ? cn.date
+        : draft && snapshot.invoiceDatePlanned === true
+          ? plannedDateLabels[rendered.locale]
+          : l[6],
       field(
         'invoiceDate',
         date(snapshot.invoiceDate ?? snapshot.issueDate ?? snapshot.issuedAt ?? snapshot.createdAt),
       ),
     ],
-    [l[7], field('dueDate', date(snapshot.dueDate ?? snapshot.dueAt))],
+    creditNote
+      ? [cn.creditsInvoice, escape(text(snapshot.creditNoteFor) || '—')]
+      : [l[7], field('dueDate', date(snapshot.dueDate ?? snapshot.dueAt))],
   ]
     .map(([label, value]) => `<div><span>${escape(label)}</span><strong>${value}</strong></div>`)
     .join('');
   const terms =
-    snapshot.paymentTermsDays !== undefined && snapshot.paymentTermsDays !== null
+    !creditNote &&
+    snapshot.paymentTermsDays !== undefined &&
+    snapshot.paymentTermsDays !== null
       ? `<p class="invoice-payment-terms">${escape(l[9])}: ${field('paymentTermsDays', snapshot.paymentTermsDays)} ${escape(l[10])}</p>`
       : '';
   const totals = options.editable
@@ -288,7 +328,7 @@ export function renderInvoiceDocument(
         'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(creditNote ? (draft ? cn.draft : cn.title) : draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(creditNote ? cn.title : l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,

@@ -16,6 +16,8 @@
   import { beforeNavigate } from '$app/navigation';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
   import { base } from '$app/paths';
+  import { billingReadinessReviewPath } from '../billing-readiness';
+  import { billingFixText } from '../billing-fix-copy';
   import { page } from '$app/stores';
   import { onMount, tick } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -3848,7 +3850,23 @@
                     )}</small
                   >
                 </div>
-                {#if canWriteFinance && reimbursementState !== 'reimbursed'}
+                {#if reimbursement.needsClassification && reimbursementState !== 'reimbursed'}
+                  <div data-reimbursement-needs-classification>
+                    <small>{billingFixText(locale, 'excludedReason_expense_unclassified')}</small>
+                    <strong
+                      >{displayMoney(
+                        reimbursement.reimbursementAmountMinor,
+                        reimbursement.currency,
+                      )}</strong
+                    >
+                    {#if canWriteFinance}
+                      <a
+                        href={`${base}/app${billingReadinessReviewPath(['missing_expense_classification'], String(reimbursement.projectId ?? ''), undefined, String(reimbursement.id))}`}
+                        >{billingFixText(locale, 'classifyExpense')}</a
+                      >
+                    {/if}
+                  </div>
+                {:else if canWriteFinance && reimbursementState !== 'reimbursed'}
                   <form
                     method="POST"
                     action={`?/recordReimbursement&view=economic&source=expenses&project=${encodeURIComponent(String(data.selectedProjectId ?? ''))}&lang=${encodeURIComponent(locale)}`}

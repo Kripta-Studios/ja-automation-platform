@@ -559,6 +559,11 @@ function isPendingApproval(value: string): boolean {
   return value === 'draft' || value === 'submitted' || value === 'needs_changes';
 }
 
+/** Sent by the worker and not decided yet (My Pay "waiting for approval", audit T13). */
+function isAwaitingApproval(value: string): boolean {
+  return value === 'submitted';
+}
+
 export class V3Repository {
   private readonly sqlite: DatabaseSync;
   private readonly technicalChanges: TechnicalChangeRepository;
@@ -3683,6 +3688,7 @@ export class V3Repository {
                 CAST(e.amount_minor AS TEXT) amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 e.reimbursement_state,e.reimbursement_reference,e.expense_policy_required,
+                e.commercial_classification_state,
                 e.expected_reimbursement_on,e.reimbursed_at,
                 p.project_number,p.name project_name,
                 u.name worker_name
@@ -3690,8 +3696,11 @@ export class V3Repository {
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
-           AND (e.expense_policy_required=0 OR
-                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
+           -- Audit 2026-11-22 T13: what J&A owes the worker never depends on how the client
+           -- is billed. Approved worker-paid expenses that still wait for their finance
+           -- classification are listed too, marked, with the classification as the next step.
+           AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
+                OR e.reimbursement_amount_minor>0)
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -3716,6 +3725,9 @@ export class V3Repository {
       projectId: row.project_id,
       workerId: row.worker_id,
       workerName: row.worker_name,
+      // Not payable yet: the reimbursable amount is fixed by the finance classification.
+      needsClassification:
+        row.expense_policy_required === 1 && row.commercial_classification_state !== 'classified',
       spentOn: row.spent_on,
       vendor: row.vendor,
       category: row.category,
@@ -3724,7 +3736,11 @@ export class V3Repository {
       currency: row.currency,
       amountMinor: String(row.amount_minor),
       reimbursementAmountMinor: String(
-        row.expense_policy_required === 1 ? row.reimbursement_amount_minor : row.amount_minor,
+        row.expense_policy_required === 1
+          ? row.commercial_classification_state === 'classified'
+            ? row.reimbursement_amount_minor
+            : row.amount_minor
+          : row.amount_minor,
       ),
       reimbursementState: row.reimbursement_state,
       reimbursementReference: row.reimbursement_reference,
@@ -3906,6 +3922,9 @@ export class V3Repository {
     );
     let approvedMinutes = 0;
     let pendingMinutes = 0;
+    // Audit 2026-11-22 T13: "waiting for approval" is what the worker SENT (submitted). Drafts
+    // were never sent; hours sent back (needs_changes) wait for the worker, shown apart.
+    let returnedMinutes = 0;
     let guaranteedMinutes = 0;
     let missingRules = 0;
     let percentageRows = 0;
@@ -3970,7 +3989,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
-        else if (isPendingApproval(row.approval_state)) existing.pending = true;
+        else if (isAwaitingApproval(row.approval_state)) existing.pending = true;
         dailyRules.set(key, existing);
       } else if (
         rule?.rule_type === 'FixedPerBillingPeriod' ||
@@ -3986,7 +4005,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approved = true;
-        else if (isPendingApproval(row.approval_state)) existing.pending = true;
+        else if (isAwaitingApproval(row.approval_state)) existing.pending = true;
         fixedRules.set(key, existing);
       }
       if (
@@ -4003,7 +4022,7 @@ export class V3Repository {
         };
         if (row.approval_state === 'approved' || row.approval_state === 'locked')
           existing.approvedMinutes += row.minutes;
-        else if (isPendingApproval(row.approval_state)) existing.pendingMinutes += row.minutes;
+        else if (isAwaitingApproval(row.approval_state)) existing.pendingMinutes += row.minutes;
         dailyGuarantees.set(key, existing);
       }
       if (row.approval_state === 'approved' || row.approval_state === 'locked') {
@@ -4012,10 +4031,10 @@ export class V3Repository {
           row.project_id,
           (approvedByProject.get(row.project_id) ?? 0n) + amount,
         );
-      } else if (isPendingApproval(row.approval_state)) {
+      } else if (isAwaitingApproval(row.approval_state)) {
         pendingMinutes += row.minutes;
         pendingByProject.set(row.project_id, (pendingByProject.get(row.project_id) ?? 0n) + amount);
-      }
+      } else if (row.approval_state === 'needs_changes') returnedMinutes += row.minutes;
     }
     for (const {
       rule,
@@ -4067,13 +4086,16 @@ export class V3Repository {
     const reimbursementRows = this.sqlite
       .prepare(
         `SELECT e.approval_state,e.currency,
+                -- Until finance classifies an expense, the worker's own receipt amount is the
+                -- estimate (T13): a sent expense must never show as nothing to reimburse.
                 CAST(CASE WHEN e.expense_policy_required=1
+                               AND e.commercial_classification_state='classified'
                           THEN e.reimbursement_amount_minor ELSE e.amount_minor END AS TEXT) amount
          FROM expense e
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND (e.expense_policy_required=0 OR
-                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
+           AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
+                OR e.reimbursement_amount_minor>0)
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -4112,11 +4134,8 @@ export class V3Repository {
         estimatedApprovedMinor: amountFor(approvedByProject).toString(),
         estimatedPendingMinor: amountFor(pendingByProject).toString(),
         approvedReimbursementMinor: reimbursementFor(['approved', 'locked']).toString(),
-        pendingReimbursementMinor: reimbursementFor([
-          'draft',
-          'submitted',
-          'needs_changes',
-        ]).toString(),
+        pendingReimbursementMinor: reimbursementFor(['submitted']).toString(),
+        returnedReimbursementMinor: reimbursementFor(['needs_changes']).toString(),
       };
     });
     const singleCurrency = currencyBreakdown.length <= 1;
@@ -4165,7 +4184,7 @@ export class V3Repository {
             .filter((row) => row.approval_state === 'approved' || row.approval_state === 'locked')
             .reduce((sum, row) => sum + row.minutes, 0),
           pendingMinutes: ownRows
-            .filter((row) => isPendingApproval(row.approval_state))
+            .filter((row) => isAwaitingApproval(row.approval_state))
             .reduce((sum, row) => sum + row.minutes, 0),
           hoursRemaining: planned === null ? null : Math.max(0, planned - actual),
           estimatedApprovedMinor: (approvedByProject.get(projectId) ?? 0n).toString(),
@@ -4181,6 +4200,7 @@ export class V3Repository {
       projectIds: [...projectIds],
       approvedMinutes,
       pendingMinutes,
+      returnedMinutes,
       guaranteedMinutes,
       // Legacy scalar fields remain valid for a single currency. A mixed
       // statement must consume the typed breakdown and cannot expose a sum.

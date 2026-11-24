@@ -1,5 +1,6 @@
 /** Copy for the 2026-11 billing/finance fixes (G3): invoices, credit notes, settlements, pay (EN/ES/PT). */
 const en = {
+  classifyExpense: 'Classify the expense',
   companyWideTitle: 'Bank, payee and company contact',
   companyWideHelp:
     'These details print on every invoice of this issuing company, so they are not changed on one draft.',
@@ -49,6 +50,7 @@ const en = {
 type BillingFixCopyKey = keyof typeof en;
 
 const es: Record<BillingFixCopyKey, string> = {
+  classifyExpense: 'Clasificar el gasto',
   companyWideTitle: 'Banco, beneficiario y contacto de la empresa',
   companyWideHelp:
     'Estos datos se imprimen en todas las facturas de esta empresa emisora, por eso no se cambian en un borrador.',
@@ -97,6 +99,7 @@ const es: Record<BillingFixCopyKey, string> = {
 };
 
 const pt: Record<BillingFixCopyKey, string> = {
+  classifyExpense: 'Classificar a despesa',
   companyWideTitle: 'Banco, beneficiário e contato da empresa',
   companyWideHelp:
     'Estes dados são impressos em todas as faturas desta empresa emissora, por isso não são alterados em um rascunho.',

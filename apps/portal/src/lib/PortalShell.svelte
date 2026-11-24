@@ -4585,6 +4585,12 @@
                   )}</strong
                 >
                 <small>{paySummaryText(locale, 'waitingHint')}</small>
+                {#if (data.pay.returnedMinutes ?? 0) > 0 && (data.pay.currencyBreakdown?.length ?? 1) === 1}<small
+                    data-pay-returned
+                    >{paySummaryText(locale, 'returned', {
+                      hours: hoursFromMinutes(data.pay.returnedMinutes ?? 0),
+                    })}</small
+                  >{/if}
               </a>
               <a class="pay-summary-tile" href="{base}/app/expenses?lang={locale}">
                 <span>{paySummaryText(locale, 'toReceive')}</span>

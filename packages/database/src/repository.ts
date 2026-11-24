@@ -13491,10 +13491,13 @@ export class PortalRepository {
     principal: Principal,
     userId: string,
     status: 'active' | 'suspended' | 'offboarded' | 'archived',
+    /** T33: the owner's own words for the audit trail (suspend, offboard, restore). */
+    reason?: string,
   ): void {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin')
       throw new AccessDeniedError('Owner administration required');
+    const ownerReason = reason?.trim().slice(0, 2000) || undefined;
     this.assertLiveSession(principal);
     if (userId === principal.userId)
       throw new ValidationError('The owner cannot change their own status');
@@ -13521,7 +13524,7 @@ export class PortalRepository {
       this.audit(principal, 'user.status.update', 'user', userId, {
         before: { status: target.status },
         after: { status },
-        reason: `Owner set account status to ${status}`,
+        reason: ownerReason ?? `Owner set account status to ${status}`,
       });
     });
   }

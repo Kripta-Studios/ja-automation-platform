@@ -46,8 +46,11 @@ describe('Client Essential client and team directory surfaces', () => {
     expect(source).toContain('return `?${params.toString()}&/${actionName}`;');
     expect(source).toContain('data-invitation-result');
     expect(source).toContain('value="offboarded"');
-    // Offboarding asks once (plain confirm) and offers the mailbox choice inline.
-    expect(source).toContain("confirm(mc('removeAccessConfirm'))");
+    // T33: offboarding asks once in a styled confirm with the open-work
+    // checklist and a reason for the audit, and offers the mailbox choice inline.
+    expect(source).not.toContain("confirm(mc('removeAccessConfirm'))");
+    expect(source).toContain('offboardChecklistBlock');
+    expect(source).toMatch(/name="reason" required/u);
     expect(source).toContain('data-offboard-mailbox-choice');
     for (const forbidden of ['client_rate', 'internal_cost', 'compensation', 'amount_minor']) {
       expect(source).not.toContain(forbidden);

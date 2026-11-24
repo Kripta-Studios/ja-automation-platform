@@ -1559,6 +1559,7 @@ export const accessActions = {
         context.principal,
         userId,
         status as 'active' | 'suspended' | 'offboarded' | 'archived',
+        typeof object.reason === 'string' ? object.reason : undefined,
       );
       // The portal change is committed first; the mailbox step is best effort
       // and its outcome is reported (never undoes or blocks the status change).

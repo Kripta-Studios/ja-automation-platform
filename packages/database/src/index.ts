@@ -1188,6 +1188,7 @@ export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';
 export * from './domains/workforce/supplier-access.ts';
 export * from './domains/workforce/supplier-workforce-repository.ts';
+export * from './domains/workforce/offboarding-checklist.ts';
 export * from './domains/workforce/crew-leader-repository.ts';
 export * from './domains/expenses/crew-shared-expense-allocation-repository.ts';
 export {

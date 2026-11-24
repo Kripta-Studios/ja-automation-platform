@@ -325,6 +325,29 @@
       : null;
   });
   let passwordCopied = $state(false);
+  // T33: open work shown before suspend/offboard, loaded when the confirm opens.
+  type Checklist = {
+    draftTime: number;
+    draftExpenses: number;
+    pendingTime: number;
+    pendingExpenses: number;
+    activeAssignments: Array<{ projectName: string; endsOn: string | null }>;
+    unsettledApprovedMinutes: number;
+    unreimbursedExpenses: number;
+  };
+  let checklists = $state<Record<string, Checklist | 'error'>>({});
+  async function loadChecklist(personId: string): Promise<void> {
+    if (checklists[personId] && checklists[personId] !== 'error') return;
+    try {
+      const response = await fetch(
+        `${base}/app/api/people/${encodeURIComponent(personId)}/offboarding`,
+        { headers: { accept: 'application/json' } },
+      );
+      checklists[personId] = response.ok ? ((await response.json()) as Checklist) : 'error';
+    } catch {
+      checklists[personId] = 'error';
+    }
+  }
   async function copyText(text: string): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text);
@@ -1395,6 +1418,86 @@
   const teamPage = $derived(selectedPerson ? [selectedPerson] : shownPeople);
 </script>
 
+{#snippet offboardChecklistBlock(personId: string)}
+  {@const list = checklists[personId]}
+  <div class="person__checklist" role="status">
+    <strong>{tc('checklistTitle')}</strong>
+    {#if !list}
+      <p>{tc('checklistLoading')}</p>
+    {:else if list === 'error'}
+      <p>—</p>
+    {:else}
+      <ul>
+        {#if list.draftTime || list.draftExpenses}<li>
+            {tc('checklistDrafts', { time: list.draftTime, expenses: list.draftExpenses })}
+          </li>{/if}
+        {#if list.pendingTime || list.pendingExpenses}<li>
+            {tc('checklistPending', { time: list.pendingTime, expenses: list.pendingExpenses })}
+          </li>{/if}
+        {#if list.activeAssignments.length}<li>
+            {tc('checklistAssignments', {
+              projects: list.activeAssignments
+                .map((row) => (row.endsOn ? `${row.projectName} (→ ${row.endsOn})` : row.projectName))
+                .join(', '),
+            })}
+          </li>{/if}
+        {#if list.unsettledApprovedMinutes || list.unreimbursedExpenses}<li>
+            {tc('checklistPay', {
+              hours: (list.unsettledApprovedMinutes / 60).toFixed(1),
+              expenses: list.unreimbursedExpenses,
+            })}
+            <a href={personHref(personId, 'pay')}>{tc('checklistOpenPay')}</a>
+          </li>{/if}
+        {#if !list.draftTime && !list.draftExpenses && !list.pendingTime && !list.pendingExpenses && !list.activeAssignments.length && !list.unsettledApprovedMinutes && !list.unreimbursedExpenses}
+          <li>{tc('checklistClear')}</li>
+        {/if}
+      </ul>
+    {/if}
+  </div>
+{/snippet}
+
+{#snippet offboardForm(worker: PortalRow, linked: boolean)}
+  <details
+    class="person__confirm"
+    ontoggle={(event) => {
+      if ((event.currentTarget as HTMLDetailsElement).open) void loadChecklist(workerId(worker));
+    }}
+  >
+    <summary class="team-directory__action team-directory__action--danger-outline"
+      >{tc('offboardOpen')}</summary
+    >
+    <form
+      method="POST"
+      action={teamActionHref('updateUserStatus', workerId(worker))}
+      class="person__offboard"
+      use:formValidation
+      data-offboard-form
+    >
+      {@render offboardChecklistBlock(workerId(worker))}
+      <input type="hidden" name="userId" value={workerId(worker)} /><input
+        type="hidden"
+        name="status"
+        value="offboarded"
+      />
+      {#if linked && canonicalOwner}
+        <fieldset class="team-directory__mailbox-choice" data-offboard-mailbox-choice>
+          <legend>{mc('mailboxChoiceLegend', { email: value(worker, 'email') })}</legend>
+          <label
+            ><input type="radio" name="mailbox" value="block" checked />{mc('mailboxChoiceBlock')}</label
+          ><label><input type="radio" name="mailbox" value="keep" />{mc('mailboxChoiceKeep')}</label>
+          <small>{mc('mailboxChoiceHelp')}</small>
+        </fieldset>
+      {/if}
+      <label
+        >{tc('statusReason')}<textarea name="reason" required maxlength="2000"></textarea></label
+      >
+      <button type="submit" class="team-directory__action team-directory__action--danger-outline"
+        >{tc('offboardConfirm')}</button
+      >
+    </form>
+  </details>
+{/snippet}
+
 <div class="team-directory" data-team-directory>
   {#snippet pager(current: number, pages: number, href: (n: number) => string, name: string)}
     <nav class="team-pager" aria-label={mc('pageOf', { page: current, pages })} data-pager={name}>
@@ -1916,83 +2019,67 @@
                         <p class="person__muted">{tc('suspendHelp')}</p>
                         <p class="person__muted">{tc('offboardHelp')}</p>
                         <div class="person__danger-actions">
-                          <form
-                            method="POST"
-                            action={teamActionHref('updateUserStatus', workerId(worker))}
-                            use:formValidation
-                            onsubmit={(event) => {
-                              if (!confirm(tc('confirmSuspend'))) event.preventDefault();
+                          <!-- T33: a styled confirm with the open-work checklist and a reason. -->
+                          <details
+                            class="person__confirm"
+                            ontoggle={(event) => {
+                              if ((event.currentTarget as HTMLDetailsElement).open)
+                                void loadChecklist(workerId(worker));
                             }}
                           >
-                            <input type="hidden" name="userId" value={workerId(worker)} /><input
-                              type="hidden"
-                              name="status"
-                              value="suspended"
-                            /><button type="submit" class="team-directory__action team-directory__action--quiet"
-                              >{tc('suspend')}</button
+                            <summary class="team-directory__action team-directory__action--quiet"
+                              >{tc('suspendOpen')}</summary
                             >
-                          </form>
-                          <form
-                            method="POST"
-                            action={teamActionHref('updateUserStatus', workerId(worker))}
-                            class="person__offboard"
-                            use:formValidation
-                            data-offboard-form
-                            onsubmit={(event) => {
-                              if (!confirm(mc('removeAccessConfirm'))) event.preventDefault();
-                            }}
-                          >
-                            <input type="hidden" name="userId" value={workerId(worker)} /><input
-                              type="hidden"
-                              name="status"
-                              value="offboarded"
-                            />
-                            {#if linked && canonicalOwner}
-                              <fieldset class="team-directory__mailbox-choice" data-offboard-mailbox-choice>
-                                <legend>{mc('mailboxChoiceLegend', { email: value(worker, 'email') })}</legend>
-                                <label
-                                  ><input type="radio" name="mailbox" value="block" checked />{mc(
-                                    'mailboxChoiceBlock',
-                                  )}</label
-                                ><label
-                                  ><input type="radio" name="mailbox" value="keep" />{mc(
-                                    'mailboxChoiceKeep',
-                                  )}</label
-                                >
-                                <small>{mc('mailboxChoiceHelp')}</small>
-                              </fieldset>
-                            {/if}
-                            <button
-                              type="submit"
-                              class="team-directory__action team-directory__action--danger-outline"
-                              >{translate('Remove access')}</button
+                            <form
+                              method="POST"
+                              action={teamActionHref('updateUserStatus', workerId(worker))}
+                              use:formValidation
                             >
-                          </form>
+                              {@render offboardChecklistBlock(workerId(worker))}
+                              <input type="hidden" name="userId" value={workerId(worker)} /><input
+                                type="hidden"
+                                name="status"
+                                value="suspended"
+                              />
+                              <label
+                                >{tc('statusReason')}<textarea name="reason" required maxlength="2000"
+                                ></textarea></label
+                              >
+                              <button type="submit" class="team-directory__action"
+                                >{tc('suspendConfirm')}</button
+                              >
+                            </form>
+                          </details>
+                          {@render offboardForm(worker, linked)}
                         </div>
                       {:else}
+                        {#if value(worker, 'status') === 'suspended'}
+                          <p class="person__muted">{tc('suspendedOffboardHelp')}</p>
+                        {/if}
                         <form
                           method="POST"
                           action={teamActionHref('updateUserStatus', workerId(worker))}
                           use:formValidation
-                          onsubmit={(event) => {
-                            if (!confirm(translate('Restore this team member access?')))
-                              event.preventDefault();
-                          }}
                         >
                           <input type="hidden" name="userId" value={workerId(worker)} /><input
                             type="hidden"
                             name="status"
                             value="active"
                           />
+                          <input type="hidden" name="reason" value="Access restored by the owner" />
                           {#if linked && canonicalOwner}<label class="team-directory__inline-check"
                               ><input type="checkbox" name="mailbox" value="unblock" checked />{mc(
                                 'alsoUnblock',
                               )}</label
                             >{/if}
                           <button type="submit" class="team-directory__action"
-                            >{translate('Restore access')}</button
+                            >{tc('restoreConfirm')}</button
                           >
                         </form>
+                        {#if value(worker, 'status') === 'suspended'}
+                          <!-- T33: offboarding is possible straight from the suspended state. -->
+                          {@render offboardForm(worker, linked)}
+                        {/if}
                       {/if}
                     </section>
                   </div>
@@ -3586,6 +3673,36 @@
 </div>
 
 <style>
+  .person__confirm {
+    display: grid;
+    gap: 0.5rem;
+  }
+  .person__confirm > summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    width: fit-content;
+  }
+  .person__confirm > summary::-webkit-details-marker {
+    display: none;
+  }
+  .person__confirm form {
+    display: grid;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--ja-border, #d0d5dd);
+    border-radius: 0.75rem;
+  }
+  .person__confirm textarea {
+    min-height: 4rem;
+  }
+  .person__checklist ul {
+    margin: 0.25rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .person__checklist p {
+    margin: 0.25rem 0 0;
+  }
   .team-directory__created {
     display: grid;
     gap: 0.5rem;

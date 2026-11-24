@@ -345,3 +345,26 @@ describe('ending an assignment with later unapproved hours (T19) and supplier st
     ).toThrow('Supplier staff assignments are managed by the owner');
   });
 });
+
+describe('offboarding checklist (T33)', () => {
+  it('counts open work for the owner only', async () => {
+    const { offboardingChecklist } = await import('@ja/database');
+    const { fixture, suppliers, coordinator, technician } = setup();
+    suppliers.createTime(coordinator, {
+      workerId: technician.id,
+      projectId: fixture.project.id,
+      workDate: today,
+      category: 'regular',
+      minutes: 90,
+      summary: 'Draft hours',
+    });
+    const list = offboardingChecklist(fixture.sqlite, fixture.owner, technician.id, today);
+    expect(list).toMatchObject({ draftTime: 1, pendingTime: 0, unsettledApprovedMinutes: 0 });
+    expect(list.activeAssignments).toEqual([
+      expect.objectContaining({ projectName: 'B5 lifecycle fixture' }),
+    ]);
+    expect(() => offboardingChecklist(fixture.sqlite, fixture.finance, technician.id)).toThrow(
+      AccessDeniedError,
+    );
+  });
+});

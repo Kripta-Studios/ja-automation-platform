@@ -501,9 +501,10 @@
     return typeof localized.message === 'string' ? localized.message : '';
   }
 
+  const isCrewChief = $derived(($page.data as { crewChief?: boolean }).crewChief === true);
   const roleNavigation = $derived(
     portalNavigationForRole(base, data.user.role, data.user.workforceProfile, {
-      crewChief: ($page.data as { crewChief?: boolean }).crewChief === true,
+      crewChief: isCrewChief,
     }),
   );
   const canUseGlobalSearch = $derived(
@@ -4027,6 +4028,13 @@
         <p class="crew-hours-link">
           <a class="secondary-button" href={`${base}/app/supplier?workspaceAction=time`}
             >{translate('Record team hours')} <DirectionIcon /></a
+          >
+        </p>
+      {:else if isCrewChief}
+        <!-- T73: an active crew chief reaches his crew's hours from his own Time. -->
+        <p class="crew-hours-link" data-time-crew-link>
+          <a class="secondary-button" href={`${base}/app/crew`}
+            >{translate('Record hours for your crew')} <DirectionIcon /></a
           >
         </p>
       {/if}

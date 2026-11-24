@@ -6803,6 +6803,19 @@ export class V3Repository {
       this.sqlite
         .prepare('UPDATE invoice SET state=?,updated_at=?,version=version+1 WHERE id=?')
         .run(totals.state, now, payment.invoice_id);
+      // Audit 2026-11-22 T17: a payment reversal is evidence like the payment itself
+      // (registered as payment.reverse by migration 0084).
+      this.audit(principal, 'payment.reverse', 'payment', payment.id, {
+        invoiceId: payment.invoice_id,
+        reversalId,
+        currency: payment.currency,
+        amountMinor: input.amountMinor.toString(),
+        effectiveAt,
+        reasonCode,
+        reason,
+        before: { state: payment.state },
+        after: { state: totals.state, outstandingMinor: totals.outstanding.toString() },
+      });
       return {
         id: reversalId,
         commandId: command.commandId,

@@ -869,6 +869,18 @@ describe('Client Essential finance truth and payment reversals', () => {
         idempotencyKey: 'finance-truth-reversal-1',
       }),
     ).toMatchObject({ id: partial.id, created: false });
+    // T17 (audit 2026-11-22): the reversal is in the audit log exactly once (idempotent replay adds none).
+    const reversalAudit = sqlite
+      .prepare("SELECT entity_id,details_json FROM audit_event WHERE action='payment.reverse'")
+      .all() as Array<{ entity_id: string; details_json: string }>;
+    expect(reversalAudit).toHaveLength(1);
+    expect(reversalAudit[0]!.entity_id).toBe(second.id);
+    expect(JSON.parse(reversalAudit[0]!.details_json)).toMatchObject({
+      invoiceId: invoice.id,
+      reversalId: partial.id,
+      amountMinor: '100',
+      reasonCode: 'bank_return',
+    });
     expect(() =>
       v3.reversePayment(finance, {
         paymentId: second.id,

@@ -185,6 +185,9 @@ export function searchSectionDestinations(
       'parentLabel' in item && typeof item.parentLabel === 'string'
         ? translate(item.parentLabel)
         : undefined;
+    // A shortcut named like its own section ("Invoices › Invoices") only
+    // repeats the section result.
+    if (parentLabel && parentLabel === label) continue;
     const searchable = `${labelInEveryLocale(item.label, translate)} ${
       'parentLabel' in item && typeof item.parentLabel === 'string'
         ? labelInEveryLocale(item.parentLabel, translate)

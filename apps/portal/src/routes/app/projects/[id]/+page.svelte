@@ -577,8 +577,12 @@
         tone: 'warn',
         text: h('attApprovals', {
           hours: hours(reviewable.timeMinutes),
-          expenses: reviewable.expenseCount,
-          reports: reviewable.reportCount,
+          expenses: h(reviewable.expenseCount === 1 ? 'expensesOne' : 'expensesOther', {
+            count: reviewable.expenseCount,
+          }),
+          reports: h(reviewable.reportCount === 1 ? 'reportsOne' : 'reportsOther', {
+            count: reviewable.reportCount,
+          }),
         }),
         action: h('attApprovalsAction'),
         href: approvalsHref,
@@ -590,7 +594,9 @@
         tone: 'info',
         text: h('attApprovalsOthers', {
           hours: hours(hub.pending.timeMinutes - reviewable.timeMinutes),
-          count: pendingTotal - reviewableTotal,
+          count: h(pendingTotal - reviewableTotal === 1 ? 'recordsOne' : 'recordsOther', {
+            count: pendingTotal - reviewableTotal,
+          }),
         }),
       });
     const fin = hub.finance;

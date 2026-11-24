@@ -371,8 +371,14 @@ describe('unchanged delegation and administrative boundaries', () => {
     vi.setSystemTime('2026-09-30T02:00:00Z');
     endAssignment('2026-09-29');
     sqlite.exec("UPDATE supplier_project_grant SET ends_on='2026-09-29'");
-    expect(repository.createExpense(worker, expenseInput('2026-09-29')).version).toBe(1);
-    expect(repository.createTimeEntry(worker, timeInput('2026-09-29')).version).toBe(1);
+    // D3 (role audit 2026-11-22): the supplier coordinator records his team's
+    // hours in the supplier workspace and never his own billable time or expenses.
+    expect(() => repository.createExpense(worker, expenseInput('2026-09-29'))).toThrow(
+      /Supplier coordinators do not record/,
+    );
+    expect(() => repository.createTimeEntry(worker, timeInput('2026-09-29'))).toThrow(
+      /Supplier coordinators record their te/,
+    );
   });
   it.each(['revokedGrant', 'inactiveSupplier', 'expiredGrant'])(
     'denies supplier writes after %s without downgrading to ordinary Worker',

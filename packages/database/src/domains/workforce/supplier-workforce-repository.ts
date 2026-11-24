@@ -112,6 +112,14 @@ export function canonicalSupplierTimeCategory(category: string): string {
   const trimmed = String(category ?? '').trim();
   return trimmed === 'work' ? 'regular' : trimmed;
 }
+/** One canonical category or a field-specific validation error (T21). */
+function requiredSupplierTimeCategory(category: string): string {
+  const canonical = canonicalSupplierTimeCategory(category);
+  if (!canonical) throw new ValidationError('Category is required');
+  if (!SUPPLIER_TIME_CATEGORIES.includes(canonical))
+    throw new ValidationError('Choose a valid time category');
+  return canonical;
+}
 /** A grant's coordinator membership only scopes the supplier workspace (D3):
  * it is not a billable J&A worker assignment and cannot carry own hours. */
 export const SUPPLIER_COORDINATOR_ASSIGNMENT_ROLE = 'supplier_coordinator';
@@ -1584,9 +1592,7 @@ export class SupplierWorkforceRepository {
 
   createTime(principal: Principal, input: TimeEntryInput & { workerId: string }) {
     this.assertCoordinatorScope(principal, input.workerId, input.projectId, input.workDate);
-    const category = canonicalSupplierTimeCategory(input.category);
-    if (!SUPPLIER_TIME_CATEGORIES.includes(category))
-      throw new ValidationError('Choose a valid time category');
+    const category = requiredSupplierTimeCategory(input.category);
     return this.time.createTimeEntryForWorker(principal, input.workerId, { ...input, category });
   }
 
@@ -1622,9 +1628,7 @@ export class SupplierWorkforceRepository {
     if (workerIds.length === 0) throw new ValidationError('Select at least one technician');
     if (workerIds.length > 100)
       throw new ValidationError('A time batch is limited to 100 technicians');
-    const category = canonicalSupplierTimeCategory(input.category);
-    if (!SUPPLIER_TIME_CATEGORIES.includes(category))
-      throw new ValidationError('Choose a valid time category');
+    const category = requiredSupplierTimeCategory(input.category);
     input = { ...input, category };
     const workerMinutes = input.workerMinutes;
     if (workerMinutes) {
@@ -1773,6 +1777,10 @@ export class SupplierWorkforceRepository {
   }
 
   createTimeCorrection(principal: Principal, input: TimeEntryCorrectionInput) {
+    // Form fields first: a missing request or reason reveals nothing about the record.
+    if (!String(input.requestId ?? '').trim())
+      throw new ValidationError('Correction request is required');
+    if (!String(input.reason ?? '').trim()) throw new ValidationError('Correction reason is required');
     this.assertSupplierTimeEntryScope(principal, input.originalId);
     if (input.patch?.category !== undefined) {
       const category = canonicalSupplierTimeCategory(String(input.patch.category));

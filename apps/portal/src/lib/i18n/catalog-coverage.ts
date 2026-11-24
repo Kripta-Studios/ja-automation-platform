@@ -1344,6 +1344,7 @@ export const PORTAL_LITERAL_KEYS = [
   'Mark sent records a manual delivery only. It does not send an email.',
   'action.billing.invoiceEmail.queued',
   'action.billing.invoiceEmail.accepted',
+  'action.planning.availabilitySaved',
   'action.billing.invoiceEmail.failed',
   'action.billing.invoiceEmail.retrying',
 

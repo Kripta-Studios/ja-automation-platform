@@ -20,7 +20,12 @@
   import type { ProblemData } from '$lib/problem/contract';
   import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
-  import { supplierCopy, supplierStateLabel, supplierManagementCopy } from './copy';
+  import {
+    supplierAccessCopy,
+    supplierCopy,
+    supplierStateLabel,
+    supplierManagementCopy,
+  } from './copy';
   import { standaloneActionMessage } from '../standalone-locale';
   import { enhance } from '$app/forms';
   import { afterNavigate, replaceState } from '$app/navigation';
@@ -54,6 +59,7 @@
     );
   }
   const m = $derived(supplierManagementCopy[data.locale as keyof typeof supplierManagementCopy]);
+  const g = $derived(supplierAccessCopy[data.locale as keyof typeof supplierAccessCopy]);
   const currentProblem = $derived(
     form && !form.success && 'code' in form ? (form as unknown as ProblemData) : null,
   );
@@ -143,11 +149,28 @@
     selectedProfile = account ? account.profile || 'standard' : '';
     selectedSupplier = account?.supplierId || '';
   }
+  // T45: supplier-linked accounts by default; other J&A accounts only on request.
+  let showOtherAccounts = $state(false);
   const filteredAccounts = $derived(
     data.accounts.filter(
-      (account: { id: string; name: string }) =>
+      (account: { id: string; name: string; email?: string; profile: string | null }) =>
         account.id === selectedAccount ||
-        account.name.toLocaleLowerCase().includes(accountSearch.trim().toLocaleLowerCase()),
+        ((showOtherAccounts || Boolean(account.profile)) &&
+          `${account.name} ${account.email ?? ''}`
+            .toLocaleLowerCase()
+            .includes(accountSearch.trim().toLocaleLowerCase())),
+    ),
+  );
+  // T06: the coordinator list follows the supplier chosen in the grant form.
+  let grantSupplierId = $state(
+    untrack(() => String(form?.operation === 'grant' ? (form.values?.supplierId ?? '') : '')),
+  );
+  const grantCoordinators = $derived(
+    data.accounts.filter(
+      (account: { profile: string | null; supplierId: string | null }) =>
+        account.profile === 'supplier_coordinator' &&
+        Boolean(grantSupplierId) &&
+        account.supplierId === grantSupplierId,
     ),
   );
   type DirectoryStatus = 'active' | 'inactive' | 'all';
@@ -522,8 +545,9 @@
         return c.savedTechnicianAssigned;
       case 'setProfile':
       case 'grant':
-      case 'revoke':
         return c.savedAccess;
+      case 'revoke':
+        return g.revokedSaved;
       case 'createTime':
       case 'updateTime':
         return c.savedHours;
@@ -726,6 +750,19 @@
 <div class="supplier-page" lang={data.locale} onsubmit={rememberSubmission}>
   <h1 class="supplier-title">{data.owner ? c.title : c.team}</h1>
   <p>{data.owner ? m.intro : c.intro}</p>
+  {#if !data.owner && !data.projects.length}
+    <section class="access-ended" role="status">
+      <h2>{data.endedGrants?.length ? g.accessEndedTitle : g.accessNoneTitle}</h2>
+      <p>{data.endedGrants?.length ? g.accessEndedBody : g.accessNoneBody}</p>
+      {#if data.endedGrants?.length}<ul>
+          {#each data.endedGrants as ended}<li>
+              {g.accessEndedItem
+                .replace('{project}', ended.projectName)
+                .replace('{date}', shortDate(ended.endedOn ?? ''))}
+            </li>{/each}
+        </ul>{/if}
+    </section>
+  {/if}
   <nav class="supplier-jump-links" aria-label={c.title}>
     {#if data.owner}
       <button
@@ -788,6 +825,11 @@
           {form.outcome.submittedCount} {form.outcome.submittedCount === 1
             ? c.draftSubmitted
             : c.draftsSubmitted}
+        {:else if form.success && form.operation === 'revoke' && form.outcome}
+          {g.revokedSaved}
+          {Number(form.outcome.endedAssignments) === 1
+            ? g.revokedAssignmentsOne
+            : g.revokedAssignments.replace('{count}', String(form.outcome.endedAssignments ?? 0))}
         {:else}{savedMessage(form.operation)}{/if}
       </p>{/if}
     {#if currentProblem && !(submissionFailure && data.projects.length && workspaceAction === 'report') && !(editor && form?.operation === editor.operation) && !['assignTechnician', 'createTimeBatch'].includes(form?.operation ?? '')}
@@ -1285,8 +1327,13 @@
             autocomplete="off"
           /></label
         >
+        <label class="check"
+          ><input type="checkbox" bind:checked={showOtherAccounts} />{g.showOtherAccounts}</label
+        >
         {#if !filteredAccounts.length}<p role="status" class="muted">
-            {portalText(data.locale, 'No matching records.')}
+            {showOtherAccounts || accountSearch.trim()
+              ? portalText(data.locale, 'No matching records.')
+              : g.noLinkedAccounts}
           </p>{/if}
         <label data-ui="field"
           >{c.account}<select
@@ -1296,7 +1343,7 @@
             onchange={(event) => selectProfileAccount(event.currentTarget.value)}
             ><option value="">{c.select}</option>{#each filteredAccounts as account}<option
                 value={account.id}
-                >{account.name} · {account.profile === 'supplier_coordinator'
+                >{account.name}{account.email ? ` <${account.email}>` : ''} · {account.profile === 'supplier_coordinator'
                   ? c.coordinator
                   : account.profile === 'external_technician'
                     ? c.technician
@@ -1323,6 +1370,14 @@
             ></label
           >
         {/if}
+        {#if selectedProfile}
+          <label class="check"
+            ><input type="checkbox" name="confirmed" value="yes" required />{selectedProfile ===
+            'standard'
+              ? g.profileConfirmStandard
+              : g.profileConfirm}</label
+          >
+        {/if}
         <button class="primary-button">{c.saveProfile}</button>
       </form>
     </SectionCard>
@@ -1335,18 +1390,26 @@
         action={actionUrl('grant')}
         data-supplier-operation="grant"
         use:formValidation
+        onchange={(event) => {
+          const target = event.target as HTMLSelectElement | null;
+          if (target?.name === 'supplierId') grantSupplierId = target.value;
+        }}
       >
         {@render suppliers('grant')}{@render projects('grant')}
         <label data-ui="field"
           >{c.coordinator}<select
             name="coordinatorId"
             required
+            disabled={!grantSupplierId || !grantCoordinators.length}
             value={value('grant', 'coordinatorId')}
             ><option value="">{c.select}</option
-            >{#each data.accounts.filter((a) => a.profile === 'supplier_coordinator') as account}<option
-                value={account.id}>{account.name}</option
+            >{#each grantCoordinators as account}<option value={account.id}
+                >{account.name}{account.email ? ` <${account.email}>` : ''}</option
               >{/each}</select
-          ></label
+          >
+          {#if !grantSupplierId}<small class="muted">{g.coordinatorPickSupplier}</small
+            >{:else if !grantCoordinators.length}<small class="muted">{g.coordinatorNone}</small
+            >{/if}</label
         >
         {@render dates('grant')}<button class="primary-button">{c.grant}</button>
       </form>
@@ -1362,16 +1425,29 @@
               grant.status,
             )}
           </p>
-          {#if grant.status === 'active'}<form
-              method="POST"
-              action={actionUrl('revoke')}
-              data-supplier-operation="revoke"
-              use:formValidation
+          {#if grant.status === 'active'}<details
+              class="revoke-grant"
+              open={form?.operation === 'revoke' && !form?.success && form?.values?.id === grant.id}
             >
-              <input type="hidden" name="id" value={grant.id} /><button class="primary-button"
-                >{c.revoke}</button
+              <summary>{g.revokeOpen}</summary>
+              <form
+                method="POST"
+                action={actionUrl('revoke')}
+                data-supplier-operation="revoke"
+                use:formValidation
               >
-            </form>{/if}
+                <p class="muted">{g.revokeHelp}</p>
+                <input type="hidden" name="id" value={grant.id} />
+                <label data-ui="field"
+                  >{g.revokeReason}<textarea name="reason" required maxlength="2000"
+                    >{form?.operation === 'revoke' && form?.values?.id === grant.id
+                      ? (form.values.reason ?? '')
+                      : ''}</textarea
+                  ></label
+                >
+                <button class="danger-button">{g.revokeConfirm}</button>
+              </form>
+            </details>{/if}
         </article>{:else}<p>{c.empty}</p>{/each}
     </SectionCard>
   {/if}
@@ -2038,6 +2114,43 @@
 </div>
 
 <style>
+  .revoke-grant {
+    margin-top: 0.5rem;
+  }
+  .revoke-grant > summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: #b42318;
+    min-height: var(--ja-target-min, 2.75rem);
+    display: flex;
+    align-items: center;
+  }
+  .danger-button {
+    min-height: var(--ja-target-min, 2.75rem);
+    border: 1px solid #b42318;
+    background: #b42318;
+    color: #fff;
+    border-radius: 0.5rem;
+    padding: 0.5rem 1rem;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .access-ended {
+    border: 1px solid var(--ja-border, #d0d5dd);
+    border-radius: 0.75rem;
+    padding: 1rem;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .access-ended h2 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+  .access-ended p,
+  .access-ended ul {
+    margin: 0;
+  }
   h1 {
     font-size: clamp(1.65rem, 2.4vw, 2.25rem);
     font-weight: 700;

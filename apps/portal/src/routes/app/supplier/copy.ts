@@ -481,3 +481,73 @@ export const supplierManagementCopy = {
     filters: 'Projeto e período do relatório',
   },
 } as const;
+
+/** Strings added by the 2026-11-22 role-audit fixes (projects, team, supplier). */
+export const supplierAccessCopy = {
+  en: {
+    revokeOpen: 'Revoke access…',
+    revokeHelp:
+      'Revoking ends this authorization today. The coordinator and the technicians the supplier added to this installation lose access; hours already recorded stay with J&A.',
+    revokeReason: 'Reason',
+    revokeConfirm: 'Revoke access now',
+    revokedSaved: 'Access revoked.',
+    revokedAssignments: '{count} assignments ended.',
+    revokedAssignmentsOne: '1 assignment ended.',
+    coordinatorPickSupplier: 'Choose the supplier first to see its coordinators.',
+    coordinatorNone: 'This supplier has no coordinator yet. Give an account the coordinator profile in Setup and access.',
+    showOtherAccounts: 'Also list J&A accounts without a supplier profile',
+    profileConfirm: 'I confirm this access change. The account will only see the supplier workspace.',
+    profileConfirmStandard: 'I confirm this access change. The account returns to normal J&A permissions.',
+    noLinkedAccounts: 'No account has a supplier profile yet.',
+    accessEndedTitle: 'Your installation access has ended',
+    accessEndedBody:
+      'J&A ended your authorization. You cannot record new hours here. Hours already sent stay with J&A; contact J&A if you need access again.',
+    accessEndedItem: '{project} · ended {date}',
+    accessNoneTitle: 'No installation authorized yet',
+    accessNoneBody: 'J&A has not authorized an installation for you yet. Contact J&A to get access.',
+  },
+  es: {
+    revokeOpen: 'Retirar acceso…',
+    revokeHelp:
+      'Al retirar el acceso, esta autorización termina hoy. El coordinador y los técnicos que el proveedor añadió a esta instalación pierden el acceso; las horas ya registradas se conservan en J&A.',
+    revokeReason: 'Motivo',
+    revokeConfirm: 'Retirar acceso ahora',
+    revokedSaved: 'Acceso retirado.',
+    revokedAssignments: '{count} asignaciones finalizadas.',
+    revokedAssignmentsOne: '1 asignación finalizada.',
+    coordinatorPickSupplier: 'Elige primero el proveedor para ver sus coordinadores.',
+    coordinatorNone: 'Este proveedor aún no tiene coordinador. Asigna el perfil de coordinador a una cuenta en Configuración y acceso.',
+    showOtherAccounts: 'Mostrar también cuentas de J&A sin perfil de proveedor',
+    profileConfirm: 'Confirmo este cambio de acceso. La cuenta solo verá el espacio del proveedor.',
+    profileConfirmStandard: 'Confirmo este cambio de acceso. La cuenta vuelve a los permisos normales de J&A.',
+    noLinkedAccounts: 'Ninguna cuenta tiene aún perfil de proveedor.',
+    accessEndedTitle: 'Tu acceso a la instalación ha terminado',
+    accessEndedBody:
+      'J&A ha finalizado tu autorización. Ya no puedes registrar horas aquí. Las horas enviadas se conservan en J&A; contacta con J&A si necesitas acceso de nuevo.',
+    accessEndedItem: '{project} · finalizado el {date}',
+    accessNoneTitle: 'Aún no hay instalaciones autorizadas',
+    accessNoneBody: 'J&A aún no te ha autorizado ninguna instalación. Contacta con J&A para obtener acceso.',
+  },
+  pt: {
+    revokeOpen: 'Revogar acesso…',
+    revokeHelp:
+      'Ao revogar, esta autorização termina hoje. O coordenador e os técnicos que o fornecedor adicionou a esta instalação perdem o acesso; as horas já registradas ficam com a J&A.',
+    revokeReason: 'Motivo',
+    revokeConfirm: 'Revogar acesso agora',
+    revokedSaved: 'Acesso revogado.',
+    revokedAssignments: '{count} atribuições encerradas.',
+    revokedAssignmentsOne: '1 atribuição encerrada.',
+    coordinatorPickSupplier: 'Escolha primeiro o fornecedor para ver seus coordenadores.',
+    coordinatorNone: 'Este fornecedor ainda não tem coordenador. Dê o perfil de coordenador a uma conta em Configuração e acesso.',
+    showOtherAccounts: 'Listar também contas da J&A sem perfil de fornecedor',
+    profileConfirm: 'Confirmo esta mudança de acesso. A conta verá apenas o espaço do fornecedor.',
+    profileConfirmStandard: 'Confirmo esta mudança de acesso. A conta volta às permissões normais da J&A.',
+    noLinkedAccounts: 'Nenhuma conta tem perfil de fornecedor ainda.',
+    accessEndedTitle: 'Seu acesso à instalação terminou',
+    accessEndedBody:
+      'A J&A encerrou sua autorização. Você não pode mais registrar horas aqui. As horas já enviadas ficam com a J&A; fale com a J&A se precisar de acesso novamente.',
+    accessEndedItem: '{project} · encerrado em {date}',
+    accessNoneTitle: 'Nenhuma instalação autorizada ainda',
+    accessNoneBody: 'A J&A ainda não autorizou nenhuma instalação para você. Fale com a J&A para obter acesso.',
+  },
+} as const;

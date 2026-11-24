@@ -10,6 +10,7 @@ import {
 import { actionFail, actionFailure } from '$lib/server/actions/action-message';
 import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
 import { durationMinutes } from '$lib/portal/ui/time-entry-clock';
+import { isSystemAccount } from '$lib/portal/system-accounts';
 
 type SupplierRule = {
   code: string;
@@ -131,6 +132,18 @@ const supplierRules: Record<string, SupplierRule> = {
     key: 'problem.supplier.coordinatorUnavailable',
     field: 'coordinatorId',
     remedy: 'review_supplier_profile',
+  },
+  'This coordinator belongs to another supplier': {
+    code: 'SUPPLIER_COORDINATOR_OTHER_SUPPLIER',
+    key: 'problem.supplier.coordinatorOtherSupplier',
+    field: 'coordinatorId',
+    remedy: 'review_supplier_profile',
+  },
+  'Reason is required': {
+    code: 'SUPPLIER_REVOKE_REASON_REQUIRED',
+    key: 'problem.supplier.revokeReasonRequired',
+    field: 'reason',
+    remedy: 'correct_supplier_field',
   },
   'Supplier coordinators require a usable login account': {
     code: 'SUPPLIER_COORDINATOR_LOGIN_REQUIRED',
@@ -942,19 +955,44 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
         projectId && !period.periodProblem
           ? ctx.supplier.listTime(ctx.principal, { projectId, from: period.from, to: period.to })
           : [],
+      // T45: people only (no company mailboxes or service senders), with the
+      // e-mail to tell look-alike names apart. Accounts that already carry a
+      // supplier profile are listed first by the page; others on request.
       accounts: owner
-        ? (ctx.sqlite
-            .prepare(
-              `SELECT u.id,u.name,s.profile,s.supplier_id supplierId FROM user u
+        ? (
+            ctx.sqlite
+              .prepare(
+                `SELECT u.id,u.name,u.email,s.profile,s.supplier_id supplierId FROM user u
         LEFT JOIN supplier_user_profile s ON s.user_id=u.id WHERE u.role='worker' AND u.status='active' AND (EXISTS(SELECT 1 FROM account a WHERE a.user_id=u.id AND (a.provider_id<>'credential' OR length(a.password)>0)) OR EXISTS(SELECT 1 FROM passkey pk WHERE pk.user_id=u.id)) ORDER BY u.name`,
-            )
-            .all() as {
-            id: string;
-            name: string;
-            profile: string | null;
-            supplierId: string | null;
-          }[])
+              )
+              .all() as {
+              id: string;
+              name: string;
+              email: string;
+              profile: string | null;
+              supplierId: string | null;
+            }[]
+          ).filter((account) => account.profile || !isSystemAccount(account))
         : [],
+      // T06: a coordinator whose authorizations all ended sees why the
+      // workspace is empty instead of a bare page.
+      endedGrants:
+        !owner && projects.length === 0
+          ? (ctx.sqlite
+              .prepare(
+                `SELECT p.name projectName,g.status,g.starts_on startsOn,
+                        COALESCE(date(g.revoked_at),g.ends_on) endedOn
+                   FROM supplier_project_grant g JOIN project p ON p.id=g.project_id
+                  WHERE g.coordinator_id=?
+                  ORDER BY COALESCE(g.revoked_at,g.ends_on) DESC LIMIT 5`,
+              )
+              .all(ctx.principal.userId) as {
+              projectName: string;
+              status: string;
+              startsOn: string;
+              endedOn: string | null;
+            }[])
+          : [],
       grants: owner
         ? (ctx.supplier.listGrants(ctx.principal) as {
             id: string;
@@ -1048,6 +1086,17 @@ function action(operation: string): Actions[string] {
           });
           break;
         case 'setProfile': {
+          // T45: changing an account's access profile is a deliberate step.
+          if (text('confirmed') !== 'yes')
+            return actionFail(400, 'problem.supplier.confirmProfileChange', {}, undefined, {
+              code: 'SUPPLIER_PROFILE_CONFIRMATION_REQUIRED',
+              operation,
+              actionName: operation,
+              values,
+              fieldErrors: { confirmed: ['problem.supplier.confirmProfileChange'] },
+              remedies: [{ id: 'confirm_status_change' }],
+              correlationId: locals.correlationId,
+            });
           const profile = text('profile');
           if (!['standard', 'external_technician', 'supplier_coordinator'].includes(profile))
             return actionFail(400, 'problem.supplier.profileInvalid', {}, undefined, {
@@ -1075,9 +1124,14 @@ function action(operation: string): Actions[string] {
             endsOn: optional('endsOn'),
           });
           break;
-        case 'revoke':
-          ctx.supplier.revokeProject(ctx.principal, { id: text('id') });
+        case 'revoke': {
+          const revoked = ctx.supplier.revokeProject(ctx.principal, {
+            id: text('id'),
+            reason: text('reason'),
+          });
+          outcome = { endedAssignments: revoked.endedAssignments };
           break;
+        }
         case 'addTechnician':
           ctx.supplier.addTechnician(ctx.principal, {
             supplierId: optional('supplierId'),

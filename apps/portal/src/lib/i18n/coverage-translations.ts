@@ -3821,6 +3821,18 @@ const exact: Record<string, readonly [string, string]> = {
     'Selecciona un proyecto operativo.',
     'Selecione um projeto operacional.',
   ],
+  'problem.supplier.coordinatorOtherSupplier': [
+    'Este coordinador pertenece a otro proveedor. Elige un coordinador del proveedor seleccionado.',
+    'Este coordenador pertence a outro fornecedor. Escolha um coordenador do fornecedor selecionado.',
+  ],
+  'problem.supplier.revokeReasonRequired': [
+    'Indica el motivo para retirar el acceso.',
+    'Informe o motivo para revogar o acesso.',
+  ],
+  'problem.supplier.confirmProfileChange': [
+    'Confirma el cambio de perfil de acceso antes de guardar.',
+    'Confirme a mudança de perfil de acesso antes de salvar.',
+  ],
   'problem.supplier.coordinatorUnavailable': [
     'Se requiere un coordinador activo del proveedor.',
     'É necessário um coordenador ativo do fornecedor.',
@@ -10548,6 +10560,10 @@ const problemEnglish: Record<string, string> = {
   'problem.supplier.technicianStatusBlocked': 'Active or suspended supplier technician required',
   'problem.supplier.operationalProjectRequired': 'Operational project required',
   'problem.supplier.coordinatorUnavailable': 'Active supplier coordinator required',
+  'problem.supplier.coordinatorOtherSupplier':
+    'This coordinator belongs to another supplier. Choose a coordinator of the selected supplier.',
+  'problem.supplier.revokeReasonRequired': 'Enter the reason for revoking access.',
+  'problem.supplier.confirmProfileChange': 'Confirm the access profile change before saving.',
   'problem.supplier.coordinatorLoginRequired':
     'Supplier coordinators require a usable login account',
   'problem.supplier.profileWorkerRequired':

@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { supplierRouteAllowed } from '../../apps/portal/src/lib/server/supplier-route-access';
+import {
+  supplierCoordinatorOwnRecordRedirect,
+  supplierRouteAllowed,
+} from '../../apps/portal/src/lib/server/supplier-route-access';
 import {
   supplierCsvCell,
   supplierCsv,
@@ -50,9 +53,10 @@ describe('supplier operational surface', () => {
 
   it.each(profiles)('preserves existing operational routes for %s', (profile) => {
     for (const path of [
-      ...(profile === 'external_technician'
-        ? ['/time', '/time/__data.json', '/expenses', '/expenses/__data.json']
-        : []),
+      '/time',
+      '/time/__data.json',
+      '/expenses',
+      '/expenses/__data.json',
       '/time/own-id',
       '/crew',
       '/crew/__data.json',
@@ -82,14 +86,14 @@ describe('supplier operational surface', () => {
     }
   });
 
-  it('gives a supplier coordinator no own timesheet or expense claims (D3)', () => {
-    for (const path of ['/time', '/time/__data.json', '/expenses', '/expenses/__data.json']) {
-      expect(supplierRouteAllowed(path, 'supplier_coordinator')).toBe(false);
-      expect(supplierRouteAllowed(path, 'external_technician')).toBe(true);
-    }
-    // Earlier own records stay readable by id; the team hours live in /supplier.
-    expect(supplierRouteAllowed('/time/own-id', 'supplier_coordinator')).toBe(true);
-    expect(supplierRouteAllowed('/supplier', 'supplier_coordinator')).toBe(true);
+  it('sends a supplier coordinator from own Time/Expenses to the team hours (D3)', () => {
+    expect(supplierCoordinatorOwnRecordRedirect('time', 'supplier_coordinator')).toBe(
+      'supplier?workspaceAction=time',
+    );
+    expect(supplierCoordinatorOwnRecordRedirect('expenses', 'supplier_coordinator')).toBe('supplier');
+    expect(supplierCoordinatorOwnRecordRedirect('reports', 'supplier_coordinator')).toBeNull();
+    expect(supplierCoordinatorOwnRecordRedirect('time', 'external_technician')).toBeNull();
+    expect(supplierCoordinatorOwnRecordRedirect('time', undefined)).toBeNull();
   });
 
   it('allows Digital Workers capture only for external technicians', () => {

@@ -41,21 +41,20 @@ describe('billing discard and archive pre-submit guidance', () => {
     );
   });
 
-  it('shows a Finance blocker only when explicit source or line counts are positive', () => {
-    expect(source).toContain("messageKey: 'problem.warning.billingDiscardSourceLinkedFinance'");
+  it('shows finance a neutral owner-only note instead of a blocker when source or line counts are positive (T48)', () => {
     expect(source).toContain("'invoice_source_count'");
     expect(source).toContain("'invoice_line_count'");
     expect(source).toMatch(
-      /data\.user\.role === 'finance_admin' && financeDraftHasKnownLinkedLines\(invoice\)[\s\S]*?problem=\{discardLinkedFinanceProblem\}[\s\S]*?action="\?\/deleteInvoice"/,
+      /data\.user\.role === 'finance_admin' && financeDraftHasKnownLinkedLines\(invoice\)[\s\S]*?data-finance-discard-owner-only[\s\S]*?financeDiscardOwnerOnly/u,
     );
     expect(source).toMatch(/typeof count === 'number'[\s\S]*?count > 0/);
     expect(source).toMatch(/typeof count === 'string' && \/\^\[1-9\]/);
+    // The discard form is not rendered at all for finance on a draft with lines (no disabled control).
     expect(source).toMatch(
-      /disabled=\{data\.user\.role === 'finance_admin' &&\s+financeDraftHasKnownLinkedLines\(invoice\)\}/u,
+      /\{#if !\(data\.user\.role === 'finance_admin' && financeDraftHasKnownLinkedLines\(invoice\)\)\}[\s\S]*?action="\?\/deleteInvoice"/u,
     );
-    expect(source).toMatch(
-      /problem=\{discardLinkedFinanceProblem\}[\s\S]*?\{:else\}[\s\S]*?problem=\{discardDraftWarning\}/u,
-    );
+    expect(source).not.toContain('problem={discardLinkedFinanceProblem}');
+    expect(source).toMatch(/financeDiscardOwnerOnly[\s\S]*?\{:else\}[\s\S]*?problem=\{discardDraftWarning\}/u);
   });
 
   it('explains both invoice lines and linked sources in every supported language', () => {

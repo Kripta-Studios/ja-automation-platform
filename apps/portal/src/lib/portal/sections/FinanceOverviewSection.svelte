@@ -1032,6 +1032,11 @@
       : displayBps(valueToFormat);
   }
 
+  function hasPlannedMinutes(minutes: unknown): boolean {
+    // Whole minutes only; compared as text so no money/number coercion happens in the component.
+    return /^[1-9][0-9]*$/u.test(String(minutes ?? '').trim());
+  }
+
   function displayHours(valueToFormat: unknown): string {
     const hours = clockHoursFromMinutes(valueToFormat);
     if (hours === '—') return hours;
@@ -2322,7 +2327,7 @@
             <strong>
               {displayHours(finance.actualMinutes ?? finance.approvedMinutes)}
               <small>{billingFixText(locale, 'hoursRecorded')}</small>
-              {#if Number(finance.plannedMinutes ?? 0) > 0}
+              {#if hasPlannedMinutes(finance.plannedMinutes)}
                 / {displayHours(finance.plannedMinutes)}
                 <small>{billingFixText(locale, 'hoursPlanned')}</small>
               {/if}
@@ -2336,7 +2341,7 @@
               value={progressValue(finance.hoursConsumedBps)}
             ></progress>
             <small
-              >{Number(finance.plannedMinutes ?? 0) > 0
+              >{hasPlannedMinutes(finance.plannedMinutes)
                 ? `${displayBps(finance.hoursConsumedBps)} ${translate('Hours consumed')}`
                 : billingFixText(locale, 'hoursNotPlanned')}</small
             >

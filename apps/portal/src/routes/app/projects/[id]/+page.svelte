@@ -15,6 +15,7 @@
   import ProjectHubTeam from '$lib/portal/sections/ProjectHubTeam.svelte';
   import { personDisplayName } from '$lib/portal/display-name';
   import { isSystemAccount } from '$lib/portal/system-accounts';
+  import { utcToZonedLocal, zoneLabel } from '$lib/portal/zoned-time';
   import ProjectHubLifecycle from '$lib/portal/sections/ProjectHubLifecycle.svelte';
   import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
   import type { ProjectHubData, HubMoney } from '$lib/server/project-hub';
@@ -936,7 +937,8 @@
       : new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: 'UTC' }).format(date);
   }
 
-  function formatProjectTimestamp(value: unknown): string {
+  /** D13/T31: a planned shift on the project's wall clock. */
+  function formatPlanTime(value: unknown): string {
     const raw = String(value ?? '').trim();
     if (!raw) return '—';
     const timestamp = /(?:z|[+-]\d{2}:\d{2})$/iu.test(raw) ? raw : `${raw.replace(' ', 'T')}Z`;
@@ -946,9 +948,10 @@
       : new Intl.DateTimeFormat(locale, {
           dateStyle: 'medium',
           timeStyle: 'short',
-          timeZone: 'UTC',
+          timeZone: String(project.timezone ?? 'UTC'),
         }).format(date);
   }
+
 
   function expenseAmount(row: Row): string {
     return money(row.amount_minor, String(row.currency ?? project.currency ?? 'USD'));
@@ -1617,12 +1620,16 @@
               translate={t}
               {locale}
               zoneNote={!isWorker}
+              zoneText={`${({ es: 'Horas en', pt: 'Horários em' } as Record<string, string>)[String(locale)] ?? 'Times in'} ${zoneLabel(String(project.timezone ?? 'UTC'))}`}
               onselectdate={selectProjectPlanningDate}
               events={overview.planning.map((plan) => ({
                 id: String(plan.id),
                 title: `${display(plan.worker_name)}${plan.planned_minutes == null ? '' : ` · ${hours(plan.planned_minutes)}`}`,
-                startsAt: String(plan.starts_at),
-                endsAt: plan.ends_at == null ? undefined : String(plan.ends_at),
+                startsAt: utcToZonedLocal(String(plan.starts_at), String(project.timezone ?? 'UTC')),
+                endsAt:
+                  plan.ends_at == null
+                    ? undefined
+                    : utcToZonedLocal(String(plan.ends_at), String(project.timezone ?? 'UTC')),
                 href:
                   data.user.role === 'owner_admin'
                     ? `${base}/app/manage?area=planning_assignment&project=${encodeURIComponent(String(project.id))}&focus=${encodeURIComponent(String(plan.id))}&lang=${encodeURIComponent(locale)}`
@@ -1666,9 +1673,9 @@
                   >
                     <strong>{display(plan.worker_name, t('Assigned worker'))}</strong></a
                   ><small>{display(plan.site)} · {display(plan.required_skill)}</small><span
-                    >{formatProjectTimestamp(plan.starts_at)}{plan.ends_at
-                      ? ` → ${formatProjectTimestamp(plan.ends_at)}`
-                      : ''} · {projectUx2('utc')}</span
+                    >{formatPlanTime(plan.starts_at)}{plan.ends_at
+                      ? ` → ${formatPlanTime(plan.ends_at)}`
+                      : ''} · {zoneLabel(String(project.timezone ?? 'UTC'))}</span
                   >
                 </article>
               {:else}

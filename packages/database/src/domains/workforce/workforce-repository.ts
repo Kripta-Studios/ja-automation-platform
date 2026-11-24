@@ -373,11 +373,21 @@ export class WorkforceRepository {
       throw this.deps.errors.validation('Active worker not found');
     if (principal.role === 'worker' && principal.userId !== input.workerId)
       throw this.deps.errors.accessDenied('Worker availability ownership required');
+    // D5/T43: finance never writes someone else's availability; a project
+    // manager only for workers on a project he manages (the project's
+    // designated manager), not on every project he is merely a member of.
+    if (principal.role === 'finance_admin' && principal.userId !== input.workerId)
+      throw this.deps.errors.accessDenied('Worker availability ownership required');
     if (principal.role === 'project_manager' && principal.userId !== input.workerId) {
       const assigned = [...principal.projectIds].some(
         (projectId) =>
-          this.effectiveLaborAssignment(projectId, input.workerId) &&
-          this.effectiveLaborAssignment(projectId, principal.userId),
+          Boolean(
+            this.deps.sqlite
+              .prepare('SELECT 1 FROM project WHERE id=? AND project_manager_id=?')
+              .get(projectId, principal.userId),
+          ) &&
+          this.effectiveLaborAssignment(projectId, principal.userId) &&
+          this.effectiveLaborAssignment(projectId, input.workerId),
       );
       if (!assigned)
         throw this.deps.errors.accessDenied('Worker availability is outside the project scope');

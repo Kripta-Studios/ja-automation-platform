@@ -1371,11 +1371,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           requestedWorkerId && workers.some((worker) => String(worker.id) === requestedWorkerId)
             ? requestedWorkerId
             : undefined;
-        const fallbackWorkerId = String(
-          workers.find((worker) => String(worker.id) === context.principal.userId)?.id ??
-            workers[0]?.id ??
-            context.principal.userId,
-        );
+        // T43: Profile always opens on the signed-in person; inspecting another
+        // worker is an explicit choice (?worker=…), never the first list entry.
+        const fallbackWorkerId = context.principal.userId;
         const targetWorkerId = canInspectWorkforce
           ? (validRequestedWorkerId ?? fallbackWorkerId)
           : context.principal.userId;
@@ -1393,6 +1391,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             context.principal,
             targetWorkerId,
           ),
+          // D13/T31: availability is typed and shown in the time zone of the
+          // person's current (or latest) project; UTC only without a project.
+          availabilityTimeZone:
+            (
+              context.sqlite
+                .prepare(
+                  `SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id
+                    WHERE pm.user_id=? AND pm.status='active'
+                    ORDER BY (pm.ends_on IS NULL OR pm.ends_on>=date('now')) DESC, pm.starts_on DESC LIMIT 1`,
+                )
+                .get(targetWorkerId) as { timezone?: string } | undefined
+            )?.timezone ?? 'UTC',
         };
       }
       case 'notifications': {

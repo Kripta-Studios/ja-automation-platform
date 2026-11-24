@@ -452,7 +452,7 @@ export class PlanningRepository {
           `${scope.withClause}
            SELECT DISTINCT pa.id,pa.project_id,pa.worker_id,pa.starts_at,pa.ends_at,
                   pa.planned_minutes,pa.status,pa.site,pa.required_skill,pa.version,
-                  pa.created_at,pa.updated_at,p.project_number,p.name project_name,u.name worker_name
+                  pa.created_at,pa.updated_at,p.project_number,p.name project_name,p.timezone project_timezone,u.name worker_name
            FROM planning_assignment pa
            JOIN project p ON p.id=pa.project_id
            JOIN user u ON u.id=pa.worker_id
@@ -476,7 +476,7 @@ export class PlanningRepository {
         : 'pa.*';
     return this.deps.sqlite
       .prepare(
-        `SELECT ${columns},p.project_number,p.name project_name,u.name worker_name
+        `SELECT ${columns},p.project_number,p.name project_name,p.timezone project_timezone,u.name worker_name
          FROM planning_assignment pa
          JOIN project p ON p.id=pa.project_id
          JOIN user u ON u.id=pa.worker_id

@@ -128,6 +128,7 @@
   import { configureOfflineIdentity, queueMutation, type OfflineAttachment } from './offline';
   import { paymentMoney } from './portal/payment-money';
   import { scaleWindowText } from './portal/sections/scale-window-copy';
+  import { utcToZonedLocal, zoneLabel } from './portal/zoned-time';
   import {
     hasControlledValue,
     translateControlledValue,
@@ -1981,6 +1982,34 @@
   );
   const canAudit = $derived(data.user.role === 'owner_admin' || isAuditor);
   const showAdmin = $derived(visibleAdmin.length > 0 || securityAdmin.length > 0);
+  // D13/T31: planning is typed and shown on each project's wall clock.
+  const zoneCopy = $derived(
+    (
+      {
+        es: {
+          in: 'Horas en',
+          each: 'El calendario muestra cada turno en la zona horaria de su proyecto. La planificación nunca crea horas reales.',
+          pick: 'Elige el proyecto: las horas se introducen en su zona horaria.',
+        },
+        pt: {
+          in: 'Horários em',
+          each: 'O calendário mostra cada turno no fuso horário do seu projeto. O planejamento nunca cria horas reais.',
+          pick: 'Escolha o projeto: os horários são informados no fuso horário dele.',
+        },
+      } as Record<string, { in: string; each: string; pick: string }>
+    )[String(locale).slice(0, 2)] ?? {
+      in: 'Times in',
+      each: "The calendar shows each shift in its project's time zone. Planning never creates actual hours.",
+      pick: "Choose the project first: times are entered in its time zone.",
+    },
+  );
+  const planningRowZone = (row: Row): string => String(row.project_timezone ?? 'UTC');
+  const planningCreateZone = $derived(
+    String(
+      (data.projects ?? []).find((project) => String(project.id) === planningProjectId)?.timezone ??
+        '',
+    ),
+  );
   const availableProjects = $derived(
     data.projects && data.projects.length > 0
       ? data.projects
@@ -6773,7 +6802,11 @@
               >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
-                value={planningEditValue(row, 'startsAt', row.starts_at).slice(0, 16)}
+                value={planningEditValue(
+                  row,
+                  'startsAt',
+                  utcToZonedLocal(String(row.starts_at), planningRowZone(row)),
+                ).slice(0, 16)}
                 required
               /></label
             >{#if planningFieldMessage('startsAt', 'updatePlanning', String(row.id))}<small
@@ -6785,7 +6818,11 @@
               >{translate('End (optional)')}<input
                 name="endsAt"
                 type="datetime-local"
-                value={planningEditValue(row, 'endsAt', row.ends_at).slice(0, 16)}
+                value={planningEditValue(
+                  row,
+                  'endsAt',
+                  row.ends_at == null ? '' : utcToZonedLocal(String(row.ends_at), planningRowZone(row)),
+                ).slice(0, 16)}
               /></label
             >{#if planningFieldMessage('endsAt', 'updatePlanning', String(row.id))}<small
                 class="field-error"
@@ -6859,18 +6896,20 @@
           {translate}
           {locale}
           agendaId="planning-day-agenda"
+          zoneNote={false}
           initialDate={$page.url.searchParams.get('date') ?? undefined}
           events={(data.planningCalendar ?? data.records ?? []).map((row) => ({
             id: String(row.id),
             title: `${personDisplayName(row.worker_name)} · ${row.project_number}${row.planned_minutes == null ? '' : ` · ${hoursFromMinutes(row.planned_minutes)}`}`,
-            startsAt: String(row.starts_at),
-            endsAt: row.ends_at == null ? undefined : String(row.ends_at),
+            startsAt: utcToZonedLocal(String(row.starts_at), planningRowZone(row)),
+            endsAt:
+              row.ends_at == null ? undefined : utcToZonedLocal(String(row.ends_at), planningRowZone(row)),
             href: planningRecordHref(row),
           }))}
           onselectdate={canManageAssignmentControls ? selectPlanningDate : undefined}
         />
         <p class="form-help">
-          {translate('Calendar times are shown in UTC. Planning never creates actual hours.')}
+          {zoneCopy.each}
         </p>
         {#if focusedPlanningRecord}
           <section
@@ -7236,12 +7275,10 @@
                 >{/if}
             </fieldset>
             <p class="form-help">
-              {translate(
-                'Enter dates and times in UTC. The worker agenda also shows times in UTC.',
-              )}
+              {planningCreateZone ? `${zoneCopy.in} ${zoneLabel(planningCreateZone)}` : zoneCopy.pick}
             </p>
             <label
-              >{translate('Start (UTC)')}<input
+              >{translate('Start')}<input
                 name="startsAt"
                 type="datetime-local"
                 bind:value={planningStarts}
@@ -7251,7 +7288,7 @@
                 class="field-error"
                 role="alert">{planningFieldMessage('startsAt', 'createPlanning')}</small
               >{/if}<label
-              >{translate('End (UTC, optional)')}<input
+              >{translate('End (optional)')}<input
                 name="endsAt"
                 type="datetime-local"
                 bind:value={planningEnds}
@@ -7712,7 +7749,9 @@
               records={data.availability ?? []}
               workerId={profileWorkerId}
               currentUserId={String(data.user.id)}
-              readOnly={isAuditor}
+              timeZone={String((data as { availabilityTimeZone?: string }).availabilityTimeZone ?? 'UTC')}
+              readOnly={isAuditor ||
+                (data.user.role === 'finance_admin' && profileWorkerId !== String(data.user.id))}
               {form}
               {translate}
               {locale}

@@ -1,4 +1,5 @@
 import { withOperationalActionNames } from './operational-action-context';
+import { zonedLocalToUtcIso } from '$lib/portal/zoned-time';
 import {
   accountingPackPeriodSchema,
   availabilityInputSchema,
@@ -1231,6 +1232,56 @@ type WorkforceOperation =
   | 'deleteSkill'
   | 'deleteWorkerSkill'
   | 'setAvailability';
+
+const LOCAL_WALL_CLOCK = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/u;
+
+/** Time zone of a project (UTC when unknown). Read-only lookup for input conversion. */
+function projectTimeZone(locals: App.Locals, projectId: string): string {
+  if (!projectId) return 'UTC';
+  let context: ReturnType<typeof openPortalRepository> | undefined;
+  try {
+    context = openPortalRepository(locals);
+    const row = context.sqlite.prepare('SELECT timezone FROM project WHERE id=?').get(projectId) as
+      | { timezone?: string }
+      | undefined;
+    return row?.timezone || 'UTC';
+  } catch {
+    return 'UTC';
+  } finally {
+    context?.sqlite.close();
+  }
+}
+
+/** Time zone of a person's current (or latest) project, as the profile shows it. */
+function workerTimeZone(locals: App.Locals, workerId: string): string {
+  if (!workerId) return 'UTC';
+  let context: ReturnType<typeof openPortalRepository> | undefined;
+  try {
+    context = openPortalRepository(locals);
+    const row = context.sqlite
+      .prepare(
+        `SELECT p.timezone FROM project_member pm JOIN project p ON p.id=pm.project_id
+          WHERE pm.user_id=? AND pm.status='active'
+          ORDER BY (pm.ends_on IS NULL OR pm.ends_on>=date('now')) DESC, pm.starts_on DESC LIMIT 1`,
+      )
+      .get(workerId) as { timezone?: string } | undefined;
+    return row?.timezone || 'UTC';
+  } catch {
+    return 'UTC';
+  } finally {
+    context?.sqlite.close();
+  }
+}
+
+/** Planning start/end typed as "YYYY-MM-DDTHH:mm" are the project's wall clock (D13). */
+function zonedPlanningFields(locals: App.Locals, object: Record<string, unknown>): void {
+  const local = (['startsAt', 'endsAt'] as const).filter(
+    (key) => typeof object[key] === 'string' && LOCAL_WALL_CLOCK.test(object[key] as string),
+  );
+  if (!local.length) return;
+  const zone = projectTimeZone(locals, typeof object.projectId === 'string' ? object.projectId : '');
+  for (const key of local) object[key] = zonedLocalToUtcIso(object[key] as string, zone);
+}
 
 const planningFields = [
   'id',
@@ -2642,14 +2693,8 @@ export const reportActions = withOperationalActionNames({
       { ...object, workerIds: JSON.stringify(object.workerIds) },
       planningFields,
     );
-    // Planning's datetime-local controls represent UTC, independent of the server timezone.
-    for (const key of ['startsAt', 'endsAt']) {
-      const value = object[key];
-      object[key] =
-        typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
-          ? `${value}:00.000Z`
-          : value;
-    }
+    // D13/T31: planning's datetime-local controls are the project's wall clock.
+    zonedPlanningFields(locals, object);
     const parsed = planningAssignmentInputSchema
       .omit({ workerId: true })
       .extend({
@@ -2703,13 +2748,7 @@ export const reportActions = withOperationalActionNames({
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
     const values = safeWorkforceValues(object, planningFields);
-    for (const key of ['startsAt', 'endsAt']) {
-      const value = object[key];
-      object[key] =
-        typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)
-          ? `${value}:00.000Z`
-          : value;
-    }
+    zonedPlanningFields(locals, object);
     const parsed = planningAssignmentInputSchema.and(versionedRecordSchema).safeParse(object);
     if (!parsed.success)
       return workforceInputFailure(
@@ -2922,8 +2961,15 @@ export const reportActions = withOperationalActionNames({
       'availability',
       'note',
     ]);
-    object.startsAt = normalizeLocalDateTime(object.startsAt);
-    object.endsAt = normalizeLocalDateTime(object.endsAt);
+    // D13/T31: availability is typed on the person's project wall clock.
+    let availabilityZone: string | undefined;
+    for (const key of ['startsAt', 'endsAt'] as const) {
+      const value = object[key];
+      if (typeof value === 'string' && LOCAL_WALL_CLOCK.test(value)) {
+        availabilityZone ??= workerTimeZone(locals, String(object.workerId ?? ''));
+        object[key] = zonedLocalToUtcIso(value, availabilityZone);
+      } else object[key] = normalizeLocalDateTime(value);
+    }
     const parsed = availabilityInputSchema.safeParse(object);
     if (!parsed.success)
       return workforceInputFailure(

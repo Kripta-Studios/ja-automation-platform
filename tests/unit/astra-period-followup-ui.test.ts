@@ -28,7 +28,10 @@ describe('ASTRA C1 period review surface', () => {
     expect(source).toContain('data-source-link');
     expect(source).toContain('data-finance-readiness');
     expect(source).toContain('copy.periodNotAccepted');
-    expect(source).toContain('copy.noFinanceAmounts');
+    // Project managers do not get the finance card at all (audit T57 / pm-26).
+    expect(source).toMatch(
+      /\{#if data\.userRole !== 'project_manager'\}\s*<SectionCard title=\{copy\.financeReadiness\}/u,
+    );
   });
 
   it('keeps review copy complete for English, Spanish and Portuguese', async () => {

@@ -74,4 +74,8 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
   ],
   'Crew draft discarded.': ['Borrador del equipo descartado.', 'Rascunho da equipe descartado.'],
   'Reviewer note': ['Nota del revisor', 'Observação do revisor'],
+  'This report is waiting for review. Approve it or send it back in Approvals.': [
+    'Este informe espera revisión. Apruébalo o devuélvelo en Aprobaciones.',
+    'Este relatório aguarda revisão. Aprove ou devolva em Aprovações.',
+  ],
 };

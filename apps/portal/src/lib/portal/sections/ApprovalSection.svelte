@@ -749,6 +749,7 @@
   const reportLabels: Record<string, ApprovalQueueCopyKey> = {
     tasks: 'reportTasks',
     problems: 'reportProblems',
+    open_items: 'reportOpenItems',
     blockers: 'reportBlockers',
     next_day: 'reportNextDay',
     safety: 'reportSafety',
@@ -1163,42 +1164,51 @@
                     <span class="aq-muted">{t('readOnly')}</span>
                   {:else if group.actionable.length === 0}
                     <span class="aq-muted">{t('ownRecord')}</span>
-                  {:else}
-                    {#if confirmApproveFor === group.key}
-                      <form
-                        class="aq-confirm"
-                        method="POST"
-                        action="?/approveBatch"
-                        aria-label={t('approveWeekConfirm', { summary: groupFacts(group, group.actionable) })}
-                        use:escapeCloses={() => (confirmApproveFor = null)}
-                        use:enhance={decide(
-                          group.key,
-                          `${groupTitle(group)} · ${groupFacts(group, group.actionable)}`,
-                          'approved',
-                        )}
-                      >
-                        {#each group.actionable as item (item.id)}
-                          <input type="hidden" name="item" value={token(item)} />
-                        {/each}
-                        <p>{t('approveWeekConfirm', { summary: groupFacts(group, group.actionable) })}</p>
-                        <button type="submit" class="aq-primary" disabled={busyKey !== null} data-testid="aq-approve-week-yes">
-                          {busyKey === group.key ? t('approving') : t('approveWeekYes')}
-                        </button>
-                        <button type="button" class="aq-secondary" onclick={() => (confirmApproveFor = null)}
-                          >{t('cancel')}</button
-                        >
-                      </form>
-                    {:else}
+                  {:else if confirmApproveFor === group.key}
+                    <form
+                      class="aq-confirm"
+                      method="POST"
+                      action="?/approveBatch"
+                      aria-label={t('approveWeekConfirm', {
+                        summary: groupFacts(group, group.actionable),
+                      })}
+                      use:escapeCloses={() => (confirmApproveFor = null)}
+                      use:enhance={decide(
+                        group.key,
+                        `${groupTitle(group)} · ${groupFacts(group, group.actionable)}`,
+                        'approved',
+                      )}
+                    >
+                      {#each group.actionable as item (item.id)}
+                        <input type="hidden" name="item" value={token(item)} />
+                      {/each}
+                      <p>
+                        {t('approveWeekConfirm', { summary: groupFacts(group, group.actionable) })}
+                      </p>
                       <button
-                        type="button"
+                        type="submit"
                         class="aq-primary"
                         disabled={busyKey !== null}
-                        onclick={() => (confirmApproveFor = group.key)}
-                        data-testid="aq-approve-week"
+                        data-testid="aq-approve-week-yes"
                       >
-                        {t('approveWeek')}
+                        {busyKey === group.key ? t('approving') : t('approveWeekYes')}
                       </button>
-                    {/if}
+                      <button
+                        type="button"
+                        class="aq-secondary"
+                        onclick={() => (confirmApproveFor = null)}>{t('cancel')}</button
+                      >
+                    </form>
+                  {:else}
+                    <button
+                      type="button"
+                      class="aq-primary"
+                      disabled={busyKey !== null}
+                      onclick={() => (confirmApproveFor = group.key)}
+                      data-testid="aq-approve-week"
+                    >
+                      {t('approveWeek')}
+                    </button>
                   {/if}
                 </div>
               </div>
@@ -1235,8 +1245,12 @@
                             >
                             {#if rowEstimate(item.row)}
                               <span class="aq-estimate" data-testid="aq-expense-estimate"
-                                >{rowEstimate(item.row)}{#if role === 'owner_admin' || role === 'finance_admin'}
-                                  · <a href={`${base}/app/finance/conversions`}>{t('convertLink')}</a>{/if}</span
+                                >{rowEstimate(
+                                  item.row,
+                                )}{#if role === 'owner_admin' || role === 'finance_admin'}
+                                  · <a href={`${base}/app/finance/conversions`}
+                                    >{t('convertLink')}</a
+                                  >{/if}</span
                               >
                             {/if}
                           {/if}
@@ -1290,7 +1304,9 @@
                               class="aq-secondary"
                               disabled={busyKey !== null}
                               data-testid="aq-approve-one"
-                              >{busyKey === `one:${item.id}` ? t('approving') : t('approveOne')}</button
+                              >{busyKey === `one:${item.id}`
+                                ? t('approving')
+                                : t('approveOne')}</button
                             >
                           </form>
                         {/if}
@@ -1546,7 +1562,8 @@
     {/if}
 
     <!-- Approved, not invoiced: a separate list, loaded only on request. -->
-    {#if !approvedView}
+    <!-- Reports are never invoiced: the reports tab has no such link. -->
+    {#if !approvedView && activeTab !== 'reports'}
       <p class="aq-more-row">
         <a
           class="aq-link"
@@ -1555,7 +1572,7 @@
           data-approved-open>{t('approvedOpen')}</a
         >
       </p>
-    {:else}
+    {:else if approvedView}
       <section
         class="aq-more aq-approved"
         data-approved-list

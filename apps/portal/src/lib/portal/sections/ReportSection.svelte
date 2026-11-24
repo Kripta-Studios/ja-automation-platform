@@ -16,6 +16,8 @@
   import { onMount, tick } from 'svelte';
   import { reportFormFieldErrors } from '../ui/form-validation';
   import { workRound2Text } from '../work-ux-round2-copy';
+  import { personDisplayName } from '../display-name';
+  import { formatPortalDate } from '../../i18n/format';
   import { ResponsiveSheet, StatusBadge } from '../ui';
   import ProblemNotice from '../ui/ProblemNotice.svelte';
   import { beginReportPdfDownload, type ReportPdfAttempt } from '../ui/report-pdf-download';
@@ -198,6 +200,7 @@
   let surface = $state<Surface>(nativeReportSurface);
   let surfaceError = $state('');
   let surfaceProblem = $state<ProblemData | null>(nativeReportSurface ? nativeReportForm : null);
+  let surfaceProblemInline = $state(false);
   let saving = $state(false);
   let createDate = $state(nativeReportValue('workDate') || nativeReportValue('reportDate'));
   let createProject = $state(nativeReportValue('projectId'));
@@ -289,6 +292,15 @@
     },
     setProblem: (value) => {
       surfaceProblem = value;
+      // A validation problem whose fields are on the open form is shown once, next to
+      // those fields and in the form's summary; no second card with recovery buttons.
+      const fieldNames = Object.keys(value?.fieldErrors ?? {});
+      surfaceProblemInline =
+        fieldNames.length > 0 &&
+        typeof document !== 'undefined' &&
+        fieldNames.every((name) =>
+          document.querySelector(`[data-report-entry-surface] [name="${CSS.escape(name)}"]`),
+        );
     },
     onSuccess: (result) => {
       const createdType = surface;
@@ -461,9 +473,6 @@
     ].sort(),
   );
   const activeFieldTab = $derived(activeTab === 'technical' ? 'technical' : 'daily');
-  const fieldReportsForActiveTab = $derived(
-    activeFieldTab === 'technical' ? technicalReports : dailyReports,
-  );
   const customerPeriodReports = $derived(
     periodReports.filter((report) => String(report.audience ?? '').toLowerCase() === 'customer'),
   );
@@ -568,11 +577,26 @@
     ];
   }
   const statusOptions = $derived(reportStatusOptions(activeTab));
-  const pendingReportCount = $derived(
-    data.reportWindow?.[activeFieldTab]?.pending ??
-      fieldReportsForActiveTab.filter((row) =>
+  // "Needs attention" counts daily AND technical reports, and opens the list that has them
+  // (a waiting technical report used to show 0 from the daily tab).
+  function pendingFieldReports(tab: 'daily' | 'technical'): number {
+    return (
+      data.reportWindow?.[tab]?.pending ??
+      (tab === 'technical' ? technicalReports : dailyReports).filter((row) =>
         ['draft', 'submitted', 'needs_changes'].includes(String(row.approval_state)),
-      ).length,
+      ).length
+    );
+  }
+  const pendingDailyCount = $derived(pendingFieldReports('daily'));
+  const pendingTechnicalCount = $derived(pendingFieldReports('technical'));
+  const pendingReportCount = $derived(pendingDailyCount + pendingTechnicalCount);
+  const attentionTab = $derived<'daily' | 'technical'>(
+    (activeFieldTab === 'technical' ? pendingTechnicalCount : pendingDailyCount) > 0 ||
+      pendingReportCount === 0
+      ? activeFieldTab
+      : activeFieldTab === 'technical'
+        ? 'daily'
+        : 'technical',
   );
   const readySignoffCount = $derived(
     signoffScopeRows.filter((report) => signoffState(report) === 'ready_for_signature').length,
@@ -719,7 +743,7 @@
       projectId,
       ['author_name', 'created_by_name'],
     );
-    if (!reportWindow || tab === 'signoff') return local;
+    if (!reportWindow || tab === 'signoff') return withDisplayNames(local);
     let windowProject = '';
     try {
       windowProject = String((JSON.parse(reportWindow.key) as unknown[])[1] ?? '');
@@ -729,7 +753,13 @@
     if (windowProject !== projectId) return local;
     const merged = new SvelteMap<string, string>(reportWindow[tab].workers);
     for (const [id, name] of local) if (!merged.has(id)) merged.set(id, name);
-    return [...merged].sort((a, b) => a[1].localeCompare(b[1]));
+    return withDisplayNames([...merged]);
+  }
+  /** Worker filter options show the person's name, never the login. */
+  function withDisplayNames(options: Array<[string, string]>): Array<[string, string]> {
+    return options
+      .map(([id, name]): [string, string] => [id, personDisplayName(name) || name])
+      .sort((a, b) => a[1].localeCompare(b[1]));
   }
   const pagedDailyReports = $derived(operationalPage(filteredDailyReports, dailyPage));
   const pagedTechnicalReports = $derived(operationalPage(filteredTechnicalReports, technicalPage));
@@ -1020,7 +1050,9 @@
     surfaceProblem = null;
     const requestedDate = $page.url.searchParams.get('date')?.trim() ?? '';
     createDate = /^\d{4}-\d{2}-\d{2}$/u.test(requestedDate) ? requestedDate : localToday();
-    createProject = projectFilter;
+    // One project available (typical for a PM or a worker): start on it.
+    createProject =
+      projectFilter || (availableProjects.length === 1 ? String(availableProjects[0]!.id) : '');
     createWorker = '';
     if (fieldWorker) prepareQuickReport(type);
     surface = type;
@@ -1195,6 +1227,7 @@
       /* Remembering is only a convenience. */
     }
     if (id && quickPhotos.length) {
+      const failedPhotos: Array<{ name: string; reason: string }> = [];
       for (const [index, file] of quickPhotos.entries()) {
         quickBusy = q('uploading', { n: index + 1, total: quickPhotos.length });
         const body = new FormData();
@@ -1205,7 +1238,24 @@
           `${base}/app/api/reports/${encodeURIComponent(id)}/attachments`,
           { method: 'POST', body, credentials: 'same-origin', headers: { accept: 'application/json' } },
         ).catch(() => null);
-        if (!response?.ok) notice = q('photoFailed');
+        if (!response?.ok) {
+          // Name the photo and say why (e.g. the same file is already a receipt).
+          const problem = response
+            ? ((await response.json().catch(() => null)) as { messageKey?: unknown } | null)
+            : null;
+          const key = typeof problem?.messageKey === 'string' ? problem.messageKey : '';
+          const reason = key ? portalText(reportLocale, key) : '';
+          failedPhotos.push({ name: file.name, reason: reason && reason !== key ? reason : '' });
+        }
+      }
+      if (failedPhotos.length) {
+        const reasons = [...new Set(failedPhotos.map((photo) => photo.reason).filter(Boolean))];
+        notice = reasons.length
+          ? q('photoFailedNamed', {
+              names: failedPhotos.map((photo) => `“${photo.name}”`).join(', '),
+              reason: reasons.join(' '),
+            })
+          : q('photoFailed');
       }
       if (quickWantSend && !notice) {
         quickBusy = q('sending');
@@ -1225,6 +1275,12 @@
     savedReportNotice = notice || (submitted ? q('sent') : q('draftSaved'));
     closeSurface();
     await invalidateAll();
+  }
+  /** '2026-11-23' -> '23 nov 2026' in the page language (the date itself, no timezone shift). */
+  function reportDayText(value: string): string {
+    return /^\d{4}-\d{2}-\d{2}$/u.test(value)
+      ? formatPortalDate(`${value}T00:00:00Z`, reportLocale, { timeZone: 'UTC' })
+      : value;
   }
   const myReports = $derived(
     [...records]
@@ -1366,7 +1422,7 @@
           {#each myReports as row (String(row.type) + String(row.id))}
             <li class="quick-row" data-status={rowText(row, 'approval_state')}>
               <a class="quick-row-link" href={reportDetailHref(String(row.id))}>
-                <strong>{rowText(row, 'date')} · {reportTypeLabel(row)}</strong>
+                <strong>{reportDayText(rowText(row, 'date'))} · {reportTypeLabel(row)}</strong>
                 <span
                   >{rowText(row, 'project_number')} · {rowText(row, 'title') ||
                     translate('Daily field report')}</span
@@ -1454,10 +1510,20 @@
   <div class="report-attention" aria-label={translate('Report attention summary')}>
     <a
       class="report-attention-card"
-      href={`${registerHref({ view: activeFieldTab, status: 'attention' })}#report-panel-${activeFieldTab}`}
+      href={`${registerHref({ view: attentionTab, status: 'attention' })}#report-panel-${attentionTab}`}
+      data-report-attention
     >
       <span>{translate('Needs attention')}</span>
       <strong>{pendingReportCount}</strong>
+      {#if pendingDailyCount && pendingTechnicalCount}
+        <small
+          >{workRound2Text(reportLocale, 'reportDailyTab')} {pendingDailyCount} · {workRound2Text(
+            reportLocale,
+            'reportTechnicalTab',
+          )}
+          {pendingTechnicalCount}</small
+        >
+      {/if}
       <small>{translate('Draft, submitted, or returned field reports')}</small>
     </a>
     <a
@@ -1704,9 +1770,9 @@
                 )}</small
               >
               <small>
-                {translate('Work performed by')}: {rowText(row, 'author_name')} · {translate(
+                {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
-                )}: {rowText(row, 'created_by_name') || rowText(row, 'author_name')}
+                )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}
                 {#if rowText(row, 'reviewed_by_name')}
                   · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
                 {/if}
@@ -1826,9 +1892,9 @@
                 )}</small
               >
               <small>
-                {translate('Work performed by')}: {rowText(row, 'author_name')} · {translate(
+                {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
-                )}: {rowText(row, 'created_by_name') || rowText(row, 'author_name')}
+                )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}
                 {#if rowText(row, 'reviewed_by_name')}
                   · {translate('Reviewed by')}: {rowText(row, 'reviewed_by_name')}
                 {/if}
@@ -2230,7 +2296,9 @@
   onclose={closeSurface}
   protectChanges
 >
-  {#if surfaceProblem}
+  {#if surfaceProblem && surfaceProblemInline}
+    <!-- Shown next to the fields and in the form's summary. -->
+  {:else if surfaceProblem}
     <div class="operational-form-error" tabindex="-1" data-operational-form-error>
       <ProblemNotice
         problem={surfaceProblem}
@@ -2403,10 +2471,6 @@
           /></label
         >
         <label class="quick-field"
-          ><span>{translate('Problems found')}</span><textarea name="problemsFound" rows="2"
-          ></textarea></label
-        >
-        <label class="quick-field"
           ><span>{translate('Corrective actions')}</span><textarea
             name="correctiveActions"
             rows="2"
@@ -2572,7 +2636,7 @@
             aria-busy={eligibleReportWorkersLoading}
             ><option value="">{translate('Select worker')}</option
             >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
-                >{worker.name} — {worker.email}</option
+                >{personDisplayName(worker.name, worker.email)} — {worker.email}</option
               >{/each}</select
           ></label
         >
@@ -2792,7 +2856,7 @@
               aria-busy={eligibleReportWorkersLoading}
               ><option value="">{translate('Select worker')}</option
               >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
-                  >{worker.name} — {worker.email}</option
+                  >{personDisplayName(worker.name, worker.email)} — {worker.email}</option
                 >{/each}</select
             ></label
           >

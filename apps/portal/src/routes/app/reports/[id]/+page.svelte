@@ -1,6 +1,7 @@
 <script lang="ts">
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import PrintIcon from '$lib/portal/ui/PrintIcon.svelte';
+  import { personDisplayName } from '$lib/portal/display-name';
   import { base } from '$app/paths';
   import { beforeNavigate } from '$app/navigation';
   import { deserialize } from '$app/forms';
@@ -1298,7 +1299,7 @@
         </div>
         <div>
           <dt>{t('Work performed by')}</dt>
-          <dd>{display(report.author_name)}</dd>
+          <dd>{personDisplayName(display(report.author_name))}</dd>
         </div>
       </dl>
     </div>
@@ -2253,6 +2254,14 @@
         status={controlled('status', report.approval_state)}
         {remedyLinks}
       />
+    {:else if report.approval_state === 'submitted' && ['owner_admin', 'project_manager'].includes(data.user?.role ?? '')}
+      <p class="change-alert" role="note" data-report-review-note>
+        {t('This report is waiting for review. Approve it or send it back in Approvals.')}
+        <a
+          href={`${base}/app/approvals?project=${encodeURIComponent(String(report.project_id))}&tab=reports&status=submitted&q=&lang=${encodeURIComponent(locale)}`}
+          >{t('Review in approvals')}</a
+        >
+      </p>
     {:else}
       <p class="change-alert" role="note">
         {t(
@@ -2274,20 +2283,20 @@
         >
       </article>
       <article>
-        <span>{t('WORK PERFORMED BY')}</span><strong>{display(report.author_name)}</strong><small
-          >{display(report.author_email)}</small
-        >
+        <span>{t('WORK PERFORMED BY')}</span><strong
+          >{personDisplayName(display(report.author_name))}</strong
+        ><small>{display(report.author_email)}</small>
       </article>
       <article>
         <span>{t('REPORT CREATED BY')}</span><strong
-          >{display(report.created_by_name || report.author_name)}</strong
+          >{personDisplayName(display(report.created_by_name || report.author_name))}</strong
         ><small>{display(report.created_by_email || report.author_email)}</small>
       </article>
       {#if report.reviewed_by_name}
         <article>
-          <span>{t('REVIEWED BY')}</span><strong>{display(report.reviewed_by_name)}</strong><small
-            >{display(report.reviewed_by_email)}</small
-          >
+          <span>{t('REVIEWED BY')}</span><strong
+            >{personDisplayName(display(report.reviewed_by_name))}</strong
+          ><small>{display(report.reviewed_by_email)}</small>
         </article>
       {/if}
       <article>
@@ -2311,35 +2320,35 @@
     data-history-panel
   >
     <details class="report-history-fold" open={!fieldPerson}>
-    <summary class="report-history-intro">
-      <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
-      <span class="history-count">{history.length} {t('events')}</span>
-    </summary>
-    {#each history as event}
-      <article class="history-event">
-        <div>
-          <strong>{eventAction(event.action)}</strong>
-          <small
-            >{display(event.actor_name) || t('System / machine')} · {display(event.occurred_at)
-              .replace('T', ' ')
-              .slice(0, 19)}</small
-          >
-        </div>
-        {#if changedFields(event.details_json).length > 0}
-          <span class="change-summary"
-            >{t('Changed')}: {changedFields(event.details_json).join(', ')}</span
-          >
-        {/if}
-        {#each auditSummary(event.details_json) as entry}
-          <p class="change-summary"><strong>{entry.label}:</strong> {entry.value}</p>
-        {/each}
-        {#if event.details_json}
-          <details>
-            <summary>{t('Audit details')}</summary><code>{display(event.details_json)}</code>
-          </details>
-        {/if}
-      </article>
-    {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
+      <summary class="report-history-intro">
+        <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
+        <span class="history-count">{history.length} {t('events')}</span>
+      </summary>
+      {#each history as event}
+        <article class="history-event">
+          <div>
+            <strong>{eventAction(event.action)}</strong>
+            <small
+              >{display(event.actor_name) || t('System / machine')} · {display(event.occurred_at)
+                .replace('T', ' ')
+                .slice(0, 19)}</small
+            >
+          </div>
+          {#if changedFields(event.details_json).length > 0}
+            <span class="change-summary"
+              >{t('Changed')}: {changedFields(event.details_json).join(', ')}</span
+            >
+          {/if}
+          {#each auditSummary(event.details_json) as entry}
+            <p class="change-summary"><strong>{entry.label}:</strong> {entry.value}</p>
+          {/each}
+          {#if event.details_json}
+            <details>
+              <summary>{t('Audit details')}</summary><code>{display(event.details_json)}</code>
+            </details>
+          {/if}
+        </article>
+      {:else}<p class="empty">{t('No audit history recorded.')}</p>{/each}
     </details>
   </SectionCard>
 

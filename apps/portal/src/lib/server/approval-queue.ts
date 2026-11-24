@@ -267,7 +267,7 @@ function decorator(context: PortalContext, labels: Labels) {
     'SELECT system_name title FROM technical_report WHERE id=? AND project_id=? AND author_id=?',
   );
   const dailyDetail = context.sqlite.prepare(
-    `SELECT tasks_completed tasks,problems_found problems,blockers,next_day_plan next_day,
+    `SELECT tasks_completed tasks,problems_found problems,open_items open_items,blockers,next_day_plan next_day,
             safety_notes safety,downtime_minutes downtime FROM daily_report
       WHERE id=? AND project_id=? AND worker_id=?`,
   );

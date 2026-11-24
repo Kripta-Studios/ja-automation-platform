@@ -915,71 +915,73 @@
       {/if}
     </SectionCard>
 
-    <SectionCard title={copy.financeReadiness} data-finance-readiness>
-      {#if data.userRole === 'project_manager'}
-        <p class="restricted-note">{copy.noFinanceAmounts}</p>
-      {:else if finance.billing?.length}
-        <p class="review-help">{copy.sourceIdsBelong}</p>
-        <div class="readiness-list">
-          {#each finance.billing ?? [] as stream}
-            {@const readiness = (stream.readiness ?? {}) as Row}
-            <article class="readiness-card">
-              <header>
-                <div>
-                  <h3>{display(stream.streamType)}</h3>
-                  <p>{copy.cadence}: {display(stream.cadenceType)}</p>
-                </div>
-                <StatusBadge
-                  variant={statusVariant(readiness.state)}
-                  text={statusLabel(readiness.state)}
-                />
-              </header>
-              {#if Array.isArray(readiness.reasons) && readiness.reasons.length}
-                <ul>
-                  {#each readiness.reasons as reason}
-                    {@const sourceHref = reason.sourceHref}
-                    <li data-readiness-reason={reason.code}>
-                      <span
-                        >{copy.reasonLabels[String(reason.code)] ?? reasonLabel(reason.code)}</span
-                      >
-                      {#if sourceHref}<a href={linkFor(sourceHref)}
-                          >{copy.openSource} · {display(reason.sourceId)}
-                          <DirectionIcon direction="up-right" /></a
-                        >{:else if reason.code === 'period_cutoff_mismatch'}<small
-                          >{copy.cadenceMismatch}</small
-                        >{/if}
-                    </li>
-                  {/each}
-                </ul>
-              {:else}
-                <p>{copy.readyForBilling}</p>
-              {/if}
-            </article>
-          {/each}
-        </div>
-      {:else}
-        <p class="restricted-note">{copy.financeRestricted}</p>
-      {/if}
-      <div class="invoice-section">
-        <h3>{copy.invoiceDrafts}</h3>
-        {#if finance.invoices?.length}
-          <ul>
-            {#each finance.invoices ?? [] as invoice}
-              <li>
-                <span>{copy.invoice} · {display(invoice.invoiceNumber, display(invoice.id))}</span
-                ><small
-                  >{display(invoice.streamType)} · {display(invoice.state)} · {display(
-                    invoice.periodStart,
-                  )} → {display(invoice.periodEnd)}</small
-                >
-              </li>
+    <!-- Billing readiness and invoice drafts are finance work: not shown to project managers. -->
+    {#if data.userRole !== 'project_manager'}
+      <SectionCard title={copy.financeReadiness} data-finance-readiness>
+        {#if finance.billing?.length}
+          <p class="review-help">{copy.sourceIdsBelong}</p>
+          <div class="readiness-list">
+            {#each finance.billing ?? [] as stream}
+              {@const readiness = (stream.readiness ?? {}) as Row}
+              <article class="readiness-card">
+                <header>
+                  <div>
+                    <h3>{display(stream.streamType)}</h3>
+                    <p>{copy.cadence}: {display(stream.cadenceType)}</p>
+                  </div>
+                  <StatusBadge
+                    variant={statusVariant(readiness.state)}
+                    text={statusLabel(readiness.state)}
+                  />
+                </header>
+                {#if Array.isArray(readiness.reasons) && readiness.reasons.length}
+                  <ul>
+                    {#each readiness.reasons as reason}
+                      {@const sourceHref = reason.sourceHref}
+                      <li data-readiness-reason={reason.code}>
+                        <span
+                          >{copy.reasonLabels[String(reason.code)] ??
+                            reasonLabel(reason.code)}</span
+                        >
+                        {#if sourceHref}<a href={linkFor(sourceHref)}
+                            >{copy.openSource} · {display(reason.sourceId)}
+                            <DirectionIcon direction="up-right" /></a
+                          >{:else if reason.code === 'period_cutoff_mismatch'}<small
+                            >{copy.cadenceMismatch}</small
+                          >{/if}
+                      </li>
+                    {/each}
+                  </ul>
+                {:else}
+                  <p>{copy.readyForBilling}</p>
+                {/if}
+              </article>
             {/each}
-          </ul>
+          </div>
         {:else}
-          <p>{copy.noInvoices}</p>
+          <p class="restricted-note">{copy.financeRestricted}</p>
         {/if}
-      </div>
-    </SectionCard>
+        <div class="invoice-section">
+          <h3>{copy.invoiceDrafts}</h3>
+          {#if finance.invoices?.length}
+            <ul>
+              {#each finance.invoices ?? [] as invoice}
+                <li>
+                  <span>{copy.invoice} · {display(invoice.invoiceNumber, display(invoice.id))}</span
+                  ><small
+                    >{display(invoice.streamType)} · {display(invoice.state)} · {display(
+                      invoice.periodStart,
+                    )} → {display(invoice.periodEnd)}</small
+                  >
+                </li>
+              {/each}
+            </ul>
+          {:else}
+            <p>{copy.noInvoices}</p>
+          {/if}
+        </div>
+      </SectionCard>
+    {/if}
   {/if}
 </main>
 

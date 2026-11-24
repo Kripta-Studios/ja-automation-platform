@@ -43,6 +43,8 @@ const en = {
   sent: 'Report sent for review.',
   draftSaved: 'Draft saved. Send it when you are ready.',
   photoFailed: 'Saved, but a photo could not be attached. Open the report to add it again.',
+  photoFailedNamed:
+    'Saved, but {names} could not be attached. {reason}',
   sendFailed: 'Saved as a draft, but it could not be sent. Tap “Send” in My reports.',
   restored: 'We kept what you typed earlier on this device.',
   autosaved: 'Kept on this device while you type.',
@@ -97,6 +99,8 @@ const es: Record<CopyKey, string> = {
   sent: 'Informe enviado para revisión.',
   draftSaved: 'Borrador guardado. Envíalo cuando estés listo.',
   photoFailed: 'Guardado, pero no se pudo adjuntar una foto. Abre el informe para añadirla de nuevo.',
+  photoFailedNamed:
+    'Guardado, pero no se pudo adjuntar {names}. {reason}',
   sendFailed: 'Guardado como borrador, pero no se pudo enviar. Toca «Enviar» en Mis informes.',
   restored: 'Conservamos lo que escribiste antes en este dispositivo.',
   autosaved: 'Se guarda en este dispositivo mientras escribes.',
@@ -149,6 +153,8 @@ const pt: Record<CopyKey, string> = {
   sent: 'Relatório enviado para revisão.',
   draftSaved: 'Rascunho salvo. Envie quando estiver pronto.',
   photoFailed: 'Salvo, mas uma foto não pôde ser anexada. Abra o relatório para adicioná-la de novo.',
+  photoFailedNamed:
+    'Salvo, mas não foi possível anexar {names}. {reason}',
   sendFailed: 'Salvo como rascunho, mas não foi possível enviar. Toque em “Enviar” em Meus relatórios.',
   restored: 'Guardamos o que você digitou antes neste dispositivo.',
   autosaved: 'Guardado neste dispositivo enquanto você digita.',

@@ -2294,6 +2294,12 @@ export const PORTAL_LITERAL_KEYS = [
   'problem.remedy.reviewSupplierStatus',
   ...extractedSectionCoverageKeys,
   ...Object.keys(explicitCoverageLiteralOverrides),
+  // G5 audit fixes (notifications, read-only chip, crew/team hour links).
+  'unread',
+  'Read-only',
+  'Record team hours',
+  'Record hours for your crew',
+  'Last change by',
 ] as const;
 
 export const PORTAL_ACTION_KEYS = [

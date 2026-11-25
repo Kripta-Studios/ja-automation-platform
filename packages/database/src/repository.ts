@@ -18,6 +18,7 @@ import {
 } from './domains/billing/invoice-revision.ts';
 import {
   currentInvoiceColumnSql,
+  invoiceRevisionsAvailable,
   invoiceVersions,
   latestInvoiceRevision,
 } from './domains/billing/invoice-current-version.ts';
@@ -13301,11 +13302,23 @@ export class PortalRepository {
       .all(pattern, pattern, ...projectValues);
     const invoices = this.sqlite
       .prepare(
-        `SELECT i.id,'invoice' type,i.invoice_number label,i.stream_type || ' · Invoice' detail FROM invoice i
+        // A corrected invoice is found by the number of ANY of its versions and is shown
+        // with its current number (migration 0092).
+        `SELECT i.id,'invoice' type,${currentInvoiceColumnSql(this.sqlite, 'i', 'invoice_number')} label,
+                i.stream_type || ' · Invoice' detail FROM invoice i
                JOIN project p ON p.id=i.project_id
-               WHERE i.invoice_number LIKE ? ESCAPE '\\'${projectRestriction} LIMIT 50`,
+               WHERE (i.invoice_number LIKE ? ESCAPE '\\'${
+                 invoiceRevisionsAvailable(this.sqlite)
+                   ? ` OR EXISTS (SELECT 1 FROM invoice_revision version_number
+                         WHERE version_number.invoice_id=i.id AND version_number.invoice_number LIKE ? ESCAPE '\\')`
+                   : ''
+               })${projectRestriction} LIMIT 50`,
       )
-      .all(pattern, ...projectValues);
+      .all(
+        pattern,
+        ...(invoiceRevisionsAvailable(this.sqlite) ? [pattern] : []),
+        ...projectValues,
+      );
     const reports = this.sqlite
       .prepare(
         `SELECT d.id,'report' type,COALESCE(d.summary,'Daily report') label,p.project_number || ' · Daily report' detail

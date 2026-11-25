@@ -5047,7 +5047,8 @@ export class V3Repository {
     if (periodEnd) invoiceValues.push(invoiceAsOf, invoiceAsOf);
     const activeInvoiceRows = this.sqlite
       .prepare(
-        `SELECT i.id,CAST(i.subtotal_minor AS TEXT) subtotal,CAST(i.total_minor AS TEXT) total
+        `SELECT i.id,CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'subtotal_minor')} AS TEXT) subtotal,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} AS TEXT) total
          FROM invoice i
          WHERE i.project_id=?
            AND i.state IN ('issued','sent','partially_paid','paid','overdue'${periodEnd ? ",'void'" : ''})
@@ -6688,7 +6689,8 @@ export class V3Repository {
                   pa.tenant_id payment_tenant_id,pa.deployment_id payment_deployment_id,
                   pa.legal_entity_revision_id payment_legal_entity_revision_id,
                   pa.payment_payload_hash,pa.command_id,pa.payment_hash,
-                  CAST(i.total_minor AS TEXT) total_minor,i.state,i.due_at,i.currency invoice_currency,
+                  CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} AS TEXT) total_minor,i.state,
+                  ${currentInvoiceColumnSql(this.sqlite, 'i', 'due_at')} due_at,i.currency invoice_currency,
                   i.tenant_id invoice_tenant_id,i.deployment_id invoice_deployment_id,
                   i.legal_entity_revision_id invoice_legal_entity_revision_id
            FROM payment pa JOIN invoice i ON i.id=pa.invoice_id
@@ -9235,8 +9237,10 @@ export class V3Repository {
       const allPaymentEventRows = this.sqlite
         .prepare(
           `SELECT pa.id payment_id,pa.invoice_id,CAST(pa.amount_minor AS TEXT) amount_minor,
-                pa.currency,pa.received_at,pa.reference,i.invoice_number,
-                CAST(i.total_minor AS TEXT) total_minor,i.currency invoice_currency,
+                pa.currency,pa.received_at,pa.reference,
+                ${currentInvoiceColumnSql(this.sqlite, 'i', 'invoice_number')} invoice_number,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} AS TEXT) total_minor,
+                i.currency invoice_currency,
                 c.display_name client_name
          FROM payment pa
          JOIN invoice i ON i.id=pa.invoice_id
@@ -9263,7 +9267,9 @@ export class V3Repository {
         .prepare(
           `SELECT r.id reversal_id,r.original_payment_id payment_id,r.invoice_id,
                 CAST(r.amount_minor AS TEXT) amount_minor,r.currency,r.effective_at,
-                r.reason_text reference,i.invoice_number,CAST(i.total_minor AS TEXT) total_minor,
+                r.reason_text reference,
+                ${currentInvoiceColumnSql(this.sqlite, 'i', 'invoice_number')} invoice_number,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} AS TEXT) total_minor,
                 i.currency invoice_currency,c.display_name client_name
          FROM invoice_payment_reversal_event r
          JOIN invoice i ON i.id=r.invoice_id

@@ -3,6 +3,7 @@ import { overtimeRate, type OvertimeMethod } from '@ja/billing-engine';
 import { canManageBilling, type Principal } from '@ja/domain';
 import { applyBasisPoints, hourlyRateForMinutes, money, type Currency } from '@ja/money';
 import { runImmediateTransaction } from '../../core/transaction.ts';
+import { currentInvoiceColumnSql } from '../billing/invoice-current-version.ts';
 import { canonicalJson as canonicalJsonValue, sha256 } from '../../core/canonical-json.ts';
 import {
   ensureCommand as writeFinanceCommand,
@@ -157,6 +158,17 @@ const ENTITY_BRIDGE_TARGET_CONTRACT = 'legal-entity-revision-bridge-v1';
 const LEGACY_BRIDGE_TARGET_CONTRACT = 'accounting-pack-legacy-run-bridge-v1';
 const AUTHORITATIVE_APPROVAL_STATES = new Set(['approved', 'locked', 'final']);
 const HISTORICAL_INVOICE_STATES = new Set(['issued', 'sent', 'partially_paid', 'paid', 'overdue']);
+
+/**
+ * Amounts of an issued invoice as of its CURRENT version (migration 0092): a corrected invoice
+ * keeps version 1 untouched in `invoice`, and new packs must count what the client now owes.
+ * Finalized packs keep the values sealed in their own snapshot.
+ */
+function currentInvoiceAmountsSql(sqlite: DatabaseSync, alias: string): string {
+  return `CAST(${currentInvoiceColumnSql(sqlite, alias, 'subtotal_minor')} AS TEXT) subtotal_minor,
+          CAST(${currentInvoiceColumnSql(sqlite, alias, 'tax_minor')} AS TEXT) tax_minor,
+          CAST(${currentInvoiceColumnSql(sqlite, alias, 'total_minor')} AS TEXT) total_minor`;
+}
 
 const accountingPackError = (message: string): never => {
   throw new AccountingPackRevisionError(message);
@@ -1898,8 +1910,7 @@ function validateAuthoritativeSourceItems(
     try {
       if (kind === 'invoice') {
         const row = rowFor(
-          `SELECT i.version,CAST(i.subtotal_minor AS TEXT) subtotal_minor,
-                  CAST(i.tax_minor AS TEXT) tax_minor,CAST(i.total_minor AS TEXT) total_minor,
+          `SELECT i.version,${currentInvoiceAmountsSql(sqlite, 'i')},
                   i.currency,i.state,
                   i.voided_at,i.issued_at,i.created_at,i.project_id,i.tenant_id,i.deployment_id,
                   i.legal_entity_revision_id,br.legal_entity_id billing_legal_entity_id
@@ -2737,9 +2748,8 @@ function validateAuthoritativeSourceItems(
   let allSignedInvoiceComponentsLegitimate = true;
   for (const invoiceId of invoiceIds) {
     const invoice = rowFor(
-      `SELECT CAST(subtotal_minor AS TEXT) subtotal_minor,CAST(tax_minor AS TEXT) tax_minor,
-              CAST(total_minor AS TEXT) total_minor,currency,project_id,stream_type,state,issued_at,
-              voided_at
+      `SELECT ${currentInvoiceAmountsSql(sqlite, 'invoice')},currency,project_id,stream_type,
+              state,issued_at,voided_at
          FROM invoice WHERE id=?`,
       invoiceId,
     );
@@ -3090,9 +3100,9 @@ function assertSnapshotDetailsAuthoritative(
     const invoice = requireDetail(
       sqlite
         .prepare(
-          `SELECT version,CAST(subtotal_minor AS TEXT) subtotal_minor,
-                  CAST(tax_minor AS TEXT) tax_minor,CAST(total_minor AS TEXT) total_minor,
-                  currency,issued_at,due_at FROM invoice WHERE id=?`,
+          `SELECT version,${currentInvoiceAmountsSql(sqlite, 'invoice')},
+                  currency,issued_at,${currentInvoiceColumnSql(sqlite, 'invoice', 'due_at')} due_at
+             FROM invoice WHERE id=?`,
         )
         .get(id) as DbRow | undefined,
       'invoiceRegister',
@@ -3278,9 +3288,9 @@ function assertSnapshotDetailsAuthoritative(
     const invoice = requireDetail(
       sqlite
         .prepare(
-          `SELECT version,CAST(subtotal_minor AS TEXT) subtotal_minor,
-                  CAST(tax_minor AS TEXT) tax_minor,CAST(total_minor AS TEXT) total_minor,
-                  currency,issued_at,due_at FROM invoice WHERE id=?`,
+          `SELECT version,${currentInvoiceAmountsSql(sqlite, 'invoice')},
+                  currency,issued_at,${currentInvoiceColumnSql(sqlite, 'invoice', 'due_at')} due_at
+             FROM invoice WHERE id=?`,
         )
         .get(id) as DbRow | undefined,
       'ledger',

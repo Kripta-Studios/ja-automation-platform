@@ -176,7 +176,7 @@
         onclick={() => (page = currentPage - 1)}>{translate('Previous')}</button
       >
       <span aria-live="polite"
-        >{currentPage + 1} / {pageCount} · {tableRows.length} {translate('Records')}</span
+        >{currentPage + 1} / {pageCount} · {tableRows.length} {translate(tableRows.length === 1 ? 'record' : 'records')}</span
       >
       <button
         type="button"

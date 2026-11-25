@@ -311,8 +311,11 @@
         const resolvable = Number(
           (failure as { resolvableLaterTime?: unknown } | null)?.resolvableLaterTime ?? 0,
         );
-        if (resolvable > 0 && !resolveLaterTime) laterTimeCount = resolvable;
-        notify(describe(failure), 'danger');
+        if (resolvable > 0 && !resolveLaterTime) {
+          // First click: the form now offers to resolve those hours. That is a
+          // next step, not an error, so no red "dates would exclude" toast.
+          laterTimeCount = resolvable;
+        } else notify(describe(failure), 'danger');
       }
     } catch {
       notify(describe(null), 'danger');
@@ -668,9 +671,10 @@
               <p>{h('endAssignmentHelp')}</p>
               <label>{h('reason')}<input bind:value={endReason} maxlength="2000" /></label>
               {#if laterTimeCount}
+                <p class="hub-end-next" role="status">{h('endResolveLaterNeeded')}</p>
                 <label class="hub-check" data-hub-end-resolve
                   ><input type="checkbox" bind:checked={resolveLaterTime} />
-                  {h('endResolveLater', { count: laterTimeCount })}</label
+                  {h(laterTimeCount === 1 ? 'endResolveLaterOne' : 'endResolveLater', { count: laterTimeCount })}</label
                 >
               {/if}
               <div class="hub-inline-actions">

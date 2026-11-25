@@ -1536,12 +1536,12 @@ export const explicitCoverageLiteralOverrides: Record<string, readonly [string, 
   'Record crew hours above first. After an eligible time row is saved, add a receipt expense for one delegated worker. Then select that expense here and split its amount across at least two crew time rows. The receipt stays':
     [
       'Primero registra las horas del equipo arriba. Una vez guardado un registro de horas apto, añade un gasto con recibo para un trabajador delegado. Luego selecciónalo aquí y distribuye el importe entre al menos dos registros de horas del equipo. El recibo sigue siendo',
-      'Primeiro registre as horas da equipe acima. Depois de guardar um registro de horas elegível, adicione uma despesa com comprovativo para um trabalhador delegado. Em seguida, selecione-a aqui e divida o valor entre pelo menos dois registros de horas da equipe. O comprovativo continua a ser',
+      'Primeiro registre as horas da equipe acima. Depois de salvar um registro de horas elegível, adicione uma despesa com comprovante para um trabalhador delegado. Em seguida, selecione-a aqui e divida o valor entre pelo menos dois registros de horas da equipe. O comprovante continua sendo',
     ],
   'No delegated worker is available on this date. Choose a date with an active delegation, or ask the project owner to assign your crew before recording hours and a receipt.':
     [
       'No hay ningún trabajador delegado disponible en esta fecha. Elige una fecha con una delegación activa o pide al propietario del proyecto que asigne tu equipo antes de registrar horas y un recibo.',
-      'Não há trabalhadores delegados disponíveis nesta data. Escolha uma data com uma delegação ativa ou peça ao responsável pelo projeto para atribuir a sua equipe antes de registrar horas e um comprovativo.',
+      'Não há trabalhadores delegados disponíveis nesta data. Escolha uma data com uma delegação ativa ou peça ao responsável pelo projeto para atribuir sua equipe antes de registrar horas e um comprovante.',
     ],
   'Hours for': ['Horas de', 'Horas de'],
   'Hours per member': ['Horas por miembro', 'Horas por integrante'],

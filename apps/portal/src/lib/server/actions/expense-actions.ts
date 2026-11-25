@@ -1,5 +1,6 @@
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { translateControlledValue } from '$lib/i18n/controlled-values';
+import { formatPortalDate } from '$lib/i18n/format';
 import { newId } from '@ja/domain';
 import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
@@ -870,13 +871,22 @@ function ownReceiptUse(
 function receiptAlreadyAttached(
   use: { spentOn: string; category: string; vendor: string },
   values: Record<string, unknown>,
+  locale: 'en' | 'es' | 'pt' = 'en',
 ) {
-  const expense = [use.vendor, use.category].filter(Boolean).join(' · ');
+  // T46 (round 3): name the expense the way the person reads it: a local date
+  // and the translated category, never "2026-11-25 (meals)".
+  const category = use.category
+    ? translateControlledValue(locale, 'expenseCategory', use.category)
+    : '';
+  const expense = [use.vendor, category].filter(Boolean).join(' · ');
+  const spentOn = /^\d{4}-\d{2}-\d{2}$/u.test(use.spentOn)
+    ? formatPortalDate(`${use.spentOn}T12:00:00.000Z`, locale, { timeZone: 'UTC' })
+    : use.spentOn;
   return actionFail(
     409,
     'problem.expense.receiptAlreadyAttached',
-    { spentOn: use.spentOn, expense },
-    `This receipt is already attached to your expense of ${use.spentOn} (${expense}). No new expense was saved. Open that expense instead, or choose another photo.`,
+    { spentOn, expense },
+    `This receipt is already attached to your expense of ${spentOn} (${expense}). No new expense was saved. Open that expense instead, or choose another photo.`,
     {
       code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
       values,
@@ -1730,7 +1740,7 @@ export const expenseActions = withOperationalActionNames({
             error.message === 'Upload conflicts with existing content'
               ? ownReceiptUse(context, receiptHash)
               : undefined;
-          if (use) return receiptAlreadyAttached(use, values);
+          if (use) return receiptAlreadyAttached(use, values, actionLocale(event));
           throw error;
         }
         object.receiptDocumentId = uploaded.id;

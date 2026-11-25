@@ -279,7 +279,7 @@
   <div class="ov-summary" data-testid="ov-summary">
     <div class="ov-total">
       <span class="muted" data-testid="ov-scope"
-        >{t('ovScope', { range: rangeLabel, entries: overview.total.entries, groups: overview.rowCount })}</span
+        >{t('ovScope', { range: rangeLabel, entries: t('ovScopeEntries', { n: overview.total.entries }), groups: t('ovScopeRows', { n: overview.rowCount }) })}</span
       >
       <strong data-testid="ov-grand-total">{hours(overview.total.minutes)} h</strong>
     </div>

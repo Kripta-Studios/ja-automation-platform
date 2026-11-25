@@ -79,4 +79,17 @@ export const auditG2LiteralOverrides: Record<string, readonly [string, string]> 
     'Este relatório aguarda revisão. Aprove ou devolva em Aprovações.',
   ],
   'PDF and print preview': ['PDF y vista previa de impresión', 'PDF e prévia de impressão'],
+  // Round 3 (T58): the owner's crew delegation list folds ended/revoked ones.
+  'No active crew delegations for this project.': [
+    'No hay delegaciones de equipo activas en este proyecto.',
+    'Não há delegações de equipe ativas neste projeto.',
+  ],
+  '1 ended or revoked delegation': [
+    '1 delegación finalizada o revocada',
+    '1 delegação encerrada ou revogada',
+  ],
+  '{n} ended or revoked delegations': [
+    '{n} delegaciones finalizadas o revocadas',
+    '{n} delegações encerradas ou revogadas',
+  ],
 };

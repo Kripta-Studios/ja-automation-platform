@@ -121,7 +121,8 @@ export const supplierCopy = {
     savedHours: 'Hours saved as a draft.',
     savedHoursSent: 'Hours sent to J&A for approval.',
     savedHoursRemoved: 'Draft hours removed.',
-    savedCorrection: 'Correction saved.',
+    savedCorrection:
+      'Correction draft saved. Review it under “Not sent to J&A yet” and send it when it is ready.',
     onTeamSince: 'on the team since {date}',
     onTeamFromTo: 'on the team {from} – {to}',
     periodEntries: '{count} entries in this period · {drafts} not sent yet',
@@ -254,7 +255,8 @@ export const supplierCopy = {
     savedHours: 'Horas guardadas como borrador.',
     savedHoursSent: 'Horas enviadas a J&A para su aprobación.',
     savedHoursRemoved: 'Horas en borrador eliminadas.',
-    savedCorrection: 'Corrección guardada.',
+    savedCorrection:
+      'Borrador de corrección guardado. Revísalo en «Aún sin enviar a J&A» y envíalo cuando esté listo.',
     onTeamSince: 'en el equipo desde el {date}',
     onTeamFromTo: 'en el equipo del {from} al {to}',
     periodEntries: '{count} registros en este periodo · {drafts} sin enviar',
@@ -386,7 +388,8 @@ export const supplierCopy = {
     savedHours: 'Horas salvas como rascunho.',
     savedHoursSent: 'Horas enviadas à J&A para aprovação.',
     savedHoursRemoved: 'Horas em rascunho removidas.',
-    savedCorrection: 'Correção salva.',
+    savedCorrection:
+      'Rascunho de correção salvo. Revise-o em “Ainda não enviados à J&A” e envie-o quando estiver pronto.',
     onTeamSince: 'na equipe desde {date}',
     onTeamFromTo: 'na equipe de {from} a {to}',
     periodEntries: '{count} registros neste período · {drafts} não enviados',

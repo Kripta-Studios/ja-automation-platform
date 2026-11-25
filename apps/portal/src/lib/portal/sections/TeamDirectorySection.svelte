@@ -3698,6 +3698,7 @@
   .person__confirm {
     display: grid;
     gap: 0.5rem;
+    align-content: start;
   }
   .person__confirm > summary {
     list-style: none;
@@ -5084,6 +5085,11 @@
     display: flex;
     gap: 0.6rem;
     flex-wrap: wrap;
+    /* Round 3: an open confirm no longer stretches the other button to its height. */
+    align-items: flex-start;
+  }
+  .person__danger-actions > :global(.person__confirm[open]) {
+    flex: 1 1 100%;
   }
   .person__danger-actions form {
     margin: 0;

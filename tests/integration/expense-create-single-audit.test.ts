@@ -14,6 +14,7 @@ vi.mock('../../apps/portal/src/lib/server/portal-repository.js', async (importOr
   openPortalRepository: () => context.current,
 }));
 import { expenseActions } from '../../apps/portal/src/lib/server/actions/expense-actions.js';
+import { formatPortalDate } from '../../apps/portal/src/lib/i18n/format.js';
 
 let value: B5LifecycleSecurityFixture | undefined;
 afterEach(() => {
@@ -36,6 +37,7 @@ function event(
   fixture: B5LifecycleSecurityFixture,
   fields: Record<string, string>,
   receipt?: File,
+  lang?: string,
 ) {
   const form = new FormData();
   if (receipt) form.set('receipt', receipt);
@@ -53,6 +55,7 @@ function event(
     form.set(key, data);
   return {
     locals: {},
+    ...(lang ? { url: new URL(`http://localhost/app/expenses?lang=${lang}`) } : {}),
     params: { section: 'expenses' },
     request: new Request('http://localhost/app/expenses', { method: 'POST', body: form }),
   } as PortalActionEvent;
@@ -105,6 +108,7 @@ describe('expense create audit (T17 double emit)', () => {
       const bytes = Buffer.from('%PDF-1.4\nT46 receipt naming regression\n%%EOF\n');
       const file = (name: string) => new File([bytes], name, { type: 'application/pdf' });
       const fields = { workerId: fixture.worker.userId, vendor: 'Taqueria Norte' };
+      const today = new Date().toISOString().slice(0, 10);
       expect(
         await expenseActions.createExpense(event(fixture, fields, file('first.pdf'))),
       ).toMatchObject({ success: true });
@@ -116,12 +120,26 @@ describe('expense create audit (T17 double emit)', () => {
         data: {
           code: 'EXPENSE_RECEIPT_DUPLICATE_CONTENT',
           messageKey: 'problem.expense.receiptAlreadyAttached',
+          // Round 3: a local date and the translated category, never ISO + code.
           messageParams: {
-            spentOn: new Date().toISOString().slice(0, 10),
-            expense: 'Taqueria Norte · meals',
+            spentOn: formatPortalDate(`${today}T12:00:00.000Z`, 'en', { timeZone: 'UTC' }),
+            expense: 'Taqueria Norte · Meals',
           },
         },
       });
+      const third = await expenseActions.createExpense(
+        event(fixture, { ...fields, amount: '21.00' }, file('again.pdf'), 'pt'),
+      );
+      expect(third).toMatchObject({
+        data: {
+          messageKey: 'problem.expense.receiptAlreadyAttached',
+          messageParams: {
+            spentOn: formatPortalDate(`${today}T12:00:00.000Z`, 'pt', { timeZone: 'UTC' }),
+            expense: 'Taqueria Norte · Refeições',
+          },
+        },
+      });
+      expect(JSON.stringify((third as { data: { messageParams: unknown } }).data.messageParams)).not.toContain(today);
       expect(fixture.sqlite.prepare('SELECT count(*) n FROM expense').get()).toEqual({ n: 1 });
       expect(fixture.sqlite.prepare('SELECT count(*) n FROM document').get()).toEqual({ n: 1 });
     } finally {

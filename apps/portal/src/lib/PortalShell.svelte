@@ -5148,7 +5148,7 @@
                 )}
               </p>
             </div>
-            <span>{data.payActivities?.length ?? 0} {translate('entries')}</span>
+            <span>{data.payActivities?.length ?? 0} {translate((data.payActivities?.length ?? 0) === 1 ? 'entry' : 'entries')}</span>
           </div>
           <TableRegion
             class="table-wrap worker-pay-table"

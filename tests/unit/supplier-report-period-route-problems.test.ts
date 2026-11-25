@@ -196,7 +196,8 @@ describe('supplier report routes with invalid periods', () => {
       unavailableProject: { id: 'project-1', name: '' },
       projectProblem: {
         code: 'SUPPLIER_REPORT_PROJECT_SCOPE_CHANGED',
-        remedies: [{ id: 'contact_owner' }],
+        // The message names whom to ask; no second "ask the owner" line (T95).
+        remedies: [],
       },
       report: null,
     });
@@ -361,5 +362,26 @@ describe('supplier report routes with invalid periods', () => {
     } finally {
       log.mockRestore();
     }
+  });
+
+  it('sends a browser that opens an unavailable report CSV back to the report page (T06/T95)', async () => {
+    state.listProjects.mockImplementation(() => []);
+    const base = event('/app/supplier/report.csv?projectId=project-1&from=2026-09-01&to=2026-09-30') as Record<
+      string,
+      unknown
+    >;
+    const response = await reportCsv({
+      ...base,
+      request: new Request('http://localhost/', { headers: { 'sec-fetch-mode': 'navigate' } }),
+    } as never);
+    expect(response.status).toBe(303);
+    expect(response.headers.get('location')).toMatch(
+      /\/app\/supplier\/report\?projectId=project-1&from=2026-09-01&to=2026-09-30$/u,
+    );
+    const script = await reportCsv({
+      ...base,
+      request: new Request('http://localhost/', { headers: { accept: 'application/json' } }),
+    } as never);
+    expect(script.status).toBe(404);
   });
 });

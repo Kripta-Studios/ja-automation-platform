@@ -397,11 +397,11 @@
       >{c.project}<select
         id="supplier-report-project"
         name="projectId"
-        value={data.projectId}
+        value={data.unavailableProject && !data.owner ? '' : data.projectId}
         aria-invalid={data.projectProblem?.fieldErrors.projectId ? 'true' : undefined}
         aria-describedby={data.projectProblem ? 'supplier-report-project-problem' : undefined}
         ><option value="" disabled={data.projects.length > 0}>{c.select}</option>
-        {#if data.unavailableProject}
+        {#if data.unavailableProject && data.owner}
           <option value={data.unavailableProject.id}
             >{data.owner && data.unavailableProject.name
               ? `${data.unavailableProject.name} — ${translateControlledValue(data.locale, 'status', data.unavailableProject.status ?? '')}`

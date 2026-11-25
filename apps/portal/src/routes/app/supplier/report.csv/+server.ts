@@ -8,6 +8,7 @@ import {
   assertLiveSession,
 } from '@ja/database';
 import { randomUUID } from 'node:crypto';
+import { base } from '$app/paths';
 import { resolvePortalLocalePreference } from '$lib/i18n/context';
 import { openSupplierContext, supplierPeriod } from '$lib/server/supplier-context';
 import { supplierCsv, supplierLocalizedHours } from '$lib/server/supplier-csv';
@@ -74,7 +75,35 @@ function unavailableProjectResponse(
   );
 }
 
-export const GET: RequestHandler = ({ locals, url, cookies }) => {
+/**
+ * T06/T95 (round 2): a person who opens the CSV link in the browser and cannot get the file
+ * lands on the report page, which explains why in their language, instead of a raw JSON page.
+ * Scripts that ask for JSON keep the problem body.
+ */
+export const GET: RequestHandler = (event) => {
+  const response = supplierReportCsv(event);
+  const headers = event.request?.headers;
+  const accept = headers?.get('accept') ?? '';
+  const browserNavigation =
+    headers?.get('sec-fetch-mode') === 'navigate' ||
+    (/text\/html/u.test(accept) && !/application\/(?:problem\+)?json/u.test(accept));
+  if (
+    !browserNavigation ||
+    response.ok ||
+    !(response.headers.get('content-type') ?? '').startsWith('application/problem+json')
+  )
+    return response;
+  const target =
+    response.status === 401
+      ? `${base}/app/login`
+      : `${base}/app/supplier/report?${event.url.searchParams.toString()}`;
+  return new Response(null, {
+    status: 303,
+    headers: { ...privateHeaders, location: target },
+  });
+};
+
+const supplierReportCsv = ({ locals, url, cookies }: Parameters<RequestHandler>[0]): Response => {
   const reference = locals.correlationId || randomUUID();
   if (!locals.user || !locals.session)
     return supplierReportProblemResponse(

@@ -75,7 +75,8 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
                 'This project is not available under your access. Choose one of your projects, or ask J&A if you should have access to it.',
               params: {},
               fieldErrors: {},
-              remedies: [{ id: 'contact_owner' }],
+              // The message already says whom to ask: no second "ask the owner" line (T95 round 2).
+              remedies: [],
               correlationId: reference,
             };
     }

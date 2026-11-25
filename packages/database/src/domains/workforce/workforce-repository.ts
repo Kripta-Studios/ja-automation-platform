@@ -952,6 +952,31 @@ export class WorkforceRepository {
              FROM assignment_expense_policy WHERE project_member_id=?`,
         )
         .run(historyId, principal.userId, timestamp, existing.id);
+      // The extras (per diem, allowance, overtime) and pay interval in force stay with the
+      // kept records too: their latest version becomes version 1 of the history row.
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO assignment_extra(id,project_member_id,version,currency,per_diem_client_minor,
+             per_diem_worker_minor,allowance_basis,allowance_client_minor,allowance_worker_minor,
+             overtime_client_method,overtime_client_value,overtime_worker_method,overtime_worker_value,
+             reason,created_by,created_at)
+           SELECT lower(hex(randomblob(16))),?,1,currency,per_diem_client_minor,per_diem_worker_minor,
+             allowance_basis,allowance_client_minor,allowance_worker_minor,overtime_client_method,
+             overtime_client_value,overtime_worker_method,overtime_worker_value,
+             'Kept with records outside the new assignment dates',?,?
+             FROM assignment_extra WHERE project_member_id=? ORDER BY version DESC LIMIT 1`,
+        )
+        .run(historyId, principal.userId, timestamp, existing.id);
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO pay_interval_setting(id,user_id,project_member_id,scope_key,version,pay_interval,
+             anchor_date,reason,created_by,created_at)
+           SELECT lower(hex(randomblob(16))),user_id,?,'assignment:'||?,1,pay_interval,anchor_date,
+             'Kept with records outside the new assignment dates',?,?
+             FROM pay_interval_setting WHERE project_member_id=? AND pay_interval IS NOT NULL
+               AND version=(SELECT MAX(version) FROM pay_interval_setting WHERE project_member_id=?)`,
+        )
+        .run(historyId, historyId, principal.userId, timestamp, existing.id, existing.id);
       this.deps.audit(principal, 'assignment.create', 'project_member', historyId, {
         projectId: existing.project_id,
         workerId: existing.user_id,

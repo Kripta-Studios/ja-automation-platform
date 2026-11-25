@@ -131,8 +131,16 @@ export class InvoiceCompositionService {
     private readonly adapter: Adapter,
   ) {}
 
-  private refs(value: readonly InvoiceCompositionSourceRef[]): InvoiceCompositionSourceRef[] {
-    if (!Array.isArray(value) || value.length === 0 || value.length > 1000)
+  /**
+   * `allowEmpty`: a draft may hold no hours or expenses when the period still has open
+   * per diem / allowance days (owner request 2026-11-25); the engine refuses an empty draft
+   * with no_billable_sources when there is nothing else to bill.
+   */
+  private refs(
+    value: readonly InvoiceCompositionSourceRef[],
+    allowEmpty = false,
+  ): InvoiceCompositionSourceRef[] {
+    if (!Array.isArray(value) || (value.length === 0 && !allowEmpty) || value.length > 1000)
       throw new ValidationError('Select between 1 and 1000 invoice sources');
     const seen = new Set<string>();
     const refs = value.map((source) => {
@@ -446,8 +454,8 @@ export class InvoiceCompositionService {
     };
   }
 
-  private validate(principal: Principal, input: InvoiceCompositionInput) {
-    const refs = this.refs(input.sources);
+  private validate(principal: Principal, input: InvoiceCompositionInput, allowEmpty = false) {
+    const refs = this.refs(input.sources, allowEmpty);
     const inventory = this.sources(principal, input);
     const selected = refs.map((ref) => {
       const source = inventory.sources.find((row) => row.type === ref.type && row.id === ref.id);
@@ -491,7 +499,8 @@ export class InvoiceCompositionService {
   }
 
   assertSelection(principal: Principal, input: InvoiceCompositionInput): void {
-    const validated = this.validate(principal, input);
+    // The engine itself refuses an empty draft when no per diem / allowance is open.
+    const validated = this.validate(principal, input, true);
     if (validated.reasons.length) throw new ReadinessError(validated.reasons);
   }
 
@@ -704,7 +713,7 @@ export class InvoiceCompositionService {
     input: InvoiceCompositionInput & { requestKey: string },
   ): DraftResult {
     this.adapter.authorize(principal);
-    const refs = this.refs(input.sources);
+    const refs = this.refs(input.sources, true);
     if (
       typeof input.requestKey !== 'string' ||
       input.requestKey.trim().length < 8 ||
@@ -740,7 +749,7 @@ export class InvoiceCompositionService {
           existingState: String(invoice.state),
         };
       }
-      const validated = this.validate(principal, { ...input, sources: refs });
+      const validated = this.validate(principal, { ...input, sources: refs }, true);
       if (validated.reasons.length) throw new ReadinessError(validated.reasons);
       const result = this.adapter.draft(principal, { ...input, sources: refs });
       this.assertIncluded(result.id, refs);

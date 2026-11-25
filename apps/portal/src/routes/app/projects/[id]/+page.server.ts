@@ -454,6 +454,8 @@ function billingFieldKey(field: string): DetailProblemKey {
     expenseCadenceType: 'problem.projectDetail.billingCadenceInvalid',
     anchorDate: 'problem.projectDetail.billingLaborAnchorRequired',
     expenseAnchorDate: 'problem.projectDetail.billingExpenseAnchorRequired',
+    monthlyCutoffDay: 'problem.projectDetail.billingCadenceInvalid',
+    expenseMonthlyCutoffDay: 'problem.projectDetail.billingCadenceInvalid',
     invoiceLayout: 'problem.projectDetail.billingLayoutInvalid',
     groupingMode: 'problem.projectDetail.billingGroupingInvalid',
     billingContactId: 'problem.projectDetail.billingContactInvalid',
@@ -705,6 +707,15 @@ const detailRules: readonly DetailRule[] = [
     'Choose a supported billing cadence.',
     400,
     ['cadenceType', 'expenseCadenceType'],
+    'correct_field',
+  ],
+  [
+    'Monthly closing day must be from 1 to 28',
+    'PROJECT_BILLING_CADENCE_INVALID',
+    'problem.projectDetail.billingCadenceInvalid',
+    'Choose a monthly closing day from 1 to 28, or leave it empty.',
+    400,
+    ['monthlyCutoffDay', 'expenseMonthlyCutoffDay'],
     'correct_field',
   ],
   [
@@ -1612,16 +1623,31 @@ export const actions: Actions = {
           z.literal(''),
           z.string().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,99}$/),
         ]),
-        cadenceType: z.enum(['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'manual']),
+        cadenceType: z.enum([
+          'weekly',
+          'every_14_days',
+          'semi_monthly',
+          'monthly',
+          'milestone',
+          'manual',
+        ]),
         expenseCadenceType: z.enum([
           'weekly',
           'every_14_days',
           'semi_monthly',
           'monthly',
+          'milestone',
           'manual',
         ]),
         anchorDate: z.union([z.literal(''), z.iso.date()]).optional(),
         expenseAnchorDate: z.union([z.literal(''), z.iso.date()]).optional(),
+        // Monthly invoices: optional closing day (owner request 2026-11-25).
+        monthlyCutoffDay: z
+          .union([z.literal(''), z.coerce.number().int().min(1).max(28)])
+          .optional(),
+        expenseMonthlyCutoffDay: z
+          .union([z.literal(''), z.coerce.number().int().min(1).max(28)])
+          .optional(),
         invoiceLayout: z.enum(['default', 'labor-detailed', 'labor-summary']),
         groupingMode: z.enum(['detail', 'summary', 'by_worker', 'by_day', 'by_category']),
         billingContactId: z.union([z.literal(''), clientRecordIdSchema]).optional(),
@@ -1695,6 +1721,15 @@ export const actions: Actions = {
         selectedTemplateId: schema.data.selectedTemplateId || undefined,
         anchorDate: schema.data.anchorDate || undefined,
         expenseAnchorDate: schema.data.expenseAnchorDate || undefined,
+        monthlyCutoffDay:
+          schema.data.cadenceType === 'monthly' && typeof schema.data.monthlyCutoffDay === 'number'
+            ? schema.data.monthlyCutoffDay
+            : undefined,
+        expenseMonthlyCutoffDay:
+          schema.data.expenseCadenceType === 'monthly' &&
+          typeof schema.data.expenseMonthlyCutoffDay === 'number'
+            ? schema.data.expenseMonthlyCutoffDay
+            : undefined,
         billingContactId: schema.data.billingContactId || undefined,
         recipientEmail: schema.data.recipientEmail || undefined,
       });

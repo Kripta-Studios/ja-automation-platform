@@ -1181,6 +1181,11 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );
   const leaveOut = stream.streamType === 'milestone' ? null : leftOutSource(input);
+  // Owner request 2026-11-25: per diem / allowance days not on any invoice yet can make an
+  // invoice on their own (no hours or expenses selected).
+  const openExtras =
+    stream.streamType !== 'milestone' &&
+    ((readiness as { assignmentExtras?: readonly unknown[] }).assignmentExtras?.length ?? 0) > 0;
   let forceSelection =
     (Boolean(input.forceSelection) || leaveOut !== null) && stream.streamType !== 'milestone';
   if (readiness.existingInvoiceId && readiness.existingInvoiceState && readiness.existingInvoiceState !== 'draft') {
@@ -1194,7 +1199,7 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
         periodStart: input.periodStart,
         periodEnd: input.periodEnd,
       }).length > 0;
-    if (late) forceSelection = true;
+    if (late || openExtras) forceSelection = true;
   }
   if (
     !forceSelection &&
@@ -1264,7 +1269,7 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
       leaveOut,
     );
     mode = 'selection';
-    if (!selection.length)
+    if (!selection.length && !openExtras)
       return {
         preview: {
           ...base,
@@ -1291,7 +1296,7 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
       leaveOut,
     );
     mode = 'selection';
-    if (!selection.length)
+    if (!selection.length && !openExtras)
       return {
         preview: {
           ...base,

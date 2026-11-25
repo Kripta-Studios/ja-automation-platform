@@ -380,6 +380,57 @@ describe('assignment extras', () => {
     expect(next.assignmentExtras.map((charge) => charge.kind)).toEqual(['per_diem']);
   });
 
+  it('makes an invoice of only per diem / allowance lines when the hours are not billed', () => {
+    const f = setup();
+    // Hours agreed as not billable; only the per diem and allowance go to the client.
+    for (const day of ['2026-08-03', '2026-08-04']) {
+      const row = f.repository.createTimeEntry(f.worker, {
+        projectId: f.project.id,
+        workDate: day,
+        category: 'regular',
+        minutes: 480,
+        summary: `Work ${day}`,
+      });
+      f.repository.submitTime(f.worker, row.id, row.version);
+      f.repository.operationalApproveTime(f.manager, row.id, 'approved');
+      f.repository.financeApproveTime(f.finance, row.id, false);
+    }
+    f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 0,
+      perDiemClientMinor: '5000',
+      allowanceBasis: 'day',
+      allowanceClientMinor: '2000',
+    });
+    const readiness = f.repository.billingReadiness(
+      f.finance,
+      f.rule.id,
+      '2026-08-01',
+      '2026-08-15',
+    );
+    expect(readiness.assignmentExtras.map((charge) => charge.kind).sort()).toEqual([
+      'allowance',
+      'per_diem',
+    ]);
+    const extrasOnly = f.dryRun('2026-08-01', '2026-08-15');
+    expect(extrasOnly.lines.filter((line) => line.sourceType === 'time')).toHaveLength(0);
+    expect(extrasOnly.totals.subtotalMinor).toBe(String(2 * 5000 + 2 * 2000));
+    const draft = f.repository.createInvoiceDraft(f.finance, f.rule.id, '2026-08-01', '2026-08-15');
+    const lines = f.sqlite
+      .prepare('SELECT snapshot_json FROM invoice_line WHERE invoice_id=? ORDER BY rowid')
+      .all(draft.id) as Array<{ snapshot_json: string }>;
+    expect(lines.map((line) => JSON.parse(line.snapshot_json).extraKind).sort()).toEqual([
+      'allowance',
+      'per_diem',
+    ]);
+    expect(f.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(draft.id)).toEqual(
+      {
+        subtotal_minor: 14000,
+      },
+    );
+    f.repository.approveInvoiceDraft(f.finance, draft.id);
+  });
+
   it('prices overtime from the assignment multiplier on both sides', () => {
     const f = setup();
     f.extras.set(f.owner, {

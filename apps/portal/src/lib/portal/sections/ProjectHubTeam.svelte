@@ -21,6 +21,7 @@
   } from '$lib/portal/assignment-requests';
   import AssignmentEndPanel from './AssignmentEndPanel.svelte';
   import AssignmentDatesPanel from './AssignmentDatesPanel.svelte';
+  import { intervalCopy, intervalLabel, type IntervalCopyKey } from '../interval-copy';
   import AssignmentExtrasFields from './AssignmentExtrasFields.svelte';
   import {
     emptyExtras,
@@ -61,6 +62,7 @@
     today,
     canSetRates = false,
     extras = null,
+    payIntervals = null,
     viewerId = '',
     roleLabel,
     formatDate,
@@ -84,6 +86,16 @@
     canSetRates?: boolean;
     /** Owner/Finance: optional per-person extras by assignment id (null: not shown). */
     extras?: Record<string, ExtrasValues> | null;
+    /** Owner/Finance: pay interval per assignment id (null: not shown). */
+    payIntervals?: Record<
+      string,
+      {
+        interval: string | null;
+        anchorDate: string | null;
+        version: number;
+        personInterval: string | null;
+      }
+    > | null;
     /** Signed-in user id (hides "End assignment" on a manager's own row). */
     viewerId?: string;
     roleLabel: (value: unknown) => string;
@@ -314,6 +326,42 @@
         addOpen = false;
         addExtras = emptyExtras();
       }
+    }
+  }
+
+  // ---------- pay interval of one assignment (owner request 2026-11-25) ----------
+  let payFor = $state('');
+  let payChoice = $state('');
+  let payError = $state('');
+  const ic = (key: IntervalCopyKey, params: Record<string, string | number> = {}) =>
+    intervalCopy(locale, key, params);
+  function payText(row: Assignment): string {
+    const value = payIntervals?.[row.id];
+    if (value?.interval) return intervalLabel(locale, value.interval);
+    return value?.personInterval
+      ? ic('sameAsPersonWith', { interval: intervalLabel(locale, value.personInterval) })
+      : ic('sameAsPerson');
+  }
+  async function savePay(event: SubmitEvent, row: Assignment) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    payError = '';
+    try {
+      const result = await post(`${projectHref}?/setAssignmentPayInterval`, {
+        assignmentId: row.id,
+        payInterval: payChoice,
+        expectedVersion: String(payIntervals?.[row.id]?.version ?? 0),
+      });
+      if (result.type === 'success') {
+        notify(ic('saved'), 'success');
+        payFor = '';
+        await invalidateAll();
+      } else payError = describe(result.type === 'failure' ? result.data : null);
+    } catch {
+      payError = describe(null);
+    } finally {
+      busy = false;
     }
   }
 
@@ -840,6 +888,60 @@
                 data-hub-extras-edit={row.workerId}>{x('edit')}</button
               >
             </div>
+          {/if}
+          {#if payIntervals !== null}
+            <div class="hub-team-rate" data-hub-pay-interval={row.workerId}>
+              <span class="hub-label">{ic('payIntervalLabel')}</span>
+              <span>{payText(row)}</span>
+              <button
+                type="button"
+                class="quiet-button"
+                aria-expanded={payFor === row.id}
+                onclick={() => {
+                  payFor = payFor === row.id ? '' : row.id;
+                  payChoice = payIntervals?.[row.id]?.interval ?? '';
+                  payError = '';
+                }}
+                data-hub-pay-interval-edit={row.workerId}>{ic('change')}</button
+              >
+            </div>
+            {#if payFor === row.id}
+              <div class="hub-row-panel" data-hub-pay-interval-panel={row.workerId}>
+                <form class="hub-inline-form" onsubmit={(event) => savePay(event, row)}>
+                  <label
+                    >{ic('payIntervalLabel')} · {row.name}<select
+                      bind:value={payChoice}
+                      data-hub-pay-interval-select
+                    >
+                      <option value=""
+                        >{payIntervals?.[row.id]?.personInterval
+                          ? ic('sameAsPersonWith', {
+                              interval: intervalLabel(locale, payIntervals[row.id]!.personInterval),
+                            })
+                          : ic('sameAsPerson')}</option
+                      >
+                      <option value="weekly">{ic('weekly')}</option>
+                      <option value="every_14_days">{ic('every_14_days')}</option>
+                      <option value="semi_monthly">{ic('semi_monthly')}</option>
+                      <option value="monthly">{ic('monthly')}</option>
+                    </select></label
+                  >
+                  <small class="surface-intro">{ic('payIntervalIntro')}</small>
+                  {#if payError}<p class="hub-warn" role="alert">{payError}</p>{/if}
+                  <div class="hub-inline-actions">
+                    <button type="button" class="secondary-button" onclick={() => (payFor = '')}
+                      >{ic('cancel')}</button
+                    >
+                    <button
+                      type="submit"
+                      class="primary-button"
+                      disabled={busy}
+                      data-hub-pay-interval-save>{ic('save')}</button
+                    >
+                  </div>
+                </form>
+              </div>
+            {/if}
           {/if}
           {#if canManage && !isOwner && isSupplierStaff(row)}
             <small class="surface-intro">{h('supplierStaffByOwner')}</small>

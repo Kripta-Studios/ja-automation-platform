@@ -129,13 +129,15 @@ describe('quick invoice: per-person parts', () => {
       allowance: { available: true, included: true },
     });
 
-    // Hours left out: the time stays open. With nobody else on the invoice nothing is left to
-    // select, so there is nothing to invoice, and the parts stay listed to tick hours back.
+    // Hours left out: the time stays open. The per diem and allowance of the worked days can
+    // still make an invoice on their own (owner request 2026-11-25), and the parts stay listed
+    // to tick hours back.
     const noHours = quickInvoicePreview(s.context, {
       ...input,
       leaveOut: { hours: [s.workerId], expenses: [] },
     });
-    expect(noHours.state).toBe('empty');
+    expect(noHours.state).toBe('ready');
+    expect(noHours.subtotalMinor).toBe(String(5000 + 20000));
     expect(noHours.components?.[0]).toMatchObject({
       hours: { available: true, included: false },
       overtime: { included: false },
@@ -231,5 +233,42 @@ describe('quick invoice: per-person parts', () => {
         .prepare("SELECT 1 FROM audit_event WHERE action='invoice_line_override.create'")
         .get(),
     ).toBeTruthy();
+  });
+
+  it('invoices per diem and allowance alone, also after the hours were invoiced', () => {
+    const s = setup();
+    const hours = s.time('2026-08-03', 480);
+    const input = {
+      projectId: s.f.project.id,
+      ...period,
+      leaveOut: { hours: [s.workerId], expenses: [] },
+    };
+    const preview = quickInvoicePreview(s.context, input);
+    expect(preview.state).toBe('ready');
+    const created = quickInvoiceCreate(s.context, {
+      ...input,
+      expectedTotalMinor: preview.totalMinor,
+      requestKey: 'extras-only-1',
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const lines = s.f.sqlite
+      .prepare('SELECT source_type,snapshot_json FROM invoice_line WHERE invoice_id=?')
+      .all(created.invoiceId) as Array<{ source_type: string; snapshot_json: string }>;
+    expect(lines.every((line) => line.source_type === 'billing_adjustment')).toBe(true);
+    expect(lines.map((line) => JSON.parse(line.snapshot_json).extraKind).sort()).toEqual([
+      'allowance',
+      'per_diem',
+    ]);
+    // The hours stay open for a later invoice; the extras are not billed twice.
+    expect(
+      s.f.sqlite
+        .prepare("SELECT count(*) n FROM invoice_source WHERE source_type='time' AND source_id=?")
+        .get(hours),
+    ).toEqual({ n: 0 });
+    s.f.repository.approveInvoiceDraft(s.finance, created.invoiceId);
+    const rest = quickInvoicePreview(s.context, { projectId: s.f.project.id, ...period });
+    expect(rest.state).toBe('ready');
+    expect(rest.subtotalMinor).toBe('80000');
   });
 });

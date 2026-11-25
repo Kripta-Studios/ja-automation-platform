@@ -34,10 +34,19 @@ export type ProjectBillingSetupInput = Readonly<{
   legalEntityId: string;
   laborTaxProfileId?: string;
   expenseTaxProfileId?: string;
-  cadenceType: 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly' | 'manual';
-  expenseCadenceType: 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly' | 'manual';
+  cadenceType: 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly' | 'milestone' | 'manual';
+  expenseCadenceType:
+    | 'weekly'
+    | 'every_14_days'
+    | 'semi_monthly'
+    | 'monthly'
+    | 'milestone'
+    | 'manual';
   anchorDate?: string;
   expenseAnchorDate?: string;
+  /** Monthly only: the closing day (1-28); none = calendar month. */
+  monthlyCutoffDay?: number;
+  expenseMonthlyCutoffDay?: number;
   invoiceLayout: 'default' | 'labor-detailed' | 'labor-summary';
   groupingMode: 'detail' | 'summary' | 'by_worker' | 'by_day' | 'by_category';
   billingContactId?: string;
@@ -125,6 +134,7 @@ type RuleRow = Readonly<{
   currency: string;
   cadence_type: string;
   anchor_date: string | null;
+  monthly_cutoff_day?: number | null;
   template_id: string | null;
   grouping_mode: string | null;
   billing_contact_id: string | null;
@@ -179,8 +189,21 @@ function validate(input: ProjectBillingSetupInput): void {
     if (value && !storedBillingIdPattern.test(value))
       throw new ValidationError('Tax profile selection is invalid');
   for (const cadence of [input.cadenceType, input.expenseCadenceType])
-    if (!['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'manual'].includes(cadence))
+    if (
+      !['weekly', 'every_14_days', 'semi_monthly', 'monthly', 'milestone', 'manual'].includes(
+        cadence,
+      )
+    )
       throw new ValidationError('Unsupported billing cadence');
+  for (const [cadence, cutoff] of [
+    [input.cadenceType, input.monthlyCutoffDay],
+    [input.expenseCadenceType, input.expenseMonthlyCutoffDay],
+  ] as const)
+    if (
+      cutoff !== undefined &&
+      (cadence !== 'monthly' || !Number.isInteger(cutoff) || cutoff < 1 || cutoff > 28)
+    )
+      throw new ValidationError('Monthly closing day must be from 1 to 28');
   if (input.cadenceType === 'every_14_days' && !dayPattern.test(input.anchorDate ?? ''))
     throw new ValidationError('Labor cadence needs an anchor date');
   if (
@@ -975,6 +998,11 @@ export class ProjectBillingSetupRepository {
       expenseCadenceType: input.mode === 'separate' ? input.expenseCadenceType : input.cadenceType,
       anchorDate: input.anchorDate ?? '',
       expenseAnchorDate: input.mode === 'separate' ? (input.expenseAnchorDate ?? '') : '',
+      // Only present when set, so earlier request payloads keep their hashes.
+      ...(input.monthlyCutoffDay !== undefined ? { monthlyCutoffDay: input.monthlyCutoffDay } : {}),
+      ...(input.mode === 'separate' && input.expenseMonthlyCutoffDay !== undefined
+        ? { expenseMonthlyCutoffDay: input.expenseMonthlyCutoffDay }
+        : {}),
       invoiceLayout: input.invoiceLayout,
       groupingMode: input.groupingMode,
       paymentTermsDays: input.paymentTermsDays,
@@ -1232,6 +1260,12 @@ export class ProjectBillingSetupRepository {
     const taxProfileId = labor ? input.laborTaxProfileId : input.expenseTaxProfileId;
     const cadenceType = labor ? input.cadenceType : input.expenseCadenceType;
     const anchorDate = labor ? input.anchorDate : input.expenseAnchorDate;
+    const cutoffDay =
+      cadenceType === 'monthly'
+        ? labor || input.mode !== 'separate'
+          ? input.monthlyCutoffDay
+          : input.expenseMonthlyCutoffDay
+        : undefined;
     const templateId = labor ? input.invoiceLayout : 'expenses-detailed';
     const includeExpenses = labor && input.mode === 'combined';
     const data = {
@@ -1266,7 +1300,7 @@ export class ProjectBillingSetupRepository {
       this.sqlite
         .prepare(
           `UPDATE billing_rule SET legal_entity_id=?,tax_profile_id=?,cadence_type=?,anchor_date=?,
-           billing_contact_id=?,recipient_email=?,template_id=?,grouping_mode=?,
+           monthly_cutoff_day=?,billing_contact_id=?,recipient_email=?,template_id=?,grouping_mode=?,
            payment_terms_days=?,auto_generate_draft=?,include_expenses=?,updated_at=? WHERE id=?`,
         )
         .run(
@@ -1274,6 +1308,7 @@ export class ProjectBillingSetupRepository {
           taxProfileId || null,
           cadenceType,
           anchorDate || null,
+          cutoffDay ?? null,
           input.billingContactId || null,
           input.recipientEmail || null,
           templateId,
@@ -1292,6 +1327,7 @@ export class ProjectBillingSetupRepository {
       streamType: stream,
       cadenceType,
       anchorDate: anchorDate || undefined,
+      ...(cutoffDay !== undefined ? { monthlyCutoffDay: cutoffDay } : {}),
       taxProfileId,
       currency,
       effectiveFrom: input.effectiveFrom,
@@ -1313,6 +1349,8 @@ export class ProjectBillingSetupRepository {
       (rule.tax_profile_id || null) === (input.laborTaxProfileId || null) &&
       rule.cadence_type === input.cadenceType &&
       (rule.anchor_date || null) === (input.anchorDate || null) &&
+      (rule.monthly_cutoff_day ?? null) ===
+        (input.cadenceType === 'monthly' ? (input.monthlyCutoffDay ?? null) : null) &&
       (rule.template_id || null) === input.invoiceLayout &&
       (rule.grouping_mode || null) === input.groupingMode &&
       (rule.billing_contact_id || null) === (input.billingContactId || null) &&

@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ConflictError } from '@ja/database';
+import {
+  AssignmentExtrasRepository,
+  ConflictError,
+  PayBillingIntervalRepository,
+  effectivePayInterval,
+  latestAssignmentExtras,
+} from '@ja/database';
 import { resolveAssignmentCommercialTerms } from '../../packages/database/src/domains/commercial/assignment-commercial-terms.ts';
 import {
   closeB5LifecycleSecurityFixture,
@@ -152,5 +158,45 @@ describe('assignment dates that leave approved records outside', () => {
     expect(() =>
       f.repository.updateAssignment(owner, row.id, { startsOn: '2026-03-01', version: row.version }),
     ).toThrow(ConflictError);
+  });
+
+  it('copies the extras and pay interval in force to the history assignment', () => {
+    const { f, owner, assignment, hours } = setup();
+    hours('2026-02-02', 'approved');
+    const row = assignment();
+    new AssignmentExtrasRepository(f.sqlite).set(owner, {
+      projectMemberId: row.id,
+      expectedVersion: 0,
+      perDiemClientMinor: '5000',
+      perDiemWorkerMinor: '3000',
+    });
+    new AssignmentExtrasRepository(f.sqlite).set(owner, {
+      projectMemberId: row.id,
+      expectedVersion: 1,
+      perDiemClientMinor: '6000',
+      perDiemWorkerMinor: '3500',
+    });
+    new PayBillingIntervalRepository(f.sqlite).setAssignmentInterval(owner, {
+      projectMemberId: row.id,
+      interval: 'weekly',
+      expectedVersion: 0,
+    });
+    f.repository.updateAssignment(owner, row.id, { startsOn: '2026-03-01', version: row.version });
+    const history = f.sqlite
+      .prepare(
+        "SELECT id FROM project_member WHERE user_id='b5-worker' AND status='inactive' AND id<>?",
+      )
+      .get(row.id) as { id: string };
+    expect(latestAssignmentExtras(f.sqlite, history.id)).toMatchObject({
+      version: 1,
+      perDiemClientMinor: '6000',
+      perDiemWorkerMinor: '3500',
+    });
+    expect(effectivePayInterval(f.sqlite, 'b5-worker', history.id)).toMatchObject({
+      interval: 'weekly',
+      source: 'assignment',
+    });
+    // The current assignment keeps its own history untouched.
+    expect(latestAssignmentExtras(f.sqlite, row.id)).toMatchObject({ version: 2 });
   });
 });

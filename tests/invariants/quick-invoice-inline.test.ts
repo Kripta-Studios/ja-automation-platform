@@ -295,11 +295,12 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
   });
 
-  it('allows Finance to approve on behalf (audited as Finance) and denies project managers and workers', () => {
-    const { f, finance, worker, manager, time, context } = setup();
+  it('lets the owner approve on behalf and denies Finance (D6), project managers and workers', () => {
+    const { f, owner, finance, worker, manager, time, context } = setup();
     time('2026-08-04', 90, 'submitted');
-    const preview = quickInvoicePreview(context(finance), { projectId: f.project.id, ...period });
+    const preview = quickInvoicePreview(context(owner), { projectId: f.project.id, ...period });
     const sources = pendingRefs(preview);
+    expect(sources).toHaveLength(1);
     for (const denied of [manager, worker])
       expect(() =>
         quickInvoiceIncludePending(context(denied), {
@@ -309,6 +310,15 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
           requestKey: `inline-denied-${denied.role}`,
         }),
       ).toThrow(AccessDeniedError);
+    // Finance: the not-yet-approved record is left out (skipped with a reason), never approved.
+    const byFinance = quickInvoiceIncludePending(context(finance), {
+      projectId: f.project.id,
+      ...period,
+      sources,
+      requestKey: 'inline-denied-finance',
+    });
+    expect(byFinance.approved).toHaveLength(0);
+    expect(byFinance.skipped).toHaveLength(1);
     expect(() =>
       f.repository.approvePendingForInvoice(manager, {
         projectId: f.project.id,
@@ -318,17 +328,17 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     ).toThrow(AccessDeniedError);
     expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
 
-    const result = quickInvoiceIncludePending(context(finance), {
+    const result = quickInvoiceIncludePending(context(owner), {
       projectId: f.project.id,
       ...period,
       sources,
-      requestKey: 'inline-finance-approve',
+      requestKey: 'inline-owner-approve',
     });
     expect(result.approved).toHaveLength(1);
     expect(
       count(
         f,
-        "SELECT COUNT(*) n FROM audit_event WHERE json_extract(metadata_json,'$.actorRole')='finance_admin' AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf'",
+        "SELECT COUNT(*) n FROM audit_event WHERE json_extract(metadata_json,'$.actorRole')='owner_admin' AND json_extract(metadata_json,'$.event')='invoice_prep.approve_on_behalf'",
       ),
     ).toBe(1);
   });

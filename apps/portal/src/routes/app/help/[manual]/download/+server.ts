@@ -96,9 +96,9 @@ export const GET: RequestHandler = async ({ locals, params, url, cookies, reques
   // T18 (round 2): a person who opened the link in the browser lands back on Help
   // instead of a raw JSON page; scripts that ask for JSON keep the problem body.
   const browserNavigation =
-    request.headers.get('sec-fetch-mode') === 'navigate' ||
-    (/text\/html/u.test(request.headers.get('accept') ?? '') &&
-      !/application\/(?:problem\+)?json/u.test(request.headers.get('accept') ?? ''));
+    request?.headers.get('sec-fetch-mode') === 'navigate' ||
+    (/text\/html/u.test(request?.headers.get('accept') ?? '') &&
+      !/application\/(?:problem\+)?json/u.test(request?.headers.get('accept') ?? ''));
   const errorLocale =
     normalizeManualLocale(url.searchParams.get('lang')) ??
     normalizeManualLocale(cookies?.get('ja.portal.locale') ?? cookies?.get('ja-portal-locale')) ??

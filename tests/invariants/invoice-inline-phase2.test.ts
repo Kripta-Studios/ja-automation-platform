@@ -346,8 +346,19 @@ describe('S9: fix the worker record from the invoice', () => {
       f: 1,
     });
     expect(f.sqlite.prepare('SELECT minutes FROM time_entry WHERE id=?').get(approved)).toEqual({ minutes: 60 });
-    // Finance may fix a draft entry too (approved as recorded first, then corrected).
-    const second = quickInvoiceCorrectHours(context(finance), {
+    // D6 (audit round 2): Finance takes no operational approval, so it cannot fix (and
+    // thereby approve) a draft entry; the owner can.
+    expect(() =>
+      quickInvoiceCorrectHours(context(finance), {
+        projectId: f.project.id,
+        ...period,
+        source: { type: 'time', id: draft, version: version(draft) },
+        minutes: 60,
+        reason: 'Worker logged the drive twice',
+        requestKey: 'phase2-fix-2-finance',
+      }),
+    ).toThrow(/Owner or project manager approval required/);
+    const second = quickInvoiceCorrectHours(context(owner), {
       projectId: f.project.id,
       ...period,
       source: { type: 'time', id: draft, version: version(draft) },

@@ -74,7 +74,8 @@ describe('standalone portal route locale boundary', () => {
       standaloneRoutes[8],
     ]) {
       const source = read(path);
-      expect(source).toMatch(/Print Report|Print report/);
+      // The invoice page prints a document, not a report (round 2): its own Print label.
+      expect(source).toMatch(/Print Report|Print report|printDocument/);
       expect(source).toContain('window.print(');
       expect(source).toContain('no-print');
     }

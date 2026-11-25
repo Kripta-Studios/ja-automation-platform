@@ -750,11 +750,14 @@ export function defaultExpenseDescription(
 }
 
 /** The person's portal language for stored default texts (?lang, then the saved cookie). */
-function actionLocale(event: { url: URL; cookies: { get: (name: string) => string | undefined } }) {
+function actionLocale(event: {
+  url?: URL;
+  cookies?: { get: (name: string) => string | undefined };
+}) {
   return resolvePortalLocalePreference(
-    event.url.searchParams.get('lang'),
-    event.cookies.get('ja.portal.locale'),
-    event.cookies.get('ja-portal-locale'),
+    event.url?.searchParams.get('lang'),
+    event.cookies?.get('ja.portal.locale'),
+    event.cookies?.get('ja-portal-locale'),
   );
 }
 

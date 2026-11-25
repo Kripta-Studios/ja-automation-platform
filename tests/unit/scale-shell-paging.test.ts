@@ -29,6 +29,7 @@ beforeEach(() => {
     CREATE TABLE expense(id TEXT,project_id TEXT,worker_id TEXT,spent_on TEXT,description TEXT);
     CREATE TABLE daily_report(id TEXT,project_id TEXT,worker_id TEXT,work_date TEXT,summary TEXT);
     CREATE TABLE technical_report(id TEXT,project_id TEXT,author_id TEXT,report_date TEXT,created_at TEXT,change_summary TEXT);
+    CREATE TABLE payment(id TEXT PRIMARY KEY,invoice_id TEXT);
     CREATE TABLE technical_change(id TEXT,project_id TEXT,author_id TEXT,created_at TEXT,component TEXT);
     CREATE TABLE period_report(id TEXT,project_id TEXT,period_start TEXT,report_type TEXT);
     CREATE TABLE invoice(id TEXT,project_id TEXT,due_at TEXT,issued_at TEXT,created_at TEXT,invoice_number TEXT);

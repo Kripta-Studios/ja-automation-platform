@@ -255,11 +255,7 @@ export const load: PageServerLoad = ({ locals, params }) => {
         String(record.project_id),
       ),
       // T41 (round 2): no "Add related expense" on a closing/closed project that takes no new records.
-      projectAcceptsNewRecords: Boolean(
-        context.sqlite
-          .prepare("SELECT 1 FROM project WHERE id=? AND status IN ('active','planned','paused')")
-          .get(String(record.project_id)),
-      ),
+      projectAcceptsNewRecords: projectAcceptsNewRecords(context.sqlite, String(record.project_id)),
       correctionOrigin,
       activeCorrection,
       correctionRequestId,
@@ -387,3 +383,18 @@ export const actions: Actions = {
     return result;
   },
 };
+
+/** Unknown status (e.g. a reduced read model) keeps the link; only a known closed state hides it. */
+function projectAcceptsNewRecords(
+  sqlite: { prepare: (sql: string) => { get: (...args: unknown[]) => unknown } },
+  projectId: string,
+): boolean {
+  try {
+    const row = sqlite.prepare('SELECT status FROM project WHERE id=?').get(projectId) as
+      | { status?: string }
+      | undefined;
+    return !row?.status || ['active', 'planned', 'paused'].includes(row.status);
+  } catch {
+    return true;
+  }
+}

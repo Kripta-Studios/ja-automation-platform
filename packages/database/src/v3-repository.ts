@@ -12729,7 +12729,16 @@ export class V3Repository {
     return { processed, failed, permanentlyFailed };
   }
 
+  /**
+   * Runs every jobs-loop cycle (5 s). All the schedule writes go in ONE short
+   * write transaction instead of a dozen autocommit writes, so the jobs process
+   * takes the shared SQLite write lock once per cycle and releases it quickly.
+   */
   scheduleCoreJobs(): void {
+    this.transaction(() => this.scheduleCoreJobsInTransaction());
+  }
+
+  private scheduleCoreJobsInTransaction(): void {
     const now = timestamp();
     const jobs = [
       ['alert_dispatch', '*/5 * * * *'],

@@ -5,7 +5,9 @@ import {
   withTemporaryOwnerLogin,
   revokeExpiredTemporaryOwnerSessions,
 } from '$lib/server/temporary-owner-login';
-import { createDatabase } from '@ja/database';
+import { createDatabase, logDatabaseBusyRetry } from '@ja/database';
+import type { DatabaseSync } from 'node:sqlite';
+import { createRateLimitStore } from '$lib/server/auth-rate-limit-store';
 import { supplierRouteAllowed } from '$lib/server/supplier-route-access';
 import { createHash, randomUUID } from 'node:crypto';
 import { svelteKitHandler } from 'better-auth/svelte-kit';
@@ -201,7 +203,7 @@ function authRateLimitMaximum(): number {
     : 10;
 }
 
-type AuthRateLimitSqlite = ReturnType<typeof createDatabase>['sqlite'];
+type AuthRateLimitSqlite = DatabaseSync;
 
 /** Returns the live window for a bucket, or null when it is absent or expired. */
 function liveBucket(
@@ -232,24 +234,11 @@ function bumpBucket(sqlite: AuthRateLimitSqlite, bucketKey: string, now: number)
     .run(bucketKey, new Date(now).toISOString());
 }
 
-function withRateLimitTransaction<T>(work: (sqlite: AuthRateLimitSqlite) => T): T {
-  const { sqlite } = createDatabase();
-  try {
-    sqlite.exec('BEGIN IMMEDIATE');
-    const result = work(sqlite);
-    sqlite.exec('COMMIT');
-    return result;
-  } catch (error) {
-    try {
-      sqlite.exec('ROLLBACK');
-    } catch {
-      // Preserve the original rate-limit failure.
-    }
-    throw error;
-  } finally {
-    sqlite.close();
-  }
-}
+// One reused connection; writes retry asynchronously on SQLITE_BUSY so a lock
+// held by the jobs process or another request never blocks the event loop.
+const rateLimitStore = createRateLimitStore({
+  onBusyRetry: (attempt) => logDatabaseBusyRetry('auth-rate-limit', attempt),
+});
 
 function rateLimitedResponse(
   event: Parameters<Handle>[0]['event'],
@@ -287,7 +276,10 @@ function rateLimitedResponse(
  * address-only ceiling (5x) still slows password spraying across many accounts.
  * A successful sign-in clears that account's counter.
  */
-type SignInRateLimit = Readonly<{ limited: Response | null; record?: (status: number) => void }>;
+type SignInRateLimit = Readonly<{
+  limited: Response | null;
+  record?: (status: number) => Promise<void>;
+}>;
 
 async function signInRateLimit(
   event: Parameters<Handle>[0]['event'],
@@ -309,7 +301,8 @@ async function signInRateLimit(
   const maximum = authRateLimitMaximum();
   const addressMaximum = Math.min(maximum * 5, 50_000);
   const now = Date.now();
-  const blocked = withRateLimitTransaction((sqlite) => {
+  // A pure check: no write transaction, so it never waits for a writer.
+  const blocked = rateLimitStore.read((sqlite) => {
     const account = liveBucket(sqlite, accountKey, now);
     if (account && account.count >= maximum) return account;
     const perAddress = liveBucket(sqlite, addressKey, now);
@@ -320,33 +313,47 @@ async function signInRateLimit(
     return { limited: rateLimitedResponse(event, correlationId, blocked.startedAt, now) };
   return {
     limited: null,
-    record(status: number) {
+    async record(status: number) {
       const at = Date.now();
-      if (status >= 200 && status < 300) {
-        withRateLimitTransaction((sqlite) =>
-          sqlite.prepare('DELETE FROM rate_limit_bucket WHERE bucket_key=?').run(accountKey),
+      try {
+        if (status >= 200 && status < 300) {
+          await rateLimitStore.write((sqlite) =>
+            sqlite.prepare('DELETE FROM rate_limit_bucket WHERE bucket_key=?').run(accountKey),
+          );
+        } else if (status >= 400 && status < 500 && status !== 429) {
+          await rateLimitStore.write((sqlite) => {
+            bumpBucket(sqlite, accountKey, at);
+            bumpBucket(sqlite, addressKey, at);
+          });
+        }
+      } catch (error) {
+        // The sign-in itself has already been answered; a counter that could
+        // not be written after every retry must not turn it into a 500.
+        console.error(
+          JSON.stringify({
+            timestamp: new Date().toISOString(),
+            level: 'error',
+            event: 'auth.rate_limit.record_failed',
+            correlationId,
+            error: error instanceof Error ? error.message : 'unknown error',
+          }),
         );
-      } else if (status >= 400 && status < 500 && status !== 429) {
-        withRateLimitTransaction((sqlite) => {
-          bumpBucket(sqlite, accountKey, at);
-          bumpBucket(sqlite, addressKey, at);
-        });
       }
     },
   };
 }
 
-function authRateLimit(
+async function authRateLimit(
   event: Parameters<Handle>[0]['event'],
   correlationId: string,
-): Response | null {
+): Promise<Response | null> {
   if (event.request.method === 'GET' || event.request.method === 'HEAD') return null;
   const address = event.getClientAddress();
   const endpoint = event.url.pathname.replace(/[^A-Za-z0-9/_-]/g, '_');
   const bucketKey = createHash('sha256').update(`auth:${address}:${endpoint}`).digest('hex');
   const now = Date.now();
   const maximumAttempts = authRateLimitMaximum();
-  const blocked = withRateLimitTransaction((sqlite) => {
+  const blocked = await rateLimitStore.write((sqlite) => {
     const bucket = liveBucket(sqlite, bucketKey, now);
     if (bucket && bucket.count >= maximumAttempts) return bucket;
     bumpBucket(sqlite, bucketKey, now);
@@ -533,7 +540,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       if (signInLimit.limited)
         return applySecurityHeaders(signInLimit.limited, isPortal, path, correlationId);
     } else {
-      const limited = authRateLimit(event, correlationId);
+      const limited = await authRateLimit(event, correlationId);
       if (limited) return applySecurityHeaders(limited, isPortal, path, correlationId);
     }
     if (isAuth) {
@@ -630,7 +637,7 @@ export const handle: Handle = async ({ event, resolve }) => {
       );
     throw caught;
   }
-  signInLimit?.record?.(response.status);
+  await signInLimit?.record?.(response.status);
   if (isPortal) response = await applyServerDocumentLocale(response, requestLocale(event));
   applySecurityHeaders(response, isPortal, path, correlationId);
   if (production || process.env.JA_JSON_LOGS === 'true')

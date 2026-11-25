@@ -8,8 +8,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('$app/environment', () => ({ building: true }));
 vi.mock('$lib/server/auth', () => ({ auth: {}, revokeSessionsUnlessUserIsActive: vi.fn() }));
 vi.mock('@ja/database', () => ({
+  isDatabaseBusyError: () => false,
+  logDatabaseBusyRetry: vi.fn(),
   createDatabase: () => ({
     sqlite: {
+      isOpen: true,
       exec: vi.fn(),
       close: vi.fn(),
       prepare: (sql: string) => ({

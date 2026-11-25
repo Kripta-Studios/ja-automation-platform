@@ -1056,6 +1056,34 @@ function isRealDirectoryPath(path: string): boolean {
   }
 }
 
+/**
+ * Whether the main database could accept writes, checked WITHOUT taking the
+ * write lock. A probe such as `BEGIN IMMEDIATE; ROLLBACK` queues behind every
+ * writer (portal requests and the jobs process) and turned a busy moment into a
+ * 503 from /health/ready, while also delaying real writers. Instead check that
+ * the connection is not query-only and that the file, plus the directory that
+ * holds its -wal/-shm files, are writable.
+ */
+export function databaseWritable(sqlite: DatabaseSync): boolean {
+  try {
+    const queryOnly = sqlite.prepare('PRAGMA query_only').get() as
+      | { query_only: number }
+      | undefined;
+    if (Number(queryOnly?.query_only ?? 0) !== 0) return false;
+    const main = (
+      sqlite.prepare('PRAGMA database_list').all() as Array<{ name: string; file: string }>
+    ).find((row) => row.name === 'main');
+    if (!main) return false;
+    // In-memory and temporary databases have no file to check.
+    if (!main.file) return true;
+    accessSync(main.file, constants.W_OK);
+    accessSync(dirname(main.file), constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 const DEFAULT_MIN_FREE_BYTES = 1_073_741_824;
 const INTEGER_BYTES_PATTERN = /^(?:0|[1-9]\d*)$/u;
 
@@ -1100,17 +1128,7 @@ export function readinessCheck(
       return false;
     }
   });
-  let writeReady = false;
-  try {
-    sqlite.exec('BEGIN IMMEDIATE; ROLLBACK;');
-    writeReady = true;
-  } catch {
-    try {
-      sqlite.exec('ROLLBACK;');
-    } catch {
-      // Keep readiness failure contained; the original write error is reflected by writeReady.
-    }
-  }
+  const writeReady = databaseWritable(sqlite);
   const configuredThreshold = process.env.JA_MIN_FREE_BYTES ?? String(DEFAULT_MIN_FREE_BYTES);
   const thresholdValid = INTEGER_BYTES_PATTERN.test(configuredThreshold);
   const parsedThreshold = Number(configuredThreshold);
@@ -1188,6 +1206,7 @@ export {
 } from './domains/billing/invoice-line-labels.ts';
 export * from './v3-repository.ts';
 export { recordAuditEvent } from './core/audit.ts';
+export { isDatabaseBusyError, logDatabaseBusyRetry } from './core/busy-retry.ts';
 export { assertLiveSession } from './core/authorization.ts';
 export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';

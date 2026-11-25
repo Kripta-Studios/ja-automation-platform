@@ -12603,9 +12603,45 @@ export class PortalRepository {
                 | undefined
             )?.name ?? null)
           : null;
+      // Round 2 (T27): a returned or rejected record tells the person why.
+      const reviewReason = (() => {
+        const returned = /^approval_(?:returned|rejected)_(time|expense|daily|technical)$/u.exec(
+          row.kind,
+        );
+        if (!returned || !safeView.sourceId) return null;
+        if (returned[1] === 'time' || returned[1] === 'expense') {
+          const event = this.sqlite
+            .prepare(
+              `SELECT reason FROM approval_event WHERE entity_type IN (?,?) AND entity_id=?
+                 AND to_state IN ('needs_changes','rejected') AND reason IS NOT NULL
+                 AND reason NOT LIKE 'Superseded by %'
+               ORDER BY occurred_at DESC,id DESC LIMIT 1`,
+            )
+            .get(
+              returned[1],
+              returned[1] === 'time' ? 'time_entry' : 'expense',
+              safeView.sourceId,
+            ) as { reason: string } | undefined;
+          return event?.reason?.trim() || null;
+        }
+        const event = this.sqlite
+          .prepare(
+            `SELECT details_json FROM audit_event WHERE entity_type IN ('daily_report','technical_report')
+               AND entity_id=? AND action LIKE '%.needs_changes'
+             ORDER BY occurred_at DESC,id DESC LIMIT 1`,
+          )
+          .get(safeView.sourceId) as { details_json: string | null } | undefined;
+        try {
+          const reason = (JSON.parse(event?.details_json ?? '{}') as { reason?: unknown }).reason;
+          return typeof reason === 'string' && reason.trim() ? reason.trim() : null;
+        } catch {
+          return null;
+        }
+      })();
       return {
         ...row,
         person_name: personName,
+        review_reason: reviewReason,
         source_unavailable: false,
         source_id: safeView.sourceId,
         target: recorderTarget ?? safeView.target,

@@ -388,7 +388,8 @@
                   to: fmt(Math.min(serverPage.total, serverPage.page * serverPage.pageSize)),
                   total: fmt(serverPage.total),
                 })
-              : sc('showingNone'),
+              : // The empty state below already says there is nothing (one message only).
+                '',
           prevHref: serverPage.page > 1 ? pageHref(serverPage.page - 1) : undefined,
           nextHref: serverPage.page < serverPage.pages ? pageHref(serverPage.page + 1) : undefined,
           prevLabel: sc('previous'),
@@ -424,7 +425,7 @@
               {/if}
               <time datetime={String(row.created_at)}>{timestamp(row.created_at)}</time>
             </small>
-            {#if row.record_date}<span>{translate('Record date')}: {String(row.record_date)}</span
+            {#if row.record_date}<span>{translate('Record date')}: {longDate(String(row.record_date))}</span
               >{/if}
             {#if Array.isArray(row.changed_fields) && row.changed_fields.length}
               <span class="change-summary"

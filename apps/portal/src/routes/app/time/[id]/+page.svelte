@@ -392,7 +392,7 @@
     <header class="record-detail-header">
       <div>
         <span class="portal-kicker">{t('Time entry')}</span>
-        <h1>{record.project_number} · <span style="white-space: nowrap">{workDateText}</span></h1>
+        <h1>{record.project_number} · <span class="time-detail-date">{workDateText}</span></h1>
         <p>{record.project_name} · {workerDisplay}</p>
       </div>
       <span class="state-tag">{statusLabel}</span>
@@ -724,3 +724,10 @@
     </section>
   </main>
 {/if}
+
+<style>
+  /* A class, not a style attribute: the CSP allows no inline styles. */
+  .time-detail-date {
+    white-space: nowrap;
+  }
+</style>

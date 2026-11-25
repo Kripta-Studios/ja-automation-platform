@@ -1433,7 +1433,7 @@
           {:else if receiptUrl}
             <span class="receipt-preview">
               {#if receiptIsImage}<img src={receiptUrl} alt="" />{/if}
-              <span style="overflow-wrap: anywhere; word-break: normal">{receiptName}</span>
+              <span class="receipt-preview-name">{receiptName}</span>
             </span>
           {:else}
             <span class="xp-receipt-cta"
@@ -1491,9 +1491,6 @@
             placeholder={minorDigitsFor(fCurrency) === 0 ? '0' : locale === 'en' ? '0.00' : '0,00'}
             data-expense-amount
             class:xp-suggested={amountSuggested}
-            style={amountSuggested
-              ? 'border: 2px solid #b26a00; background: #fff7e8; color: #1c2430;'
-              : undefined}
             bind:value={fAmount}
             oninput={() => {
               amountTouched = true;
@@ -1513,9 +1510,7 @@
               bind:value={fCurrency}
               required
               data-expense-currency
-              style={amountSuggested || currencyFromReceipt
-                ? 'border: 2px solid #b26a00; background: #fff7e8; color: #1c2430;'
-                : undefined}
+              class:xp-suggested={Boolean(amountSuggested || currencyFromReceipt)}
               onchange={() => {
                 currencyTouched = true;
                 currencyFromReceipt = '';
@@ -2231,6 +2226,17 @@
     align-items: center;
     gap: 0.6rem;
     overflow-wrap: anywhere;
+  }
+  .receipt-preview-name {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+  /* Suggested from the receipt: ask the person to check it (class, not inline style, for the CSP). */
+  input.xp-suggested,
+  select.xp-suggested {
+    border: 2px solid #b26a00;
+    background: #fff7e8;
+    color: #1c2430;
   }
   .receipt-preview img {
     width: 4rem;

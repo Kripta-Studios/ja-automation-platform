@@ -2193,9 +2193,9 @@ const defaultCompany = {
 };
 
 const defaultTerms = {
-  bankSwiftNumber: 'WFBIUS6S',
-  bankAccountNumber: '8769915615',
-  bankName: 'Wells Fargo Bank',
+  bankSwiftNumber: 'BOFAUS3N',
+  bankAccountNumber: '488117823145',
+  bankName: 'Bank of America',
   beneficiary: 'J&A Automation LLC',
   pastDueNotice:
     'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',

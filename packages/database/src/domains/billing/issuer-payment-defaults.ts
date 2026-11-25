@@ -5,9 +5,9 @@ export function issuerPaymentDefaults(
 ): Record<string, string> {
   if (issuerCode !== 'JA-USA' || currency !== 'USD') return {};
   return {
-    bankSwiftNumber: 'WFBIUS6S',
-    bankAccountNumber: '8769915615',
-    bankName: 'Wells Fargo Bank',
+    bankSwiftNumber: 'BOFAUS3N',
+    bankAccountNumber: '488117823145',
+    bankName: 'Bank of America',
     beneficiary: 'J&A Automation LLC',
   };
 }

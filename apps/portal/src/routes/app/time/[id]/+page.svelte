@@ -50,6 +50,17 @@
     localeOverride ?? data.locale ?? resolveStandaloneLocale($page.url.searchParams.get('lang')),
   );
   const t = (key: string): string => standaloneText(locale, key);
+  // The stored default reason of a hours-only resubmit (repository saveTimeWeek) reads
+  // in the viewer's language; anything a person typed is shown as written.
+  const DEFAULT_CORRECTION_REASON = 'Hours corrected after reviewer request';
+  const correctionReasonText = (reason: unknown): string =>
+    String(reason ?? '') === DEFAULT_CORRECTION_REASON
+      ? locale === 'pt'
+        ? 'Horas corrigidas após pedido do revisor'
+        : locale === 'es'
+          ? 'Horas corregidas a petición del revisor'
+          : DEFAULT_CORRECTION_REASON
+      : String(reason ?? '');
   const controlled = (domain: ControlledValueDomain, value: unknown): string =>
     translateControlledValue(
       locale,
@@ -408,7 +419,7 @@
         <h2 id="time-correction-origin-title">
           <span class="state-tag">{t('Corrected time entry')}</span>
         </h2>
-        <p><strong>{t('Correction reason')}:</strong> {data.correctionOrigin.reason}</p>
+        <p><strong>{t('Correction reason')}:</strong> {correctionReasonText(data.correctionOrigin.reason)}</p>
         <a
           href={`${base}/app/time/${encodeURIComponent(data.correctionOrigin.id)}?lang=${encodeURIComponent(locale)}`}
           >{t('Open original time entry')} <DirectionIcon /></a

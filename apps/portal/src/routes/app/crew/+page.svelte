@@ -5,6 +5,7 @@
   import { onMount, tick } from 'svelte';
   import { untrack } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
+  import { confirmBeforeSubmit } from '$lib/portal/ui/confirm-submit';
   import { SectionCard } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
@@ -34,6 +35,17 @@
   );
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
+  // Round 2: ending a crew delegation is confirmed first. What the chief already
+  // recorded stays in the history and with the crew member.
+  const revokeConfirmText = (chief: string, member: string) =>
+    (locale === 'pt'
+      ? 'Encerrar a delegação de {chief} para {member}? Os registros já feitos ficam no histórico.'
+      : locale === 'es'
+        ? '¿Terminar la delegación de {chief} para {member}? Lo ya registrado queda en el historial.'
+        : 'End the delegation of {chief} for {member}? What was already recorded stays in the history.'
+    )
+      .replace('{chief}', chief)
+      .replace('{member}', member);
   const status = (value: string) => translateControlledValue(locale, 'status', value);
   const longDate = (value: string) =>
     new Intl.DateTimeFormat(locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US', {
@@ -906,7 +918,14 @@
                   method="POST"
                   action={`?/revoke&${actionContext}`}
                   data-crew-operation="revoke"
-                  use:enhance={preserveCrewForm}
+                  use:enhance={confirmBeforeSubmit(
+                    () =>
+                      revokeConfirmText(
+                        personDisplayName(grant.chiefName),
+                        personDisplayName(grant.workerName),
+                      ),
+                    preserveCrewForm,
+                  )}
                   use:formValidation
                 >
                   <input type="hidden" name="id" value={grant.id} />

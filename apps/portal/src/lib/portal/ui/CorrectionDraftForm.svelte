@@ -263,11 +263,10 @@
           <option value="overtime">{translate('Overtime')}</option>
           <option value="travel">{translate('Travel')}</option>
           <option value="standby">{translate('Standby')}</option>
-          <option value="commissioning">{translate('Commissioning')}</option>
-          <option value="weekend_holiday">{translate('Weekend / holiday')}</option>
-          <option value="remote_support">{translate('Remote support')}</option>
-          <option value="training">{translate('Training')}</option>
-          <option value="internal">{translate('Internal')}</option>
+          <!-- T21: only the canonical categories; a legacy stored category stays selectable. -->
+          {#if fieldValue('category', 'category') && !['regular', 'overtime', 'travel', 'standby'].includes(String(fieldValue('category', 'category')))}
+            <option value={fieldValue('category', 'category')}>{translate(String(fieldValue('category', 'category')))}</option>
+          {/if}
         </select>
       </label>
     </div>

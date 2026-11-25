@@ -127,8 +127,8 @@ const en = {
   ownExcluded: '{count} of your own entries need another reviewer.',
   ownExcludedOne: '1 of your own entries needs another reviewer.',
   ownEntries: 'Your own entries — another reviewer approves them ({summary})',
-  ownerApprovesSupplier: 'Supplier and crew hours are approved by the owner ({name}). Waiting now: {count} entries.',
-  ownerApprovesSupplierOne: 'Supplier and crew hours are approved by the owner ({name}). Waiting now: 1 entry.',
+  ownerApprovesSupplier: 'Supplier hours are approved by the owner ({name}). Waiting now: {count} entries.',
+  ownerApprovesSupplierOne: 'Supplier hours are approved by the owner ({name}). Waiting now: 1 entry.',
   noMatches: 'Nothing matches these filters.',
   reportEmpty: 'No details written.',
   // Audit 2026-11-22 (T10, T36).
@@ -269,8 +269,8 @@ const es: Record<CopyKey, string> = {
   ownExcluded: '{count} registros tuyos necesitan otro revisor.',
   ownExcludedOne: '1 registro tuyo necesita otro revisor.',
   ownEntries: 'Tus propios registros — los aprueba otro revisor ({summary})',
-  ownerApprovesSupplier: 'Las horas de proveedores y cuadrillas las aprueba el propietario ({name}). En espera: {count} registros.',
-  ownerApprovesSupplierOne: 'Las horas de proveedores y cuadrillas las aprueba el propietario ({name}). En espera: 1 registro.',
+  ownerApprovesSupplier: 'Las horas de proveedores las aprueba el propietario ({name}). En espera: {count} registros.',
+  ownerApprovesSupplierOne: 'Las horas de proveedores las aprueba el propietario ({name}). En espera: 1 registro.',
   noMatches: 'Nada coincide con estos filtros.',
   reportEmpty: 'Sin detalles escritos.',
   // Audit 2026-11-22 (T10, T36).
@@ -409,8 +409,8 @@ const pt: Record<CopyKey, string> = {
   ownExcluded: '{count} registros seus precisam de outro revisor.',
   ownExcludedOne: '1 registro seu precisa de outro revisor.',
   ownEntries: 'Seus próprios registros — outro revisor os aprova ({summary})',
-  ownerApprovesSupplier: 'As horas de fornecedores e equipes são aprovadas pelo proprietário ({name}). Aguardando: {count} registros.',
-  ownerApprovesSupplierOne: 'As horas de fornecedores e equipes são aprovadas pelo proprietário ({name}). Aguardando: 1 registro.',
+  ownerApprovesSupplier: 'As horas de fornecedores são aprovadas pelo proprietário ({name}). Aguardando: {count} registros.',
+  ownerApprovesSupplierOne: 'As horas de fornecedores são aprovadas pelo proprietário ({name}). Aguardando: 1 registro.',
   noMatches: 'Nada corresponde a estes filtros.',
   reportEmpty: 'Sem detalhes escritos.',
   // Audit 2026-11-22 (T10, T36).

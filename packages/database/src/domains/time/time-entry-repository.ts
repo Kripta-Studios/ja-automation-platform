@@ -944,6 +944,14 @@ export class TimeEntryRepository {
           }
         | undefined;
       if (!original) throw this.deps.errors.validation('Original time entry not found');
+      // T21 (round 2): a correction uses the canonical categories (Work, Overtime, Travel,
+      // Standby); an entry already stored with a legacy category may keep it.
+      if (
+        typeof patch.category === 'string' &&
+        patch.category !== original.category &&
+        !['regular', 'overtime', 'travel', 'standby'].includes(patch.category)
+      )
+        throw this.deps.errors.validation('Choose a valid time category');
       this.assertEffectiveMembership(
         principal,
         original.project_id,

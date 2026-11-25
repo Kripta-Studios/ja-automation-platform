@@ -749,14 +749,22 @@ function issuerWarnings(invoice: Row): QuickInvoiceWarning[] {
   const settings = (invoice.issuer_document_settings ?? {}) as Row;
   if (!String(settings.bankAccountNumber ?? '').trim() || !String(settings.bankName ?? '').trim())
     add('missing_issuer_settings', 'issuer_settings', 'info');
+  if (!invoicePurchaseNo(invoice)) add('missing_purchase_order', 'project_po', 'info');
+  return warnings;
+}
+
+/**
+ * The purchase order this draft really carries. A project name or number is not a purchase
+ * order (audit T11: "PURCHASE NO. BBS Mexico"), so the summary and the checklist agree.
+ */
+export function invoicePurchaseNo(invoice: Row): string | null {
   const po = String(invoice.purchase_no ?? '').trim();
-  // A project name or number is not a purchase order (audit T11: "PURCHASE NO. BBS Mexico").
+  if (!po || po === '—') return null;
   const notAPo = [invoice.project_name, invoice.project_number]
     .map((value) => String(value ?? '').trim().toLocaleLowerCase())
     .filter(Boolean)
     .includes(po.toLocaleLowerCase());
-  if (!po || po === '—' || notAPo) add('missing_purchase_order', 'project_po', 'info');
-  return warnings;
+  return notAPo ? null : po;
 }
 
 export type QuickInvoiceInput = {
@@ -1340,8 +1348,7 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
         name: String((tax as Row).name ?? ''),
         basisPoints: Number((tax as Row).basis_points ?? 0),
       })),
-      purchaseNo:
-        invoice.purchase_no && invoice.purchase_no !== '—' ? String(invoice.purchase_no) : null,
+      purchaseNo: invoicePurchaseNo(invoice),
       dueDate: invoice.due_date ? String(invoice.due_date) : null,
       paymentTermsDays:
         invoice.payment_terms_days === null || invoice.payment_terms_days === undefined
@@ -2137,7 +2144,7 @@ function splitByPurchaseOrder(
     const invoice = dryRun.preview.invoice as Row;
     parts.push({
       poKey: group.poKey,
-      purchaseNo: invoice.purchase_no && invoice.purchase_no !== '—' ? String(invoice.purchase_no) : null,
+      purchaseNo: invoicePurchaseNo(invoice),
       people: [...group.people.values()].sort((a, b) => a.name.localeCompare(b.name)),
       sourceCount: dryRun.lines.filter((line) => ['time', 'expense'].includes(line.sourceType)).length,
       subtotalMinor: dryRun.totals.subtotalMinor,

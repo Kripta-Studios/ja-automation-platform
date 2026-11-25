@@ -3021,9 +3021,13 @@ export class PortalRepository {
   }
 
   private reportNotificationRecipients(projectId: string, actorId: string) {
+    // N1 (round 3): "report modified/deleted" is an operational notice. Finance
+    // has nothing to do with it, so only the owner and the project's managers
+    // are told (same rule as D6). Finance still gets the report review requests
+    // it can act on (approve / send back).
     const candidates = this.sqlite
       .prepare(
-        "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','finance_admin','project_manager')",
+        "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','project_manager')",
       )
       .all() as Array<{ id: string; role: string }>;
     return candidates.filter((candidate) => {

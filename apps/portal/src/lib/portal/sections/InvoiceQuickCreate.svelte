@@ -1867,6 +1867,7 @@
                       disabled={previewLoading}
                       onclick={() => {
                         overrides = { ...noOverrides(), purchaseNo: overrides.purchaseNo };
+                        leaveOut = { hours: [], expenses: [] };
                         editing = '';
                         void loadPreview();
                       }}>{t('undoAll')}</button

@@ -47,9 +47,17 @@ describe('assignment extras form', () => {
   });
 
   it('names the box that is wrong', () => {
-    expect(parseExtrasForm({ perDiemClient: '5O' }, 'USD')).toMatchObject({ ok: false, error: { field: 'perDiemClient' } });
-    expect(parseExtrasForm({ allowanceClient: '10' }, 'USD')).toMatchObject({ ok: false, error: { field: 'allowanceBasis' } });
-    expect(parseExtrasForm({ overtimeClientMethod: 'multiplier', overtimeClient: '12' }, 'USD')).toMatchObject({
+    expect(parseExtrasForm({ perDiemClient: '5O' }, 'USD')).toMatchObject({
+      ok: false,
+      error: { field: 'perDiemClient' },
+    });
+    expect(parseExtrasForm({ allowanceClient: '10' }, 'USD')).toMatchObject({
+      ok: false,
+      error: { field: 'allowanceBasis' },
+    });
+    expect(
+      parseExtrasForm({ overtimeClientMethod: 'multiplier', overtimeClient: '12' }, 'USD'),
+    ).toMatchObject({
       ok: false,
       error: { field: 'overtimeClient' },
     });

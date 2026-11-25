@@ -90,10 +90,47 @@ const SELECT_EXTRA = `SELECT id,project_member_id,version,currency,
   CAST(overtime_worker_value AS TEXT) overtime_worker_value,reason,created_at
   FROM assignment_extra`;
 
+/**
+ * Per connection: whether the table exists (cached once true) and which projects have any
+ * extras. Finance reads resolve extras per time entry, so the "nobody here has extras" answer
+ * must be cheap. Only AssignmentExtrasRepository.set writes extras; it clears the cache.
+ */
+const tableReady = new WeakSet<DatabaseSync>();
+const projectsWithExtras = new WeakMap<DatabaseSync, Map<string, { value: boolean; at: number }>>();
+// "No extras" may be read from a long-lived connection while another one saves extras: that
+// answer is reused only briefly. "Has extras" never goes back (rows are append-only).
+const NO_EXTRAS_TTL_MS = 2_000;
+
 function hasExtrasTable(sqlite: DatabaseSync): boolean {
-  return Boolean(
-    sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='assignment_extra'").get(),
+  if (tableReady.has(sqlite)) return true;
+  const exists = Boolean(
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='assignment_extra'")
+      .get(),
   );
+  if (exists) tableReady.add(sqlite);
+  return exists;
+}
+
+function projectHasExtras(sqlite: DatabaseSync, projectId: string): boolean {
+  if (!hasExtrasTable(sqlite)) return false;
+  let cache = projectsWithExtras.get(sqlite);
+  if (!cache) {
+    cache = new Map();
+    projectsWithExtras.set(sqlite, cache);
+  }
+  const cached = cache.get(projectId);
+  if (cached && (cached.value || Date.now() - cached.at < NO_EXTRAS_TTL_MS)) return cached.value;
+  const value = Boolean(
+    sqlite
+      .prepare(
+        `SELECT 1 FROM assignment_extra e JOIN project_member pm ON pm.id=e.project_member_id
+          WHERE pm.project_id=? LIMIT 1`,
+      )
+      .get(projectId),
+  );
+  cache.set(projectId, { value, at: Date.now() });
+  return value;
 }
 
 function project(row: ExtraRow): AssignmentExtras {
@@ -135,11 +172,11 @@ export function extrasInUse(extras: AssignmentExtras | null): boolean {
   if (!extras) return false;
   return Boolean(
     extras.perDiemClientMinor !== null ||
-      extras.perDiemWorkerMinor !== null ||
-      extras.allowanceClientMinor !== null ||
-      extras.allowanceWorkerMinor !== null ||
-      extras.overtimeClient ||
-      extras.overtimeWorker,
+    extras.perDiemWorkerMinor !== null ||
+    extras.allowanceClientMinor !== null ||
+    extras.allowanceWorkerMinor !== null ||
+    extras.overtimeClient ||
+    extras.overtimeWorker,
   );
 }
 
@@ -156,16 +193,7 @@ export class AssignmentExtrasResolver {
     private readonly sqlite: DatabaseSync,
     private readonly projectId: string,
   ) {
-    this.available =
-      hasExtrasTable(sqlite) &&
-      Boolean(
-        sqlite
-          .prepare(
-            `SELECT 1 FROM assignment_extra e JOIN project_member pm ON pm.id=e.project_member_id
-              WHERE pm.project_id=? LIMIT 1`,
-          )
-          .get(projectId),
-      );
+    this.available = projectHasExtras(sqlite, projectId);
   }
 
   /** No assignment of this project has extras: callers skip every extras step. */
@@ -193,16 +221,22 @@ export class AssignmentExtrasResolver {
     if (!this.available) return null;
     const member = this.memberOn(workerId, date);
     if (!member) return null;
-    if (!this.extras.has(member)) this.extras.set(member, latestAssignmentExtras(this.sqlite, member));
+    if (!this.extras.has(member))
+      this.extras.set(member, latestAssignmentExtras(this.sqlite, member));
     return this.extras.get(member) ?? null;
   }
 }
 
 /** Overtime rate from an extra: a fixed rate, or the regular rate × multiplier (exact). */
-export function overtimeRateFromExtra(extra: OvertimeExtra, regularRateMinor: bigint | null): bigint | null {
+export function overtimeRateFromExtra(
+  extra: OvertimeExtra,
+  regularRateMinor: bigint | null,
+): bigint | null {
   if (extra.method === 'rate') return BigInt(extra.value);
   if (regularRateMinor === null) return null;
-  return overtimeRate(regularRateMinor, 'BASE_RATE_MULTIPLIER', { multiplierBps: Number(extra.value) });
+  return overtimeRate(regularRateMinor, 'BASE_RATE_MULTIPLIER', {
+    multiplierBps: Number(extra.value),
+  });
 }
 
 export type ExtraCharge = Readonly<{
@@ -344,7 +378,14 @@ export function clientExtraCharges(
     const key = [bucket.workerId, bucket.kind, bucket.basis].join('\u0000');
     let done = cache.get(key);
     if (!done) {
-      done = billedUnits(sqlite, input.projectId, input.invoiceId, bucket.workerId, bucket.kind, bucket.basis);
+      done = billedUnits(
+        sqlite,
+        input.projectId,
+        input.invoiceId,
+        bucket.workerId,
+        bucket.kind,
+        bucket.basis,
+      );
       cache.set(key, done);
     }
     return done;
@@ -418,7 +459,8 @@ export function extraChargeSnapshot(charge: ExtraCharge, projectId: string) {
 
 function minor(value: string | null | undefined, field: string): string | null {
   if (value === undefined || value === null || value === '') return null;
-  if (!/^\d{1,12}$/u.test(String(value))) throw new ValidationError(`${field} must be an exact amount`);
+  if (!/^\d{1,12}$/u.test(String(value)))
+    throw new ValidationError(`${field} must be an exact amount`);
   const amount = BigInt(value);
   if (amount > MAX_MINOR) throw new ValidationError(`${field} is too high`);
   return amount.toString();
@@ -510,7 +552,9 @@ export class AssignmentExtrasRepository {
             AND (effective_to IS NULL OR effective_to>=?)
           ORDER BY effective_from DESC,version DESC LIMIT 1`,
       )
-      .get(member.id, on, on) as { worker_reimbursement: string; client_recovery: string } | undefined;
+      .get(member.id, on, on) as
+      | { worker_reimbursement: string; client_recovery: string }
+      | undefined;
     if (!policy) return null;
     const worker = policy.worker_reimbursement === 'at_cost';
     const client = ['at_cost', 'markup'].includes(policy.client_recovery);
@@ -577,7 +621,8 @@ export class AssignmentExtrasRepository {
         : null;
     return runImmediateTransaction(this.sqlite, 'assignment-extras', () => {
       const member = this.member(input.projectMemberId);
-      if (member.status !== 'active') throw new ValidationError('Active project assignment required');
+      if (member.status !== 'active')
+        throw new ValidationError('Active project assignment required');
       const current = latestAssignmentExtras(this.sqlite, member.id);
       if ((current?.version ?? 0) !== input.expectedVersion)
         throw new ConflictError('Extras changed. Reload before saving.');
@@ -625,34 +670,42 @@ export class AssignmentExtrasRepository {
             principal.userId,
             new Date().toISOString(),
           );
-        recordAuditEvent(this.sqlite, principal, 'assignment.extras_set', 'project_member', member.id, {
-          projectId: member.project_id,
-          workerId: member.user_id,
-          assignmentExtraId: id,
-          version,
-          currency: member.currency,
-          before: current
-            ? {
-                perDiemClientMinor: current.perDiemClientMinor,
-                perDiemWorkerMinor: current.perDiemWorkerMinor,
-                allowanceBasis: current.allowanceBasis,
-                allowanceClientMinor: current.allowanceClientMinor,
-                allowanceWorkerMinor: current.allowanceWorkerMinor,
-                overtimeClient: current.overtimeClient,
-                overtimeWorker: current.overtimeWorker,
-              }
-            : null,
-          after: {
-            perDiemClientMinor: perDiemClient,
-            perDiemWorkerMinor: perDiemWorker,
-            allowanceBasis,
-            allowanceClientMinor: allowanceClient,
-            allowanceWorkerMinor: allowanceWorker,
-            overtimeClient,
-            overtimeWorker,
+        projectsWithExtras.get(this.sqlite)?.delete(member.project_id);
+        recordAuditEvent(
+          this.sqlite,
+          principal,
+          'assignment.extras_set',
+          'project_member',
+          member.id,
+          {
+            projectId: member.project_id,
+            workerId: member.user_id,
+            assignmentExtraId: id,
+            version,
+            currency: member.currency,
+            before: current
+              ? {
+                  perDiemClientMinor: current.perDiemClientMinor,
+                  perDiemWorkerMinor: current.perDiemWorkerMinor,
+                  allowanceBasis: current.allowanceBasis,
+                  allowanceClientMinor: current.allowanceClientMinor,
+                  allowanceWorkerMinor: current.allowanceWorkerMinor,
+                  overtimeClient: current.overtimeClient,
+                  overtimeWorker: current.overtimeWorker,
+                }
+              : null,
+            after: {
+              perDiemClientMinor: perDiemClient,
+              perDiemWorkerMinor: perDiemWorker,
+              allowanceBasis,
+              allowanceClientMinor: allowanceClient,
+              allowanceWorkerMinor: allowanceWorker,
+              overtimeClient,
+              overtimeWorker,
+            },
+            ...(reason ? { reason } : {}),
           },
-          ...(reason ? { reason } : {}),
-        });
+        );
       }
       if (input.expenses !== undefined && input.expenses !== this.expenseChoice(member))
         this.saveExpenseChoice(principal, member, input.expenses);
@@ -664,7 +717,9 @@ export class AssignmentExtrasRepository {
     const today = this.today();
     const from = member.starts_on > today ? member.starts_on : today;
     if (member.ends_on && from > member.ends_on)
-      throw new ValidationError('This assignment has ended: its expense terms can no longer change');
+      throw new ValidationError(
+        'This assignment has ended: its expense terms can no longer change',
+      );
     const terms = EXPENSE_TERMS[choice];
     const policies = new AssignmentExpensePolicyRepository(this.sqlite);
     const reason = 'Assignment extras: expenses';

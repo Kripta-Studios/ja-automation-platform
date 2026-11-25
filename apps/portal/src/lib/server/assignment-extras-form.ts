@@ -52,7 +52,11 @@ export function extrasFormValues(
 ): ExtrasFormValues {
   const money = (value: string | null) => (value === null ? '' : formatMinorPlain(value, currency));
   const overtime = (value: OvertimeExtra | null) =>
-    value === null ? '' : value.method === 'multiplier' ? multiplierText(value.value) : money(value.value);
+    value === null
+      ? ''
+      : value.method === 'multiplier'
+        ? multiplierText(value.value)
+        : money(value.value);
   return {
     version: extras?.version ?? 0,
     perDiemClient: money(extras?.perDiemClientMinor ?? null),
@@ -72,8 +76,13 @@ export function extrasFormValues(
 export function parseExtrasForm(
   values: Record<string, string>,
   currency: string,
-): { ok: true; input: Omit<AssignmentExtrasInput, 'projectMemberId'> } | { ok: false; error: ExtrasFieldError } {
-  const fail = (field: keyof ExtrasFormValues, message: string) => ({ ok: false as const, error: { field, message } });
+):
+  | { ok: true; input: Omit<AssignmentExtrasInput, 'projectMemberId'> }
+  | { ok: false; error: ExtrasFieldError } {
+  const fail = (field: keyof ExtrasFormValues, message: string) => ({
+    ok: false as const,
+    error: { field, message },
+  });
   const money = (field: keyof ExtrasFormValues): string | null | false => {
     const text = (values[field] ?? '').trim();
     if (!text) return null;
@@ -106,7 +115,8 @@ export function parseExtrasForm(
     }
     if (method === 'rate') {
       const parsed = parseMajorToMinor(text, currency, { maxWholeDigits: 9 });
-      if (parsed === null) return { field: valueField, message: 'Enter an hourly rate such as 90 or 90.00.' };
+      if (parsed === null)
+        return { field: valueField, message: 'Enter an hourly rate such as 90 or 90.00.' };
       return { method: 'rate', value: parsed.toString() };
     }
     return { field: methodField, message: 'Choose a rate or a multiplier.' };
@@ -116,16 +126,21 @@ export function parseExtrasForm(
   const overtimeWorker = overtime('Worker');
   if (overtimeWorker && 'field' in overtimeWorker) return { ok: false, error: overtimeWorker };
   const expenses = (values.expenses ?? '').trim();
-  if (expenses && !EXPENSES.has(expenses)) return fail('expenses', 'Choose how expenses are handled.');
+  if (expenses && !EXPENSES.has(expenses))
+    return fail('expenses', 'Choose how expenses are handled.');
   const version = Number(values.version ?? '0');
-  if (!Number.isSafeInteger(version) || version < 0) return fail('version', 'Reload the page and try again.');
+  if (!Number.isSafeInteger(version) || version < 0)
+    return fail('version', 'Reload the page and try again.');
   return {
     ok: true,
     input: {
       expectedVersion: version,
       perDiemClientMinor: amounts.perDiemClient,
       perDiemWorkerMinor: amounts.perDiemWorker,
-      allowanceBasis: amounts.allowanceClient !== null || amounts.allowanceWorker !== null ? (basis as 'day' | 'month') : null,
+      allowanceBasis:
+        amounts.allowanceClient !== null || amounts.allowanceWorker !== null
+          ? (basis as 'day' | 'month')
+          : null,
       allowanceClientMinor: amounts.allowanceClient,
       allowanceWorkerMinor: amounts.allowanceWorker,
       overtimeClient: overtimeClient as OvertimeExtra | null,
@@ -141,7 +156,10 @@ export function projectExtrasValues(
   projectId: string,
   currency: string,
 ): Record<string, ExtrasFormValues> {
-  const rows = new AssignmentExtrasRepository(context.sqlite).listForProject(context.principal, projectId);
+  const rows = new AssignmentExtrasRepository(context.sqlite).listForProject(
+    context.principal,
+    projectId,
+  );
   return Object.fromEntries(
     rows.map((row) => [row.projectMemberId, extrasFormValues(row.extras, row.expenses, currency)]),
   );
@@ -156,10 +174,14 @@ export function saveAssignmentExtras(
   projectId: string,
   values: Record<string, string>,
 ) {
-  const project = context.sqlite.prepare('SELECT currency FROM project WHERE id=?').get(projectId) as
-    | { currency: string }
-    | undefined;
-  if (!project) return { ok: false as const, error: { field: 'version' as const, message: 'Project not found.' } };
+  const project = context.sqlite
+    .prepare('SELECT currency FROM project WHERE id=?')
+    .get(projectId) as { currency: string } | undefined;
+  if (!project)
+    return {
+      ok: false as const,
+      error: { field: 'version' as const, message: 'Project not found.' },
+    };
   let memberId = (values.assignmentId ?? '').trim();
   if (!memberId && values.workerId) {
     const row = context.sqlite
@@ -168,14 +190,19 @@ export function saveAssignmentExtras(
             AND starts_on<=COALESCE(NULLIF(?,''),starts_on) AND (ends_on IS NULL OR ends_on>=COALESCE(NULLIF(?,''),starts_on))
           ORDER BY starts_on DESC LIMIT 1`,
       )
-      .get(projectId, values.workerId, values.startsOn ?? '', values.startsOn ?? '') as { id: string } | undefined;
+      .get(projectId, values.workerId, values.startsOn ?? '', values.startsOn ?? '') as
+      | { id: string }
+      | undefined;
     memberId = row?.id ?? '';
   }
   const member = context.sqlite
     .prepare('SELECT id FROM project_member WHERE id=? AND project_id=?')
     .get(memberId, projectId) as { id: string } | undefined;
   if (!member)
-    return { ok: false as const, error: { field: 'version' as const, message: 'Assignment not found on this project.' } };
+    return {
+      ok: false as const,
+      error: { field: 'version' as const, message: 'Assignment not found on this project.' },
+    };
   const parsed = parseExtrasForm(values, project.currency);
   if (!parsed.ok) return parsed;
   const saved = new AssignmentExtrasRepository(context.sqlite).set(context.principal, {

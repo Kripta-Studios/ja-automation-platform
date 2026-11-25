@@ -16,12 +16,28 @@ const copy = {
   extrasButton: ['Extras', 'Extras', 'Extras'],
   edit: ['Change', 'Cambiar', 'Alterar'],
   extrasFor: ['Extras for {name}', 'Extras de {name}', 'Extras de {name}'],
-  clientSide: ['Client pays ({currency})', 'Paga el cliente ({currency})', 'Cliente paga ({currency})'],
-  workerSide: ['Worker gets ({currency})', 'Recibe el trabajador ({currency})', 'Trabalhador recebe ({currency})'],
+  clientSide: [
+    'Client pays ({currency})',
+    'Paga el cliente ({currency})',
+    'Cliente paga ({currency})',
+  ],
+  workerSide: [
+    'Worker gets ({currency})',
+    'Recibe el trabajador ({currency})',
+    'Trabalhador recebe ({currency})',
+  ],
   expenses: ['Expenses', 'Gastos', 'Despesas'],
-  expensesProject: ['Project rules (no change)', 'Reglas del proyecto (sin cambios)', 'Regras do projeto (sem mudança)'],
+  expensesProject: [
+    'Project rules (no change)',
+    'Reglas del proyecto (sin cambios)',
+    'Regras do projeto (sem mudança)',
+  ],
   expensesNone: ['Not covered', 'No cubiertos', 'Não cobertas'],
-  expensesWorker: ['Reimbursed to the worker', 'Se reembolsan al trabajador', 'Reembolsadas ao trabalhador'],
+  expensesWorker: [
+    'Reimbursed to the worker',
+    'Se reembolsan al trabajador',
+    'Reembolsadas ao trabalhador',
+  ],
   expensesClient: ['Recharged to the client', 'Se repercuten al cliente', 'Repassadas ao cliente'],
   expensesBoth: [
     'Reimbursed to the worker and recharged to the client',
@@ -33,7 +49,11 @@ const copy = {
     'Para los gastos que paga esta persona. Se aplica desde hoy.',
     'Para as despesas que esta pessoa paga. Vale a partir de hoje.',
   ],
-  perDiem: ['Per diem (per day worked)', 'Viáticos (por día trabajado)', 'Diária (por dia trabalhado)'],
+  perDiem: [
+    'Per diem (per day worked)',
+    'Viáticos (por día trabajado)',
+    'Diária (por dia trabalhado)',
+  ],
   perDiemHelp: [
     'Counted once for each day with approved hours on this project.',
     'Se cuenta una vez por cada día con horas aprobadas en este proyecto.',
@@ -51,7 +71,11 @@ const copy = {
   ],
   clientMultiplier: ['Client (×)', 'Cliente (×)', 'Cliente (×)'],
   workerMultiplier: ['Worker (×)', 'Trabajador (×)', 'Trabalhador (×)'],
-  allowance: ['Safety / hazard allowance', 'Plus de seguridad / peligrosidad', 'Adicional de segurança / periculosidade'],
+  allowance: [
+    'Safety / hazard allowance',
+    'Plus de seguridad / peligrosidad',
+    'Adicional de segurança / periculosidade',
+  ],
   allowanceHelp: [
     'For example a job in Iraq. Per day: each day with approved hours. Per month: once for each month worked.',
     'Por ejemplo un trabajo en Irak. Por día: cada día con horas aprobadas. Por mes: una vez por cada mes trabajado.',
@@ -75,12 +99,20 @@ const copy = {
   ],
   summaryPerDiem: ['Per diem {client}/day', 'Viáticos {client}/día', 'Diária {client}/dia'],
   summaryOvertime: ['Overtime {value}', 'Horas extra {value}', 'Horas extras {value}'],
-  summaryAllowance: ['Allowance {client}/{basis}', 'Plus {client}/{basis}', 'Adicional {client}/{basis}'],
+  summaryAllowance: [
+    'Allowance {client}/{basis}',
+    'Plus {client}/{basis}',
+    'Adicional {client}/{basis}',
+  ],
   summaryExpenses: ['Expenses: {value}', 'Gastos: {value}', 'Despesas: {value}'],
   day: ['day', 'día', 'dia'],
   month: ['month', 'mes', 'mês'],
   // Invoice component switches
-  includeTitle: ['What to bill for each person', 'Qué facturar de cada persona', 'O que faturar de cada pessoa'],
+  includeTitle: [
+    'What to bill for each person',
+    'Qué facturar de cada persona',
+    'O que faturar de cada pessoa',
+  ],
   includeHelp: [
     'Untick what you want to leave out of this invoice. Hours, expenses, per diem and allowance left out stay open for a later invoice; overtime left out is not charged.',
     'Desmarca lo que quieras dejar fuera de esta factura. Las horas, gastos, viáticos y pluses que dejes fuera quedan pendientes para otra factura; las horas extra que dejes fuera no se cobran.',
@@ -96,8 +128,16 @@ const copy = {
   updating: ['Updating…', 'Actualizando…', 'Atualizando…'],
   // My Pay
   payExtras: ['Extras in this estimate', 'Extras en esta estimación', 'Extras nesta estimativa'],
-  payPerDiem: ['Per diem · {count} {unit}', 'Viáticos · {count} {unit}', 'Diárias · {count} {unit}'],
-  payAllowance: ['Safety allowance · {count} {unit}', 'Plus de seguridad · {count} {unit}', 'Adicional de segurança · {count} {unit}'],
+  payPerDiem: [
+    'Per diem · {count} {unit}',
+    'Viáticos · {count} {unit}',
+    'Diárias · {count} {unit}',
+  ],
+  payAllowance: [
+    'Safety allowance · {count} {unit}',
+    'Plus de seguridad · {count} {unit}',
+    'Adicional de segurança · {count} {unit}',
+  ],
   days: ['days', 'días', 'dias'],
   months: ['months', 'meses', 'meses'],
   waiting: ['waiting for approval', 'pendiente de aprobación', 'aguardando aprovação'],
@@ -152,12 +192,12 @@ export function emptyExtras(): ExtrasValues {
 export function extrasChosen(values: ExtrasValues): boolean {
   return Boolean(
     values.perDiemClient.trim() ||
-      values.perDiemWorker.trim() ||
-      values.allowanceClient.trim() ||
-      values.allowanceWorker.trim() ||
-      values.overtimeClient.trim() ||
-      values.overtimeWorker.trim() ||
-      values.expenses,
+    values.perDiemWorker.trim() ||
+    values.allowanceClient.trim() ||
+    values.allowanceWorker.trim() ||
+    values.overtimeClient.trim() ||
+    values.overtimeWorker.trim() ||
+    values.expenses,
   );
 }
 
@@ -171,8 +211,12 @@ export function extrasSummary(locale: string, values: ExtrasValues | undefined):
     parts.push(t('summaryPerDiem', { client: values.perDiemClient || values.perDiemWorker }));
   if (values.overtimeClient || values.overtimeWorker) {
     const value = values.overtimeClient || values.overtimeWorker;
-    const method = values.overtimeClient ? values.overtimeClientMethod : values.overtimeWorkerMethod;
-    parts.push(t('summaryOvertime', { value: method === 'multiplier' ? `×${value}` : `${value}/h` }));
+    const method = values.overtimeClient
+      ? values.overtimeClientMethod
+      : values.overtimeWorkerMethod;
+    parts.push(
+      t('summaryOvertime', { value: method === 'multiplier' ? `×${value}` : `${value}/h` }),
+    );
   }
   if (values.allowanceClient || values.allowanceWorker)
     parts.push(
@@ -205,7 +249,8 @@ export function extrasFields(values: ExtrasValues): Record<string, string> {
     version: String(values.version),
     perDiemClient: values.perDiemClient,
     perDiemWorker: values.perDiemWorker,
-    allowanceBasis: values.allowanceClient || values.allowanceWorker ? values.allowanceBasis || 'day' : '',
+    allowanceBasis:
+      values.allowanceClient || values.allowanceWorker ? values.allowanceBasis || 'day' : '',
     allowanceClient: values.allowanceClient,
     allowanceWorker: values.allowanceWorker,
     overtimeClientMethod: values.overtimeClient ? method : '',

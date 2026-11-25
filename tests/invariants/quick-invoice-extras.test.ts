@@ -50,7 +50,9 @@ function setup() {
     effectiveFrom: '2026-08-01',
   });
   const member = (
-    f.sqlite.prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?').get(f.project.id, f.worker.userId) as {
+    f.sqlite
+      .prepare('SELECT id FROM project_member WHERE project_id=? AND user_id=?')
+      .get(f.project.id, f.worker.userId) as {
       id: string;
     }
   ).id;
@@ -75,9 +77,12 @@ function setup() {
     f.repository.financeApproveTime(finance, row.id, true);
     return row.id;
   };
-  const context = ({ sqlite: f.sqlite, repository: f.repository, v3: f.v3, principal: finance }) as unknown as Parameters<
-    typeof quickInvoicePreview
-  >[0];
+  const context = {
+    sqlite: f.sqlite,
+    repository: f.repository,
+    v3: f.v3,
+    principal: finance,
+  } as unknown as Parameters<typeof quickInvoicePreview>[0];
   return { f, finance, time, context, workerId: f.worker.userId };
 }
 
@@ -101,7 +106,11 @@ describe('quick invoice: per-person parts', () => {
         expenses: { available: false, included: true },
       }),
     ]);
-    expect(full.groups.filter((group) => group.extraKind).map((group) => [group.extraKind, group.units, group.amountMinor])).toEqual([
+    expect(
+      full.groups
+        .filter((group) => group.extraKind)
+        .map((group) => [group.extraKind, group.units, group.amountMinor]),
+    ).toEqual([
       ['allowance', 1, '20000'],
       ['per_diem', 1, '5000'],
     ]);
@@ -122,7 +131,10 @@ describe('quick invoice: per-person parts', () => {
 
     // Hours left out: the time stays open. With nobody else on the invoice nothing is left to
     // select, so there is nothing to invoice, and the parts stay listed to tick hours back.
-    const noHours = quickInvoicePreview(s.context, { ...input, leaveOut: { hours: [s.workerId], expenses: [] } });
+    const noHours = quickInvoicePreview(s.context, {
+      ...input,
+      leaveOut: { hours: [s.workerId], expenses: [] },
+    });
     expect(noHours.state).toBe('empty');
     expect(noHours.components?.[0]).toMatchObject({
       hours: { available: true, included: false },
@@ -135,7 +147,11 @@ describe('quick invoice: per-person parts', () => {
   it('leaves the hours of one person out while others are billed', () => {
     const s = setup();
     const other = s.f.outsider;
-    s.f.repository.assignWorker(s.f.owner, { projectId: s.f.project.id, workerId: other.userId, startsOn: '2026-01-01' });
+    s.f.repository.assignWorker(s.f.owner, {
+      projectId: s.f.project.id,
+      workerId: other.userId,
+      startsOn: '2026-01-01',
+    });
     s.f.v3.createClientLaborRate(s.finance, {
       projectId: s.f.project.id,
       workerId: other.userId,
@@ -156,7 +172,11 @@ describe('quick invoice: per-person parts', () => {
     s.f.repository.operationalApproveTime(s.f.manager, row.id, 'approved');
     s.f.repository.financeApproveTime(s.finance, row.id, true);
     const mine = s.time('2026-08-03', 480);
-    const input = { projectId: s.f.project.id, ...period, leaveOut: { hours: [s.workerId], expenses: [] } };
+    const input = {
+      projectId: s.f.project.id,
+      ...period,
+      leaveOut: { hours: [s.workerId], expenses: [] },
+    };
     const preview = quickInvoicePreview(s.context, input);
     expect(preview.state).toBe('ready');
     // Other person's 2 h × 70.00 + this person's per diem and allowance (hours left out).
@@ -169,7 +189,9 @@ describe('quick invoice: per-person parts', () => {
     expect(created.ok).toBe(true);
     // The left-out hours are on no invoice: a later invoice can still bill them.
     expect(
-      s.f.sqlite.prepare("SELECT count(*) n FROM invoice_source WHERE source_type='time' AND source_id=?").get(mine),
+      s.f.sqlite
+        .prepare("SELECT count(*) n FROM invoice_source WHERE source_type='time' AND source_id=?")
+        .get(mine),
     ).toEqual({ n: 0 });
   });
 
@@ -193,15 +215,21 @@ describe('quick invoice: per-person parts', () => {
     const lines = s.f.sqlite
       .prepare('SELECT snapshot_json FROM invoice_line WHERE invoice_id=?')
       .all(created.invoiceId) as Array<{ snapshot_json: string }>;
-    expect(lines.map((line) => JSON.parse(line.snapshot_json).extraKind).filter(Boolean)).toEqual(['allowance']);
+    expect(lines.map((line) => JSON.parse(line.snapshot_json).extraKind).filter(Boolean)).toEqual([
+      'allowance',
+    ]);
     // The left-out choice is recorded on the draft (append-only invoice override).
     expect(
       s.f.sqlite
-        .prepare("SELECT category,billed_minutes FROM invoice_line_override WHERE invoice_id=? AND superseded_at IS NULL")
+        .prepare(
+          'SELECT category,billed_minutes FROM invoice_line_override WHERE invoice_id=? AND superseded_at IS NULL',
+        )
         .all(created.invoiceId),
     ).toEqual([{ category: 'per_diem', billed_minutes: 0 }]);
     expect(
-      s.f.sqlite.prepare("SELECT 1 FROM audit_event WHERE action='invoice_line_override.create'").get(),
+      s.f.sqlite
+        .prepare("SELECT 1 FROM audit_event WHERE action='invoice_line_override.create'")
+        .get(),
     ).toBeTruthy();
   });
 });

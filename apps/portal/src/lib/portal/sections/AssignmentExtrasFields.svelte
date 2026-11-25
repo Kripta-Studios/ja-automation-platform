@@ -5,7 +5,11 @@
    * Every box may stay empty: empty means "not used". Amounts are typed in the project
    * currency; the server converts them to exact minor units.
    */
-  import { extrasText, type AssignmentExtrasCopyKey, type ExtrasValues } from '$lib/portal/assignment-extras-copy';
+  import {
+    extrasText,
+    type AssignmentExtrasCopyKey,
+    type ExtrasValues,
+  } from '$lib/portal/assignment-extras-copy';
 
   let {
     values = $bindable(),
@@ -25,7 +29,6 @@
     extrasText(locale, key, params);
   // One overtime choice for both sides keeps the block simple.
   let overtimeMethod = $state<'' | 'multiplier' | 'rate'>(
-    // svelte-ignore state_referenced_locally
     values.overtimeClientMethod || values.overtimeWorkerMethod,
   );
   $effect(() => {
@@ -123,14 +126,20 @@
     <legend>{t('allowance')}</legend>
     <div class="extras-basis" role="radiogroup" aria-label={t('allowance')}>
       <label class="extras-radio"
-        ><input type="radio" value="day" bind:group={values.allowanceBasis} data-extras-allowance-day />{t(
-          'perDay',
-        )}</label
+        ><input
+          type="radio"
+          value="day"
+          bind:group={values.allowanceBasis}
+          data-extras-allowance-day
+        />{t('perDay')}</label
       >
       <label class="extras-radio"
-        ><input type="radio" value="month" bind:group={values.allowanceBasis} data-extras-allowance-month />{t(
-          'perMonth',
-        )}</label
+        ><input
+          type="radio"
+          value="month"
+          bind:group={values.allowanceBasis}
+          data-extras-allowance-month
+        />{t('perMonth')}</label
       >
     </div>
     <div class="extras-pair">

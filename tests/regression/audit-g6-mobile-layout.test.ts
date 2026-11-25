@@ -17,10 +17,14 @@ describe('audit G6 mobile layout regressions', () => {
     expect(card.indexOf('class="supplier-batch-notice"')).toBeLessThan(
       card.indexOf('action={actionUrl(\'submitTimeBatch\')}'),
     );
-    expect(page).toContain('{#if form?.success && !batchNoticeInCard}');
-    // Phone drafts are cards with a label per value, never a 6-column table wider than the screen.
+    expect(page).toContain('{#if form?.success && !batchNoticeInCard && !reportNoticeInCard}');
+    // Phone drafts are compact two-line rows, never a 6-column table wider than the screen (round 3).
     expect(page).toContain('<td data-label={c.worker}>');
-    expect(page).toMatch(/\.drafts-table td\[data-label\]::before\s*\{\s*content: attr\(data-label\)/);
+    expect(page).toMatch(/\.drafts-table tr \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\) auto;/);
+    // Round 3: after a post the browser lands on the card with the result, not the page heading.
+    expect(page).toContain("return 'supplier-time-card';");
+    // Send stays disabled until the review box is ticked.
+    expect(page).toContain('disabled={!draftsReviewed}');
     expect(page).toMatch(/\.crew-drafts-submit\s*\{\s*grid-template-columns: minmax\(0, 1fr\)/);
   });
 

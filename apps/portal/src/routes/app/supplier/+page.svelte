@@ -42,7 +42,11 @@
     data.periodProblem?.code === 'SUPPLIER_REPORT_PERIOD_DATE_INVALID',
   );
   let periodProblemContainer = $state<HTMLDivElement>();
-  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  // T49: on-screen hours use the page language's decimal separator ("7,5 h" in ES/PT).
+  const decimalHours = (minutes: number): string => {
+    const hours = String(Number((minutes / 60).toFixed(4)));
+    return data.locale === 'es' || data.locale === 'pt' ? hours.replace('.', ',') : hours;
+  };
   const editableDecimalHours = (minutes: number): string => decimalHoursFromMinutes(minutes);
   function syncBreakHours(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
@@ -107,19 +111,17 @@
       ? (form.submissionCurrent as SubmissionCurrent[])
       : [],
   );
-  let submissionNeedsReview = $state(
-    untrack(
-      () =>
-        Boolean(form && !form.success) &&
-        (form?.operation === 'submitTime' || form?.operation === 'submitTimeBatch'),
-    ),
-  );
+  // T26: sending always goes through the review checkbox in Record hours. After a failed send
+  // the checkbox starts unticked again, so the coordinator re-checks the updated drafts first.
+  let draftsReviewed = $state(false);
   $effect(() => {
     if (submissionFailure) {
       workspaceAction = 'report';
-      submissionNeedsReview = true;
-    } else if (form?.success) submissionNeedsReview = false;
+      draftsReviewed = false;
+    }
   });
+  // T26: discard asks inline (Yes, discard / Cancel), like the other confirmations in the app.
+  let confirmDiscardFor = $state<string | null>(null);
   const submissionPositionKey = 'supplier-form-submission-position';
   function clearSubmissionPosition(): void {
     try {
@@ -250,6 +252,18 @@
         workspaceAction === 'time' &&
         !data.owner &&
         data.projects.length,
+    ),
+  );
+  // After editing, correcting or discarding a draft on the report, confirm it inside the report
+  // card, where the coordinator is looking, instead of at the top of the page.
+  const reportNoticeInCard = $derived(
+    Boolean(
+      form?.success &&
+        ['updateTime', 'discardTime', 'correctTime'].includes(String(form.operation)) &&
+        workspaceAction === 'report' &&
+        !data.owner &&
+        data.projects.length &&
+        !data.periodProblem,
     ),
   );
   const periodCardTitle = $derived.by(() => {
@@ -413,21 +427,6 @@
         : [],
     ),
   );
-  let selectedDraftIds = $state<string[]>(
-    untrack(() => {
-      if (form?.operation !== 'submitTimeBatch' || form.success) return [];
-      try {
-        const entries = JSON.parse(String(form.values?.entries ?? '[]')) as unknown;
-        return Array.isArray(entries)
-          ? entries.flatMap((entry) =>
-              entry && typeof entry === 'object' && typeof entry.id === 'string' ? [entry.id] : [],
-            )
-          : [];
-      } catch {
-        return [];
-      }
-    }),
-  );
   let batchMode = $state<'shared' | 'individual'>(
     untrack(() =>
       form?.operation === 'createTimeBatch' && form.values?.batchMode === 'individual'
@@ -447,6 +446,7 @@
     }),
   );
   const batchLimit = 100;
+  const shortTeamLimit = 6;
   let batchWorkDate = $state(
     untrack(() =>
       form?.operation === 'createTimeBatch' ? String(form.values?.workDate ?? '') : '',
@@ -465,23 +465,6 @@
   });
   const draftEntries = $derived(data.entries.filter((entry) => entry.state === 'draft'));
   const openDrafts = $derived(data.openDrafts ?? []);
-  const selectedDraftPayload = $derived(
-    draftEntries
-      .filter((entry) => selectedDraftIds.includes(String(entry.id)))
-      .slice(0, batchLimit)
-      .map((entry) => ({ id: String(entry.id), version: Number(entry.version) })),
-  );
-  const selectedDraftDates = $derived.by(() => {
-    const selected = new Set(selectedDraftPayload.map((entry) => entry.id));
-    const dates = draftEntries
-      .filter((entry) => selected.has(String(entry.id)))
-      .map((entry) => String(entry.workDate))
-      .sort();
-    if (dates.length === 0) return '';
-    return dates[0] === dates[dates.length - 1]
-      ? shortDate(dates[0])
-      : `${shortDate(dates[0])} – ${shortDate(dates[dates.length - 1])}`;
-  });
   function addVisibleTechnicians() {
     selectedWorkerIds = [
       ...new Set([...selectedWorkerIds, ...filteredAssigned.map((row) => String(row.id))]),
@@ -635,8 +618,17 @@
     if (workspaceAction) today = localToday();
     if (!batchWorkDate) batchWorkDate = value('createTimeBatch', 'workDate', today);
   });
+  // T34: after a full-page post the browser lands on the card where the result shows (save
+  // notice, drafts and Send; or the edited report row), not on the page heading above it.
+  function actionTarget(operation: string): string {
+    if (!data.owner && ['createTimeBatch', 'submitTimeBatch'].includes(operation))
+      return 'supplier-time-card';
+    if (!data.owner && ['updateTime', 'discardTime', 'correctTime'].includes(operation))
+      return 'supplier-report';
+    return 'supplier-workspace';
+  }
   const actionUrl = (operation: string) =>
-    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#supplier-workspace`;
+    `?/${operation}&${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction }).toString()}#${actionTarget(operation)}`;
   const workspaceHref = (action: WorkspaceAction) =>
     `?${new URLSearchParams({ projectId: data.projectId, from: data.from, to: data.to, lang: data.locale, workspaceAction: action }).toString()}#${workspaceTargetIds[action]}`;
   const reportEntryHref = (entry: { projectId: string; workDate: string }) =>
@@ -876,7 +868,7 @@
         />
       </div>
     {/if}
-    {#if form?.success && !batchNoticeInCard}<p role="status">
+    {#if form?.success && !batchNoticeInCard && !reportNoticeInCard}<p role="status">
         {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
           {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
           {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(
@@ -1653,15 +1645,18 @@
           {/if}
         </p>
       {/if}
-      {#if data.entries.length}
-        <p>
+      {#if data.entries.length && !openDrafts.length}
+        <!-- T26/T34: with unsent drafts the table below already counts them; no second counter. -->
+        <p class="period-summary">
           {(data.entries.length === 1 ? c.periodEntriesOne : c.periodEntries)
             .replace('{count}', String(data.entries.length))
             .replace('{drafts}', String(openDrafts.length))}
         </p>
+      {/if}
+      {#if data.entries.length}
         <button
           type="button"
-          class="secondary-button"
+          class="link-button"
           onclick={() => selectWorkspaceAction('report')}>{c.seeReport} <DirectionIcon /></button
         >
       {/if}
@@ -1722,9 +1717,10 @@
               required
               name="reviewed"
               value="yes"
+              bind:checked={draftsReviewed}
             />{d.reviewedConfirm}</label
           >
-          <button class="primary-button" disabled={submissionNeedsReview}
+          <button class="primary-button" disabled={!draftsReviewed}
             >{(openDrafts.length === 1 ? c.submitDraftsOne : c.submitDrafts).replace(
               '{count}',
               String(Math.min(openDrafts.length, batchLimit)),
@@ -1765,18 +1761,23 @@
           )}
         />
         <div class="batch-team">
-          <label data-ui="field"
-            >{c.findTechnician}<input type="search" bind:value={teamSearch} /></label
-          >
-          <div class="batch-team-actions">
-            <button type="button" class="secondary-button" onclick={addVisibleTechnicians}
-              >{c.selectVisible}</button
+          <!-- T34: search and bulk selection only help with a long team; a short list is ticked directly. -->
+          {#if eligibleAssigned.length > shortTeamLimit || teamSearch}
+            <label data-ui="field"
+              >{c.findTechnician}<input type="search" bind:value={teamSearch} /></label
             >
-            <button type="button" class="secondary-button" onclick={() => (selectedWorkerIds = [])}
-              >{c.clearSelection}</button
-            >
-            <strong>{selectedWorkerIds.length} {c.selected}</strong>
-          </div>
+            <div class="batch-team-actions">
+              <button type="button" class="secondary-button" onclick={addVisibleTechnicians}
+                >{c.selectVisible}</button
+              >
+              <button
+                type="button"
+                class="secondary-button"
+                onclick={() => (selectedWorkerIds = [])}>{c.clearSelection}</button
+              >
+              <strong>{selectedWorkerIds.length} {c.selected}</strong>
+            </div>
+          {/if}
           <div class="batch-technicians">
             {#each filteredAssigned as technician}
               <label class="check batch-technician">
@@ -1835,7 +1836,7 @@
                   type="text"
                   inputmode="decimal"
                   autocomplete="off"
-                  placeholder="7.5"
+                  placeholder={data.locale === 'en' ? '7.5' : '7,5'}
                   required
                   aria-invalid={workerHoursRejected &&
                   !validPersonHours(workerHours[String(technician.id)] ?? '')
@@ -1861,7 +1862,12 @@
     <p>{c.empty}</p>
   {/if}
   {#if data.projects.length && workspaceAction === 'report' && !data.periodProblem}
-    <SectionCard title={c.report} id="supplier-report">
+    <SectionCard title={c.report} id="supplier-report" data-navigation-align="start">
+      {#if reportNoticeInCard}
+        <p class="supplier-batch-notice" role="status" data-supplier-report-notice>
+          {form?.operation === 'correctTime' ? d.correctionSaved : savedMessage(form?.operation)}
+        </p>
+      {/if}
       {#if submissionFailure}
         <div data-submission-problem>
           <ProblemNotice
@@ -1911,67 +1917,24 @@
         </div>
       {/if}
       {#if !data.owner && draftEntries.length}
-        <form
-          method="POST"
-          action={actionUrl('submitTimeBatch')}
-          data-supplier-operation="submitTimeBatch"
-          class="batch-submit"
-          use:formValidation
-        >
-          <input type="hidden" name="entries" value={JSON.stringify(selectedDraftPayload)} />
+        <!-- T26: drafts are reviewed and sent in one place (Record hours); here they are only listed. -->
+        <div class="report-drafts-pointer" role="note">
+          <p>
+            {(draftEntries.length === 1 ? d.reportDraftsOne : d.reportDrafts).replace(
+              '{count}',
+              String(draftEntries.length),
+            )}
+          </p>
           <button
             type="button"
             class="secondary-button"
-            onclick={() =>
-              (selectedDraftIds = draftEntries
-                .slice(0, batchLimit)
-                .map((entry) => String(entry.id)))}>{c.selectDrafts}</button
+            onclick={() => selectWorkspaceAction('time')}>{d.reviewAndSend} <DirectionIcon /></button
           >
-          <button type="button" class="secondary-button" onclick={() => (selectedDraftIds = [])}
-            >{c.clearSelection}</button
-          >
-          {#if selectedDraftPayload.length > 0 && !submissionNeedsReview}
-            <ProblemNotice
-              kind="warning"
-              problem={{
-                code: 'WARNING_SUPPLIER_TIME_BATCH_SUBMISSION',
-                messageKey: 'problem.warning.supplierTimeBatchSubmission',
-                params: { count: selectedDraftPayload.length, dates: selectedDraftDates },
-                fieldErrors: {},
-                remedies: [{ id: 'review_time_drafts' }],
-                correlationId: '',
-              }}
-              remedyLinks={{
-                review_time_drafts: {
-                  label: portalText(data.locale, 'problem.remedy.reviewTimeDrafts'),
-                  href: '#supplier-report',
-                },
-              }}
-            />
-          {/if}
-          <button
-            class="primary-button"
-            disabled={selectedDraftPayload.length === 0 || submissionNeedsReview}
-            >{c.submitSelected}</button
-          >
-          <strong>{selectedDraftPayload.length}/{batchLimit} {c.selected}</strong>
-        </form>
+        </div>
       {/if}
       {#each data.entries as entry}
         <article>
           <h3>{entry.workerName} · {shortDate(entry.workDate)}</h3>
-          {#if !data.owner && entry.state === 'draft'}
-            <label class="check draft-selector">
-              <input
-                type="checkbox"
-                value={String(entry.id)}
-                bind:group={selectedDraftIds}
-                disabled={selectedDraftIds.length >= batchLimit &&
-                  !selectedDraftIds.includes(String(entry.id))}
-              />
-              <span>{c.selectDraft}</span>
-            </label>
-          {/if}
           <p>
             {#if entry.startTime && entry.endTime}{entry.startTime} – {entry.endTime} ·
             {/if}{decimalHours(entry.minutes)} · {c.actualHours} · {supplierStateLabel(
@@ -2100,36 +2063,6 @@
             </form>
           {/if}
           {#if !data.owner && entry.state === 'draft'}
-            <form
-              method="POST"
-              action={actionUrl('submitTime')}
-              data-supplier-operation="submitTime"
-              use:formValidation
-            >
-              <input type="hidden" name="id" value={String(entry.id)} /><input
-                type="hidden"
-                name="version"
-                value={Number(entry.version)}
-              />
-              {#if !submissionNeedsReview}<ProblemNotice
-                  kind="warning"
-                  problem={{
-                    code: 'WARNING_SUPPLIER_TIME_SUBMISSION',
-                    messageKey: 'problem.warning.supplierTimeSubmission',
-                    params: { dates: entry.workDate },
-                    fieldErrors: {},
-                    remedies: [{ id: 'review_time_drafts' }],
-                    correlationId: '',
-                  }}
-                  remedyLinks={{
-                    review_time_drafts: {
-                      label: portalText(data.locale, 'problem.remedy.reviewTimeDrafts'),
-                      href: '#supplier-report',
-                    },
-                  }}
-                />{/if}
-              <button class="primary-button" disabled={submissionNeedsReview}>{c.submit}</button>
-            </form>
             <details open={form?.operation === 'updateTime' && form.values?.id === entry.id}>
               <summary>{c.edit}</summary>
               <form
@@ -2259,14 +2192,31 @@
                 method="POST"
                 action={actionUrl('discardTime')}
                 data-supplier-operation="discardTime"
+                class="discard-draft"
                 use:formValidation
-                onsubmit={(event) => {
-                  if (!confirm(c.discardConfirm)) event.preventDefault();
-                }}
               >
                 <input type="hidden" name="id" value={String(entry.id)} />
                 <input type="hidden" name="version" value={Number(entry.version)} />
-                <button type="submit" class="danger">{c.discard}</button>
+                {#if confirmDiscardFor === String(entry.id)}
+                  <span class="discard-confirm" role="alert">
+                    <span>{c.discardConfirm}</span>
+                    <button type="submit" class="danger-button" data-supplier-discard-yes
+                      >{d.discardYes}</button
+                    >
+                    <button
+                      type="button"
+                      class="secondary-button"
+                      onclick={() => (confirmDiscardFor = null)}>{d.discardCancel}</button
+                    >
+                  </span>
+                {:else}
+                  <button
+                    type="button"
+                    class="danger-link"
+                    data-supplier-discard
+                    onclick={() => (confirmDiscardFor = String(entry.id))}>{c.discard}</button
+                  >
+                {/if}
               </form>
             {/if}
           {/if}
@@ -2321,7 +2271,8 @@
     font-weight: 600;
     scroll-margin-top: 5.5rem;
   }
-  /* T34: on a phone each unsent draft is a small card instead of a 6-column table. */
+  /* T34: on a phone each unsent draft is a compact two-line row instead of a 6-column table:
+     name and date, then category and hours, then the work summary and the edit link. */
   @media (max-width: 40rem) {
     .drafts-table thead {
       position: absolute;
@@ -2331,39 +2282,118 @@
       clip: rect(0 0 0 0);
     }
     .drafts-table,
-    .drafts-table tbody,
-    .drafts-table tr,
-    .drafts-table td {
+    .drafts-table tbody {
       display: block;
     }
     .drafts-table tr {
-      padding: 0.5rem 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 0.75rem;
+      padding: 0.45rem 0;
       border-bottom: 1px solid var(--ja-border, #e4e7ec);
     }
     .drafts-table td {
-      display: grid;
-      grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr);
-      gap: 0.5rem;
-      padding: 0.2rem 0;
+      display: block;
+      padding: 0;
       border: 0;
+      min-width: 0;
       overflow-wrap: anywhere;
     }
-    .drafts-table td[data-label]::before {
-      content: attr(data-label);
-      color: var(--ja-text-muted, #5b6573);
-      font-size: 0.85rem;
+    .drafts-table td:nth-child(1) {
+      font-weight: 600;
     }
-    .drafts-table td[data-label]:empty {
+    .drafts-table td:nth-child(2),
+    .drafts-table td:nth-child(4) {
+      text-align: right;
+      white-space: nowrap;
+    }
+    .drafts-table td:nth-child(3),
+    .drafts-table td:nth-child(4) {
+      color: var(--ja-text-muted, #5b6573);
+    }
+    .drafts-table td:nth-child(5) {
+      grid-column: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--ja-text-muted, #5b6573);
+    }
+    .drafts-table td:nth-child(5):empty {
       display: none;
     }
     .drafts-table td.drafts-edit {
-      display: block;
+      grid-column: 2;
+      text-align: right;
     }
     .drafts-table td.drafts-edit a {
       display: inline-flex;
       align-items: center;
-      min-height: 44px;
+      min-height: 2.5rem;
+      padding: 0;
     }
+    .drafts-table td.drafts-edit {
+      align-self: center;
+    }
+  }
+  :global(#supplier-time-card),
+  :global(#supplier-report) {
+    scroll-margin-top: 5rem;
+  }
+  .link-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: var(--ja-target-min, 2.75rem);
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: var(--ja-link, #1d4ed8);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .report-drafts-pointer {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-card-border, #d0d5dd);
+    border-radius: 0.5rem;
+    background: var(--ja-surface-subtle, #f7f7f6);
+  }
+  .report-drafts-pointer p {
+    flex: 1 1 16rem;
+  }
+  .discard-draft {
+    display: block;
+    margin-top: 0.5rem;
+  }
+  .danger-link {
+    min-height: var(--ja-target-min, 2.75rem);
+    padding: 0.25rem 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    color: #b42318;
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+  }
+  .discard-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem 0.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #f3b1aa;
+    border-radius: 0.5rem;
+    background: #fef3f2;
+  }
+  .discard-confirm > span {
+    flex-basis: 100%;
   }
   .visually-hidden {
     position: absolute;

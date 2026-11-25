@@ -386,7 +386,7 @@ export const actions: Actions = {
 
 /** Unknown status (e.g. a reduced read model) keeps the link; only a known closed state hides it. */
 function projectAcceptsNewRecords(
-  sqlite: { prepare: (sql: string) => { get: (...args: unknown[]) => unknown } },
+  sqlite: { prepare: (sql: string) => { get: (...args: string[]) => unknown } },
   projectId: string,
 ): boolean {
   try {

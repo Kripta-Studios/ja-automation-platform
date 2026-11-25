@@ -45,6 +45,7 @@
   import { dirtyFormGuard, hasUnsavedFormChanges } from '../dirty-form-guard';
   import { billingStreamDefaults } from '../billing-stream-defaults';
   import { billingFixText } from '../billing-fix-copy';
+  import { confirmBeforeSubmit } from '../ui/confirm-submit';
 
   const draftPeriodWarning: ProblemData = {
     code: 'WARNING_BILLING_DRAFT_PERIOD_SCOPE',
@@ -3410,7 +3411,13 @@
         .filter(Boolean)
         .join(' · ');
     }
-    return rowValue(invoice, 'invoice_number', 'invoiceNumber') || translate('Draft invoice');
+    const number = rowValue(invoice, 'invoice_number', 'invoiceNumber');
+    if (number) return number;
+    // D15 (round 2): an unissued credit note (a negative credit adjustment) is not an invoice.
+    const creditDraft =
+      rowValue(invoice, 'stream_type', 'streamType') === 'adjustment' &&
+      /^-\d+$/u.test(rowValue(invoice, 'total_minor', 'totalMinor'));
+    return creditDraft ? quickInvoiceText(locale, 'draftCreditNote') : translate('Draft invoice');
   }
 
   function paymentLabel(payment: LedgerPayment | undefined): string {
@@ -7406,7 +7413,12 @@
                             action="?/reversePayment"
                             class="billing-section__payment-form"
                             use:rememberReversalScroll
-                            use:enhance
+                            use:enhance={(input) =>
+                              confirmBeforeSubmit(() =>
+                                billingFixText(locale, 'confirmReversePayment', {
+                                  amount: `${String(input.formData.get('amount') ?? '')} ${rowValue(invoice, 'currency')}`.trim(),
+                                }),
+                              )(input)}
                           >
                             <input type="hidden" name="paymentId" value={paymentId} />
                             <input type="hidden" name="viewportScrollY" value="0" />
@@ -7960,7 +7972,12 @@
                           method="POST"
                           action="?/recordPayment"
                           class="billing-section__payment-form"
-                          use:enhance
+                          use:enhance={(input) =>
+                            confirmBeforeSubmit(() =>
+                              billingFixText(locale, 'confirmRecordPayment', {
+                                amount: `${String(input.formData.get('amount') ?? '')} ${rowValue(invoice, 'currency')}`.trim(),
+                              }),
+                            )(input)}
                           use:rememberReversalScroll
                         >
                           <input type="hidden" name="viewportScrollY" value="0" />

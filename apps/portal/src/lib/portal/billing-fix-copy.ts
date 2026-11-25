@@ -38,6 +38,7 @@ const en = {
   fixLink: 'Fix',
   preparing: 'Preparing…',
   confirmRecordPayment: 'Record this payment of {amount}?',
+  confirmReversePayment: 'Reverse {amount} of this payment? The reversal stays in the history.',
   confirmYes: 'Yes, record it',
   collectionBeforeIssue: 'The expected collection date must be on or after the planned issue date.',
   discountWhere: 'Set a discount in the billing stream terms',
@@ -107,6 +108,7 @@ const es: Record<BillingFixCopyKey, string> = {
   fixLink: 'Corregir',
   preparing: 'Preparando…',
   confirmRecordPayment: '¿Registrar este pago de {amount}?',
+  confirmReversePayment: '¿Revertir {amount} de este pago? La reversión queda en el historial.',
   confirmYes: 'Sí, registrarlo',
   collectionBeforeIssue:
     'La fecha de cobro esperada debe ser igual o posterior a la fecha de emisión prevista.',
@@ -176,6 +178,7 @@ const pt: Record<BillingFixCopyKey, string> = {
   fixLink: 'Corrigir',
   preparing: 'Preparando…',
   confirmRecordPayment: 'Registrar este pagamento de {amount}?',
+  confirmReversePayment: 'Estornar {amount} deste pagamento? O estorno fica no histórico.',
   confirmYes: 'Sim, registrar',
   collectionBeforeIssue:
     'A data de recebimento prevista deve ser igual ou posterior à data de emissão prevista.',

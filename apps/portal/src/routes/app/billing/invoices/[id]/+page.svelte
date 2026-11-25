@@ -285,6 +285,8 @@
     });
   });
   let issueDialog = $state<HTMLDialogElement>();
+  /** D15: credit notes keep their own name in the page chrome. */
+  const isCreditNote = $derived(String(invoice.document_type ?? '') === 'credit_note');
   let refreshingDraft = $state(false);
   const draftRefreshed = $derived($page.url.searchParams.get('refreshed') === '1');
   let issueSubmitting = $state(false);
@@ -1043,7 +1045,7 @@
 
 <svelte:head
   ><title
-    >{invoice.invoice_number || t('Draft invoice')} | {invoice.project_number} | {t(
+    >{invoice.invoice_number || (isCreditNote ? q('draftCreditNote') : t('Draft invoice'))} | {invoice.project_number} | {t(
       'Invoice preview',
     )}</title
   ><link
@@ -1053,17 +1055,19 @@
 >
 <main class="invoice-preview-page">
   <header class="invoice-page-heading no-print">
-    <h1>{invoice.invoice_number || t('Draft invoice')}</h1>
+    <h1>{invoice.invoice_number || (isCreditNote ? q('draftCreditNote') : t('Draft invoice'))}</h1>
     <p>
       {invoice.project_number}{#if invoice.project_name}
         · {invoice.project_name}{/if}
+      {#if isCreditNote && invoice.credit_note_for_invoice_number}
+        · {q('creditNoteOf').replace('{number}', String(invoice.credit_note_for_invoice_number))}{/if}
     </p>
   </header>
   <nav class="detail-nav no-print" aria-label={t('Invoice')}>
     <a href={`${base}/app/billing?lang=${encodeURIComponent(locale)}`} data-origin-back
       ><DirectionIcon direction="left" /> {t('Billing')}</a
     ><button type="button" class="print-trigger" onclick={() => window.print()}
-      ><PrintIcon /> {t('Print Report')}</button
+      ><PrintIcon /> {q('printDocument')}</button
     >
     <StatusBadge
       variant={invoiceStatusVariant(invoiceState)}
@@ -1106,7 +1110,7 @@
           class="primary-button invoice-lifecycle__primary"
           disabled={issueBlockers.length > 0}
           onclick={() => issueDialog?.showModal()}
-          data-invoice-issue-open>{q('issueButton')}</button
+          data-invoice-issue-open>{q(isCreditNote ? 'issueCreditNoteButton' : 'issueButton')}</button
         >
       </div>
       {#if issueBlockers.length}
@@ -1192,7 +1196,7 @@
           };
         }}
       >
-        <h2 id="invoice-issue-dialog-title">{q('confirmTitle')}</h2>
+        <h2 id="invoice-issue-dialog-title">{q(isCreditNote ? 'creditNoteConfirmTitle' : 'confirmTitle')}</h2>
         <dl>
           <div>
             <dt>{q('client')}</dt>
@@ -1245,7 +1249,9 @@
                     ? 'overdueTitle'
                     : invoiceState === 'sent'
                       ? 'sentTitle'
-                      : 'issuedTitle',
+                      : isCreditNote
+                        ? 'creditNoteIssuedTitle'
+                        : 'issuedTitle',
             )}{overduePartlyPaid ? ` · ${q('partlyPaidTitle')}` : ''} · {invoice.invoice_number}
           </p>
           <strong>{invoiceTotalText}</strong>

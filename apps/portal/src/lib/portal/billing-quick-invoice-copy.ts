@@ -158,6 +158,13 @@ const copy = {
     'Confira a fatura abaixo. Ao emitir, o número é atribuído e ela fica bloqueada; depois não pode ser editada.',
   ],
   issueButton: ['Issue invoice', 'Emitir factura', 'Emitir fatura'],
+  // D15 (round 2): a credit note is never called an invoice in the page chrome.
+  issueCreditNoteButton: ['Issue credit note', 'Emitir nota de crédito', 'Emitir nota de crédito'],
+  creditNoteIssuedTitle: ['Credit note issued', 'Nota de crédito emitida', 'Nota de crédito emitida'],
+  draftCreditNote: ['Draft credit note', 'Borrador de nota de crédito', 'Rascunho de nota de crédito'],
+  creditNoteOf: ['Credits invoice {number}', 'Abona la factura {number}', 'Credita a fatura {number}'],
+  creditNoteConfirmTitle: ['Issue this credit note?', '¿Emitir esta nota de crédito?', 'Emitir esta nota de crédito?'],
+  printDocument: ['Print', 'Imprimir', 'Imprimir'],
   confirmTitle: ['Issue this invoice?', '¿Emitir esta factura?', 'Emitir esta fatura?'],
   confirmBody: [
     'After issuing, the invoice gets its final number and can no longer be changed. Corrections are made with a credit note.',

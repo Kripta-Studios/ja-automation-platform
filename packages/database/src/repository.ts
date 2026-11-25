@@ -10712,12 +10712,31 @@ export class PortalRepository {
           costCenterCode: context.cost_center_code,
           poNumber: context.po_number_override ?? context.po_number,
         },
-        purchaseNo:
-          draftCustomizations.purchaseNo ??
-          context.po_number_override ??
-          context.po_number ??
-          context.client_po_reference ??
-          null,
+        // D15 (round 2): a credit note prints the purchase number of the invoice it credits.
+        purchaseNo: creditNoteFor
+          ? (() => {
+              try {
+                const original = JSON.parse(
+                  String(
+                    (
+                      this.sqlite
+                        .prepare('SELECT snapshot_json FROM invoice WHERE id=?')
+                        .get(creditNoteFor.invoiceId) as { snapshot_json: string | null } | undefined
+                    )?.snapshot_json ?? '{}',
+                  ),
+                ) as { purchaseNo?: unknown };
+                return typeof original.purchaseNo === 'string' && original.purchaseNo.trim()
+                  ? original.purchaseNo
+                  : null;
+              } catch {
+                return null;
+              }
+            })()
+          : (draftCustomizations.purchaseNo ??
+            context.po_number_override ??
+            context.po_number ??
+            context.client_po_reference ??
+            null),
         termsAndInstructions: {
           ...issuerSettingsPresentation(
             readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency),

@@ -1316,6 +1316,10 @@
     }
     .hub-extras-summary {
       text-align: start;
+      max-width: none;
+    }
+    .hub-team-extras {
+      grid-column: 1 / -1;
     }
     .hub-team-rate {
       justify-items: start;

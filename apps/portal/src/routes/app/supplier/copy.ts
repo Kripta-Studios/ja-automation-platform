@@ -604,6 +604,12 @@ export const supplierDraftCopy = {
     needsChangesBanner: '{count} records need changes. Open the report to correct them.',
     needsChangesBannerOne: '1 record needs changes. Open the report to correct it.',
     openReturned: 'Show records to correct',
+    reportDrafts: '{count} drafts in this period are not sent to J&A yet. Review and send them in Record team hours.',
+    reportDraftsOne: '1 draft in this period is not sent to J&A yet. Review and send it in Record team hours.',
+    reviewAndSend: 'Review and send',
+    discardYes: 'Yes, discard',
+    discardCancel: 'Keep draft',
+    correctionSaved: 'Correction saved as a draft. Review and send it to J&A in Record team hours.',
   },
   es: {
     draftsTitle: 'Aún sin enviar a J&A ({count})',
@@ -617,6 +623,12 @@ export const supplierDraftCopy = {
     needsChangesBanner: '{count} registros necesitan cambios. Abre el informe para corregirlos.',
     needsChangesBannerOne: '1 registro necesita cambios. Abre el informe para corregirlo.',
     openReturned: 'Ver registros a corregir',
+    reportDrafts: '{count} borradores de este periodo aún no se han enviado a J&A. Revísalos y envíalos en Registrar horas del equipo.',
+    reportDraftsOne: '1 borrador de este periodo aún no se ha enviado a J&A. Revísalo y envíalo en Registrar horas del equipo.',
+    reviewAndSend: 'Revisar y enviar',
+    discardYes: 'Sí, descartar',
+    discardCancel: 'Conservar borrador',
+    correctionSaved: 'Corrección guardada como borrador. Revísala y envíala a J&A en Registrar horas del equipo.',
   },
   pt: {
     draftsTitle: 'Ainda não enviados à J&A ({count})',
@@ -631,6 +643,12 @@ export const supplierDraftCopy = {
       '{count} registros precisam de alterações. Abra o relatório para corrigi-los.',
     needsChangesBannerOne: '1 registro precisa de alterações. Abra o relatório para corrigi-lo.',
     openReturned: 'Ver registros a corrigir',
+    reportDrafts: '{count} rascunhos deste período ainda não foram enviados à J&A. Confira e envie em Registrar horas da equipe.',
+    reportDraftsOne: '1 rascunho deste período ainda não foi enviado à J&A. Confira e envie em Registrar horas da equipe.',
+    reviewAndSend: 'Conferir e enviar',
+    discardYes: 'Sim, descartar',
+    discardCancel: 'Manter rascunho',
+    correctionSaved: 'Correção salva como rascunho. Confira e envie à J&A em Registrar horas da equipe.',
   },
 } as const;
 

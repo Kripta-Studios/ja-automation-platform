@@ -46,6 +46,13 @@
   // This set only tracks ResizeObserver registrations and never drives template state.
   // eslint-disable-next-line svelte/prefer-svelte-reactivity
   let observedElements = new Set<Element>();
+  // Set through the CSSOM, never as a style attribute: a server-rendered style attribute
+  // breaks the strict style-src CSP (console error on every page that opens a sheet).
+  $effect(() => {
+    if (!scrollBody) return;
+    scrollBody.style.setProperty('--responsive-sheet-scroll-padding-start', `${scrollPaddingStart}px`);
+    scrollBody.style.setProperty('--responsive-sheet-scroll-padding-end', `${scrollPaddingEnd}px`);
+  });
 
   function stickyClearance(excludedTarget?: Element): { start: number; end: number } {
     if (!scrollBody || typeof window === 'undefined') return { start: 0, end: 0 };
@@ -389,7 +396,6 @@
     <div
       bind:this={scrollBody}
       class="responsive-sheet-body"
-      style={`--responsive-sheet-scroll-padding-start:${scrollPaddingStart}px;--responsive-sheet-scroll-padding-end:${scrollPaddingEnd}px`}
     >
       {@render children?.()}
     </div>

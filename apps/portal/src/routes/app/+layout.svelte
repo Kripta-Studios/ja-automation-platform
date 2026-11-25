@@ -6,7 +6,8 @@
   import NavigationAssistant from '$lib/portal/assistant/NavigationAssistant.svelte';
   import { page } from '$app/stores';
   import { base } from '$app/paths';
-  import { beforeNavigate, afterNavigate, goto } from '$app/navigation';
+  import { beforeNavigate, afterNavigate, goto, replaceState } from '$app/navigation';
+  import { urlWithoutFormAction } from '$lib/portal/ui/action-url';
   import { onMount } from 'svelte';
   import {
     installWorkspaceNavigation,
@@ -157,6 +158,11 @@
       originHasNativeHistory = false;
     }
     if (to?.url) restoreWorkspaceNavigation(to.url, type === 'popstate');
+    // After a full-page form post the address bar shows the action URL (`?/submitTime&…`).
+    // Keep the page and its form result, but show the clean URL so a reload or a shared link
+    // does not carry the internal action name.
+    const clean = to?.url ? urlWithoutFormAction(to.url) : null;
+    if (clean) replaceState(clean, $page.state);
   });
   onMount(() => {
     if (!origin) {

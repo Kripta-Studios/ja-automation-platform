@@ -392,7 +392,7 @@
     <header class="record-detail-header">
       <div>
         <span class="portal-kicker">{t('Time entry')}</span>
-        <h1>{record.project_number} · <span style="white-space: nowrap">{workDateText}</span></h1>
+        <h1>{record.project_number} · <span class="time-detail-date">{workDateText}</span></h1>
         <p>{record.project_name} · {workerDisplay}</p>
       </div>
       <span class="state-tag">{statusLabel}</span>
@@ -458,7 +458,10 @@
         </div>
         <div>
           <dt>{t('Shift window')}</dt>
-          <dd>{record.start_time ?? '—'} → {record.end_time ?? '—'}</dd>
+          <dd>
+            {record.start_time ?? '—'} → {record.end_time ?? '—'}{#if record.start_time && record.end_time && String(record.end_time) < String(record.start_time)}&nbsp;·
+              {t('Ends the next day')}{/if}
+          </dd>
         </div>
         <div>
           <dt>{t('Break')}</dt>
@@ -489,10 +492,8 @@
     </section>
     {#if data.activeCorrection}
       <section class="detail-panel record-detail-copy" aria-label={t('Open existing correction')}>
-        <p>
-          {t('An existing correction is')}
-          {controlled('status', data.activeCorrection.status)}.
-        </p>
+        <!-- One line: this panel keeps white-space, so a wrapped template showed a broken sentence. -->
+        <p>{t('Correction of this entry:')} {controlled('status', data.activeCorrection.status)}</p>
         <a
           href={`${base}/app/time/${encodeURIComponent(data.activeCorrection.id)}?lang=${encodeURIComponent(locale)}`}
           >{t('Open existing correction')} <DirectionIcon /></a
@@ -654,7 +655,7 @@
           <p>
             {record.approval_state === 'rejected'
               ? t(
-                  'This record was rejected. Contact the reviewer or Owner before recording replacement work.',
+                  'This record was rejected. Ask the reviewer or the project owner before recording replacement work.',
                 )
               : t(
                   'This record cannot be changed here. Contact the project owner or designated administrator.',
@@ -724,3 +725,10 @@
     </section>
   </main>
 {/if}
+
+<style>
+  /* A class, not a style attribute: the CSP allows no inline styles. */
+  .time-detail-date {
+    white-space: nowrap;
+  }
+</style>

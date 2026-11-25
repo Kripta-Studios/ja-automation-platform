@@ -84,7 +84,11 @@
       href: data.owner ? `${base}/app/projects` : undefined,
     },
   });
-  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  // T49: on-screen hours use the page language's decimal separator ("7,5 h" in ES/PT).
+  const decimalHours = (minutes: number): string => {
+    const hours = String(Number((minutes / 60).toFixed(4)));
+    return data.locale === 'es' || data.locale === 'pt' ? hours.replace('.', ',') : hours;
+  };
   const localeTag = $derived(
     data.locale === 'es' ? 'es-ES' : data.locale === 'pt' ? 'pt-BR' : 'en-US',
   );
@@ -453,7 +457,7 @@
         >{/if}</label
     >
     <label
-      >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
+      >{c.reportLanguage}<select name="lang" value={data.locale}
         ><option value="en">{portalText(data.locale, 'English')}</option><option value="es"
           >{portalText(data.locale, 'Spanish')}</option
         ><option value="pt">{portalText(data.locale, 'Portuguese')}</option></select

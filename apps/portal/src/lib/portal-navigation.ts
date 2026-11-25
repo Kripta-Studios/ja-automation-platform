@@ -319,9 +319,11 @@ export function portalNavigationForRole(
       // D3 (round 2): the coordinator records his team's hours in My team and never
       // his own hours or expenses, so Time and Expenses are not offered (they only
       // redirected to My team).
+      // T57 (round 3): nor a personal daily-report page ("Tell the office what you did
+      // today"): field capture refuses coordinators, so his report is the operational one.
       return {
-        primary: [myTeam, operationalReport, reports],
-        mobile: [myTeam, operationalReport, reports],
+        primary: [myTeam, operationalReport],
+        mobile: [myTeam, operationalReport],
         secondary: [item('profile', 'Profile', '◎'), item('help', 'Help', '?')],
         admin: [],
         security: [],

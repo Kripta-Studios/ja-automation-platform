@@ -233,8 +233,16 @@
     )
       .then((response) => (response.ok ? response.json() : { workers: [] }))
       .then((body: { workers?: Row[] }) => {
-        eligibleReportWorkers = Array.isArray(body.workers) ? body.workers : [];
+        // T57: sorted by the name people read (not the login), and the only person preselected.
+        const workers = (Array.isArray(body.workers) ? body.workers : []).toSorted((a, b) =>
+          personDisplayName(a.name, a.email).localeCompare(
+            personDisplayName(b.name, b.email),
+            reportLocale,
+          ),
+        );
+        eligibleReportWorkers = workers;
         eligibleReportWorkersLoading = false;
+        if (workers.length === 1 && !createWorker) createWorker = String(workers[0]?.id ?? '');
       })
       .catch((caught: unknown) => {
         if ((caught as { name?: string })?.name === 'AbortError') return;
@@ -319,10 +327,11 @@
         return;
       }
       if (createdType === 'daily' || createdType === 'technical') {
+        const sent = (result as { submitted?: unknown } | undefined)?.submitted === true;
         const href = registerHref({
           view: createdType,
           project: createProject,
-          status: 'draft',
+          status: sent ? 'submitted' : 'draft',
           worker: '',
           client: '',
           from: '',
@@ -330,9 +339,13 @@
           q: '',
           order: 'newest',
         });
-        savedReportNotice = translate(
-          createdType === 'daily' ? 'Daily report draft saved' : 'Technical report draft saved',
-        );
+        savedReportNotice = sent
+          ? q('sent')
+          : createdType === 'daily' && createWorker && createWorker !== String(data.user.id)
+            ? q('draftForWorker')
+            : translate(
+                createdType === 'daily' ? 'Daily report draft saved' : 'Technical report draft saved',
+              );
         closeSurface();
         void goto(href, { replaceState: true, noScroll: true });
       } else closeSurface();
@@ -340,6 +353,12 @@
     offlineHandled: () => data.offlineEnabled !== false,
   });
   let savedReportNotice = $state('');
+  // T57: the server lets the owner submit any report and everyone else only their own.
+  const canSendDailyOnCreate = $derived(
+    !isAuditor &&
+      (data.user.role === 'owner_admin' ||
+        (data.user.role === 'project_manager' && createWorker === String(data.user.id))),
+  );
   let search = $state('');
   let projectFilter = $state('');
   let workerFilter = $state('');
@@ -877,6 +896,10 @@
     return value || translate(String(row.approval_state ?? 'Draft'));
   }
 
+  // The register aliases technical_report.author_id as worker_id.
+  function ownReport(row: Row): boolean {
+    return rowText(row, 'worker_id') === String(data.user.id);
+  }
   function canSubmitReport(row: Row): boolean {
     // The register aliases technical_report.author_id as worker_id. Creating
     // a report for another worker does not grant the creator submission rights.
@@ -1628,7 +1651,7 @@
           technicalPage = 1;
         }}
         type="search"
-        placeholder={translate('Project, worker or report')}
+        placeholder={translate(fieldWorker ? 'Project or report' : 'Project, worker or report')}
       /></label
     >
     <label
@@ -1790,11 +1813,12 @@
               <span class="report-register-type">{reportTypeLabel(row)}</span>
               <strong>{rowText(row, 'title') || translate('Daily field report')}</strong>
               <small
-                >{rowText(row, 'date')} · {rowText(row, 'project_number')} · {reportStatus(
+                >{reportDayText(rowText(row, 'date'))} · {rowText(row, 'project_number')} · {reportStatus(
                   row,
                 )}</small
               >
-              <small>
+              <!-- T57: on a field worker's own report the "by" line only repeats their name. -->
+              <small hidden={fieldWorker && ownReport(row)}>
                 {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
                 )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}
@@ -1912,11 +1936,12 @@
               >
               <strong>{rowText(row, 'title') || translate('Technical report')}</strong>
               <small
-                >{rowText(row, 'date')} · {rowText(row, 'project_number')} · {reportStatus(
+                >{reportDayText(rowText(row, 'date'))} · {rowText(row, 'project_number')} · {reportStatus(
                   row,
                 )}</small
               >
-              <small>
+              <!-- T57: on a field worker's own report the "by" line only repeats their name. -->
+              <small hidden={fieldWorker && ownReport(row)}>
                 {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
                 )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}
@@ -2729,13 +2754,24 @@
         />
         <span>{translate('Safety-related change')}</span></label
       >
+      {#if !canSendDailyOnCreate && createWorker}
+        <p class="report-entry-help" data-report-worker-sends>{q('draftForWorkerHint')}</p>
+      {/if}
       <div class="report-entry-actions">
         <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit" disabled={saving}
-          >{translate(saving ? 'Saving…' : 'Save daily report')}</button
+        <button
+          type="submit"
+          class={canSendDailyOnCreate ? 'secondary-button' : undefined}
+          disabled={saving}>{translate(saving ? 'Saving…' : 'Save daily report')}</button
         >
+        {#if canSendDailyOnCreate}
+          <!-- T57: one step for the owner and for a reviewer's own report (the owner reviews it). -->
+          <button type="submit" name="submitNow" value="on" disabled={saving} data-report-send-now
+            >{saving ? q('sending') : q('sendForReview')}</button
+          >
+        {/if}
       </div>
     </form>
   {:else if surface === 'technical'}

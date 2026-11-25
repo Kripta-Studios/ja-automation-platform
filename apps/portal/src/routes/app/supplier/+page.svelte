@@ -1701,7 +1701,7 @@
                     <td data-label={c.date}>{shortDate(entry.workDate)}</td>
                     <td data-label={c.category}>{supplierCategoryLabel(data.locale, entry.category)}</td>
                     <td data-label={c.actualHours}
-                      >{#if entry.startTime && entry.endTime}{entry.startTime}–{entry.endTime} ·
+                      >{#if entry.startTime && entry.endTime}{entry.startTime}–{entry.endTime}&nbsp;·&nbsp;
                       {/if}{decimalHours(entry.minutes)} h</td
                     >
                     <td data-label={c.summary}>{entry.summary}</td>

@@ -896,6 +896,10 @@
     return value || translate(String(row.approval_state ?? 'Draft'));
   }
 
+  // The register aliases technical_report.author_id as worker_id.
+  function ownReport(row: Row): boolean {
+    return rowText(row, 'worker_id') === String(data.user.id);
+  }
   function canSubmitReport(row: Row): boolean {
     // The register aliases technical_report.author_id as worker_id. Creating
     // a report for another worker does not grant the creator submission rights.
@@ -1647,7 +1651,7 @@
           technicalPage = 1;
         }}
         type="search"
-        placeholder={translate('Project, worker or report')}
+        placeholder={translate(fieldWorker ? 'Project or report' : 'Project, worker or report')}
       /></label
     >
     <label
@@ -1809,11 +1813,12 @@
               <span class="report-register-type">{reportTypeLabel(row)}</span>
               <strong>{rowText(row, 'title') || translate('Daily field report')}</strong>
               <small
-                >{rowText(row, 'date')} · {rowText(row, 'project_number')} · {reportStatus(
+                >{reportDayText(rowText(row, 'date'))} · {rowText(row, 'project_number')} · {reportStatus(
                   row,
                 )}</small
               >
-              <small>
+              <!-- T57: on a field worker's own report the "by" line only repeats their name. -->
+              <small hidden={fieldWorker && ownReport(row)}>
                 {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
                 )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}
@@ -1931,11 +1936,12 @@
               >
               <strong>{rowText(row, 'title') || translate('Technical report')}</strong>
               <small
-                >{rowText(row, 'date')} · {rowText(row, 'project_number')} · {reportStatus(
+                >{reportDayText(rowText(row, 'date'))} · {rowText(row, 'project_number')} · {reportStatus(
                   row,
                 )}</small
               >
-              <small>
+              <!-- T57: on a field worker's own report the "by" line only repeats their name. -->
+              <small hidden={fieldWorker && ownReport(row)}>
                 {translate('Work performed by')}: {personDisplayName(rowText(row, 'author_name'))} · {translate(
                   'Report created by',
                 )}: {personDisplayName(rowText(row, 'created_by_name') || rowText(row, 'author_name'))}

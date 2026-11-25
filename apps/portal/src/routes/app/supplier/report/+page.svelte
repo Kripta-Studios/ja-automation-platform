@@ -457,7 +457,7 @@
         >{/if}</label
     >
     <label
-      >{portalText(data.locale, 'Language')}<select name="lang" value={data.locale}
+      >{c.reportLanguage}<select name="lang" value={data.locale}
         ><option value="en">{portalText(data.locale, 'English')}</option><option value="es"
           >{portalText(data.locale, 'Spanish')}</option
         ><option value="pt">{portalText(data.locale, 'Portuguese')}</option></select

@@ -1106,8 +1106,14 @@
     {#if totalCount > 0}
       <p class="aq-scope" role="status" data-approval-scope>
         {activeTab === 'reports'
-          ? t('showingReports', { shown: shownCount, count: totalCount })
-          : t('showingWeeks', { shown: shownCount, count: totalCount })}
+          ? t(totalCount === 1 ? 'showingReportOne' : 'showingReports', {
+              shown: shownCount,
+              count: totalCount,
+            })
+          : t(totalCount === 1 ? 'showingWeekOne' : 'showingWeeks', {
+              shown: shownCount,
+              count: totalCount,
+            })}
         {#if activeTab !== 'reports'}
           · {activeTab === 'time'
             ? `${hoursText(queue.matching.minutes)} · ${countLabel('time', queue.matching.timeCount)}`
@@ -1573,8 +1579,14 @@
         >
         <span class="aq-muted"
           >{activeTab === 'reports'
-            ? t('showingReports', { shown: shownCount, count: totalCount })
-            : t('showingWeeks', { shown: shownCount, count: totalCount })}</span
+            ? t(totalCount === 1 ? 'showingReportOne' : 'showingReports', {
+                shown: shownCount,
+                count: totalCount,
+              })
+            : t(totalCount === 1 ? 'showingWeekOne' : 'showingWeeks', {
+                shown: shownCount,
+                count: totalCount,
+              })}</span
         >
       </p>
     {/if}

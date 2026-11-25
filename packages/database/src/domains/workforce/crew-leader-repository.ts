@@ -302,6 +302,16 @@ export class CrewLeaderRepository {
     if (principal.role !== 'worker') return [];
     const needle = term.trim().toLocaleLowerCase();
     if (needle.length < 2) return [];
+    // Search runs for every worker; reduced read models (and old schemas)
+    // without crew delegations simply have no crew to find.
+    const hasCrew = this.sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='crew_leader_grant'")
+      .get();
+    if (!hasCrew) return [];
+    const anyGrant = this.sqlite
+      .prepare("SELECT 1 FROM crew_leader_grant WHERE chief_user_id=? AND status='active' LIMIT 1")
+      .get(principal.userId);
+    if (!anyGrant) return [];
     const found: { id: string; projectId: string; projectNumber: string; name: string }[] = [];
     for (const project of this.projects(principal)) {
       const facts = this.sqlite

@@ -281,7 +281,7 @@ const exact: Record<string, readonly [string, string]> = {
   'The offline draft could not be stored on this device. Your entries are still here. Check browser storage, then try again or reconnect and save online.':
     [
       'No se pudo guardar el borrador sin conexión en este dispositivo. Tus datos siguen aquí. Comprueba el almacenamiento del navegador y vuelve a intentarlo, o reconéctate y guárdalo en línea.',
-      'Não foi possível salvar o rascunho offline neste dispositivo. Os dados digitados continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou reconecte-se e salve online.',
+      'Não foi possível salvar o rascunho sem conexão neste dispositivo. Os dados digitados continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou reconecte-se e salve com conexão.',
     ],
   'Offline drafts need your review': [
     'Los borradores sin conexión necesitan tu revisión',

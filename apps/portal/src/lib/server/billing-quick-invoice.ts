@@ -407,6 +407,11 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
               AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
                      WHERE source.source_type='time' AND source.source_id=time_entry.id
                        AND invoice.state NOT IN ('void','cancelled','superseded'))
+              -- Round 2: an approved original replaced by its approved correction counts once.
+              AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl
+                     JOIN time_entry replacement ON replacement.id=rcl.correction_id
+                     WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                       AND replacement.approval_state IN ('approved','locked'))
             GROUP BY project_id`,
         )
         .all() as Array<{ projectId: string; minutes: number; firstDate: string }>

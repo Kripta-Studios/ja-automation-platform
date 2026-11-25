@@ -196,3 +196,69 @@ describe('one-screen invoice creation', () => {
     ).toThrow();
   });
 });
+
+describe('round 2: invoice preparation for finance and stale drafts', () => {
+  it('D6: finance cannot approve submitted hours through Approve & include; they wait for owner/PM', () => {
+    const { f, finance, worker, time, context } = setup();
+    time('2026-08-20', 60);
+    const sent = f.repository.createTimeEntry(worker, {
+      projectId: f.project.id,
+      workDate: '2026-08-21',
+      category: 'regular',
+      minutes: 120,
+      summary: 'Sent, not reviewed',
+    });
+    f.repository.submitTime(worker, sent.id, sent.version);
+    const version = Number(
+      f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(sent.id)!.version,
+    );
+    const result = f.repository.approvePendingForInvoice(finance, {
+      projectId: f.project.id,
+      sources: [{ type: 'time', id: sent.id, version }],
+      requestKey: 'round2-finance-approve',
+      ...period,
+    });
+    expect(result.approved).toEqual([]);
+    expect(result.skipped).toEqual([
+      { type: 'time', id: sent.id, reason: 'owner_pm_approval_required' },
+    ]);
+    expect(f.sqlite.prepare('SELECT approval_state,approved_by FROM time_entry WHERE id=?').get(sent.id)).toEqual({
+      approval_state: 'submitted',
+      approved_by: null,
+    });
+    // The one-screen invoice lists them as waiting for owner/PM, never as "approve".
+    const preview = quickInvoicePreview(context(finance), { projectId: f.project.id, ...period }) as unknown as {
+      attention: Array<{ kind: string; reviewWaiting?: boolean; minutes?: number }>;
+    };
+    expect(preview.attention.find((item) => item.kind === 'approve')).toBeUndefined();
+    expect(preview.attention).toContainEqual(
+      expect.objectContaining({ kind: 'unsent', reviewWaiting: true, minutes: 120 }),
+    );
+  });
+
+  it('explains a stale draft and refreshes it from the current approved hours', () => {
+    const { f, finance, time } = setup();
+    time('2026-08-20', 60);
+    const rule = f.sqlite.prepare('SELECT id FROM billing_rule WHERE project_id=?').get(f.project.id)!;
+    const draft = f.repository.createInvoiceDraft(finance, String(rule.id), period.periodStart, period.periodEnd);
+    expect(f.repository.invoiceIssueDryRun(finance, draft.id)).toEqual({ ok: true });
+    // More approved hours in the same period make the draft's calculation stale.
+    time('2026-08-22', 30);
+    const stale = f.repository.invoiceIssueDryRun(finance, draft.id);
+    expect(stale.ok).toBe(false);
+    if (stale.ok) throw new Error('stale expected');
+    expect(stale.reasons[0]).toEqual({ code: 'stale_billing_configuration' });
+    // A refresh would need nothing else, and the probe left the draft untouched.
+    expect(stale.reasons).toHaveLength(1);
+    const before = f.sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(draft.id)!;
+    const refreshed = f.repository.refreshInvoiceDraft(finance, draft.id, Number(before.version));
+    expect(f.repository.invoiceIssueDryRun(finance, refreshed.id)).toEqual({ ok: true });
+    expect(
+      f.sqlite
+        .prepare("SELECT COUNT(*) n FROM invoice_line WHERE invoice_id=? AND source_type='time'")
+        .get(refreshed.id)!.n,
+    ).toBe(2);
+    // Issued history is never rebuilt.
+    expect(() => f.repository.refreshInvoiceDraft(finance, refreshed.id, 999)).toThrow(ConflictError);
+  });
+});

@@ -2769,7 +2769,8 @@ export class V3Repository {
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry'
                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
            )
          ORDER BY t.work_date,t.id`,
         )
@@ -3175,7 +3176,8 @@ export class V3Repository {
             JOIN time_entry correction ON correction.id=rcl.correction_id
             WHERE rcl.record_type='time_entry'
               AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
           )
           AND EXISTS (
             SELECT 1 FROM project_member pm WHERE pm.project_id=t.project_id
@@ -3807,7 +3809,8 @@ export class V3Repository {
               JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry'
                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
             )
           ORDER BY u.name,t.worker_id,t.work_date,p.project_number,t.id`,
       )
@@ -3918,7 +3921,8 @@ export class V3Repository {
                 JOIN time_entry correction ON correction.id=rcl.correction_id
                WHERE rcl.record_type='time_entry'
                  AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                   OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                   OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
             )
           ORDER BY t.work_date,t.id`,
       )
@@ -4288,7 +4292,8 @@ export class V3Repository {
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry'
                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
            )
          ORDER BY t.work_date,t.worker_id,COALESCE(t.start_time,t.created_at),t.id`,
       )
@@ -7235,7 +7240,8 @@ export class V3Repository {
                    JOIN time_entry correction ON correction.id=rcl.correction_id
                   WHERE rcl.record_type='time_entry'
                     AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                      OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                      OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
                )
                AND NOT EXISTS (
                  SELECT 1 FROM daily_report d
@@ -7297,7 +7303,8 @@ export class V3Repository {
                      JOIN technical_report correction ON correction.id=rcl.correction_id
                     WHERE rcl.record_type='technical_report'
                       AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                        OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                        OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
                  )
              )`,
           )
@@ -7919,7 +7926,8 @@ export class V3Repository {
                  JOIN time_entry correction ON correction.id=rcl.correction_id
                 WHERE rcl.record_type='time_entry'
                   AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                    OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                    OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
              )
            ORDER BY t.work_date,t.id`,
         )
@@ -9496,7 +9504,8 @@ export class V3Repository {
                JOIN time_entry correction ON correction.id=rcl.correction_id
               WHERE rcl.record_type='time_entry'
                 AND ((rcl.original_id=t.id AND correction.approval_state='approved')
-                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'))
+                  OR (rcl.correction_id=t.id AND correction.approval_state<>'approved'
+                    AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
            )
          ORDER BY t.work_date,t.id`,
         )

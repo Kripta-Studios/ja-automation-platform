@@ -333,7 +333,8 @@ export class ClientRepository {
           JOIN time_entry correction ON correction.id=rcl.correction_id
          WHERE rcl.record_type='time_entry'
            AND ((rcl.original_id=t.id AND correction.approval_state IN ('approved','locked'))
-             OR (rcl.correction_id=t.id AND correction.approval_state NOT IN ('approved','locked')))
+             OR (rcl.correction_id=t.id AND correction.approval_state NOT IN ('approved','locked')
+               AND NOT EXISTS (SELECT 1 FROM time_entry superseded WHERE superseded.id=rcl.original_id AND superseded.approval_state IN ('rejected','void'))))
       )`,
     ];
     const values: Array<string> = [from, to];

@@ -100,3 +100,43 @@ describe('worker reimbursements and My Pay (T13)', () => {
     expect(pay.approvedReimbursementMinor).toBe('2000');
   });
 });
+
+// Round 2 (verify NEW-2): a sent-back entry that the worker corrected and resubmitted is
+// superseded (rejected) and its correction is submitted. My Pay counts the correction as
+// waiting instead of dropping both; a correction of an APPROVED entry still waits behind it.
+describe('My Pay counts resubmitted corrections of sent-back hours (round 2)', () => {
+  const link = (f: B5LifecycleSecurityFixture, id: string, original: string, correction: string) =>
+    f.sqlite
+      .prepare(
+        `INSERT INTO record_correction_link(id,tenant_id,record_type,original_id,correction_id,request_id,request_payload_sha256,actor_user_id,reason,created_at,correlation_id)
+         VALUES(?,(SELECT tenant_id FROM deployment_identity WHERE singleton=1),'time_entry',?,?,?,?,?,'Corrected after review',?,?)`,
+      )
+      .run(id, original, correction, `req-${id}`, 'a'.repeat(64), f.worker.userId, stamp, `corr-${id}`);
+  const time = (f: B5LifecycleSecurityFixture, id: string, date: string, minutes: number, state: string) =>
+    f.sqlite
+      .prepare(
+        `INSERT INTO time_entry(id,project_id,worker_id,work_date,category,minutes,approval_state,billability_state,created_at,updated_at)
+         VALUES(?,?,?,?,'regular',?,?,'billable',?,?)`,
+      )
+      .run(id, f.project.id, f.worker.userId, date, minutes, state, stamp, stamp);
+
+  it('shows the resubmitted correction as waiting and keeps an approved original until its correction is approved', () => {
+    const f = fixture();
+    time(f, 't-superseded', '2026-11-18', 540, 'needs_changes');
+    time(f, 't-resubmitted', '2026-11-18', 480, 'draft');
+    link(f, 'l1', 't-superseded', 't-resubmitted');
+    // A pending correction of the approved Nov 2 entry: the approved 8 h still count.
+    time(f, 't-approved-fix', '2026-11-02', 420, 'draft');
+    link(f, 'l2', 't-approved', 't-approved-fix');
+    // Sending the corrections supersedes the sent-back original (migration 0083 trigger).
+    f.sqlite
+      .prepare("UPDATE time_entry SET approval_state='submitted' WHERE id IN ('t-resubmitted','t-approved-fix')")
+      .run();
+    expect(
+      f.sqlite.prepare("SELECT approval_state FROM time_entry WHERE id='t-superseded'").get(),
+    ).toMatchObject({ approval_state: 'rejected' });
+    const pay = f.v3.workerPay(f.worker, '2026-11-01', '2026-11-30');
+    expect(pay.pendingMinutes).toBe(540 + 480);
+    expect(pay.approvedMinutes).toBe(480);
+  });
+});

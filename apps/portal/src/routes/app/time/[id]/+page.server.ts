@@ -254,6 +254,12 @@ export const load: PageServerLoad = ({ locals, params }) => {
         context.principal,
         String(record.project_id),
       ),
+      // T41 (round 2): no "Add related expense" on a closing/closed project that takes no new records.
+      projectAcceptsNewRecords: Boolean(
+        context.sqlite
+          .prepare("SELECT 1 FROM project WHERE id=? AND status IN ('active','planned','paused')")
+          .get(String(record.project_id)),
+      ),
       correctionOrigin,
       activeCorrection,
       correctionRequestId,

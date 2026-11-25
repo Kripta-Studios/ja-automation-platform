@@ -229,7 +229,8 @@
     });
   });
   const canAddRelatedExpense = $derived(
-    !['rejected', 'void', 'needs_changes'].includes(String(record.approval_state)) &&
+    (data as { projectAcceptsNewRecords?: boolean }).projectAcceptsNewRecords !== false &&
+      !['rejected', 'void', 'needs_changes'].includes(String(record.approval_state)) &&
       (data.user?.role === 'owner_admin' ||
         data.user?.role === 'project_manager' ||
         (data.user?.role === 'worker' && String(record.worker_id) === String(data.user.id))),

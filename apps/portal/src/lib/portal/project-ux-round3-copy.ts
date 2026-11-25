@@ -301,24 +301,6 @@ export function previewProjectReference(
   return `${prefix}-${center}`.slice(0, 100).replace(/-+$/u, '');
 }
 
-/**
- * Project page header reference: "<clientCode>-<costCenter>", e.g. "022-001".
- * Falls back to the client number when the client has no code, and to the
- * project number when the project has no cost center.
- */
-export function projectHeaderReference(project: {
-  client_code?: unknown;
-  client_number?: unknown;
-  cost_center_code?: unknown;
-  project_number?: unknown;
-}): string {
-  const clientPart =
-    String(project.client_code ?? '').trim() || String(project.client_number ?? '').trim();
-  const costCenter = String(project.cost_center_code ?? '').trim();
-  if (clientPart && costCenter) return `${clientPart}-${costCenter}`;
-  return String(project.project_number ?? '').trim() || costCenter || clientPart;
-}
-
 /** "IMPC-001 · BBS Mexico" — how a project is shown wherever it is picked. */
 export function projectPickLabel(project: {
   project_number?: unknown;

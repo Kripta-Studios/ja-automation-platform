@@ -9,7 +9,7 @@
   import PermanentDeleteDialog from '$lib/portal/ui/PermanentDeleteDialog.svelte';
   import {
     projectCopy,
-    projectHeaderReference,
+    projectPickLabel,
     type ProjectCopyKey,
   } from '$lib/portal/project-ux-round3-copy';
   import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
@@ -1374,7 +1374,7 @@
 
   <header class="project-context hub-header" data-project-hub-header>
     <div class="hub-header__identity">
-      <p class="hub-header__ref" data-project-header-reference>{projectHeaderReference(project)}</p>
+      <p class="hub-header__ref">{projectPickLabel(project)}</p>
       <h1>{display(project.name, t('Project'))}</h1>
       <p class="project-context-meta">
         {#if !isWorker && project.client_id}

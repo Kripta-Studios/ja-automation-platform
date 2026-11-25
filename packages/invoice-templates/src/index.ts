@@ -735,21 +735,70 @@ const formatQuantity = (qty: number): string => {
 const billingUnitLabel = (unit: string, locale: InvoiceLanguage): string => {
   const labels =
     locale === 'es'
-      ? { hourly: 'h', daily: 'día', weekly: 'semana', item: 'unid.' }
+      ? { hourly: 'h', daily: 'día', weekly: 'semana', monthly: 'mes', item: 'unid.' }
       : locale === 'pt'
-        ? { hourly: 'h', daily: 'dia', weekly: 'semana', item: 'unid.' }
-        : { hourly: 'h', daily: 'day', weekly: 'week', item: 'item' };
+        ? { hourly: 'h', daily: 'dia', weekly: 'semana', monthly: 'mês', item: 'unid.' }
+        : { hourly: 'h', daily: 'day', weekly: 'week', monthly: 'month', item: 'item' };
   return labels[unit as keyof typeof labels] ?? labels.item;
 };
 const billedUnit = (line: Readonly<Record<string, unknown>>): string | undefined => {
   const value = lineValue(line, 'customerBillingUnit');
-  return value === 'hourly' || value === 'daily' || value === 'weekly' ? value : undefined;
+  if (value === 'hourly' || value === 'daily' || value === 'weekly') return value;
+  // Assignment extras (per diem / allowance) are counted in days or months.
+  const extra = lineValue(line, 'extraUnit');
+  return extra === 'daily' || extra === 'monthly' ? extra : undefined;
+};
+
+/** "3 Nov 2026" style day, or "Nov 2026" for a month, in the invoice language. */
+const extraUnitText = (unit: string, locale: InvoiceLanguage): string => {
+  const match = /^(\d{4})-(\d{2})(?:-(\d{2}))?$/u.exec(unit);
+  if (!match) return unit;
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3] ?? 1)));
+  const tag = locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US';
+  return new Intl.DateTimeFormat(tag, {
+    ...(match[3] ? { day: 'numeric' } : {}),
+    month: 'short',
+    year: 'numeric',
+    timeZone: 'UTC',
+  }).format(date);
+};
+
+/**
+ * Assignment extras line in the invoice language: "Per diem · Gabriel Lamoglia · 12 days
+ * (3 Nov 2026 – 14 Nov 2026)". Null for any other line.
+ */
+const extraLineDescription = (
+  line: Readonly<Record<string, unknown>>,
+  locale: InvoiceLanguage,
+): string | null => {
+  const kind = lineValue(line, 'extraKind');
+  if (kind !== 'per_diem' && kind !== 'allowance') return null;
+  const nested = nestedLineSnapshot(line);
+  const units = Array.isArray(nested.extraUnits) ? nested.extraUnits.map(String) : [];
+  const monthly = lineValue(line, 'extraBasis') === 'month';
+  const words =
+    locale === 'es'
+      ? { per_diem: 'Viáticos (per diem)', allowance: 'Plus de seguridad / peligrosidad', day: ['día', 'días'], month: ['mes', 'meses'] }
+      : locale === 'pt'
+        ? { per_diem: 'Diárias (per diem)', allowance: 'Adicional de segurança / periculosidade', day: ['dia', 'dias'], month: ['mês', 'meses'] }
+        : { per_diem: 'Per diem', allowance: 'Safety / hazard allowance', day: ['day', 'days'], month: ['month', 'months'] };
+  const description = String(lineDisplayValue(line, 'description') ?? '');
+  // The worker name sits between the first and the last part of the stored description.
+  const parts = description.split(' · ');
+  const worker = parts.length >= 3 ? parts.slice(1, -1).join(' · ') : '';
+  const noun = (monthly ? words.month : words.day)[units.length === 1 ? 0 : 1];
+  const first = units[0] ? extraUnitText(units[0], locale) : '';
+  const last = units.at(-1) ? extraUnitText(units.at(-1)!, locale) : '';
+  const range = first ? ` (${first === last ? first : `${first} – ${last}`})` : '';
+  return [words[kind], worker || null, `${units.length || 1} ${noun}${range}`]
+    .filter(Boolean)
+    .join(' · ');
 };
 const quantitySummary = (
   lines: readonly Readonly<Record<string, unknown>>[],
   locale: InvoiceLanguage,
 ): string | undefined => {
-  if (!lines.some((line) => billedUnit(line) === 'daily' || billedUnit(line) === 'weekly')) {
+  if (!lines.some((line) => ['daily', 'weekly', 'monthly'].includes(billedUnit(line) ?? ''))) {
     const quantity = lines.reduce((sum, line) => sum + getLineQuantity(line), 0);
     return quantity > 0 ? formatQuantity(quantity) : undefined;
   }
@@ -794,6 +843,8 @@ const formatLaborDescription = (
   localized: InvoiceCopy,
   locale: InvoiceLanguage,
 ): string => {
+  const extra = extraLineDescription(line, locale);
+  if (extra) return extra;
   const desc = lineDisplayValue(line, 'description', 'detail');
   if (nonEmptyString(desc)) {
     const unit = billedUnit(line);

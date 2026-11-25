@@ -93,6 +93,54 @@ describe('controlled invoice template registry', () => {
     expect(new Set(texts).size).toBe(5);
   });
 
+  it('prints per diem and allowance lines in the invoice language with days or months', () => {
+    const snapshot = (locale: string) => ({
+      ...baseSnapshot('labor-detailed'),
+      locale,
+      lines: [
+        {
+          description: 'Per diem · Gabriel Lamoglia · 2 days (2026-11-03 to 2026-11-04)',
+          quantity_numerator: 2,
+          quantity_denominator: 1,
+          unit_price_minor: '5000',
+          subtotal_minor: '10000',
+          source_type: 'billing_adjustment',
+          snapshot_json: JSON.stringify({
+            extraKind: 'per_diem',
+            extraBasis: 'day',
+            extraUnit: 'daily',
+            extraUnits: ['2026-11-03', '2026-11-04'],
+          }),
+        },
+        {
+          description: 'Safety allowance · Gabriel Lamoglia · 1 month (2026-11)',
+          quantity_numerator: 1,
+          quantity_denominator: 1,
+          unit_price_minor: '100000',
+          subtotal_minor: '100000',
+          source_type: 'billing_adjustment',
+          snapshot_json: JSON.stringify({
+            extraKind: 'allowance',
+            extraBasis: 'month',
+            extraUnit: 'monthly',
+            extraUnits: ['2026-11'],
+          }),
+        },
+      ],
+    });
+    const en = renderInvoiceTemplate(snapshot('en')).body;
+    expect(en).toContain('Per diem · Gabriel Lamoglia · 2 days (Nov 3, 2026 – Nov 4, 2026)');
+    expect(en).toContain('Safety / hazard allowance · Gabriel Lamoglia · 1 month (Nov 2026)');
+    expect(en).toContain('2.00 day');
+    expect(en).toContain('1.00 month');
+    expect(en).not.toContain('Full unit rate');
+    const es = renderInvoiceTemplate(snapshot('es')).body;
+    expect(es).toContain('Viáticos (per diem) · Gabriel Lamoglia · 2 días');
+    expect(es).toContain('1.00 mes');
+    const pt = renderInvoiceTemplate(snapshot('pt')).body;
+    expect(pt).toContain('Adicional de segurança / periculosidade · Gabriel Lamoglia · 1 mês');
+  });
+
   it('identifies an invoiced expense by description when no vendor was supplied', () => {
     const body = renderInvoiceTemplate({
       ...baseSnapshot('expenses-detailed'),

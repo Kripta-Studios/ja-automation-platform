@@ -7,6 +7,8 @@ import { actionFail, actionSuccess } from '$lib/server/actions/action-message';
 import { decimalToMinor } from '$lib/server/action-utils';
 import { formObject } from '$lib/server/action-utils';
 import { base } from '$app/paths';
+import { ConflictError, ValidationError, queueInvoiceEmail } from '@ja/database';
+import { ensureInvoiceRevisionPdf } from '$lib/server/invoice-revision-pdf';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
@@ -211,6 +213,91 @@ export const actions: Actions = {
     }
     if (target) redirect(303, target);
     return actionSuccess('action.billing.invoiceDraftDetailsSaved', {}, 'Invoice saved.');
+  },
+  /**
+   * Correct an ISSUED invoice (owner decision 2026-11-25): same number, new version. The
+   * clicked value is saved as version 2 (3 ...); version 1 and its PDF stay in the history.
+   * The corrected PDF is rendered at once; "send the corrected invoice" queues the email.
+   */
+  correctIssuedInvoice: async ({ locals, request, params }) => {
+    const extra = { actionName: 'correctIssuedInvoice', correlationId: locals.correlationId };
+    const fail = (status: number, message: string, code: string) =>
+      actionFail(status, 'action.error.validation', {}, message, {
+        ...extra,
+        code,
+        inlineMessage: message,
+      });
+    if (!locals.user) return fail(401, 'Sign in again to save.', 'INVOICE_SIGN_IN_REQUIRED');
+    const object = (await formObject(request).catch(() => null)) as Record<string, string> | null;
+    const field = String(object?.field ?? '');
+    const revision = Number(object?.revision);
+    if (!object || !field || !Number.isSafeInteger(revision) || revision < 1)
+      return fail(400, 'Reload the invoice and try again.', 'INVOICE_CORRECTION_INVALID');
+    const changed = (name: string) => {
+      const next = object[name]?.trim() ?? '';
+      const before =
+        object[`original${name.charAt(0).toUpperCase()}${name.slice(1)}`]?.trim() ?? '';
+      return next && next !== before ? next : undefined;
+    };
+    const rate = field === 'line' ? changed('rate') : undefined;
+    const amount = field === 'line' ? changed('amount') : undefined;
+    const rateMinor = rate ? decimalToMinor(rate) : undefined;
+    const amountMinor = amount ? decimalToMinor(amount) : undefined;
+    if ((rate && rateMinor === undefined) || (amount && amountMinor === undefined))
+      return fail(400, 'Enter an amount, for example 85.00.', 'INVOICE_CORRECTION_AMOUNT');
+    const context = openPortalRepository(locals);
+    try {
+      const saved = context.repository.correctIssuedInvoice(context.principal, params.id, {
+        expectedRevision: revision,
+        field: field as never,
+        value: object.value,
+        lineId: object.lineId,
+        description: field === 'line' ? object.description : undefined,
+        quantity: field === 'line' ? changed('hours') : undefined,
+        unitPriceMinor: rateMinor === undefined ? undefined : BigInt(rateMinor),
+        amountMinor: amountMinor === undefined ? undefined : BigInt(amountMinor),
+        reason: object.reason,
+      });
+      let pdfReady = false;
+      try {
+        pdfReady = (await ensureInvoiceRevisionPdf(context, params.id, saved.revisionNumber)).ready;
+      } catch (cause) {
+        // The version is saved; its PDF is rendered again on the next save or download.
+        console.error('Corrected invoice PDF render failed', { invoiceId: params.id, cause });
+      }
+      let email: string | null = null;
+      if (object.sendCorrected === 'on' || object.sendCorrected === 'true') {
+        try {
+          email = pdfReady
+            ? queueInvoiceEmail(context.sqlite, context.principal, {
+                invoiceId: params.id,
+                recipient: String(object.recipient ?? ''),
+                emailConfirmed: true,
+              }).status
+            : 'pdf_pending';
+        } catch (cause) {
+          email = cause instanceof Error ? `failed:${cause.message}` : 'failed';
+        }
+      }
+      return {
+        ...actionSuccess('action.billing.invoiceDraftDetailsSaved', {}, 'Corrected invoice saved.'),
+        ...extra,
+        revisionNumber: saved.revisionNumber,
+        invoiceNumber: saved.invoiceNumber,
+        pdfReady,
+        email,
+      };
+    } catch (caught) {
+      if (caught instanceof AccessDeniedError)
+        return fail(403, 'Only the owner can correct an issued invoice.', 'INVOICE_CORRECTION_FORBIDDEN');
+      if (caught instanceof ConflictError)
+        return fail(409, caught.message, 'INVOICE_CORRECTION_CONFLICT');
+      if (caught instanceof ValidationError)
+        return fail(400, caught.message, 'INVOICE_CORRECTION_INVALID');
+      return billingActionFailure(caught, 'correctIssuedInvoice', context.principal.role);
+    } finally {
+      context.sqlite.close();
+    }
   },
   /** Round 2: rebuild a stale draft from the current hours, rates and settings. */
   refreshInvoiceDraft: async ({ locals, request, params, url }) => {

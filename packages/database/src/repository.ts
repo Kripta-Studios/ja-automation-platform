@@ -8,6 +8,13 @@ import {
   setProjectInvoiceCounter,
 } from './domains/billing/invoice-number-counter.ts';
 import {
+  correctIssuedInvoice,
+  invoiceVersionHistory,
+  recordInvoiceRevisionPdf,
+  type InvoiceRevisionInput,
+} from './domains/billing/invoice-revision.ts';
+import { invoiceVersions, latestInvoiceRevision } from './domains/billing/invoice-current-version.ts';
+import {
   InvoiceOverrideValidationError,
   describeInvoiceOverrides,
   hasInvoiceOverrides,
@@ -11903,6 +11910,28 @@ export class PortalRepository {
       )
       .get(invoiceId) as Record<string, unknown> | undefined;
     if (!invoice) throw new ValidationError('Invoice not found');
+    // Issued-invoice versions (migration 0092): the page shows the CURRENT version; version 1
+    // (the issued row) and every later version stay in the history below it.
+    const latestRevision = invoice.issued_at ? latestInvoiceRevision(this.sqlite, invoiceId) : null;
+    if (latestRevision) {
+      const revisionSnapshot = JSON.parse(latestRevision.snapshotJson) as Record<string, unknown>;
+      Object.assign(invoice, {
+        snapshot_json: latestRevision.snapshotJson,
+        invoice_number: latestRevision.invoiceNumber,
+        subtotal_minor: latestRevision.subtotalMinor.toString(),
+        tax_minor: latestRevision.taxMinor.toString(),
+        total_minor: latestRevision.totalMinor.toString(),
+        due_at: typeof revisionSnapshot.dueAt === 'string' ? revisionSnapshot.dueAt : invoice.due_at,
+        calculation_hash: latestRevision.calculationHash,
+        pdf_status: latestRevision.pdf ? 'ready' : 'pending',
+        pdf_storage_key: latestRevision.pdf?.storageKey ?? null,
+        pdf_sha256: latestRevision.pdf?.sha256 ?? null,
+        pdf_byte_length: latestRevision.pdf?.byteLength ?? null,
+        pdf_generated_at: latestRevision.pdf?.generatedAt ?? null,
+      });
+    }
+    invoice.current_revision_number = latestRevision?.revisionNumber ?? 1;
+    invoice.version_history = invoice.issued_at ? invoiceVersionHistory(this.sqlite, invoiceId) : [];
     const frozenSource = !['draft', 'approved', 'superseded'].includes(String(invoice.state));
     const issuerSettings = frozenSource
       ? {
@@ -12304,6 +12333,47 @@ export class PortalRepository {
       conflict: ConflictError,
       validation: ValidationError,
     });
+  }
+
+  /** Owner corrects an issued invoice: same number (or a new one), new version (v2, v3 ...). */
+  correctIssuedInvoice(principal: Principal, invoiceId: string, input: InvoiceRevisionInput) {
+    return correctIssuedInvoice(this.sqlite, principal, invoiceId, input, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    });
+  }
+
+  /** Store the rendered PDF of one invoice version (write-once). */
+  recordInvoiceRevisionPdf(
+    principal: Principal,
+    invoiceId: string,
+    revisionNumber: number,
+    pdf: Readonly<{ storageKey: string; sha256: string; byteLength: number }>,
+  ) {
+    this.assertActive(principal);
+    return recordInvoiceRevisionPdf(this.sqlite, principal, invoiceId, revisionNumber, pdf, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    });
+  }
+
+  /** The stored document snapshot of one version of an issued invoice (finance read). */
+  invoiceVersionSnapshot(principal: Principal, invoiceId: string, revisionNumber: number) {
+    this.assertReadable(principal);
+    if (!canManageBilling(principal) && principal.role !== 'auditor_read_only')
+      throw new AccessDeniedError('Finance role required');
+    const version = invoiceVersions(this.sqlite, invoiceId).find(
+      (entry) => entry.revisionNumber === revisionNumber,
+    );
+    if (!version) throw new ValidationError('Invoice version not found');
+    return {
+      revisionNumber: version.revisionNumber,
+      invoiceNumber: version.invoiceNumber,
+      snapshot: JSON.parse(version.snapshotJson) as Record<string, unknown>,
+      pdf: version.pdf,
+    };
   }
 
   /** Inline edit of a draft header text or line description (see invoice-presentation-edit). */

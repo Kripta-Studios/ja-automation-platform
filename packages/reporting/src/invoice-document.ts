@@ -165,10 +165,17 @@ export function renderInvoiceDocument(
     ['draft', 'approved', 'superseded'].includes(text(snapshot.state).toLowerCase()) ||
     /^(DRAFT|PREVIEW)/iu.test(text(snapshot.number));
   const number = text(snapshot.number ?? snapshot.invoiceNumber) || l[2];
+  // A corrected issued invoice (same number, new version) says which version it is.
+  const versionNumber = Number(record(snapshot.version).number ?? 1);
+  const versionLabel = { en: 'Corrected · version', es: 'Corregida · versión', pt: 'Corrigida · versão' }[
+    rendered.locale
+  ];
   const numberNotice =
     draft && snapshot.numberProvisional === true
       ? `<small class="invoice-number-notice">${escape(l[12])}</small>`
-      : '';
+      : !draft && Number.isSafeInteger(versionNumber) && versionNumber > 1
+        ? `<small class="invoice-number-notice" data-invoice-version="${versionNumber}">${escape(versionLabel)} ${versionNumber}</small>`
+        : '';
   const fieldLabels: Record<string, string> = {
     purchaseNo: l[4],
     invoiceNumber: l[5],

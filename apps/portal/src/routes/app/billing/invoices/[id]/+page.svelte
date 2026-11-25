@@ -375,7 +375,7 @@
   } as InvoiceTemplateSnapshot);
   const documentPreview = $derived(
     renderInvoiceDocument(documentSnapshot, {
-      editable: canEditDraft,
+      editable: canEditDraft || canCorrectIssued,
       numberingInteractive: hasDraftPreview,
       logoUrl: `${base}/app/logo.png`,
     }),
@@ -432,6 +432,10 @@
     rate?: string;
     isHoursLine?: boolean;
     sourceHref?: string;
+    /** Non-hours line of an issued invoice: its amount. */
+    amount?: string;
+    /** Saving creates a new version of an issued invoice. */
+    issued?: boolean;
   };
   let inlineEditor = $state<InlineEditor | null>(null);
   let inlineSaving = $state(false);
@@ -439,6 +443,32 @@
   let inlineDialog = $state<HTMLDialogElement>();
   let issuedCorrectionOpen = $state(false);
   const isOwner = $derived(String(data.user?.role) === 'owner_admin');
+  // Owner decision 2026-11-25: an issued invoice is corrected in place as a NEW VERSION with
+  // the same number (version 1 and every later version stay in the history with their PDF).
+  const canCorrectIssued = $derived(
+    isOwner &&
+      !hasDraftPreview &&
+      !isCreditNote &&
+      ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceState),
+  );
+  const currentRevision = $derived(Number(invoice.current_revision_number ?? 1));
+  type VersionEntry = {
+    revisionNumber: number;
+    invoiceNumber: string;
+    createdAt: string;
+    createdBy: string | null;
+    replacedAt: string | null;
+    current: boolean;
+    totalMinor: string;
+    currency: string;
+    pdfReady: boolean;
+    changedFields: string[];
+    reason: string | null;
+  };
+  const versionHistory = $derived(
+    (Array.isArray(invoice.version_history) ? invoice.version_history : []) as VersionEntry[],
+  );
+  let correctionNotice = $state('');
   const payeeFieldNames = [
     'bankSwiftNumber',
     'bankAccountNumber',
@@ -548,6 +578,7 @@
           isHoursLine,
           hours: isHoursLine ? String(Math.round((numerator / denominator) * 100) / 100) : '',
           rate: isHoursLine ? minorToDecimal(line.unit_price_minor) : '',
+          amount: isHoursLine ? '' : minorToDecimal(line.subtotal_minor),
           note: isHoursLine
             ? t('Rate and hours change this invoice only. Time entries and worker pay stay as they are.')
             : '',
@@ -557,6 +588,21 @@
         };
       }
     }
+    if (name === 'invoiceNumber' && canCorrectIssued)
+      return {
+        field: name,
+        label: t('Invoice number'),
+        value: String(invoice.invoice_number ?? ''),
+        kind: 'text',
+        note: t('The old number stays in the history and is never used again.'),
+      };
+    if (payeeFieldNames.includes(name) && isOwner && canCorrectIssued)
+      return {
+        field: name,
+        label: t(payeeLabels[name] ?? name),
+        value: String(terms[name] ?? ''),
+        kind: 'text',
+      };
     if (payeeFieldNames.includes(name) && isOwner)
       return {
         field: name,
@@ -580,6 +626,13 @@
     inlineError = '';
   }
   async function openPreviewField(name: string, element?: HTMLElement): Promise<void> {
+    if (canCorrectIssued && element) {
+      const editor = inlineEditorFor(name, element);
+      if (editor) {
+        await openInlineEditor({ ...editor, alsoLabel: undefined, issued: true });
+        return;
+      }
+    }
     if (!canEditDraft && !hasDraftPreview && isOwner && name !== '') {
       issuedCorrectionOpen = true;
       await tick();
@@ -2091,11 +2144,59 @@
     >
       <summary>{t('Correct this issued invoice')}</summary>
       <p>
-        {t(
-          'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.',
-        )}
+        {canCorrectIssued
+          ? t(
+              'Click any underlined value or a line of the invoice to correct it. Each save keeps the same invoice number and creates a new version; earlier versions and their PDFs stay in the history.',
+            )
+          : t(
+              'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.',
+            )}
       </p>
     </details>
+  {/if}
+  {#if correctionNotice}
+    <p class="no-print invoice-inline-hint" role="status" data-invoice-correction-saved>
+      {correctionNotice}
+    </p>
+  {/if}
+  {#if versionHistory.length > 1}
+    <section class="no-print invoice-version-history" data-invoice-version-history>
+      <h2>{t('Versions of this invoice')}</h2>
+      <ol>
+        {#each [...versionHistory].reverse() as version (version.revisionNumber)}
+          <li data-invoice-version={version.revisionNumber}>
+            <div>
+              <strong>
+                {t('Version {version}').replace('{version}', String(version.revisionNumber))}
+                · {version.invoiceNumber}
+              </strong>
+              {#if version.current}
+                <span class="invoice-version-history__current">{t('current')}</span>
+              {/if}
+            </div>
+            <p>
+              {#if version.replacedAt}
+                {t('Replaced on {date}').replace('{date}', String(version.replacedAt).slice(0, 10))}
+              {:else}
+                {t('Saved on {date}').replace('{date}', String(version.createdAt).slice(0, 10))}
+              {/if}
+              {#if version.createdBy}· {version.createdBy}{/if}
+              · {paymentMoney(version.totalMinor, version.currency, documentLanguage(locale))}
+              {#if version.reason}· {version.reason}{/if}
+            </p>
+            {#if version.pdfReady}
+              <a
+                href={`${base}/app/api/invoices/${encodeURIComponent(invoiceId)}/pdf?version=${version.revisionNumber}`}
+                download
+                data-invoice-version-pdf={version.revisionNumber}
+              >{t('Download PDF')} ({t('Version {version}').replace('{version}', String(version.revisionNumber))})</a>
+            {:else}
+              <span>{t('PDF not ready yet')}</span>
+            {/if}
+          </li>
+        {/each}
+      </ol>
+    </section>
   {/if}
   <dialog
     bind:this={inlineDialog}
@@ -2110,16 +2211,29 @@
       {@const editor = inlineEditor}
       <form
         method="POST"
-        action="?/editInvoiceField"
+        action={editor.issued ? '?/correctIssuedInvoice' : '?/editInvoiceField'}
         use:enhance={() => {
           inlineSaving = true;
           inlineError = '';
           return async ({ result, update }) => {
             inlineSaving = false;
             if (result.type === 'failure') {
+              const data = result.data as Record<string, unknown> | undefined;
               inlineError =
-                standaloneActionMessage(locale, result.data) || t('The change was not saved.');
+                (typeof data?.inlineMessage === 'string' && data.inlineMessage) ||
+                standaloneActionMessage(locale, result.data) ||
+                t('The change was not saved.');
               return;
+            }
+            if (editor.issued && result.type === 'success') {
+              const data = (result.data ?? {}) as Record<string, unknown>;
+              correctionNotice = t('Version {version} of {number} saved. The earlier version stays in the history.')
+                .replace('{version}', String(data.revisionNumber ?? ''))
+                .replace('{number}', String(data.invoiceNumber ?? ''));
+              if (typeof data.email === 'string' && data.email.startsWith('failed'))
+                correctionNotice += ` ${t('The corrected invoice email was not queued.')}`;
+              else if (data.email === 'queued')
+                correctionNotice += ` ${t('The corrected invoice email is queued.')}`;
             }
             closeInlineEditor();
             await update({ reset: false });
@@ -2128,6 +2242,7 @@
       >
         <h2 id="invoice-inline-editor-title">{editor.label}</h2>
         <input type="hidden" name="field" value={editor.field} />
+        <input type="hidden" name="revision" value={String(currentRevision)} />
         <input type="hidden" name="version" value={String(invoice.version ?? '')} />
         <input type="hidden" name="lineId" value={editor.lineId ?? ''} />
         <input type="hidden" name="lineKey" value={editor.lineKey ?? ''} />
@@ -2175,6 +2290,12 @@
                 />
               </label>
             </div>
+          {:else if editor.issued && editor.amount}
+            <input type="hidden" name="originalAmount" value={editor.amount} />
+            <label>
+              <span>{t('Amount')} ({String(invoice.currency ?? '')})</span>
+              <input name="amount" inputmode="decimal" value={editor.amount} />
+            </label>
           {/if}
         {:else if editor.kind === 'textarea'}
           <label>
@@ -2201,6 +2322,30 @@
           </label>
         {/if}
         {#if editor.note}<p class="invoice-inline-editor__note">{editor.note}</p>{/if}
+        {#if editor.issued}
+          <p class="invoice-inline-editor__note" data-invoice-correction-note>
+            {t('Saving creates version {next} of this invoice. Version {current} and its PDF stay in the history.')
+              .replace('{next}', String(currentRevision + 1))
+              .replace('{current}', String(currentRevision))}
+          </p>
+          <label>
+            <span>{t('Reason (optional)')}</span>
+            <input name="reason" maxlength="500" />
+          </label>
+          <label class="invoice-inline-editor__also">
+            <input type="checkbox" name="sendCorrected" />
+            <span>{t('Send the corrected invoice to the client')}</span>
+          </label>
+          <label>
+            <span>{t('Client email')}</span>
+            <input
+              name="recipient"
+              type="email"
+              value={String(invoice.billing_email ?? '')}
+              maxlength="254"
+            />
+          </label>
+        {/if}
         {#if inlineError}<p class="invoice-inline-editor__error" role="alert">{inlineError}</p>{/if}
         <div class="invoice-inline-editor__actions">
           <button type="submit" disabled={inlineSaving}
@@ -2227,6 +2372,42 @@
 </main>
 
 <style>
+  .invoice-version-history {
+    max-width: 70rem;
+    margin: 0.5rem auto;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-border-strong, #d1d1c9);
+    border-radius: var(--ja-radius, 1rem);
+    background: var(--ja-surface, #fff);
+  }
+  .invoice-version-history h2 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem;
+  }
+  .invoice-version-history ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.75rem;
+  }
+  .invoice-version-history li p {
+    margin: 0.25rem 0;
+    color: var(--ja-text-secondary, #55554d);
+    overflow-wrap: anywhere;
+  }
+  .invoice-version-history a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+  }
+  .invoice-version-history__current {
+    margin-inline-start: 0.5rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 999px;
+    background: var(--ja-surface-muted, #f1efe7);
+    font-size: 0.8rem;
+  }
   .invoice-inline-hint {
     max-width: 70rem;
     margin: 0.5rem auto;

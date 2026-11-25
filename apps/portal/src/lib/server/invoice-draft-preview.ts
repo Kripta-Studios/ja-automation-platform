@@ -175,5 +175,7 @@ export function invoiceDocumentSnapshot(
     discountMinor: frozen.discountMinor ?? '0',
     // Older issued invoices keep exactly the header their PDF was rendered with.
     documentHeaderVersion: frozen.documentHeaderVersion,
+    // Corrected issued invoices (migration 0092) show their version number.
+    ...(frozen.version && typeof frozen.version === 'object' ? { version: frozen.version } : {}),
   };
 }

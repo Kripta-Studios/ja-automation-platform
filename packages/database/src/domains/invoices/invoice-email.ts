@@ -6,6 +6,7 @@ import { assertLiveSession } from '../../core/authorization.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { verifyPrivatePdfArtifact } from '../../core/private-pdf-proof.ts';
+import { latestInvoiceRevision } from '../billing/invoice-current-version.ts';
 
 function authorize(sqlite: DatabaseSync, principal: Principal) {
   const user = sqlite.prepare('SELECT role,status FROM user WHERE id=?').get(principal.userId);
@@ -77,6 +78,19 @@ export function queueInvoiceEmail(
       FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','paid','overdue')`,
       )
       .get(input.invoiceId);
+    // A corrected invoice is sent as its current version (migration 0092).
+    const revision = invoice ? latestInvoiceRevision(sqlite, input.invoiceId) : null;
+    if (revision && invoice) {
+      if (!revision.pdf)
+        throw new ValidationError('The PDF of the corrected version is not ready yet');
+      Object.assign(invoice, {
+        invoice_number: revision.invoiceNumber,
+        pdf_status: 'ready',
+        pdf_storage_key: revision.pdf.storageKey,
+        pdf_sha256: revision.pdf.sha256,
+        pdf_byte_length: revision.pdf.byteLength,
+      });
+    }
     if (!invoice?.invoice_number || invoice.pdf_status !== 'ready')
       throw new ValidationError('Issued invoice with ready PDF required');
     if (Number(invoice.pdf_byte_length) > 20 * 1024 * 1024)
@@ -143,6 +157,7 @@ export function queueInvoiceEmail(
           recipient,
           requestedBy: principal.userId,
           pdfSha256,
+          ...(revision ? { revisionNumber: revision.revisionNumber } : {}),
         }),
         timestamp,
         timestamp,
@@ -153,6 +168,7 @@ export function queueInvoiceEmail(
       outboxEventId: id,
       recipient,
       pdfSha256,
+      ...(revision ? { revisionNumber: revision.revisionNumber } : {}),
     });
     return { id, status: 'queued', recipient };
   });

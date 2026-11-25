@@ -284,6 +284,26 @@ export const resolveMailDelivery = (
           pdf_byte_length: number;
         }
       | undefined;
+    // A corrected invoice (migration 0092) is sent as the version that was requested.
+    const revisionNumber = Number(payload.revisionNumber ?? 1);
+    let corrected = false;
+    if (invoice && Number.isSafeInteger(revisionNumber) && revisionNumber > 1) {
+      const version = sqlite
+        .prepare(
+          `SELECT r.invoice_number,p.storage_key,p.sha256,p.byte_length FROM invoice_revision r
+             JOIN invoice_revision_pdf p ON p.revision_id=r.id
+            WHERE r.invoice_id=? AND r.revision_number=?`,
+        )
+        .get(request.aggregateId, revisionNumber) as
+        | { invoice_number: string; storage_key: string; sha256: string; byte_length: number }
+        | undefined;
+      if (!version) throw new Error('Invoice PDF unavailable');
+      invoice.invoice_number = version.invoice_number;
+      invoice.pdf_storage_key = version.storage_key;
+      invoice.pdf_sha256 = version.sha256;
+      invoice.pdf_byte_length = version.byte_length;
+      corrected = true;
+    }
     if (
       !invoice ||
       invoice.pdf_sha256 !== payload.pdfSha256 ||
@@ -340,10 +360,15 @@ export const resolveMailDelivery = (
       filename: `${invoice.invoice_number.replace(/[^a-zA-Z0-9_-]/gu, '_')}.pdf`,
       content,
     };
-    copy = {
-      subject: `J&A Automation invoice ${invoice.invoice_number}`,
-      body: 'Please find your J&A Automation invoice attached.',
-    };
+    copy = corrected
+      ? {
+          subject: `J&A Automation corrected invoice ${invoice.invoice_number}`,
+          body: `Please find the corrected J&A Automation invoice ${invoice.invoice_number} (version ${revisionNumber}) attached. It replaces the earlier version.`,
+        }
+      : {
+          subject: `J&A Automation invoice ${invoice.invoice_number}`,
+          body: 'Please find your J&A Automation invoice attached.',
+        };
   } else {
     recipient = corporateAddress(formRecipient, 'JA_FORM_RECIPIENT');
     if (payload.inquiryId !== request.aggregateId)

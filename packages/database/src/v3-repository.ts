@@ -1,3 +1,7 @@
+import {
+  currentInvoiceColumnSql,
+  invoiceVersions,
+} from './domains/billing/invoice-current-version.ts';
 import { quarantineUnconfirmedEmail } from './core/email-policy.ts';
 import { createHash, randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
@@ -5779,9 +5783,13 @@ export class V3Repository {
     const collectionAsOf = filters.end ? `${filters.end}T23:59:59.999Z` : timestamp();
     const invoices = this.sqlite
       .prepare(
-        `SELECT i.id,i.invoice_number,i.project_id,i.stream_type,i.currency,i.period_start,i.period_end,
-                i.issued_at,i.due_at,i.expected_collection_on,CAST(i.subtotal_minor AS TEXT) subtotal_minor,
-                CAST(i.tax_minor AS TEXT) tax_minor,CAST(i.total_minor AS TEXT) total_minor,
+        // Current version of each invoice (migration 0092): number, amounts and due date.
+        `SELECT i.id,${currentInvoiceColumnSql(this.sqlite, 'i', 'invoice_number')} invoice_number,
+                i.project_id,i.stream_type,i.currency,i.period_start,i.period_end,
+                i.issued_at,${currentInvoiceColumnSql(this.sqlite, 'i', 'due_at')} due_at,i.expected_collection_on,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'subtotal_minor')} AS TEXT) subtotal_minor,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'tax_minor')} AS TEXT) tax_minor,
+                CAST(${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} AS TEXT) total_minor,
                 i.state,i.voided_at,i.version,i.legal_entity_revision_id,br.legal_entity_id,
                 p.project_number,p.name project_name,c.id client_id,c.client_number,c.display_name client_name,
                 p.po_number
@@ -6329,7 +6337,9 @@ export class V3Repository {
   ): { netCollected: bigint; outstanding: bigint; state: string } {
     const invoice = this.sqlite
       .prepare(
-        'SELECT CAST(total_minor AS TEXT) total_minor,due_at,state,voided_at FROM invoice WHERE id=?',
+        `SELECT CAST(${currentInvoiceColumnSql(this.sqlite, 'invoice', 'total_minor')} AS TEXT) total_minor,
+                ${currentInvoiceColumnSql(this.sqlite, 'invoice', 'due_at')} due_at,state,voided_at
+           FROM invoice WHERE id=?`,
       )
       .get(invoiceId) as
       | { total_minor: string; due_at: string | null; state: string; voided_at: string | null }
@@ -6470,8 +6480,9 @@ export class V3Repository {
       }
       const invoice = this.sqlite
         .prepare(
-          `SELECT id,CAST(total_minor AS TEXT) total_minor,currency,state,issued_at,
-                  tenant_id,deployment_id,legal_entity_revision_id
+          // Payments are recorded against the current version of the invoice (migration 0092).
+          `SELECT id,CAST(${currentInvoiceColumnSql(this.sqlite, 'invoice', 'total_minor')} AS TEXT) total_minor,
+                  currency,state,issued_at,tenant_id,deployment_id,legal_entity_revision_id
              FROM invoice WHERE id=? AND state IN ('issued','sent','partially_paid','overdue')`,
         )
         .get(input.invoiceId) as
@@ -11502,6 +11513,7 @@ export class V3Repository {
   invoicePdfMetadata(
     principal: Principal,
     invoiceId: string,
+    revisionNumber?: number,
   ): {
     storageKey: SafeStorageKey;
     sha256: string;
@@ -11510,6 +11522,29 @@ export class V3Repository {
     filename: string;
   } {
     this.assertFinanceReadable(principal);
+    // Issued-invoice versions (migration 0092): the current version by default, any kept
+    // version on request. Older versions download as "<number>-v<n>.pdf".
+    const versions = invoiceVersions(this.sqlite, invoiceId);
+    if (versions.length > 1 || (revisionNumber !== undefined && revisionNumber !== 1)) {
+      const current = versions[versions.length - 1];
+      const version =
+        revisionNumber === undefined
+          ? current
+          : versions.find((entry) => entry.revisionNumber === revisionNumber);
+      if (!version) throw new V3ValidationError('Invoice version not found');
+      if (!version.pdf) throw new V3ValidationError('Invoice PDF is not ready');
+      this.assertStorageKey(version.pdf.storageKey);
+      return {
+        storageKey: version.pdf.storageKey,
+        sha256: version.pdf.sha256,
+        byteLength: version.pdf.byteLength,
+        mediaType: 'application/pdf',
+        filename:
+          version === current
+            ? `${version.invoiceNumber}.pdf`
+            : `${version.invoiceNumber}-v${version.revisionNumber}.pdf`,
+      };
+    }
     const row = this.sqlite
       .prepare(
         "SELECT invoice_number,pdf_storage_key,pdf_sha256,pdf_byte_length FROM invoice WHERE id=? AND pdf_status='ready'",
@@ -12533,7 +12568,10 @@ export class V3Repository {
         const now = timestamp();
         const changed = this.sqlite
           .prepare(
-            "UPDATE invoice SET state='overdue',updated_at=?,version=version+1 WHERE due_at<? AND total_minor>0 AND state IN ('issued','sent','partially_paid')",
+            `UPDATE invoice SET state='overdue',updated_at=?,version=version+1
+              WHERE ${currentInvoiceColumnSql(this.sqlite, 'invoice', 'due_at')}<?
+                AND ${currentInvoiceColumnSql(this.sqlite, 'invoice', 'total_minor')}>0
+                AND state IN ('issued','sent','partially_paid')`,
           )
           .run(now, now);
         overdueMarked += Number(changed.changes);

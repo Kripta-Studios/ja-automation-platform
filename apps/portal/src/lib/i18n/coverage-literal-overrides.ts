@@ -5153,6 +5153,42 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Clique em qualquer texto sublinhado ou em uma linha da fatura para alterá-lo.',
   ],
   'Correct this issued invoice': ['Corregir esta factura emitida', 'Corrigir esta fatura emitida'],
+  'The old number stays in the history and is never used again.': [
+    'El número anterior queda en el historial y no se vuelve a usar.',
+    'O número anterior fica no histórico e nunca é reutilizado.',
+  ],
+  'Version {version} of {number} saved. The earlier version stays in the history.': [
+    'Versión {version} de {number} guardada. La versión anterior queda en el historial.',
+    'Versão {version} de {number} salva. A versão anterior fica no histórico.',
+  ],
+  'The corrected invoice email was not queued.': [
+    'El correo con la factura corregida no se puso en cola.',
+    'O e-mail com a fatura corrigida não foi colocado na fila.',
+  ],
+  'The corrected invoice email is queued.': [
+    'El correo con la factura corregida está en cola.',
+    'O e-mail com a fatura corrigida está na fila.',
+  ],
+  'Saving creates version {next} of this invoice. Version {current} and its PDF stay in the history.': [
+    'Al guardar se crea la versión {next} de esta factura. La versión {current} y su PDF quedan en el historial.',
+    'Ao salvar, é criada a versão {next} desta fatura. A versão {current} e o PDF dela ficam no histórico.',
+  ],
+  'Reason (optional)': ['Motivo (opcional)', 'Motivo (opcional)'],
+  'Send the corrected invoice to the client': [
+    'Enviar la factura corregida al cliente',
+    'Enviar a fatura corrigida ao cliente',
+  ],
+  'Client email': ['Correo del cliente', 'E-mail do cliente'],
+  'Click any underlined value or a line of the invoice to correct it. Each save keeps the same invoice number and creates a new version; earlier versions and their PDFs stay in the history.':
+    [
+      'Haga clic en cualquier valor subrayado o en una línea de la factura para corregirlo. Cada guardado mantiene el mismo número de factura y crea una nueva versión; las versiones anteriores y sus PDF quedan en el historial.',
+      'Clique em qualquer valor sublinhado ou em uma linha da fatura para corrigi-lo. Cada salvamento mantém o mesmo número da fatura e cria uma nova versão; as versões anteriores e seus PDFs ficam no histórico.',
+    ],
+  'Versions of this invoice': ['Versiones de esta factura', 'Versões desta fatura'],
+  'Version {version}': ['Versión {version}', 'Versão {version}'],
+  'Replaced on {date}': ['Sustituida el {date}', 'Substituída em {date}'],
+  'Saved on {date}': ['Guardada el {date}', 'Salva em {date}'],
+  'PDF not ready yet': ['El PDF aún no está listo', 'O PDF ainda não está pronto'],
   'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.':
     [
       'Una factura emitida es un documento legal que el cliente puede tener ya, por eso nunca se cambia directamente. Para corregirla: emita una nota de crédito para esta factura y luego cree y emita una factura corregida. Ambas quedan en el historial con su propio PDF.',

@@ -105,6 +105,9 @@ describe('changing the invoice number', () => {
     expect(f.v3.masterLedger(f.finance, { projectId: p.id })[0]).toMatchObject({
       invoiceNumber: 'CP-IMPC-010',
     });
+    expect(
+      f.repository.listInvoices(f.finance).find((row) => row.id === first.id),
+    ).toMatchObject({ invoice_number: 'CP-IMPC-010' });
     // Going back to the old number is a reuse and is refused.
     expect(() =>
       f.repository.correctIssuedInvoice(f.owner, first.id, {

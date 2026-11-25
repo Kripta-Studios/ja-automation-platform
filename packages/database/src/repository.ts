@@ -16,7 +16,11 @@ import {
   recordInvoiceRevisionPdf,
   type InvoiceRevisionInput,
 } from './domains/billing/invoice-revision.ts';
-import { invoiceVersions, latestInvoiceRevision } from './domains/billing/invoice-current-version.ts';
+import {
+  currentInvoiceColumnSql,
+  invoiceVersions,
+  latestInvoiceRevision,
+} from './domains/billing/invoice-current-version.ts';
 import {
   InvoiceOverrideValidationError,
   describeInvoiceOverrides,
@@ -14515,9 +14519,12 @@ export class PortalRepository {
       throw new AccessDeniedError('Finance role required');
     const invoices = this.sqlite
       .prepare(
-        `SELECT i.id,i.project_id,i.invoice_number,i.stream_type,i.state,i.currency,
-                i.total_minor,i.period_start,i.period_end,i.planned_issue_on,
-                i.expected_collection_on,i.issued_at,i.due_at,i.version,i.pdf_status,i.pdf_generated_at,
+        // Current version of corrected invoices (migration 0092): number, total and due date.
+        `SELECT i.id,i.project_id,${currentInvoiceColumnSql(this.sqlite, 'i', 'invoice_number')} invoice_number,
+                i.stream_type,i.state,i.currency,
+                ${currentInvoiceColumnSql(this.sqlite, 'i', 'total_minor')} total_minor,i.period_start,i.period_end,i.planned_issue_on,
+                i.expected_collection_on,i.issued_at,${currentInvoiceColumnSql(this.sqlite, 'i', 'due_at')} due_at,
+                i.version,i.pdf_status,i.pdf_generated_at,
                 EXISTS(SELECT 1 FROM invoice_event e WHERE e.invoice_id=i.id AND e.event_type='void') voided,
                 c.client_code,c.client_number,c.display_name client_name,
                 p.project_number,p.cost_center_code,p.po_number,

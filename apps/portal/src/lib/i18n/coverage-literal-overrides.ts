@@ -5174,6 +5174,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'Ao salvar, é criada a versão {next} desta fatura. A versão {current} e o PDF dela ficam no histórico.',
   ],
   'Reason (optional)': ['Motivo (opcional)', 'Motivo (opcional)'],
+  'Any unused number. Leave empty to use the automatic number.': [
+    'Cualquier número no usado. Déjelo vacío para usar el número automático.',
+    'Qualquer número não usado. Deixe vazio para usar o número automático.',
+  ],
   'Send the corrected invoice to the client': [
     'Enviar la factura corregida al cliente',
     'Enviar a fatura corrigida ao cliente',

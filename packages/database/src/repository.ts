@@ -4,7 +4,10 @@ import {
 } from './domains/projects/project-site-settings.ts';
 import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
 import {
+  claimRequestedInvoiceNumber,
   projectInvoiceCounter,
+  requestedInvoiceNumberOf,
+  setDraftInvoiceNumber,
   setProjectInvoiceCounter,
 } from './domains/billing/invoice-number-counter.ts';
 import {
@@ -694,6 +697,11 @@ export const INVOICE_COLLECTION_BEFORE_ISSUE =
  */
 const KNOWN_NOTIFICATION_KIND =
   /^(?:approval_(?:requested|returned|rejected)_(?:time|expense|daily|technical)|missing_time|missing_receipt|period_ready|period_blocked|signature_outstanding|invoice_overdue|budget_exception|cap_exception|settlement_status_changed|worker_payment_status|assignment_published|report_(?:submitted|approved|needs_changes|modified))$/u;
+
+/** A number the owner chose for a draft replaces the automatic preview number. */
+function withRequestedNumber<T extends { number: string | null }>(requested: string | null, preview: T): T {
+  return requested ? { ...preview, number: requested, requested: true } : preview;
+}
 
 export class PortalRepository {
   private readonly sqlite: DatabaseSync;
@@ -10761,8 +10769,16 @@ export class PortalRepository {
       const documentKind = creditNoteFor ? 'credit_note' : 'invoice';
       // Owner decision 2026-11-25: invoices of a client/project policy are numbered
       // "CP-<client>-<NNN>" per project; credit notes keep their own CN series.
-      const invoiceNumber =
-        documentKind === 'invoice' && policy.number_format === 'client_project_sequence'
+      // A number the owner chose for this draft (owner decision 2026-11-25) wins when unused.
+      const requestedNumber =
+        documentKind === 'invoice' ? requestedInvoiceNumberOf(invoice.snapshot_json) : null;
+      const invoiceNumber = requestedNumber
+        ? claimRequestedInvoiceNumber(this.sqlite, invoice.project_id, requestedNumber, {
+            access: AccessDeniedError,
+            conflict: ConflictError,
+            validation: ValidationError,
+          })
+        : documentKind === 'invoice' && policy.number_format === 'client_project_sequence'
           ? allocateClientProjectNumber(
               this.sqlite,
               {
@@ -12007,11 +12023,13 @@ export class PortalRepository {
     const creditNoteOf = this.creditNoteOriginal(invoiceId, invoice.stream_type);
     const enrichedInvoice = {
       ...invoice,
+      requested_invoice_number:
+        invoice.invoice_number == null ? requestedInvoiceNumberOf(invoice.snapshot_json) : null,
       draft_number_preview:
         ['draft', 'approved'].includes(String(invoice.state)) &&
         invoice.invoice_number == null &&
         invoice.issued_at == null
-          ? previewInvoiceNumber(
+          ? withRequestedNumber(requestedInvoiceNumberOf(invoice.snapshot_json), previewInvoiceNumber(
               this.sqlite,
               String(invoice.issuer_legal_entity_id ?? ''),
               today(),
@@ -12024,7 +12042,7 @@ export class PortalRepository {
                 costCenterCode: invoice.cost_center_code,
                 projectNumber: invoice.project_number,
               },
-            )
+            ))
           : null,
       document_type: creditNoteOf ? 'credit_note' : 'invoice',
       credit_note_for_invoice_id: creditNoteOf?.invoiceId ?? null,
@@ -12329,6 +12347,19 @@ export class PortalRepository {
     input: Readonly<{ nextSequence: number; reason?: string }>,
   ) {
     return setProjectInvoiceCounter(this.sqlite, principal, projectId, input, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    });
+  }
+
+  /** Owner chooses the number an unissued draft is issued with (empty = automatic). */
+  setDraftInvoiceNumber(
+    principal: Principal,
+    invoiceId: string,
+    input: Readonly<{ expectedVersion: number; number: string }>,
+  ) {
+    return setDraftInvoiceNumber(this.sqlite, principal, invoiceId, input, {
       access: AccessDeniedError,
       conflict: ConflictError,
       validation: ValidationError,

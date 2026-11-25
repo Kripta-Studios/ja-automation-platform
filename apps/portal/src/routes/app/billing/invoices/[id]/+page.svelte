@@ -588,6 +588,14 @@
         };
       }
     }
+    if (name === 'invoiceNumber' && canEditDraft && isOwner)
+      return {
+        field: name,
+        label: t('Invoice number'),
+        value: String(invoice.requested_invoice_number ?? numberPreview?.number ?? ''),
+        kind: 'text',
+        note: t('Any unused number. Leave empty to use the automatic number.'),
+      };
     if (name === 'invoiceNumber' && canCorrectIssued)
       return {
         field: name,

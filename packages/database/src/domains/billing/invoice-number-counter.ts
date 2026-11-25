@@ -178,3 +178,113 @@ export function setProjectInvoiceCounter(
     return { nextSequence: requested, nextNumber: number, previousNumber: counter.nextNumber };
   });
 }
+
+const REQUESTED_NUMBER_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._/-]{0,119}$/u;
+
+/** The number the owner chose for an unissued draft, if any. */
+export function requestedInvoiceNumberOf(snapshotJson: unknown): string | null {
+  if (typeof snapshotJson !== 'string' || !snapshotJson) return null;
+  try {
+    const value = (JSON.parse(snapshotJson) as Record<string, unknown>).requestedInvoiceNumber;
+    return typeof value === 'string' && REQUESTED_NUMBER_PATTERN.test(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Owner sets the number an unissued draft will be issued with (owner decision 2026-11-25);
+ * an empty value goes back to the automatic number. Any unused number is accepted: it must
+ * not belong to an issued invoice, a kept version or another draft. Issuing checks again.
+ */
+export function setDraftInvoiceNumber(
+  sqlite: DatabaseSync,
+  principal: Principal,
+  invoiceId: string,
+  input: Readonly<{ expectedVersion: number; number: string }>,
+  errors: InvoiceCounterErrors,
+) {
+  assertActiveAccount(sqlite, principal, errors.access);
+  assertLiveSession(sqlite, principal, errors.access);
+  if (principal.role !== 'owner_admin') throw new errors.access('Owner role required');
+  const number = String(input.number ?? '').trim();
+  if (number && !REQUESTED_NUMBER_PATTERN.test(number))
+    throw new errors.validation('Use letters, digits, dots, dashes or slashes (at most 120 characters).');
+  return runImmediateTransaction(sqlite, 'invoice-draft-number', () => {
+    const role = (sqlite.prepare('SELECT role FROM user WHERE id=?').get(principal.userId) as
+      | { role: string }
+      | undefined)?.role;
+    if (role !== 'owner_admin') throw new errors.access('Owner role required');
+    const invoice = sqlite
+      .prepare('SELECT id,project_id,state,version,invoice_number,issued_at,snapshot_json FROM invoice WHERE id=?')
+      .get(invoiceId) as Record<string, unknown> | undefined;
+    if (!invoice) throw new errors.validation('Invoice not found');
+    if (invoice.state !== 'draft' || invoice.invoice_number != null || invoice.issued_at != null)
+      throw new errors.conflict('Only an unissued Draft can get another number here.');
+    if (Number(invoice.version) !== input.expectedVersion)
+      throw new errors.conflict('This invoice changed in another session. Refresh before saving again.');
+    const previous = requestedInvoiceNumberOf(invoice.snapshot_json);
+    if (number && number !== previous) {
+      if (invoiceNumberUsed(sqlite, number))
+        throw new errors.conflict(`${number} is already used by another invoice. Numbers are never reused.`);
+      const otherDraft = (
+        sqlite
+          .prepare(
+            "SELECT id,snapshot_json FROM invoice WHERE id<>? AND state IN ('draft','approved') AND snapshot_json LIKE ?",
+          )
+          .all(invoiceId, `%${number.replace(/[%_]/gu, '')}%`) as Array<Record<string, unknown>>
+      ).find((row) => requestedInvoiceNumberOf(row.snapshot_json) === number);
+      if (otherDraft) throw new errors.conflict(`Another draft is already set to ${number}.`);
+    }
+    let snapshot: Record<string, unknown> = {};
+    try {
+      snapshot = invoice.snapshot_json ? (JSON.parse(String(invoice.snapshot_json)) as Record<string, unknown>) : {};
+    } catch {
+      snapshot = {};
+    }
+    if (number) snapshot.requestedInvoiceNumber = number;
+    else delete snapshot.requestedInvoiceNumber;
+    const timestamp = new Date().toISOString();
+    const updated = sqlite
+      .prepare(
+        `UPDATE invoice SET snapshot_json=?,updated_at=?,version=version+1
+          WHERE id=? AND state='draft' AND version=? AND invoice_number IS NULL AND issued_at IS NULL`,
+      )
+      .run(JSON.stringify(snapshot), timestamp, invoiceId, input.expectedVersion);
+    if (updated.changes !== 1)
+      throw new errors.conflict('This invoice changed before the update completed. Refresh the page.');
+    recordAuditEvent(sqlite, principal, 'invoice.number_request', 'invoice', invoiceId, {
+      projectId: invoice.project_id,
+      before: { requestedInvoiceNumber: previous },
+      after: { requestedInvoiceNumber: number || null },
+    });
+    return { version: input.expectedVersion + 1, number: number || null };
+  });
+}
+
+/**
+ * The number an issued draft takes when the owner chose one: checked unused at issue time; a
+ * chosen number of the project's own CP series moves the project counter past it.
+ */
+export function claimRequestedInvoiceNumber(
+  sqlite: DatabaseSync,
+  projectId: string,
+  requested: string,
+  errors: InvoiceCounterErrors,
+): string {
+  if (invoiceNumberUsed(sqlite, requested))
+    throw new errors.conflict(`${requested} is already used by another invoice. Choose another number.`);
+  const context = projectNumberContext(sqlite, projectId);
+  if (context) {
+    const { stem } = projectInvoiceNumberStem(sqlite, context);
+    const match = requested.startsWith(`${stem}-`) ? /^(\d{1,6})$/u.exec(requested.slice(stem.length + 1)) : null;
+    if (match && Number(match[1]) >= nextProjectSequence(sqlite, projectId))
+      sqlite
+        .prepare(
+          `INSERT INTO number_sequence(scope,scope_id,next_value,version) VALUES(?,?,?,1)
+           ON CONFLICT(scope,scope_id) DO UPDATE SET next_value=excluded.next_value,version=version+1`,
+        )
+        .run(PROJECT_INVOICE_SEQUENCE_SCOPE, projectId, Number(match[1]) + 1);
+  }
+  return requested;
+}

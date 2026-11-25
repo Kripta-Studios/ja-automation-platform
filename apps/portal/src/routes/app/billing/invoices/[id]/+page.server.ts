@@ -116,7 +116,10 @@ export const actions: Actions = {
     try {
       const repository = context.repository;
       const principal = context.principal;
-      if (['client', 'clientAddress', 'projectName', 'costCenter', 'lineDescription'].includes(field)) {
+      if (field === 'invoiceNumber') {
+        // Owner chooses the number this draft is issued with (empty = automatic number).
+        repository.setDraftInvoiceNumber(principal, params.id, { expectedVersion: version, number: value });
+      } else if (['client', 'clientAddress', 'projectName', 'costCenter', 'lineDescription'].includes(field)) {
         repository.updateInvoiceDraftPresentation(principal, params.id, {
           expectedVersion: version,
           field: (field === 'client' ? 'clientName' : field) as never,

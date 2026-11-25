@@ -5122,6 +5122,20 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Bank Swift Number': ['Código SWIFT bancario', 'Código SWIFT do banco'],
   Beneficiary: ['Beneficiario', 'Beneficiário'],
   'ACH routing number': ['Número de ruta ACH', 'Número de roteamento ACH'],
+  'Number format': ['Formato del número', 'Formato do número'],
+  'Per client and project: CP-<client code>-001': [
+    'Por cliente y proyecto: CP-<código de cliente>-001',
+    'Por cliente e projeto: CP-<código do cliente>-001',
+  ],
+  'Prefix and year: <prefix>-2026-000001': [
+    'Prefijo y año: <prefijo>-2026-000001',
+    'Prefixo e ano: <prefixo>-2026-000001',
+  ],
+  'Other projects of the same client add their cost center (CP-<client code>-<cost center>-001). Credit notes keep their own CN series.':
+    [
+      'Los demás proyectos del mismo cliente añaden su centro de coste (CP-<código de cliente>-<centro de coste>-001). Las notas de crédito mantienen su propia serie CN.',
+      'Os demais projetos do mesmo cliente acrescentam o centro de custo (CP-<código do cliente>-<centro de custo>-001). As notas de crédito mantêm a própria série CN.',
+    ],
   'Wire routing number (domestic)': [
     'Número de ruta para transferencias (nacional)',
     'Número de roteamento para transferência (doméstica)',

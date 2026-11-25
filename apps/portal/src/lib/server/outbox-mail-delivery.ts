@@ -336,7 +336,8 @@ export const resolveMailDelivery = (
       throw new Error('Invoice PDF integrity mismatch');
     recipient = recipientAddress(payload.recipient, 'invoice recipient');
     attachment = {
-      filename: `Invoice-${invoice.invoice_number.replace(/[^a-zA-Z0-9_-]/gu, '_')}.pdf`,
+      // Same name as the portal download: "<invoice number>.pdf".
+      filename: `${invoice.invoice_number.replace(/[^a-zA-Z0-9_-]/gu, '_')}.pdf`,
       content,
     };
     copy = {

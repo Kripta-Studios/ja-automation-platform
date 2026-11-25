@@ -52,9 +52,9 @@ describe('issuer bank routing fields migration 90', () => {
     f.sqlite.close();
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
-    expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 90,
-    });
+    expect(
+      f.sqlite.prepare('SELECT version FROM schema_migration WHERE version=90').get(),
+    ).toEqual({ version: 90 });
     const after = f.sqlite.prepare('SELECT * FROM issuer_document_settings').all() as Array<
       Record<string, unknown>
     >;

@@ -1,4 +1,5 @@
 import type { DatabaseSync } from 'node:sqlite';
+import { previewClientProjectNumber, type ProjectNumberContext } from './invoice-number-format.ts';
 
 /**
  * Decision D15 (audit 2026-11-22): credit notes are their own document type with their own
@@ -26,17 +27,20 @@ export function previewInvoiceNumber(
   legalEntityId: string,
   asOf: string,
   kind: FiscalDocumentKind = 'invoice',
+  project: ProjectNumberContext | null = null,
 ) {
   const policy = sqlite
     .prepare(
-      `SELECT id,prefix,digits,effective_from FROM invoice_number_policy
+      `SELECT id,prefix,digits,effective_from,number_format FROM invoice_number_policy
      WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL
        AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
      ORDER BY effective_from DESC LIMIT 1`,
     )
     .get(legalEntityId, asOf, asOf) as
-    | { id: string; prefix: string; digits: number; effective_from: string }
+    | { id: string; prefix: string; digits: number; effective_from: string; number_format: string }
     | undefined;
+  const clientProject =
+    kind === 'invoice' && policy?.number_format === 'client_project_sequence';
   const year = asOf.slice(0, 4);
   const row = sqlite
     .prepare('SELECT next_value FROM number_sequence WHERE scope=? AND scope_id=?')
@@ -52,7 +56,12 @@ export function previewInvoiceNumber(
     Number.isSafeInteger(sequence) &&
     sequence > 0;
   return {
-    number: valid ? formatDocumentNumber(kind, policy.prefix, year, sequence, policy.digits) : null,
+    number:
+      clientProject && project
+        ? previewClientProjectNumber(sqlite, project)
+        : valid && !clientProject
+          ? formatDocumentNumber(kind, policy.prefix, year, sequence, policy.digits)
+          : null,
     kind,
     legalEntityId,
     asOf,
@@ -62,6 +71,7 @@ export function previewInvoiceNumber(
           prefix: policy.prefix,
           digits: policy.digits,
           effectiveFrom: policy.effective_from,
+          numberFormat: policy.number_format,
         }
       : null,
   };

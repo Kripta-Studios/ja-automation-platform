@@ -232,7 +232,7 @@ describe('CORE-07 report attachment migration', () => {
           version: number;
         }
       ).version,
-    ).toBe(90);
+    ).toBe(91);
     expect(
       (
         sqlite

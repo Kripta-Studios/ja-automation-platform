@@ -118,6 +118,10 @@ import {
   numberSequenceScope,
   previewInvoiceNumber,
 } from './domains/billing/invoice-number-preview.ts';
+import {
+  allocateClientProjectNumber,
+  isInvoiceNumberFormat,
+} from './domains/billing/invoice-number-format.ts';
 import { summarizeTimeReadiness } from './domains/billing/time-readiness-diagnostics.ts';
 import {
   acceptOwnerFinanceApproval,
@@ -6038,10 +6042,14 @@ export class PortalRepository {
       digits: number;
       effectiveFrom: string;
       accountantApprovedAt: string;
+      numberFormat?: string;
     },
   ) {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin') throw new AccessDeniedError('Owner role required');
+    const numberFormat = input.numberFormat ?? 'prefix_year_sequence';
+    if (!isInvoiceNumberFormat(numberFormat))
+      throw new ValidationError('Choose a supported invoice-number format');
     assertDate(input.effectiveFrom, 'Invoice-number policy effective date');
     if (!/^\S{1,30}$/.test(input.prefix.trim()))
       throw new ValidationError('Invoice-number prefix must be 1–30 non-space characters');
@@ -6055,7 +6063,7 @@ export class PortalRepository {
       const timestamp = now();
       this.sqlite
         .prepare(
-          'INSERT INTO invoice_number_policy(id,legal_entity_id,prefix,digits,effective_from,accountant_approved_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
+          'INSERT INTO invoice_number_policy(id,legal_entity_id,prefix,digits,effective_from,accountant_approved_at,created_at,updated_at,number_format) VALUES(?,?,?,?,?,?,?,?,?)',
         )
         .run(
           id,
@@ -6066,8 +6074,11 @@ export class PortalRepository {
           input.accountantApprovedAt,
           timestamp,
           timestamp,
+          numberFormat,
         );
-      this.audit(principal, 'invoice_policy.create', 'invoice_number_policy', id, {});
+      this.audit(principal, 'invoice_policy.create', 'invoice_number_policy', id, {
+        numberFormat,
+      });
       return { id };
     });
   }
@@ -10455,7 +10466,7 @@ export class PortalRepository {
                   br.po_number_override,br.grouping_mode,br.cadence_type,br.anchor_date,br.billing_contact_id,
                   le.code,le.legal_name,le.billing_address,le.company_identifiers,
                   le.status legal_entity_status,le.currency legal_entity_currency,
-                  c.legal_name client_legal_name,c.client_code,c.client_number,c.billing_address client_billing_address,
+                  c.id client_id,c.legal_name client_legal_name,c.client_code,c.client_number,c.billing_address client_billing_address,
                   c.po_reference client_po_reference,c.billing_email,c.payment_terms_days,${this.clientTaxIdColumn()} client_tax_id,
                   p.project_number,p.name project_name,p.cost_center_code,p.po_number,
                   tp.id tax_profile_id,tp.name tax_name,tp.currency tax_currency,tp.status tax_profile_status,
@@ -10481,6 +10492,7 @@ export class PortalRepository {
             company_identifiers: string;
             legal_entity_status: string;
             legal_entity_currency: Currency;
+            client_id: string;
             client_legal_name: string;
             client_code: string | null;
             client_number: string;
@@ -10570,10 +10582,10 @@ export class PortalRepository {
         .all(context.tax_profile_id);
       const policy = this.sqlite
         .prepare(
-          'SELECT prefix,digits FROM invoice_number_policy WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?) ORDER BY effective_from DESC LIMIT 1',
+          'SELECT prefix,digits,number_format FROM invoice_number_policy WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?) ORDER BY effective_from DESC LIMIT 1',
         )
         .get(context.legal_entity_id, today(), today()) as
-        | { prefix: string; digits: number }
+        | { prefix: string; digits: number; number_format: string }
         | undefined;
       if (!policy)
         throw new ReadinessError([{ code: 'missing_accountant_approved_number_policy' }]);
@@ -10626,17 +10638,32 @@ export class PortalRepository {
       // D15: a credit note takes the next number of its own series (CN-...), linked to its original.
       const creditNoteFor = this.creditNoteOriginal(invoiceId, invoice.stream_type);
       const documentKind = creditNoteFor ? 'credit_note' : 'invoice';
-      const sequence = this.nextSequence(
-        numberSequenceScope(documentKind),
-        `${context.legal_entity_id}:${year}`,
-      );
-      const invoiceNumber = formatDocumentNumber(
-        documentKind,
-        policy.prefix,
-        year,
-        sequence,
-        policy.digits,
-      );
+      // Owner decision 2026-11-25: invoices of a client/project policy are numbered
+      // "CP-<client>-<NNN>" per project; credit notes keep their own CN series.
+      const invoiceNumber =
+        documentKind === 'invoice' && policy.number_format === 'client_project_sequence'
+          ? allocateClientProjectNumber(
+              this.sqlite,
+              {
+                projectId: invoice.project_id,
+                clientId: context.client_id,
+                clientCode: context.client_code,
+                clientNumber: context.client_number,
+                costCenterCode: context.cost_center_code,
+                projectNumber: context.project_number,
+              },
+              now(),
+            )
+          : formatDocumentNumber(
+              documentKind,
+              policy.prefix,
+              year,
+              this.nextSequence(
+                numberSequenceScope(documentKind),
+                `${context.legal_entity_id}:${year}`,
+              ),
+              policy.digits,
+            );
       const issuedAt = now();
       let draftCustomizations: Record<string, unknown> = {};
       if (invoice.snapshot_json) {
@@ -11840,6 +11867,14 @@ export class PortalRepository {
               String(invoice.issuer_legal_entity_id ?? ''),
               today(),
               creditNoteOf ? 'credit_note' : 'invoice',
+              {
+                projectId: String(invoice.project_id),
+                clientId: String(invoice.client_id),
+                clientCode: invoice.client_code,
+                clientNumber: invoice.client_number,
+                costCenterCode: invoice.cost_center_code,
+                projectNumber: invoice.project_number,
+              },
             )
           : null,
       document_type: creditNoteOf ? 'credit_note' : 'invoice',

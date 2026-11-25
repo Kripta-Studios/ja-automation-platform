@@ -223,6 +223,7 @@ const billingInputFields = new Set([
   'billingAddress',
   'companyIdentifiers',
   'prefix',
+  'numberFormat',
   'digits',
   'accountantApprovedAt',
   'name',

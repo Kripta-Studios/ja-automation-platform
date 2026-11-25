@@ -6609,6 +6609,22 @@
                   {/each}
                 </select>
               </label>
+              <label>
+                <span>{translate('Number format')}</span>
+                <select name="numberFormat">
+                  <option value="client_project_sequence"
+                    >{translate('Per client and project: CP-<client code>-001')}</option
+                  >
+                  <option value="prefix_year_sequence"
+                    >{translate('Prefix and year: <prefix>-2026-000001')}</option
+                  >
+                </select>
+                <small
+                  >{translate(
+                    'Other projects of the same client add their cost center (CP-<client code>-<cost center>-001). Credit notes keep their own CN series.',
+                  )}</small
+                >
+              </label>
               <label
                 ><span>{translate('Prefix')}</span><input
                   name="prefix"

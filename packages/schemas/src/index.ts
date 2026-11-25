@@ -1037,6 +1037,8 @@ export const invoiceNumberPolicyInputSchema = z.object({
   digits: z.coerce.number().int().min(4).max(10),
   effectiveFrom: z.iso.date(),
   accountantApprovedAt: z.iso.datetime(),
+  /** "prefix_year_sequence" (<prefix>-<year>-<n>) or "client_project_sequence" (CP-<client>-<NNN>). */
+  numberFormat: z.enum(['prefix_year_sequence', 'client_project_sequence']).optional(),
 });
 
 export const taxProfileInputSchema = z.object({

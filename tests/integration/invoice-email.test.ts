@@ -268,6 +268,15 @@ describe('explicit invoice email lifecycle', () => {
       );
       const delivery = resolveMailDelivery(sqlite, request, undefined, { documentRoot: directory });
       expect(delivery).toMatchObject({ recipient: input.recipient });
+      // The attachment is named like the portal download: "<invoice number>.pdf".
+      const issuedNumber = String(
+        sqlite.prepare('SELECT invoice_number FROM invoice WHERE id=?').get(original.id)
+          ?.invoice_number,
+      );
+      expect(
+        (delivery as { attachment?: { filename?: string } }).attachment?.filename,
+      ).toBe(`${issuedNumber}.pdf`);
+      expect(v3.invoicePdfMetadata(finance, original.id).filename).toBe(`${issuedNumber}.pdf`);
       writeFileSync(join(directory, 'invoices/email.pdf'), 'corrupt');
       expect(() =>
         resolveMailDelivery(sqlite, request, undefined, { documentRoot: directory }),

@@ -4428,6 +4428,10 @@ const exact: Record<string, readonly [string, string]> = {
     'El servidor de correo no confirmó el cambio, así que no se cambió nada y la contraseña anterior sigue funcionando. Inténtalo de nuevo en unos minutos.',
     'O servidor de e-mail não confirmou a alteração, então nada foi alterado e a senha anterior continua funcionando. Tente novamente em alguns minutos.',
   ],
+  'problem.access.passwordMailUnavailableFirst': [
+    'El servidor de correo no confirmó la primera contraseña, así que no se guardó nada y esta persona todavía no puede iniciar sesión. Inténtalo de nuevo en unos minutos.',
+    'O servidor de e-mail não confirmou a primeira senha, então nada foi salvo e esta pessoa ainda não consegue entrar. Tente novamente em alguns minutos.',
+  ],
   'problem.access.passwordMailboxMismatch': [
     'El buzón de esta persona ya no coincide con su cuenta del portal. Revisa la pestaña Buzones antes de restablecer la contraseña.',
     'A caixa de correio desta pessoa não corresponde mais à conta do portal. Revise a aba Caixas de correio antes de redefinir a senha.',
@@ -11420,6 +11424,8 @@ const problemEnglish: Record<string, string> = {
     'This account’s password can only be changed from its own profile.',
   'problem.access.passwordMailUnavailable':
     'The mail server did not confirm the change, so nothing was changed and the old password still works. Try again in a few minutes.',
+  'problem.access.passwordMailUnavailableFirst':
+    'The mail server did not confirm the first password, so nothing was saved and this person cannot sign in yet. Try again in a few minutes.',
   'problem.access.passwordMailboxMismatch':
     'This person’s mailbox no longer matches their portal account. Review the Mailboxes tab before resetting the password.',
   'problem.access.passwordLocalSaveFailed':

@@ -268,7 +268,7 @@ test('account menu exposes profile, activity and session controls', async ({ pag
     '/j-aautomation/app/profile',
   );
   await expect(menu.getByRole('menuitem', { name: /Notifications/ })).toBeVisible();
-  await expect(menu.getByRole('menuitem', { name: /Log out/ })).toBeVisible();
+  await expect(menu.getByRole('menuitem', { name: /^Sign out/ })).toBeVisible();
 });
 
 test('worker phone flow records operational truth without commercial configuration', async ({

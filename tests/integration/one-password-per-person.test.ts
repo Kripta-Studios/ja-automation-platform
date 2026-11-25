@@ -15,6 +15,7 @@ process.env.JA_DATABASE_PATH = databasePath;
 
 const {
   changeOwnPassword,
+  passwordChangeProblem,
   normalizeAccessEmail,
   resetUserPassword,
   updateMailboxPassword,
@@ -369,6 +370,36 @@ describe('Owner reset from the Team screen', () => {
       reason: 'owner_password_reset',
       signInCreated: true,
     });
+  });
+
+  it('says "cannot sign in yet" when Stalwart cannot confirm a first password', async () => {
+    const id = '01900000-0000-7000-8000-0000000000a5';
+    const address = 'new.mailbox@j-aautomation.com';
+    addUser(id, address, 'worker', null);
+    mailboxes.push({
+      id: 'stalwart-new',
+      username: 'new.mailbox',
+      email: address,
+      name: 'New Mailbox',
+      domainId: 'domain',
+      quotaBytes: null,
+      usedDiskQuotaBytes: null,
+    });
+    link(id, 'stalwart-new', address, 'webmail');
+    stalwart.updatePassword.mockRejectedValueOnce(new Error('STALWART_UPDATE_NOT_CONFIRMED'));
+    const result = await resetUserPassword(
+      sqlite,
+      { actorId: ids.owner, targetUserId: id, newPassword: 'first-pass-not-confirmed' },
+      deps,
+    );
+    expect(result).toEqual({ ok: false, code: 'MAIL_UNAVAILABLE_FIRST_PASSWORD' });
+    expect(
+      sqlite.prepare("SELECT COUNT(*) n FROM account WHERE user_id=? AND provider_id='credential'").get(id),
+    ).toEqual({ n: 0 });
+    const problem = passwordChangeProblem('MAIL_UNAVAILABLE_FIRST_PASSWORD');
+    expect(problem.message).toMatch(/cannot sign in yet/u);
+    expect(problem.message).not.toMatch(/old password/u);
+    expect(passwordChangeProblem('MAIL_UNAVAILABLE').message).toMatch(/old password still works/u);
   });
 
   it('refuses non-owners and the Owner account', async () => {

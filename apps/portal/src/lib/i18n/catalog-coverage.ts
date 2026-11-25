@@ -4026,6 +4026,7 @@ export const PORTAL_ACTION_KEYS = [
   'problem.access.passwordUserInactive',
   'problem.access.passwordTargetNotAllowed',
   'problem.access.passwordMailUnavailable',
+  'problem.access.passwordMailUnavailableFirst',
   'problem.access.passwordMailboxMismatch',
   'problem.access.passwordLocalPending',
   'problem.access.passwordLocalSaveFailed',

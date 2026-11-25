@@ -52,6 +52,8 @@ export type PasswordChangeFailureCode =
   | 'USER_NOT_ACTIVE'
   | 'TARGET_NOT_ALLOWED'
   | 'MAIL_UNAVAILABLE'
+  /** First password of a person without sign-in: the mail server did not confirm it. */
+  | 'MAIL_UNAVAILABLE_FIRST_PASSWORD'
   | 'MAILBOX_NOT_FOUND'
   | 'LOCAL_UPDATE_FAILED'
   /** Not linked to a mailbox: the portal could not save the password; nothing changed. */
@@ -316,18 +318,22 @@ async function writePassword(
   dependencies?: PortalPasswordDependencies,
 ): Promise<PasswordChangeOutcome> {
   if (input.linked) {
+    // A person without a sign-in yet has no "old password" that keeps working.
+    const unavailable: PasswordChangeFailureCode = input.initialCredential
+      ? 'MAIL_UNAVAILABLE_FIRST_PASSWORD'
+      : 'MAIL_UNAVAILABLE';
     let stalwart: MailboxWriter;
     try {
       stalwart = dependencies?.stalwart ?? (await createConfiguredStalwartClient());
     } catch {
-      return { ok: false, code: 'MAIL_UNAVAILABLE' };
+      return { ok: false, code: unavailable };
     }
     try {
       if (!(await mailboxStillLinked(input.linked, stalwart)))
         return { ok: false, code: 'MAILBOX_NOT_FOUND' };
       await stalwart.updatePassword(input.linked.stalwartAccountId, input.newPassword);
     } catch {
-      return { ok: false, code: 'MAIL_UNAVAILABLE' };
+      return { ok: false, code: unavailable };
     }
   }
   // After a confirmed mailbox change the old password no longer works in Webmail, so the
@@ -559,6 +565,12 @@ const passwordChangeProblems: Readonly<
     key: 'problem.access.passwordMailUnavailable',
     message:
       'The mail server did not confirm the change, so nothing was changed and the old password still works. Try again in a few minutes.',
+  },
+  MAIL_UNAVAILABLE_FIRST_PASSWORD: {
+    status: 503,
+    key: 'problem.access.passwordMailUnavailableFirst',
+    message:
+      'The mail server did not confirm the first password, so nothing was saved and this person cannot sign in yet. Try again in a few minutes.',
   },
   MAILBOX_NOT_FOUND: {
     status: 409,

@@ -20,7 +20,7 @@ function authenticatorCode(uri: string): string {
 async function logout(page: Page) {
   await page.waitForLoadState('networkidle');
   await page.getByRole('button', { name: 'Account options', exact: true }).click();
-  await page.getByRole('menuitem', { name: /^Log out/ }).click();
+  await page.getByRole('menuitem', { name: /^Sign out/ }).click();
   await page.waitForURL((url) => url.pathname.endsWith('/login'));
   await page.waitForLoadState('networkidle');
 }

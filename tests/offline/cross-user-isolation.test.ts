@@ -226,7 +226,7 @@ describe('offline authenticated-user partitioning', () => {
     await waitForServiceWorkerCache(page);
 
     await page.getByRole('button', { name: 'Account options' }).click();
-    await page.getByRole('menuitem', { name: 'Log out' }).click();
+    await page.getByRole('menuitem', { name: /^Sign out/ }).click();
     await page.waitForURL((url) => url.toString() === `${baseUrl}/login`);
     expect((await context.cookies()).some((cookie) => cookie.name === 'ja_offline_identity')).toBe(
       false,

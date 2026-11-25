@@ -10,7 +10,7 @@
   import { billingReadinessMessageKey, billingReadinessReviewPath } from '../billing-readiness';
   import { compatibleBillingPeriod, type BillingPeriodStream } from '../billing-period-recovery';
   import { journeyText, journeyReason, journeyMoney } from '../project-invoice-journey';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { localeDecimalHoursFromMinutes } from '../minute-hours';
   import type { InvoiceCompositionSource, InvoiceCompositionSourceRef } from '@ja/database';
 
   type Rule = Record<string, unknown>;
@@ -106,7 +106,7 @@
   } = $props();
   const text = (key: Parameters<typeof journeyText>[1]) => journeyText(locale, key);
   function hoursFromMinutes(minutes: unknown): string {
-    const hours = decimalHoursFromMinutes(minutes);
+    const hours = localeDecimalHoursFromMinutes(minutes, locale);
     return hours === '—' ? hours : `${hours} h`;
   }
   const supportedRules = $derived(

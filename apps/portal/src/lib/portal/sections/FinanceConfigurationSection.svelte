@@ -16,7 +16,7 @@
   import { paymentMoney } from '../payment-money';
   import { expenseCategories } from '../expense-categories';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
-  import { decimalHoursFromMinutes } from '../minute-hours';
+  import { localeDecimalHoursFromMinutes } from '../minute-hours';
 
   let {
     data,
@@ -107,7 +107,7 @@
     return '';
   };
   const hoursFromMinutes = (minutes: unknown): string => {
-    const value = decimalHoursFromMinutes(minutes);
+    const value = localeDecimalHoursFromMinutes(minutes, locale);
     return value === '—' ? value : `${value} h`;
   };
   const selectedProjectCurrency = $derived(

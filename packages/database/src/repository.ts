@@ -12456,11 +12456,28 @@ export class PortalRepository {
         const found = this.sqlite
           .prepare(
             recorder === 'time'
-              ? 'SELECT recorded_by_user_id id FROM crew_time_entry_recorder WHERE time_entry_id=?'
-              : 'SELECT recorded_by_user_id id FROM crew_expense_recorder WHERE expense_id=?',
+              ? 'SELECT recorded_by_user_id id,grant_id grantId FROM crew_time_entry_recorder WHERE time_entry_id=?'
+              : 'SELECT recorded_by_user_id id,grant_id grantId FROM crew_expense_recorder WHERE expense_id=?',
           )
-          .get(view.sourceId) as { id: string } | undefined;
-        return found?.id ?? null;
+          .get(view.sourceId) as { id: string; grantId: string } | undefined;
+        if (!found || found.id !== principal.userId || principal.role !== 'worker') return null;
+        // Least privilege after a revoke: the former chief keeps the notice
+        // itself, but the crew member's record opens only while the same
+        // delegation is still live (same rule as Crew hours and expenses).
+        if (!source.owner_id || !source.project_id || !source.date) return null;
+        try {
+          const live = new CrewLeaderRepository(this.sqlite).authorizeDelegatedOperationalEntry(
+            principal,
+            source.owner_id,
+            source.project_id,
+            source.date,
+          );
+          return live.grantId === found.grantId ? found.id : null;
+        } catch (caught) {
+          if (caught instanceof AccessDeniedError || caught instanceof ValidationError)
+            return null;
+          throw caught;
+        }
       })();
       const kindVisibleToRole =
         !(

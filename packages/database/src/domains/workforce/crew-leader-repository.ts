@@ -387,7 +387,13 @@ export class CrewLeaderRepository {
   grants(principal: Principal, projectId?: string): CrewGrant[] {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin') this.assertChief(principal);
-    const where = principal.role === 'owner_admin' ? '' : 'AND g.chief_user_id=?';
+    // A chief sees only his live delegations: a revoked or ended grant no
+    // longer names the former crew member to him (least privilege). One day of
+    // slack keeps a delegation ending today visible in every project time zone.
+    const where =
+      principal.role === 'owner_admin'
+        ? ''
+        : "AND g.chief_user_id=? AND g.status='active' AND (g.ends_on IS NULL OR g.ends_on>=date('now','-1 day'))";
     const params = principal.role === 'owner_admin' ? [] : [principal.userId];
     return this.sqlite
       .prepare(

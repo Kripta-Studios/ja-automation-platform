@@ -630,12 +630,56 @@ const timeProblems: Record<string, TimeProblem> = {
 };
 
 /** Domain-specific repository verdicts keep the same contract as other SvelteKit actions. */
+export type OwnerAssignmentExtension = {
+  projectId: string;
+  workerId: string;
+  date: string;
+  projectLabel: string;
+  personName: string;
+  projectOpen: boolean;
+};
+
+/** The Owner-only "no assignment covers this day" problem raised by the repository. */
+export function ownerAssignmentExtension(error: unknown): OwnerAssignmentExtension | null {
+  if (!(error instanceof AccessDeniedError)) return null;
+  const candidate = error as AccessDeniedError & {
+    code?: unknown;
+    ownerAssignment?: Partial<OwnerAssignmentExtension>;
+  };
+  const detail = candidate.ownerAssignment;
+  if (candidate.code !== 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE' || !detail) return null;
+  return {
+    projectId: String(detail.projectId ?? ''),
+    workerId: String(detail.workerId ?? ''),
+    date: String(detail.date ?? ''),
+    projectLabel: String(detail.projectLabel ?? ''),
+    personName: String(detail.personName ?? ''),
+    projectOpen: detail.projectOpen === true,
+  };
+}
+
 export function timeActionFailure(
   error: unknown,
   values: Record<string, unknown> = {},
   params: ActionMessageParams = {},
 ) {
   const savedValues = safeTimeValues(values);
+  const ownerAssignment = ownerAssignmentExtension(error);
+  if (ownerAssignment)
+    // Owner powers: the day is outside the person's assignment. The screen offers the
+    // one-step "Extend/create the assignment and save" (resubmit with ensureAssignment).
+    return actionFail(
+      409,
+      'problem.time.ownerAssignmentExtension',
+      params,
+      'This person has no assignment on this project for that day. Extend or create the assignment and save, or choose another day.',
+      {
+        code: 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE',
+        values: savedValues,
+        ownerAssignment,
+        remedies: [{ id: 'review_time' }],
+      },
+    );
   if (
     error instanceof ValidationError ||
     error instanceof ConflictError ||
@@ -983,7 +1027,8 @@ export const timeActions = withOperationalActionNames({
     if (dayIntent && !submitDay) return invalidBatch();
     const context = openPortalRepository(locals);
     const workerId = values.workerId || context.principal.userId;
-    if (approve && (context.principal.role !== 'owner_admin' || workerId === context.principal.userId)) {
+    // Owner powers (2026-11-25): the Owner may approve any person's hours, his own included.
+    if (approve && context.principal.role !== 'owner_admin') {
       context.sqlite.close();
       return actionFail(
         403,
@@ -1015,6 +1060,9 @@ export const timeActions = withOperationalActionNames({
         submit,
         submitDay,
         correctionReason: typeof object.reason === 'string' ? object.reason : undefined,
+        // Owner only (the repository refuses it for every other role).
+        ensureAssignment:
+          object.ensureAssignment === '1' && context.principal.role === 'owner_admin',
       });
       const saved = result.created + result.updated + result.removed + result.corrected;
       if (approve) {

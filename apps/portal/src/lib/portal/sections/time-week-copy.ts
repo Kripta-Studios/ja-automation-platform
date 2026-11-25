@@ -2,6 +2,11 @@ import type { PortalLocale } from '../../portal-i18n';
 
 /** Copy for the simplified week timesheet (Log hours). */
 const en = {
+  outsideAssignment: 'Outside the assignment: saving asks to extend it',
+  ownerExtendTitle: '{name} has no assignment on {project} on {day}.',
+  ownerExtendHelp:
+    'Rates and billing follow the assignment. As the owner you can extend the nearest assignment to this day (or create a one-day assignment) and save in one step. The person is notified.',
+  ownerExtendSave: 'Extend/create the assignment and save',
   title: 'Log hours',
   intro: 'Type the hours you worked on each day. Save anytime; submit once the week is complete.',
   worker: 'Worker',
@@ -247,6 +252,11 @@ const en = {
 type CopyKey = keyof typeof en;
 
 const es: Record<CopyKey, string> = {
+  outsideAssignment: 'Fuera de la asignación: al guardar se pide ampliarla',
+  ownerExtendTitle: '{name} no tiene asignación en {project} el {day}.',
+  ownerExtendHelp:
+    'Las tarifas y la facturación siguen la asignación. Como propietario puedes ampliar la asignación más cercana hasta este día (o crear una de un día) y guardar en un solo paso. Se avisa a la persona.',
+  ownerExtendSave: 'Ampliar/crear la asignación y guardar',
   title: 'Registrar horas',
   intro:
     'Escribe las horas que trabajaste cada día. Guarda cuando quieras; envía cuando la semana esté completa.',
@@ -491,6 +501,11 @@ const es: Record<CopyKey, string> = {
 };
 
 const pt: Record<CopyKey, string> = {
+  outsideAssignment: 'Fora da atribuição: ao salvar, pede para estendê-la',
+  ownerExtendTitle: '{name} não tem atribuição em {project} em {day}.',
+  ownerExtendHelp:
+    'As tarifas e o faturamento seguem a atribuição. Como proprietário, você pode estender a atribuição mais próxima até este dia (ou criar uma de um dia) e salvar em um só passo. A pessoa é avisada.',
+  ownerExtendSave: 'Estender/criar a atribuição e salvar',
   title: 'Registrar horas',
   intro:
     'Digite as horas trabalhadas em cada dia. Salve quando quiser; envie quando a semana estiver completa.',

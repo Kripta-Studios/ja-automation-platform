@@ -205,23 +205,38 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(count(f, 'SELECT COUNT(*) n FROM audit_event')).toBe(auditsAfter);
   });
 
-  it('never approves drafts or returned entries on the worker’s behalf, even when sent directly', () => {
-    const { f, owner, time } = setup();
+  it('lets only the Owner approve drafts or returned entries on the worker’s behalf (owner powers 2026-11-25)', () => {
+    const { f, owner, finance, time } = setup();
     const draft = time('2026-08-04', 90, 'draft');
     const returned = time('2026-08-05', 60, 'needs_changes');
     const version = (id: string) =>
       (f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(id) as { version: number }).version;
-    const result = f.repository.approvePendingForInvoice(owner, {
+    // Finance (D6) still never approves what the worker did not send.
+    const byFinance = f.repository.approvePendingForInvoice(finance, {
       projectId: f.project.id,
       sources: [
         { type: 'time', id: draft, version: version(draft) },
         { type: 'time', id: returned, version: version(returned) },
       ],
-      requestKey: 'inline-unsent-direct',
+      requestKey: 'inline-unsent-direct-finance-2',
     });
-    expect(result.approved).toHaveLength(0);
-    expect(result.skipped.map((entry) => entry.reason)).toEqual(['not_submitted', 'not_submitted']);
-    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(0);
+    expect(byFinance.approved).toHaveLength(0);
+    expect(byFinance.skipped.map((entry) => entry.reason)).toEqual(['not_submitted', 'not_submitted']);
+    // The Owner submits on the worker's behalf and approves in one audited step.
+    const byOwner = f.repository.approvePendingForInvoice(owner, {
+      projectId: f.project.id,
+      sources: [
+        { type: 'time', id: draft, version: version(draft) },
+        { type: 'time', id: returned, version: version(returned) },
+      ],
+      requestKey: 'inline-unsent-direct-owner',
+    });
+    expect(byOwner.skipped).toEqual([]);
+    expect(byOwner.approved).toHaveLength(2);
+    expect(count(f, "SELECT COUNT(*) n FROM time_entry WHERE approval_state='approved'")).toBe(2);
+    expect(
+      count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='time.submit' AND actor_id=?", owner.userId),
+    ).toBe(2);
   });
 
   it('lets the owner approve & include his OWN draft hours in one step; other drafts stay out', () => {
@@ -267,7 +282,7 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
     expect(
       count(f, "SELECT COUNT(*) n FROM audit_event WHERE action='invoice.approve_on_behalf' AND actor_id=?", owner.userId),
     ).toBe(1);
-    // Sending another worker's draft directly is still refused.
+    // Owner powers (2026-11-25): sending another worker's draft directly approves it too.
     const version = (f.sqlite.prepare('SELECT version FROM time_entry WHERE id=?').get(others) as { version: number }).version;
     expect(
       f.repository.approvePendingForInvoice(owner, {
@@ -275,7 +290,7 @@ describe('S1/S2: Approve & include with an exact projected total', () => {
         sources: [{ type: 'time', id: others, version }],
         requestKey: 'inline-other-draft',
       }).skipped,
-    ).toEqual([expect.objectContaining({ reason: 'not_submitted' })]);
+    ).toEqual([]);
   });
 
   it('is all-or-nothing when a record changed since it was shown', () => {

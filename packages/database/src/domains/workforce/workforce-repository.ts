@@ -633,6 +633,160 @@ export class WorkforceRepository {
     });
   }
 
+  /**
+   * Owner override ("Extend/create the assignment and save"): make sure the
+   * person has an active assignment on the project that covers `date` before
+   * the Owner records time or an expense for that day. Rates, billing and
+   * reimbursement are resolved from assignments, so the Owner never records
+   * without one: the nearest active assignment is extended (end moved forward
+   * or start moved back) to the day, or a one-day assignment is created. Every
+   * change is audited with `ownerOverride` and the person is notified.
+   * Only the Owner may call this; other roles keep their assignment rules.
+   */
+  ownerEnsureCoveringAssignment(
+    principal: Principal,
+    input: Readonly<{ projectId: string; workerId: string; date: string; reason: string }>,
+  ): { assignmentId: string; action: 'covered' | 'extended' | 'created' } {
+    this.deps.assertActive(principal);
+    const owner = this.deps.sqlite
+      .prepare('SELECT role,status FROM user WHERE id=?')
+      .get(principal.userId) as { role: string; status: string } | undefined;
+    if (principal.role !== 'owner_admin' || owner?.role !== 'owner_admin' || owner.status !== 'active')
+      throw this.deps.errors.accessDenied('Owner administration required');
+    assertDate(input.date, 'Work date', this.deps.errors.validation);
+    return this.deps.transaction(() => {
+      const project = this.deps.sqlite
+        .prepare('SELECT status FROM project WHERE id=?')
+        .get(input.projectId) as { status: string } | undefined;
+      if (!project) throw this.deps.errors.validation('Project not found');
+      if (!['active', 'planned', 'paused'].includes(project.status))
+        throw this.deps.errors.conflict(
+          'Assignments are only allowed on active, planned, or paused projects',
+        );
+      const person = this.deps.sqlite
+        .prepare(
+          `SELECT u.role,u.status,sp.profile FROM user u
+             LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id WHERE u.id=?`,
+        )
+        .get(input.workerId) as { role: string; status: string; profile: string | null } | undefined;
+      // Time and expenses belong to workforce accounts (workers, project managers and
+      // supplier staff). Finance and auditor accounts are not project workforce.
+      const workforce =
+        ['worker', 'project_manager'].includes(person?.role ?? '') ||
+        (person?.role === 'owner_admin' && input.workerId === principal.userId);
+      if (!person || person.status !== 'active' || !workforce)
+        throw this.deps.errors.validation('Active workforce member not found');
+      const covering = this.deps.sqlite
+        .prepare(
+          `SELECT id FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+             AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on DESC LIMIT 1`,
+        )
+        .get(input.projectId, input.workerId, input.date, input.date) as { id: string } | undefined;
+      if (covering) return { assignmentId: covering.id, action: 'covered' as const };
+      const reason = input.reason.trim().slice(0, 2000) || 'Owner recorded work on this day';
+      const timestamp = this.deps.now();
+      // Nearest active assignment: the latest one that ended before the day, else the
+      // earliest one that starts after it. Inactive (ended) rows are never revived.
+      const before = this.deps.sqlite
+        .prepare(
+          `SELECT * FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+             AND ends_on IS NOT NULL AND ends_on<? ORDER BY ends_on DESC LIMIT 1`,
+        )
+        .get(input.projectId, input.workerId, input.date) as AssignmentRow | undefined;
+      const after = before
+        ? undefined
+        : (this.deps.sqlite
+            .prepare(
+              `SELECT * FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+                 AND starts_on>? ORDER BY starts_on LIMIT 1`,
+            )
+            .get(input.projectId, input.workerId, input.date) as AssignmentRow | undefined);
+      const nearest = before ?? after;
+      const overlapping = (id: string | null, startsOn: string, endsOn: string | null) =>
+        this.deps.sqlite
+          .prepare(
+            `SELECT 1 FROM project_member
+              WHERE project_id=? AND user_id=? AND (? IS NULL OR id<>?)
+                AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL AND ends_on>=starts_on))
+                AND (? IS NULL OR starts_on<=?) AND (ends_on IS NULL OR ends_on>=?) LIMIT 1`,
+          )
+          .get(input.projectId, input.workerId, id, id, endsOn, endsOn, startsOn);
+      let assignmentId: string;
+      let action: 'extended' | 'created';
+      if (nearest) {
+        const startsOn = before ? nearest.starts_on : input.date;
+        const endsOn = before ? input.date : nearest.ends_on;
+        if (overlapping(nearest.id, startsOn, endsOn))
+          throw this.deps.errors.conflict('Worker already has an overlapping project assignment');
+        const changed = this.deps.sqlite
+          .prepare(
+            `UPDATE project_member SET starts_on=?,ends_on=?,updated_at=?,version=version+1
+              WHERE id=? AND status='active' AND version=?`,
+          )
+          .run(startsOn, endsOn, timestamp, nearest.id, nearest.version);
+        if (changed.changes !== 1) throw this.deps.errors.conflict('Assignment changed before update');
+        assignmentId = nearest.id;
+        action = 'extended';
+        this.deps.audit(principal, 'assignment.update', 'project_member', nearest.id, {
+          projectId: input.projectId,
+          workerId: input.workerId,
+          version: nearest.version,
+          before: { startsOn: nearest.starts_on, endsOn: nearest.ends_on },
+          after: { startsOn, endsOn },
+          ownerOverride: 'extend_assignment_to_record',
+          coveredDate: input.date,
+          reason,
+        });
+      } else {
+        if (overlapping(null, input.date, input.date))
+          throw this.deps.errors.conflict('Worker already has an overlapping project assignment');
+        assignmentId = newId();
+        action = 'created';
+        // A supplier coordinator's scope stays non-billable (D3); everyone else is a
+        // worker assignment priced by the project's normal rules.
+        const role = person.profile === 'supplier_coordinator' ? 'supplier_coordinator' : 'worker';
+        this.deps.sqlite
+          .prepare(
+            'INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,ends_on,planned_minutes,can_review,status,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            assignmentId,
+            input.projectId,
+            input.workerId,
+            role,
+            input.date,
+            input.date,
+            null,
+            0,
+            'active',
+            timestamp,
+            timestamp,
+          );
+        this.deps.audit(principal, 'assignment.create', 'project_member', assignmentId, {
+          projectId: input.projectId,
+          workerId: input.workerId,
+          startsOn: input.date,
+          endsOn: input.date,
+          assignmentRole: role,
+          ownerOverride: 'create_assignment_to_record',
+          reason,
+        });
+      }
+      // The person is told that their assignment changed (in-app notice).
+      this.deps.sqlite
+        .prepare(
+          "INSERT OR IGNORE INTO notification(id,user_id,kind,subject_id,created_at) VALUES(?,?,'assignment_published',?,?)",
+        )
+        .run(newId(), input.workerId, input.projectId, timestamp);
+      this.deps.sqlite
+        .prepare(
+          "UPDATE notification SET read_at=NULL,created_at=? WHERE user_id=? AND kind='assignment_published' AND subject_id=?",
+        )
+        .run(timestamp, input.workerId, input.projectId);
+      return { assignmentId, action };
+    });
+  }
+
   private assertAssignmentSourceDates(
     existing: AssignmentRow,
     startsOn: string,

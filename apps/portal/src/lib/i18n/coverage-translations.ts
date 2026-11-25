@@ -2079,6 +2079,8 @@ const exact: Record<string, readonly [string, string]> = {
   'problem.time.sheetFile': ['Usa un PDF o una foto de la hoja firmada (hasta 20 MB).', 'Use um PDF ou uma foto da folha assinada (até 20 MB).'],
   'problem.time.sheetDuplicate': ['Este archivo ya está guardado. Elige la hoja firmada de esta semana.', 'Este arquivo já está salvo. Escolha a folha assinada desta semana.'],
   'problem.time.cellDetailInvalid': ['Revisa el inicio, el fin y la pausa de este día. Deja inicio y fin vacíos para escribir solo las horas.', 'Confira o início, o fim e a pausa deste dia. Deixe início e fim vazios para digitar só as horas.'],
+  'problem.time.ownerAssignmentExtension': ['Esta persona no tiene asignación en este proyecto para ese día. Amplía o crea la asignación y guarda, o elige otro día.', 'Esta pessoa não tem atribuição neste projeto para esse dia. Estenda ou crie a atribuição e salve, ou escolha outro dia.'],
+  'problem.expense.ownerAssignmentExtension': ['Esta persona no tiene asignación en este proyecto para ese día. Amplía o crea la asignación y guarda el gasto, o elige otro día.', 'Esta pessoa não tem atribuição neste projeto para esse dia. Estenda ou crie a atribuição e salve a despesa, ou escolha outro dia.'],
   'problem.time.saveApproveOwnerOnly': ['Solo el propietario puede aprobar horas al registrarlas para otra persona.', 'Somente o proprietário pode aprovar horas ao registrá-las para outra pessoa.'],
   'problem.time.sentNotApproved': ['Las horas se guardaron y enviaron, pero no se pudieron aprobar aquí. Apruébalas en Aprobaciones.', 'As horas foram salvas e enviadas, mas não puderam ser aprovadas aqui. Aprove-as em Aprovações.'],
   'problem.time.batchOwnerRequired': [
@@ -11243,6 +11245,10 @@ const problemEnglish: Record<string, string> = {
   'problem.time.sheetFile': 'Use a PDF or photo of the signed sheet (up to 20 MB).',
   'problem.time.sheetDuplicate': 'This file is already stored. Choose the signed sheet for this week.',
   'problem.time.cellDetailInvalid': 'Check the start, end and break of this day. Leave start and end empty to type hours only.',
+  'problem.time.ownerAssignmentExtension':
+    'This person has no assignment on this project for that day. Extend or create the assignment and save, or choose another day.',
+  'problem.expense.ownerAssignmentExtension':
+    'This person has no assignment on this project for that day. Extend or create the assignment and save the expense, or choose another day.',
   'problem.time.saveApproveOwnerOnly': 'Only the owner can approve hours while logging them for another person.',
   'problem.time.sentNotApproved': 'Hours were saved and sent, but could not be approved here. Approve them in Approvals.',
   'problem.time.batchOwnerRequired':

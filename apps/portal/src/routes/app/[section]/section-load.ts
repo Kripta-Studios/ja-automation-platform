@@ -323,10 +323,11 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
               .all() as Array<{ user_id: string; profile: string }>
           ).map((row) => [row.user_id, row.profile]),
         );
-        const pickable = (id: string) =>
-          !supplierProfiles.has(id) ||
-          (context.principal.role === 'owner_admin' &&
-            supplierProfiles.get(id) !== 'supplier_coordinator');
+        // Owner powers (2026-11-25): the Owner may record for every active workforce
+        // member, supplier technicians and coordinators included, assigned or not (a day
+        // outside the assignment is saved through "Extend/create the assignment and save").
+        const ownerPicker = context.principal.role === 'owner_admin';
+        const pickable = (id: string) => !supplierProfiles.has(id) || ownerPicker;
         const timeWorkers = delegating
           ? (() => {
               const others = new Map<string, { id: string; name: string }>();
@@ -334,7 +335,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
                 const id = String(worker.id);
                 if (
                   id === context.principal.userId ||
-                  !assignedWorkerIds.has(id) ||
+                  (!ownerPicker && !assignedWorkerIds.has(id)) ||
                   others.has(id) ||
                   !pickable(id)
                 )

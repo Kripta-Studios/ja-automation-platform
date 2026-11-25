@@ -1891,18 +1891,99 @@ export class PortalRepository {
     if (!assignment) throw new AccessDeniedError('Active worker assignment required');
   }
 
+  /**
+   * Owner records for a day that no active assignment covers. Without the explicit
+   * `ensureAssignment` choice the Owner gets a precise problem (code
+   * OWNER_ASSIGNMENT_EXTENSION_AVAILABLE) so the screen can offer the one-step
+   * "Extend/create the assignment and save"; with it, the nearest assignment is
+   * extended (or a one-day assignment created), audited and notified, inside the
+   * caller's transaction. Other roles never reach this path.
+   */
+  private ownerAssignmentGate(
+    principal: Principal,
+    workerId: string,
+    projectId: string,
+    date: string,
+    ensureAssignment: boolean | undefined,
+    record: 'time' | 'expense',
+  ): void {
+    if (principal.role !== 'owner_admin') return;
+    assertDate(date, record === 'time' ? 'Work date' : 'Expense date');
+    const covered = this.sqlite
+      .prepare(
+        `SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+           AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1`,
+      )
+      .get(projectId, workerId, date, date);
+    if (covered) return;
+    if (!ensureAssignment) {
+      const project = this.sqlite
+        .prepare('SELECT project_number,name,status FROM project WHERE id=?')
+        .get(projectId) as { project_number: string; name: string; status: string } | undefined;
+      const person = this.sqlite.prepare('SELECT name,email FROM user WHERE id=?').get(workerId) as
+        | { name: string | null; email: string }
+        | undefined;
+      const error = new AccessDeniedError('Owner assignment extension available');
+      Object.assign(error, {
+        code: 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE',
+        ownerAssignment: {
+          projectId,
+          workerId,
+          date,
+          projectLabel: project ? `${project.project_number} · ${project.name}` : '',
+          personName: person ? person.name || person.email : '',
+          projectOpen: Boolean(project && ['active', 'planned', 'paused'].includes(project.status)),
+        },
+      });
+      throw error;
+    }
+    this.workforce.ownerEnsureCoveringAssignment(principal, {
+      projectId,
+      workerId,
+      date,
+      reason:
+        record === 'time'
+          ? 'Owner recorded time on a day outside the assignment'
+          : 'Owner recorded an expense on a day outside the assignment',
+    });
+  }
+
   createTimeEntry(
     principal: Principal,
     input: TimeInput,
     workerId = principal.userId,
-    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
-  ) {
+    options: Readonly<{ allowExactDuplicate?: boolean; ensureAssignment?: boolean }> = {},
+  ): { id: string; version: number } {
+    if (principal.role === 'owner_admin') {
+      const covered = this.sqlite
+        .prepare(
+          `SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active'
+             AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?) LIMIT 1`,
+        )
+        .get(input.projectId, workerId, input.workDate, input.workDate);
+      if (!covered)
+        return this.transaction(() => {
+          this.ownerAssignmentGate(
+            principal,
+            workerId,
+            input.projectId,
+            input.workDate,
+            options.ensureAssignment,
+            'time',
+          );
+          return this.createTimeEntry(principal, input, workerId, {
+            allowExactDuplicate: options.allowExactDuplicate,
+          });
+        });
+    }
     this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
     if (principal.role === 'worker')
       this.assertProjectObjectAccess(principal, input.projectId, input.workDate, workerId);
     else if (principal.role !== 'owner_admin')
       this.assertProjectMembership(principal, input.projectId, input.workDate);
-    return this.time.createTimeEntryForWorker(principal, workerId, input, options);
+    return this.time.createTimeEntryForWorker(principal, workerId, input, {
+      allowExactDuplicate: options.allowExactDuplicate,
+    });
   }
 
   /** Save a week's editable daily entries as one unit. Each row runs the same
@@ -1911,7 +1992,7 @@ export class PortalRepository {
     principal: Principal,
     workerId: string,
     entries: readonly TimeInput[],
-    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
+    options: Readonly<{ allowExactDuplicate?: boolean; ensureAssignment?: boolean }> = {},
   ) {
     this.assertActive(principal);
     if (entries.length < 1 || entries.length > 31)
@@ -1948,7 +2029,7 @@ export class PortalRepository {
     expense: Omit<ExpenseInput, 'projectId' | 'spentOn' | 'timeEntryId'>,
     requestId: string,
     workerId = principal.userId,
-    options: Readonly<{ allowExactDuplicate?: boolean }> = {},
+    options: Readonly<{ allowExactDuplicate?: boolean; ensureAssignment?: boolean }> = {},
   ): {
     time: { id: string; version: number };
     expense: { id: string; version: number };
@@ -1960,6 +2041,14 @@ export class PortalRepository {
     return this.transaction(() => {
       // Revalidate current scope before returning any source identifiers on a
       // retry. A revoked or newly restricted actor cannot inspect old results.
+      this.ownerAssignmentGate(
+        principal,
+        workerId,
+        input.projectId,
+        input.workDate,
+        options.ensureAssignment,
+        'time',
+      );
       this.assertOwnerSubject(principal, workerId, input.projectId, input.workDate);
       if (principal.role === 'worker')
         this.assertProjectObjectAccess(principal, input.projectId, input.workDate, workerId);
@@ -2218,6 +2307,8 @@ export class PortalRepository {
       /** Submit only this day's drafts (One day "Save & send"). */
       submitDay?: string;
       correctionReason?: string;
+      /** Owner only: extend/create the assignment for days it does not cover. */
+      ensureAssignment?: boolean;
     }>,
   ) {
     this.assertActive(principal);
@@ -2311,6 +2402,7 @@ export class PortalRepository {
                 ...(interval ?? {}),
               },
               workerId,
+              { ensureAssignment: input.ensureAssignment === true },
             ),
           );
           versions.set(result.id, result.version);
@@ -4948,6 +5040,8 @@ export class PortalRepository {
       auditDetails?: Readonly<Record<string, unknown>>;
       /** Caller-reserved id (a batch names all its ids in the first row's audit event). */
       id?: string;
+      /** Owner only: extend/create the assignment covering the expense day first. */
+      ensureAssignment?: boolean;
     }> = {},
   ) {
     this.assertActive(principal);
@@ -4966,6 +5060,14 @@ export class PortalRepository {
           ).grantId
         : null;
       if (!delegated) {
+        this.ownerAssignmentGate(
+          principal,
+          workerId,
+          input.projectId,
+          input.spentOn,
+          options.ensureAssignment,
+          'expense',
+        );
         this.assertOwnerSubject(principal, workerId, input.projectId, input.spentOn);
         if (principal.role === 'worker')
           this.assertProjectObjectAccess(principal, input.projectId, input.spentOn, workerId);
@@ -7914,13 +8016,10 @@ export class PortalRepository {
           throw new ConflictError('Reserved source cannot be approved');
         const state = String(row.approval_state);
         const skip = (reason: string) => skipped.push({ type: ref.type, id: ref.id, reason });
-        // Only what the worker sent can be approved here (owner decision 2026-11-19): other
-        // people's drafts and returned entries stay with them. The owner's own drafts are the
-        // exception (owner decision 2026-11-17): submitted and approved in one audited step.
-        if (
-          ['draft', 'needs_changes'].includes(state) &&
-          !(principal.role === 'owner_admin' && row.worker_id === principal.userId)
-        )
+        // Finance approves only what the worker sent. The Owner has absolute powers on every
+        // user (owner decision 2026-11-25, superseding 2026-11-19): any draft or returned entry
+        // is submitted on the person's behalf and approved in one audited step.
+        if (['draft', 'needs_changes'].includes(state) && principal.role !== 'owner_admin')
           skip('not_submitted');
         else if (!['draft', 'needs_changes', 'submitted', 'approved'].includes(state)) skip('not_approvable');
         else if (state === 'approved' && row.finance_approved_at) skip('already_approved');

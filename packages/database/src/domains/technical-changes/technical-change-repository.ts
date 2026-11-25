@@ -112,18 +112,20 @@ export class TechnicalChangeRepository {
 
   submitTechnicalChange(principal: Principal, id: string, version: number): void {
     this.deps.assertWritable(principal);
+    // Owner powers (2026-11-25): the Owner may submit anyone's technical change on their behalf.
+    const onBehalf = principal.role === 'owner_admin';
     this.deps.transaction(() => {
       const row = this.deps.sqlite
         .prepare(
           `SELECT tc.project_id,COALESCE(tr.report_date,substr(tc.created_at,1,10)) business_date,
-                  p.status project_status
+                  p.status project_status,tc.author_id
              FROM technical_change tc
              JOIN project p ON p.id=tc.project_id
              LEFT JOIN technical_report tr ON tr.id=tc.technical_report_id
-            WHERE tc.id=? AND tc.author_id=?`,
+            WHERE tc.id=? AND (tc.author_id=? OR ?=1)`,
         )
-        .get(id, principal.userId) as
-        | { project_id: string; business_date: string; project_status: string }
+        .get(id, principal.userId, onBehalf ? 1 : 0) as
+        | { project_id: string; business_date: string; project_status: string; author_id: string }
         | undefined;
       if (!row) throw this.deps.errors.accessDenied('Technical change submission access required');
       if (row.project_status !== 'active')
@@ -147,10 +149,15 @@ export class TechnicalChangeRepository {
         .prepare(
           "UPDATE technical_change SET approval_state='submitted',updated_at=?,version=version+1 WHERE id=? AND author_id=? AND approval_state IN ('draft','needs_changes') AND version=?",
         )
-        .run(this.deps.timestamp(), id, principal.userId, version);
+        .run(this.deps.timestamp(), id, row.author_id, version);
       if (result.changes !== 1)
         throw this.deps.errors.conflict('Technical change changed or cannot be submitted');
-      this.deps.audit(principal, 'technical_change.submit', 'technical_change', id, { version });
+      this.deps.audit(principal, 'technical_change.submit', 'technical_change', id, {
+        version,
+        ...(row.author_id !== principal.userId
+          ? { onBehalfOf: row.author_id, ownerOverride: 'submit_on_behalf' }
+          : {}),
+      });
     });
   }
 

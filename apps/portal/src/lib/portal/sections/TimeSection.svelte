@@ -99,6 +99,15 @@
             ? t('standby')
             : controlledValue('timeCategory', category);
 
+  /**
+   * Owner powers (2026-11-25): the Owner records for anyone on any open project. A day
+   * outside the person's assignment stays editable; saving it asks once to
+   * "Extend/create the assignment and save" (rates and billing follow assignments).
+   */
+  const ownerAll = $derived(data.user.role === 'owner_admin' && !isAuditor);
+  const openProjects = $derived(
+    projects.filter((project) => ['active', 'planned', 'paused'].includes(String(project.status ?? 'active'))),
+  );
   const assigned = (projectId: string, date: string): boolean =>
     assignments.some(
       (row) =>
@@ -162,6 +171,8 @@
   const rowProjects = $derived(
     projects.filter((project) => days.some((date) => assigned(String(project.id), date))),
   );
+  /** Projects offered by "+ Add row": the Owner may add any open project. */
+  const addRowProjects = $derived(ownerAll ? openProjects : rowProjects);
 
   const cellKey = (row: SheetRow, date: string) => `${row.key}|${date}`;
   const cellDate = (cell: { key: string }): string => cell.key.slice(cell.key.lastIndexOf('|') + 1);
@@ -200,6 +211,8 @@
     detailChanged: boolean;
     /** Start or end typed without the other: saving waits, no error shown yet. */
     incomplete: boolean;
+    /** Owner only: an editable day that no assignment covers yet. */
+    outside: boolean;
   };
 
   const parseHours = (value: string) => parseHoursText(value);
@@ -295,7 +308,7 @@
     const originalMinutes = list.reduce((sum, entry) => sum + Number(entry.minutes ?? 0), 0);
     let kind: CellKind;
     if (list.length === 0)
-      kind = assigned(row.projectId, date) ? 'new' : 'unassigned';
+      kind = assigned(row.projectId, date) || ownerAll ? 'new' : 'unassigned';
     else if (list.length > 1) kind = 'multi';
     else if (editableDraft(list[0]!)) kind = 'draft';
     else if (String(list[0]!.approval_state) === 'needs_changes') kind = 'fix';
@@ -331,6 +344,7 @@
       detailMinutes,
       detailChanged,
       incomplete: editable && key in detailEdits && detailIncomplete(detail),
+      outside: editable && !assigned(row.projectId, date),
     };
   };
 
@@ -573,14 +587,38 @@
   type SheetResult = {
     actionName?: string;
     success?: boolean;
+    code?: string;
     messageKey?: string;
     message?: string;
     cell?: { projectId: string; workDate: string; category: string };
+    ownerAssignment?: {
+      projectId: string;
+      workerId: string;
+      date: string;
+      projectLabel: string;
+      personName: string;
+      projectOpen: boolean;
+    };
   };
   const result = $derived($page.form as SheetResult | null);
   const problem = $derived(
     result?.actionName === 'saveTimeWeek' && result.success === false ? result : null,
   );
+  /** Owner: the day is outside the assignment; offer the one-step extension. */
+  const ownerExtension = $derived(
+    ownerAll && problem?.code === 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE' && problem.ownerAssignment
+      ? problem.ownerAssignment
+      : null,
+  );
+  let ensureAssignment = $state(false);
+  /** The intent of the save that stopped on the extension question (resent as is). */
+  let extensionIntent = $state<Intent>('save');
+  const extendAndSave = async () => {
+    ensureAssignment = true;
+    intent = extensionIntent;
+    await tick();
+    sheetForm?.requestSubmit();
+  };
   const problemKey = $derived(
     problem?.cell ? `${problem.cell.projectId}|${problem.cell.category}|${problem.cell.workDate}` : '',
   );
@@ -592,6 +630,7 @@
 
   const submitSheet: SubmitFunction = () => {
     busy = intent;
+    const sentIntent = intent;
     const deleting = deletingDay;
     pendingDone = deleting
       ? { kind: 'deleted', minutes: dayCell?.originalMinutes ?? 0, day: selectedDay }
@@ -623,6 +662,8 @@
       }
       await update({ reset: false, invalidateAll: true });
       dayDone = outcome.type === 'success' ? pendingDone : null;
+      if (outcome.type === 'failure') extensionIntent = sentIntent;
+      ensureAssignment = false;
       intent = 'save';
     };
   };
@@ -695,9 +736,9 @@
       sheetMessage = text && text !== failure?.messageKey ? text : t('sheetRemoveFailed');
     };
   };
-  /** Owner logging for another person: "Save & approve" (same audited approval path). */
+  /** Owner (any person, himself included): "Save & approve" (same audited approval path). */
   const forOther = $derived(delegating && workerId !== data.user.id);
-  const canApproveNow = $derived(forOther && data.user.role === 'owner_admin' && canSubmit);
+  const canApproveNow = $derived(data.user.role === 'owner_admin' && canSubmit);
 
   // ---- Capture modes: "One day" (fast) and "Whole week" (grid) ----
   const mode = $derived<'day' | 'week'>(
@@ -721,7 +762,12 @@
     return date.toISOString().slice(0, 10);
   };
   const dayProjects = $derived(
-    projects.filter((project) => assigned(String(project.id), selectedDay)),
+    ownerAll
+      ? [
+          ...projects.filter((project) => assigned(String(project.id), selectedDay)),
+          ...openProjects.filter((project) => !assigned(String(project.id), selectedDay)),
+        ]
+      : projects.filter((project) => assigned(String(project.id), selectedDay)),
   );
   let dayProjectChoice = $state('');
   let dayCategory = $state<string>('regular');
@@ -996,6 +1042,7 @@
     <input
       class="hours-input"
       class:is-changed={cell.changed}
+      class:is-outside={cell.outside}
       class:is-invalid={cell.minutes === undefined || cell.incomplete || problemKey === cell.key || dayOver(index)}
       data-status={cell.kind === 'new' ? 'empty' : cell.status}
       type="text"
@@ -1007,7 +1054,7 @@
       aria-label={label}
       aria-invalid={cell.minutes === undefined || problemKey === cell.key || dayOver(index)}
       aria-describedby={cell.minutes === undefined || cell.incomplete ? `${cell.key}-error` : undefined}
-      title={typeof cell.detailMinutes === 'number' ? t('detailFromTimes') : minutesHint(cell.minutes)}
+      title={cell.outside ? t('outsideAssignment') : typeof cell.detailMinutes === 'number' ? t('detailFromTimes') : minutesHint(cell.minutes)}
       value={cell.value}
       oninput={(event) => setCell(cell.key, event.currentTarget.value)}
       onblur={() => normalizeCell(cell.key)}
@@ -1276,7 +1323,27 @@
     </div>
   {/if}
 
-  {#if problem}
+  {#if problem && ownerExtension}
+    <div class="sheet-problem owner-extend" role="alert" data-testid="time-owner-extend">
+      <strong
+        >{t('ownerExtendTitle', {
+          name: ownerExtension.personName || workerName(ownerExtension.workerId) || t('myself'),
+          project: ownerExtension.projectLabel || projectLabel(ownerExtension.projectId),
+          day: dayName(ownerExtension.date, 'long'),
+        })}</strong
+      >
+      <p>{t('ownerExtendHelp')}</p>
+      {#if ownerExtension.projectOpen}
+        <button
+          type="button"
+          class="primary"
+          disabled={busy !== ''}
+          onclick={extendAndSave}
+          data-testid="time-owner-extend-save">{t('ownerExtendSave')}</button
+        >
+      {/if}
+    </div>
+  {:else if problem}
     <div class="sheet-problem" role="alert" data-testid="time-week-problem">
       {#if problem.cell}
         <strong
@@ -1290,7 +1357,7 @@
     </div>
   {/if}
 
-  {#if (mode === 'week' ? rows.length : dayProjects.length + dayEntries.length) === 0}
+  {#if (mode === 'week' ? rows.length : dayProjects.length + dayEntries.length) === 0 && !(ownerAll && openProjects.length)}
     <p class="sheet-empty" data-testid="time-no-projects">
       {delegating && !workers.length
         ? t('noWorkers')
@@ -1312,6 +1379,7 @@
       <input type="hidden" name="expected" value={JSON.stringify(expectedDrafts)} />
       <input type="hidden" name="intent" value={intent} />
       <input type="hidden" name="reason" value={reason} />
+      <input type="hidden" name="ensureAssignment" value={ensureAssignment ? '1' : ''} />
 
       {#if mode === 'day'}
         <div class="day-form" data-testid="time-day-form">
@@ -1627,14 +1695,14 @@
       </ol>
 
       <div class="sheet-tools">
-        {#if !isAuditor && rowProjects.length}
+        {#if !isAuditor && addRowProjects.length}
           {#if addingRow}
             <fieldset class="add-row">
               <legend>{t('addRowTitle')}</legend>
               <label
                 >{t('project')}
                 <select bind:value={newRowProject}>
-                  {#each rowProjects as project (project.id)}
+                  {#each addRowProjects as project (project.id)}
                     <option value={String(project.id)}>{projectLabel(String(project.id))}</option>
                   {/each}
                 </select>
@@ -1663,7 +1731,7 @@
               type="button"
               class="link"
               onclick={() => {
-                newRowProject = String(rowProjects[0]?.id ?? '');
+                newRowProject = String(addRowProjects[0]?.id ?? '');
                 newRowDay = days.includes(projectToday) ? projectToday : (days[0] ?? '');
                 addingRow = true;
               }}>+ {t('addRow')}</button
@@ -2382,6 +2450,15 @@
   .time-week .hours-input.is-changed {
     border-color: #1f6feb;
     background: #f3f8ff;
+  }
+  /* Owner: a day outside the person's assignment (saved with "Extend/create the assignment"). */
+  .time-week .hours-input.is-outside {
+    border-style: dashed;
+    border-color: #8a6d00;
+  }
+  .time-week .owner-extend button {
+    margin-top: 0.5rem;
+    min-height: 44px;
   }
   .time-week .hours-input.is-invalid {
     border: 2px solid var(--ja-danger, #c62828);

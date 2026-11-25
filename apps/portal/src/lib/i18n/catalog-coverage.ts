@@ -3380,6 +3380,8 @@ export const PORTAL_ACTION_KEYS = [
   'problem.time.sheetDuplicate',
   'problem.time.cellDetailInvalid',
   'problem.time.saveApproveOwnerOnly',
+  'problem.time.ownerAssignmentExtension',
+  'problem.expense.ownerAssignmentExtension',
   'problem.time.sentNotApproved',
   'problem.time.batchOwnerRequired',
   'problem.time.linkedExpenseMealsOnly',

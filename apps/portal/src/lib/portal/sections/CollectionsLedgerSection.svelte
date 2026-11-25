@@ -645,12 +645,13 @@
 
   const periodStart = $derived(exportPeriod?.periodStart ?? '');
   const periodEnd = $derived(exportPeriod?.periodEnd ?? '');
+  // D8: the auditor may export the ledger read-only (the CSV/XLSX endpoints already allow it).
+  const exportRoles = ['owner_admin', 'finance_admin', 'auditor_read_only'];
   const canExport = $derived(
-    Boolean(periodStart && periodEnd) &&
-      ['owner_admin', 'finance_admin'].includes(String(data.user.role)),
+    Boolean(periodStart && periodEnd) && exportRoles.includes(String(data.user.role)),
   );
   const exportUnavailableWarning = $derived.by((): ProblemData | null => {
-    if (canExport || !['owner_admin', 'finance_admin'].includes(String(data.user.role)))
+    if (canExport || !exportRoles.includes(String(data.user.role)))
       return null;
     const warning: { code: string; messageKey: ProblemData['messageKey']; remedyId: string } =
       rows.length === 0

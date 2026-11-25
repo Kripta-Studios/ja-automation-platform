@@ -103,6 +103,8 @@ export function workflowOwnersForProjects(
   sqlite: DatabaseSync,
   projects: readonly WorkflowProject[],
   instant: Date,
+  /** D5 (round 2): a project manager does not hand follow-ups to supplier staff. */
+  options: { excludeSupplierStaff?: boolean } = {},
 ): WorkflowOwner[] {
   if (!projects.length) return [];
   const days = projectDays(sqlite, [...new Set(projects.map((project) => project.id))], instant);
@@ -115,7 +117,11 @@ export function workflowOwnersForProjects(
          JOIN project p ON p.id=day.project_id
          JOIN project_member pm ON pm.project_id=p.id
          JOIN user u ON u.id=pm.user_id
-        WHERE u.status='active' AND pm.status='active'
+        WHERE u.status='active' AND pm.status='active'${
+          options.excludeSupplierStaff
+            ? ' AND NOT EXISTS (SELECT 1 FROM supplier_user_profile sup WHERE sup.user_id=u.id)'
+            : ''
+        }
           AND pm.starts_on<=day.local_today
           AND (pm.ends_on IS NULL OR pm.ends_on>=day.local_today)
         ORDER BY u.name,u.id,p.id`,

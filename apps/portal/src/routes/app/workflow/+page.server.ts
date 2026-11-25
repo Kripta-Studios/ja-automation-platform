@@ -323,7 +323,9 @@ export const load: PageServerLoad = ({ locals, url }) => {
         projectNumber: projectNames[item.projectId]?.number ?? '',
         requestKey: randomUUID(),
       }));
-      const owners = workflowOwnersForProjects(context.sqlite, projects, instant);
+      const owners = workflowOwnersForProjects(context.sqlite, projects, instant, {
+        excludeSupplierStaff: role === 'project_manager',
+      });
       return {
         mode: 'manager' as const,
         role,

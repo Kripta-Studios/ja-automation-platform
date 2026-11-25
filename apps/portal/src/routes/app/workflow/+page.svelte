@@ -15,12 +15,26 @@
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { workflowActionCopy, workflowStatus, workflowText } from '$lib/portal/workflow/copy';
   import type { ActionData, PageData } from './$types';
+  import { personDisplayName } from '$lib/portal/display-name';
 
   let { data, form } = $props<{ data: PageData; form: ActionData }>();
   const locale = $derived(
     normalizePortalLocale($page.url.searchParams.get('lang') ?? $page.data.locale),
   );
   const t = (key: string) => workflowText(locale, key);
+  /** T41/T78 (round 2): dates in the reader's language and display names, never ISO or logins. */
+  const day = (value: unknown): string => {
+    const text = String(value ?? '');
+    return /^\d{4}-\d{2}-\d{2}/u.test(text)
+      ? new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(`${text.slice(0, 10)}T00:00:00Z`))
+      : text;
+  };
+  const person = (value: unknown): string => personDisplayName(String(value ?? '')) || String(value ?? '');
   const actionMessage = $derived(workflowActionCopy(locale, form));
   const actionSucceeded = $derived((form as { success?: boolean } | null)?.success === true);
   const approvalGroups = $derived(groupApprovals(data.mode === 'manager' ? data.approvals : []));
@@ -334,7 +348,7 @@
                       : workflowStatus(locale, item.status)}
                   />
                 </div>
-                <p class="record-meta">{item.projectNumber} · {item.projectName} · {item.date}</p>
+                <p class="record-meta">{item.projectNumber} · {item.projectName} · {day(item.date)}</p>
                 {#if item.receiptNeeded}<p class="subtle">{t('Receipt needed')}</p>{/if}
                 <a class="text-link" href={item.href}>{t('Open record')}</a>
               </li>
@@ -366,7 +380,7 @@
                   />
                 </div>
                 {#if item.description}<p>{item.description}</p>{/if}
-                <p class="record-meta">{t('Due date')}: {item.dueOn ?? t('Not available')}</p>
+                <p class="record-meta">{t('Due date')}: {item.dueOn ? day(item.dueOn) : t('Not available')}</p>
                 {#if item.evidenceRefs.length}
                   <ul class="evidence-list">
                     {#each item.evidenceRefs as evidence}
@@ -503,7 +517,7 @@
                     <div class="record-topline">
                       <div>
                         <h4>{labelType(item.type)}<span class="sr-only"> — {item.id}</span></h4>
-                        <p class="record-meta">{item.workerName} · {item.date}</p>
+                        <p class="record-meta">{person(item.workerName)} · {day(item.date)}</p>
                       </div>
                       <StatusBadge
                         variant={statusVariant(item.status)}
@@ -668,7 +682,7 @@
               <p class="record-meta">
                 {t('Owner')}: {ownerChoices(item.projectId).find(
                   (owner) => owner.id === item.ownerId,
-                )?.name ?? t('Unknown owner')} · {t('Due date')}: {item.dueOn ?? t('Not available')}
+                )?.name ?? t('Unknown owner')} · {t('Due date')}: {item.dueOn ? day(item.dueOn) : t('Not available')}
               </p>
               {#if item.evidenceRefs.length}<ul class="evidence-list">
                   {#each item.evidenceRefs as evidence}<li>
@@ -876,7 +890,7 @@
                         />
                       </div>
                       <p class="record-meta">
-                        {t('Source owner')}: {source.workerName} · {t('Source date')}: {source.date} ·
+                        {t('Source owner')}: {person(source.workerName)} · {t('Source date')}: {day(source.date)} ·
                         {t('Source status')}: {workflowStatus(locale, source.approvalState)}
                       </p>
                       <p class="record-meta">
@@ -1218,8 +1232,9 @@
                 <p class="record-meta">
                   {t('Owner')}: {ownerChoices(item.projectId).find(
                     (owner) => owner.id === item.ownerId,
-                  )?.name ?? t('Unknown owner')} · {t('Due date')}: {item.dueOn ??
-                    t('Not available')}
+                  )?.name ?? t('Unknown owner')} · {t('Due date')}: {item.dueOn
+                    ? day(item.dueOn)
+                    : t('Not available')}
                 </p>
                 <form method="POST" action="?/updateWorkItem" class="item-form">
                   <input type="hidden" name="id" value={item.id} /><input

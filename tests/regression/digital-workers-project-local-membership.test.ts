@@ -135,4 +135,25 @@ describe('digital workers project-local membership dates', () => {
       'member-only',
     ]);
   });
+
+  it('offers no supplier staff as follow-up owner to a project manager (D5, round 2)', () => {
+    const instant = new Date('2026-10-15T12:00:00.000Z');
+    sqlite.exec('CREATE TABLE supplier_user_profile(user_id TEXT, supplier_id TEXT, profile TEXT)');
+    addProject('managed', 'UTC');
+    addUser('manager', 'Marta Manager', 'project_manager');
+    addUser('tech', 'External Tech', 'worker');
+    addMember('managed', 'manager', '2026-10-01', null, true);
+    addMember('managed', 'tech', '2026-10-01', null);
+    sqlite.prepare("INSERT INTO supplier_user_profile VALUES('tech','s1','external_technician')").run();
+    const projects = accessibleWorkflowProjects(sqlite, 'manager', instant);
+    expect(workflowOwnersForProjects(sqlite, projects, instant).map((row) => row.id)).toEqual([
+      'tech',
+      'manager',
+    ]);
+    expect(
+      workflowOwnersForProjects(sqlite, projects, instant, { excludeSupplierStaff: true }).map(
+        (row) => row.id,
+      ),
+    ).toEqual(['manager']);
+  });
 });

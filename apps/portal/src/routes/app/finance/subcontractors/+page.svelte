@@ -53,7 +53,6 @@
 <svelte:head><title>{t('title')}</title></svelte:head>
 
 <main class="sub" data-subcontractor-settlement>
-  <p><a href={`${base}/app/finance?view=overview`}>← {t('back')}</a></p>
   <h1>{t('title')}</h1>
   <p class="sub__intro">{t('intro')}</p>
 
@@ -88,7 +87,7 @@
       <button type="submit" class="sub__btn sub__btn--ghost">{t('apply')}</button>
     </form>
     <p class="sub__scope" data-settlement-scope>
-      {t('scope', { week: data.week.week, count: data.overview.total })}
+      {t(data.overview.total === 1 ? 'scopeOne' : 'scope', { week: data.week.week, count: data.overview.total })}
       {#if data.overview.total > data.overview.rows.length}· {t('showing', { shown: data.overview.rows.length, total: data.overview.total })}{/if}
     </p>
     {#if data.overview.rows.length === 0}
@@ -104,7 +103,7 @@
               </span>
               <span class="sub__money">
                 {#each row.totals as total (total.currency)}<strong>{fmt(total.minor, total.currency)}</strong>{/each}
-                <small>{row.status === 'draft' ? t('estimate') : t('owed')}</small>
+                {#if row.payable}<small>{row.status === 'draft' ? t('estimate') : t('owed')}</small>{/if}
               </span>
               {#if row.payable}
                 <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}>{t(row.status)}</span>

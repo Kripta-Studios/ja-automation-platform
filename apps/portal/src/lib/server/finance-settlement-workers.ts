@@ -21,6 +21,10 @@ export function listProjectSettlementWorkers(
          JOIN user u ON u.id=pm.user_id
         WHERE pm.project_id=? AND pm.status='active'
           AND u.status='active' AND u.role IN ('worker','project_manager')
+          -- D3 (round 2): a project manager or supplier coordinator assignment is not paid
+          -- work, and supplier staff are paid by their supplier, never by J&A compensation.
+          AND COALESCE(pm.assignment_role,'worker') NOT IN ('project_manager','supplier_coordinator')
+          AND NOT EXISTS (SELECT 1 FROM supplier_user_profile sp WHERE sp.user_id=u.id)
         ORDER BY u.name,u.id,pm.starts_on DESC`,
     )
     .all(projectId) as AssignmentRow[];

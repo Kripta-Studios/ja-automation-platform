@@ -3,6 +3,7 @@ import type { Principal } from '@ja/domain';
 import type { V3Repository } from '@ja/database';
 import { totalsByCurrency } from '@ja/billing-engine';
 import { foldSearchText } from '$lib/portal/client-directory';
+import { personDisplayName } from '$lib/portal/display-name';
 
 /**
  * Money → Subcontractors: weekly settlement of approved hours × agreed pay
@@ -62,6 +63,7 @@ export function parsePayeeKey(value: string | null): PayeeKey | null {
 type WorkerHours = {
   worker_id: string;
   worker_name: string;
+  worker_email?: string | null;
   supplier_id: string | null;
   supplier_name: string | null;
   minutes: number;
@@ -72,7 +74,7 @@ type WorkerHours = {
 function workersWithApprovedTime(sqlite: DatabaseSync, start: string, end: string): WorkerHours[] {
   return sqlite
     .prepare(
-      `SELECT t.worker_id,u.name worker_name,profile.supplier_id,s.name supplier_name,
+      `SELECT t.worker_id,u.name worker_name,u.email worker_email,profile.supplier_id,s.name supplier_name,
               SUM(t.minutes) minutes,COUNT(*) entries
          FROM time_entry t
          JOIN user u ON u.id=t.worker_id
@@ -165,11 +167,15 @@ function groupPayees(rows: readonly WorkerHours[]): PayeeSummary[] {
       ({
         key,
         kind: row.supplier_id ? 'supplier' : 'person',
-        name: row.supplier_id ? (row.supplier_name ?? '—') : row.worker_name,
+        name: row.supplier_id ? (row.supplier_name ?? '—') : personDisplayName(row.worker_name, row.worker_email) || row.worker_name,
         workers: [],
         minutes: 0,
       } satisfies PayeeSummary);
-    payee.workers.push({ id: row.worker_id, name: row.worker_name, minutes: Number(row.minutes) });
+    payee.workers.push({
+      id: row.worker_id,
+      name: personDisplayName(row.worker_name, row.worker_email) || row.worker_name,
+      minutes: Number(row.minutes),
+    });
     payee.minutes += Number(row.minutes);
     map.set(key, payee);
   }
@@ -293,16 +299,25 @@ export function settlementDetail(
     const name =
       kind === 'supplier'
         ? (context.sqlite.prepare('SELECT name FROM supplier WHERE id=?').get(id) as { name: string } | undefined)?.name
-        : (context.sqlite.prepare("SELECT name FROM user WHERE id=? AND role IN ('worker','project_manager')").get(id) as { name: string } | undefined)?.name;
+        : (() => {
+            const person = context.sqlite
+              .prepare("SELECT name,email FROM user WHERE id=? AND role IN ('worker','project_manager')")
+              .get(id) as { name: string; email: string | null } | undefined;
+            return person ? personDisplayName(person.name, person.email) || person.name : undefined;
+          })();
     if (!name) return null;
     payee = { key: input.payee, kind, name, workers: [], minutes: 0 };
   }
   const ids = payee.workers.map((worker) => worker.id);
-  const entries = context.v3.subcontractorSettlementPreview(context.principal, {
-    workerIds: ids,
-    periodStart: input.start,
-    periodEnd: input.end,
-  });
+  const workerNames = new Map(payee.workers.map((worker) => [worker.id, worker.name]));
+  const entries = context.v3
+    .subcontractorSettlementPreview(context.principal, {
+      workerIds: ids,
+      periodStart: input.start,
+      periodEnd: input.end,
+    })
+    // Display names on screen and in exports, never the login.
+    .map((entry) => ({ ...entry, workerName: workerNames.get(entry.workerId) ?? entry.workerName }));
   const settlements = settlementsFor(context.sqlite, ids, input.start, input.end);
   const workers = payee.workers.map((worker) => {
     const own = entries.filter((entry) => entry.workerId === worker.id);

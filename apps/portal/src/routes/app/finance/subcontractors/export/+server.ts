@@ -38,21 +38,36 @@ export const GET: RequestHandler = ({ locals, url }) => {
       'x-content-type-options': 'nosniff',
     };
     if (format === 'csv') {
+      // Round 2 (T49): readable, localized headers and words; display names, no raw codes.
+      const basis = (value: string | null | undefined) =>
+        value === 'hourly' ? t('perHour') : value === 'daily' ? t('perDay') : (value ?? '');
+      const columns = {
+        week: t('week'),
+        subcontractor: t('supplier'),
+        worker: t('person'),
+        date: t('day'),
+        project: t('project'),
+        hours: t('hoursCol'),
+        currency: 'Currency',
+        rate: t('rate'),
+        basis: `${t('rate')} (${t('perHour')} / ${t('perDay')})`,
+        amount: t('amount'),
+        status: t('status'),
+      };
       const rows = detail.entries.map((entry) => ({
-        week: `${week.year}-W${String(week.week).padStart(2, '0')}`,
-        subcontractor: detail.payee.name,
-        worker: entry.workerName,
-        date: entry.workDate,
-        project: `${entry.projectNumber} ${entry.projectName}`,
-        hours: decimalHoursFromMinutes(entry.minutes),
-        currency: entry.currency,
-        rate: entry.rateMinor === null ? '' : minorToInputText(entry.rateMinor, entry.currency),
-        rate_basis: entry.rateBasis ?? '',
-        amount: entry.amountMinor === null ? '' : minorToInputText(entry.amountMinor, entry.currency),
-        amount_minor: entry.amountMinor ?? '',
-        status: detail.status,
+        [columns.week]: `${week.year}-W${String(week.week).padStart(2, '0')}`,
+        [columns.subcontractor]: detail.payee.name,
+        [columns.worker]: entry.workerName,
+        [columns.date]: entry.workDate,
+        [columns.project]: `${entry.projectNumber} ${entry.projectName}`,
+        [columns.hours]: decimalHoursFromMinutes(entry.minutes),
+        [columns.currency]: entry.currency,
+        [columns.rate]: entry.rateMinor === null ? '' : minorToInputText(entry.rateMinor, entry.currency),
+        [columns.basis]: basis(entry.rateBasis),
+        [columns.amount]: entry.amountMinor === null ? '' : minorToInputText(entry.amountMinor, entry.currency),
+        [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
       }));
-      return new Response(`\uFEFF${toCsv(rows, undefined, { numericColumns: ['hours', 'rate', 'amount', 'amount_minor'] })}`, {
+      return new Response(`\uFEFF${toCsv(rows, undefined, { numericColumns: [columns.hours, columns.rate, columns.amount] })}`, {
         headers: {
           ...headers,
           'content-type': 'text/csv; charset=utf-8',

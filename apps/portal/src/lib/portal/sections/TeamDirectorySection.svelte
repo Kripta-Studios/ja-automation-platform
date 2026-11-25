@@ -1,6 +1,7 @@
 <script lang="ts">
   import { useAssistantPaneRequest } from '../assistant/surface-request.svelte';
   import { confirmDirtyForms, dirtyFormGuard } from '../dirty-form-guard';
+  import { confirmBeforeSubmit } from '../ui/confirm-submit';
   import { beforeNavigate, replaceState } from '$app/navigation';
   import { useViewPreferences } from '../ui/view-preferences.svelte';
   import { formatDecimalHours } from './time-entry-actions';
@@ -3109,14 +3110,16 @@
                         action="?view=team&directory=mailboxes&/reactivateMailboxUser"
                         class="team-directory__protected-form team-directory__reactivate"
                         data-mailbox-action="reactivateMailboxUser"
-                        use:enhance={enhanceMailboxForm}
+                        use:enhance={(input) =>
+                          confirmBeforeSubmit(
+                            () =>
+                              mc('reactivateConfirm', {
+                                email,
+                                role: roleLabel(String(input.formData.get('role') ?? 'worker')),
+                              }),
+                            enhanceMailboxForm,
+                          )(input)}
                         use:formValidation
-                        onsubmit={(event) => {
-                          const form = event.currentTarget as HTMLFormElement;
-                          const chosen = String(new FormData(form).get('role') ?? 'worker');
-                          if (!confirm(mc('reactivateConfirm', { email, role: roleLabel(chosen) })))
-                            event.preventDefault();
-                        }}
                       >
                         <h3>{mc('reactivateTitle')}</h3>
                         <p class="team-directory__portal-status" data-portal-status>
@@ -3219,10 +3222,10 @@
                             method="POST"
                             action="?view=team&directory=mailboxes&/setMailboxSignIn"
                             data-mailbox-action="setMailboxSignIn"
-                            use:enhance={enhanceMailboxForm}
-                            onsubmit={(event) => {
-                              if (!confirm(mc('unblockConfirm', { email }))) event.preventDefault();
-                            }}
+                            use:enhance={confirmBeforeSubmit(
+                              () => mc('unblockConfirm', { email }),
+                              enhanceMailboxForm,
+                            )}
                           >
                             <input type="hidden" name="stalwartAccountId" value={accountId} /><input
                               type="hidden"
@@ -3246,10 +3249,10 @@
                             method="POST"
                             action="?view=team&directory=mailboxes&/setMailboxSignIn"
                             data-mailbox-action="setMailboxSignIn"
-                            use:enhance={enhanceMailboxForm}
-                            onsubmit={(event) => {
-                              if (!confirm(mc('blockConfirm', { email }))) event.preventDefault();
-                            }}
+                            use:enhance={confirmBeforeSubmit(
+                              () => mc('blockConfirm', { email }),
+                              enhanceMailboxForm,
+                            )}
                           >
                             <input type="hidden" name="stalwartAccountId" value={accountId} /><input
                               type="hidden"

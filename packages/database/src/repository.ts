@@ -2491,8 +2491,8 @@ export class PortalRepository {
    * time and expenses) belongs to the Owner and the project's manager. Finance
    * reviews approved work for billing and pay, never the operational step. The
    * project-level check (PM of this project, can_review) stays in
-   * assertOperationalReviewer. The only Finance exception is the audited
-   * "Approve & include" of invoice preparation (approveSourceForInvoice).
+   * assertOperationalReviewer. Invoice preparation ("Approve & include",
+   * approveSourceForInvoice) follows the same rule for Finance.
    */
   private assertOperationalApprovalRole(principal: Principal): void {
     this.assertActive(principal);
@@ -2931,8 +2931,10 @@ export class PortalRepository {
    * their assignment to the project covered, after the assignment ended (an
    * external technician whose assignment closed, a PM who also worked as a
    * member of a project he does not manage). Read only: every write keeps the
-   * current-assignment checks. Everything else that closes access still does:
-   * a removed (inactive) assignment, an inactive account, a stale session, a
+   * current-assignment checks. "End assignment" stores status='inactive' with
+   * ends_on, so such an ended row still covers the dates up to ends_on (an
+   * inactive row without an end date covers nothing). Everything else that
+   * closes access still does: an inactive account, a stale session, a
    * closed/archived project (a closing one stays readable: its pay and
    * invoices are pending) or an invalid project timezone, and for a supplier
    * coordinator a live supplier grant.
@@ -2955,7 +2957,8 @@ export class PortalRepository {
         `SELECT p.timezone FROM project_member pm
            JOIN user u ON u.id=pm.user_id
            JOIN project p ON p.id=pm.project_id
-          WHERE pm.project_id=? AND pm.user_id=? AND pm.status='active'
+          WHERE pm.project_id=? AND pm.user_id=?
+            AND (pm.status='active' OR (pm.status='inactive' AND pm.ends_on IS NOT NULL))
             AND u.status='active' AND u.role=?
             AND p.status IN ('active','planned','paused','closing')
             AND pm.starts_on<=? AND (pm.ends_on IS NULL OR pm.ends_on>=?)
@@ -7659,8 +7662,10 @@ export class PortalRepository {
    * "Approve & include" for one invoice source, from whatever pre-approval state the worker
    * left it in: draft → submitted (on the worker's behalf), reviewer-returned → submitted
    * (accepted as recorded), submitted → approved, then the Finance acceptance. Owner and
-   * Finance only (owner decisions 2026-11-17: the Owner may approve his own records; Finance
-   * may approve on behalf of workers). Every step is the existing audited lifecycle command.
+   * Finance only. D6 (2026-11-23): the operational steps (submit on behalf, accept returned,
+   * approve submitted) are the owner's; Finance only takes the finance step on records the
+   * owner or the project manager already approved. Every step is the existing audited
+   * lifecycle command.
    */
   private approveSourceForInvoice(principal: Principal, source: InvoiceCompositionSourceRef): void {
     if (!['owner_admin', 'finance_admin'].includes(principal.role))
@@ -7674,6 +7679,8 @@ export class PortalRepository {
         | undefined;
     let row = read();
     if (!row) throw new ValidationError('Invoice source not found');
+    if (principal.role === 'finance_admin' && row.approval_state !== 'approved')
+      throw new AccessDeniedError('Owner or project manager approval required');
     if (row.approval_state === 'draft') {
       if (source.type === 'time')
         this.submitTime(principal, source.id, row.version, { onBehalfForInvoice: true });
@@ -7686,8 +7693,7 @@ export class PortalRepository {
       row = read()!;
     }
     if (row.approval_state === 'submitted') {
-      // Invoice preparation keeps its audited Finance "Approve & include" (owner
-      // decision 2026-11-17); the public operational path is Owner/PM only (D6).
+      // Owner only (Finance was refused above, D6).
       if (source.type === 'time') this.decideOperationalTime(principal, source.id, 'approved');
       else this.decideOperationalExpense(principal, source.id, 'approved');
       row = read()!;
@@ -7856,6 +7862,9 @@ export class PortalRepository {
           skip('not_submitted');
         else if (!['draft', 'needs_changes', 'submitted', 'approved'].includes(state)) skip('not_approvable');
         else if (state === 'approved' && row.finance_approved_at) skip('already_approved');
+        else if (principal.role === 'finance_admin' && state !== 'approved')
+          // D6: the owner or the project manager approves what the worker sent.
+          skip('owner_pm_approval_required');
         else if (principal.role === 'finance_admin' && row.worker_id === principal.userId)
           skip('own_record');
         else if (principal.role === 'finance_admin' && time && isSupplierTimeEntry(this.sqlite, ref.id))
@@ -8200,6 +8209,56 @@ export class PortalRepository {
     return this.withInheritedInvoiceOverrides(invoiceId, () =>
       this.invoiceCompositionService().refresh(principal, invoiceId, expectedVersion),
     );
+  }
+
+  /**
+   * Round 2: a draft made before its billing data or settings changed (rates, approved
+   * hours, the overtime rule) is "stale" and cannot be issued as is. This rebuilds it from
+   * the current source records with the same engine that made it: a selected draft keeps
+   * its selection and id; a period draft is rebuilt for its billing rule and dates (the
+   * engine may give the rebuilt draft a new id, returned here). Drafts only: approved and
+   * issued invoices keep their immutable lifecycles.
+   */
+  refreshInvoiceDraft(
+    principal: Principal,
+    invoiceId: string,
+    expectedVersion: number,
+  ): { id: string } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    const invoice = this.sqlite
+      .prepare(
+        'SELECT id,state,stream_type,billing_rule_id,period_start,period_end,source_selection_json,version FROM invoice WHERE id=?',
+      )
+      .get(invoiceId) as
+      | {
+          id: string;
+          state: string;
+          stream_type: string;
+          billing_rule_id: string | null;
+          period_start: string | null;
+          period_end: string | null;
+          source_selection_json: string | null;
+          version: number;
+        }
+      | undefined;
+    if (!invoice) throw new ValidationError('Invoice not found');
+    if (invoice.state !== 'draft' || invoice.stream_type === 'adjustment')
+      throw new ConflictError('Only an unissued draft can be refreshed');
+    if (Number(invoice.version) !== Number(expectedVersion))
+      throw new ConflictError('Invoice changed. Reload before refreshing.');
+    if (typeof invoice.source_selection_json === 'string')
+      return { id: this.refreshSelectedInvoiceDraft(principal, invoiceId, expectedVersion).id };
+    if (!invoice.billing_rule_id || !invoice.period_start || !invoice.period_end)
+      throw new ConflictError('This draft has no billing rule or dates to rebuild from');
+    const result = this.createInvoiceDraftCore(
+      invoice.billing_rule_id,
+      invoice.period_start,
+      invoice.period_end,
+      principal,
+    );
+    return { id: result.id };
   }
 
   createInvoiceDraft(
@@ -10258,6 +10317,20 @@ export class PortalRepository {
       this.issueInvoice(principal, invoiceId);
       return { ok: true };
     } catch (error) {
+      if (
+        error instanceof ReadinessError &&
+        error.reasons.some((reason) => reason.code === 'stale_billing_configuration')
+      ) {
+        // Round 2: say WHY the draft is stale and what a refresh would still need, by
+        // rebuilding it inside this (rolled back) savepoint. The stale code stays first:
+        // the page offers "Refresh draft" for it.
+        const refreshReasons = this.staleDraftRefreshReasons(principal, invoiceId);
+        return {
+          ok: false,
+          reasons: [{ code: 'stale_billing_configuration' }, ...refreshReasons],
+          message: error.message,
+        };
+      }
       if (error instanceof ReadinessError)
         return { ok: false, reasons: error.reasons, message: error.message };
       if (error instanceof AccessDeniedError) throw error;
@@ -10269,6 +10342,33 @@ export class PortalRepository {
     } finally {
       this.sqlite.exec('ROLLBACK TO invoice_issue_dry_run');
       this.sqlite.exec('RELEASE invoice_issue_dry_run');
+    }
+  }
+
+  /** What a rebuilt draft would still be blocked by (always rolled back). */
+  private staleDraftRefreshReasons(principal: Principal, invoiceId: string): ReadinessReason[] {
+    this.sqlite.exec('SAVEPOINT invoice_stale_refresh_probe');
+    try {
+      const version = Number(
+        this.sqlite.prepare('SELECT version FROM invoice WHERE id=?').get(invoiceId)?.version ?? 0,
+      );
+      const rebuilt = this.refreshInvoiceDraft(principal, invoiceId, version);
+      try {
+        this.approveInvoiceDraft(principal, rebuilt.id);
+        this.issueInvoice(principal, rebuilt.id);
+        return [];
+      } catch (error) {
+        if (error instanceof ReadinessError)
+          return error.reasons.filter((reason) => reason.code !== 'stale_billing_configuration');
+        return [];
+      }
+    } catch (error) {
+      if (error instanceof ReadinessError)
+        return error.reasons.filter((reason) => reason.code !== 'stale_billing_configuration');
+      return [];
+    } finally {
+      this.sqlite.exec('ROLLBACK TO invoice_stale_refresh_probe');
+      this.sqlite.exec('RELEASE invoice_stale_refresh_probe');
     }
   }
 
@@ -11976,11 +12076,11 @@ export class PortalRepository {
       technicalConditions.push('t.author_id=?');
       technicalValues.push(principal.userId);
       dailyConditions.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=d.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=d.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=d.work_date))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=d.project_id AND pm_scope.user_id=? AND (pm_scope.status='active' OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL)) AND pm_scope.starts_on<=d.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=d.work_date))",
       );
       dailyValues.push(principal.userId);
       technicalConditions.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.report_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.report_date))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND (pm_scope.status='active' OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL)) AND pm_scope.starts_on<=t.report_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.report_date))",
       );
       technicalValues.push(principal.userId);
     } else if (principal.role === 'project_manager') {
@@ -12170,6 +12270,56 @@ export class PortalRepository {
       if (row.kind === 'digital_work_followup')
         return digitalWorkNotification(this.sqlite, principal, row, now());
       const view = notificationRepository.notificationView(row.kind, row.subject_id);
+      if (row.kind === 'issuer_payee_changed') {
+        // D1 security notice (owner only): its source is the issuing company, not a
+        // project record, so it never reads as "record no longer available".
+        const entity =
+          principal.role === 'owner_admin' && view.sourceId
+            ? (this.sqlite
+                .prepare('SELECT id,code,legal_name name FROM legal_entity WHERE id=?')
+                .get(view.sourceId) as { id: string; code: string; name: string } | undefined)
+            : undefined;
+        const change = entity
+          ? (this.sqlite
+              .prepare(
+                `SELECT ae.details_json,u.name actor_name FROM audit_event ae
+                   LEFT JOIN user u ON u.id=ae.actor_id
+                  WHERE ae.action='issuer_document_settings.update' AND ae.entity_id LIKE ? ESCAPE '\\'
+                    AND ae.occurred_at<=?
+                  ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 1`,
+              )
+              .get(`${entity.id.replace(/[\\%_]/gu, '\\$&')}:%`, row.created_at) as
+              | { details_json: string | null; actor_name: string | null }
+              | undefined)
+          : undefined;
+        let payeeFields: string[] = [];
+        try {
+          const details = JSON.parse(change?.details_json ?? '{}') as { payeeChanged?: unknown };
+          if (Array.isArray(details.payeeChanged))
+            payeeFields = details.payeeChanged.filter(
+              (field): field is string => typeof field === 'string',
+            );
+        } catch {
+          payeeFields = [];
+        }
+        return {
+          ...row,
+          kind: entity ? row.kind : 'workspace_activity',
+          source_unavailable: !entity,
+          person_name: null,
+          subject_id: entity ? row.subject_id : null,
+          source_id: entity?.id ?? null,
+          target: entity ? view.target : null,
+          title: entity ? view.title : 'J&A Automation notification',
+          actor_name: change?.actor_name ?? null,
+          changed_fields: payeeFields,
+          project_id: null,
+          project_number: null,
+          project_name: null,
+          record_date: entity ? row.created_at.slice(0, 10) : null,
+          record_title: entity ? `${entity.code} · ${entity.name}` : null,
+        };
+      }
       const audit = this.sqlite
         .prepare(
           `SELECT ae.action,ae.details_json,ae.occurred_at,u.name actor_name
@@ -12780,7 +12930,7 @@ export class PortalRepository {
       clauses.push('t.worker_id=?');
       values.push(principal.userId);
       clauses.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=t.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=t.project_id AND pm_scope.user_id=? AND (pm_scope.status='active' OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL)) AND pm_scope.starts_on<=t.work_date AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=t.work_date))",
       );
       values.push(principal.userId);
     } else if (principal.role === 'project_manager') {
@@ -12925,12 +13075,20 @@ export class PortalRepository {
       ...result,
       rows: this.supplierTimeProjection(
         principal,
-        result.rows.filter((row) =>
-          this.hasEffectiveProjectObjectAccess(
-            principal,
-            String(row.project_id),
-            String(row.work_date),
-          ),
+        // T19: own hours stay listed for the days an ended assignment covered.
+        result.rows.filter(
+          (row) =>
+            this.hasEffectiveProjectObjectAccess(
+              principal,
+              String(row.project_id),
+              String(row.work_date),
+            ) ||
+            this.ownRecordAssignmentCovers(
+              principal,
+              String(row.project_id),
+              principal.userId,
+              String(row.work_date),
+            ),
         ),
       ),
     };
@@ -12960,8 +13118,19 @@ export class PortalRepository {
       )
       .all(principal.userId);
     if (this.canSeeFinanceFields(principal)) return rows;
-    return (rows as Array<Record<string, unknown>>).filter((row) =>
-      this.hasEffectiveProjectObjectAccess(principal, String(row.project_id), String(row.spent_on)),
+    return (rows as Array<Record<string, unknown>>).filter(
+      (row) =>
+        this.hasEffectiveProjectObjectAccess(
+          principal,
+          String(row.project_id),
+          String(row.spent_on),
+        ) ||
+        this.ownRecordAssignmentCovers(
+          principal,
+          String(row.project_id),
+          principal.userId,
+          String(row.spent_on),
+        ),
     );
   }
 
@@ -12981,7 +13150,7 @@ export class PortalRepository {
       clauses.push('e.worker_id=?');
       values.push(principal.userId);
       clauses.push(
-        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=e.project_id AND pm_scope.user_id=? AND pm_scope.status='active' AND pm_scope.starts_on<=e.spent_on AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on))",
+        "EXISTS (SELECT 1 FROM project_member pm_scope WHERE pm_scope.project_id=e.project_id AND pm_scope.user_id=? AND (pm_scope.status='active' OR (pm_scope.status='inactive' AND pm_scope.ends_on IS NOT NULL)) AND pm_scope.starts_on<=e.spent_on AND (pm_scope.ends_on IS NULL OR pm_scope.ends_on>=e.spent_on))",
       );
       values.push(principal.userId);
     } else if (principal.role === 'project_manager') {

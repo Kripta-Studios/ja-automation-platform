@@ -61,12 +61,27 @@ describe('own records stay readable after the assignment ends (T19/T41)', () => 
     base.sqlite.prepare("UPDATE project SET status='closed' WHERE id=?").run(base.project.id);
     expect(() => base.repository.timeDetail(worker, time.id)).toThrow(AccessDeniedError);
     base.sqlite.prepare("UPDATE project SET status='active' WHERE id=?").run(base.project.id);
-    // A removed (inactive) assignment grants no history.
+    // Round 2: "End assignment" in the UI stores status='inactive' WITH ends_on.
+    // Own history up to ends_on stays readable on every own list and detail.
     base.sqlite
       .prepare("UPDATE project_member SET status='inactive' WHERE project_id=? AND user_id=?")
       .run(base.project.id, worker.userId);
+    expect(base.repository.timeDetail(worker, time.id)).toMatchObject({ id: time.id });
+    expect(base.repository.reportDetail(worker, report.id)).toMatchObject({ report: { id: report.id } });
+    expect(
+      (base.repository.listTimeForScope(worker) as Array<{ id: string }>).map((row) => row.id),
+    ).toContain(time.id);
+    expect(
+      base.repository.listOwnTimeWeek(worker, '2026-08-17').rows.map((row) => row.id),
+    ).toContain(time.id);
+    expect(() => base.repository.timeDetail(outsider, time.id)).toThrow(AccessDeniedError);
+    // An inactive row without an end date grants no history.
+    base.sqlite
+      .prepare("UPDATE project_member SET ends_on=NULL WHERE project_id=? AND user_id=?")
+      .run(base.project.id, worker.userId);
     expect(() => base.repository.timeDetail(worker, time.id)).toThrow(AccessDeniedError);
     expect(base.repository.listTimeForScope(worker)).toEqual([]);
+    expect(base.repository.listOwnTimeWeek(worker, '2026-08-17').rows).toEqual([]);
   });
 
   it('tells lists whether a project page opens, so My Pay links no 403 page (T41)', () => {

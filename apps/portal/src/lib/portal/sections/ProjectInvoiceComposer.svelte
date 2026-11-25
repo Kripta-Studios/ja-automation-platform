@@ -195,12 +195,14 @@
     !['unlocked', 'locked'].includes(source.billingState);
   const needsApproval = (source: InvoiceCompositionSource) =>
     !source.financeAccepted || source.approvalState !== 'approved';
-  // "Approve & include" (owner decisions 2026-11-17): Owner and Finance approve on the
-  // worker's behalf from any pre-approval state; the server audits every step.
+  // "Approve & include" (owner decisions 2026-11-17): the owner approves on the worker's
+  // behalf from any pre-approval state; the server audits every step. D6: Finance only
+  // takes the finance step on records the owner or the project manager already approved.
   const canApprove = (source: InvoiceCompositionSource) =>
     !reserved(source) &&
-    ['owner_admin', 'finance_admin'].includes(role) &&
-    ['draft', 'needs_changes', 'submitted', 'approved'].includes(source.approvalState) &&
+    (role === 'owner_admin'
+      ? ['draft', 'needs_changes', 'submitted', 'approved'].includes(source.approvalState)
+      : role === 'finance_admin' && source.approvalState === 'approved') &&
     needsApproval(source);
   /** One row per blocker code (never one per record): count, people and hours. */
   function groupedReasons(reasons: readonly Reason[]) {

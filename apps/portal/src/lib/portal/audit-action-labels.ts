@@ -132,7 +132,7 @@ const VERBS: Record<string, Tuple> = {
   add: ['added', 'Alta de', 'Inclusão de'],
   allocate_shared_receipt: ['split across crew', 'Reparto de', 'Rateio de'],
   approve: ['approved', 'Aprobación de', 'Aprovação de'],
-  approve_on_behalf: ['approved on behalf of the client', 'Aprobación en nombre del cliente de', 'Aprovação em nome do cliente de'],
+  approve_on_behalf: ['approved on the worker\'s behalf', 'Aprobación en nombre del trabajador de', 'Aprovação em nome do trabalhador de'],
   approved: ['approved', 'Aprobación de', 'Aprovação de'],
   archive: ['archived', 'Archivo de', 'Arquivamento de'],
   assign: ['assigned', 'Asignación de', 'Atribuição de'],
@@ -256,6 +256,18 @@ const SPECIAL: Record<string, Tuple> = {
   'user.create': ['Person added', 'Alta de persona', 'Cadastro de pessoa'],
   'user.password_reset': ['Portal password reset by the owner', 'Restablecimiento de contraseña del portal por el propietario', 'Redefinição de senha do portal pelo proprietário'],
   'user.password_change': ['Portal password changed', 'Cambio de contraseña del portal', 'Alteração de senha do portal'],
+  // Invoice preparation "Approve & include": hours/expenses approved for this invoice on the
+  // workers' behalf (never an approval by or for the client).
+  'invoice.approve_on_behalf': [
+    'Hours and expenses approved for invoicing',
+    'Aprobación de horas y gastos para facturar',
+    'Aprovação de horas e despesas para faturar',
+  ],
+  'invoice_prep.approve_on_behalf': [
+    'Hours and expenses approved for invoicing',
+    'Aprobación de horas y gastos para facturar',
+    'Aprovação de horas e despesas para faturar',
+  ],
 };
 
 /**

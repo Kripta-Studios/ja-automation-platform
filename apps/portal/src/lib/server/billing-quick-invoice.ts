@@ -260,6 +260,8 @@ export type QuickInvoiceAttention = {
     | 'other';
   /** Engine code for 'other' items (shown with plain text + an Advanced link). */
   code?: string;
+  /** D6: an 'unsent' item for Finance listing records waiting for owner/PM approval. */
+  reviewWaiting?: boolean;
   blocks: 'create' | 'issue' | 'none';
   people?: QuickInvoiceAttentionPerson[];
   expenseIds?: string[];
@@ -1373,9 +1375,29 @@ export function pendingInvoiceSources(
     (source) =>
       source.containingInvoice === null &&
       !source.blockers.some((reason) => HARD_SOURCE_CODES.has(reason.code)) &&
-      (source.approvalState === 'submitted' ||
+      // D6: Finance never takes the operational approval step; submitted records wait
+      // for the owner or the project manager (awaitingReviewInvoiceSources).
+      ((source.approvalState === 'submitted' && actor?.role !== 'finance_admin') ||
         (source.approvalState === 'approved' && !source.financeAccepted) ||
         (ownUnsent(source, actor) && ['draft', 'needs_changes'].includes(source.approvalState))),
+  );
+}
+
+/**
+ * D6: for Finance, records the worker sent that the owner or the project manager has not
+ * approved yet. Shown as information ("waiting for owner/PM approval"), never approvable
+ * from the invoice and never on it.
+ */
+export function awaitingReviewInvoiceSources(
+  sources: readonly InvoiceCompositionSource[],
+  actor?: { userId: string; role: string } | null,
+): InvoiceCompositionSource[] {
+  if (actor?.role !== 'finance_admin') return [];
+  return sources.filter(
+    (source) =>
+      source.containingInvoice === null &&
+      !source.blockers.some((reason) => HARD_SOURCE_CODES.has(reason.code)) &&
+      source.approvalState === 'submitted',
   );
 }
 
@@ -1532,6 +1554,7 @@ function buildAttention(
   pending: readonly InvoiceCompositionSource[],
   client: QuickInvoiceClient | null,
   unsent: readonly InvoiceCompositionSource[] = [],
+  awaitingReview: readonly InvoiceCompositionSource[] = [],
 ): { attention: QuickInvoiceAttention[]; expenseRows: QuickInvoiceExpenseRow[]; expenseRowsTotal: number } {
   const items: QuickInvoiceAttention[] = [];
   const byId = new Map(inventory.map((source) => [`${source.id}`, source]));
@@ -1607,6 +1630,28 @@ function buildAttention(
     });
   }
 
+  // 1c. D6 (Finance): sent by the worker, waiting for the owner or the project manager.
+  // Information only: Finance cannot approve them and they are not on this invoice.
+  if (awaitingReview.length) {
+    const grouped = [...people(context, awaitingReview).values()].sort(
+      (a, b) => b.minutes - a.minutes || a.name.localeCompare(b.name),
+    );
+    for (const person of grouped) {
+      const mine = awaitingReview.filter((source) => source.workerId === person.workerId);
+      person.states = { draft: 0, submitted: mine.length, returned: 0, financePending: 0 };
+      person.expenseCount = mine.filter((source) => source.type === 'expense').length;
+      delete person.sources;
+    }
+    items.push({
+      kind: 'unsent',
+      reviewWaiting: true,
+      blocks: 'none',
+      people: grouped.slice(0, 25),
+      totalCount: grouped.length,
+      minutes: grouped.reduce((total, person) => total + person.minutes, 0),
+    });
+  }
+
   // 2–4. Rates, costs, expense treatment from the engine reasons of the projected selection.
   const reasons = (projected ?? base).reasons;
   const issueCodes = new Set(
@@ -1628,7 +1673,7 @@ function buildAttention(
       otherCodes.set(reason.code, ids);
     }
   }
-  const unsentIds = new Set(unsent.map((source) => source.id));
+  const unsentIds = new Set([...unsent, ...awaitingReview].map((source) => source.id));
   for (const kind of ['clientRate', 'workerCost'] as const) {
     const ids = perKind.get(kind);
     if (!ids?.size) continue;
@@ -1911,6 +1956,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
   let inventory: InvoiceCompositionSource[] = [];
   let pending: InvoiceCompositionSource[] = [];
   let unsent: InvoiceCompositionSource[] = [];
+  let awaitingReview: InvoiceCompositionSource[] = [];
   let projected: Computed | null = null;
   const stream = preview.stream;
   if (stream && ['labor', 'expense'].includes(stream.streamType) && preview.state !== 'existing') {
@@ -1924,6 +1970,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     ];
     pending = pendingInvoiceSources(inventory, context.principal);
     unsent = unsentInvoiceSources(inventory, context.principal);
+    awaitingReview = awaitingReviewInvoiceSources(inventory, context.principal);
     if (pending.length && capabilities.canApprove) {
       // Exact "if you approve" amount: the real approval commands and the real draft
       // engine run inside a savepoint that is always rolled back.
@@ -1963,6 +2010,7 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
     pending,
     client,
     unsent,
+    awaitingReview,
   );
   // Expenses that no stream would ever bill (labor-only project): offer the one-step setup,
   // whatever the state of these dates (also "already on an invoice").

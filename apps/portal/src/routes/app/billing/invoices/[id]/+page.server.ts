@@ -2,7 +2,10 @@ import { error, redirect } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { assertLiveSession, AccessDeniedError } from '@ja/database';
 import { invoiceDocumentSnapshot } from '$lib/server/invoice-draft-preview';
-import { billingActions } from '$lib/server/actions/billing-actions';
+import { billingActionFailure, billingActions } from '$lib/server/actions/billing-actions';
+import { actionFail } from '$lib/server/actions/action-message';
+import { formObject } from '$lib/server/action-utils';
+import { base } from '$app/paths';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = ({ locals, params, url }) => {
@@ -63,4 +66,32 @@ export const actions: Actions = {
   sendInvoice: (event) => billingActions.sendInvoice(asBilling(event)),
   recordPayment: (event) => billingActions.recordPayment(asBilling(event)),
   deleteInvoice: (event) => billingActions.deleteInvoice(asBilling(event)),
+  /** Round 2: rebuild a stale draft from the current hours, rates and settings. */
+  refreshInvoiceDraft: async ({ locals, request, params, url }) => {
+    const extra = { actionName: 'refreshInvoiceDraft', correlationId: locals.correlationId };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extra,
+        code: 'INVOICE_SIGN_IN_REQUIRED',
+      });
+    const object = await formObject(request).catch(() => null);
+    const version = Number(object?.version);
+    if (!object || !Number.isSafeInteger(version) || version < 1)
+      return actionFail(400, 'action.error.validation', {}, 'Reload the invoice and try again.', {
+        ...extra,
+        code: 'INVOICE_REFRESH_VERSION_REQUIRED',
+      });
+    const context = openPortalRepository(locals);
+    let target: string;
+    try {
+      const result = context.repository.refreshInvoiceDraft(context.principal, params.id, version);
+      const lang = url.searchParams.get('lang');
+      target = `${base}/app/billing/invoices/${encodeURIComponent(result.id)}?refreshed=1${lang ? `&lang=${encodeURIComponent(lang)}` : ''}`;
+    } catch (caught) {
+      return billingActionFailure(caught, 'refreshInvoiceDraft', context.principal.role);
+    } finally {
+      context.sqlite.close();
+    }
+    redirect(303, target);
+  },
 };

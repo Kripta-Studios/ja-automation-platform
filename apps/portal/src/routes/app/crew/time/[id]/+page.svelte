@@ -8,6 +8,7 @@
   import { page } from '$app/stores';
   import { enhance } from '$app/forms';
   import type { SubmitFunction } from '@sveltejs/kit';
+  import { confirmBeforeSubmit } from '$lib/portal/ui/confirm-submit';
   import { onMount, tick } from 'svelte';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
@@ -401,11 +402,10 @@
         method="POST"
         action={`?/discard&lang=${locale}`}
         data-crew-time-operation="discard"
-        onsubmit={(event) => {
-          if (!window.confirm(t('Discard this crew draft? It cannot be undone.')))
-            event.preventDefault();
-        }}
-        use:enhance={preserveDetailForm}
+        use:enhance={confirmBeforeSubmit(
+          () => t('Discard this crew draft? It cannot be undone.'),
+          preserveDetailForm,
+        )}
         use:formValidation
       >
         <input

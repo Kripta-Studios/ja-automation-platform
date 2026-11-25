@@ -170,6 +170,18 @@ const copy = {
   client: ['Client', 'Cliente', 'Cliente'],
   period: ['Period', 'Periodo', 'Período'],
   cannotIssue: ['Can’t issue yet', 'Aún no se puede emitir', 'Ainda não é possível emitir'],
+  refreshDraft: ['Refresh draft', 'Actualizar borrador', 'Atualizar rascunho'],
+  refreshDraftAfter: [
+    'After the refresh this will still be needed:',
+    'Después de actualizarlo seguirá haciendo falta:',
+    'Depois de atualizar, ainda será necessário:',
+  ],
+  draftRefreshed: [
+    'Draft refreshed from the current hours, rates and settings.',
+    'Borrador actualizado con las horas, tarifas y configuración actuales.',
+    'Rascunho atualizado com as horas, tarifas e configurações atuais.',
+  ],
+  fix_overtime_rate: ['Set the overtime rate', 'Fijar la tarifa de horas extra', 'Definir a tarifa de hora extra'],
   createdNotice: [
     'Invoice draft created. Check it below, then issue it.',
     'Borrador creado. Revísalo abajo y luego emítelo.',
@@ -258,6 +270,21 @@ const copy = {
     'Rascunhos e lançamentos devolvidos para ajuste continuam com o trabalhador. Quando ele enviar, você poderá aprovar e incluir aqui.',
   ],
   unsentOpen: ['See entries', 'Ver registros', 'Ver lançamentos'],
+  reviewWaitingTitle: [
+    'Waiting for owner/PM approval · {hours} h · not on this invoice',
+    'Pendiente de aprobación del propietario o del jefe de proyecto · {hours} h · no van en esta factura',
+    'Aguardando aprovação do proprietário ou do gerente do projeto · {hours} h · fora desta fatura',
+  ],
+  reviewWaitingTitleExpenses: [
+    'Waiting for owner/PM approval · not on this invoice',
+    'Pendiente de aprobación del propietario o del jefe de proyecto · no van en esta factura',
+    'Aguardando aprovação do proprietário ou do gerente do projeto · fora desta fatura',
+  ],
+  reviewWaitingHelp: [
+    'The owner or the project manager approves hours and expenses. Once they approve them, you can include them here.',
+    'El propietario o el jefe de proyecto aprueban las horas y los gastos. Cuando los aprueben, podrás incluirlos aquí.',
+    'O proprietário ou o gerente do projeto aprova horas e despesas. Depois da aprovação, você poderá incluí-las aqui.',
+  ],
   approveGroupOne: ['1 entry not approved yet', '1 entrada sin aprobar', '1 lançamento não aprovado'],
   approveGroup: [
     '{count} entries not approved yet',
@@ -313,6 +340,37 @@ const copy = {
     '{count} records were left out ({reasons}).',
     'Se dejaron fuera {count} registros ({reasons}).',
     '{count} registros ficaram de fora ({reasons}).',
+  ],
+  approveSkippedOne: [
+    '1 record was left out ({reasons}).',
+    'Se dejó fuera 1 registro ({reasons}).',
+    '1 registro ficou de fora ({reasons}).',
+  ],
+  skipNotSubmitted: ['not sent by the worker yet', 'aún sin enviar por el trabajador', 'ainda não enviado pelo trabalhador'],
+  skipNotApprovable: ['cannot be approved in its state', 'no se puede aprobar en su estado', 'não pode ser aprovado no estado atual'],
+  skipAlreadyApproved: ['already approved', 'ya aprobado', 'já aprovado'],
+  skipOwnRecord: ['your own record: the owner approves it', 'registro propio: lo aprueba el propietario', 'registro próprio: o proprietário aprova'],
+  skipSupplierOwnerOnly: [
+    'supplier hours: the owner approves them',
+    'horas de proveedor: las aprueba el propietario',
+    'horas de fornecedor: o proprietário aprova',
+  ],
+  skipOwnerPm: [
+    'waiting for owner/PM approval',
+    'pendiente de aprobación del propietario o del jefe de proyecto',
+    'aguardando aprovação do proprietário ou do gerente do projeto',
+  ],
+  skipReceipt: ['receipt missing', 'falta el recibo', 'falta o recibo'],
+  skipMealReceipt: ['meal receipt missing', 'falta el recibo de la comida', 'falta o recibo da refeição'],
+  skipClassification: [
+    'expense not classified yet',
+    'gasto aún sin clasificar',
+    'despesa ainda não classificada',
+  ],
+  skipOpenCorrection: [
+    'the worker is correcting it',
+    'el trabajador lo está corrigiendo',
+    'o trabalhador está corrigindo',
   ],
   roleOwner: ['owner', 'dueño', 'proprietário'],
   roleFinance: ['finance', 'finanzas', 'financeiro'],
@@ -698,6 +756,11 @@ export function quickInvoiceWarningText(locale: PortalLocale, warning: Warning):
       `No client rate for ${n} time ${n === 1 ? 'entry' : 'entries'}${h}.`,
       `Falta la tarifa de cliente para ${n} ${n === 1 ? 'registro' : 'registros'} de horas${h}.`,
       `Falta a tarifa do cliente para ${n} ${n === 1 ? 'registro' : 'registros'} de horas${h}.`,
+    ],
+    stale_billing_configuration: [
+      'The hours, rates or billing settings changed after this draft was made. Refresh the draft to recalculate it before issuing.',
+      'Las horas, tarifas o la configuración de facturación cambiaron después de crear este borrador. Actualiza el borrador para recalcularlo antes de emitirlo.',
+      'As horas, tarifas ou a configuração de faturamento mudaram depois que este rascunho foi criado. Atualize o rascunho para recalculá-lo antes de emitir.',
     ],
     missing_overtime_client_rate: [
       `Overtime rate missing: ${n} time ${n === 1 ? 'entry has' : 'entries have'} overtime${h} that would be billed at $0. Set the overtime rate.`,

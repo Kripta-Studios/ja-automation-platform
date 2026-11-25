@@ -244,6 +244,8 @@
     const check = (data as { issueCheck?: IssueCheck }).issueCheck;
     if (!check || check.ok) return [];
     const codes = [...new Set(check.reasons.map((reason) => reason.code))];
+    const countOf = (code: string) =>
+      check.reasons.filter((reason) => reason.code === code).length;
     return codes.map((code) => {
       const fix: Record<string, { href: string | null; label: QuickInvoiceCopyKey }> = {
         canonical_legal_entity_revision_required: {
@@ -266,11 +268,16 @@
           }).toString()}`,
           label: 'fix_signoff',
         },
+        // D12: never bill overtime at $0 silently: set the overtime rate first.
+        missing_overtime_client_rate: { href: financeHref, label: 'fix_overtime_rate' },
+        missing_client_rate: { href: financeHref, label: 'fix_invoice' },
+        // Round 2: a stale draft is refreshed in place (form below), never a raw code.
+        stale_billing_configuration: { href: null, label: 'refreshDraft' },
       };
       return {
         code,
         text:
-          quickInvoiceWarningText(locale, { code, count: 0, minutes: 0 }) ??
+          quickInvoiceWarningText(locale, { code, count: countOf(code), minutes: 0 }) ??
           (code === 'issue_blocked' ? check.message : t(code)),
         href: fix[code]?.href ?? null,
         label: fix[code]?.label ?? ('fix_invoice' as QuickInvoiceCopyKey),
@@ -278,6 +285,8 @@
     });
   });
   let issueDialog = $state<HTMLDialogElement>();
+  let refreshingDraft = $state(false);
+  const draftRefreshed = $derived($page.url.searchParams.get('refreshed') === '1');
   let issueSubmitting = $state(false);
   const sendKey = $derived(`send-${invoiceId}-${String(invoice.version ?? '')}`);
   const justCreated = $derived($page.url.searchParams.get('created') === '1');
@@ -1075,6 +1084,11 @@
       {#if justCreated && invoiceState === 'draft'}
         <p class="invoice-lifecycle__notice" role="status">{q('createdNotice')}</p>
       {/if}
+      {#if draftRefreshed && invoiceState === 'draft'}
+        <p class="invoice-lifecycle__notice" role="status" data-invoice-refreshed>
+          {q('draftRefreshed')}
+        </p>
+      {/if}
       <div class="invoice-lifecycle__row">
         <div class="invoice-lifecycle__summary">
           <p id="invoice-lifecycle-heading" class="invoice-lifecycle__eyebrow">
@@ -1097,10 +1111,36 @@
       </div>
       {#if issueBlockers.length}
         <ul class="invoice-lifecycle__blockers">
-          {#each issueBlockers as blocker (blocker.code)}
-            <li>
+          {#each issueBlockers as blocker, blockerIndex (blocker.code)}
+            {#if blockerIndex === 1 && issueBlockers[0]?.code === 'stale_billing_configuration'}
+              <li class="invoice-lifecycle__blockers-after">{q('refreshDraftAfter')}</li>
+            {/if}
+            <li data-invoice-blocker={blocker.code}>
               <span>{blocker.text}</span>
-              {#if blocker.href}<a class="secondary-button" href={blocker.href}>{q(blocker.label)}</a
+              {#if blocker.code === 'stale_billing_configuration' && invoiceState === 'draft'}
+                <form
+                  method="POST"
+                  action="?/refreshInvoiceDraft"
+                  data-invoice-refresh-draft
+                  use:enhance={() => {
+                    refreshingDraft = true;
+                    return async ({ result, update }) => {
+                      refreshingDraft = false;
+                      if (result.type === 'redirect') {
+                        await goto(result.location, { invalidateAll: true });
+                        return;
+                      }
+                      await update({ reset: false });
+                    };
+                  }}
+                >
+                  <input type="hidden" name="version" value={String(invoice.version ?? '')} />
+                  <button type="submit" class="secondary-button" disabled={refreshingDraft}
+                    >{q('refreshDraft')}</button
+                  >
+                </form>
+              {:else if blocker.href}<a class="secondary-button" href={blocker.href}
+                  >{q(blocker.label)}</a
                 >{/if}
             </li>
           {/each}
@@ -1896,6 +1936,9 @@
     border-radius: 0.6rem;
     border: 1px solid color-mix(in srgb, var(--ja-status-warning, #d97706) 45%, white);
     background: color-mix(in srgb, var(--ja-status-warning, #d97706) 8%, white);
+  }
+  .invoice-lifecycle__blockers-after {
+    font-weight: 600;
   }
   .invoice-lifecycle__blockers li {
     display: flex;

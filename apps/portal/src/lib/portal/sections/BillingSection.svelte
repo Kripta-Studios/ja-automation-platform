@@ -3955,11 +3955,11 @@
                         'billingRuleId',
                         streamEditorRuleId,
                       )}
-                      onsubmit={(event) => {
-                        if (!confirm(translate('Archive this billing rule?')))
-                          event.preventDefault();
-                      }}
                       use:enhance={({ cancel }) => {
+                        if (!confirm(translate('Archive this billing rule?'))) {
+                          cancel();
+                          return;
+                        }
                         if (streamEditorSaving) {
                           cancel();
                           return;

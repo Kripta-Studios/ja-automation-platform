@@ -57,11 +57,19 @@ export function workerOperationalProjectScope(
   const statuses = options.ownHistory
     ? "('active','planned','paused','closing')"
     : "('active','planned','paused')";
+  // T19: "End assignment" stores status='inactive' together with ends_on. For
+  // one's OWN history such an ended membership still covers the dates up to
+  // ends_on; an inactive row without an end date never grants anything.
+  const historyDates = options.ownHistory ? occurrenceDates[recordDates] : [];
+  const memberStatus = (alias: string) =>
+    historyDates.length
+      ? `(${alias}.status='active' OR (${alias}.status='inactive' AND ${alias}.ends_on IS NOT NULL))`
+      : `${alias}.status='active'`;
   const timezones = sqlite
     .prepare(
       `SELECT DISTINCT p.timezone FROM project p
        JOIN project_member pm ON pm.project_id=p.id
-       WHERE pm.user_id=? AND pm.status='active'
+       WHERE pm.user_id=? AND ${memberStatus('pm')}
          AND p.status IN ${statuses}`,
     )
     .all(principal.userId) as Array<{ timezone: string }>;
@@ -88,7 +96,6 @@ export function workerOperationalProjectScope(
   // date instead of today, so hours stay visible after the assignment ended.
   // Project status, timezone validity, live session and the supplier
   // coordinator's current grant are unchanged.
-  const historyDates = options.ownHistory ? occurrenceDates[recordDates] : [];
   const membershipConditions = historyDates.length
     ? historyDates
         .map(
@@ -107,7 +114,7 @@ export function workerOperationalProjectScope(
       SELECT 1 FROM current_project_days scope_day
       JOIN project_member scope_pm ON scope_pm.project_id=p.id
       WHERE scope_day.timezone=p.timezone AND scope_pm.user_id=?
-        AND scope_pm.status='active'
+        AND ${memberStatus('scope_pm')}
         ${membershipConditions}
         AND (
           NOT EXISTS (SELECT 1 FROM supplier_user_profile sp

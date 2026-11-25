@@ -618,13 +618,18 @@ describe('real own report list current Worker project scope', () => {
   );
 
   // T19 (2026-11-23): own records stay readable for the days the assignment
-  // covered after it ends; only a removed assignment, a closed project, an
+  // covered after it ends (also when "End assignment" stored status='inactive'
+  // with ends_on); only an inactive row without an end date, a closed project, an
   // invalid timezone, a stale session or a revoked supplier grant hide them.
   it('keeps past own report rows listed after the assignment ends while record dates remain covered (T19)', () => {
     reports();
     sqlite.exec("UPDATE project_member SET ends_on='2026-09-29' WHERE id='assignment'");
     expect(new PortalRepository(sqlite).listOwnReports(worker)).toHaveLength(2);
+    // "End assignment" stores status='inactive' with ends_on: still covered.
     sqlite.exec("UPDATE project_member SET status='inactive' WHERE id='assignment'");
+    expect(new PortalRepository(sqlite).listOwnReports(worker)).toHaveLength(2);
+    // An inactive row without an end date covers nothing.
+    sqlite.exec("UPDATE project_member SET ends_on=NULL WHERE id='assignment'");
     expect(new PortalRepository(sqlite).listOwnReports(worker)).toEqual([]);
   });
 
@@ -1132,7 +1137,12 @@ describe('Worker Time and Expense scope queries use current project-local author
     // T19: own entries of covered days stay listed after the assignment ends.
     expect(repository.listTimeForScope(worker).map((row) => row.id)).toEqual(['time']);
     expect(repository.listExpensesForScope(worker).map((row) => row.id)).toEqual(['expense']);
+    // "End assignment" stores status='inactive' with ends_on: still covered.
     sqlite.exec("UPDATE project_member SET status='inactive' WHERE id='assignment'");
+    expect(repository.listTimeForScope(worker).map((row) => row.id)).toEqual(['time']);
+    expect(repository.listExpensesForScope(worker).map((row) => row.id)).toEqual(['expense']);
+    // An inactive row without an end date covers nothing.
+    sqlite.exec("UPDATE project_member SET ends_on=NULL WHERE id='assignment'");
     expect(repository.listTimeForScope(worker)).toEqual([]);
     expect(repository.listExpensesForScope(worker)).toEqual([]);
   });

@@ -16,6 +16,8 @@
     unclassifiedExpenseCount?: number;
   };
   export type AttentionItem = {
+    /** D6: Finance view of records waiting for owner/PM approval. */
+    reviewWaiting?: boolean;
     kind:
       | 'approve'
       | 'unsent'
@@ -269,6 +271,24 @@
     }
   }
 
+  const SKIP_REASON_KEYS: Record<string, QuickInvoiceCopyKey> = {
+    not_submitted: 'skipNotSubmitted',
+    not_approvable: 'skipNotApprovable',
+    already_approved: 'skipAlreadyApproved',
+    own_record: 'skipOwnRecord',
+    supplier_owner_only: 'skipSupplierOwnerOnly',
+    owner_pm_approval_required: 'skipOwnerPm',
+    receipt_missing: 'skipReceipt',
+    linked_meal_receipt_missing: 'skipMealReceipt',
+    missing_expense_classification: 'skipClassification',
+    open_correction: 'skipOpenCorrection',
+  };
+  /** Plain words for the server's skip codes (never a raw code on screen). */
+  const skipReasonText = (reason: string) => {
+    const key = SKIP_REASON_KEYS[reason];
+    return key ? t(key) : t('skipNotApprovable');
+  };
+
   async function approve(item: AttentionItem, people: AttentionPerson[], key: string) {
     const sources = people.flatMap((person) => person.sources ?? []);
     if (!sources.length) return;
@@ -280,9 +300,9 @@
       if (skipped.length)
         notes = {
           ...notes,
-          approve: f('approveSkipped', {
+          approve: f(skipped.length === 1 ? 'approveSkippedOne' : 'approveSkipped', {
             count: skipped.length,
-            reasons: [...new Set(skipped.map((entry) => entry.reason.replace(/_/g, ' ')))].join(', '),
+            reasons: [...new Set(skipped.map((entry) => skipReasonText(entry.reason)))].join(', '),
           }),
         };
       // Next likely fix: the first rate field.
@@ -618,9 +638,15 @@
       {:else if item.kind === 'unsent'}
         <h4 id={`qa-title-${index}`}>
           <span class="qa__dot qa__dot--hollow" aria-hidden="true"></span>
-          {item.minutes ? f('unsentTitle', { hours: hours(item.minutes) }) : t('unsentTitleExpenses')}
+          {item.reviewWaiting
+            ? item.minutes
+              ? f('reviewWaitingTitle', { hours: hours(item.minutes) })
+              : t('reviewWaitingTitleExpenses')
+            : item.minutes
+              ? f('unsentTitle', { hours: hours(item.minutes) })
+              : t('unsentTitleExpenses')}
         </h4>
-        <p class="qa__muted">{t('unsentHelp')}</p>
+        <p class="qa__muted">{t(item.reviewWaiting ? 'reviewWaitingHelp' : 'unsentHelp')}</p>
         <ul class="qa__people">
           {#each peopleOf(item) as person (person.workerId)}
             <li class="qa__person" data-attention-unsent-person={person.workerId}>

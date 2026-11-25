@@ -225,7 +225,6 @@
   });
   let pending = $state(false);
   let failed = $state(false);
-  let savedNotice = $state(false);
   const stateLabel = (state: unknown) =>
     translate(
       state === 'unavailable' ? 'Unavailable' : state === 'tentative' ? 'Tentative' : 'Available',
@@ -283,9 +282,7 @@
       if (result.type === 'success') {
         open = false;
         enhancedProblem = null;
-        // T82: say that the window was saved.
-        savedNotice = true;
-        setTimeout(() => (savedNotice = false), 6000);
+        // T82: the page notice says the window was saved (one message, not two).
       } else if (result.type === 'failure' && result.data && 'code' in result.data) {
         enhancedProblem = result.data as AvailabilityFailure;
       } else failed = true;
@@ -326,9 +323,6 @@
       >{translate('Add availability')}</button
     >{/if}
   <p class="form-help">{zoneText}</p>
-  {#if savedNotice}<p class="availability-saved" role="status">
-      {translate('action.planning.availabilitySaved')}
-    </p>{/if}
   <PlanningCalendar
     zoneNote={false}
     headingLevel={3}
@@ -417,12 +411,6 @@
 </ResponsiveSheet>
 
 <style>
-  .availability-saved {
-    margin: 0.5rem 0;
-    padding: 0.5rem 0.75rem;
-    border-left: 3px solid #12b76a;
-    background: color-mix(in srgb, #12b76a 8%, transparent);
-  }
   .admin-form-grid.availability-editor {
     grid-template-columns: minmax(0, 1fr);
   }

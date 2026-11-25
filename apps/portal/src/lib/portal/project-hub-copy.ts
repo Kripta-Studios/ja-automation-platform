@@ -214,9 +214,9 @@ const copy = {
     'Há {count} registros de horas após a data de término ainda não aprovados. Descartar os rascunhos não enviados e rejeitar os pendentes com este motivo, e encerrar a atribuição.',
   ],
   endResolvedLater: [
-    '{name}: assignment ended. {discarded} drafts discarded, {rejected} pending entries rejected.',
-    '{name}: asignación terminada. {discarded} borradores descartados, {rejected} registros pendientes rechazados.',
-    '{name}: atribuição encerrada. {discarded} rascunhos descartados, {rejected} registros pendentes rejeitados.',
+    '{name}: assignment ended. Drafts discarded: {discarded}. Pending entries rejected: {rejected}.',
+    '{name}: asignación terminada. Borradores descartados: {discarded}. Registros pendientes rechazados: {rejected}.',
+    '{name}: atribuição encerrada. Rascunhos descartados: {discarded}. Registros pendentes rejeitados: {rejected}.',
   ],
   supplierStaffByOwner: [
     'Supplier staff: the owner and the supplier coordinator manage this assignment.',

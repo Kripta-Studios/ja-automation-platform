@@ -183,9 +183,10 @@ const supplierReportCsv = ({ locals, url, cookies }: Parameters<RequestHandler>[
         c.worker,
         c.date,
         c.category,
-        ...(hasIntervals ? [c.startTime, c.endTime, c.breakHours] : []),
+        // T49 (round 2): column names, not form labels ("(optional)", "decimal hours").
+        ...(hasIntervals ? [c.startTime, c.endTime, c.csvBreakHours] : []),
         c.actualHours,
-        c.summary,
+        c.csvSummary,
         c.state,
         c.recordedBy,
       ],

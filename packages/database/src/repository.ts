@@ -29,12 +29,22 @@ import {
   invoiceOverrideRows,
   loadInvoiceOverrides,
   overrideRateFor,
+  componentLeftOut,
+  isExtraComponentOverride,
   persistInvoiceOverrides,
   planBilledMinutes,
   resolveInvoiceOverrides,
   type InvoiceOverrideInput,
   type ResolvedInvoiceOverrides,
 } from './domains/billing/invoice-line-overrides.ts';
+import {
+  AssignmentExtrasResolver,
+  clientExtraCharges,
+  extraChargeDescription,
+  extraChargeSnapshot,
+  overtimeRateFromExtra,
+  type ExtraCharge,
+} from './domains/commercial/assignment-extras.ts';
 import {
   executePurge,
   planPurge,
@@ -236,6 +246,17 @@ function manualProjectNumber(value: string): string {
   if (normalized.length > 120) throw new ValidationError('Project reference is too long');
   if (/[\p{Cc}]/u.test(normalized)) throw new ValidationError('Project reference is invalid');
   return normalized;
+}
+
+/** Assignment extras kind recorded on a billing_adjustment line snapshot, if any. */
+function extraKindOf(snapshot: string | undefined): string | null {
+  if (!snapshot) return null;
+  try {
+    const parsed = JSON.parse(snapshot) as { extraKind?: unknown };
+    return typeof parsed.extraKind === 'string' ? parsed.extraKind : null;
+  } catch {
+    return null;
+  }
 }
 
 export class ReadinessError extends Error {
@@ -6802,7 +6823,37 @@ export class PortalRepository {
       slice.category,
     );
     if (invoiceRate !== null) return invoiceRate;
+    // Overtime left out of this invoice is not charged: it needs no overtime rate.
+    if (
+      slice.category === 'overtime' &&
+      componentLeftOut(this.invoiceOverrideScope?.value ?? null, row.worker_id, 'overtime')
+    )
+      return 0n;
     if (slice.category === 'overtime') {
+      // Assignment extras (owner request 2026-11-25): an overtime rate or multiplier set for
+      // this person on this project wins over the project rules. A multiplier needs the
+      // regular rate: without one the overtime rate is missing (D12), never $0.
+      const extra = new AssignmentExtrasResolver(this.sqlite, projectId).on(
+        row.worker_id,
+        row.work_date,
+      )?.overtimeClient;
+      if (extra)
+        return overtimeRateFromExtra(
+          extra,
+          extra.method === 'multiplier'
+            ? this.findClientRateMinor(
+                principal,
+                projectId,
+                row.worker_id,
+                row.category === 'overtime' ? 'regular' : row.category,
+                row.work_date,
+                row.activity_code,
+                'regular',
+                execution,
+                billingRuleId,
+              )
+            : null,
+        );
       const priced = this.overtimeSliceClientRate(principal, projectId, slice, execution, billingRuleId);
       // Decision D12: overtime is never billed silently at $0 while regular work has a price.
       // A zero overtime price on a priced project is a missing overtime rate (a blocker).
@@ -6961,6 +7012,26 @@ export class PortalRepository {
           billingRuleId,
         );
         const overrideRate = overrideRateFor(overrides, row.worker_id, slice.category);
+        if (
+          slice.category === 'overtime' &&
+          overrideRate === null &&
+          componentLeftOut(overrides, row.worker_id, 'overtime')
+        ) {
+          selectedRules.push({
+            kind: 'client_labor',
+            sourceId: row.id,
+            sourceVersion: row.version,
+            workDate: row.work_date,
+            category: slice.category,
+            minutes: slice.minutes,
+            sliceIndex: slice.sliceIndex,
+            rateMinor: '0',
+            rateRule: null,
+            rateProvenance: { source: 'left_out_of_invoice' },
+            timePolicy: null,
+          });
+          continue;
+        }
         if (overrideRate !== null && rate !== null) {
           selectedRules.push({
             kind: 'client_labor',
@@ -7034,6 +7105,17 @@ export class PortalRepository {
           .map((expense) => ({ kind: 'classified_expense', source: expense })),
       );
     }
+    // Assignment extras are calculation inputs only where a project uses them, so the
+    // fingerprints of every other invoice stay byte-for-byte the same.
+    const extraCharges =
+      rule.stream_type === 'labor' &&
+      !(
+        (project as { billing_model?: string; fixed_price_minor?: unknown } | undefined)
+          ?.billing_model === 'all_in' &&
+        (project as { fixed_price_minor?: unknown } | undefined)?.fixed_price_minor !== null
+      )
+        ? this.invoiceExtraCharges(projectId, periodStart, periodEnd, invoiceId)
+        : [];
     if (selection)
       selectedRules.push(
         ...this.invoiceCompositionService().dependencies({
@@ -7079,6 +7161,9 @@ export class PortalRepository {
           taxComponents,
           selectedRules,
           capInvoices,
+          ...(extraCharges.length
+            ? { assignmentExtras: extraCharges.map((charge) => extraChargeSnapshot(charge, projectId)) }
+            : {}),
           // Absent for invoices without overrides, so their fingerprints are unchanged.
           ...(overrides && hasInvoiceOverrides(overrides)
             ? { invoiceOverrides: describeInvoiceOverrides(overrides) }
@@ -7609,6 +7694,25 @@ export class PortalRepository {
         .toString(),
       hasPositiveFixedFee,
       hasPositiveDraftAmount,
+      // Client-side assignment extras (per diem, allowance) the invoice would add.
+      assignmentExtras:
+        rule.stream_type === 'labor' &&
+        !(rule.billing_model === 'all_in' && rule.fixed_price_minor !== null)
+          ? this.invoiceExtraCharges(
+              rule.project_id,
+              periodStart,
+              periodEnd,
+              currentInvoiceId ?? (existingInvoice?.state === 'draft' ? existingInvoice.id : ''),
+            ).map((charge) => ({
+              workerId: charge.workerId,
+              kind: charge.kind,
+              basis: charge.basis,
+              units: charge.units.length,
+              rateMinor: charge.rateMinor.toString(),
+              amountMinor: charge.amountMinor.toString(),
+              currency: charge.currency,
+            }))
+          : [],
       existingInvoiceId: existingInvoice?.id ?? null,
       existingInvoiceState: existingInvoice?.state ?? null,
     } as const;
@@ -9005,7 +9109,10 @@ export class PortalRepository {
             // Billed hours set for this invoice are final: no daily-minimum top-up on top.
             if (
               overrides?.people.some(
-                (person) => person.workerId === day.workerId && person.billedMinutes !== null,
+                (person) =>
+                  person.workerId === day.workerId &&
+                  person.billedMinutes !== null &&
+                  !isExtraComponentOverride(person),
               )
             )
               continue;
@@ -9033,6 +9140,32 @@ export class PortalRepository {
               },
             );
           }
+        }
+      }
+      if (
+        rule.stream_type === 'labor' &&
+        !(rule.billing_model === 'all_in' && fixedAmount !== null)
+      ) {
+        // Assignment extras (per diem, safety allowance): one line per person and extra, for
+        // the worked days of this period that no other live invoice charged yet.
+        const extraLabels = new InvoiceLineLabels(this.sqlite, rule.project_id);
+        for (const charge of this.invoiceExtraCharges(rule.project_id, periodStart, periodEnd, id)) {
+          if (charge.currency !== rule.currency)
+            throw new ReadinessError([
+              { code: 'assignment_extra_currency_mismatch', sourceId: charge.projectMemberId },
+            ]);
+          subtotal = add(subtotal, money(rule.currency, charge.amountMinor));
+          this.insertInvoiceLine(
+            id,
+            extraChargeDescription(charge, extraLabels.name(charge.workerId)),
+            charge.units.length,
+            1,
+            safeInteger(charge.rateMinor),
+            charge.amountMinor,
+            'billing_adjustment',
+            `${rule.project_id}:${charge.workerId}:${charge.kind}:${charge.basis}:${charge.rateMinor}:${charge.units[0]}`,
+            extraChargeSnapshot(charge, rule.project_id),
+          );
         }
       }
       if (
@@ -9727,6 +9860,33 @@ export class PortalRepository {
     });
   }
 
+  /**
+   * Client-side assignment extras of a labor invoice: the worked days (approved hours on the
+   * project, whatever is selected) of the period, less what is left out of this invoice.
+   */
+  private invoiceExtraCharges(
+    projectId: string,
+    periodStart: string,
+    periodEnd: string,
+    invoiceId: string,
+  ): ExtraCharge[] {
+    if (new AssignmentExtrasResolver(this.sqlite, projectId).none) return [];
+    const overrides = this.invoiceOverrideScope?.value ?? null;
+    const seen = new Set<string>();
+    const workedDays: Array<{ workerId: string; date: string }> = [];
+    for (const slice of this.billingTimeSlices(projectId, periodStart, periodEnd)) {
+      const row = slice.row;
+      if (!['approved', 'locked'].includes(row.approval_state) || row.minutes <= 0) continue;
+      const key = `${row.worker_id}\u0000${row.work_date}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      workedDays.push({ workerId: row.worker_id, date: row.work_date });
+    }
+    return clientExtraCharges(this.sqlite, { projectId, invoiceId, workedDays }).filter(
+      (charge) => !componentLeftOut(overrides, charge.workerId, charge.kind),
+    );
+  }
+
   private insertInvoiceLine(
     invoiceId: string,
     description: string,
@@ -9951,7 +10111,11 @@ export class PortalRepository {
         safeInteger(allocation.original),
         safeInteger(allocation.allocated),
         safeInteger(allocation.original - allocation.allocated),
-        'contractual_daily_minimum_top_up',
+        extraKindOf(allocation.snapshots[0]) === 'per_diem'
+          ? 'assignment_per_diem'
+          : extraKindOf(allocation.snapshots[0]) === 'allowance'
+            ? 'assignment_allowance'
+            : 'contractual_daily_minimum_top_up',
         createHash('sha256').update(allocation.snapshots.join('\n')).digest('hex'),
         createdAt,
       );

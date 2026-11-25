@@ -177,6 +177,36 @@ export function describeInvoiceOverrides(value: ResolvedInvoiceOverrides) {
   };
 }
 
+/**
+ * Invoice components a person can leave out of one invoice (owner request 2026-11-25). They are
+ * recorded as a billed quantity of zero for that component, so the existing append-only
+ * override rows, fingerprints and audit cover them: overtime is not charged (its hours stay on
+ * the invoice at no charge), per diem / allowance days stay open for a later invoice.
+ */
+export const LEAVE_OUT_COMPONENTS = ['overtime', 'per_diem', 'allowance'] as const;
+export type LeaveOutComponent = (typeof LEAVE_OUT_COMPONENTS)[number];
+
+export function componentLeftOut(
+  value: ResolvedInvoiceOverrides | null,
+  workerId: string,
+  component: LeaveOutComponent,
+): boolean {
+  return Boolean(
+    value?.people.some(
+      (person) =>
+        person.workerId === workerId &&
+        person.category === component &&
+        person.billedMinutes === 0 &&
+        person.rateMinor === null,
+    ),
+  );
+}
+
+/** Per diem / allowance rows are component switches, not billed-hours changes. */
+export function isExtraComponentOverride(person: { category: string | null }): boolean {
+  return person.category === 'per_diem' || person.category === 'allowance';
+}
+
 /** Rate for one priced slice: an exact category match wins over the person's general override. */
 export function overrideRateFor(
   value: ResolvedInvoiceOverrides | null,

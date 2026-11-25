@@ -325,6 +325,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   90: 'issuer_bank_routing_fields',
   91: 'client_project_invoice_numbers',
   92: 'invoice_versions_and_counter',
+  93: 'assignment_extras',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -333,7 +334,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  '6cd921b667a21d0b34c182fc0fa5ab2c317139351f31af2dd3b2f4526285058f';
+  'fff615dc340eea355b66bc2bae771e98ae658aa768f73e978e4b6115fab75fc2';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1199,6 +1200,12 @@ export type {
   InvoiceCompositionSourceRef,
 } from './domains/billing/invoice-composition.ts';
 export type { InvoiceOverrideInput } from './domains/billing/invoice-line-overrides.ts';
+export {
+  LEAVE_OUT_COMPONENTS,
+  componentLeftOut,
+  type LeaveOutComponent,
+} from './domains/billing/invoice-line-overrides.ts';
+export * from './domains/commercial/assignment-extras.ts';
 export {
   InvoiceLineLabels,
   expenseCategoryLabel,

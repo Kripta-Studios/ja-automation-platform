@@ -37,6 +37,12 @@ import {
   clientBillingUnit,
 } from './domains/commercial/client-labor-charge.ts';
 import { findIdenticalClientLaborRate } from './domains/commercial/client-rate-equivalence.ts';
+import {
+  AssignmentExtrasResolver,
+  overtimeRateFromExtra,
+  workerExtraCharges,
+  type ExtraCharge,
+} from './domains/commercial/assignment-extras.ts';
 import { recordAuditEvent } from './core/audit.ts';
 import { assertActiveAccount, assertLiveSession } from './core/authorization.ts';
 import { canonicalJson, sha256 as canonicalSha256 } from './core/canonical-json.ts';
@@ -2544,10 +2550,20 @@ export class V3Repository {
     return result.selected?.rule ?? null;
   }
 
-  private clientRateAmount(row: Pick<TimeRow, 'category'>, rate: LaborRateRow): bigint {
+  private clientRateAmount(
+    row: Pick<TimeRow, 'category'> & Partial<Pick<TimeRow, 'project_id' | 'worker_id' | 'work_date'>>,
+    rate: LaborRateRow,
+  ): bigint {
     if (clientBillingUnit(rate.rate_basis) !== 'hourly') return BigInt(rate.unit_rate_minor ?? '0');
     const base = BigInt(rate.hourly_rate_minor);
     if (row.category === 'overtime') {
+      // Assignment extras: the person's own overtime rate or multiplier on this project.
+      const extra =
+        row.project_id && row.worker_id && row.work_date
+          ? new AssignmentExtrasResolver(this.sqlite, row.project_id).on(row.worker_id, row.work_date)
+              ?.overtimeClient
+          : null;
+      if (extra) return overtimeRateFromExtra(extra, base) ?? base;
       if (rate.overtime_method === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME') return base;
       return overtimeRate(base, rate.overtime_method, {
         multiplierBps: rate.overtime_multiplier_bps ?? undefined,
@@ -2625,6 +2641,25 @@ export class V3Repository {
       }).minorUnits;
     }
     let rate = BigInt(rule.rate_minor);
+    // Assignment extras: the worker's own overtime rate or multiplier on this project
+    // (hourly pay only; a multiplier applies to the person's regular pay rate).
+    const overtimeExtra =
+      row.category === 'overtime' && rule.rule_type === 'Hourly' && rule.rate_basis !== 'daily'
+        ? new AssignmentExtrasResolver(this.sqlite, row.project_id).on(row.worker_id, row.work_date)
+            ?.overtimeWorker
+        : null;
+    if (overtimeExtra) {
+      const regular =
+        overtimeExtra.method === 'multiplier'
+          ? this.compensationRuleFor(row.project_id, row.worker_id, 'regular', row.work_date, row.activity_code)
+          : null;
+      const regularRate =
+        regular && regular.rule_type === 'Hourly' && regular.rate_basis !== 'daily'
+          ? BigInt(regular.rate_minor)
+          : BigInt(rule.rate_minor);
+      rate = overtimeRateFromExtra(overtimeExtra, regularRate) ?? regularRate;
+      return hourlyRateForMinutes(money(rule.currency, rate), minutes).minorUnits;
+    }
     if (row.category === 'overtime') {
       if (rule.overtime_method === 'PERCENTAGE_OF_ELIGIBLE_CLIENT_OVERTIME') {
         if (!clientRate) return 0n;
@@ -2939,6 +2974,23 @@ export class V3Repository {
       }
       if (consolidated.size === 0)
         throw new V3ValidationError('No approved time is available to settle');
+      // Assignment extras (worker side): per diem / allowance of the approved worked days,
+      // paid with the person's main pay rule. A monthly allowance is paid once per month: by
+      // the first settlement that holds approved days of that month.
+      const extraCharges = this.settlementExtraCharges(input, rows);
+      const extraTotal = extraCharges.reduce((sum, charge) => sum + charge.amountMinor, 0n);
+      if (extraTotal > 0n) {
+        const values = [...consolidated.values()];
+        const target =
+          values.find(
+            (value) =>
+              value.rule.rule_type !== 'PercentageOfEligibleClientLabor' &&
+              value.currency === extraCharges[0]!.currency,
+          ) ?? values.find((value) => value.currency === extraCharges[0]!.currency);
+        if (!target || extraCharges.some((charge) => charge.currency !== target.currency))
+          throw new V3ValidationError('Assignment extras currency does not match the pay rule');
+        target.amount += extraTotal;
+      }
       const now = timestamp();
       const settlements = [] as Array<{
         id: string;
@@ -3040,9 +3092,134 @@ export class V3Repository {
           ruleId: settlement.ruleId,
           amountMinor: settlement.amountMinor,
         })),
+        ...(extraCharges.length
+          ? {
+              assignmentExtras: extraCharges.map((charge) => ({
+                kind: charge.kind,
+                basis: charge.basis,
+                units: charge.units,
+                rateMinor: charge.rateMinor.toString(),
+                amountMinor: charge.amountMinor.toString(),
+                assignmentExtraId: charge.extraId,
+                version: charge.extraVersion,
+              })),
+            }
+          : {}),
       });
       return settlements;
     });
+  }
+
+  /** Worker-side extras of one settlement period (see settleCompensation). */
+  private settlementExtraCharges(
+    input: Readonly<{ workerId: string; projectId: string; periodStart: string; periodEnd: string }>,
+    rows: readonly TimeRow[],
+  ): ExtraCharge[] {
+    if (new AssignmentExtrasResolver(this.sqlite, input.projectId).none) return [];
+    const days = [
+      ...new Set(
+        rows
+          .filter((row) => ['approved', 'locked'].includes(row.approval_state) && row.minutes > 0)
+          .map((row) => row.work_date),
+      ),
+    ];
+    const own = this.sqlite
+      .prepare(
+        `SELECT settled_at FROM compensation_settlement WHERE worker_id=? AND project_id=?
+            AND period_start=? AND period_end=? AND state='settled' ORDER BY settled_at LIMIT 1`,
+      )
+      .get(input.workerId, input.projectId, input.periodStart, input.periodEnd) as
+      | { settled_at: string | null }
+      | undefined;
+    const skipMonths = new Set<string>();
+    for (const month of new Set(days.map((day) => day.slice(0, 7)))) {
+      // Another settlement settled before this one (or any, for a new one) that holds
+      // approved worked days of the month already paid its monthly allowance.
+      const paid = this.sqlite
+        .prepare(
+          `SELECT 1 FROM compensation_settlement s
+            WHERE s.worker_id=? AND s.project_id=? AND s.state='settled'
+              AND NOT (s.period_start=? AND s.period_end=?)
+              AND (? IS NULL OR s.settled_at<?)
+              AND EXISTS(SELECT 1 FROM time_entry t WHERE t.project_id=s.project_id AND t.worker_id=s.worker_id
+                    AND t.approval_state IN ('approved','locked') AND t.minutes>0
+                    AND t.work_date BETWEEN s.period_start AND s.period_end
+                    AND substr(t.work_date,1,7)=?) LIMIT 1`,
+        )
+        .get(
+          input.workerId,
+          input.projectId,
+          input.periodStart,
+          input.periodEnd,
+          own?.settled_at ?? null,
+          own?.settled_at ?? null,
+          month,
+        );
+      if (paid) skipMonths.add(month);
+    }
+    return workerExtraCharges(this.sqlite, {
+      projectId: input.projectId,
+      workerId: input.workerId,
+      days,
+      skipMonths,
+    });
+  }
+
+  /**
+   * Worker-side extras of a My Pay period, per project: approved and waiting days. A monthly
+   * allowance shows in the period holding the first worked day of that month.
+   */
+  private workerPayExtras(
+    workerId: string,
+    rows: readonly TimeRow[],
+  ): Array<{
+    projectId: string;
+    state: 'approved' | 'pending';
+    charges: ExtraCharge[];
+  }> {
+    const result: Array<{ projectId: string; state: 'approved' | 'pending'; charges: ExtraCharge[] }> = [];
+    for (const projectId of new Set(rows.map((row) => row.project_id))) {
+      if (new AssignmentExtrasResolver(this.sqlite, projectId).none) continue;
+      const mine = rows.filter((row) => row.project_id === projectId && row.minutes > 0);
+      const approved = new Set(
+        mine
+          .filter((row) => ['approved', 'locked'].includes(row.approval_state))
+          .map((row) => row.work_date),
+      );
+      const pending = new Set(
+        mine
+          .filter((row) => isAwaitingApproval(row.approval_state) && !approved.has(row.work_date))
+          .map((row) => row.work_date),
+      );
+      const firstDay = (month: string) =>
+        (
+          this.sqlite
+            .prepare(
+              `SELECT MIN(work_date) day FROM time_entry WHERE project_id=? AND worker_id=?
+                  AND substr(work_date,1,7)=? AND minutes>0 AND approval_state NOT IN ('rejected','void','draft','needs_changes')`,
+            )
+            .get(projectId, workerId, month) as { day: string | null } | undefined
+        )?.day ?? null;
+      const months = new Set([...approved, ...pending].map((day) => day.slice(0, 7)));
+      const anchors = new Map([...months].map((month) => [month, firstDay(month)] as const));
+      const skipUnless = (days: Set<string>) =>
+        new Set([...months].filter((month) => !days.has(anchors.get(month) ?? '')));
+      const approvedCharges = workerExtraCharges(this.sqlite, {
+        projectId,
+        workerId,
+        days: [...approved],
+        skipMonths: skipUnless(approved),
+      });
+      const pendingCharges = workerExtraCharges(this.sqlite, {
+        projectId,
+        workerId,
+        days: [...pending],
+        skipMonths: skipUnless(pending),
+      });
+      if (approvedCharges.length) result.push({ projectId, state: 'approved', charges: approvedCharges });
+      if (pendingCharges.length) result.push({ projectId, state: 'pending', charges: pendingCharges });
+    }
+    return result;
   }
 
   private eligibleLaborForSettlement(
@@ -4099,6 +4276,14 @@ export class V3Repository {
         }
       }
     }
+    const payExtras = this.workerPayExtras(workerId, rows);
+    for (const group of payExtras)
+      for (const charge of group.charges)
+        addProjectAmount(
+          group.state === 'approved' ? approvedByProject : pendingByProject,
+          group.projectId,
+          charge.amountMinor,
+        );
     const reimbursementRows = this.sqlite
       .prepare(
         `SELECT e.approval_state,e.currency,
@@ -4229,6 +4414,19 @@ export class V3Repository {
       settlementTriggers: [...settlementTriggers],
       missingCompensationRules: missingRules,
       projectProgress,
+      // Worker-side assignment extras included in the estimates above (own pay only).
+      extras: payExtras.flatMap((group) =>
+        group.charges.map((charge) => ({
+          projectId: group.projectId,
+          state: group.state,
+          kind: charge.kind,
+          basis: charge.basis,
+          units: charge.units.length,
+          rateMinor: charge.rateMinor.toString(),
+          amountMinor: charge.amountMinor.toString(),
+          currency: charge.currency,
+        })),
+      ),
       label: 'Estimated project compensation',
     };
   }
@@ -4519,7 +4717,15 @@ export class V3Repository {
               );
         const usableRate = selectedRate?.currency === project.currency ? selectedRate : null;
         const rateMinor = usableRate
-          ? this.clientRateAmount({ category: slice.category }, usableRate)
+          ? this.clientRateAmount(
+              {
+                category: slice.category,
+                project_id: projectId,
+                worker_id: row.worker_id,
+                work_date: row.work_date,
+              },
+              usableRate,
+            )
           : null;
         return { ...slice, rate: usableRate, rateMinor };
       });

@@ -77,6 +77,29 @@ export const load: PageServerLoad = ({ locals, url }) => {
           visible.projectIds,
         ),
       });
+      // T27 (round 2): records sent back on any date, not only this week, so Home says so.
+      const returnedTime = context.repository
+        .listTimeForScope(context.principal, {})
+        .filter(
+          (row) =>
+            String(row.worker_id) === context.principal.userId &&
+            row.approval_state === 'needs_changes' &&
+            !row.active_correction_id,
+        )
+        .map((row) => String(row.work_date ?? '').slice(0, 10))
+        .sort();
+      const returnedExpenses = context.repository
+        .listExpensesForScope(context.principal)
+        .filter(
+          (row) =>
+            String(row.worker_id) === context.principal.userId &&
+            row.approval_state === 'needs_changes',
+        ).length;
+      workerWeek.returned = {
+        time: returnedTime.length,
+        expenses: returnedExpenses,
+        firstTimeDate: returnedTime[0] ?? null,
+      };
       return {
         workerWeek,
         user: { ...locals.user, canonicalOwner: assistantCanonicalOwner(locals.user) },

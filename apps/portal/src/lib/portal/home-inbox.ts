@@ -246,6 +246,8 @@ export type WorkerWeekStatus = {
     needsChanges: number;
     totals: CurrencyTotal[];
   };
+  /** Records sent back for changes on any date (T27 round 2): Home points to them. */
+  returned?: { time: number; expenses: number; firstTimeDate: string | null };
 };
 
 const stateKey = (state: string): 'draft' | 'submitted' | 'approved' | 'needsChanges' | null =>

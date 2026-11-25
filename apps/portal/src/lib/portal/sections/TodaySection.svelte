@@ -497,6 +497,18 @@
       <h2 id="agenda-heading" class="worker-home-heading">
         {week ? h('thisWeek', { range: weekRange }) : h('workerTitle')}
       </h2>
+      {#if week?.returned && week.returned.time + week.returned.expenses > 0}
+        <a
+          class="worker-home-returned"
+          role="status"
+          href={week.returned.time > 0
+            ? link('time', week.returned.firstTimeDate ? { day: week.returned.firstTimeDate } : {})
+            : link('expenses')}
+          data-home-returned
+          >{h('returnedRecords', { count: week.returned.time + week.returned.expenses })}
+          <strong>{h('returnedOpen')} <DirectionIcon /></strong></a
+        >
+      {/if}
       <div class="worker-home-actions">
         <a
           class="worker-home-card worker-home-card--primary"
@@ -874,6 +886,19 @@
   .worker-home-heading {
     margin: 0;
     font-size: 1.125rem;
+  }
+  .worker-home-returned {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e3b25a;
+    border-radius: 0.75rem;
+    background: #fdecc8;
+    color: #6b3d00;
+    text-decoration: none;
   }
   .worker-home-actions {
     display: grid;

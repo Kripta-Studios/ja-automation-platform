@@ -10657,6 +10657,26 @@ export class PortalRepository {
       )
         throw new ValidationError('Invoice business dates or payment terms are invalid');
       const due = `${businessDates.dueDate}T00:00:00.000Z`;
+      // D15: the purchase numbers a credit note prints are those of the invoice it credits.
+      const creditNoteOriginalPo = (() => {
+        if (!creditNoteFor) return { purchaseNo: null, projectPo: null };
+        try {
+          const original = JSON.parse(
+            String(
+              (
+                this.sqlite
+                  .prepare('SELECT snapshot_json FROM invoice WHERE id=?')
+                  .get(creditNoteFor.invoiceId) as { snapshot_json: string | null } | undefined
+              )?.snapshot_json ?? '{}',
+            ),
+          ) as { purchaseNo?: unknown; project?: { poNumber?: unknown } };
+          const text = (value: unknown) =>
+            typeof value === 'string' && value.trim() ? value : null;
+          return { purchaseNo: text(original.purchaseNo), projectPo: text(original.project?.poNumber) };
+        } catch {
+          return { purchaseNo: null, projectPo: null };
+        }
+      })();
       const snapshot = {
         template: {
           id: controlledInvoiceTemplateId(context.template_id, invoice.stream_type),
@@ -10710,28 +10730,13 @@ export class PortalRepository {
           number: context.project_number,
           name: context.project_name,
           costCenterCode: context.cost_center_code,
-          poNumber: context.po_number_override ?? context.po_number,
+          poNumber: creditNoteFor
+            ? creditNoteOriginalPo.projectPo
+            : (context.po_number_override ?? context.po_number),
         },
         // D15 (round 2): a credit note prints the purchase number of the invoice it credits.
         purchaseNo: creditNoteFor
-          ? (() => {
-              try {
-                const original = JSON.parse(
-                  String(
-                    (
-                      this.sqlite
-                        .prepare('SELECT snapshot_json FROM invoice WHERE id=?')
-                        .get(creditNoteFor.invoiceId) as { snapshot_json: string | null } | undefined
-                    )?.snapshot_json ?? '{}',
-                  ),
-                ) as { purchaseNo?: unknown };
-                return typeof original.purchaseNo === 'string' && original.purchaseNo.trim()
-                  ? original.purchaseNo
-                  : null;
-              } catch {
-                return null;
-              }
-            })()
+          ? creditNoteOriginalPo.purchaseNo
           : (draftCustomizations.purchaseNo ??
             context.po_number_override ??
             context.po_number ??
@@ -12339,11 +12344,12 @@ export class PortalRepository {
               .prepare(
                 `SELECT ae.details_json,u.name actor_name FROM audit_event ae
                    LEFT JOIN user u ON u.id=ae.actor_id
-                  WHERE ae.action='issuer_document_settings.update' AND ae.entity_id LIKE ? ESCAPE '\\'
-                    AND ae.occurred_at<=?
+                  WHERE ae.entity_type='issuer_document_settings' AND ae.entity_id=?
+                    AND ae.action='issuer_document_settings.update' AND ae.occurred_at<=?
                   ORDER BY ae.occurred_at DESC,ae.id DESC LIMIT 1`,
               )
-              .get(`${entity.id.replace(/[\\%_]/gu, '\\$&')}:%`, row.created_at) as
+              // The notice subject is "<legal entity>:<currency>:v<version>".
+              .get(row.subject_id.split(':').slice(0, 2).join(':'), row.created_at) as
               | { details_json: string | null; actor_name: string | null }
               | undefined)
           : undefined;

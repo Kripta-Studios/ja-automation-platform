@@ -40,7 +40,7 @@ const en = {
   confirmSubmit: 'Yes, submit week',
   nothingToSubmit: 'There are no draft hours to submit this week.',
   delegatedSubmitHint:
-    'These hours are saved as drafts for this person. They (or their crew chief) send them for approval; the owner can also send them.',
+    'Saved as drafts for this person. Only they, their crew chief or the owner can send them for approval. If they cannot sign in, ask the owner to send them.',
   statusDraft: 'Draft',
   statusSubmitted: 'Submitted',
   statusApproved: 'Approved',
@@ -279,7 +279,7 @@ const es: Record<CopyKey, string> = {
   confirmSubmit: 'Sí, enviar semana',
   nothingToSubmit: 'No hay horas en borrador para enviar esta semana.',
   delegatedSubmitHint:
-    'Estas horas quedan como borrador para esta persona. Ella (o su jefe de cuadrilla) las envía a aprobación; el propietario también puede enviarlas.',
+    'Guardadas como borrador para esta persona. Solo ella, su jefe de cuadrilla o el propietario pueden enviarlas a aprobación. Si no puede iniciar sesión, pide al propietario que las envíe.',
   statusDraft: 'Borrador',
   statusSubmitted: 'Enviado',
   statusApproved: 'Aprobado',
@@ -516,7 +516,7 @@ const pt: Record<CopyKey, string> = {
   confirmSubmit: 'Sim, enviar semana',
   nothingToSubmit: 'Não há horas em rascunho para enviar nesta semana.',
   delegatedSubmitHint:
-    'Estas horas ficam como rascunho para esta pessoa. Ela (ou o chefe de equipe) as envia para aprovação; o proprietário também pode enviá-las.',
+    'Salvas como rascunho para esta pessoa. Só ela, o chefe de equipe ou o proprietário podem enviá-las para aprovação. Se ela não consegue entrar, peça ao proprietário que as envie.',
   statusDraft: 'Rascunho',
   statusSubmitted: 'Enviado',
   statusApproved: 'Aprovado',

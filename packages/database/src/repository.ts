@@ -15341,6 +15341,7 @@ export class PortalRepository {
     assignmentId: string,
     input: Partial<Omit<AssignmentInput, 'projectId' | 'workerId'>> & {
       version: number;
+      assignmentRole?: string;
       resolveOutsideTime?: boolean;
       reason?: string;
     },

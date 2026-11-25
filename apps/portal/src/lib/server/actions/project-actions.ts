@@ -2341,6 +2341,7 @@ export const projectActions = {
       endsOn?: string;
       plannedMinutes?: number;
       canReview?: boolean;
+      assignmentRole?: string;
       version: number;
       resolveOutsideTime?: boolean;
       reason?: string;
@@ -2362,6 +2363,8 @@ export const projectActions = {
     }
     if (formData.has('canReviewPresent') || formData.has('canReview'))
       input.canReview = formData.get('canReview')?.toString() === 'on';
+    const assignmentRole = formData.get('assignmentRole')?.toString().trim();
+    if (assignmentRole) input.assignmentRole = assignmentRole;
     input.version = version;
 
     const context = openPortalRepository(locals);

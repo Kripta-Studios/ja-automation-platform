@@ -255,6 +255,36 @@ describe('worker assignment finance terms', () => {
     });
   });
 
+  it('updates the assignment role from the edit form and explains a refused role', async () => {
+    const value = fixture();
+    const row = (userId: string) =>
+      value.sqlite
+        .prepare('SELECT id,version,assignment_role FROM project_member WHERE project_id=? AND user_id=?')
+        .get(value.project.id, userId) as { id: string; version: number; assignment_role: string };
+    const manager = row('b5-manager');
+    expect(
+      await projectActions.updateAssignment(
+        event({
+          assignmentId: manager.id,
+          version: String(manager.version),
+          assignmentRole: 'project_manager',
+        }),
+      ),
+    ).toMatchObject({ success: true });
+    expect(row('b5-manager').assignment_role).toBe('project_manager');
+
+    const worker = row('b5-worker');
+    const refused = await projectActions.updateAssignment(
+      event({
+        assignmentId: worker.id,
+        version: String(worker.version),
+        assignmentRole: 'project_manager',
+      }),
+    );
+    expect(refused).toMatchObject({ status: 400 });
+    expect(row('b5-worker')).toMatchObject({ assignment_role: 'worker', version: worker.version });
+  });
+
   it('rolls back the assignment and internal cost if compensation creation fails', async () => {
     const value = fixture();
     vi.spyOn(value.v3, 'createCompensationRule').mockImplementation(() => {

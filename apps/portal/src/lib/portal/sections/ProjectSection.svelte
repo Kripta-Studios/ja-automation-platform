@@ -1303,6 +1303,30 @@
                           )}
                         />
                       </label>
+                      {#if value(assignment, 'assignment_role') !== 'supplier_coordinator'}
+                        {@const roleValue = assignmentRetainedValue(
+                          assignmentFormData,
+                          'updateAssignment',
+                          value(assignment, 'id'),
+                          'assignmentRole',
+                          value(assignment, 'assignment_role') || 'worker',
+                        )}
+                        <label>
+                          <span>{translate('Role')}</span>
+                          <select name="assignmentRole" data-assignment-role>
+                            <option value="worker" selected={roleValue === 'worker'}
+                              >{translate('Worker')}</option
+                            >
+                            {#if value(assignment, 'worker_account_role') === 'project_manager' || value(assignment, 'assignment_role') === 'project_manager'}
+                              <option
+                                value="project_manager"
+                                selected={roleValue === 'project_manager'}
+                                >{translate('Project manager')}</option
+                              >
+                            {/if}
+                          </select>
+                        </label>
+                      {/if}
                       <button type="submit">{translate('Update assignment')}</button>
                     </form>
                   </details>

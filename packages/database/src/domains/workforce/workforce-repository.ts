@@ -8,6 +8,7 @@ type AssignmentRow = Readonly<{
   id: string;
   project_id: string;
   user_id: string;
+  assignment_role: string;
   starts_on: string;
   ends_on: string | null;
   planned_minutes: number | null;
@@ -973,6 +974,8 @@ export class WorkforceRepository {
       endsOn?: string;
       plannedMinutes?: number;
       canReview?: boolean;
+      /** Role on this project: worker or project manager (same choices as when adding people). */
+      assignmentRole?: string;
       version: number;
       /**
        * Unapproved, unlocked hours that the new dates leave outside are
@@ -1014,8 +1017,15 @@ export class WorkforceRepository {
         input.plannedMinutes !== undefined
           ? input.plannedMinutes || null
           : existing.planned_minutes;
+      const assignmentRole = this.resolveAssignmentRole(principal, existing, input.assignmentRole);
       const canReview =
-        input.canReview !== undefined ? (input.canReview ? 1 : 0) : existing.can_review;
+        input.canReview !== undefined
+          ? input.canReview
+            ? 1
+            : 0
+          : assignmentRole === 'project_manager' && existing.assignment_role !== 'project_manager'
+            ? 1
+            : existing.can_review;
 
       assertDate(startsOn, 'Start date', this.deps.errors.validation);
       if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
@@ -1063,7 +1073,7 @@ export class WorkforceRepository {
 
       const changed = this.deps.sqlite
         .prepare(
-          'UPDATE project_member SET status=?, starts_on=?, ends_on=?, planned_minutes=?, can_review=?, updated_at=?, version=version+1 WHERE id=? AND status=? AND version=?',
+          'UPDATE project_member SET status=?, starts_on=?, ends_on=?, planned_minutes=?, can_review=?, assignment_role=?, updated_at=?, version=version+1 WHERE id=? AND status=? AND version=?',
         )
         .run(
           status,
@@ -1071,6 +1081,7 @@ export class WorkforceRepository {
           endsOn,
           plannedMinutes,
           canReview,
+          assignmentRole,
           this.deps.now(),
           id,
           existing.status,
@@ -1093,11 +1104,46 @@ export class WorkforceRepository {
         workerId: existing.user_id,
         startsOn: { from: existing.starts_on, to: startsOn },
         endsOn: { from: existing.ends_on, to: endsOn },
+        ...(assignmentRole !== existing.assignment_role
+          ? { assignmentRole: { from: existing.assignment_role, to: assignmentRole } }
+          : {}),
         ...(status !== existing.status ? { reopened: true } : {}),
         ...(resolvedOutsideTime ? { resolvedOutsideTime } : {}),
         ...(input.auditDetails ?? {}),
       });
     });
+  }
+
+  /**
+   * The role an assignment edit may set. The choices are the ones used when people are
+   * added to a project: "worker", or "project_manager" for a person whose account is a
+   * project manager. Supplier coordinator scopes keep their role, and a project manager
+   * cannot change the role of their own assignment.
+   */
+  private resolveAssignmentRole(
+    principal: Principal,
+    existing: AssignmentRow,
+    requested: string | undefined,
+  ): string {
+    const current = String(existing.assignment_role);
+    const role = requested?.trim();
+    if (!role || role === current) return current;
+    if (role !== 'worker' && role !== 'project_manager')
+      throw this.deps.errors.validation('Choose worker or project manager as the role');
+    if (current === 'supplier_coordinator')
+      throw this.deps.errors.conflict('A supplier coordinator assignment keeps its role');
+    if (principal.role === 'project_manager' && existing.user_id === principal.userId)
+      throw this.deps.errors.accessDenied('Ask the owner to change your own role on this project');
+    if (role === 'project_manager') {
+      const person = this.deps.sqlite
+        .prepare('SELECT role FROM user WHERE id=?')
+        .get(existing.user_id) as { role: string } | undefined;
+      if (person?.role !== 'project_manager')
+        throw this.deps.errors.validation(
+          'Only a person with a project manager account can be project manager on a project',
+        );
+    }
+    return role;
   }
 
   /**
@@ -1465,7 +1511,8 @@ export class WorkforceRepository {
         `SELECT pm.id,pm.project_id,pm.user_id,pm.assignment_role,pm.starts_on,pm.ends_on,
                 pm.planned_minutes,pm.can_review,pm.status,pm.version,
                 ${this.poColumn() ? 'pm.po_number' : 'NULL po_number'},
-                p.project_number,p.name project_name,u.name worker_name,u.email worker_email
+                p.project_number,p.name project_name,u.name worker_name,u.email worker_email,
+                u.role worker_account_role
          FROM project_member pm
          JOIN project p ON p.id=pm.project_id
          JOIN user u ON u.id=pm.user_id

@@ -6009,6 +6009,25 @@
                         )}
                       /></label
                     >
+                    {#if String(assignment.assignment_role ?? 'worker') !== 'supplier_coordinator'}
+                      {@const roleValue = assignmentEditValue(
+                        'assignmentRole',
+                        assignment.id,
+                        String(assignment.assignment_role ?? 'worker'),
+                      )}
+                      <label
+                        >{translate('Role')}<select name="assignmentRole" data-assignment-role>
+                          <option value="worker" selected={roleValue === 'worker'}
+                            >{translate('Worker')}</option
+                          >
+                          {#if assignment.worker_account_role === 'project_manager' || assignment.assignment_role === 'project_manager'}
+                            <option value="project_manager" selected={roleValue === 'project_manager'}
+                              >{translate('Project manager')}</option
+                            >
+                          {/if}
+                        </select></label
+                      >
+                    {/if}
                     <ProjectBudgetInput
                       name="plannedMinutes"
                       label={translate('Planned hours')}

@@ -608,9 +608,10 @@
             {/if}
           </div>
           <div class="localized-pdf-variant-actions">
-            {#if variant?.sourceCurrent === false}<span>{t('Generate a current PDF')}</span
+            {#if variant?.sourceCurrent === false}<span
+                >{t(readOnly ? 'Outdated' : 'Generate a current PDF')}</span
               >{:else if variant && !currentLayout(variant)}
-              <span>{t('pdf.generateCurrentLayout')}</span>
+              <span>{t(readOnly ? 'pdf.earlierLayout' : 'pdf.generateCurrentLayout')}</span>
             {:else if variant?.status === 'ready'}
               <a
                 href={localizedPdfDownloadUrl(base, variant.variantId)}
@@ -666,7 +667,13 @@
               <span>{String(variant.templateVersion ?? '')}</span>
             </div>
             {#if variant.sourceCurrent === false}
-              <span>{t('The source changed. Generate a current PDF before downloading.')}</span>
+              <span
+                >{t(
+                  readOnly
+                    ? 'problem.localizedPdf.outdatedReadOnly'
+                    : 'The source changed. Generate a current PDF before downloading.',
+                )}</span
+              >
             {:else}
               <a
                 href={localizedPdfDownloadUrl(base, variant.variantId)}

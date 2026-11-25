@@ -222,8 +222,17 @@
     ),
   );
   const invoiceBalance = $derived(
-    (data as { balance?: { outstandingMinor: string; collectedMinor: string; currency: string } | null })
-      .balance ?? null,
+    (
+      data as {
+        balance?: {
+          outstandingMinor: string;
+          collectedMinor: string;
+          creditedMinor?: string;
+          currency: string;
+          history?: Array<{ kind: 'payment' | 'reversal'; date: string; amountMinor: string }>;
+        } | null;
+      }
+    ).balance ?? null,
   );
   /** T60: an overdue invoice with a payment reads "Overdue · Partly paid" everywhere. */
   const overduePartlyPaid = $derived(
@@ -234,6 +243,16 @@
   );
   let paymentOpen = $state(false);
   let paymentNotice = $state('');
+  /** Calendar day in the reader's language ("24 Nov 2026"), not ISO. */
+  const dateLabel = (day: string) =>
+    /^\d{4}-\d{2}-\d{2}$/u.test(day)
+      ? new Intl.DateTimeFormat(documentLanguage(locale), {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(`${day}T00:00:00Z`))
+      : day;
   const paymentFormat = (minor: unknown, currency?: string) =>
     paymentMoney(minor, currency, documentLanguage(locale));
   type IssueCheck =
@@ -1053,6 +1072,31 @@
     href={`${base}/app/billing/invoices/${encodeURIComponent(invoiceId)}/preview-style`}
   /></svelte:head
 >
+{#snippet balanceBlock(balance: NonNullable<typeof invoiceBalance>)}
+  <p class="invoice-lifecycle__balance" data-invoice-balance>
+    {moneyText(locale, 'balance')}:
+    <strong>{paymentFormat(balance.outstandingMinor, balance.currency)}</strong>
+    {#if BigInt(balance.collectedMinor) > 0n}
+      · {moneyText(locale, 'collected')}: {paymentFormat(balance.collectedMinor, balance.currency)}
+    {/if}
+    {#if BigInt(balance.creditedMinor ?? '0') > 0n}
+      · {q('creditNotesApplied')}: −{paymentFormat(balance.creditedMinor, balance.currency)}
+    {/if}
+  </p>
+  {#if balance.history?.length}
+    <details class="invoice-lifecycle__help" data-invoice-payment-history>
+      <summary>{q('historyTitle')} ({balance.history.length})</summary>
+      <ul>
+        {#each balance.history as item, index (index)}
+          <li>
+            {dateLabel(item.date)} · {q(item.kind === 'payment' ? 'historyPayment' : 'historyReversal')} ·
+            {item.kind === 'reversal' ? '−' : ''}{paymentFormat(item.amountMinor, balance.currency)}
+          </li>
+        {/each}
+      </ul>
+    </details>
+  {/if}
+{/snippet}
 <main class="invoice-preview-page">
   <header class="invoice-page-heading no-print">
     <h1>{invoice.invoice_number || (isCreditNote ? q('draftCreditNote') : t('Draft invoice'))}</h1>
@@ -1252,7 +1296,10 @@
                       : isCreditNote
                         ? 'creditNoteIssuedTitle'
                         : 'issuedTitle',
-            )}{overduePartlyPaid ? ` · ${q('partlyPaidTitle')}` : ''} · {invoice.invoice_number}
+            )}{overduePartlyPaid ? ` · ${q('partlyPaidTitle')}` : ''}{invoiceState === 'overdue' &&
+            !invoiceSentAt
+              ? ` · ${q('notSentYet')}`
+              : ''} · {invoice.invoice_number}
           </p>
           <strong>{invoiceTotalText}</strong>
           <span
@@ -1303,15 +1350,7 @@
           >
         </div>
       </div>
-      {#if invoiceBalance}
-        <p class="invoice-lifecycle__balance" data-invoice-balance>
-          {moneyText(locale, 'balance')}:
-          <strong>{paymentFormat(invoiceBalance.outstandingMinor, invoiceBalance.currency)}</strong>
-          {#if BigInt(invoiceBalance.collectedMinor) > 0n}
-            · {moneyText(locale, 'collected')}: {paymentFormat(invoiceBalance.collectedMinor, invoiceBalance.currency)}
-          {/if}
-        </p>
-      {/if}
+      {#if invoiceBalance}{@render balanceBlock(invoiceBalance)}{/if}
       {#if paymentNotice}<p class="invoice-lifecycle__balance" role="status" data-invoice-payment-notice>{paymentNotice}</p>{/if}
       {#if paymentOpen && invoiceBalance && BigInt(invoiceBalance.outstandingMinor) > 0n}
         <RecordPaymentForm
@@ -1337,6 +1376,30 @@
           {pdfStatus === 'ready' ? q('issuedHelp') : q('markSentWaiting')}
         </p>
       {/if}
+    </section>
+  {/if}
+  {#if !canManageInvoice && invoiceBalance && ['issued', 'sent', 'partially_paid', 'overdue', 'paid'].includes(invoiceState)}
+    <!-- T12 round 2: read-only roles see the balance, credit notes and payment history too. -->
+    <section class="invoice-lifecycle no-print" aria-labelledby="invoice-readonly-heading" data-invoice-readonly-balance>
+      <div class="invoice-lifecycle__summary">
+        <p id="invoice-readonly-heading" class="invoice-lifecycle__eyebrow">
+          {q(
+            invoiceState === 'paid'
+              ? 'paidTitle'
+              : invoiceState === 'partially_paid'
+                ? 'partlyPaidTitle'
+                : invoiceState === 'overdue'
+                  ? 'overdueTitle'
+                  : invoiceState === 'sent'
+                    ? 'sentTitle'
+                    : isCreditNote
+                      ? 'creditNoteIssuedTitle'
+                      : 'issuedTitle',
+          )} · {invoice.invoice_number}
+        </p>
+        <strong>{invoiceTotalText}</strong>
+      </div>
+      {@render balanceBlock(invoiceBalance)}
     </section>
   {/if}
   {#if canManageInvoice && invoiceState === 'void' && invoice.stream_type !== 'adjustment' && invoice.project_id && invoice.period_start && invoice.period_end}

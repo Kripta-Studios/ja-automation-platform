@@ -24,8 +24,14 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
         ? context.repository.invoiceIssueDryRun(context.principal, params.id)
         : null;
     // Current balance for the one-step "Record payment" panel (finance roles only).
-    let balance: { outstandingMinor: string; collectedMinor: string; currency: string } | null =
-      null;
+    let balance: {
+      outstandingMinor: string;
+      collectedMinor: string;
+      creditedMinor: string;
+      currency: string;
+      /** Payments and reversals in date order, for the read-only history (T12 round 2). */
+      history: Array<{ kind: 'payment' | 'reversal'; date: string; amountMinor: string }>;
+    } | null = null;
     if (
       ['issued', 'sent', 'partially_paid', 'overdue', 'paid'].includes(state) &&
       ['owner_admin', 'finance_admin', 'auditor_read_only'].includes(context.principal.role)
@@ -38,7 +44,20 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           // What the client still owes: net of payments and of credit notes (T12).
           outstandingMinor: String(row.netOutstandingMinor ?? row.outstandingMinor),
           collectedMinor: String(row.collectedMinor),
+          creditedMinor: String(row.appliedCreditMinor ?? '0'),
           currency: String(row.currency),
+          history: [
+            ...((row.payments ?? []) as Array<Record<string, unknown>>).map((payment) => ({
+              kind: 'payment' as const,
+              date: String(payment.received_at ?? '').slice(0, 10),
+              amountMinor: String(payment.grossAmountMinor ?? '0'),
+            })),
+            ...((row.paymentReversals ?? []) as Array<Record<string, unknown>>).map((reversal) => ({
+              kind: 'reversal' as const,
+              date: String(reversal.effectiveAt ?? '').slice(0, 10),
+              amountMinor: String(reversal.amountMinor ?? '0'),
+            })),
+          ].sort((a, b) => a.date.localeCompare(b.date)),
         };
     }
     return {

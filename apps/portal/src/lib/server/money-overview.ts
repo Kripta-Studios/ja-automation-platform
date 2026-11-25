@@ -91,6 +91,10 @@ export function buildMoneyOverview(
 
   type Totals = {
     invoiced: bigint;
+    /** Credit notes issued in the period (negative totals, already inside `invoiced`). */
+    credited: bigint;
+    /** Approved minutes still waiting for a client billing decision (no revenue yet). */
+    billingDecisionMinutes: number;
     collected: bigint;
     outstanding: bigint;
     overdue: bigint;
@@ -110,6 +114,8 @@ export function buildMoneyOverview(
     if (!row) {
       row = {
         invoiced: 0n,
+        credited: 0n,
+        billingDecisionMinutes: 0,
         collected: 0n,
         outstanding: 0n,
         overdue: 0n,
@@ -141,6 +147,7 @@ export function buildMoneyOverview(
     const projectId = String(invoice.projectId);
     if (state !== 'void' && inPeriod(invoice.issueDate)) {
       row.invoiced += big(invoice.totalMinor);
+      if (big(invoice.totalMinor) < 0n) row.credited += big(invoice.totalMinor);
       projectInvoiced.set(
         projectId,
         (projectInvoiced.get(projectId) ?? 0n) + big(invoice.totalMinor),
@@ -204,6 +211,8 @@ export function buildMoneyOverview(
     row.laborCost += labor;
     row.expenseCost += expense;
     row.workValue += workValue;
+    const billingDecisionMinutes = Number(project.billingDecisionMinutes ?? 0);
+    row.billingDecisionMinutes += billingDecisionMinutes;
     const cost = labor + expense;
     const open = projectOpen.get(projectId) ?? { outstanding: 0n, overdue: 0n };
     const unbilled = unbilledByProject.get(projectId) ?? 0n;
@@ -227,6 +236,7 @@ export function buildMoneyOverview(
       costMinor: cost.toString(),
       marginMinor: (workValue - cost).toString(),
       marginBps: workValue === 0n ? null : (((workValue - cost) * 10_000n) / workValue).toString(),
+      billingDecisionMinutes,
       readyToInvoiceMinor: unbilled.toString(),
       inDraftMinor: inDraft.toString(),
       outstandingMinor: open.outstanding.toString(),
@@ -276,6 +286,8 @@ export function buildMoneyOverview(
       return {
         currency,
         invoicedMinor: row.invoiced.toString(),
+        creditedMinor: row.credited.toString(),
+        billingDecisionMinutes: row.billingDecisionMinutes,
         collectedMinor: row.collected.toString(),
         outstandingMinor: row.outstanding.toString(),
         overdueMinor: row.overdue.toString(),

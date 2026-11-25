@@ -4350,6 +4350,9 @@ export class V3Repository {
     let billableMinutes = 0;
     let approvedMinutes = 0;
     let unapprovedMinutes = 0;
+    // Approved hours whose client billing is not decided yet (billability pending): they
+    // cost money now but add no revenue until finance decides (audit round 2, NEW-1).
+    let billingDecisionMinutes = 0;
     let overtimeMinutes = 0;
     let standbyMinutes = 0;
     let travelMinutes = 0;
@@ -4394,6 +4397,7 @@ export class V3Repository {
       const approved = row.approval_state === 'approved' || row.approval_state === 'locked';
       if (approved) {
         approvedMinutes += row.minutes;
+        if (row.billability_state === 'pending') billingDecisionMinutes += row.minutes;
         overtimeMinutes += clientSlices
           .filter((slice) => slice.category === 'overtime')
           .reduce((sum, slice) => sum + slice.minutes, 0);
@@ -5350,6 +5354,7 @@ export class V3Repository {
       approvedMinutes,
       billableMinutes,
       unapprovedMinutes,
+      billingDecisionMinutes,
       overtimeMinutes,
       standbyMinutes,
       travelMinutes,

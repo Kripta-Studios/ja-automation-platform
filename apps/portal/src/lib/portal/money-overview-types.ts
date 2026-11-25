@@ -9,7 +9,12 @@ export const moneyPeriodKeys: readonly MoneyPeriodKey[] = [
 /** Exact minor-unit strings; one entry per currency, never combined. */
 export type MoneyCurrencyTotals = {
   currency: string;
+  /** Net of credit notes issued in the period. */
   invoicedMinor: string;
+  /** Credit notes issued in the period (zero or negative; already inside invoicedMinor). */
+  creditedMinor: string;
+  /** Approved minutes whose client billing is not decided yet: costed, no revenue yet. */
+  billingDecisionMinutes: number;
   collectedMinor: string;
   outstandingMinor: string;
   overdueMinor: string;
@@ -43,6 +48,8 @@ export type MoneyProjectRow = {
   costMinor: string;
   marginMinor: string;
   marginBps: string | null;
+  /** Approved minutes whose client billing is not decided yet (see MoneyCurrencyTotals). */
+  billingDecisionMinutes: number;
   readyToInvoiceMinor: string;
   /** Approved work already on an unissued draft (not counted as ready). */
   inDraftMinor: string;

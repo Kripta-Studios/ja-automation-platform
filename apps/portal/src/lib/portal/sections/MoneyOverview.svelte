@@ -65,6 +65,8 @@
       project.expensesWaiting.totals.map((total) => money(total.minor, total.currency)).join(' + '),
     );
   const currencies = $derived(overview.currencies.filter(hasMoney));
+  /** H:MM, the hours format used everywhere else. */
+  const hoursText = (minutes: number) => `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
   // The server sends one page of projects with activity (most money waiting first).
   const active = $derived(overview.projects);
   const list = $derived(overview.projectList);
@@ -116,6 +118,9 @@
           <span>{t('invoiced')}</span>
           <strong>{money(row.invoicedMinor, row.currency)}</strong>
           <small>{t('invoicedHelp')}</small>
+          {#if big(row.creditedMinor) < 0n}<small data-money-credited
+              >{t('invoicedCredited', { amount: money((-big(row.creditedMinor)).toString(), row.currency) })}</small
+            >{/if}
         </article>
         <article class="money__card" data-money-metric="collected">
           <span>{t('collected')}</span>
@@ -165,6 +170,9 @@
               ? t('marginNone')
               : t('marginHelp', { value: money(row.workValueMinor, row.currency) })}</small
           >
+          {#if row.billingDecisionMinutes > 0}<small data-money-billing-decision
+              >{t('marginDecision', { hours: hoursText(row.billingDecisionMinutes) })}</small
+            >{/if}
         </article>
         {#if big(row.readyToInvoiceMinor) > 0n || big(row.inDraftMinor) > 0n || row.expensesWaitingCount > 0}
           {@const waitingNote = expensesNote(row.expensesWaitingCount, money(row.expensesWaitingMinor, row.currency))}
@@ -270,7 +278,12 @@
                 <td
                   class="num"
                   class:neg={big(project.marginMinor) < 0n}
-                  data-label={t('marginPct')}>{percent(project.marginBps)}</td
+                  data-label={t('marginPct')}
+                  >{percent(project.marginBps)}{#if project.billingDecisionMinutes > 0}<small
+                      class="money__draft"
+                      data-money-billing-decision
+                      >{t('marginDecisionShort', { hours: hoursText(project.billingDecisionMinutes) })}</small
+                    >{/if}</td
                 >
                 <td class="num" data-label={t('readyToInvoice')}
                   >{money(project.readyToInvoiceMinor, project.currency)}

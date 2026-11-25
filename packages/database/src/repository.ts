@@ -11706,7 +11706,7 @@ export class PortalRepository {
          p.created_at,p.updated_at`;
     const project = this.sqlite
       .prepare(
-        `SELECT ${projectColumns},c.client_number,c.display_name client_name
+        `SELECT ${projectColumns},c.client_number,c.client_code,c.display_name client_name
          FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?`,
       )
       .get(projectId) as Row | undefined;

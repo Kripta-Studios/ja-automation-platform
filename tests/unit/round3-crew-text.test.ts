@@ -68,4 +68,16 @@ describe('round 3 text: pt-BR wording (T78)', () => {
     expect(text).not.toMatch(/comprovativo|guardar|continua a ser/u);
     expect(text).toContain('comprovante');
   });
+
+  it('the folded crew delegation history is translated', () => {
+    expect(portalText('pt', '1 ended or revoked delegation')).toBe(
+      '1 delegação encerrada ou revogada',
+    );
+    expect(portalText('es', '{n} ended or revoked delegations')).toBe(
+      '{n} delegaciones finalizadas o revocadas',
+    );
+    expect(portalText('pt', 'No active crew delegations for this project.')).not.toMatch(
+      /project/u,
+    );
+  });
 });

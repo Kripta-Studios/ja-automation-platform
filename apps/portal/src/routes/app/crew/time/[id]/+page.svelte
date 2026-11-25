@@ -14,6 +14,7 @@
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import { formatPortalDate } from '$lib/i18n/format';
   import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { personDisplayName } from '$lib/portal/display-name';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -141,7 +142,7 @@
   <a href={crewHref}
     ><DirectionIcon direction="left" /> {t('← Back to crew hours').replace(/^←\s*/u, '')}</a
   >
-  <h1>{record.workerName} · {record.workDate}</h1>
+  <h1>{personDisplayName(record.workerName)} · {dayLabel(String(record.workDate))}</h1>
   {#if problem}
     <div tabindex="-1" data-crew-time-problem>
       <ProblemNotice
@@ -160,7 +161,7 @@
       </div>
       <div>
         <dt>{t('Person')}</dt>
-        <dd>{record.workerName}</dd>
+        <dd>{personDisplayName(record.workerName)}</dd>
       </div>
       <div>
         <dt>{t('Work date')}</dt>
@@ -194,7 +195,7 @@
       </div>
     </dl>
     {#if !['needs_changes', 'rejected', 'void'].includes(record.approvalState)}
-      <a class="expense-link" href={expenseHref}>{t('Add expense for')} {record.workerName}</a>
+      <a class="expense-link" href={expenseHref}>{t('Add expense for')} {personDisplayName(record.workerName)}</a>
     {/if}
   </SectionCard>
   {#if ['needs_changes', 'rejected'].includes(record.approvalState)}

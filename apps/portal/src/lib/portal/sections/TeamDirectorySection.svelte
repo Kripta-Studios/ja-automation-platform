@@ -3719,6 +3719,15 @@
   .person__confirm textarea {
     min-height: 4rem;
   }
+  /* Round 3: the reason label sits above its box, not beside it. */
+  .person__confirm form > label {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .person__confirm form > label textarea {
+    width: 100%;
+    box-sizing: border-box;
+  }
   .person__checklist ul {
     margin: 0.25rem 0 0;
     padding-left: 1.1rem;

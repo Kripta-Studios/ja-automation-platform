@@ -139,7 +139,9 @@ describe('expense create audit (T17 double emit)', () => {
           },
         },
       });
-      expect(JSON.stringify((third as { data: { messageParams: unknown } }).data.messageParams)).not.toContain(today);
+      expect(
+        JSON.stringify((third as { data: { messageParams: unknown } }).data.messageParams),
+      ).not.toContain(today);
       expect(fixture.sqlite.prepare('SELECT count(*) n FROM expense').get()).toEqual({ n: 1 });
       expect(fixture.sqlite.prepare('SELECT count(*) n FROM document').get()).toEqual({ n: 1 });
     } finally {

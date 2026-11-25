@@ -822,16 +822,21 @@
   /** Esc closes an inline confirm / send-back panel (keyboard listener via an action). */
   function escapeCloses(node: HTMLElement, close: () => void) {
     let current = close;
+    // T10 (round 2): also when focus was lost (a clicked button was replaced and focus fell
+    // back to the page body), not only while focus is inside the panel.
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') current();
+      if (event.key !== 'Escape' || event.defaultPrevented) return;
+      const active = document.activeElement;
+      if (active && active !== document.body && !node.contains(active)) return;
+      current();
     };
-    node.addEventListener('keydown', onKey);
+    window.addEventListener('keydown', onKey);
     return {
       update(next: () => void) {
         current = next;
       },
       destroy() {
-        node.removeEventListener('keydown', onKey);
+        window.removeEventListener('keydown', onKey);
       },
     };
   }

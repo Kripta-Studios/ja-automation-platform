@@ -257,6 +257,73 @@ function queueLabels(context: PortalContext, rows: readonly Row[]): Labels {
   };
 }
 
+/**
+ * T27: a pending row that replaces a sent-back (or approved) original says so, with the
+ * reviewer's earlier note, the worker's reason and the original hours, so the reviewer sees
+ * what changed. A record fixed in place after a send-back is marked too. No money is read.
+ */
+// The timesheet stores this English text when the worker fixes a sent-back day without typing a
+// reason (repository saveTimeWeek). It is not the worker's words, so the marker leaves it out.
+const SYSTEM_CORRECTION_REASON = 'Hours corrected after reviewer request';
+
+export function resubmissionReader(sqlite: Pick<PortalContext['sqlite'], 'prepare'>) {
+  const latestReviewReason = sqlite.prepare(
+    "SELECT reason FROM approval_event WHERE entity_type=? AND entity_id=? AND to_state='needs_changes' ORDER BY occurred_at DESC LIMIT 1",
+  );
+  const correctionLink = (table: 'time_entry' | 'expense') =>
+    sqlite.prepare(
+      `SELECT link.original_id,link.reason,original.approval_state original_state
+         FROM record_correction_link link
+         JOIN ${table} original ON original.id=link.original_id
+        WHERE link.record_type='${table}' AND link.correction_id=?
+          AND original.project_id=? AND original.worker_id=?
+        LIMIT 1`,
+    );
+  const timeCorrectionOf = correctionLink('time_entry');
+  const expenseCorrectionOf = correctionLink('expense');
+  const originalMinutes = sqlite.prepare('SELECT minutes FROM time_entry WHERE id=?');
+  return (row: Row, keys: readonly [string, string, string]): Row => {
+    if (row.approval_state !== 'submitted' || !['time', 'expense'].includes(text(row.type)))
+      return {};
+    const entityType = text(row.type);
+    const link = (entityType === 'time' ? timeCorrectionOf : expenseCorrectionOf).get(...keys) as
+      | { original_id: string; reason: string | null; original_state: string }
+      | undefined;
+    if (link) {
+      // A rejected original here is one superseded after a send-back (the repository rejects
+      // the sent-back original with "Superseded by correction …" when the fix is created).
+      const previousNote = latestReviewReason.get(entityType, link.original_id) as
+        | { reason: string | null }
+        | undefined;
+      const minutes =
+        entityType === 'time'
+          ? (originalMinutes.get(link.original_id) as { minutes: number } | undefined)?.minutes
+          : undefined;
+      return {
+        resubmitted:
+          link.original_state === 'approved' || link.original_state === 'locked'
+            ? 'correction_of_approved'
+            : 'after_send_back',
+        ...(previousNote?.reason ? { previous_review_note: previousNote.reason } : {}),
+        ...(link.reason && link.reason !== SYSTEM_CORRECTION_REASON
+          ? { correction_reason: text(link.reason).slice(0, 500) }
+          : {}),
+        ...(minutes != null ? { previous_minutes: minutes } : {}),
+      };
+    }
+    // Fixed in place: the same record was sent back and is pending again.
+    const previousNote = latestReviewReason.get(entityType, keys[0]) as
+      | { reason: string | null }
+      | undefined;
+    return previousNote
+      ? {
+          resubmitted: 'after_send_back',
+          ...(previousNote.reason ? { previous_review_note: previousNote.reason } : {}),
+        }
+      : {};
+  };
+}
+
 /** Operational detail for the rows actually sent (no rates, cost or billing fields). */
 function decorator(context: PortalContext, labels: Labels) {
   const isProjectManager = context.principal.role === 'project_manager';
@@ -289,8 +356,10 @@ function decorator(context: PortalContext, labels: Labels) {
   const latestReviewReason = context.sqlite.prepare(
     "SELECT reason FROM approval_event WHERE entity_type=? AND entity_id=? AND to_state='needs_changes' ORDER BY occurred_at DESC LIMIT 1",
   );
+  const resubmissionContext = resubmissionReader(context.sqlite);
   return (row: Row): Row => {
     const keys = [text(row.id), text(row.project_id), text(row.worker_id)] as const;
+    const resubmission = resubmissionContext(row, keys);
     const expense =
       row.type === 'expense'
         ? (expenseIdentity.get(...keys) as
@@ -328,6 +397,7 @@ function decorator(context: PortalContext, labels: Labels) {
     const report = row.type === 'daily' || row.type === 'technical';
     return {
       ...row,
+      ...resubmission,
       ...(time
         ? {
             time_category: time.category,

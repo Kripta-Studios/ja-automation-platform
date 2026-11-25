@@ -1325,6 +1325,35 @@
                             {/if}
                           </span>
                         {/if}
+                        {#if value(item.row, 'resubmitted')}
+                          <!-- T27: a fixed or corrected record says so, with what was said and what it was. -->
+                          <span class="aq-resubmitted" data-testid="aq-resubmitted">
+                            <span
+                              ><strong
+                                >{value(item.row, 'resubmitted') === 'correction_of_approved'
+                                  ? t('correctionOfApproved')
+                                  : t('resubmittedAfterSendBack')}</strong
+                              >{#if kind === 'time' && value(item.row, 'previous_minutes') !== ''}&nbsp;·
+                                {t('previousHours', {
+                                  hours: hoursText(Number(value(item.row, 'previous_minutes'))),
+                                })}{/if}</span
+                            >
+                            {#if value(item.row, 'previous_review_note')}
+                              <small
+                                >{t('previousNote', {
+                                  note: value(item.row, 'previous_review_note'),
+                                })}</small
+                              >
+                            {/if}
+                            {#if value(item.row, 'correction_reason')}
+                              <small
+                                >{t('correctionReason', {
+                                  reason: value(item.row, 'correction_reason'),
+                                })}</small
+                              >
+                            {/if}
+                          </span>
+                        {/if}
                       </div>
                       <div class="aq-day-actions">
                         <a class="aq-link" href={recordHref(item.row)}>{t('open')}</a>
@@ -2227,6 +2256,19 @@
     color: var(--ja-steel, #5b6573);
     font-size: 0.9rem;
     overflow-wrap: anywhere;
+  }
+  .aq-resubmitted {
+    flex-basis: 100%;
+    display: grid;
+    gap: 0.15rem;
+    padding: 0.4rem 0.6rem;
+    border-inline-start: 3px solid #b54708;
+    border-radius: 0.25rem;
+    background: #fff7ed;
+    color: var(--ja-ink, #1c2430);
+  }
+  .aq-resubmitted strong {
+    color: #93370d;
   }
   .aq-summary {
     display: block;

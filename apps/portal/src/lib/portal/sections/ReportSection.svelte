@@ -233,8 +233,16 @@
     )
       .then((response) => (response.ok ? response.json() : { workers: [] }))
       .then((body: { workers?: Row[] }) => {
-        eligibleReportWorkers = Array.isArray(body.workers) ? body.workers : [];
+        // T57: sorted by the name people read (not the login), and the only person preselected.
+        const workers = (Array.isArray(body.workers) ? body.workers : []).toSorted((a, b) =>
+          personDisplayName(a.name, a.email).localeCompare(
+            personDisplayName(b.name, b.email),
+            reportLocale,
+          ),
+        );
+        eligibleReportWorkers = workers;
         eligibleReportWorkersLoading = false;
+        if (workers.length === 1 && !createWorker) createWorker = String(workers[0]?.id ?? '');
       })
       .catch((caught: unknown) => {
         if ((caught as { name?: string })?.name === 'AbortError') return;
@@ -319,10 +327,11 @@
         return;
       }
       if (createdType === 'daily' || createdType === 'technical') {
+        const sent = (result as { submitted?: unknown } | undefined)?.submitted === true;
         const href = registerHref({
           view: createdType,
           project: createProject,
-          status: 'draft',
+          status: sent ? 'submitted' : 'draft',
           worker: '',
           client: '',
           from: '',
@@ -330,9 +339,13 @@
           q: '',
           order: 'newest',
         });
-        savedReportNotice = translate(
-          createdType === 'daily' ? 'Daily report draft saved' : 'Technical report draft saved',
-        );
+        savedReportNotice = sent
+          ? q('sent')
+          : createdType === 'daily' && createWorker && createWorker !== String(data.user.id)
+            ? q('draftForWorker')
+            : translate(
+                createdType === 'daily' ? 'Daily report draft saved' : 'Technical report draft saved',
+              );
         closeSurface();
         void goto(href, { replaceState: true, noScroll: true });
       } else closeSurface();
@@ -340,6 +353,12 @@
     offlineHandled: () => data.offlineEnabled !== false,
   });
   let savedReportNotice = $state('');
+  // T57: the server lets the owner submit any report and everyone else only their own.
+  const canSendDailyOnCreate = $derived(
+    !isAuditor &&
+      (data.user.role === 'owner_admin' ||
+        (data.user.role === 'project_manager' && createWorker === String(data.user.id))),
+  );
   let search = $state('');
   let projectFilter = $state('');
   let workerFilter = $state('');
@@ -2729,13 +2748,24 @@
         />
         <span>{translate('Safety-related change')}</span></label
       >
+      {#if !canSendDailyOnCreate && createWorker}
+        <p class="report-entry-help" data-report-worker-sends>{q('draftForWorkerHint')}</p>
+      {/if}
       <div class="report-entry-actions">
         <button type="button" class="secondary-button" data-sheet-close onclick={closeSurface}
           >{translate('Cancel')}</button
         >
-        <button type="submit" disabled={saving}
-          >{translate(saving ? 'Saving…' : 'Save daily report')}</button
+        <button
+          type="submit"
+          class={canSendDailyOnCreate ? 'secondary-button' : undefined}
+          disabled={saving}>{translate(saving ? 'Saving…' : 'Save daily report')}</button
         >
+        {#if canSendDailyOnCreate}
+          <!-- T57: one step for the owner and for a reviewer's own report (the owner reviews it). -->
+          <button type="submit" name="submitNow" value="on" disabled={saving} data-report-send-now
+            >{saving ? q('sending') : q('sendForReview')}</button
+          >
+        {/if}
       </div>
     </form>
   {:else if surface === 'technical'}

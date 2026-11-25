@@ -53,6 +53,10 @@ const en = {
   techValidation: 'Validation and rollback',
   techValidationHint: 'Required when the change affects safety.',
   reviewReports: 'Review reports',
+  sendForReview: 'Save and send for review',
+  draftForWorker:
+    'Saved as a draft for the worker. The worker sends it for review from Reports, then you review it in Approvals.',
+  draftForWorkerHint: 'Only the worker can send a report about their own work for review.',
 } as const;
 
 type CopyKey = keyof typeof en;
@@ -109,6 +113,10 @@ const es: Record<CopyKey, string> = {
   techValidation: 'Validación y reversión',
   techValidationHint: 'Obligatorio si el cambio afecta a la seguridad.',
   reviewReports: 'Revisar informes',
+  sendForReview: 'Guardar y enviar a revisión',
+  draftForWorker:
+    'Guardado como borrador para el trabajador. El trabajador lo envía a revisión desde Informes y después tú lo revisas en Aprobaciones.',
+  draftForWorkerHint: 'Solo el trabajador puede enviar a revisión un informe sobre su propio trabajo.',
 };
 
 const pt: Record<CopyKey, string> = {
@@ -163,6 +171,10 @@ const pt: Record<CopyKey, string> = {
   techValidation: 'Validação e reversão',
   techValidationHint: 'Obrigatório quando a mudança afeta a segurança.',
   reviewReports: 'Revisar relatórios',
+  sendForReview: 'Salvar e enviar para revisão',
+  draftForWorker:
+    'Salvo como rascunho para o trabalhador. O trabalhador o envia para revisão em Relatórios e depois você o revisa em Aprovações.',
+  draftForWorkerHint: 'Só o trabalhador pode enviar para revisão um relatório sobre o próprio trabalho.',
 };
 
 export type ReportQuickCopyKey = CopyKey;

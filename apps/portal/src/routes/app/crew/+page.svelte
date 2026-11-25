@@ -568,6 +568,10 @@
       ? t('Saved and sent {hours} h for {who}.', { hours: hm(minutes), who })
       : t('Saved {hours} h for {who} (draft, not sent yet).', { hours: hm(minutes), who });
   });
+  const noticeInEntries = $derived(
+    $page.url.hash === '#crew-entries' &&
+      ['saved', 'savedSent'].includes($page.url.searchParams.get('notice') ?? ''),
+  );
   const weekDays = $derived.by(() => {
     const start = data.weekStart || data.workDate;
     if (!start) return [] as string[];
@@ -918,7 +922,7 @@
       {:else}<p class="empty">{t('No crew delegations for this project.')}</p>{/if}
     </SectionCard>
   {:else if !filterProblem && data.projects.length}
-    {#if notice}
+    {#if notice && !noticeInEntries}
       <p class="crew-notice" role="status" data-crew-notice>{notice}</p>
     {/if}
     {#if data.openDrafts?.length}
@@ -1132,6 +1136,10 @@
       {/if}
     </SectionCard>
     <SectionCard title={t('Entries recorded on {dia}', { dia: data.workDate })} id="crew-entries">
+      {#if notice && noticeInEntries}
+        <!-- T37/G6: a save lands on this card (#crew-entries), so its confirmation is shown here, in view on a phone. -->
+        <p class="crew-notice" role="status" data-crew-notice>{notice}</p>
+      {/if}
       {#if data.entries.length}
         <ul class="entry-list">
           {#each data.entries as entry}

@@ -838,6 +838,11 @@
     border-radius: 0;
   }
 
+  /* T58: an empty state is a short line on a phone, not 16rem of blank card. */
+  main .empty {
+    min-height: 6rem;
+  }
+
   /* T85: on a phone the toast sits just under the top bar. At the bottom it
      covered the sticky Save/Send bars and the "logged on this day" rows. */
   [data-ui='toast-region'] {

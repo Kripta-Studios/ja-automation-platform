@@ -731,7 +731,7 @@
   </div>
   {/if}
 
-  <p class="project-section__summary-help">{ux2('projectDateContext')}</p>
+  {#if !fewProjects}<p class="project-section__summary-help">{ux2('projectDateContext')}</p>{/if}
 
   <!-- T86: with three projects or fewer the filters fold away so the project itself comes first (phone). -->
   <details

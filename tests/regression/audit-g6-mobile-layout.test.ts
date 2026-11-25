@@ -24,6 +24,15 @@ describe('audit G6 mobile layout regressions', () => {
     expect(page).toMatch(/\.crew-drafts-submit\s*\{\s*grid-template-columns: minmax\(0, 1fr\)/);
   });
 
+  it('T37/T58: crew save confirmation is scrolled into view; phone empty states are short', () => {
+    const crew = read('apps/portal/src/routes/app/crew/+page.svelte');
+    expect(crew).toContain("$page.url.hash === '#crew-entries'");
+    const entries = crew.slice(crew.indexOf('id="crew-entries">'));
+    expect(entries.slice(0, 400)).toContain('{#if notice && noticeInEntries}');
+    const responsive = read('apps/portal/src/styles/portal/responsive.css');
+    expect(responsive).toMatch(/main \.empty\s*\{\s*min-height: 6rem;/);
+  });
+
   it('T35/T91: phone invoice amounts never break inside the number', () => {
     const page = read('apps/portal/src/routes/app/billing/invoices/[id]/+page.svelte');
     const phone = page.slice(page.indexOf('@media screen and (max-width: 600px)'));

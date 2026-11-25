@@ -119,7 +119,16 @@ import {
   previewInvoiceNumber,
 } from './domains/billing/invoice-number-preview.ts';
 import {
+  invoiceLineKey,
+  lineDescriptionsOf,
+  presentationOverridesOf,
+  updateInvoiceDraftPresentation,
+  withLineDescriptions,
+  type PresentationEditInput,
+} from './domains/billing/invoice-presentation-edit.ts';
+import {
   allocateClientProjectNumber,
+  invoiceNumberFormatColumn,
   isInvoiceNumberFormat,
 } from './domains/billing/invoice-number-format.ts';
 import { summarizeTimeReadiness } from './domains/billing/time-readiness-diagnostics.ts';
@@ -6063,7 +6072,9 @@ export class PortalRepository {
       const timestamp = now();
       this.sqlite
         .prepare(
-          'INSERT INTO invoice_number_policy(id,legal_entity_id,prefix,digits,effective_from,accountant_approved_at,created_at,updated_at,number_format) VALUES(?,?,?,?,?,?,?,?,?)',
+          invoiceNumberFormatColumn(this.sqlite) === 'number_format'
+            ? 'INSERT INTO invoice_number_policy(id,legal_entity_id,prefix,digits,effective_from,accountant_approved_at,created_at,updated_at,number_format) VALUES(?,?,?,?,?,?,?,?,?)'
+            : 'INSERT INTO invoice_number_policy(id,legal_entity_id,prefix,digits,effective_from,accountant_approved_at,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?)',
         )
         .run(
           id,
@@ -6074,7 +6085,7 @@ export class PortalRepository {
           input.accountantApprovedAt,
           timestamp,
           timestamp,
-          numberFormat,
+          ...(invoiceNumberFormatColumn(this.sqlite) === 'number_format' ? [numberFormat] : []),
         );
       this.audit(principal, 'invoice_policy.create', 'invoice_number_policy', id, {
         numberFormat,
@@ -10582,7 +10593,7 @@ export class PortalRepository {
         .all(context.tax_profile_id);
       const policy = this.sqlite
         .prepare(
-          'SELECT prefix,digits,number_format FROM invoice_number_policy WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?) ORDER BY effective_from DESC LIMIT 1',
+          `SELECT prefix,digits,${invoiceNumberFormatColumn(this.sqlite)} FROM invoice_number_policy WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?) ORDER BY effective_from DESC LIMIT 1`,
         )
         .get(context.legal_entity_id, today(), today()) as
         | { prefix: string; digits: number; number_format: string }
@@ -10708,6 +10719,8 @@ export class PortalRepository {
           return { purchaseNo: null, projectPo: null };
         }
       })();
+      // Header texts edited inline on the draft (client name/address, project, cost center).
+      const issueHeader = presentationOverridesOf(draftCustomizations);
       const snapshot = {
         template: {
           id: controlledInvoiceTemplateId(context.template_id, invoice.stream_type),
@@ -10748,9 +10761,9 @@ export class PortalRepository {
           : {}),
         client: {
           code: context.client_code,
-          legalName: context.client_legal_name,
+          legalName: issueHeader.clientName ?? context.client_legal_name,
           number: context.client_number,
-          billingAddress: context.client_billing_address,
+          billingAddress: issueHeader.clientAddress ?? context.client_billing_address,
           poReference: context.client_po_reference,
           billingEmail: context.billing_email,
           recipientEmail: context.recipient_email,
@@ -10759,8 +10772,8 @@ export class PortalRepository {
         },
         project: {
           number: context.project_number,
-          name: context.project_name,
-          costCenterCode: context.cost_center_code,
+          name: issueHeader.projectName ?? context.project_name,
+          costCenterCode: issueHeader.costCenter ?? context.cost_center_code,
           poNumber: creditNoteFor
             ? creditNoteOriginalPo.projectPo
             : (context.po_number_override ?? context.po_number),
@@ -10825,7 +10838,11 @@ export class PortalRepository {
         dueAt: due,
         billingRuleId: invoice.billing_rule_id,
         ...(issuedOverrides.length ? { invoiceOverrides: issuedOverrides } : {}),
-        lines,
+        // Descriptions edited on the draft are frozen with the issued lines.
+        lines: withLineDescriptions(
+          lines as Record<string, unknown>[],
+          lineDescriptionsOf(draftCustomizations),
+        ),
         sources,
         commercialSourceManifest,
         generatedAt: issuedAt,
@@ -12013,9 +12030,28 @@ export class PortalRepository {
             String(invoice.past_due_notice ?? '')));
     let lines: Record<string, unknown>[] = this.sqlite
       .prepare(
-        'SELECT description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id,snapshot_json FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
+        'SELECT id,line_kind,description,quantity_numerator,quantity_denominator,unit_price_minor,subtotal_minor,source_type,source_id,snapshot_json FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
       )
       .all(invoiceId);
+    if (!frozenInvoice) {
+      // Inline edits of this draft: its own header texts and line descriptions.
+      lines = withLineDescriptions(lines, lineDescriptionsOf(customSnapshot)).map((line) => ({
+        ...line,
+        line_key: invoiceLineKey(line),
+      }));
+      const header = presentationOverridesOf(customSnapshot);
+      Object.assign(enrichedInvoice, {
+        ...(header.clientName !== undefined
+          ? { client_legal_name: header.clientName, client_name: header.clientName }
+          : {}),
+        ...(header.clientAddress !== undefined
+          ? { client_billing_address: header.clientAddress }
+          : {}),
+        ...(header.projectName !== undefined ? { project_name: header.projectName } : {}),
+        ...(header.costCenter !== undefined ? { cost_center_code: header.costCenter } : {}),
+        presentation_overrides: header,
+      });
+    }
     let taxes: Record<string, unknown>[] = this.sqlite
       .prepare(
         'SELECT tc.name,tc.basis_points FROM invoice i JOIN billing_rule br ON br.id=i.billing_rule_id JOIN tax_component tc ON tc.tax_profile_id=br.tax_profile_id WHERE i.id=? ORDER BY tc.calculation_order',
@@ -12144,6 +12180,183 @@ export class PortalRepository {
           ).fingerprint,
       },
     );
+  }
+
+  /** Inline edit of a draft header text or line description (see invoice-presentation-edit). */
+  updateInvoiceDraftPresentation(
+    principal: Principal,
+    invoiceId: string,
+    input: PresentationEditInput,
+  ) {
+    return updateInvoiceDraftPresentation(this.sqlite, principal, invoiceId, input, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    });
+  }
+
+  /**
+   * Inline edit of a draft hours line: the rate and/or the billed hours of that person and
+   * category on THIS invoice only (invoice_line_override), then the draft is rebuilt by the
+   * billing engine so totals and tax are exact. Time entries and worker pay never change.
+   * The draft's own edits (dates, PO, notes, header texts, descriptions) are kept.
+   */
+  updateInvoiceDraftLine(
+    principal: Principal,
+    invoiceId: string,
+    input: { expectedVersion: number; lineId: string; rateMinor?: string; billedMinutes?: number },
+  ): { id: string } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    if (input.rateMinor === undefined && input.billedMinutes === undefined)
+      throw new ValidationError('Enter the new rate or hours.');
+    if (input.rateMinor !== undefined && !/^\d{1,12}$/u.test(input.rateMinor))
+      throw new ValidationError('Enter the rate as an amount, for example 85.00.');
+    if (
+      input.billedMinutes !== undefined &&
+      (!Number.isSafeInteger(input.billedMinutes) || input.billedMinutes < 0)
+    )
+      throw new ValidationError('Hours must be zero or more.');
+    return this.transaction(() => {
+      const invoice = this.sqlite
+        .prepare('SELECT id,state,version,snapshot_json,invoice_number,issued_at FROM invoice WHERE id=?')
+        .get(invoiceId) as
+        | {
+            id: string;
+            state: string;
+            version: number;
+            snapshot_json: string | null;
+            invoice_number: string | null;
+            issued_at: string | null;
+          }
+        | undefined;
+      if (!invoice) throw new ValidationError('Invoice not found');
+      if (invoice.state !== 'draft' || invoice.invoice_number || invoice.issued_at)
+        throw new ConflictError(
+          'Only an unissued Draft can be edited. Issued invoices are corrected with a credit note or a replacement.',
+        );
+      if (Number(invoice.version) !== input.expectedVersion)
+        throw new ConflictError('Invoice changed. Reload before editing.');
+      const lines = this.sqlite
+        .prepare(
+          'SELECT id,source_type,quantity_numerator,quantity_denominator,snapshot_json FROM invoice_line WHERE invoice_id=?',
+        )
+        .all(invoiceId) as Array<{
+        id: string;
+        source_type: string;
+        quantity_numerator: number;
+        quantity_denominator: number;
+        snapshot_json: string | null;
+      }>;
+      const parse = (json: string | null) => {
+        try {
+          return JSON.parse(json ?? '{}') as Record<string, unknown>;
+        } catch {
+          return {};
+        }
+      };
+      const line = lines.find((row) => row.id === input.lineId);
+      const lineSnapshot = parse(line?.snapshot_json ?? null);
+      const workerId = typeof lineSnapshot.worker_id === 'string' ? lineSnapshot.worker_id : '';
+      if (!line || line.source_type !== 'time' || !workerId)
+        throw new ValidationError(
+          'Only hours lines can change rate or hours here. Edit expenses in Expenses.',
+        );
+      const category = String(lineSnapshot.commercialCategory ?? lineSnapshot.category ?? '') || null;
+      const sameGroup = lines.filter((row) => {
+        if (row.source_type !== 'time') return false;
+        const snapshot = parse(row.snapshot_json);
+        return (
+          snapshot.worker_id === workerId &&
+          (String(snapshot.commercialCategory ?? snapshot.category ?? '') || null) === category
+        );
+      });
+      const minutesOf = (row: { quantity_numerator: number; quantity_denominator: number }) =>
+        Math.round((Number(row.quantity_numerator) * 60) / Math.max(1, Number(row.quantity_denominator)));
+      const existing = loadInvoiceOverrides(this.sqlite, invoiceId);
+      const current = existing?.people.find(
+        (person) => person.workerId === workerId && person.category === category,
+      );
+      let billedMinutes = current?.billedMinutes ?? null;
+      if (input.billedMinutes !== undefined) {
+        const others = sameGroup
+          .filter((row) => row.id !== line.id)
+          .reduce((sum, row) => sum + minutesOf(row), 0);
+        billedMinutes = others + input.billedMinutes;
+      }
+      const rateMinor = input.rateMinor ?? (current?.rateMinor != null ? String(current.rateMinor) : null);
+      const people = [
+        ...(existing?.people ?? [])
+          .filter((person) => !(person.workerId === workerId && person.category === category))
+          .map((person) => ({
+            workerId: person.workerId,
+            category: person.category,
+            rateMinor: person.rateMinor === null ? null : String(person.rateMinor),
+            billedMinutes: person.billedMinutes,
+            reason: person.reason,
+          })),
+        {
+          workerId,
+          category,
+          rateMinor,
+          billedMinutes,
+          reason: 'Edited on the invoice',
+        },
+      ];
+      const kept = invoicePresentationObject(invoice.snapshot_json);
+      const result = this.withInvoiceOverrides(
+        {
+          people,
+          tax: existing?.tax ?? null,
+          purchaseNo: existing?.purchaseNo ?? null,
+        },
+        () => this.refreshInvoiceDraft(principal, invoiceId, input.expectedVersion),
+      );
+      // Carry the draft's own edits over to the rebuilt draft.
+      const rebuilt = this.sqlite
+        .prepare('SELECT snapshot_json FROM invoice WHERE id=? AND state=\'draft\'')
+        .get(result.id) as { snapshot_json: string | null } | undefined;
+      if (rebuilt) {
+        const fresh = invoicePresentationObject(rebuilt.snapshot_json);
+        const draftOnly = new Set(
+          Array.isArray(kept.draftOnlyOverrides) ? (kept.draftOnlyOverrides as string[]) : [],
+        );
+        const merged: Record<string, unknown> = { ...fresh };
+        for (const key of ['presentationOverrides', 'lineDescriptions', 'dueDateOverride'])
+          if (kept[key] !== undefined) merged[key] = kept[key];
+        if (kept.invoiceDate !== undefined) merged.invoiceDate = kept.invoiceDate;
+        if (draftOnly.has('purchaseNo')) merged.purchaseNo = kept.purchaseNo;
+        if (draftOnly.has('paymentTermsDays')) merged.paymentTermsDays = kept.paymentTermsDays;
+        if (draftOnly.has('pastDueNotice'))
+          merged.termsAndInstructions = {
+            ...invoicePresentationObject(fresh.termsAndInstructions),
+            pastDueNotice: invoicePresentationObject(kept.termsAndInstructions).pastDueNotice,
+          };
+        if (draftOnly.size)
+          merged.draftOnlyOverrides = [
+            ...new Set([
+              ...draftOnly,
+              ...(Array.isArray(fresh.draftOnlyOverrides) ? (fresh.draftOnlyOverrides as string[]) : []),
+            ]),
+          ].sort();
+        this.sqlite
+          .prepare(
+            "UPDATE invoice SET snapshot_json=?,updated_at=?,version=version+1 WHERE id=? AND state='draft'",
+          )
+          .run(JSON.stringify(merged), now(), result.id);
+      }
+      this.audit(principal, 'invoice.draft_details_update', 'invoice', result.id, {
+        field: 'line',
+        lineId: input.lineId,
+        workerId,
+        category,
+        before: { rateMinor: current?.rateMinor?.toString() ?? null, billedMinutes: current?.billedMinutes ?? null },
+        after: { rateMinor, billedMinutes },
+        previousInvoiceId: invoiceId,
+      });
+      return result;
+    });
   }
 
   listOwnReports(principal: Principal) {

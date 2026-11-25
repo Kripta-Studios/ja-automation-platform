@@ -3,7 +3,8 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { assertLiveSession, AccessDeniedError } from '@ja/database';
 import { invoiceDocumentSnapshot } from '$lib/server/invoice-draft-preview';
 import { billingActionFailure, billingActions } from '$lib/server/actions/billing-actions';
-import { actionFail } from '$lib/server/actions/action-message';
+import { actionFail, actionSuccess } from '$lib/server/actions/action-message';
+import { decimalToMinor } from '$lib/server/action-utils';
 import { formObject } from '$lib/server/action-utils';
 import { base } from '$app/paths';
 import type { Actions, PageServerLoad } from './$types';
@@ -85,6 +86,132 @@ export const actions: Actions = {
   sendInvoice: (event) => billingActions.sendInvoice(asBilling(event)),
   recordPayment: (event) => billingActions.recordPayment(asBilling(event)),
   deleteInvoice: (event) => billingActions.deleteInvoice(asBilling(event)),
+  /**
+   * Inline invoice editing (2026-11-25): one clicked field of the rendered draft is saved
+   * through the matching reviewed path. Header texts and line descriptions stay on this
+   * draft unless "also update the record" is ticked; rate/hours change this invoice only.
+   * Bank and payee fields are company-wide issuer settings (owner-only, audited, notified).
+   */
+  editInvoiceField: async ({ locals, request, params, url }) => {
+    const extra = { actionName: 'editInvoiceField', correlationId: locals.correlationId };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extra,
+        code: 'INVOICE_SIGN_IN_REQUIRED',
+      });
+    const object = (await formObject(request).catch(() => null)) as Record<string, string> | null;
+    const field = String(object?.field ?? '');
+    const value = String(object?.value ?? '');
+    const version = Number(object?.version);
+    const also = object?.alsoUpdateRecord === 'on' || object?.alsoUpdateRecord === 'true';
+    if (!object || !field || !Number.isSafeInteger(version) || version < 0)
+      return actionFail(400, 'action.error.validation', {}, 'Reload the invoice and try again.', {
+        ...extra,
+        code: 'INVOICE_EDIT_INVALID',
+      });
+    const context = openPortalRepository(locals);
+    let target: string | null = null;
+    try {
+      const repository = context.repository;
+      const principal = context.principal;
+      if (['client', 'clientAddress', 'projectName', 'costCenter', 'lineDescription'].includes(field)) {
+        repository.updateInvoiceDraftPresentation(principal, params.id, {
+          expectedVersion: version,
+          field: (field === 'client' ? 'clientName' : field) as never,
+          value,
+          lineKey: object.lineKey,
+          alsoUpdateRecord: also,
+        });
+      } else if (field === 'line') {
+        // Only values the user actually changed are applied.
+        const changed = (name: string) => {
+          const next = object[name]?.trim() ?? '';
+          const before = object[`original${name.charAt(0).toUpperCase()}${name.slice(1)}`]?.trim() ?? '';
+          return next && next !== before ? next : undefined;
+        };
+        const rate = changed('rate');
+        const hours = changed('hours');
+        const rateMinor = rate ? decimalToMinor(rate) : undefined;
+        const billedMinutes =
+          hours && /^\d+([.,]\d{1,2})?$/u.test(hours)
+            ? Math.round(Number(hours.replace(',', '.')) * 60)
+            : undefined;
+        if ((rate && rateMinor === undefined) || (hours && billedMinutes === undefined))
+          return actionFail(400, 'action.error.validation', {}, 'Check the rate and hours.', {
+            ...extra,
+            code: 'INVOICE_EDIT_LINE_INVALID',
+            fieldErrors: {
+              ...(rate && rateMinor === undefined ? { rate: ['Enter an amount, for example 85.00'] } : {}),
+              ...(hours && billedMinutes === undefined ? { hours: ['Enter hours, for example 7.5'] } : {}),
+            },
+          });
+        let expectedVersion = version;
+        const description = object.description?.trim();
+        if (description && description !== object.originalDescription?.trim())
+          expectedVersion = repository.updateInvoiceDraftPresentation(principal, params.id, {
+            expectedVersion,
+            field: 'lineDescription',
+            value: description,
+            lineKey: object.lineKey,
+          }).version;
+        if (rateMinor === undefined && billedMinutes === undefined)
+          return actionSuccess('action.billing.invoiceDraftDetailsSaved', {}, 'Invoice saved.');
+        const result = repository.updateInvoiceDraftLine(principal, params.id, {
+          expectedVersion,
+          lineId: String(object.lineId ?? ''),
+          ...(rateMinor !== undefined ? { rateMinor } : {}),
+          ...(billedMinutes !== undefined ? { billedMinutes } : {}),
+        });
+        if (result.id !== params.id) {
+          const lang = url.searchParams.get('lang');
+          target = `${base}/app/billing/invoices/${encodeURIComponent(result.id)}?edited=1${lang ? `&lang=${encodeURIComponent(lang)}` : ''}`;
+        }
+      } else if (
+        [
+          'bankSwiftNumber',
+          'bankAccountNumber',
+          'bankName',
+          'beneficiary',
+          'bankAchRouting',
+          'bankWireRouting',
+          'bankSwiftEur',
+        ].includes(field)
+      ) {
+        repository.updateIssuerDocumentSettings(principal, {
+          legalEntityId: object.legalEntityId,
+          currency: object.currency,
+          expectedVersion: Number(object.settingsVersion ?? 0),
+          [field]: value,
+        });
+      } else if (['purchaseNo', 'invoiceDate', 'dueDate', 'paymentTermsDays', 'pastDueNotice'].includes(field)) {
+        repository.updateInvoiceDraftCustomizations(principal, params.id, {
+          expectedVersion: version,
+          ...(field === 'pastDueNotice'
+            ? { termsAndInstructions: { pastDueNotice: value } }
+            : field === 'paymentTermsDays'
+              ? { paymentTermsDays: Number(value) }
+              : { [field]: value }),
+          ...(also && ['purchaseNo', 'paymentTermsDays', 'pastDueNotice'].includes(field)
+            ? {
+                applyToFutureInvoices: true,
+                expectedProjectVersion: Number(object.projectVersion) || undefined,
+                expectedBillingRuleVersion: Number(object.billingRuleVersion) || undefined,
+              }
+            : {}),
+        } as never);
+      } else
+        return actionFail(400, 'action.error.validation', {}, 'This part of the invoice cannot be edited here.', {
+          ...extra,
+          code: 'INVOICE_EDIT_FIELD_UNSUPPORTED',
+        });
+    } catch (caught) {
+      return billingActionFailure(caught, 'editInvoiceField', context.principal.role);
+    } finally {
+      context.sqlite.close();
+    }
+    if (target) redirect(303, target);
+    return actionSuccess('action.billing.invoiceDraftDetailsSaved', {}, 'Invoice saved.');
+  },
   /** Round 2: rebuild a stale draft from the current hours, rates and settings. */
   refreshInvoiceDraft: async ({ locals, request, params, url }) => {
     const extra = { actionName: 'refreshInvoiceDraft', correlationId: locals.correlationId };

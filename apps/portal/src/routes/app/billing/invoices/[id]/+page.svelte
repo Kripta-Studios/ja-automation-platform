@@ -418,7 +418,181 @@
       throw caught;
     }
   }
-  async function openPreviewField(name: string): Promise<void> {
+  // Inline editing (2026-11-25): click a value of the rendered draft, edit it in place.
+  type InlineEditor = {
+    field: string;
+    label: string;
+    value: string;
+    kind: 'text' | 'textarea' | 'date' | 'number' | 'line';
+    alsoLabel?: string;
+    note?: string;
+    lineId?: string;
+    lineKey?: string;
+    hours?: string;
+    rate?: string;
+    isHoursLine?: boolean;
+    sourceHref?: string;
+  };
+  let inlineEditor = $state<InlineEditor | null>(null);
+  let inlineSaving = $state(false);
+  let inlineError = $state('');
+  let inlineDialog = $state<HTMLDialogElement>();
+  let issuedCorrectionOpen = $state(false);
+  const isOwner = $derived(String(data.user?.role) === 'owner_admin');
+  const payeeFieldNames = [
+    'bankSwiftNumber',
+    'bankAccountNumber',
+    'bankName',
+    'beneficiary',
+    'bankAchRouting',
+    'bankWireRouting',
+    'bankSwiftEur',
+  ];
+  const payeeLabels: Record<string, string> = {
+    bankSwiftNumber: 'Bank Swift Number',
+    bankAccountNumber: 'Bank Account Number',
+    bankName: 'Bank Name',
+    beneficiary: 'Beneficiary',
+    bankAchRouting: 'ACH routing number',
+    bankWireRouting: 'Wire routing number (domestic)',
+    bankSwiftEur: 'SWIFT code for EUR payments',
+  };
+  function dateOnly(value: unknown): string {
+    const text = String(value ?? '');
+    return /^\d{4}-\d{2}-\d{2}/u.test(text) ? text.slice(0, 10) : '';
+  }
+  function minorToDecimal(value: unknown): string {
+    const raw = String(value ?? '');
+    if (!/^-?\d+$/u.test(raw)) return '';
+    const negative = raw.startsWith('-');
+    const digits = (negative ? raw.slice(1) : raw).padStart(3, '0');
+    return `${negative ? '-' : ''}${digits.slice(0, -2)}.${digits.slice(-2)}`;
+  }
+  function inlineEditorFor(name: string, element: HTMLElement): InlineEditor | null {
+    const terms = (invoice.terms_and_instructions ?? {}) as Record<string, unknown>;
+    switch (name) {
+      case 'client':
+        return {
+          field: name,
+          label: t('Client name'),
+          value: String(invoice.client_legal_name ?? invoice.client_name ?? ''),
+          kind: 'text',
+          alsoLabel: t('Also update the client record'),
+        };
+      case 'clientAddress':
+        return {
+          field: name,
+          label: t('Client address'),
+          value: String(invoice.client_billing_address ?? ''),
+          kind: 'textarea',
+          alsoLabel: t('Also update the client record'),
+        };
+      case 'projectName':
+        return {
+          field: name,
+          label: t('Project'),
+          value: String(invoice.project_name ?? ''),
+          kind: 'text',
+          alsoLabel: t('Also update the project record'),
+        };
+      case 'costCenter':
+        return {
+          field: name,
+          label: t('Cost center'),
+          value: String(invoice.cost_center_code ?? ''),
+          kind: 'text',
+          alsoLabel: t('Also update the project record'),
+        };
+      case 'purchaseNo':
+        return {
+          field: name,
+          label: t('Purchase No.'),
+          value: String(invoice.purchase_no ?? '').replace(/^—$/u, ''),
+          kind: 'text',
+          alsoLabel: t('Also use for future invoices of this project'),
+        };
+      case 'invoiceDate':
+        return { field: name, label: t('Invoice Date'), value: dateOnly(invoice.invoice_date), kind: 'date' };
+      case 'dueDate':
+        return { field: name, label: t('Due Date'), value: dateOnly(invoice.due_date), kind: 'date' };
+      case 'paymentTermsDays':
+        return {
+          field: name,
+          label: t('Payment terms (days)'),
+          value: String(invoice.payment_terms_days ?? ''),
+          kind: 'number',
+          alsoLabel: t('Also use for future invoices of this project'),
+        };
+      case 'pastDueNotice':
+        return {
+          field: name,
+          label: t('Past Due Notice'),
+          value: String(terms.pastDueNotice ?? ''),
+          kind: 'textarea',
+          alsoLabel: t('Also use for future invoices of this project'),
+        };
+      case 'line': {
+        const lineId = element.dataset.invoiceLineId ?? '';
+        const line = preview.lines.find((row) => String(row.id ?? '') === lineId);
+        if (!line) return null;
+        const isHoursLine = String(line.source_type) === 'time';
+        const numerator = Number(line.quantity_numerator ?? 0);
+        const denominator = Math.max(1, Number(line.quantity_denominator ?? 1));
+        return {
+          field: 'line',
+          label: t('Invoice line'),
+          value: String(line.description ?? ''),
+          kind: 'line',
+          lineId,
+          lineKey: element.dataset.invoiceLineKey ?? '',
+          isHoursLine,
+          hours: isHoursLine ? String(Math.round((numerator / denominator) * 100) / 100) : '',
+          rate: isHoursLine ? minorToDecimal(line.unit_price_minor) : '',
+          note: isHoursLine
+            ? t('Rate and hours change this invoice only. Time entries and worker pay stay as they are.')
+            : '',
+          sourceHref: line.source_id
+            ? `${base}/app/${isHoursLine ? 'time' : 'expenses'}/${encodeURIComponent(String(line.source_id))}?lang=${locale}`
+            : undefined,
+        };
+      }
+    }
+    if (payeeFieldNames.includes(name) && isOwner)
+      return {
+        field: name,
+        label: t(payeeLabels[name] ?? name),
+        value: String(terms[name] ?? ''),
+        kind: 'text',
+        note: t('Bank details apply to every invoice of this issuer. Every owner is notified of the change.'),
+      };
+    return null;
+  }
+  async function openInlineEditor(editor: InlineEditor): Promise<void> {
+    inlineError = '';
+    inlineEditor = editor;
+    await tick();
+    inlineDialog?.showModal();
+    inlineDialog?.querySelector<HTMLElement>('input:not([type=hidden]),textarea')?.focus();
+  }
+  function closeInlineEditor(): void {
+    inlineDialog?.close();
+    inlineEditor = null;
+    inlineError = '';
+  }
+  async function openPreviewField(name: string, element?: HTMLElement): Promise<void> {
+    if (!canEditDraft && !hasDraftPreview && isOwner && name !== '') {
+      issuedCorrectionOpen = true;
+      await tick();
+      document.getElementById('invoice-issued-correction')?.scrollIntoView({ block: 'center' });
+      return;
+    }
+    if (canEditDraft && element) {
+      const editor = inlineEditorFor(name, element);
+      if (editor) {
+        await openInlineEditor(editor);
+        return;
+      }
+    }
     if (name === 'invoiceNumber' && hasDraftPreview) {
       if (String(data.user?.role) === 'owner_admin') await navigateConfiguration(numberingHref);
       else if (numberingSummary) {
@@ -481,7 +655,7 @@
       return;
     }
     event.preventDefault();
-    void openPreviewField(field.dataset.invoiceEdit ?? '');
+    void openPreviewField(field.dataset.invoiceEdit ?? '', field);
   }
 
   function invoicePdfStatus(row: Row): InvoicePdfStatus {
@@ -1900,6 +2074,143 @@
       </details>
     </details>
   {/if}
+  {#if canEditDraft}
+    <p class="no-print invoice-inline-hint" data-invoice-inline-hint>
+      {t('Click any underlined text or a line of the invoice to change it.')}
+    </p>
+  {:else if isOwner && !hasDraftPreview && !['void', 'superseded'].includes(invoiceState)}
+    <details
+      class="no-print invoice-issued-correction"
+      id="invoice-issued-correction"
+      bind:open={issuedCorrectionOpen}
+    >
+      <summary>{t('Correct this issued invoice')}</summary>
+      <p>
+        {t(
+          'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.',
+        )}
+      </p>
+    </details>
+  {/if}
+  <dialog
+    bind:this={inlineDialog}
+    class="no-print invoice-inline-editor"
+    aria-labelledby="invoice-inline-editor-title"
+    onclose={() => {
+      inlineEditor = null;
+      inlineError = '';
+    }}
+  >
+    {#if inlineEditor}
+      {@const editor = inlineEditor}
+      <form
+        method="POST"
+        action="?/editInvoiceField"
+        use:enhance={() => {
+          inlineSaving = true;
+          inlineError = '';
+          return async ({ result, update }) => {
+            inlineSaving = false;
+            if (result.type === 'failure') {
+              inlineError =
+                standaloneActionMessage(locale, result.data) || t('The change was not saved.');
+              return;
+            }
+            closeInlineEditor();
+            await update({ reset: false });
+          };
+        }}
+      >
+        <h2 id="invoice-inline-editor-title">{editor.label}</h2>
+        <input type="hidden" name="field" value={editor.field} />
+        <input type="hidden" name="version" value={String(invoice.version ?? '')} />
+        <input type="hidden" name="lineId" value={editor.lineId ?? ''} />
+        <input type="hidden" name="lineKey" value={editor.lineKey ?? ''} />
+        <input
+          type="hidden"
+          name="legalEntityId"
+          value={String(invoice.issuer_legal_entity_id ?? '')}
+        />
+        <input type="hidden" name="currency" value={String(invoice.currency ?? '')} />
+        <input
+          type="hidden"
+          name="settingsVersion"
+          value={String(invoice.issuer_settings_version ?? 0)}
+        />
+        <input type="hidden" name="projectVersion" value={String(invoice.project_version ?? '')} />
+        <input
+          type="hidden"
+          name="billingRuleVersion"
+          value={String(invoice.billing_rule_version ?? '')}
+        />
+        {#if editor.kind === 'line'}
+          <input type="hidden" name="originalDescription" value={editor.value} />
+          <input type="hidden" name="originalHours" value={editor.hours ?? ''} />
+          <input type="hidden" name="originalRate" value={editor.rate ?? ''} />
+          <label>
+            <span>{t('Description')}</span>
+            <input name="description" value={editor.value} maxlength="500" required />
+          </label>
+          {#if editor.isHoursLine}
+            <div class="invoice-inline-editor__pair">
+              <label>
+                <span>{t('Hours')}</span>
+                <input
+                  name="hours"
+                  inputmode="decimal"
+                  value={editor.hours}
+                />
+              </label>
+              <label>
+                <span>{t('Rate')} ({String(invoice.currency ?? '')})</span>
+                <input
+                  name="rate"
+                  inputmode="decimal"
+                  value={editor.rate}
+                />
+              </label>
+            </div>
+          {/if}
+        {:else if editor.kind === 'textarea'}
+          <label>
+            <span>{editor.label}</span>
+            <textarea name="value" rows="4" maxlength="2000">{editor.value}</textarea>
+          </label>
+        {:else}
+          <label>
+            <span>{editor.label}</span>
+            <input
+              name="value"
+              type={editor.kind}
+              value={editor.value}
+              min={editor.kind === 'number' ? 0 : undefined}
+              max={editor.kind === 'number' ? 365 : undefined}
+              maxlength={editor.kind === 'text' ? 500 : undefined}
+            />
+          </label>
+        {/if}
+        {#if editor.alsoLabel}
+          <label class="invoice-inline-editor__also">
+            <input type="checkbox" name="alsoUpdateRecord" />
+            <span>{editor.alsoLabel}</span>
+          </label>
+        {/if}
+        {#if editor.note}<p class="invoice-inline-editor__note">{editor.note}</p>{/if}
+        {#if inlineError}<p class="invoice-inline-editor__error" role="alert">{inlineError}</p>{/if}
+        <div class="invoice-inline-editor__actions">
+          <button type="submit" disabled={inlineSaving}
+            >{inlineSaving ? t('Saving') : t('Save')}</button
+          >
+          <button type="button" class="secondary-button" onclick={closeInlineEditor}
+            >{t('Cancel')}</button
+          >
+          {#if editor.sourceHref}
+            <a href={editor.sourceHref}>{t('Open source record')}</a>
+          {/if}
+        </div>
+      </form>
+    {/if}
+  </dialog>
   <div
     class="invoice-document-shell"
     use:previewInteractions
@@ -1911,6 +2222,93 @@
 </main>
 
 <style>
+  .invoice-inline-hint {
+    max-width: 70rem;
+    margin: 0.5rem auto;
+    padding: 0 1rem;
+    color: var(--ja-text-secondary, #55554d);
+  }
+  .invoice-issued-correction {
+    max-width: 70rem;
+    margin: 0.5rem auto;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--ja-border-strong, #d1d1c9);
+    border-radius: var(--ja-radius, 1rem);
+    background: var(--ja-surface, #fff);
+  }
+  .invoice-issued-correction summary {
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+  }
+  .invoice-inline-editor {
+    width: min(32rem, calc(100vw - 2rem));
+    border: 1px solid var(--ja-border-strong, #d1d1c9);
+    border-radius: var(--ja-radius, 1rem);
+    padding: 1.1rem;
+    background: var(--ja-surface, #fff);
+    color: var(--ja-text-primary, #20201d);
+  }
+  .invoice-inline-editor::backdrop {
+    background: rgb(0 0 0 / 0.35);
+  }
+  .invoice-inline-editor form {
+    display: grid;
+    gap: 0.8rem;
+  }
+  .invoice-inline-editor h2 {
+    margin: 0;
+    font-size: 1.15rem;
+  }
+  .invoice-inline-editor label {
+    display: grid;
+    gap: 0.3rem;
+  }
+  .invoice-inline-editor input:not([type='checkbox']),
+  .invoice-inline-editor textarea {
+    min-height: 44px;
+    font: inherit;
+    padding: 0.5rem 0.65rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .invoice-inline-editor__pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+  }
+  .invoice-inline-editor label.invoice-inline-editor__also {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 44px;
+  }
+  .invoice-inline-editor__also input {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+  .invoice-inline-editor__note {
+    margin: 0;
+    color: var(--ja-text-secondary, #55554d);
+    font-size: 0.92rem;
+  }
+  .invoice-inline-editor__error {
+    margin: 0;
+    color: var(--ja-danger, #a1261b);
+    font-weight: 600;
+  }
+  .invoice-inline-editor__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .invoice-inline-editor__actions button {
+    min-height: 44px;
+    padding: 0 1.1rem;
+  }
   .invoice-lifecycle {
     display: grid;
     gap: 0.75rem;

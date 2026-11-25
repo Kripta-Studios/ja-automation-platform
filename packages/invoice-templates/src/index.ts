@@ -899,7 +899,7 @@ const table = (
     ? lines
         .map(
           (line) =>
-            `<tr data-invoice-source-type="${escape(line.source_type ?? line.sourceType ?? '')}" data-invoice-source-id="${escape(line.source_id ?? line.sourceId ?? '')}">${columns.map((column) => cell(column, column.render(line), 'td')).join('')}</tr>`,
+            `<tr data-invoice-source-type="${escape(line.source_type ?? line.sourceType ?? '')}" data-invoice-source-id="${escape(line.source_id ?? line.sourceId ?? '')}"${line.id && line.line_key !== undefined ? ` data-invoice-line-id="${escape(line.id)}" data-invoice-line-key="${escape(line.line_key)}"` : ''}>${columns.map((column) => cell(column, column.render(line), 'td')).join('')}</tr>`,
         )
         .join('')
     : `<tr><td colspan="${columns.length}" class="muted">${escape(localized.noInvoiceLines)}</td></tr>`;

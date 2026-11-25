@@ -5123,6 +5123,36 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   Beneficiary: ['Beneficiario', 'Beneficiário'],
   'ACH routing number': ['Número de ruta ACH', 'Número de roteamento ACH'],
   'Number format': ['Formato del número', 'Formato do número'],
+  'Client name': ['Nombre del cliente', 'Nome do cliente'],
+  'Client address': ['Dirección del cliente', 'Endereço do cliente'],
+  'Also update the client record': [
+    'Actualizar también la ficha del cliente',
+    'Atualizar também o cadastro do cliente',
+  ],
+  'Also update the project record': [
+    'Actualizar también la ficha del proyecto',
+    'Atualizar também o cadastro do projeto',
+  ],
+  'Invoice line': ['Línea de la factura', 'Linha da fatura'],
+  'Rate and hours change this invoice only. Time entries and worker pay stay as they are.': [
+    'La tarifa y las horas cambian solo esta factura. Los registros de horas y el pago del trabajador no cambian.',
+    'A tarifa e as horas mudam apenas esta fatura. Os registros de horas e o pagamento do trabalhador não mudam.',
+  ],
+  'Bank details apply to every invoice of this issuer. Every owner is notified of the change.': [
+    'Los datos bancarios se aplican a todas las facturas de este emisor. Se avisa a cada propietario del cambio.',
+    'Os dados bancários valem para todas as faturas deste emissor. Cada proprietário é avisado da alteração.',
+  ],
+  'Click any underlined text or a line of the invoice to change it.': [
+    'Haga clic en cualquier texto subrayado o en una línea de la factura para cambiarlo.',
+    'Clique em qualquer texto sublinhado ou em uma linha da fatura para alterá-lo.',
+  ],
+  'Correct this issued invoice': ['Corregir esta factura emitida', 'Corrigir esta fatura emitida'],
+  'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.':
+    [
+      'Una factura emitida es un documento legal que el cliente puede tener ya, por eso nunca se cambia directamente. Para corregirla: emita una nota de crédito para esta factura y luego cree y emita una factura corregida. Ambas quedan en el historial con su propio PDF.',
+      'Uma fatura emitida é um documento legal que o cliente pode já ter, por isso nunca é alterada diretamente. Para corrigi-la: emita uma nota de crédito para esta fatura e depois crie e emita uma fatura corrigida. Ambas ficam no histórico com o próprio PDF.',
+    ],
+  'The change was not saved.': ['El cambio no se guardó.', 'A alteração não foi salva.'],
   'Per client and project: CP-<client code>-001': [
     'Por cliente y proyecto: CP-<código de cliente>-001',
     'Por cliente e projeto: CP-<código do cliente>-001',

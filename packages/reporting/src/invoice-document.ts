@@ -185,6 +185,9 @@ export function renderInvoiceDocument(
         companyPhone: 'Phone',
         companyEmail: 'Email',
         companyWebsite: 'Website',
+        clientAddress: 'Client address',
+        projectName: 'Project',
+        costCenter: 'Cost center',
       },
       es: {
         issuingAuthority: 'Entidad emisora',
@@ -195,6 +198,9 @@ export function renderInvoiceDocument(
         companyPhone: 'Teléfono',
         companyEmail: 'Correo electrónico',
         companyWebsite: 'Sitio web',
+        clientAddress: 'Dirección del cliente',
+        projectName: 'Proyecto',
+        costCenter: 'Centro de coste',
       },
       pt: {
         issuingAuthority: 'Entidade emissora',
@@ -205,6 +211,9 @@ export function renderInvoiceDocument(
         companyPhone: 'Telefone',
         companyEmail: 'E-mail',
         companyWebsite: 'Site',
+        clientAddress: 'Endereço do cliente',
+        projectName: 'Projeto',
+        costCenter: 'Centro de custo',
       },
     }[rendered.locale],
   };
@@ -251,15 +260,17 @@ export function renderInvoiceDocument(
     .join('');
   // Client tax ID: drafts read it live; issued invoices print what their snapshot froze.
   const clientTaxId = text(client.taxId ?? client.tax_id);
+  const clientAddress = client.billingAddress ?? client.billing_address;
   const partyLines = [
     client.billingContactName ?? client.contactName,
-    client.billingAddress ?? client.billing_address,
     clientTaxId ? `${identifierLabels[rendered.locale].taxId} ${clientTaxId}` : '',
     client.billingEmail ?? client.email,
   ]
     .filter((v) => text(v))
-    .map((v) => `<p>${escape(v)}</p>`)
-    .join('');
+    .map((v) => `<p>${escape(v)}</p>`);
+  // The billing address is editable inline on a draft (an empty one shows a "—" target).
+  if (text(clientAddress) || options.editable)
+    partyLines.splice(1, 0, `<p class="invoice-client-address">${field('clientAddress', clientAddress)}</p>`);
   // Client number/code, project and cost center: shown on drafts and on invoices issued with
   // header version 2. Older issued invoices keep exactly the header their PDF was frozen with.
   const showIdentifiers = draft || Number(snapshot.documentHeaderVersion ?? 0) >= 2;
@@ -279,14 +290,20 @@ export function renderInvoiceDocument(
   );
   const costCenter = text(project.costCenterCode ?? project.cost_center_code);
   const identifierMeta = showIdentifiers
-    ? `<section class="invoice-references">${[
-        [id.project, projectReference],
-        [id.costCenter, costCenter],
-      ]
-        .filter(([, value]) => text(value))
+    ? `<section class="invoice-references">${(
+        [
+          [id.project, projectReference, 'projectName'],
+          [id.costCenter, costCenter, 'costCenter'],
+        ] as const
+      )
+        .filter(([, value]) => text(value) || options.editable)
         .map(
-          ([label, value]) =>
-            `<div data-invoice-reference><span>${escape(label)}</span><strong>${escape(value)}</strong></div>`,
+          ([label, value, name]) =>
+            `<div data-invoice-reference><span>${escape(label)}</span><strong>${
+              options.editable
+                ? field(name, name === 'projectName' ? project.name : value)
+                : escape(value)
+            }</strong></div>`,
         )
         .join('')}</section>`
     : '';
@@ -322,13 +339,14 @@ export function renderInvoiceDocument(
         'data-invoice-edit="$1" role="button" tabindex="0"',
       )
     : rendered.totalsBody;
+  // Draft lines open the inline line editor (description; rate and hours of hours lines).
   const lineBody = options.editable
     ? rendered.lineBody.replace(
-        /data-invoice-source-type="(time|expense)" data-invoice-source-id="([^"]+)"/gu,
-        'data-invoice-source-type="$1" data-invoice-source-id="$2" role="link" tabindex="0"',
+        /<tr data-invoice-source-type="([a-z]*)" data-invoice-source-id="([^"]*)" data-invoice-line-id="([^"]+)" data-invoice-line-key="([^"]*)">/gu,
+        '<tr data-invoice-source-type="$1" data-invoice-source-id="$2" data-invoice-line-id="$3" data-invoice-line-key="$4" data-invoice-edit="line" role="button" tabindex="0" class="invoice-edit-line">',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(creditNote ? (draft ? cn.draft : cn.title) : draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(creditNote ? cn.title : l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(creditNote ? (draft ? cn.draft : cn.title) : draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines.join('')}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(creditNote ? cn.title : l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,
@@ -395,6 +413,9 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document .grand-total{margin-top:8px;padding-top:12px;border-top:2px solid #373632;font-size:17px}
 .invoice-canonical#ja-invoice-document footer{position:static;inset:auto;background:none;width:auto;height:auto;box-shadow:none;display:flex;justify-content:space-between;gap:20px;margin-top:40px;padding-top:12px;border-top:1px solid #e8e8e6;font:700 9px 'Geist Mono',Consolas,monospace}
 .invoice-canonical#ja-invoice-document .invoice-edit-value{border:0;border-radius:3px;background:transparent;padding:0;color:inherit;font:inherit;box-shadow:none;min-height:0;min-width:0;height:auto;display:inline;appearance:none;text-align:inherit;text-decoration:underline;text-decoration-style:dotted;text-underline-offset:4px;cursor:pointer;max-width:100%;overflow-wrap:anywhere}
+.invoice-canonical#ja-invoice-document .invoice-client-address{white-space:pre-line}
+.invoice-canonical#ja-invoice-document tr.invoice-edit-line{cursor:pointer}
+.invoice-canonical#ja-invoice-document tr.invoice-edit-line:hover td,.invoice-canonical#ja-invoice-document tr.invoice-edit-line:focus-visible td{background:#fff7d6}
 .invoice-canonical#ja-invoice-document .invoice-edit-value[data-invoice-edit="invoiceNumber"]{display:inline-flex;align-items:center;min-height:44px;min-width:44px}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]{cursor:pointer}
 .invoice-canonical#ja-invoice-document [data-invoice-source-id][role="link"]:hover{background:#f4f1e8}

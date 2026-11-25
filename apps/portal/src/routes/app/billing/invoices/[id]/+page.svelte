@@ -145,6 +145,9 @@
             ['bankAccountNumber', 'Bank Account Number'],
             ['bankName', 'Bank Name'],
             ['beneficiary', 'Beneficiary'],
+            ['bankAchRouting', 'ACH routing number'],
+            ['bankWireRouting', 'Wire routing number (domestic)'],
+            ['bankSwiftEur', 'SWIFT code for EUR payments'],
             ['pastDueNotice', 'Past Due Notice'],
           ] as Array<[string, string]>
         ).filter(([name]) => draftDetailsForm?.values?.[name] !== undefined)
@@ -387,6 +390,9 @@
     'bankAccountNumber',
     'bankName',
     'beneficiary',
+    'bankAchRouting',
+    'bankWireRouting',
+    'bankSwiftEur',
     'companyDivision',
     'companyPhone',
     'companyEmail',

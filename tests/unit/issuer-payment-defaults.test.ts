@@ -8,6 +8,9 @@ describe('J&A USD invoice payment defaults', () => {
       bankAccountNumber: '488117823145',
       bankName: 'Bank of America',
       beneficiary: 'J&A Automation LLC',
+      bankAchRouting: '111000025',
+      bankWireRouting: '026009593',
+      bankSwiftEur: 'BOFAUS6S',
     });
     expect(issuerPaymentDefaults('CUSTOMER', 'USD')).toEqual({});
     expect(issuerPaymentDefaults('JA-USA', 'EUR')).toEqual({});

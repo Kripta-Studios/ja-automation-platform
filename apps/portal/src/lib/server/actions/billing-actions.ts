@@ -252,6 +252,9 @@ const billingInputFields = new Set([
   'bankAccountNumber',
   'bankName',
   'beneficiary',
+  'bankAchRouting',
+  'bankWireRouting',
+  'bankSwiftEur',
   'pastDueNotice',
   'companyName',
   'companyDivision',
@@ -1529,6 +1532,9 @@ export const billingActions = {
       'bankAccountNumber',
       'bankName',
       'beneficiary',
+      'bankAchRouting',
+      'bankWireRouting',
+      'bankSwiftEur',
       'companyDivision',
       'companyPhone',
       'companyEmail',
@@ -2754,6 +2760,8 @@ export const billingActions = {
       termsAndInstructions.bankName = formData.get('bankName')!.toString();
     if (formData.has('beneficiary'))
       termsAndInstructions.beneficiary = formData.get('beneficiary')!.toString();
+    for (const name of ['bankAchRouting', 'bankWireRouting', 'bankSwiftEur'] as const)
+      if (formData.has(name)) termsAndInstructions[name] = formData.get(name)!.toString();
     if (formData.has('pastDueNotice'))
       termsAndInstructions.pastDueNotice = formData.get('pastDueNotice')!.toString();
 

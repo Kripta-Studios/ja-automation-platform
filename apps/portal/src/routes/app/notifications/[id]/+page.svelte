@@ -75,6 +75,11 @@
     bankname: ['Bank', 'Banco', 'Banco'],
     beneficiary: ['Beneficiary', 'Beneficiario', 'Beneficiário'],
     accountnumber: ['Account number', 'Número de cuenta', 'Número da conta'],
+    bankswiftnumber: ['SWIFT/BIC', 'SWIFT/BIC', 'SWIFT/BIC'],
+    bankaccountnumber: ['Account number', 'Número de cuenta', 'Número da conta'],
+    bankachrouting: ['ACH routing number', 'Número de ruta ACH', 'Número de roteamento ACH'],
+    bankwirerouting: ['Wire routing number (domestic)', 'Número de ruta para transferencias (nacional)', 'Número de roteamento para transferência (doméstica)'],
+    bankswifteur: ['SWIFT code for EUR payments', 'Código SWIFT para pagos en EUR', 'Código SWIFT para pagamentos em EUR'],
   };
   const fieldWord = (key: string) => {
     const known = FIELD_WORDS[key.replace(/[_\s-]/gu, '').toLocaleLowerCase()];

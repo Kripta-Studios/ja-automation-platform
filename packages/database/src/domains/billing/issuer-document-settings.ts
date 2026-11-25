@@ -18,6 +18,9 @@ export const issuerPayeeFields = [
   'bankAccountNumber',
   'bankName',
   'beneficiary',
+  'bankAchRouting',
+  'bankWireRouting',
+  'bankSwiftEur',
 ] as const;
 export const ISSUER_PAYEE_OWNER_REQUIRED =
   'Only the owner can change the bank and payee details printed on invoices.';
@@ -28,6 +31,10 @@ const fields = {
   bankAccountNumber: 'bank_account_number',
   bankName: 'bank_name',
   beneficiary: 'beneficiary',
+  // Nullable since migration 0090: NULL = never saved, reads the issuer's starting value.
+  bankAchRouting: 'bank_ach_routing_number',
+  bankWireRouting: 'bank_wire_routing_number',
+  bankSwiftEur: 'bank_swift_eur',
   companyDivision: 'company_division',
   companyPhone: 'company_phone',
   companyEmail: 'company_email',
@@ -77,6 +84,9 @@ export function issuerSettingsPresentation(
       bankAccountNumber: settings.bankAccountNumber,
       bankName: settings.bankName,
       beneficiary: settings.beneficiary,
+      bankAchRouting: settings.bankAchRouting,
+      bankWireRouting: settings.bankWireRouting,
+      bankSwiftEur: settings.bankSwiftEur,
     },
     companyInfo: {
       division: settings.companyDivision,
@@ -160,7 +170,10 @@ export function updateIssuerDocumentSettings(
       sqlite
         .prepare(
           `INSERT INTO issuer_document_settings(tenant_id,deployment_id,legal_entity_id,currency,
-        ${Object.values(fields).join(',')},version,created_at,updated_at,updated_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,1,?,?,?)`,
+        ${Object.values(fields).join(',')},version,created_at,updated_at,updated_by)
+        VALUES(?,?,?,?,${Object.values(fields)
+          .map(() => '?')
+          .join(',')},1,?,?,?)`,
         )
         .run(
           String(deployment.tenant_id),

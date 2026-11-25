@@ -166,6 +166,9 @@ export function updateInvoiceDraftDetails(
       'bankAccountNumber',
       'bankName',
       'beneficiary',
+      'bankAchRouting',
+      'bankWireRouting',
+      'bankSwiftEur',
     ] as const) {
       const value = data.termsAndInstructions?.[name];
       if (value !== undefined && value !== String(baselineTerms[name] ?? ''))

@@ -104,6 +104,9 @@ type InvoiceCopy = Readonly<{
   bankAccountNumber: string;
   bankName: string;
   beneficiary: string;
+  bankAchRouting: string;
+  bankWireRouting: string;
+  bankSwiftEur: string;
   pastDueNotice: string;
   purchaseNo: string;
   clientTaxId: string;
@@ -114,6 +117,9 @@ export type InvoiceTermsAndInstructions = Readonly<{
   bankAccountNumber: string;
   bankName: string;
   beneficiary: string;
+  bankAchRouting: string;
+  bankWireRouting: string;
+  bankSwiftEur: string;
   pastDueNotice: string;
 }>;
 
@@ -122,6 +128,9 @@ export const DEFAULT_INVOICE_TERMS: InvoiceTermsAndInstructions = Object.freeze(
   bankAccountNumber: '',
   bankName: '',
   beneficiary: '',
+  bankAchRouting: '',
+  bankWireRouting: '',
+  bankSwiftEur: '',
   pastDueNotice: '',
 });
 
@@ -193,6 +202,9 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     bankAccountNumber: 'Bank Account Number',
     bankName: 'Bank Name',
     beneficiary: 'Beneficiary',
+    bankAchRouting: 'ACH routing number',
+    bankWireRouting: 'Wire routing number (domestic)',
+    bankSwiftEur: 'SWIFT code for EUR payments',
     pastDueNotice:
       'Past Due account subject to service charge of 1.5% per month and/or maximum permitted by law',
     purchaseNo: 'Purchase No.:',
@@ -247,6 +259,9 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     bankAccountNumber: 'Número de cuenta bancaria',
     bankName: 'Nombre del banco',
     beneficiary: 'Beneficiario',
+    bankAchRouting: 'Número de ruta ACH',
+    bankWireRouting: 'Número de ruta para transferencias (nacional)',
+    bankSwiftEur: 'Código SWIFT para pagos en EUR',
     pastDueNotice:
       'Cuentas vencidas sujetas a un cargo del 1.5% mensual y/o el máximo permitido por ley',
     purchaseNo: 'Nº de orden / pedido:',
@@ -301,6 +316,9 @@ const copy: Readonly<Record<InvoiceLanguage, InvoiceCopy>> = {
     bankAccountNumber: 'Número da conta bancária',
     bankName: 'Nome do banco',
     beneficiary: 'Beneficiário',
+    bankAchRouting: 'Número de roteamento ACH',
+    bankWireRouting: 'Número de roteamento para transferência (doméstica)',
+    bankSwiftEur: 'Código SWIFT para pagamentos em EUR',
     pastDueNotice:
       'Contas vencidas sujeitas a encargo de 1,5% ao mês e/ou máximo permitido por lei',
     purchaseNo: 'Nº do pedido:',
@@ -648,6 +666,9 @@ const resolveTerms = (snapshot: InvoiceTemplateSnapshot): InvoiceTermsAndInstruc
       bankAccountNumber: '',
       bankName: '',
       beneficiary: '',
+      bankAchRouting: '',
+      bankWireRouting: '',
+      bankSwiftEur: '',
       pastDueNotice: custom.trim(),
     };
   }
@@ -657,6 +678,9 @@ const resolveTerms = (snapshot: InvoiceTemplateSnapshot): InvoiceTermsAndInstruc
       bankAccountNumber: custom.bankAccountNumber?.trim() ?? '',
       bankName: custom.bankName?.trim() ?? '',
       beneficiary: custom.beneficiary?.trim() ?? '',
+      bankAchRouting: custom.bankAchRouting?.trim() ?? '',
+      bankWireRouting: custom.bankWireRouting?.trim() ?? '',
+      bankSwiftEur: custom.bankSwiftEur?.trim() ?? '',
       pastDueNotice: custom.pastDueNotice?.trim() ?? '',
     };
   }
@@ -1284,6 +1308,9 @@ const renderTotals = (
       ['bankAccountNumber', localized.bankAccountNumber, terms.bankAccountNumber],
       ['bankName', localized.bankName, terms.bankName],
       ['beneficiary', localized.beneficiary, terms.beneficiary],
+      ['bankAchRouting', localized.bankAchRouting, terms.bankAchRouting],
+      ['bankWireRouting', localized.bankWireRouting, terms.bankWireRouting],
+      ['bankSwiftEur', localized.bankSwiftEur, terms.bankSwiftEur],
     ] as const
   )
     .filter(([, , value]) => nonEmptyString(value))

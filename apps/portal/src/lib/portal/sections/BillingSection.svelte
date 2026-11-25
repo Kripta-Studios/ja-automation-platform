@@ -369,6 +369,9 @@
     ['bankAccountNumber', 'Bank Account Number'],
     ['bankName', 'Bank Name'],
     ['beneficiary', 'Beneficiary'],
+    ['bankAchRouting', 'ACH routing number'],
+    ['bankWireRouting', 'Wire routing number (domestic)'],
+    ['bankSwiftEur', 'SWIFT code for EUR payments'],
     ['companyDivision', 'Division'],
     ['companyPhone', 'Phone'],
     ['companyEmail', 'Email'],
@@ -2138,6 +2141,9 @@
     'bankAccountNumber',
     'bankName',
     'beneficiary',
+    'bankAchRouting',
+    'bankWireRouting',
+    'bankSwiftEur',
   ];
   const numberingEntityId = $derived(
     (data.legalEntities ?? []).some(
@@ -5845,9 +5851,16 @@
                                   ? 254
                                   : name === 'companyWebsite'
                                     ? 500
-                                    : ['bankSwiftNumber', 'bankAccountNumber'].includes(name)
-                                      ? 160
-                                      : 300}
+                                    : ['bankAchRouting', 'bankWireRouting'].includes(name)
+                                      ? 40
+                                      : ['bankSwiftNumber', 'bankAccountNumber', 'bankSwiftEur'].includes(
+                                            name,
+                                          )
+                                        ? 160
+                                        : 300}
+                              inputmode={['bankAchRouting', 'bankWireRouting'].includes(name)
+                                ? 'numeric'
+                                : undefined}
                               disabled={Boolean(issuerSettingsSavingId)}
                               readonly={issuerPayeeFieldNames.includes(name) && !canEditIssuerPayee}
                             /></label

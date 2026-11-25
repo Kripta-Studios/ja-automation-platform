@@ -9,5 +9,8 @@ export function issuerPaymentDefaults(
     bankAccountNumber: '488117823145',
     bankName: 'Bank of America',
     beneficiary: 'J&A Automation LLC',
+    bankAchRouting: '111000025',
+    bankWireRouting: '026009593',
+    bankSwiftEur: 'BOFAUS6S',
   };
 }

@@ -714,6 +714,9 @@ export const invoiceDraftDetailsInputSchema = z
         bankAccountNumber: z.string().trim().max(160).optional(),
         bankName: z.string().trim().max(300).optional(),
         beneficiary: z.string().trim().max(300).optional(),
+        bankAchRouting: z.string().trim().max(40).optional(),
+        bankWireRouting: z.string().trim().max(40).optional(),
+        bankSwiftEur: z.string().trim().max(160).optional(),
         pastDueNotice: z.string().trim().max(2000).optional(),
       })
       .strict()
@@ -740,6 +743,15 @@ export function isValidBic(value: string): boolean {
   return /^[A-Z]{4}[A-Z]{2}[A-Z0-9]{2}([A-Z0-9]{3})?$/u.test(
     value.replace(/\s+/gu, '').toUpperCase(),
   );
+}
+
+/** US ABA routing transit number: 9 digits with the 3-7-1 weighted checksum (spaces/dashes ignored). */
+export function isValidAbaRoutingNumber(value: string): boolean {
+  const digits = value.replace(/[\s-]+/gu, '');
+  if (!/^[0-9]{9}$/u.test(digits)) return false;
+  const weights = [3, 7, 1, 3, 7, 1, 3, 7, 1];
+  const sum = weights.reduce((total, weight, index) => total + weight * Number(digits[index]), 0);
+  return sum % 10 === 0;
 }
 
 /** A value written like an IBAN (country letters + check digits first), spaces ignored. */
@@ -777,6 +789,9 @@ export const issuerDocumentSettingsInputSchema = z
     bankAccountNumber: z.string().trim().max(160).optional(),
     bankName: z.string().trim().max(300).optional(),
     beneficiary: z.string().trim().max(300).optional(),
+    bankAchRouting: z.string().trim().max(40).optional(),
+    bankWireRouting: z.string().trim().max(40).optional(),
+    bankSwiftEur: z.string().trim().max(160).optional(),
     companyDivision: z.string().trim().max(300).optional(),
     companyPhone: z.string().trim().max(80).optional(),
     companyEmail: z.union([z.email().max(254), z.literal('')]).optional(),
@@ -790,6 +805,19 @@ export const issuerDocumentSettingsInputSchema = z
         path: ['bankSwiftNumber'],
         message: 'Enter a SWIFT/BIC code of 8 or 11 characters, for example WFBIUS6S.',
       });
+    if (value.bankSwiftEur && !isValidBic(value.bankSwiftEur))
+      context.addIssue({
+        code: 'custom',
+        path: ['bankSwiftEur'],
+        message: 'Enter a SWIFT/BIC code of 8 or 11 characters, for example BOFAUS6S.',
+      });
+    for (const name of ['bankAchRouting', 'bankWireRouting'] as const)
+      if (value[name] && !isValidAbaRoutingNumber(value[name]))
+        context.addIssue({
+          code: 'custom',
+          path: [name],
+          message: 'Enter the 9-digit US routing number (ABA), for example 026009593.',
+        });
     if (value.bankAccountNumber && !isValidBankAccountNumber(value.bankAccountNumber))
       context.addIssue({
         code: 'custom',

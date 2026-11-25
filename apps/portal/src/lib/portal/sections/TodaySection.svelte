@@ -135,6 +135,26 @@
         active: approvals.expenses.count > 0,
       },
     ];
+    // D6: what the owner/PM approved still needs Finance's "bill the client?" decision.
+    if (!operationalApprover && inbox.billingDecisions) {
+      const decisions = inbox.billingDecisions;
+      rows.push({
+        id: 'billing-decisions',
+        label: h('billingDecisions'),
+        value: String(decisions.count),
+        detail: decisions.count
+          ? [
+              decisions.minutes ? h('approvedHours', { hours: clockHoursFromMinutes(decisions.minutes) }) : '',
+              h('billingDecisionsDetail'),
+            ]
+              .filter(Boolean)
+              .join(' · ')
+          : h('nothing'),
+        action: h('decideBilling'),
+        href: `${link('approvals', {})}#finance-review`,
+        active: decisions.count > 0,
+      });
+    }
     if (inbox.readyToInvoice) {
       const ready = inbox.readyToInvoice;
       const expensesNote = (expenses: { count: number; totals: readonly CurrencyTotal[] } | undefined) =>

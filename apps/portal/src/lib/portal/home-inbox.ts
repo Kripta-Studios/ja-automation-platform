@@ -225,6 +225,12 @@ export type ProjectGlance = {
 export type HomeInbox = {
   approvals: ApprovalPendingSummary;
   readyToInvoice: ReadyToInvoice | null;
+  /**
+   * Round 2 (D6 side effect): hours and expenses the owner or a project manager approved
+   * that still need Finance's "bill the client?" decision (Approvals › Finance review).
+   * Owner and Finance only.
+   */
+  billingDecisions?: { count: number; minutes: number };
   projects?: ProjectGlance[];
 };
 

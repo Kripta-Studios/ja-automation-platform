@@ -161,6 +161,10 @@ export const load: PageServerLoad = ({ locals, url }) => {
           `SELECT project_id projectId,SUM(minutes) minutes FROM time_entry
             WHERE approval_state IN ('approved','locked') AND invoice_id IS NULL
               AND billability_state IN ('pending','billable')
+              AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl
+                     JOIN time_entry replacement ON replacement.id=rcl.correction_id
+                     WHERE rcl.record_type='time_entry' AND rcl.original_id=time_entry.id
+                       AND replacement.approval_state IN ('approved','locked'))
               AND NOT EXISTS (SELECT 1 FROM invoice_source source JOIN invoice ON invoice.id=source.invoice_id
                      WHERE source.source_type='time' AND source.source_id=time_entry.id
                        AND invoice.state NOT IN ('void','cancelled','superseded'))
@@ -232,6 +236,25 @@ export const load: PageServerLoad = ({ locals, url }) => {
         [project.project_number, project.name].filter(Boolean).join(' · '),
       ]),
     );
+    // Approved records still waiting for Finance's billing decision (same list as
+    // Approvals › Finance review), so Finance Home says what needs it.
+    const billingDecisionSummary = () => {
+      try {
+        const rows = context.repository.listApprovalQueue(context.principal, {
+          view: 'finance',
+        }) as Array<Record<string, unknown>>;
+        return {
+          count: rows.length,
+          minutes: rows.reduce(
+            (total, row) =>
+              total + (String(row.type ?? '') === 'expense' ? 0 : Number(row.minutes ?? 0) || 0),
+            0,
+          ),
+        };
+      } catch {
+        return { count: 0, minutes: 0 };
+      }
+    };
     const homeInbox: HomeInbox = {
       // What this viewer can approve (P1), the same number as the nav badge.
       approvals: pendingApprovals.reviewable,
@@ -256,6 +279,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
           )
         : null,
       ...(isOwner ? { projects: projectGlance } : {}),
+      ...(isOwner ? { billingDecisions: billingDecisionSummary() } : {}),
     };
     return {
       homeInbox,

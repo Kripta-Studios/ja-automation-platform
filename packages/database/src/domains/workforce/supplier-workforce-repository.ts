@@ -1732,8 +1732,31 @@ export class SupplierWorkforceRepository {
     });
   }
 
+  /**
+   * Round 2: each side keeps its own drafts. The coordinator sends and edits the drafts he
+   * recorded (after his review step); a technician's own drafts are the technician's.
+   */
+  private assertCoordinatorOwnsDraft(principal: Principal, id: string): void {
+    if (readSupplierProfile(this.sqlite, principal.userId)?.profile !== 'supplier_coordinator') return;
+    const row = this.sqlite
+      .prepare(
+        `SELECT t.approval_state,
+                COALESCE(rec.recorded_by_user_id,
+                  (SELECT link.actor_user_id FROM record_correction_link link
+                    WHERE link.record_type='time_entry' AND link.correction_id=t.id LIMIT 1),
+                  t.worker_id) recorder
+           FROM time_entry t
+           LEFT JOIN supplier_time_entry_recorder rec ON rec.time_entry_id=t.id
+          WHERE t.id=?`,
+      )
+      .get(id) as { approval_state: string; recorder: string | null } | undefined;
+    if (row && row.approval_state === 'draft' && row.recorder !== principal.userId)
+      throw new AccessDeniedError('Only the person who recorded this draft may send or change it');
+  }
+
   submitTime(principal: Principal, input: { id: string; version: number }) {
     this.assertSupplierTimeEntryScope(principal, input.id);
+    this.assertCoordinatorOwnsDraft(principal, input.id);
     return this.time.submitTime(principal, input.id, input.version);
   }
 
@@ -1746,7 +1769,10 @@ export class SupplierWorkforceRepository {
     if (unique.size === 0) throw new ValidationError('Select at least one draft');
     if (unique.size > 100) throw new ValidationError('A submission batch is limited to 100 drafts');
     return this.transaction(() => {
-      for (const id of unique.keys()) this.assertSupplierTimeEntryScope(principal, id);
+      for (const id of unique.keys()) {
+        this.assertSupplierTimeEntryScope(principal, id);
+        this.assertCoordinatorOwnsDraft(principal, id);
+      }
       for (const [id, version] of unique) this.time.submitTime(principal, id, version);
       return { submitted: unique.size };
     });
@@ -1754,6 +1780,7 @@ export class SupplierWorkforceRepository {
 
   updateTime(principal: Principal, input: TimeEntryUpdateInput) {
     this.assertSupplierTimeEntryScope(principal, input.id);
+    this.assertCoordinatorOwnsDraft(principal, input.id);
     if (input.category !== undefined) {
       const category = canonicalSupplierTimeCategory(input.category);
       if (!SUPPLIER_TIME_CATEGORIES.includes(category))

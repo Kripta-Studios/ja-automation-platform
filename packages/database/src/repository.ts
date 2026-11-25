@@ -2079,13 +2079,19 @@ export class PortalRepository {
     return this.transaction(() => {
       const rows = this.sqlite
         .prepare(
-          `SELECT id,project_id,worker_id,work_date,version
-             FROM time_entry
-            WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='draft'
-              AND EXISTS (SELECT 1 FROM project p WHERE p.id=time_entry.project_id AND p.status<>'archived')
-            ORDER BY work_date,id`,
+          `SELECT t.id,t.project_id,t.worker_id,t.work_date,t.version
+             FROM time_entry t
+            WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND t.approval_state='draft'
+              AND EXISTS (SELECT 1 FROM project p WHERE p.id=t.project_id AND p.status<>'archived')
+              -- Round 2: a draft the supplier coordinator recorded stays his to send.
+              AND NOT (t.worker_id=? AND (EXISTS (SELECT 1 FROM supplier_time_entry_recorder rec
+                     WHERE rec.time_entry_id=t.id AND rec.recorded_by_user_id<>t.worker_id)
+                OR EXISTS (SELECT 1 FROM record_correction_link link
+                     JOIN supplier_user_profile sp ON sp.user_id=link.actor_user_id AND sp.profile='supplier_coordinator'
+                     WHERE link.record_type='time_entry' AND link.correction_id=t.id AND link.actor_user_id<>t.worker_id)))
+            ORDER BY t.work_date,t.id`,
         )
-        .all(workerId, weekStart, weekEnd) as Array<{
+        .all(workerId, weekStart, weekEnd, principal.userId) as Array<{
         id: string;
         project_id: string;
         worker_id: string;
@@ -2424,9 +2430,15 @@ export class PortalRepository {
                FROM time_entry t
               WHERE t.worker_id=? AND t.work_date=? AND t.approval_state='draft'
                 AND EXISTS (SELECT 1 FROM project p WHERE p.id=t.project_id AND p.status<>'archived')
+                -- Round 2: a draft the supplier coordinator recorded stays his to send.
+                AND NOT (t.worker_id=? AND (EXISTS (SELECT 1 FROM supplier_time_entry_recorder rec
+                       WHERE rec.time_entry_id=t.id AND rec.recorded_by_user_id<>t.worker_id)
+                  OR EXISTS (SELECT 1 FROM record_correction_link link
+                       JOIN supplier_user_profile sp ON sp.user_id=link.actor_user_id AND sp.profile='supplier_coordinator'
+                       WHERE link.record_type='time_entry' AND link.correction_id=t.id AND link.actor_user_id<>t.worker_id)))
               ORDER BY t.id`,
           )
-          .all(workerId, input.submitDay) as Array<{ id: string; version: number; linked_pair: number }>;
+          .all(workerId, input.submitDay, principal.userId) as Array<{ id: string; version: number; linked_pair: number }>;
         // Same stale-page rule as the week: every draft of the day must be one
         // the person saw (or one this call just wrote).
         if (dayDrafts.some((row) => versions.get(row.id) !== row.version))
@@ -2440,11 +2452,17 @@ export class PortalRepository {
       if (!input.submit) return { created, updated, removed, corrected, submitted: 0 };
       const remaining = this.sqlite
         .prepare(
-          `SELECT id,version FROM time_entry
-            WHERE worker_id=? AND work_date BETWEEN ? AND ? AND approval_state='draft'
-              AND EXISTS (SELECT 1 FROM project p WHERE p.id=time_entry.project_id AND p.status<>'archived')`,
+          `SELECT t.id,t.version FROM time_entry t
+            WHERE t.worker_id=? AND t.work_date BETWEEN ? AND ? AND t.approval_state='draft'
+              AND EXISTS (SELECT 1 FROM project p WHERE p.id=t.project_id AND p.status<>'archived')
+                -- Round 2: a draft the supplier coordinator recorded stays his to send.
+                AND NOT (t.worker_id=? AND (EXISTS (SELECT 1 FROM supplier_time_entry_recorder rec
+                       WHERE rec.time_entry_id=t.id AND rec.recorded_by_user_id<>t.worker_id)
+                  OR EXISTS (SELECT 1 FROM record_correction_link link
+                       JOIN supplier_user_profile sp ON sp.user_id=link.actor_user_id AND sp.profile='supplier_coordinator'
+                       WHERE link.record_type='time_entry' AND link.correction_id=t.id AND link.actor_user_id<>t.worker_id)))`,
         )
-        .all(workerId, input.weekStart, weekEnd) as Array<{ id: string; version: number }>;
+        .all(workerId, input.weekStart, weekEnd, principal.userId) as Array<{ id: string; version: number }>;
       // Fresh versions for rows this call changed; every other draft must be
       // one the user saw, so submitTimeWeek detects a stale page.
       const expected = remaining.map((row) => ({

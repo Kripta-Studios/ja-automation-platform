@@ -503,6 +503,27 @@ export class TimeEntryRepository {
     });
   }
 
+  /**
+   * Round 2: a draft the supplier coordinator recorded for a technician stays the
+   * coordinator's (he reviews and sends it with his "I have reviewed these hours" step);
+   * the technician cannot send or discard it.
+   */
+  private assertNotCoordinatorRecordedDraft(principal: Principal, id: string, workerId: string) {
+    if (principal.userId !== workerId) return;
+    const recorder = this.deps.sqlite
+      .prepare(
+        `SELECT rec.recorded_by_user_id FROM supplier_time_entry_recorder rec WHERE rec.time_entry_id=?
+         UNION ALL
+         SELECT link.actor_user_id FROM record_correction_link link
+           JOIN supplier_user_profile sp ON sp.user_id=link.actor_user_id AND sp.profile='supplier_coordinator'
+          WHERE link.record_type='time_entry' AND link.correction_id=?
+         LIMIT 1`,
+      )
+      .get(id, id) as { recorded_by_user_id: string } | undefined;
+    if (recorder && recorder.recorded_by_user_id !== principal.userId)
+      throw this.deps.errors.accessDenied('Supplier coordinator draft');
+  }
+
   submitTime(
     principal: Principal,
     id: string,
@@ -533,6 +554,7 @@ export class TimeEntryRepository {
           }
         | undefined;
       if (!current) throw this.deps.errors.validation('Time entry not found');
+      this.assertNotCoordinatorRecordedDraft(principal, id, current.worker_id);
       // Owner and Finance submit the audited correction drafts they created themselves.
       const ownerCorrection =
         (principal.role === 'owner_admin' || principal.role === 'finance_admin') &&
@@ -1163,6 +1185,7 @@ export class TimeEntryRepository {
         | undefined;
 
       if (!current) throw this.deps.errors.validation('Time entry not found');
+      this.assertNotCoordinatorRecordedDraft(principal, id, current.worker_id);
       this.assertEffectiveMembership(
         principal,
         current.project_id,

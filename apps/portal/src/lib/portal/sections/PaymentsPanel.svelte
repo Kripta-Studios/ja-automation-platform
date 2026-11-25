@@ -34,9 +34,12 @@
   const daysBetween = (from: string, to: string) =>
     Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86_400_000);
 
+  // T12 (round 2): what the client still owes on an invoice is net of its issued credit
+  // notes, the same figure as the header, Money and the invoice page.
+  const owed = (row: Record<string, unknown>) => row.netOutstandingMinor ?? row.outstandingMinor;
   const open = $derived(
     ledger
-      .filter((row) => String(row.billingStatus) !== 'void' && big(row.outstandingMinor) > 0n)
+      .filter((row) => String(row.billingStatus) !== 'void' && big(owed(row)) > 0n)
       .map((row) => {
         const due = day(row.dueDate);
         const late = due ? daysBetween(due, today) : 0;
@@ -134,7 +137,7 @@
               <span><small>{t('total')}</small> {money(item.row.totalMinor, currency)}</span>
               <strong data-open-balance>
                 <small>{t('balance')}</small>
-                {money(item.row.outstandingMinor, currency)}</strong
+                {money(owed(item.row), currency)}</strong
               >
               {#if big(item.row.collectedMinor) > 0n}<small class="payments__muted">{t('partially_paid')}</small>{/if}
             </div>
@@ -158,7 +161,7 @@
             <RecordPaymentForm
               invoiceId={id}
               {currency}
-              outstandingMinor={String(item.row.outstandingMinor)}
+              outstandingMinor={String(owed(item.row))}
               action={`${base}/app/billing?/recordPayment`}
               {locale}
               {money}

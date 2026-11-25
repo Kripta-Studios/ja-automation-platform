@@ -44,7 +44,7 @@ export const supplierCopy = {
     assignedHelp:
       "To change a technician's contact details or end an assignment early, ask J&A (the owner).",
     reportLanguage: 'Report language',
-    overnightHint: 'Night shift? Record the hours after midnight on the next date.',
+    overnightHint: 'Night shift? Enter the real start and end: an end before the start ends the next day and stays on the start date.',
     personHoursInvalid: 'Enter hours, for example 7.5 or 7:30.',
     time: 'Record team hours',
     batchHelp:
@@ -175,7 +175,7 @@ export const supplierCopy = {
       'Para cambiar los datos de contacto de un técnico o terminar antes una asignación, pídelo a J&A (el propietario).',
     reportLanguage: 'Idioma del informe',
     overnightHint:
-      '¿Turno de noche? Registra las horas posteriores a medianoche en la fecha siguiente.',
+      '¿Turno de noche? Introduce el inicio y el fin reales: un fin anterior al inicio termina al día siguiente y queda en la fecha de inicio.',
     personHoursInvalid: 'Introduce horas, por ejemplo 7,5 o 7:30.',
     time: 'Registrar horas del equipo',
     batchHelp:
@@ -305,7 +305,7 @@ export const supplierCopy = {
     assignedHelp:
       'Para alterar os dados de contato de um técnico ou encerrar uma atribuição antes do previsto, peça à J&A (o proprietário).',
     reportLanguage: 'Idioma do relatório',
-    overnightHint: 'Turno noturno? Registre as horas após a meia-noite na data seguinte.',
+    overnightHint: 'Turno noturno? Informe o início e o fim reais: um fim antes do início termina no dia seguinte e fica na data de início.',
     personHoursInvalid: 'Informe as horas, por exemplo 7,5 ou 7:30.',
     time: 'Registrar horas da equipe',
     batchHelp:

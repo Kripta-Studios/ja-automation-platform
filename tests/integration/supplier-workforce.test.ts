@@ -853,11 +853,15 @@ describe('supplier workforce canonical time', () => {
       minutes: 30,
       summary: 'Discarded draft',
     });
-    fixture.repository.deleteTime(
-      authenticatedWorker(fixture, technician.id),
-      entry.id,
-      entry.version,
-    );
+    // Round 2: the coordinator's draft is his to discard; the technician is refused.
+    expect(() =>
+      fixture.repository.deleteTime(
+        authenticatedWorker(fixture, technician.id),
+        entry.id,
+        entry.version,
+      ),
+    ).toThrow(AccessDeniedError);
+    suppliers.discardTime(coordinator, { id: entry.id, version: entry.version });
     expect(
       fixture.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(entry.id),
     ).toEqual({
@@ -996,5 +1000,45 @@ describe('supplier directory lifecycle', () => {
     expect(suppliers.listSuppliers(fixture.owner)).toContainEqual(
       expect.objectContaining({ id: supplier.id, name: 'Field supplier', status: 'active' }),
     );
+  });
+});
+
+describe('round 2: supplier drafts stay with the person who recorded them', () => {
+  it('lets neither the technician send or discard a coordinator draft nor the coordinator send a technician draft', () => {
+    const { fixture, suppliers, coordinator, technician } = setup();
+    const delegated = suppliers.createTime(coordinator, {
+      workerId: technician.id,
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'regular',
+      minutes: 60,
+      summary: 'Coordinator-recorded draft',
+    });
+    const technicianPrincipal = authenticatedWorker(fixture, technician.id);
+    const own = fixture.repository.createTimeEntry(technicianPrincipal, {
+      projectId: fixture.project.id,
+      workDate: operationalDate,
+      category: 'regular',
+      minutes: 30,
+      summary: 'Technician draft',
+    });
+    expect(() =>
+      fixture.repository.submitTime(technicianPrincipal, delegated.id, delegated.version),
+    ).toThrow(AccessDeniedError);
+    expect(() =>
+      fixture.repository.deleteTime(technicianPrincipal, delegated.id, delegated.version),
+    ).toThrow(AccessDeniedError);
+    expect(() => suppliers.submitTime(coordinator, { id: own.id, version: own.version })).toThrow(
+      AccessDeniedError,
+    );
+    expect(
+      fixture.sqlite
+        .prepare('SELECT approval_state FROM time_entry WHERE id IN (?,?) ORDER BY id')
+        .all(delegated.id, own.id)
+        .map((row) => row.approval_state),
+    ).toEqual(['draft', 'draft']);
+    // Each side still sends its own draft.
+    suppliers.submitTime(coordinator, { id: delegated.id, version: delegated.version });
+    fixture.repository.submitTime(technicianPrincipal, own.id, own.version);
   });
 });

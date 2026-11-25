@@ -167,7 +167,12 @@ export function collectionSummaries(rows: readonly CollectionRow[], asOf: string
       if (aging.agingBucket === 'credit') summary.credits += balance;
       else summary.outstanding += balance;
       summary.buckets[aging.agingBucket] += balance;
-      if ((aging.daysOverdue ?? 0) > 0) summary.overdue += balance;
+      // Overdue is what the client still owes on the late invoice: net of its credit notes.
+      if ((aging.daysOverdue ?? 0) > 0) {
+        const net = (row as Record<string, unknown>).netOutstandingMinor;
+        const owed = /^-?\d+$/u.test(String(net ?? '')) ? BigInt(String(net)) : balance;
+        summary.overdue += owed < balance ? (owed > 0n ? owed : 0n) : balance;
+      }
     }
     currencies.set(currency, summary);
   }

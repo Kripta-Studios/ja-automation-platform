@@ -963,7 +963,13 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
           : [],
       // T26: every unsent draft of the coordinator's team on this project,
       // whatever its date, so a draft after the report's "To" date never hides.
-      openDrafts: allTeamRows.filter((entry) => entry.state === 'draft'),
+      // Round 2: the coordinator sends the drafts he recorded; a technician's own drafts
+      // stay with the technician (the owner sees every draft).
+      openDrafts: allTeamRows.filter(
+        (entry) =>
+          entry.state === 'draft' &&
+          (owner || String(entry.recordedBy ?? '') === ctx.principal.userId),
+      ),
       // T07: records J&A sent back that still wait for a correction.
       returned: (() => {
         const rows = allTeamRows.filter(

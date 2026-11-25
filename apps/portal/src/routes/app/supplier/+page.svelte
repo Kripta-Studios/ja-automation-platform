@@ -1657,7 +1657,7 @@
         <p>
           {(data.entries.length === 1 ? c.periodEntriesOne : c.periodEntries)
             .replace('{count}', String(data.entries.length))
-            .replace('{drafts}', String(draftEntries.length))}
+            .replace('{drafts}', String(openDrafts.length))}
         </p>
         <button
           type="button"

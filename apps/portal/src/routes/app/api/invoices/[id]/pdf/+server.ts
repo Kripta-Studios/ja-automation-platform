@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type { RequestHandler } from '@sveltejs/kit';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { privateArtifactProblem, servePrivateArtifact } from '$lib/server/private-artifact-access';
+import { ensureInvoiceRevisionPdf } from '$lib/server/invoice-revision-pdf';
+import { assertLiveSession, AccessDeniedError } from '@ja/database';
 
 export const GET: RequestHandler = async ({ locals, params, url }) => {
   const correlationId = locals.correlationId || randomUUID();
@@ -19,6 +21,20 @@ export const GET: RequestHandler = async ({ locals, params, url }) => {
   try {
     context = openPortalRepository(locals);
     const repository = context;
+    // A corrected version whose PDF could not be rendered when it was saved is rendered now
+    // (finance roles only; the download below still authorizes the request on its own).
+    if (['owner_admin', 'finance_admin'].includes(repository.principal.role)) {
+      try {
+        assertLiveSession(repository.sqlite, repository.principal, AccessDeniedError);
+        const latest = repository.sqlite
+          .prepare('SELECT MAX(revision_number) n FROM invoice_revision WHERE invoice_id=?')
+          .get(invoiceId) as { n: number | null } | undefined;
+        const target = revisionNumber ?? Number(latest?.n ?? 1);
+        if (target >= 2) await ensureInvoiceRevisionPdf(repository, invoiceId, target);
+      } catch {
+        // Fall through: the download reports the PDF as not ready.
+      }
+    }
     return await servePrivateArtifact({
       sqlite: repository.sqlite,
       principal: repository.principal,

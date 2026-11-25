@@ -58,6 +58,11 @@ const copy = {
   days: ['days', 'días', 'dias'],
   po: ['PO', 'Pedido (PO)', 'Pedido (PO)'],
   numberOnIssue: ['Number on issue', 'Número al emitir', 'Número ao emitir'],
+  willBeNumber: [
+    'This invoice will be {number}',
+    'Esta factura será la {number}',
+    'Esta fatura será a {number}',
+  ],
   amountHeading: ['Amount of this invoice', 'Importe de esta factura', 'Valor desta fatura'],
   selectionNote: [
     'Only approved records are included. The items listed below are left out and stay available for a later invoice.',

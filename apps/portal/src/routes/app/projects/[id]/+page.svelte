@@ -27,6 +27,7 @@
   import ProjectBudgetInput from '$lib/portal/sections/ProjectBudgetInput.svelte';
   import ProjectEconomicsDefaults from '$lib/portal/sections/ProjectEconomicsDefaults.svelte';
   import ProjectBillingSetup from '$lib/portal/sections/ProjectBillingSetup.svelte';
+  import ProjectInvoiceCounter from '$lib/portal/sections/ProjectInvoiceCounter.svelte';
   import { base } from '$app/paths';
   import { enhance } from '$app/forms';
   import type { SubmitFunction } from '@sveltejs/kit';
@@ -2576,6 +2577,14 @@
           >
             <summary>{h('setBilling')} <small>{h('setBillingHint')}</small></summary>
             <div class="hub-group__body">
+        {#if data.invoiceCounter}
+          <ProjectInvoiceCounter
+            counter={data.invoiceCounter}
+            canEdit={String(data.user?.role) === 'owner_admin'}
+            form={form as Record<string, unknown> | null}
+            {locale}
+          />
+        {/if}
         {#if billingSetup}
           {#key data.personDefaultsRevision}
             <ProjectEconomicsDefaults

@@ -102,15 +102,30 @@ function priorIssuedInvoices(sqlite: DatabaseSync, projectId: string): number {
   );
 }
 
-function nextProjectSequence(sqlite: DatabaseSync, projectId: string): number {
+export function nextProjectSequence(sqlite: DatabaseSync, projectId: string): number {
   const row = sqlite
     .prepare('SELECT next_value FROM number_sequence WHERE scope=? AND scope_id=?')
     .get(PROJECT_INVOICE_SEQUENCE_SCOPE, projectId) as { next_value: number } | undefined;
   return row?.next_value ?? priorIssuedInvoices(sqlite, projectId) + 1;
 }
 
-const numberUsed = (sqlite: DatabaseSync, number: string) =>
-  Boolean(sqlite.prepare('SELECT 1 FROM invoice WHERE invoice_number=?').get(number));
+const hasInvoiceRevisions = (sqlite: DatabaseSync) =>
+  Boolean(
+    sqlite.prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='invoice_revision'").get(),
+  );
+
+/**
+ * A number is used once any invoice was issued with it or any version of an invoice carried
+ * it (migration 0092): such a number is never given out again.
+ */
+export function invoiceNumberUsed(sqlite: DatabaseSync, number: string): boolean {
+  if (sqlite.prepare('SELECT 1 FROM invoice WHERE invoice_number=?').get(number)) return true;
+  return (
+    hasInvoiceRevisions(sqlite) &&
+    Boolean(sqlite.prepare('SELECT 1 FROM invoice_revision WHERE invoice_number=?').get(number))
+  );
+}
+const numberUsed = invoiceNumberUsed;
 
 /** The number the next issued invoice of the project would get, without reserving anything. */
 export function previewClientProjectNumber(

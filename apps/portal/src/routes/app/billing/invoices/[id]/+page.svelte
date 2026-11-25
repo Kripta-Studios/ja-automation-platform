@@ -1286,6 +1286,11 @@
       {#if isCreditNote && invoice.credit_note_for_invoice_number}
         · {q('creditNoteOf').replace('{number}', String(invoice.credit_note_for_invoice_number))}{/if}
     </p>
+    {#if !invoice.invoice_number && numberPreview?.number}
+      <p class="invoice-page-heading__number" data-invoice-will-be>
+        {q('willBeNumber').replace('{number}', String(numberPreview.number))}
+      </p>
+    {/if}
   </header>
   <nav class="detail-nav no-print" aria-label={t('Invoice')}>
     <a href={`${base}/app/billing?lang=${encodeURIComponent(locale)}`} data-origin-back

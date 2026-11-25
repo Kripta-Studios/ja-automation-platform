@@ -4,6 +4,10 @@ import {
 } from './domains/projects/project-site-settings.ts';
 import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
 import {
+  projectInvoiceCounter,
+  setProjectInvoiceCounter,
+} from './domains/billing/invoice-number-counter.ts';
+import {
   InvoiceOverrideValidationError,
   describeInvoiceOverrides,
   hasInvoiceOverrides,
@@ -12279,6 +12283,27 @@ export class PortalRepository {
           ).fingerprint,
       },
     );
+  }
+
+  /** The project's CP invoice counter: next number and the lowest number the owner may set. */
+  projectInvoiceCounter(principal: Principal, projectId: string) {
+    this.assertActive(principal);
+    if (!['owner_admin', 'finance_admin', 'auditor_read_only'].includes(principal.role))
+      throw new AccessDeniedError('Finance role required');
+    return projectInvoiceCounter(this.sqlite, projectId);
+  }
+
+  /** Owner sets the NNN of the project's next issued invoice (forward, unused numbers only). */
+  setProjectInvoiceCounter(
+    principal: Principal,
+    projectId: string,
+    input: Readonly<{ nextSequence: number; reason?: string }>,
+  ) {
+    return setProjectInvoiceCounter(this.sqlite, principal, projectId, input, {
+      access: AccessDeniedError,
+      conflict: ConflictError,
+      validation: ValidationError,
+    });
   }
 
   /** Inline edit of a draft header text or line description (see invoice-presentation-edit). */

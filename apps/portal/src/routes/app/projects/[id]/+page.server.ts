@@ -207,6 +207,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
             params.id,
           )
         : 0,
+      // Owner decision 2026-11-25: next CP invoice number of this project (owner may move it forward).
+      invoiceCounter:
+        context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
+          ? context.repository.projectInvoiceCounter(context.principal, params.id)
+          : null,
       billingSetup: billingSetup
         ? {
             version: billingSetup.currentVersion(context.principal, params.id),
@@ -2015,6 +2020,54 @@ export const actions: Actions = {
     }
   },
   /** PO per assignment (Team tab): printed on that person's invoices; project PO is the fallback. */
+  /** Owner sets the number of the project's next issued invoice (CP-<client>-<NNN>). */
+  setInvoiceCounter: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const raw = String(data.get('nextSequence') ?? '').trim();
+    const extras = { action: 'setInvoiceCounter', actionName: 'setInvoiceCounter' };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extras,
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+      });
+    if (!/^\d{1,6}$/u.test(raw) || Number(raw) < 1)
+      return actionFail(400, 'action.error.validation', {}, 'Enter a whole number such as 3 or 003.', {
+        ...extras,
+        code: 'INVOICE_COUNTER_INVALID',
+        counterMessage: 'Enter a whole number such as 3 or 003.',
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const saved = context.repository.setProjectInvoiceCounter(context.principal, params.id, {
+        nextSequence: Number(raw),
+        reason: String(data.get('reason') ?? ''),
+      });
+      return {
+        ...actionSuccess('action.projects.projectUpdated', { number: saved.nextNumber }, 'Saved'),
+        ...extras,
+        counterNumber: saved.nextNumber,
+      };
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'The number could not be saved.';
+      const status =
+        cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
+          ? 403
+          : cause instanceof ConflictError
+            ? 409
+            : cause instanceof ValidationError
+              ? 400
+              : 500;
+      if (status === 500) console.error('Invoice counter save failed', cause);
+      return actionFail(status, 'action.error.validation', {}, message, {
+        ...extras,
+        code: status === 409 ? 'INVOICE_COUNTER_CONFLICT' : 'INVOICE_COUNTER_FAILED',
+        counterMessage: status === 500 ? 'The number could not be saved. Try again.' : message,
+      });
+    } finally {
+      context?.sqlite.close();
+    }
+  },
   setAssignmentPo: async ({ request, locals, params }) => {
     const data = await request.formData();
     const values = detailValues(data);

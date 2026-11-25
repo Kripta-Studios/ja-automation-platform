@@ -1831,10 +1831,15 @@
                 {#if preview.provisionalNumber}
                   <div>
                     <dt>{t('numberOnIssue')}</dt>
-                    <dd>{preview.provisionalNumber}</dd>
+                    <dd data-quick-invoice-number>{preview.provisionalNumber}</dd>
                   </div>
                 {/if}
               </dl>
+              {#if preview.provisionalNumber}
+                <p class="quick-invoice__plain" data-quick-invoice-will-be>
+                  {t('willBeNumber').replace('{number}', preview.provisionalNumber)}
+                </p>
+              {/if}
             {:else if preview.state === 'existing' && preview.existingInvoice}
               <p class="quick-invoice__plain" role="status">{t('existing')}</p>
               <a

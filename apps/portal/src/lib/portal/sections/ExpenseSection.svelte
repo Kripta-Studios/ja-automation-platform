@@ -1474,47 +1474,7 @@
         />
       </label>
 
-      <fieldset class="xp-field">
-        <legend>{c('category')}</legend>
-        <input type="hidden" name="category" value={fCategory} />
-        <div class="xp-chips">
-          {#each primaryExpenseCategories as item (item.value)}
-            <button
-              type="button"
-              class="xp-chip"
-              aria-pressed={!moreCategories && fCategory === item.value}
-              onclick={() => {
-                moreCategories = false;
-                fCategory = item.value;
-              }}
-            >
-              {@render categoryIcon(item.value)}
-              <span>{c(item.copy as ExpenseCopyKey)}</span>
-            </button>
-          {/each}
-          <button
-            type="button"
-            class="xp-chip"
-            aria-pressed={moreCategories}
-            onclick={() => {
-              moreCategories = true;
-              if (primaryExpenseCategories.some((item) => item.value === fCategory))
-                fCategory = 'parking';
-            }}><span>{c('more')}</span></button
-          >
-        </div>
-        {#if moreCategories}
-          <label class="xp-field xp-sub">
-            <span>{c('moreCategories')}</span>
-            <select bind:value={fCategory}>
-              {#each expenseCategories.filter(([value]) => !primaryExpenseCategories.some((item) => item.value === value)) as [value, label] (value)}
-                <option {value}>{translate(label)}</option>
-              {/each}
-            </select>
-          </label>
-        {/if}
-      </fieldset>
-
+      <!-- T85: amount and currency come right after the date so the main field is visible above the sticky Save bar on a phone. -->
       <div class="xp-amount-row">
         <label class="xp-field">
           <span>{c('amount')}</span>
@@ -1573,6 +1533,47 @@
           {/if}
         </label>
       </div>
+
+      <fieldset class="xp-field">
+        <legend>{c('category')}</legend>
+        <input type="hidden" name="category" value={fCategory} />
+        <div class="xp-chips">
+          {#each primaryExpenseCategories as item (item.value)}
+            <button
+              type="button"
+              class="xp-chip"
+              aria-pressed={!moreCategories && fCategory === item.value}
+              onclick={() => {
+                moreCategories = false;
+                fCategory = item.value;
+              }}
+            >
+              {@render categoryIcon(item.value)}
+              <span>{c(item.copy as ExpenseCopyKey)}</span>
+            </button>
+          {/each}
+          <button
+            type="button"
+            class="xp-chip"
+            aria-pressed={moreCategories}
+            onclick={() => {
+              moreCategories = true;
+              if (primaryExpenseCategories.some((item) => item.value === fCategory))
+                fCategory = 'parking';
+            }}><span>{c('more')}</span></button
+          >
+        </div>
+        {#if moreCategories}
+          <label class="xp-field xp-sub">
+            <span>{c('moreCategories')}</span>
+            <select bind:value={fCategory}>
+              {#each expenseCategories.filter(([value]) => !primaryExpenseCategories.some((item) => item.value === value)) as [value, label] (value)}
+                <option {value}>{translate(label)}</option>
+              {/each}
+            </select>
+          </label>
+        {/if}
+      </fieldset>
 
       <label class="xp-field">
         <span>{c('note')}</span>

@@ -114,6 +114,15 @@
   let detailEdits = $state<Record<string, DetailDraft>>({});
   /** Cell whose "+ detail" panel is open ('' = none). */
   let detailKey = $state('');
+  /** T85: an opened "+ detail" panel scrolls clear of the sticky Save/Submit bar and phone nav (scroll-margin in CSS). */
+  function revealAboveActions(node: HTMLElement): void {
+    requestAnimationFrame(() => {
+      const actions = document.querySelector<HTMLElement>('.sheet-actions');
+      const limit = actions ? actions.getBoundingClientRect().top : window.innerHeight;
+      if (node.getBoundingClientRect().bottom > limit - 8 || node.getBoundingClientRect().top < 0)
+        node.scrollIntoView({ block: 'nearest' });
+    });
+  }
   let reason = $state('');
   type Intent = 'save' | 'submit' | 'submit_day' | 'submit_approve' | 'submit_day_approve';
   let busy = $state<'' | Intent>('');
@@ -1041,7 +1050,7 @@
 
 {#snippet detailPanel(cell: Cell, title: string)}
   {@const base = cell.detail}
-  <div class="detail-panel" data-testid="time-detail-panel">
+  <div class="detail-panel" data-testid="time-detail-panel" use:revealAboveActions>
     <p class="detail-title"><strong>{title}</strong></p>
     <p class="muted small">{t('detailHint')}</p>
     <div class="detail-grid">
@@ -2258,6 +2267,19 @@
   .day-logged li {
     flex-wrap: wrap;
   }
+  /* T91: "8:00 h" never breaks over two lines; the project name wraps instead. */
+  .day-logged button.link.plain {
+    min-width: 0;
+    flex-basis: 12rem;
+  }
+  .day-logged button.link.plain > span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .day-logged button.link.plain > strong {
+    flex: none;
+    white-space: nowrap;
+  }
   .day-logged .recorded-by {
     flex-basis: 100%;
     padding-left: 0.5rem;
@@ -2804,6 +2826,10 @@
   .time-week input {
     scroll-margin-bottom: 11rem;
   }
+  .detail-panel {
+    scroll-margin-top: 5rem;
+    scroll-margin-bottom: 9rem;
+  }
 
   @media (max-width: 620px) {
     /* Keep the action bar above the fixed phone bottom navigation. */
@@ -2838,12 +2864,44 @@
       min-width: 0;
       text-align: center;
     }
+    /* T90: "Today" is a real 44 px button on a phone, not a grey word under the date. */
     .this-week {
-      flex-basis: 100%;
-      text-align: center;
+      flex: 0 0 auto;
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--ja-target-min, 44px);
+      padding: 0 1.25rem;
+      border: 1px solid var(--ja-control-border, #b8c0cc);
+      border-radius: 999px;
+      background: var(--ja-white, #fff);
+      color: var(--ja-ink, #1c2430);
+      font-weight: 600;
+      text-decoration: none;
+    }
+    .detail-toggle {
+      min-height: var(--ja-target-min, 44px);
+      padding-inline: 0.6rem;
+      font-size: 0.8rem;
+    }
+    .detail-panel {
+      scroll-margin-bottom: 13rem;
     }
     .sheet-actions {
       margin: 0 -0.25rem;
+    }
+    /* T85: compact sticky footer on a phone (it sat on ~30% of the screen). */
+    .sheet-actions-total strong {
+      font-size: 1.05rem;
+    }
+    .sheet-actions > p.small {
+      margin: 0;
+      font-size: 0.75rem;
+      line-height: 1.25;
+    }
+    .sheet-actions-buttons button {
+      min-height: var(--ja-target-min, 44px);
     }
     .sheet-actions {
       padding: 0.5rem 0.75rem;

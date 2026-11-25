@@ -185,9 +185,17 @@
     gap: 0.5rem;
     font-weight: 400 !important;
   }
+  /* T90: a 24 px box inside a 44 px tall label (was 20x13 px on a phone). */
+  .profile-password__reveal {
+    min-height: 44px;
+    cursor: pointer;
+  }
   .profile-password__reveal input {
-    width: auto;
+    flex: none;
+    width: 1.5rem;
+    height: 1.5rem;
     min-height: 0;
+    margin: 0;
   }
   .profile-password__result {
     margin: 0;

@@ -733,6 +733,12 @@
 
   <p class="project-section__summary-help">{ux2('projectDateContext')}</p>
 
+  <!-- T86: with three projects or fewer the filters fold away so the project itself comes first (phone). -->
+  <details
+    class="project-section__filters-fold"
+    open={!fewProjects || Boolean(search || statusFilter || clientFilter)}
+  >
+  <summary class="secondary-button">{translate('Filter projects')}</summary>
   <form
     class="project-section__filters"
     method="GET"
@@ -777,6 +783,7 @@
       >{translate('Clear filters')}</a
     >
   </form>
+  </details>
   <div class="project-section__filter-summary" aria-live="polite">
     <span>{ux(visibleProjects.length === 1 ? 'showingOne' : 'showing', { count: visibleProjects.length })}</span>
     {#if search || statusFilter || clientFilter}
@@ -1883,7 +1890,25 @@
     }
   }
 
+  .project-section__filters-fold {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .project-section__filters-fold > summary {
+    justify-self: start;
+    cursor: pointer;
+  }
+  .project-section__filters-fold[open] > summary {
+    display: none;
+  }
+
   @media (max-width: 36rem) {
+    /* T86: the shell already shows the "Projects" title; the duplicate heading,
+       description and "Showing n" note pushed the project ~2 screens down. */
+    .project-section__context,
+    .project-section__summary-help {
+      display: none;
+    }
     .project-section__attention {
       grid-template-columns: 1fr;
     }

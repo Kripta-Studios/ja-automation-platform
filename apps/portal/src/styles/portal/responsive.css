@@ -838,9 +838,12 @@
     border-radius: 0;
   }
 
+  /* T85: on a phone the toast sits just under the top bar. At the bottom it
+     covered the sticky Save/Send bars and the "logged on this day" rows. */
   [data-ui='toast-region'] {
     inset-inline: 0.75rem;
-    inset-block-end: calc(4.75rem + env(safe-area-inset-bottom));
+    inset-block-start: calc(4.6rem + env(safe-area-inset-top));
+    inset-block-end: auto;
     width: auto;
   }
 }

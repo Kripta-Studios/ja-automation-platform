@@ -938,15 +938,17 @@
     .home-inbox-value {
       font-size: 1.2rem;
     }
-    /* On phones the whole action is a 48px arrow; its name stays in aria-label. */
+    /* T86: phone actions keep their visible name next to the arrow (a bare arrow
+       did not say what it does); the row wraps when the label needs room. */
+    .home-inbox-row {
+      flex-wrap: wrap;
+      gap: 0.6rem 1rem;
+    }
     .home-inbox-action {
       justify-content: center;
-      width: 48px;
       min-height: 48px;
-      padding: 0;
-    }
-    .home-inbox-action-label {
-      display: none;
+      margin-left: auto;
+      padding: 0.55rem 0.85rem;
     }
   }
   .worker-agenda {

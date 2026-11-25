@@ -3552,6 +3552,17 @@
     flex-wrap: wrap;
     gap: 0.75rem;
   }
+  /* T87: the folded "Filter reports" card always takes its own full row, so
+     expanding it never pushes Status into an empty column (desktop and phone). */
+  .report-register-filters :global(.register-filter-disclosure) {
+    flex: 1 1 100%;
+    order: 1;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+  .report-register-filters > :global(:not(label):not(.register-filter-disclosure)) {
+    order: 2;
+  }
   .report-register-filters label {
     display: grid;
     flex: 1 1 12rem;

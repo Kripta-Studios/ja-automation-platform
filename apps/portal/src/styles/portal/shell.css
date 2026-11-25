@@ -455,7 +455,9 @@ body.portal-drawer-open {
   padding: 0.55rem;
   border: 1px solid #e5e4e2;
   border-radius: 0.95rem;
-  background: rgb(255 255 255 / 0.98);
+  /* T89: fully opaque, page content must not show through the menu. */
+  background: #fff;
+  z-index: 80;
   box-shadow: 0 1rem 2.4rem rgb(14 39 53 / 0.16);
 }
 

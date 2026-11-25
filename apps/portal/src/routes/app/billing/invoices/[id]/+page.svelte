@@ -2049,6 +2049,23 @@
     .invoice-document-shell {
       padding: 1.25rem;
     }
+    /* T35/T91: on a phone a money amount or quantity never breaks inside itself
+       ("US$ 3.\n025,0\n0"). The description column wraps instead, and the line
+       table may scroll sideways as a last resort. Screen only: the PDF/print
+       document keeps the shared invoice CSS. */
+    .invoice-document-shell :global(.invoice-line-items) {
+      overflow-x: auto;
+    }
+    .invoice-document-shell :global(#ja-invoice-document.invoice-canonical table.invoice-lines) {
+      table-layout: auto;
+    }
+    .invoice-document-shell :global(#ja-invoice-document.invoice-canonical td.amount),
+    .invoice-document-shell :global(#ja-invoice-document.invoice-canonical .total-row > :last-child) {
+      white-space: nowrap;
+    }
+    .invoice-document-shell :global(#ja-invoice-document.invoice-canonical td:first-child) {
+      overflow-wrap: anywhere;
+    }
   }
   @media print {
     .invoice-document-shell {

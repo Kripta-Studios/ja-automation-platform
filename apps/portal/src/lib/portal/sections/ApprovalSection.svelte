@@ -550,6 +550,30 @@
 
   // ---------- disclosure / selection state ----------
   let expanded = $state<Record<string, boolean>>({});
+  // T36: keep which weeks/reports are open when the reviewer opens a record and comes back.
+  const EXPANDED_KEY = 'ja.approvals.expanded';
+  let expandedRestored = false;
+  onMount(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(EXPANDED_KEY) ?? 'null');
+      if (saved && typeof saved === 'object' && !Array.isArray(saved))
+        expanded = Object.fromEntries(
+          Object.entries(saved as Record<string, unknown>).filter(([, open]) => open === true),
+        ) as Record<string, boolean>;
+    } catch {
+      // Storage can be blocked; the queue simply starts folded.
+    }
+    expandedRestored = true;
+  });
+  $effect(() => {
+    const open = Object.fromEntries(Object.entries(expanded).filter(([, isOpen]) => isOpen));
+    if (!expandedRestored) return;
+    try {
+      sessionStorage.setItem(EXPANDED_KEY, JSON.stringify(open));
+    } catch {
+      // Storage can be blocked; nothing else depends on it.
+    }
+  });
   let sendBackFor = $state<string | null>(null);
   /** T10: Approve week asks once ("cannot be undone"); Reject asks once ("final"). */
   let confirmApproveFor = $state<string | null>(null);
@@ -1140,19 +1164,21 @@
             >
               <div class="aq-group-head">
                 {#if canDecide && group.actionable.length > 0}
-                  <input
-                    class="aq-check"
-                    type="checkbox"
-                    aria-label={t('select', { label: groupTitle(group) })}
-                    checked={selected[group.key] ?? false}
-                    onchange={(event) => {
-                      selected = {
-                        ...selected,
-                        [group.key]: (event.currentTarget as HTMLInputElement).checked,
-                      };
-                      confirmOpen = false;
-                    }}
-                  />
+                  <label class="aq-check-hit">
+                    <input
+                      class="aq-check"
+                      type="checkbox"
+                      aria-label={t('select', { label: groupTitle(group) })}
+                      checked={selected[group.key] ?? false}
+                      onchange={(event) => {
+                        selected = {
+                          ...selected,
+                          [group.key]: (event.currentTarget as HTMLInputElement).checked,
+                        };
+                        confirmOpen = false;
+                      }}
+                    />
+                  </label>
                 {/if}
                 <button
                   type="button"
@@ -2018,10 +2044,22 @@
   }
   .aq-select-all input,
   .aq-check {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.5rem;
+    height: 1.5rem;
     margin: 0;
     flex: none;
+    cursor: pointer;
+  }
+  /* T36: the week checkbox gets a 44 px touch area (WCAG 2.5.5) without growing the box itself. */
+  .aq-check-hit {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    min-width: 44px;
+    min-height: 44px;
+    margin: -0.5rem -0.25rem -0.5rem -0.6rem;
+    cursor: pointer;
   }
 
   /* Groups */

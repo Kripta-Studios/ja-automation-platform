@@ -241,6 +241,23 @@
     // Y3: stay on Crew hours after saving so the drafts can be sent to J&A right here.
     if (form.operation === 'createTimeBatch') workspaceAction = 'time';
   });
+  // T34: after saving or sending crew drafts the confirmation is shown inside the Record card, above the drafts and Send.
+  const batchNoticeInCard = $derived(
+    Boolean(
+      form?.success &&
+        (form.operation === 'createTimeBatch' || form.operation === 'submitTimeBatch') &&
+        form.outcome &&
+        workspaceAction === 'time' &&
+        !data.owner &&
+        data.projects.length,
+    ),
+  );
+  const periodCardTitle = $derived.by(() => {
+    const project = data.projects.find((p: { id: unknown }) => String(p.id) === String(data.projectId));
+    return [m.filters, project ? String(project.name) : '', `${shortDate(data.from)} – ${shortDate(data.to)}`]
+      .filter(Boolean)
+      .join(' · ');
+  });
   const workspaceTargetIds: Record<WorkspaceAction, string> = {
     directory: 'supplier-directory',
     setup: 'supplier-setup',
@@ -859,7 +876,7 @@
         />
       </div>
     {/if}
-    {#if form?.success}<p role="status">
+    {#if form?.success && !batchNoticeInCard}<p role="status">
         {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
           {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
           {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(
@@ -1164,7 +1181,12 @@
     {/if}
   </ResponsiveSheet>
   {#if ['personnel', 'time', 'report'].includes(workspaceAction)}
-    <SectionCard title={m.filters}>
+    <!-- T34: on Record hours the period card folds to one line so the technician list and hours come first on a phone. -->
+    <SectionCard
+      title={workspaceAction === 'time' ? periodCardTitle : m.filters}
+      collapsible={workspaceAction === 'time'}
+      expanded={workspaceAction !== 'time' || Boolean(data.periodProblem)}
+    >
       {#if data.periodProblem}
         <div id="supplier-period-problem" bind:this={periodProblemContainer}>
           <ProblemNotice
@@ -1614,7 +1636,23 @@
     <p>{c.empty}</p>
   {/if}
   {#if data.projects.length && workspaceAction === 'time' && !data.owner}
-    <SectionCard title={c.time}>
+    <!-- T34: after a native save the shared workspace restore aligns this card's top (notice + Send) under the top bar. -->
+    <SectionCard title={c.time} id="supplier-time-card" data-navigation-align="start">
+      {#if batchNoticeInCard && form?.success && form.outcome}
+        <!-- T34: the save/send confirmation sits right above the drafts and the Send button, in view after saving. -->
+        <p class="supplier-batch-notice" role="status">
+          {#if form.operation === 'createTimeBatch'}
+            {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
+            {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(
+              form.outcome.workDate,
+            )} · {decimalHours(form.outcome.totalMinutes)}
+            {c.teamHours}
+          {:else if form.operation === 'submitTimeBatch'}
+            {form.outcome.submittedCount}
+            {form.outcome.submittedCount === 1 ? c.draftSubmitted : c.draftsSubmitted}
+          {/if}
+        </p>
+      {/if}
       {#if data.entries.length}
         <p>
           {(data.entries.length === 1 ? c.periodEntriesOne : c.periodEntries)
@@ -1664,15 +1702,15 @@
               <tbody>
                 {#each openDrafts.slice(0, batchLimit) as entry (entry.id)}
                   <tr>
-                    <td>{entry.workerName}</td>
-                    <td>{shortDate(entry.workDate)}</td>
-                    <td>{supplierCategoryLabel(data.locale, entry.category)}</td>
-                    <td
+                    <td data-label={c.worker}>{entry.workerName}</td>
+                    <td data-label={c.date}>{shortDate(entry.workDate)}</td>
+                    <td data-label={c.category}>{supplierCategoryLabel(data.locale, entry.category)}</td>
+                    <td data-label={c.actualHours}
                       >{#if entry.startTime && entry.endTime}{entry.startTime}–{entry.endTime} ·
                       {/if}{decimalHours(entry.minutes)} h</td
                     >
-                    <td>{entry.summary}</td>
-                    <td><a href={reportEntryHref(entry)}>{d.editOrDiscard}</a></td>
+                    <td data-label={c.summary}>{entry.summary}</td>
+                    <td class="drafts-edit"><a href={reportEntryHref(entry)}>{d.editOrDiscard}</a></td>
                   </tr>
                 {/each}
               </tbody>
@@ -2268,6 +2306,64 @@
   }
   .drafts-table td:nth-child(4) {
     white-space: nowrap;
+  }
+  .crew-drafts-submit {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .supplier-batch-notice {
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid #a6d8b8;
+    border-inline-start: 0.3rem solid #2f7d4f;
+    border-radius: 0.5rem;
+    background: #ecf8f0;
+    color: #14532d;
+    font-weight: 600;
+    scroll-margin-top: 5.5rem;
+  }
+  /* T34: on a phone each unsent draft is a small card instead of a 6-column table. */
+  @media (max-width: 40rem) {
+    .drafts-table thead {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip: rect(0 0 0 0);
+    }
+    .drafts-table,
+    .drafts-table tbody,
+    .drafts-table tr,
+    .drafts-table td {
+      display: block;
+    }
+    .drafts-table tr {
+      padding: 0.5rem 0;
+      border-bottom: 1px solid var(--ja-border, #e4e7ec);
+    }
+    .drafts-table td {
+      display: grid;
+      grid-template-columns: minmax(6.5rem, 38%) minmax(0, 1fr);
+      gap: 0.5rem;
+      padding: 0.2rem 0;
+      border: 0;
+      overflow-wrap: anywhere;
+    }
+    .drafts-table td[data-label]::before {
+      content: attr(data-label);
+      color: var(--ja-text-muted, #5b6573);
+      font-size: 0.85rem;
+    }
+    .drafts-table td[data-label]:empty {
+      display: none;
+    }
+    .drafts-table td.drafts-edit {
+      display: block;
+    }
+    .drafts-table td.drafts-edit a {
+      display: inline-flex;
+      align-items: center;
+      min-height: 44px;
+    }
   }
   .visually-hidden {
     position: absolute;

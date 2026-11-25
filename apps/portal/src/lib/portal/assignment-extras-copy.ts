@@ -105,6 +105,10 @@ const copy = {
     'Adicional {client}/{basis}',
   ],
   summaryExpenses: ['Expenses: {value}', 'Gastos: {value}', 'Despesas: {value}'],
+  shortNone: ['not covered', 'no cubiertos', 'não cobertas'],
+  shortWorker: ['to worker', 'al trabajador', 'ao trabalhador'],
+  shortClient: ['to client', 'al cliente', 'ao cliente'],
+  shortBoth: ['worker + client', 'trabajador + cliente', 'trabalhador + cliente'],
   day: ['day', 'día', 'dia'],
   month: ['month', 'mes', 'mês'],
   // Invoice component switches
@@ -230,12 +234,12 @@ export function extrasSummary(locale: string, values: ExtrasValues | undefined):
       t('summaryExpenses', {
         value: t(
           values.expenses === 'none'
-            ? 'expensesNone'
+            ? 'shortNone'
             : values.expenses === 'worker'
-              ? 'expensesWorker'
+              ? 'shortWorker'
               : values.expenses === 'client'
-                ? 'expensesClient'
-                : 'expensesBoth',
+                ? 'shortClient'
+                : 'shortBoth',
         ),
       }),
     );

@@ -891,7 +891,7 @@
           {/if}
           {#if extrasFor === row.id}
             <div class="hub-row-panel" data-hub-extras-panel={row.workerId}>
-              <form class="hub-inline-form" onsubmit={(event) => saveExtras(event, row)}>
+              <form class="hub-extras-form" onsubmit={(event) => saveExtras(event, row)}>
                 <strong>{x('extrasFor', { name: row.name })}</strong>
                 <AssignmentExtrasFields bind:values={extrasDraft} {currency} {locale} idPrefix={row.id} />
                 {#if extrasError}<p class="hub-warn" role="alert">{extrasError}</p>{/if}
@@ -1279,6 +1279,12 @@
   :focus-visible {
     outline: 3px solid var(--ja-focus, #2563eb);
     outline-offset: 2px;
+  }
+  .hub-extras-form {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 48rem;
+    min-width: 0;
   }
   .hub-extras-summary {
     max-width: 16rem;

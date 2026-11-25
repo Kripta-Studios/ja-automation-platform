@@ -1489,7 +1489,8 @@ export const assistantTasks: readonly AssistantTask[] = [
       pt: 'Rever e aprovar horas',
     },
     category: 'approval',
-    roles: ['owner_admin', 'finance_admin', 'project_manager'],
+    // D6: Finance does not take the operational approval step.
+    roles: ['owner_admin', 'project_manager'],
     href: '/app/approvals?tab=time#approval-queue',
     actionNames: ['approve', 'approveRecord'],
     phrases: {
@@ -1511,7 +1512,8 @@ export const assistantTasks: readonly AssistantTask[] = [
       pt: 'Rever e aprovar despesas operacionais',
     },
     category: 'approval',
-    roles: ['owner_admin', 'finance_admin', 'project_manager'],
+    // D6: Finance does not take the operational approval step.
+    roles: ['owner_admin', 'project_manager'],
     href: '/app/approvals?tab=expenses#approval-queue',
     actionNames: ['approve', 'approveRecord'],
     phrases: {

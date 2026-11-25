@@ -13448,15 +13448,18 @@ export class PortalRepository {
                 CAST(e.project_currency_amount_minor AS TEXT) project_currency_amount_minor,
                 CAST(e.reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,
                 p.project_number,e.approval_state,e.reimbursement_state,
-                e.expected_reimbursement_on,e.reimbursed_at
+                e.expected_reimbursement_on,e.reimbursed_at,
+                e.commercial_classification_state classification_state
          FROM expense e
          JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=?
            AND e.spent_on>=? AND e.spent_on<=?
            AND e.who_paid='worker'
            AND e.approval_state NOT IN ('rejected','void')
-           AND (e.expense_policy_required=0 OR
-                (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
+           -- T13 (round 2): an approved expense J&A has not classified yet is still owed to
+           -- the worker; until then its receipt amount is the estimate (same rule as My Pay).
+           AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
+                OR e.reimbursement_amount_minor>0)
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl
@@ -13494,6 +13497,7 @@ export class PortalRepository {
       reimbursement_state: string | null;
       expected_reimbursement_on: string | null;
       reimbursed_at: string | null;
+      classification_state: string | null;
     }>;
     return rows.map((row) => ({
       id: row.id,
@@ -13508,7 +13512,7 @@ export class PortalRepository {
       // silently redenominate what the worker is owed. Aggregate callers reject
       // mixed currencies instead of adding unlike minor units.
       reimbursementAmountMinor: String(
-        row.expense_policy_required === 1
+        row.expense_policy_required === 1 && row.classification_state === 'classified'
           ? (row.reimbursement_amount_minor ?? row.amount_minor)
           : row.amount_minor,
       ),

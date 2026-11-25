@@ -140,3 +140,20 @@ describe('My Pay counts resubmitted corrections of sent-back hours (round 2)', (
     expect(pay.approvedMinutes).toBe(480);
   });
 });
+
+describe('My Pay shows an approved, not yet classified refund as still to be paid (round 2)', () => {
+  it('lists it in the statement expenses and the outstanding refunds at the receipt amount', async () => {
+    const { workerPayOutstanding } = await import(
+      '../../apps/portal/src/lib/server/worker-pay-outstanding.ts'
+    );
+    const f = fixture();
+    const expenses = f.repository.listWorkerStatementExpenses(f.worker, '2026-11-01', '2026-11-30');
+    expect(expenses.find((row) => row.id === 'e-approved')).toMatchObject({
+      reimbursementAmountMinor: '2000',
+      approvalState: 'approved',
+    });
+    expect(workerPayOutstanding([], expenses)).toEqual([
+      { currency: 'EUR', settlementMinor: '0', reimbursementMinor: '2000' },
+    ]);
+  });
+});

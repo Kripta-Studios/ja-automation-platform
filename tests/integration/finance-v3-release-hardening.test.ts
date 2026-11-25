@@ -161,7 +161,23 @@ function fixture() {
     owner,
     finance,
     manager: repository.principalFor('manager'),
-    worker: repository.principalFor('worker'),
+    // Worker writes require a live authenticated session (current project access).
+    worker: (() => {
+      const workerSessionId = `release-hardening-worker-${crypto.randomUUID()}`;
+      sqlite
+        .prepare(
+          'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+        )
+        .run(
+          workerSessionId,
+          `${workerSessionId}-token`,
+          'worker',
+          new Date(Date.now() + 3_600_000).toISOString(),
+          now,
+          now,
+        );
+      return { ...repository.principalFor('worker'), sessionId: workerSessionId };
+    })(),
     project,
     legalEntity,
     legalEntityRevisionId: revision.revisionId,

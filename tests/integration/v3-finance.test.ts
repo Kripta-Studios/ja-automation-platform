@@ -227,8 +227,9 @@ describe('V3 finance and privacy paths', () => {
       startsOn: '2026-08-01',
     });
     const manager = repository.principalFor('manager');
-    const workerA = repository.principalFor('worker-a');
-    const workerB = repository.principalFor('worker-b');
+    // Worker writes require a live authenticated session (current project access).
+    const workerA = steppedUpPrincipal(sqlite, repository.principalFor('worker-a'), 'economics');
+    const workerB = steppedUpPrincipal(sqlite, repository.principalFor('worker-b'), 'economics');
     const expensePolicies = new AssignmentExpensePolicyRepository(sqlite);
     for (const terms of [
       {
@@ -711,7 +712,8 @@ describe('V3 finance and privacy paths', () => {
       startsOn: '2026-08-01',
     });
     const manager = repository.principalFor('manager');
-    const worker = repository.principalFor('worker');
+    // Worker writes require a live authenticated session (current project access).
+    const worker = steppedUpPrincipal(sqlite, repository.principalFor('worker'), 'billing');
     new AssignmentExpensePolicyRepository(sqlite).create(finance, {
       projectMemberId: workerAssignment.id,
       payer: 'worker',

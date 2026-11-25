@@ -143,6 +143,13 @@
             : a('outsideMany', { count: preview.resolvableTime })}
         </p>
       {/if}
+      {#if !preview.blockedByRecords && (preview.keptApprovedRecords ?? 0) > 0}
+        <p class="dates-warn" data-dates-kept={preview.keptApprovedRecords}>
+          {preview.keptApprovedRecords === 1
+            ? a('keptOne')
+            : a('keptMany', { count: preview.keptApprovedRecords ?? 0 })}
+        </p>
+      {/if}
       {#if preview.overlap}
         <p class="dates-warn" data-dates-overlap>
           {a('overlap', {

@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   AccessDeniedError,
-  ConflictError,
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
   stepUpB5Principal,
@@ -85,14 +84,18 @@ describe('previewAssignmentRemoval', () => {
     expect(assignment()).toMatchObject({ status: 'inactive', ends_on: shift(-5) });
   });
 
-  it('reports approved hours after the end date as blocking', () => {
+  it('keeps approved hours after the end date at the previous terms (owner decision 2026-11-25)', () => {
     const { fixture, assignment, hours } = setup();
     hours(shift(-1), 'approved');
     hours(shift(-2));
     const preview = fixture.repository.previewAssignmentRemoval(fixture.owner, assignment().id, {
       endsOn: shift(-5),
     });
-    expect(preview).toMatchObject({ resolvableLaterTime: 1, blockedByRecords: true });
+    expect(preview).toMatchObject({
+      resolvableLaterTime: 1,
+      blockedByRecords: false,
+      keptApprovedRecords: 1,
+    });
     expect(
       fixture.repository.previewAssignmentRemoval(fixture.owner, assignment().id, {}),
     ).toMatchObject({ endsOn: today, resolvableLaterTime: 0, blockedByRecords: false });
@@ -221,20 +224,13 @@ describe('changing assignment dates at any time', () => {
     expect(assignment().starts_on).toBe('2026-03-01');
   });
 
-  it('never moves dates away from approved hours and names an overlap', () => {
+  it('moves dates away from approved hours (kept at the previous terms) and names an overlap', () => {
     const { fixture, assignment, hours } = setup();
     hours('2026-02-02', 'approved');
     const row = assignment();
     expect(
       fixture.repository.previewAssignmentDates(fixture.owner, row.id, { startsOn: '2026-03-01' }),
-    ).toMatchObject({ resolvableTime: 0, blockedByRecords: true });
-    expect(() =>
-      fixture.repository.updateAssignment(fixture.owner, row.id, {
-        startsOn: '2026-03-01',
-        version: row.version,
-        resolveOutsideTime: true,
-      }),
-    ).toThrow(ConflictError);
+    ).toMatchObject({ resolvableTime: 0, blockedByRecords: false, keptApprovedRecords: 1 });
 
     fixture.repository.updateAssignment(fixture.owner, row.id, {
       endsOn: '2026-05-31',

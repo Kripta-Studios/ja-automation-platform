@@ -34,9 +34,9 @@ const copy = {
     '{count} registros de horas sem aprovação após este dia serão resolvidos: rascunhos não enviados são descartados e os pendentes são rejeitados com o motivo.',
   ],
   blocked: [
-    'Approved or invoiced hours, expenses or reports exist after this day. Choose a later last day.',
-    'Hay horas, gastos o informes aprobados o facturados después de este día. Elige un último día posterior.',
-    'Há horas, despesas ou relatórios aprovados ou faturados depois deste dia. Escolha um último dia posterior.',
+    'Unapproved expenses or reports exist after this day. Approve, return or move them first, or choose a later last day.',
+    'Hay gastos o informes sin aprobar después de este día. Apruébalos, devuélvelos o muévelos primero, o elige un último día posterior.',
+    'Há despesas ou relatórios sem aprovação depois deste dia. Aprove, devolva ou mova-os primeiro, ou escolha um último dia posterior.',
   ],
   confirmEnd: ['End assignment', 'Terminar asignación', 'Encerrar atribuição'],
   confirmEndCount: ['End {count} assignments', 'Terminar {count} asignaciones', 'Encerrar {count} atribuições'],
@@ -97,9 +97,19 @@ const copy = {
     '{count} registros de horas sem aprovação ficam fora das novas datas e serão resolvidos (rascunhos descartados, pendentes rejeitados).',
   ],
   outsideBlocked: [
-    'Approved or invoiced hours, expenses or reports fall outside these dates. They are never changed, so keep dates that cover them.',
-    'Hay horas, gastos o informes aprobados o facturados fuera de estas fechas. No se modifican nunca, así que mantén fechas que los cubran.',
-    'Há horas, despesas ou relatórios aprovados ou faturados fora destas datas. Eles nunca são alterados, então mantenha datas que os cubram.',
+    'Unapproved expenses or reports fall outside these dates. Approve, return or move them first, or keep dates that cover them.',
+    'Hay gastos o informes sin aprobar fuera de estas fechas. Apruébalos, devuélvelos o muévelos primero, o mantén fechas que los cubran.',
+    'Há despesas ou relatórios sem aprovação fora destas datas. Aprove, devolva ou mova-os primeiro, ou mantenha datas que os cubram.',
+  ],
+  keptOne: [
+    '1 approved record stays outside the new dates and is still paid and billed at the previous rate.',
+    '1 registro aprobado queda fuera de las nuevas fechas y se sigue pagando y facturando a la tarifa anterior.',
+    '1 registro aprovado fica fora das novas datas e continua pago e faturado pela tarifa anterior.',
+  ],
+  keptMany: [
+    '{count} approved records stay outside the new dates and are still paid and billed at the previous rate.',
+    '{count} registros aprobados quedan fuera de las nuevas fechas y se siguen pagando y facturando a la tarifa anterior.',
+    '{count} registros aprovados ficam fora das novas datas e continuam pagos e faturados pela tarifa anterior.',
   ],
   overlap: [
     'Overlaps their other assignment on this project ({starts} → {ends}).',

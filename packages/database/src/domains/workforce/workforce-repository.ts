@@ -56,6 +56,11 @@ export type AssignmentRemovalInput = Readonly<{
   resolveLaterTime?: boolean;
 }>;
 
+/** Time that is approved, locked, finance-approved or invoiced (kept on a date change). */
+const KEPT_TIME = `(t.approval_state IN ('approved','locked') OR t.invoice_id IS NOT NULL OR t.finance_approved_at IS NOT NULL)`;
+/** Expenses that are approved, locked or invoiced (kept on a date change). */
+const KEPT_EXPENSE = `(e.approval_state IN ('approved','locked') OR e.invoice_id IS NOT NULL)`;
+
 /** A supplier's technician or coordinator (D5: managed by the supplier workspace). */
 function isSupplierStaff(sqlite: DatabaseSync, userId: string): boolean {
   return Boolean(
@@ -786,7 +791,9 @@ export class WorkforceRepository {
     startsOn: string,
     endsOn: string | null,
   ): void {
-    if (this.sourceOutsideDates(existing, startsOn, endsOn, false))
+    // Approved/invoiced time and expenses may fall outside (owner decision 2026-11-25):
+    // they keep the previous assignment period's terms (keepRecordsOutside below).
+    if (this.sourceOutsideDates(existing, startsOn, endsOn, false, true))
       throw this.deps.errors.conflict(
         'Assignment dates cannot exclude recorded time, expenses, or reports',
       );
@@ -802,7 +809,10 @@ export class WorkforceRepository {
     startsOn: string,
     endsOn: string | null,
     ignoreResolvableTime: boolean,
+    ignoreKept = false,
   ): boolean {
+    const keptTime = ignoreKept ? `AND NOT ${KEPT_TIME}` : '';
+    const keptExpense = ignoreKept ? `AND NOT ${KEPT_EXPENSE}` : '';
     const resolvable = ignoreResolvableTime
       ? `AND NOT (t.approval_state IN ('draft','submitted','needs_changes')
                 AND t.invoice_id IS NULL AND t.billing_status='unlocked'
@@ -817,10 +827,10 @@ export class WorkforceRepository {
            -- assignment open.
            SELECT t.work_date source_date FROM time_entry t
             WHERE t.project_id=? AND t.worker_id=? AND t.approval_state NOT IN ('void','rejected')
-            ${resolvable}
+            ${resolvable} ${keptTime}
            UNION ALL
-           SELECT spent_on source_date FROM expense
-            WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+           SELECT spent_on source_date FROM expense e
+            WHERE project_id=? AND worker_id=? AND approval_state<>'void' ${keptExpense}
            UNION ALL
            SELECT work_date source_date FROM daily_report
             WHERE project_id=? AND worker_id=? AND approval_state<>'void'
@@ -848,6 +858,111 @@ export class WorkforceRepository {
         endsOn,
       );
     return Boolean(excluded);
+  }
+
+  /** Approved or invoiced time/expenses of this assignment that the new dates leave outside. */
+  private keptRecordsOutside(existing: AssignmentRow, startsOn: string, endsOn: string | null) {
+    return this.deps.sqlite
+      .prepare(
+        `SELECT kind,id,source_date FROM (
+           SELECT 'time' kind,t.id,t.work_date source_date FROM time_entry t
+            WHERE t.project_id=? AND t.worker_id=? AND t.approval_state NOT IN ('void','rejected')
+              AND ${KEPT_TIME}
+           UNION ALL
+           SELECT 'expense',e.id,e.spent_on FROM expense e
+            WHERE e.project_id=? AND e.worker_id=? AND e.approval_state<>'void' AND ${KEPT_EXPENSE}
+         ) kept
+         WHERE source_date>=? AND (? IS NULL OR source_date<=?)
+           AND (source_date<? OR (? IS NOT NULL AND source_date>?))
+         ORDER BY source_date`,
+      )
+      .all(
+        existing.project_id,
+        existing.user_id,
+        existing.project_id,
+        existing.user_id,
+        existing.starts_on,
+        existing.ends_on,
+        existing.ends_on,
+        startsOn,
+        endsOn,
+        endsOn,
+      ) as Array<{ kind: 'time' | 'expense'; id: string; source_date: string }>;
+  }
+
+  /**
+   * Owner decision 2026-11-25: new dates may leave approved/invoiced time and
+   * expenses outside. They stay paid and billed at the terms of the period they
+   * were recorded under: an ended (inactive) history assignment covering exactly
+   * those days keeps the same rate, compensation, cost and expense rules. Ended
+   * rows give no access and take no new records; pay, settlements and invoice
+   * readiness already resolve terms from them. Issued invoices are untouched.
+   */
+  private keepRecordsOutside(
+    principal: Principal,
+    existing: AssignmentRow,
+    startsOn: string,
+    endsOn: string | null,
+    reason: string,
+  ): { kept: number; historyAssignmentIds: string[] } {
+    const rows = this.keptRecordsOutside(existing, startsOn, endsOn);
+    if (!rows.length) return { kept: 0, historyAssignmentIds: [] };
+    const sides = [
+      rows.filter((row) => row.source_date < startsOn),
+      rows.filter((row) => endsOn !== null && row.source_date > endsOn),
+    ].filter((side) => side.length > 0);
+    const timestamp = this.deps.now();
+    const historyAssignmentIds: string[] = [];
+    for (const side of sides) {
+      const from = side[0]!.source_date;
+      const to = side.at(-1)!.source_date;
+      const historyId = newId();
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO project_member(id,project_id,user_id,assignment_role,starts_on,ends_on,created_at,updated_at,
+             version,planned_minutes,can_submit_technical_report,can_review,status,role_on_project,
+             expected_minutes_per_day,workday_mask,worker_compensation_rule_id,internal_cost_rule_id,
+             client_bill_rule_id,allow_global_compensation_fallback,allow_global_internal_cost_fallback,
+             worker_expense_reimbursement_override,po_number)
+           SELECT ?,project_id,user_id,assignment_role,?,?,?,?,1,NULL,0,0,'inactive',role_on_project,
+             expected_minutes_per_day,workday_mask,worker_compensation_rule_id,internal_cost_rule_id,
+             client_bill_rule_id,allow_global_compensation_fallback,allow_global_internal_cost_fallback,
+             worker_expense_reimbursement_override,po_number
+             FROM project_member WHERE id=?`,
+        )
+        .run(historyId, from, to, timestamp, timestamp, existing.id);
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO assignment_rate_override(id,project_member_id,time_category,activity_code,
+             compensation_rule_id,internal_cost_rule_id,client_labor_rate_id,effective_from,effective_to,
+             priority,created_at,updated_at,version)
+           SELECT lower(hex(randomblob(16))),?,time_category,activity_code,compensation_rule_id,
+             internal_cost_rule_id,client_labor_rate_id,effective_from,effective_to,priority,?,?,1
+             FROM assignment_rate_override WHERE project_member_id=?`,
+        )
+        .run(historyId, timestamp, timestamp, existing.id);
+      this.deps.sqlite
+        .prepare(
+          `INSERT INTO assignment_expense_policy(id,project_member_id,payer,category,effective_from,
+             effective_to,worker_reimbursement,client_recovery,markup_bps,version,reason,
+             created_by_user_id,created_at)
+           SELECT lower(hex(randomblob(16))),?,payer,category,effective_from,effective_to,
+             worker_reimbursement,client_recovery,markup_bps,1,reason,?,?
+             FROM assignment_expense_policy WHERE project_member_id=?`,
+        )
+        .run(historyId, principal.userId, timestamp, existing.id);
+      this.deps.audit(principal, 'assignment.create', 'project_member', historyId, {
+        projectId: existing.project_id,
+        workerId: existing.user_id,
+        startsOn: from,
+        endsOn: to,
+        historyOf: existing.id,
+        keptApprovedRecords: side.map((row) => ({ type: row.kind, id: row.id })),
+        reason,
+      });
+      historyAssignmentIds.push(historyId);
+    }
+    return { kept: rows.length, historyAssignmentIds };
   }
 
   updateAssignment(
@@ -963,8 +1078,16 @@ export class WorkforceRepository {
         );
       if (changed.changes !== 1)
         throw this.deps.errors.conflict('Assignment changed before update');
+      const kept = this.keepRecordsOutside(
+        principal,
+        existing,
+        startsOn,
+        endsOn,
+        input.reason?.trim() || 'Approved records kept at the previous assignment terms',
+      );
 
       this.deps.audit(principal, 'assignment.update', 'project_member', id, {
+        ...(kept.kept ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds } : {}),
         version: existing.version,
         projectId: existing.project_id,
         workerId: existing.user_id,
@@ -1021,7 +1144,9 @@ export class WorkforceRepository {
       assignmentId: existing.id,
       version: existing.version,
       resolvableTime: this.outsideRangeTimeRows(existing, startsOn, endsOn).length,
-      blockedByRecords: this.sourceOutsideDates(existing, startsOn, endsOn, true),
+      blockedByRecords: this.sourceOutsideDates(existing, startsOn, endsOn, true, true),
+      /** Approved/invoiced records that stay paid and billed at the previous terms. */
+      keptApprovedRecords: this.keptRecordsOutside(existing, startsOn, endsOn).length,
       reopens: existing.status === 'inactive' && (!endsOn || endsOn >= this.today()),
       overlap: overlap
         ? {
@@ -1071,7 +1196,9 @@ export class WorkforceRepository {
         .run(effectiveEnd, this.deps.now(), id, existing.version);
       if (changed.changes !== 1)
         throw this.deps.errors.conflict('Assignment changed before removal');
+      const kept = this.keepRecordsOutside(principal, existing, existing.starts_on, effectiveEnd, reason);
       this.deps.audit(principal, 'assignment.delete', 'project_member', id, {
+        ...(kept.kept ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds } : {}),
         operation: 'remove',
         projectId: existing.project_id,
         workerId: existing.user_id,
@@ -1142,7 +1269,8 @@ export class WorkforceRepository {
       endsOn: effectiveEnd,
       cancelBeforeStart: !startsBeforeToday,
       resolvableLaterTime: this.resolvableTimeAfterEnd(existing, end),
-      blockedByRecords: this.sourceOutsideDates(existing, existing.starts_on, effectiveEnd, true),
+      blockedByRecords: this.sourceOutsideDates(existing, existing.starts_on, effectiveEnd, true, true),
+      keptApprovedRecords: this.keptRecordsOutside(existing, existing.starts_on, effectiveEnd).length,
       hasRecords: this.hasRecordedWork(existing),
     };
   }

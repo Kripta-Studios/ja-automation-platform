@@ -11,10 +11,14 @@ export type RemovalPreview = {
   resolvableLaterTime: number;
   blockedByRecords: boolean;
   hasRecords: boolean;
+  /** Approved/invoiced records kept at the previous assignment terms. */
+  keptApprovedRecords?: number;
 };
 export type DatesPreview = {
   resolvableTime: number;
   blockedByRecords: boolean;
+  /** Approved/invoiced records kept at the previous assignment terms. */
+  keptApprovedRecords?: number;
   reopens: boolean;
   overlap: { assignmentId: string; version: number; startsOn: string; endsOn: string | null } | null;
 };

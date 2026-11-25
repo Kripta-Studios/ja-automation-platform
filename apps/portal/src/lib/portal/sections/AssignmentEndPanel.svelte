@@ -160,6 +160,13 @@
       {a('nothingLater')}
     {/if}
   </p>
+  {#if preview && !preview.blockedByRecords && (preview.keptApprovedRecords ?? 0) > 0}
+    <p class="end-warn" data-end-kept={preview.keptApprovedRecords}>
+      {preview.keptApprovedRecords === 1
+        ? a('keptOne')
+        : a('keptMany', { count: preview.keptApprovedRecords ?? 0 })}
+    </p>
+  {/if}
   {#if allowDelete && preview && !preview.hasRecords}
     <p class="end-note" data-end-delete-help>{a('deleteMistakeHelp')}</p>
   {/if}

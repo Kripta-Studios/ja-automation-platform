@@ -2397,8 +2397,12 @@ export const projectActions = {
           const extends_ =
             after.starts_on < before.starts_on ||
             (after.ends_on ?? '9999-12-31') > (before.ends_on ?? '9999-12-31');
+          // Owner powers (2026-11-25): the Owner may extend or re-open (also with no end
+          // date) on the existing rules; days the rules do not cover show as missing
+          // terms in pay/invoice readiness instead of blocking the date change.
           if (
             extends_ &&
+            context.principal.role !== 'owner_admin' &&
             !hasAssignmentFinanceCoverage(
               context.sqlite,
               after.project_id,

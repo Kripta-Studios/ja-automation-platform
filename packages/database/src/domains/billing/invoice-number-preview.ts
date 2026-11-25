@@ -1,5 +1,9 @@
 import type { DatabaseSync } from 'node:sqlite';
-import { previewClientProjectNumber, type ProjectNumberContext } from './invoice-number-format.ts';
+import {
+  invoiceNumberFormatColumn,
+  previewClientProjectNumber,
+  type ProjectNumberContext,
+} from './invoice-number-format.ts';
 
 /**
  * Decision D15 (audit 2026-11-22): credit notes are their own document type with their own
@@ -31,7 +35,7 @@ export function previewInvoiceNumber(
 ) {
   const policy = sqlite
     .prepare(
-      `SELECT id,prefix,digits,effective_from,number_format FROM invoice_number_policy
+      `SELECT id,prefix,digits,effective_from,${invoiceNumberFormatColumn(sqlite)} FROM invoice_number_policy
      WHERE legal_entity_id=? AND accountant_approved_at IS NOT NULL
        AND effective_from<=? AND (effective_to IS NULL OR effective_to>=?)
      ORDER BY effective_from DESC LIMIT 1`,

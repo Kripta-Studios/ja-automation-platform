@@ -17,6 +17,15 @@ export type InvoiceNumberFormat = (typeof INVOICE_NUMBER_FORMATS)[number];
 export const CLIENT_PROJECT_NUMBER_PREFIX = 'CP';
 export const PROJECT_INVOICE_SEQUENCE_SCOPE = 'invoice_project';
 
+/** `number_format` (migration 0091), or the historical format on an older schema being upgraded. */
+export function invoiceNumberFormatColumn(sqlite: DatabaseSync): string {
+  return sqlite
+    .prepare("SELECT 1 FROM pragma_table_info('invoice_number_policy') WHERE name='number_format'")
+    .get()
+    ? 'number_format'
+    : "'prefix_year_sequence' number_format";
+}
+
 export const isInvoiceNumberFormat = (value: unknown): value is InvoiceNumberFormat =>
   typeof value === 'string' && (INVOICE_NUMBER_FORMATS as readonly string[]).includes(value);
 

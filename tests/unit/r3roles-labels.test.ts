@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { auditActionText, auditEntityTypeText } from '../../apps/portal/src/lib/portal/audit-action-labels';
+import {
+  auditActionText,
+  auditCreditNoteView,
+  auditEntityTypeText,
+} from '../../apps/portal/src/lib/portal/audit-action-labels';
 import {
   documentKindText,
   documentSensitivityText,
@@ -24,6 +28,15 @@ describe('audit log human labels (A3)', () => {
   it('labels record kinds', () => {
     expect(auditEntityTypeText('time_entry', 'es')).toBe('Horas');
     expect(auditEntityTypeText('project_member', 'en')).toBe('Project member');
+  });
+  it('names a credit note as a credit note, not an invoice (D15)', () => {
+    const view = auditCreditNoteView('invoice.issue', 'invoice', 'CN-123-2026-000001');
+    expect(auditActionText(view.action, 'en')).toBe('Credit note issued');
+    expect(auditEntityTypeText(view.entityType, 'en')).toBe('Credit note');
+    expect(auditCreditNoteView('invoice.issue', 'invoice', '123-2026-000001')).toEqual({
+      action: 'invoice.issue',
+      entityType: 'invoice',
+    });
   });
 });
 

@@ -103,6 +103,21 @@ describe('controlled invoice template registry', () => {
     expect(body).not.toContain('Description / Vendor');
   });
 
+  it('prints a credit note reason once when the line text already carries it', () => {
+    const body = renderInvoiceTemplate({
+      ...baseSnapshot('credit-adjustment'),
+      lines: [
+        {
+          description: 'CREDIT · Hours billed twice',
+          reason: 'Hours billed twice',
+          quantity: '1',
+          subtotal_minor: '-10000',
+        },
+      ],
+    }).body;
+    expect(body.split('Hours billed twice').length - 1).toBe(1);
+  });
+
   it('renders exact labor and expense sections on one combined invoice', () => {
     const snapshot = {
       ...baseSnapshot('labor-detailed'),

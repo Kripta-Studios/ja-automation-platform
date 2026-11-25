@@ -60,6 +60,7 @@ const NOUNS: Record<string, Tuple> = {
   internal_cost_rule: ['Internal cost', 'coste interno', 'custo interno'],
   invitation: ['Invitation', 'invitación', 'convite'],
   invoice: ['Invoice', 'factura', 'fatura'],
+  credit_note: ['Credit note', 'nota de crédito', 'nota de crédito'],
   'invoice.adjustment': ['Invoice adjustment', 'ajuste de factura', 'ajuste de fatura'],
   invoice_line_override: ['Invoice line', 'línea de factura', 'linha de fatura'],
   invoice_number_policy: ['Invoice numbering', 'numeración de facturas', 'numeração de faturas'],
@@ -334,4 +335,22 @@ export function auditEntityTypeText(type: string, locale: PortalLocale): string 
   if (!noun) return type.replaceAll('_', ' ');
   const text = noun[localeIndex(locale)];
   return text.charAt(0).toLocaleUpperCase() + text.slice(1);
+}
+
+/**
+ * D15: a credit note is stored as an `invoice` row with its own CN- number. The audit
+ * log names it a credit note ("Credit note issued · Credit note · CN-…"); the stored
+ * code stays visible in Technical details.
+ */
+export function auditCreditNoteView(
+  action: string,
+  entityType: string,
+  subject: unknown,
+): { action: string; entityType: string } {
+  if (entityType !== 'invoice' || typeof subject !== 'string' || !/^CN-/u.test(subject))
+    return { action, entityType };
+  return {
+    action: action.startsWith('invoice.') ? `credit_note.${action.slice('invoice.'.length)}` : action,
+    entityType: 'credit_note',
+  };
 }

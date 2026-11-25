@@ -4,7 +4,12 @@
   import type { AuditFilter } from '../audit-log';
   import type { PortalRow } from '../portal-data';
   import { scaleCopy, scaleLocaleTag, type ScaleShellCopyKey } from './scale-shell-copy';
-  import { auditActionText, auditDisplayAction, auditEntityTypeText } from '../audit-action-labels';
+  import {
+    auditActionText,
+    auditCreditNoteView,
+    auditDisplayAction,
+    auditEntityTypeText,
+  } from '../audit-action-labels';
   import { auditDetailLines, auditDetailText } from '../audit-detail';
 
   let {
@@ -107,7 +112,11 @@
     return auditActionText(
       shellLabel.startsWith('security.mfa.login')
         ? 'security.mfa.login'
-        : auditDisplayAction(String(row.action), row.details_json),
+        : auditCreditNoteView(
+            auditDisplayAction(String(row.action), row.details_json),
+            String(row.entity_type),
+            row.subject_label,
+          ).action,
       locale,
     );
   }
@@ -222,7 +231,10 @@
               >
               <strong class="audit-log__action" title={String(row.action)}>{humanAction(row)}</strong>
               <span class="audit-log__entity"
-                >{humanType(String(row.entity_type))} · {String(row.subject_label ?? '') ||
+                >{humanType(
+                  auditCreditNoteView(String(row.action), String(row.entity_type), row.subject_label)
+                    .entityType,
+                )} · {String(row.subject_label ?? '') ||
                   shortRef(row.entity_id)}</span
               >
             </summary>

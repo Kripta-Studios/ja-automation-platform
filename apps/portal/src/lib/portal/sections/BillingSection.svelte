@@ -3311,6 +3311,8 @@
   }
 
   function invoiceDue(invoice: Row): string {
+    // D15: a credit note is not collected, so it has no due date to show.
+    if (isCreditNoteInvoice(invoice)) return '—';
     const raw = rowValue(
       invoice,
       'due_at',

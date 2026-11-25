@@ -1185,10 +1185,13 @@ const renderCreditAdjustment = (
           );
           const reason = lineDisplayValue(line, 'reason', 'adjustment_reason', 'adjustmentReason');
           const desc = lineDisplayValue(line, 'description', 'detail');
+          // The stored line text already ends with the reason ("CREDIT · <reason>"): print it once.
+          const reasonText = reason === undefined || reason === null ? '' : String(reason).trim();
+          const descText = desc === undefined || desc === null ? '' : String(desc);
           const parts = [
             desc,
             original ? `${localized.originalInvoice}: ${original}` : undefined,
-            reason,
+            reasonText && descText.includes(reasonText) ? undefined : reason,
           ]
             .filter(nonEmptyString)
             .map(String);

@@ -377,6 +377,7 @@
     return () => clearInterval(timer);
   });
   const packs = $derived(data.packs ?? []);
+  let packQueuedNotice = $state('');
 
   function previousCompleteMonth(): { periodStart: string; periodEnd: string } {
     const now = new Date();
@@ -550,8 +551,21 @@
         action="?/createAccountingPack"
         class="accounting-section__form"
         use:rememberPackScroll
-        use:enhance
+        use:enhance={() => {
+          packQueuedNotice = '';
+          return async ({ result, update }) => {
+            await update({ reset: false });
+            // Round 2: say what happened and show the new (queued) pack at once.
+            if (result.type === 'success') {
+              packQueuedNotice = billingFixText(locale, 'packQueued');
+              await invalidateAll();
+            }
+          };
+        }}
       >
+        {#if packQueuedNotice}
+          <p class="accounting-section__notice" role="status" data-pack-queued>{packQueuedNotice}</p>
+        {/if}
         <input type="hidden" name="viewportScrollY" value="0" />
         <p>
           {translate(
@@ -874,6 +888,13 @@
     font-weight: 700;
   }
 
+  .accounting-section__notice {
+    margin: 0 0 0.75rem;
+    padding: 0.6rem 0.8rem;
+    border-radius: 8px;
+    background: var(--success-soft, #e8f5ec);
+    color: var(--success-ink, #14532d);
+  }
   .accounting-section__form {
     display: grid;
     gap: 1rem;

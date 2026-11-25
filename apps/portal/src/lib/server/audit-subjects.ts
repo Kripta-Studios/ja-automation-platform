@@ -193,9 +193,27 @@ export function auditSubjects(
       projectIds.add(record.project_id);
     }
 
+  // T17 (round 2): a payment event names its invoice, never an id fragment.
+  const payments = new Map(
+    inChunks(
+      byType('payment').map((row) => row.entity_id),
+      (batch) =>
+        sqlite
+          .prepare(
+            `SELECT pay.id,pay.invoice_id,i.invoice_number FROM payment pay
+               LEFT JOIN invoice i ON i.id=pay.invoice_id WHERE pay.id IN (${marks(batch.length)})`,
+          )
+          .all(...batch) as Array<{ id: string; invoice_id: string; invoice_number: string | null }>,
+    ).map((payment) => [payment.id, payment]),
+  );
+  const invoiceIdsInDetails = new Set<string>();
+  for (const row of rows) {
+    const details = parsed.get(row.id);
+    if (details && typeof details.invoiceId === 'string') invoiceIdsInDetails.add(details.invoiceId);
+  }
   const invoices = new Map(
     inChunks(
-      byType('invoice').map((row) => row.entity_id),
+      [...new Set([...byType('invoice').map((row) => row.entity_id), ...invoiceIdsInDetails])],
       (batch) =>
         sqlite
           .prepare(
@@ -284,6 +302,11 @@ export function auditSubjects(
       case 'invoice':
         subject = invoices.get(row.entity_id) ?? '';
         break;
+      case 'payment': {
+        const payment = payments.get(row.entity_id);
+        if (payment?.invoice_number) subject = payment.invoice_number;
+        break;
+      }
       case 'mailbox':
       case 'mail_identity':
         // Mailbox ids are short provider handles ("dr"); the address is in the event.
@@ -302,6 +325,8 @@ export function auditSubjects(
       default:
         break;
     }
+    if (display && typeof display.invoiceId === 'string' && invoices.get(display.invoiceId))
+      display = { ...display, invoiceId: invoices.get(display.invoiceId) };
     out.set(row.id, {
       subject_label: subject,
       display_details: display ? JSON.stringify(display) : row.details_json,

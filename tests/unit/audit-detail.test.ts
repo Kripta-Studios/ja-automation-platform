@@ -166,4 +166,40 @@ describe('audit events read by what happened (T17)', () => {
     });
     db.close();
   });
+
+  it('names the invoice of a payment reversal and reads its details in words (T17, round 2)', () => {
+    const db = new DatabaseSync(':memory:');
+    db.exec(`
+      CREATE TABLE user(id TEXT PRIMARY KEY,name TEXT,email TEXT);
+      CREATE TABLE invoice(id TEXT PRIMARY KEY,invoice_number TEXT);
+      CREATE TABLE payment(id TEXT PRIMARY KEY,invoice_id TEXT);
+      INSERT INTO invoice VALUES('i1','123-2026-000001');
+      INSERT INTO payment VALUES('pay1','i1');
+    `);
+    const result = auditSubjects(db, [
+      {
+        id: 'r1',
+        action: 'payment.reverse',
+        entity_type: 'payment',
+        entity_id: 'pay1',
+        details_json: JSON.stringify({
+          invoiceId: 'i1',
+          currency: 'USD',
+          amountMinor: '40000',
+          effectiveAt: '2026-11-25T01:49:32.929Z',
+          reasonCode: 'bank_return',
+          reason: 'Cheque bounced',
+          before: { state: 'partially_paid' },
+          after: { state: 'issued', outstandingMinor: '84000' },
+        }),
+      },
+    ]);
+    expect(result.get('r1')!.subject_label).toBe('123-2026-000001');
+    const lines = auditDetailLines(result.get('r1')!.display_details, 'en').lines;
+    expect(lines).toContainEqual({ label: 'Invoice', value: '123-2026-000001' });
+    expect(lines).toContainEqual({ label: 'Reason type', value: 'Returned by the bank' });
+    expect(lines).toContainEqual({ label: 'Effective on', value: '2026-11-25' });
+    expect(JSON.stringify(lines)).not.toContain('Outstanding minor');
+    db.close();
+  });
 });

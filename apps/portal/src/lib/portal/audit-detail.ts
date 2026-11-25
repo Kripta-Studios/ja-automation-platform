@@ -95,6 +95,25 @@ const FIELDS: Record<string, Tuple> = {
   previouscanreview: ['Could review before', 'Podía revisar antes', 'Podia revisar antes'],
   sessionsrevoked: ['Signed out', 'Sesiones cerradas', 'Sessões encerradas'],
   version: ['Version', 'Versión', 'Versão'],
+  // T17 (round 2): payment and reversal evidence reads in words.
+  outstandingminor: ['Still owed', 'Pendiente de cobro', 'Ainda a receber'],
+  invoiceid: ['Invoice', 'Factura', 'Fatura'],
+  invoice: ['Invoice', 'Factura', 'Fatura'],
+  effectiveat: ['Effective on', 'Fecha efectiva', 'Data efetiva'],
+  effectiveon: ['Effective on', 'Fecha efectiva', 'Data efetiva'],
+  reasoncode: ['Reason type', 'Tipo de motivo', 'Tipo de motivo'],
+  reversalid: ['Reversal', 'Reversión', 'Estorno'],
+  state: ['Status', 'Estado', 'Status'],
+};
+
+/** Payment reversal reason codes in words (raw code stays in Technical details). */
+const REASON_CODES: Record<string, Tuple> = {
+  bank_return: ['Returned by the bank', 'Devuelto por el banco', 'Devolvido pelo banco'],
+  duplicate: ['Recorded twice', 'Registrado dos veces', 'Registrado duas vezes'],
+  wrong_invoice: ['Recorded on the wrong invoice', 'Registrado en otra factura', 'Registrado na fatura errada'],
+  wrong_amount: ['Wrong amount', 'Importe incorrecto', 'Valor incorreto'],
+  chargeback: ['Chargeback', 'Retrocesión', 'Estorno do cartão'],
+  other: ['Other', 'Otro', 'Outro'],
 };
 
 /**
@@ -196,6 +215,16 @@ export function auditDetailLines(
     if (money) return money;
     if (/^ratebasis$/iu.test(key.replace(/[_\s-]/gu, '')) && typeof value === 'string' && BASIS[value])
       return BASIS[value]![index(locale)];
+    const flat = key.replace(/[_\s-]/gu, '').toLocaleLowerCase();
+    if (flat === 'reasoncode' && typeof value === 'string')
+      return REASON_CODES[value]?.[index(locale)] ?? value.replaceAll('_', ' ');
+    // An ISO instant reads as its calendar day ("2026-11-25").
+    if (
+      (flat === 'effectiveat' || flat.endsWith('at')) &&
+      typeof value === 'string' &&
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/u.test(value)
+    )
+      return value.slice(0, 10);
     return valueText(value, locale);
   };
   if (isRecord(parsed.before) || isRecord(parsed.after)) {

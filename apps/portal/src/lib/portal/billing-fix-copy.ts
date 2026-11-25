@@ -38,6 +38,7 @@ const en = {
   fixLink: 'Fix',
   preparing: 'Preparing…',
   confirmRecordPayment: 'Record this payment of {amount}?',
+  packQueued: 'Accounting pack created. Its files are being prepared (Queued); it is listed below.',
   confirmReversePayment: 'Reverse {amount} of this payment? The reversal stays in the history.',
   confirmYes: 'Yes, record it',
   collectionBeforeIssue: 'The expected collection date must be on or after the planned issue date.',
@@ -108,6 +109,7 @@ const es: Record<BillingFixCopyKey, string> = {
   fixLink: 'Corregir',
   preparing: 'Preparando…',
   confirmRecordPayment: '¿Registrar este pago de {amount}?',
+  packQueued: 'Paquete contable creado. Sus archivos se están preparando (En cola); aparece en la lista de abajo.',
   confirmReversePayment: '¿Revertir {amount} de este pago? La reversión queda en el historial.',
   confirmYes: 'Sí, registrarlo',
   collectionBeforeIssue:
@@ -178,6 +180,7 @@ const pt: Record<BillingFixCopyKey, string> = {
   fixLink: 'Corrigir',
   preparing: 'Preparando…',
   confirmRecordPayment: 'Registrar este pagamento de {amount}?',
+  packQueued: 'Pacote contábil criado. Os arquivos estão sendo preparados (Na fila); ele aparece na lista abaixo.',
   confirmReversePayment: 'Estornar {amount} deste pagamento? O estorno fica no histórico.',
   confirmYes: 'Sim, registrar',
   collectionBeforeIssue:

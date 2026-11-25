@@ -12846,10 +12846,24 @@ export class PortalRepository {
     const term = (options.search ?? '').trim().slice(0, 120);
     if (term) {
       const pattern = `%${term.replaceAll('\\', '\\\\').replaceAll('%', '\\%').replaceAll('_', '\\_')}%`;
+      // Round 2: the register shows computed subjects ("Hours · Gabriel Lamoglia · BBS"),
+      // so a search also matches the person, project, invoice and payment they name.
       conditions.push(
-        "(entity_id=? OR entity_id LIKE ? ESCAPE '\\' OR action LIKE ? ESCAPE '\\' OR details_json LIKE ? ESCAPE '\\')",
+        `(entity_id=? OR entity_id LIKE ? ESCAPE '\\' OR action LIKE ? ESCAPE '\\' OR details_json LIKE ? ESCAPE '\\'
+          OR (entity_type IN ('user','worker') AND entity_id IN (SELECT id FROM user WHERE name LIKE ? ESCAPE '\\'))
+          OR (entity_type='time_entry' AND entity_id IN (SELECT t.id FROM time_entry t
+                WHERE t.worker_id IN (SELECT id FROM user WHERE name LIKE ? ESCAPE '\\')
+                   OR t.project_id IN (SELECT id FROM project WHERE project_number LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\')))
+          OR (entity_type='expense' AND entity_id IN (SELECT e.id FROM expense e
+                WHERE e.worker_id IN (SELECT id FROM user WHERE name LIKE ? ESCAPE '\\')
+                   OR e.project_id IN (SELECT id FROM project WHERE project_number LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\')))
+          OR (entity_type='project' AND entity_id IN (SELECT id FROM project WHERE project_number LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\'))
+          OR (entity_type='invoice' AND entity_id IN (SELECT id FROM invoice WHERE invoice_number LIKE ? ESCAPE '\\'))
+          OR (entity_type='payment' AND entity_id IN (SELECT pay.id FROM payment pay JOIN invoice i ON i.id=pay.invoice_id
+                WHERE i.invoice_number LIKE ? ESCAPE '\\')))`,
       );
       values.push(term, pattern, pattern, pattern);
+      values.push(pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern, pattern);
     }
     return { where: conditions.length ? `WHERE ${conditions.join(' AND ')}` : '', values };
   }

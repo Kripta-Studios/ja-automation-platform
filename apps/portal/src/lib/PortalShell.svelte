@@ -488,7 +488,7 @@
     messageKey?: unknown;
     messageParams?: unknown;
   };
-  type SearchGroupKey = 'projects' | 'invoices' | 'specialists' | 'clients' | 'other';
+  type SearchGroupKey = 'crew' | 'projects' | 'invoices' | 'specialists' | 'clients' | 'other';
   type SearchGroup = { key: SearchGroupKey; label: string; rows: Row[] };
   function actionMessage(result: ActionResult | undefined): string {
     if (!result) return '';
@@ -2470,6 +2470,8 @@
         .trim()
         .toLowerCase()
     ) {
+      case 'crew_member':
+        return 'crew';
       case 'project':
       case 'projects':
         return 'projects';
@@ -2492,6 +2494,8 @@
   };
   const searchGroupLabel = (key: SearchGroupKey): string => {
     switch (key) {
+      case 'crew':
+        return translate('Crew hours');
       case 'projects':
         return translate('Projects');
       case 'invoices':
@@ -2505,7 +2509,7 @@
     }
   };
   const groupSearchRows = (rows: Row[]): SearchGroup[] => {
-    const order: SearchGroupKey[] = ['projects', 'invoices', 'specialists', 'clients', 'other'];
+    const order: SearchGroupKey[] = ['crew', 'projects', 'invoices', 'specialists', 'clients', 'other'];
     const grouped = new SvelteMap<SearchGroupKey, Row[]>();
     for (const row of rows) {
       const key = searchGroupKey(row);
@@ -2523,6 +2527,9 @@
     const type = String(row.type ?? '')
       .trim()
       .toLowerCase();
+    // T29: a crew member found by the chief opens Crew hours on that project.
+    if (type === 'crew_member')
+      return `${base}/app/crew?project=${encodeURIComponent(String(row.projectId ?? ''))}`;
     if (type === 'project' || type === 'projects') return `${base}/app/projects/${id}`;
     if (type === 'client' || type === 'clients')
       return `${base}/app/projects?view=clients&focus=${encodeURIComponent(id)}`;
@@ -2564,7 +2571,7 @@
     return {
       id: `${String(row.type ?? '')}:${String(row.id ?? index)}`,
       label:
-        row.type === 'worker'
+        row.type === 'worker' || row.type === 'crew_member'
           ? personDisplayName(row.label) || String(row.detail ?? '')
           : String(row.label ?? translate('Record')),
       detail: isExpenseSearchRow(row)

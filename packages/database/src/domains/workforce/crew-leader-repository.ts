@@ -290,6 +290,52 @@ export class CrewLeaderRepository {
   }
 
   /**
+   * T29: Ctrl K search for a crew chief. Finds the people the chief may record
+   * for TODAY (active, current delegation; both still assigned), by any part
+   * of their name ("maico" finds "Maico Lubawski"). A revoked or ended
+   * delegation returns nothing. Name and project only: no e-mail, no rates.
+   */
+  searchCrewMembers(
+    principal: Principal,
+    term: string,
+  ): { id: string; projectId: string; projectNumber: string; name: string }[] {
+    if (principal.role !== 'worker') return [];
+    const needle = term.trim().toLocaleLowerCase();
+    if (needle.length < 2) return [];
+    const found: { id: string; projectId: string; projectNumber: string; name: string }[] = [];
+    for (const project of this.projects(principal)) {
+      const facts = this.sqlite
+        .prepare('SELECT timezone,project_number projectNumber FROM project WHERE id=?')
+        .get(project.id) as { timezone: string; projectNumber: string } | undefined;
+      const today = facts ? todayInProjectZone(facts.timezone) : null;
+      if (!facts || !today) continue;
+      let people: CrewPerson[] = [];
+      try {
+        people = this.assignedWorkers(principal, project.id, today);
+      } catch (caught) {
+        if (caught instanceof AccessDeniedError) continue;
+        throw caught;
+      }
+      for (const person of people) {
+        const name = String(person.name ?? '');
+        const folded = name
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .toLocaleLowerCase();
+        const foldedNeedle = needle.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+        if (folded.includes(foldedNeedle) || name.toLocaleLowerCase().includes(needle))
+          found.push({
+            id: person.id,
+            projectId: project.id,
+            projectNumber: facts.projectNumber,
+            name,
+          });
+      }
+    }
+    return found;
+  }
+
+  /**
    * Read-only notice data: the chief's active delegations that start after
    * today (project time zone). Hours can only be entered once a delegation is
    * active (see assertScope), so the page explains when that will be.

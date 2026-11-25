@@ -12745,14 +12745,26 @@ export class PortalRepository {
           values: [principal.userId, pattern, pattern, pattern, pattern, pattern],
         },
       ];
-      return queries
-        .flatMap(({ dates, sql, values }) => {
+      // T29: a crew chief also finds the people he may record for today, by
+      // name. Only live delegations; a revoked chief finds nobody (least privilege).
+      const crewMembers = new CrewLeaderRepository(this.sqlite)
+        .searchCrewMembers(principal, term)
+        .map((person) => ({
+          id: person.id,
+          type: 'crew_member',
+          label: person.name,
+          detail: person.projectNumber,
+          projectId: person.projectId,
+        }));
+      return [
+        ...crewMembers,
+        ...queries.flatMap(({ dates, sql, values }) => {
           const scope = workerOperationalProjectScope(this.sqlite, principal, dates, instant);
           return this.sqlite
             .prepare(`${scope.withClause} ${sql.replace('SCOPE', scope.predicate)}`)
             .all(...scope.parameters, ...values);
-        })
-        .slice(0, 100);
+        }),
+      ].slice(0, 100);
     }
     const projectIds = principal.role === 'project_manager' ? [...principal.projectIds] : [];
     const projectRestriction =

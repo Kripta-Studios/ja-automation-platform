@@ -4432,6 +4432,10 @@ const exact: Record<string, readonly [string, string]> = {
     'El buzón de esta persona ya no coincide con su cuenta del portal. Revisa la pestaña Buzones antes de restablecer la contraseña.',
     'A caixa de correio desta pessoa não corresponde mais à conta do portal. Revise a aba Caixas de correio antes de redefinir a senha.',
   ],
+  'problem.access.passwordLocalSaveFailed': [
+    'El portal no pudo guardar la contraseña nueva. No se cambió nada. Inténtalo de nuevo.',
+    'O portal não conseguiu salvar a nova senha. Nada foi alterado. Tente novamente.',
+  ],
   'problem.access.passwordLocalPending': [
     'La contraseña del Webmail cambió, pero el portal aún no pudo guardarla. Envía otra vez la misma contraseña nueva.',
     'A senha do Webmail foi alterada, mas o portal ainda não conseguiu salvá-la. Envie a mesma nova senha novamente.',
@@ -8462,6 +8466,10 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Contraseña nueva guardada para el portal y el Webmail. Se cerró la sesión de la persona en todas partes.',
     'Nova senha salva para o portal e o Webmail. A sessão da pessoa foi encerrada em todos os lugares.',
   ],
+  'action.access.password.initial': [
+    'Primera contraseña guardada. La persona ya puede entrar con su correo electrónico.',
+    'Primeira senha salva. A pessoa já pode entrar com o seu e-mail.',
+  ],
   'action.access.password.resetPortal': [
     'Contraseña nueva del portal guardada. Se cerró la sesión de la persona en todas partes.',
     'Nova senha do portal salva. A sessão da pessoa foi encerrada em todos os lugares.',
@@ -9321,6 +9329,8 @@ function englishActionMessage(key: string): string {
     'action.access.mailbox.passwordUpdated': 'Mailbox password updated.',
     'action.access.password.reset':
       'New password saved for the portal and Webmail. The person was signed out everywhere.',
+    'action.access.password.initial':
+      'First password saved. The person can now sign in with their email address.',
     'action.access.password.resetPortal':
       'New portal password saved. The person was signed out everywhere.',
     'action.access.password.changed':
@@ -11412,6 +11422,8 @@ const problemEnglish: Record<string, string> = {
     'The mail server did not confirm the change, so nothing was changed and the old password still works. Try again in a few minutes.',
   'problem.access.passwordMailboxMismatch':
     'This person’s mailbox no longer matches their portal account. Review the Mailboxes tab before resetting the password.',
+  'problem.access.passwordLocalSaveFailed':
+    'The portal could not save the new password. Nothing was changed. Try again.',
   'problem.access.passwordLocalPending':
     'The Webmail password changed, but the portal could not save it yet. Submit the same new password again.',
   'problem.access.localRoleInvalid': 'Choose a valid access role.',

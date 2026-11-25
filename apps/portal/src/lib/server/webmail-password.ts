@@ -53,10 +53,17 @@ export type PasswordChangeFailureCode =
   | 'TARGET_NOT_ALLOWED'
   | 'MAIL_UNAVAILABLE'
   | 'MAILBOX_NOT_FOUND'
-  | 'LOCAL_UPDATE_FAILED';
+  | 'LOCAL_UPDATE_FAILED'
+  /** Not linked to a mailbox: the portal could not save the password; nothing changed. */
+  | 'LOCAL_SAVE_FAILED';
 
 export type PasswordChangeOutcome =
-  | Readonly<{ ok: true; linkedMailbox: boolean; sessionsRevoked: number }>
+  | Readonly<{
+      ok: true;
+      linkedMailbox: boolean;
+      sessionsRevoked: number;
+      initialCredential?: boolean;
+    }>
   | Readonly<{ ok: false; code: PasswordChangeFailureCode }>;
 
 function hasMailIdentityTable(sqlite: Sqlite): boolean {
@@ -294,6 +301,8 @@ type WriteInput = Readonly<{
   /** The session that made the change survives a self-service change. */
   keepSessionId: string | null;
   reason: 'self_service_password_change' | 'owner_password_reset';
+  /** Owner set the first password of a person who had no sign-in yet. */
+  initialCredential?: boolean;
 }>;
 
 /**
@@ -321,11 +330,16 @@ async function writePassword(
       return { ok: false, code: 'MAIL_UNAVAILABLE' };
     }
   }
+  // After a confirmed mailbox change the old password no longer works in Webmail, so the
+  // portal asks to resubmit; without a mailbox nothing changed at all.
+  const localFailure: PasswordChangeFailureCode = input.linked
+    ? 'LOCAL_UPDATE_FAILED'
+    : 'LOCAL_SAVE_FAILED';
   let hash: string;
   try {
     hash = await hashPassword(input.newPassword);
   } catch {
-    return { ok: false, code: 'LOCAL_UPDATE_FAILED' };
+    return { ok: false, code: localFailure };
   }
   try {
     const revoked = transaction(sqlite, () => {
@@ -356,12 +370,19 @@ async function writePassword(
         reason: input.reason,
         revokedCount,
         mailboxUpdated: Boolean(input.linked),
+        // The audit redactor hides keys naming secrets (password, credential, ...).
+        ...(input.initialCredential ? { signInCreated: true } : {}),
       });
       return revokedCount;
     });
-    return { ok: true, linkedMailbox: Boolean(input.linked), sessionsRevoked: revoked };
+    return {
+      ok: true,
+      linkedMailbox: Boolean(input.linked),
+      sessionsRevoked: revoked,
+      ...(input.initialCredential ? { initialCredential: true } : {}),
+    };
   } catch {
-    return { ok: false, code: 'LOCAL_UPDATE_FAILED' };
+    return { ok: false, code: localFailure };
   }
 }
 
@@ -453,8 +474,8 @@ export async function resetUserPassword(
   if (target.id === input.actorId || target.role === 'owner_admin')
     return { ok: false, code: 'TARGET_NOT_ALLOWED' };
   if (target.status !== 'active') return { ok: false, code: 'USER_NOT_ACTIVE' };
-  // A directory-only person has no sign-in yet: use "Create user" to grant access.
-  if (!target.hash) return { ok: false, code: 'TARGET_NOT_ALLOWED' };
+  // Owner powers (2026-11-25): a directory-only person (no sign-in yet) gets the portal
+  // credential created with this first password; everyone else gets it replaced.
   if (!isAcceptablePortalPassword(input.newPassword))
     return { ok: false, code: 'PASSWORD_INVALID' };
   return writePassword(
@@ -468,6 +489,7 @@ export async function resetUserPassword(
       correlationId: input.correlationId,
       keepSessionId: null,
       reason: 'owner_password_reset',
+      initialCredential: !target.hash,
     },
     dependencies,
   );
@@ -543,6 +565,12 @@ const passwordChangeProblems: Readonly<
     key: 'problem.access.passwordMailboxMismatch',
     message:
       'This person’s mailbox no longer matches their portal account. Review the Mailboxes tab before resetting the password.',
+  },
+  LOCAL_SAVE_FAILED: {
+    status: 500,
+    key: 'problem.access.passwordLocalSaveFailed',
+    message: 'The portal could not save the new password. Nothing was changed. Try again.',
+    field: 'password',
   },
   LOCAL_UPDATE_FAILED: {
     status: 500,

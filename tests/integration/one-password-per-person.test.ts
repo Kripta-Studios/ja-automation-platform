@@ -332,7 +332,46 @@ describe('Owner reset from the Team screen', () => {
     expect(await localAccepts(ids.local, 'reset-local-pass')).toBe(true);
   });
 
-  it('refuses non-owners, the Owner account and people without a sign-in', async () => {
+  it('fails closed with MAIL_UNAVAILABLE when Stalwart cannot confirm an Owner reset', async () => {
+    stalwart.updatePassword.mockRejectedValueOnce(new Error('STALWART_UPDATE_NOT_CONFIRMED'));
+    expect(
+      await resetUserPassword(
+        sqlite,
+        { actorId: ids.owner, targetUserId: ids.worker, newPassword: 'reset-not-confirmed' },
+        deps,
+      ),
+    ).toEqual({ ok: false, code: 'MAIL_UNAVAILABLE' });
+    expect(await localAccepts(ids.worker, 'reset-not-confirmed')).toBe(false);
+    expect(await localAccepts(ids.worker, 'reset-by-owner-1')).toBe(true);
+  });
+
+  it('sets the first password of a directory-only person (creates the credential, audited)', async () => {
+    const result = await resetUserPassword(
+      sqlite,
+      { actorId: ids.owner, targetUserId: ids.personnel, newPassword: 'personnel-first-pass' },
+      deps,
+    );
+    expect(result).toEqual({
+      ok: true,
+      linkedMailbox: false,
+      sessionsRevoked: 0,
+      initialCredential: true,
+    });
+    expect(await localAccepts(ids.personnel, 'personnel-first-pass')).toBe(true);
+    expect(stalwart.updatePassword).not.toHaveBeenCalled();
+    const audit = sqlite
+      .prepare(
+        "SELECT actor_id,metadata_json details_json FROM audit_event WHERE action='mailbox.sessions_revoke' AND entity_id=? ORDER BY occurred_at DESC LIMIT 1",
+      )
+      .get(ids.personnel) as { actor_id: string; details_json: string };
+    expect(audit.actor_id).toBe(ids.owner);
+    expect(JSON.parse(audit.details_json)).toMatchObject({
+      reason: 'owner_password_reset',
+      signInCreated: true,
+    });
+  });
+
+  it('refuses non-owners and the Owner account', async () => {
     expect(
       await resetUserPassword(
         sqlite,
@@ -344,13 +383,6 @@ describe('Owner reset from the Team screen', () => {
       await resetUserPassword(
         sqlite,
         { actorId: ids.owner, targetUserId: ids.owner, newPassword: 'owner-new-password' },
-        deps,
-      ),
-    ).toEqual({ ok: false, code: 'TARGET_NOT_ALLOWED' });
-    expect(
-      await resetUserPassword(
-        sqlite,
-        { actorId: ids.owner, targetUserId: ids.personnel, newPassword: 'personnel-password' },
         deps,
       ),
     ).toEqual({ ok: false, code: 'TARGET_NOT_ALLOWED' });

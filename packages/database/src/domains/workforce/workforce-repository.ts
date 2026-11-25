@@ -714,29 +714,23 @@ export class WorkforceRepository {
       let assignmentId: string;
       let action: 'extended' | 'created';
       if (nearest) {
+        // Same date-change path as the team screens (overlap, recorded-work and
+        // version checks, audit with from/to dates), marked as an Owner override.
         const startsOn = before ? nearest.starts_on : input.date;
         const endsOn = before ? input.date : nearest.ends_on;
-        if (overlapping(nearest.id, startsOn, endsOn))
-          throw this.deps.errors.conflict('Worker already has an overlapping project assignment');
-        const changed = this.deps.sqlite
-          .prepare(
-            `UPDATE project_member SET starts_on=?,ends_on=?,updated_at=?,version=version+1
-              WHERE id=? AND status='active' AND version=?`,
-          )
-          .run(startsOn, endsOn, timestamp, nearest.id, nearest.version);
-        if (changed.changes !== 1) throw this.deps.errors.conflict('Assignment changed before update');
+        this.updateAssignment(principal, nearest.id, {
+          startsOn,
+          endsOn: endsOn ?? '',
+          version: nearest.version,
+          reason,
+          auditDetails: {
+            ownerOverride: 'extend_assignment_to_record',
+            coveredDate: input.date,
+            reason,
+          },
+        });
         assignmentId = nearest.id;
         action = 'extended';
-        this.deps.audit(principal, 'assignment.update', 'project_member', nearest.id, {
-          projectId: input.projectId,
-          workerId: input.workerId,
-          version: nearest.version,
-          before: { startsOn: nearest.starts_on, endsOn: nearest.ends_on },
-          after: { startsOn, endsOn },
-          ownerOverride: 'extend_assignment_to_record',
-          coveredDate: input.date,
-          reason,
-        });
       } else {
         if (overlapping(null, input.date, input.date))
           throw this.deps.errors.conflict('Worker already has an overlapping project assignment');
@@ -872,6 +866,8 @@ export class WorkforceRepository {
        */
       resolveOutsideTime?: boolean;
       reason?: string;
+      /** Extra audit details (e.g. the Owner override that extended the dates). */
+      auditDetails?: Readonly<Record<string, unknown>>;
     },
   ) {
     this.deps.assertActive(principal);
@@ -976,6 +972,7 @@ export class WorkforceRepository {
         endsOn: { from: existing.ends_on, to: endsOn },
         ...(status !== existing.status ? { reopened: true } : {}),
         ...(resolvedOutsideTime ? { resolvedOutsideTime } : {}),
+        ...(input.auditDetails ?? {}),
       });
     });
   }

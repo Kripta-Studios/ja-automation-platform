@@ -1340,6 +1340,12 @@ export const accessActions = {
         correlationId: locals.correlationId,
       });
       if (!result.ok) return fail(result.code);
+      if (result.initialCredential && !result.linkedMailbox)
+        return actionSuccess(
+          'action.access.password.initial',
+          { userId },
+          'First password saved. The person can now sign in with their email address.',
+        );
       return actionSuccess(
         result.linkedMailbox
           ? 'action.access.password.reset'

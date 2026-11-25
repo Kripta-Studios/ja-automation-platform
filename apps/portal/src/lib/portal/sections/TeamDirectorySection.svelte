@@ -305,7 +305,8 @@
     ) as Record<string, unknown> | null | undefined;
     const key = typeof payload?.messageKey === 'string' ? payload.messageKey : '';
     const params = payload?.messageParams as Record<string, unknown> | undefined;
-    return payload?.success === true && key.startsWith('action.access.password.reset')
+    return payload?.success === true &&
+      (key.startsWith('action.access.password.reset') || key === 'action.access.password.initial')
       ? { key, userId: typeof params?.userId === 'string' ? params.userId : '' }
       : null;
   });
@@ -1925,8 +1926,9 @@
                         </p>
                       {/if}
                     </section>
-                  {#if value(worker, 'has_portal_access') === '1' && value(worker, 'status') === 'active' && workerId(worker) !== currentUserId}
+                  {#if value(worker, 'status') === 'active' && workerId(worker) !== currentUserId && !workerIsProtectedOwner(worker)}
                     {@const resetId = workerId(worker)}
+                    {@const firstPassword = value(worker, 'has_portal_access') !== '1'}
                     <form
                       method="POST"
                       action={teamActionHref('resetUserPassword', resetId)}
@@ -1944,9 +1946,13 @@
                           event.preventDefault();
                       }}
                     >
-                      <h3>{translate('Reset password')}</h3>
+                      <h3>{translate(firstPassword ? 'Set first password' : 'Reset password')}</h3>
                       <p class="team-directory__form-help">
-                        {(mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
+                        {firstPassword && !(mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
+                          ? translate(
+                              'This person has no sign-in yet. Sets a first portal password so they can sign in with their email. Give it to the person in a safe way.',
+                            )
+                          : (mailboxes ?? []).some((mailbox) => mailbox.portalUserId === resetId)
                           ? translate(
                               'Sets one new password for both the portal and Webmail. Give it to the person in a safe way.',
                             )
@@ -2008,7 +2014,7 @@
                         </p>
                       {/if}
                       <button type="submit" class="team-directory__action"
-                        >{translate('Save new password')}</button
+                        >{translate(firstPassword ? 'Save first password' : 'Save new password')}</button
                       >
                     </form>
                   {/if}

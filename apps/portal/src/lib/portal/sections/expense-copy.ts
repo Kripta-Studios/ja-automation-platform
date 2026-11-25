@@ -143,8 +143,7 @@ const en = {
   filledFromReceipt: 'Amount and date filled from the receipt. Check them before saving.',
   noReceiptHint: 'No receipt? Fill in the details below and add a note.',
   pickReceipts: 'Choose several receipt photos — one row each',
-  duplicateReceipt:
-    'This receipt is already on another expense. Is this a different expense? Attach another photo.',
+  duplicateReceipt: 'This file cannot be used as a receipt. Attach another photo of the receipt.',
   possibleDuplicate:
     'This looks like a duplicate of your {category} expense of {amount} on {date}. Save anyway?',
   saveAnyway: 'Save anyway',
@@ -328,7 +327,7 @@ const es: Copy = {
   filledFromReceipt: 'Importe y fecha rellenados desde el ticket. Revísalos antes de guardar.',
   noReceiptHint: '¿Sin ticket? Rellena los datos y añade una nota.',
   pickReceipts: 'Elige varias fotos de tickets: una fila por cada una',
-  duplicateReceipt: 'Este ticket ya está en otro gasto. ¿Es un gasto distinto? Adjunta otra foto.',
+  duplicateReceipt: 'Este archivo no se puede usar como ticket. Adjunta otra foto del ticket.',
   possibleDuplicate:
     'Parece un duplicado de tu gasto de {category} de {amount} del {date}. ¿Guardarlo de todos modos?',
   saveAnyway: 'Guardar de todos modos',
@@ -511,8 +510,7 @@ const pt: Copy = {
   filledFromReceipt: 'Valor e data preenchidos a partir do recibo. Confira antes de salvar.',
   noReceiptHint: 'Sem recibo? Preencha os dados e adicione uma observação.',
   pickReceipts: 'Escolha várias fotos de recibos — uma linha para cada',
-  duplicateReceipt:
-    'Este recibo já está em outra despesa. É uma despesa diferente? Anexe outra foto.',
+  duplicateReceipt: 'Este arquivo não pode ser usado como recibo. Anexe outra foto do recibo.',
   possibleDuplicate:
     'Parece uma duplicata da sua despesa de {category} de {amount} em {date}. Salvar mesmo assim?',
   saveAnyway: 'Salvar mesmo assim',

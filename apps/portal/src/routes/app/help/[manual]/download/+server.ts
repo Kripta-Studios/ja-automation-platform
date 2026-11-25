@@ -91,8 +91,14 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
 }
 
-export const GET: RequestHandler = async ({ locals, params, url, cookies }) => {
+export const GET: RequestHandler = async ({ locals, params, url, cookies, request }) => {
   const correlationId = locals.correlationId || randomUUID();
+  // T18 (round 2): a person who opened the link in the browser lands back on Help
+  // instead of a raw JSON page; scripts that ask for JSON keep the problem body.
+  const browserNavigation =
+    request.headers.get('sec-fetch-mode') === 'navigate' ||
+    (/text\/html/u.test(request.headers.get('accept') ?? '') &&
+      !/application\/(?:problem\+)?json/u.test(request.headers.get('accept') ?? ''));
   const errorLocale =
     normalizeManualLocale(url.searchParams.get('lang')) ??
     normalizeManualLocale(cookies?.get('ja.portal.locale') ?? cookies?.get('ja-portal-locale')) ??
@@ -111,7 +117,17 @@ export const GET: RequestHandler = async ({ locals, params, url, cookies }) => {
     );
     // The same response is used for an unknown id and a role-disallowed manual so
     // a worker cannot probe for the existence of the Owner reference.
-    if (!manual) return errorResponse('notFound', 404, errorLocale, correlationId);
+    if (!manual) {
+      if (browserNavigation)
+        return new Response(null, {
+          status: 303,
+          headers: {
+            ...privateHeaders(),
+            location: `${base}/app/help?lang=${encodeURIComponent(errorLocale)}&manual=unavailable`,
+          },
+        });
+      return errorResponse('notFound', 404, errorLocale, correlationId);
+    }
 
     const requestedLocale = normalizeManualLocale(url.searchParams.get('lang'));
     if (!requestedLocale) return errorResponse('language', 400, errorLocale, correlationId);

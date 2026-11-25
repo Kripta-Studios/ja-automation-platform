@@ -1319,7 +1319,11 @@
       {#if formError}
         <p class="xp-error" role="alert" tabindex="-1" data-operational-form-error>
           {formProblem?.code === 'EXPENSE_RECEIPT_DUPLICATE_CONTENT'
-            ? c('duplicateReceipt')
+            ? // T46: your own earlier expense is named; any other stored file gets a neutral
+              // message that does not reveal it exists.
+              formProblem?.messageKey === 'problem.expense.receiptAlreadyAttached'
+              ? formError
+              : c('duplicateReceipt')
             : possibleDuplicate
               ? c('possibleDuplicate', {
                   category: categoryLabel(fCategory),

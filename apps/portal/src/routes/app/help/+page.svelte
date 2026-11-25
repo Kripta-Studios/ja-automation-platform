@@ -10,6 +10,7 @@
     type ManualDownloadFailure,
   } from '$lib/portal/ui/manual-download';
   import { base } from '$app/paths';
+  import { page } from '$app/stores';
 
   type Locale = 'en' | 'es' | 'pt';
   type Persona =
@@ -332,6 +333,15 @@
       <p class="eyebrow">J&amp;A Automation · {data.user.name}</p>
       <h1>{text('title')}</h1>
       <p class="lead">{text('intro')}</p>
+      {#if $page.url.searchParams.get('manual') === 'unavailable'}
+        <p class="lead" role="status" data-help-manual-unavailable>
+          {data.locale === 'pt'
+            ? 'Esse manual não está disponível para a sua conta. Os manuais que você pode baixar estão abaixo.'
+            : data.locale === 'es'
+              ? 'Ese manual no está disponible para tu cuenta. Los manuales que puedes descargar están abajo.'
+              : 'That manual is not available for your account. The manuals you can download are below.'}
+        </p>
+      {/if}
     </div>
     <div class="language-control">
       <span>{text('language')}</span>

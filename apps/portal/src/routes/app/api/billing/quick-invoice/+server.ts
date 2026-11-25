@@ -59,7 +59,8 @@ const overridesSchema = z
         z
           .object({
             workerId: idSchema,
-            category: z.enum(['regular', 'overtime']).nullable().optional(),
+            // per_diem / allowance (and overtime) with billed 0: left out of this invoice.
+            category: z.enum(['regular', 'overtime', 'per_diem', 'allowance']).nullable().optional(),
             rate: decimal.optional(),
             rateMinor: z.string().regex(/^\d{1,12}$/u).nullable().optional(),
             billedHours: decimal.optional(),
@@ -119,7 +120,16 @@ const scopeFields = {
   overrides: overridesSchema.optional(),
   /** Unclassified expenses left out of this invoice (they stay unclassified). */
   excludedExpenseIds: z.array(idSchema).max(200).optional(),
+  /** People whose hours / expenses are left out of this invoice (they stay open). */
+  leaveOut: z
+    .object({
+      hours: z.array(idSchema).max(200).default([]),
+      expenses: z.array(idSchema).max(200).default([]),
+    })
+    .strict()
+    .optional(),
 };
+const leaveOutSchema = scopeFields.leaveOut;
 /** Split by PO: the parts the user saw ("PO=total|…"); null/absent = one invoice. */
 const splitGuard = z.string().max(8000).nullable().optional();
 const requestKey = z.string().trim().min(8).max(200);
@@ -310,6 +320,20 @@ export const GET: RequestHandler = ({ locals, url }) => {
       if (!checked.success) return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
       overrides = engineOverrides(checked.data);
     }
+    let leaveOut: { hours: string[]; expenses: string[] } | null = null;
+    if (raw.leaveOut) {
+      if (raw.leaveOut.length > 20_000) return denied(413, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      let decoded: unknown;
+      try {
+        decoded = JSON.parse(raw.leaveOut);
+      } catch {
+        return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      }
+      const checked = leaveOutSchema.safeParse(decoded);
+      if (!checked.success || !checked.data) return denied(400, 'QUICK_INVOICE_SELECTION_INVALID', correlationId);
+      leaveOut = checked.data;
+    }
+    delete raw.leaveOut;
     const detail = raw.detail;
     const offset = Number(raw.offset ?? 0);
     const excluded = (raw.excluded ?? '').split(',').filter(Boolean);
@@ -333,7 +357,12 @@ export const GET: RequestHandler = ({ locals, url }) => {
     return json(
       {
         success: true,
-        preview: quickInvoicePreview(context, { ...parsed.data, overrides, excludedExpenseIds: excluded }),
+        preview: quickInvoicePreview(context, {
+          ...parsed.data,
+          overrides,
+          excludedExpenseIds: excluded,
+          leaveOut,
+        }),
       },
       { headers },
     );
@@ -376,6 +405,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
       ...(command.billingRuleId ? { billingRuleId: command.billingRuleId } : {}),
       overrides: engineOverrides(command.overrides),
       excludedExpenseIds: command.excludedExpenseIds ?? [],
+      leaveOut: command.leaveOut ?? null,
     };
     context = openPortalRepository(locals);
     if (command.operation === 'create') {

@@ -1,6 +1,7 @@
 <script lang="ts">
   import PortalNavIcon from '$lib/PortalNavIcon.svelte';
   import { navIconPath } from '$lib/portal/nav-icons';
+  import { extrasText } from '$lib/portal/assignment-extras-copy';
   import { personDisplayName } from './portal/display-name';
   import ArchivedProjectHistory from '$lib/portal/ui/ArchivedProjectHistory.svelte';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
@@ -4739,6 +4740,34 @@
             {#if BigInt(amount.estimatedApprovedMinor || '0') > 0n && BigInt(owed?.settlementMinor || '0') === 0n}
               <p class="form-help pay-summary-when" data-pay-payable-when>{paySummaryText(locale, 'payableWhen')}</p>
             {/if}
+            {@const payExtras = (data.pay.extras ?? []).filter((row) => row.currency === amount.currency)}
+            {#if payExtras.length}
+              <div class="pay-summary-extras" data-pay-extras={payExtras.length}>
+                <strong>{extrasText(locale, 'payExtras')}</strong>
+                <ul>
+                  {#each payExtras as row, index (index)}
+                    <li>
+                      <span
+                        >{extrasText(locale, row.kind === 'per_diem' ? 'payPerDiem' : 'payAllowance', {
+                          count: row.units,
+                          unit: extrasText(
+                            locale,
+                            row.basis === 'month'
+                              ? row.units === 1
+                                ? 'month'
+                                : 'months'
+                              : row.units === 1
+                                ? 'day'
+                                : 'days',
+                          ),
+                        })}{#if row.state === 'pending'}<small> · {extrasText(locale, 'waiting')}</small>{/if}</span
+                      >
+                      <strong>{paymentMoney(row.amountMinor, row.currency, documentLanguage(locale))}</strong>
+                    </li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
           {/each}
         </section>
         <details class="pay-more">
@@ -8324,6 +8353,24 @@
   }
   .pay-summary-when {
     margin: 0;
+  }
+  .pay-summary-extras {
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.95rem;
+  }
+  .pay-summary-extras ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+  }
+  .pay-summary-extras li {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
   }
   .pay-summary-grid {
     display: grid;

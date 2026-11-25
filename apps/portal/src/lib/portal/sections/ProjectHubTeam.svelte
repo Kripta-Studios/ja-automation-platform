@@ -21,6 +21,16 @@
   } from '$lib/portal/assignment-requests';
   import AssignmentEndPanel from './AssignmentEndPanel.svelte';
   import AssignmentDatesPanel from './AssignmentDatesPanel.svelte';
+  import AssignmentExtrasFields from './AssignmentExtrasFields.svelte';
+  import {
+    emptyExtras,
+    extrasChosen,
+    extrasFields,
+    extrasSummary,
+    extrasText,
+    type AssignmentExtrasCopyKey,
+    type ExtrasValues,
+  } from '$lib/portal/assignment-extras-copy';
 
   type Assignment = {
     id: string;
@@ -50,6 +60,7 @@
     projectEnd = '',
     today,
     canSetRates = false,
+    extras = null,
     viewerId = '',
     roleLabel,
     formatDate,
@@ -71,6 +82,8 @@
     projectEnd?: string;
     today: string;
     canSetRates?: boolean;
+    /** Owner/Finance: optional per-person extras by assignment id (null: not shown). */
+    extras?: Record<string, ExtrasValues> | null;
     /** Signed-in user id (hides "End assignment" on a manager's own row). */
     viewerId?: string;
     roleLabel: (value: unknown) => string;
@@ -127,6 +140,10 @@
   let workerPay = $state('');
   let busy = $state(false);
   let addErrors = $state<string[]>([]);
+  // Owner request 2026-11-25: optional extras for the people being added.
+  let addExtras = $state<ExtrasValues>(emptyExtras());
+  const x = (key: AssignmentExtrasCopyKey, params: Record<string, string | number> = {}) =>
+    extrasText(locale, key, params);
 
   // T32 (role audit 2026-11-22): new people start today, so a quick "Add"
   // never back-dates an assignment by months; a project that has not started
@@ -253,6 +270,18 @@
         if (result.type === 'success') {
           added++;
           selected[workerId] = false;
+          if (extrasChosen(addExtras)) {
+            const saved = await post(`${projectHref}?/setAssignmentExtras`, {
+              ...extrasFields({ ...addExtras, version: 0 }),
+              workerId,
+              startsOn: personStart,
+            });
+            if (saved.type !== 'success') {
+              const name = available.find((worker) => worker.id === workerId)?.name ?? workerId;
+              const data = saved.type === 'failure' ? (saved.data as { extrasMessage?: string } | null) : null;
+              addErrors.push(x('addedNoExtras', { name, message: data?.extrasMessage ?? describe(data) }));
+            }
+          }
         } else {
           const name = available.find((worker) => worker.id === workerId)?.name ?? workerId;
           const data = result.type === 'failure' ? result.data : null;
@@ -281,7 +310,50 @@
     if (added) {
       notify(h('added', { count: added }), 'success');
       await invalidateAll();
-      if (!addErrors.length && !missingTerms.length) addOpen = false;
+      if (!addErrors.length && !missingTerms.length) {
+        addOpen = false;
+        addExtras = emptyExtras();
+      }
+    }
+  }
+
+  // ---------- extras of one assignment (owner request 2026-11-25) ----------
+  let extrasFor = $state('');
+  let extrasDraft = $state<ExtrasValues>(emptyExtras());
+  let extrasError = $state('');
+  function openExtras(row: Assignment) {
+    if (extrasFor === row.id) {
+      extrasFor = '';
+      return;
+    }
+    extrasFor = row.id;
+    extrasError = '';
+    extrasDraft = { ...(extras?.[row.id] ?? emptyExtras()) };
+    endingId = '';
+    datesId = '';
+  }
+  async function saveExtras(event: SubmitEvent, row: Assignment) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    extrasError = '';
+    try {
+      const result = await post(`${projectHref}?/setAssignmentExtras`, {
+        ...extrasFields(extrasDraft),
+        assignmentId: row.id,
+      });
+      if (result.type === 'success') {
+        notify(x('saved', { name: row.name }), 'success');
+        extrasFor = '';
+        await invalidateAll();
+      } else {
+        const data = result.type === 'failure' ? (result.data as { extrasMessage?: string } | null) : null;
+        extrasError = data?.extrasMessage ?? describe(data);
+      }
+    } catch {
+      extrasError = describe(null);
+    } finally {
+      busy = false;
     }
   }
 
@@ -567,6 +639,12 @@
             >
           {/if}
         </div>
+        {#if extras !== null}
+          <details class="hub-extras" data-hub-add-extras>
+            <summary>{x('extras')}{#if extrasChosen(addExtras)}<small> · {extrasSummary(locale, addExtras)}</small>{/if}</summary>
+            <AssignmentExtrasFields bind:values={addExtras} {currency} {locale} idPrefix="add" />
+          </details>
+        {/if}
         {#if addErrors.length}
           <ul class="hub-errors" role="alert">
             {#each addErrors as message}<li>{message}</li>{/each}
@@ -750,6 +828,19 @@
               {/if}
             </div>
           {/if}
+          {#if extras !== null}
+            <div class="hub-team-rate hub-team-extras" data-hub-extras={row.workerId}>
+              <span class="hub-label">{x('extrasButton')}</span>
+              <span class="hub-extras-summary">{extrasSummary(locale, extras[row.id]) || x('extrasNone')}</span>
+              <button
+                type="button"
+                class="quiet-button"
+                aria-expanded={extrasFor === row.id}
+                onclick={() => openExtras(row)}
+                data-hub-extras-edit={row.workerId}>{x('edit')}</button
+              >
+            </div>
+          {/if}
           {#if canManage && !isOwner && isSupplierStaff(row)}
             <small class="surface-intro">{h('supplierStaffByOwner')}</small>
           {:else if canChange(row)}
@@ -794,6 +885,21 @@
                 <div class="hub-inline-actions">
                   <button type="button" class="secondary-button" onclick={() => (poFor = '')}>{h('cancel')}</button>
                   <button type="submit" class="primary-button" disabled={busy} data-hub-po-save>{h('poSave')}</button>
+                </div>
+              </form>
+            </div>
+          {/if}
+          {#if extrasFor === row.id}
+            <div class="hub-row-panel" data-hub-extras-panel={row.workerId}>
+              <form class="hub-inline-form" onsubmit={(event) => saveExtras(event, row)}>
+                <strong>{x('extrasFor', { name: row.name })}</strong>
+                <AssignmentExtrasFields bind:values={extrasDraft} {currency} {locale} idPrefix={row.id} />
+                {#if extrasError}<p class="hub-warn" role="alert">{extrasError}</p>{/if}
+                <div class="hub-inline-actions">
+                  <button type="button" class="secondary-button" onclick={() => (extrasFor = '')}>{x('cancel')}</button>
+                  <button type="submit" class="primary-button" disabled={busy} data-hub-extras-save
+                    >{busy ? x('saving') : x('save')}</button
+                  >
                 </div>
               </form>
             </div>
@@ -928,7 +1034,7 @@
   }
   .hub-team-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-columns: minmax(0, 1fr) repeat(4, auto);
     gap: 0.5rem 1rem;
     align-items: center;
     padding: 0.75rem 0;
@@ -1174,9 +1280,36 @@
     outline: 3px solid var(--ja-focus, #2563eb);
     outline-offset: 2px;
   }
+  .hub-extras-summary {
+    max-width: 16rem;
+    text-align: end;
+    font-size: 0.9rem;
+  }
+  .hub-extras {
+    border: 1px solid var(--project-line, #e4e4e2);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--project-surface, #fff);
+  }
+  .hub-extras > summary {
+    min-height: var(--ja-target-min, 2.75rem);
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .hub-extras > summary small {
+    font-weight: 400;
+    color: var(--project-muted, #77756d);
+  }
   @media (max-width: 640px) {
     .hub-team-row {
       grid-template-columns: minmax(0, 1fr) auto;
+    }
+    .hub-extras-summary {
+      text-align: start;
     }
     .hub-team-rate {
       justify-items: start;

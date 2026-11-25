@@ -16,6 +16,7 @@
    */
   import { onDestroy, onMount } from 'svelte';
   import { base } from '$app/paths';
+  import { extrasText, type AssignmentExtrasCopyKey } from '$lib/portal/assignment-extras-copy';
   import { goto } from '$app/navigation';
   import {
     lastCompletePeriodForCadence,
@@ -99,7 +100,22 @@
     workedMinutes?: number;
     overrideRate?: boolean;
     overrideHours?: boolean;
+    /** Assignment extras (fee line): per diem or safety allowance, in days or months. */
+    extraKind?: 'per_diem' | 'allowance';
+    extraBasis?: 'day' | 'month';
+    units?: number;
   };
+  type ComponentPart = { available: boolean; included: boolean };
+  type PersonComponents = {
+    workerId: string;
+    name: string;
+    hours: ComponentPart;
+    overtime: ComponentPart;
+    perDiem: ComponentPart;
+    allowance: ComponentPart;
+    expenses: ComponentPart;
+  };
+  type ComponentKey = 'hours' | 'overtime' | 'perDiem' | 'allowance' | 'expenses';
   /** "Change for this invoice only" (sent with every preview/create/issue; never money math). */
   type PersonOverride = {
     workerId: string;
@@ -162,6 +178,7 @@
     client: AttentionClient | null;
     capabilities: { canApprove: boolean; canCorrectHours?: boolean; role: string };
     overrides: Overrides | null;
+    components?: PersonComponents[];
     taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
     streamTaxProfileId: string | null;
     split?: Split | null;
@@ -239,6 +256,42 @@
   let doneKind = $state<'issued' | 'drafts'>('issued');
   const noOverrides = (): Overrides => ({ people: [], tax: null, purchaseNo: null });
   let overrides = $state<Overrides>(noOverrides());
+  /** People whose hours / expenses are left out of this invoice (they stay open). */
+  let leaveOut = $state<{ hours: string[]; expenses: string[] }>({ hours: [], expenses: [] });
+  const x = (key: AssignmentExtrasCopyKey, params: Record<string, string | number> = {}) =>
+    extrasText(locale, key, params);
+  function leaveOutPayload(): { hours: string[]; expenses: string[] } | null {
+    return leaveOut.hours.length || leaveOut.expenses.length ? leaveOut : null;
+  }
+  const PARTS: ReadonlyArray<readonly [ComponentKey, AssignmentExtrasCopyKey]> = [
+    ['hours', 'componentHours'],
+    ['overtime', 'componentOvertime'],
+    ['perDiem', 'componentPerDiem'],
+    ['allowance', 'componentAllowance'],
+    ['expenses', 'componentExpenses'],
+  ];
+  const COMPONENT_CATEGORY: Partial<Record<ComponentKey, string>> = {
+    overtime: 'overtime',
+    perDiem: 'per_diem',
+    allowance: 'allowance',
+  };
+  /** Tick / untick one part of one person's work on this invoice, then re-price. */
+  function setComponent(workerId: string, part: ComponentKey, include: boolean): void {
+    if (part === 'hours' || part === 'expenses') {
+      const others = leaveOut[part].filter((id) => id !== workerId);
+      leaveOut = { ...leaveOut, [part]: include ? others : [...others, workerId] };
+    } else {
+      const category = COMPONENT_CATEGORY[part]!;
+      setPersonOverride(
+        workerId,
+        category,
+        include
+          ? { billedMinutes: undefined, billedHours: undefined }
+          : { billedMinutes: 0, billedHours: undefined, rate: undefined, rateMinor: undefined },
+      );
+    }
+    schedulePreview(0);
+  }
   /** Open "Change" panel of a labor line (`worker:category`) or 'tax'. */
   let editing = $state('');
   let edit = $state({
@@ -446,6 +499,8 @@
     const sent = overridesPayload();
     if (sent) params.set('overrides', JSON.stringify(sent));
     if (excludedExpenses.length) params.set('excluded', excludedExpenses.join(','));
+    const left = leaveOutPayload();
+    if (left) params.set('leaveOut', JSON.stringify(left));
     try {
       const response = await fetch(`${api}?${params}`, {
         signal: current.signal,
@@ -552,6 +607,7 @@
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
+          ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
           ...splitGuard(),
           ...(replacesInvoiceId ? { replacesInvoiceId } : {}),
           requestKey,
@@ -611,6 +667,7 @@
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
+          ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
           ...payload,
         }),
       });
@@ -680,6 +737,7 @@
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
+          ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
           ...splitGuard(),
           ...(replacesInvoiceId ? { replacesInvoiceId } : {}),
           requestKey,
@@ -771,6 +829,7 @@
 
   function resetOverrides(): void {
     overrides = noOverrides();
+    leaveOut = { hours: [], expenses: [] };
     lastGoodOverrides = null;
     overrideError = '';
     editing = '';
@@ -1508,6 +1567,41 @@
               />
             {/if}
 
+            {#if preview.components?.length && preview.state !== 'existing'}
+              <fieldset class="quick-invoice__parts" data-quick-invoice-parts disabled={previewLoading || fixing}>
+                <legend>{x('includeTitle')}</legend>
+                <small>{x('includeHelp')}</small>
+                <ul>
+                  {#each preview.components as person (person.workerId)}
+                    <li data-quick-invoice-person-parts={person.workerId}>
+                      <strong>{person.name}</strong>
+                      <span class="quick-invoice__part-list">
+                        {#each PARTS as [part, label] (part)}
+                          {#if person[part].available}
+                            <label class="quick-invoice__part" class:quick-invoice__part--off={!person[part].included}
+                              ><input
+                                type="checkbox"
+                                checked={person[part].included}
+                                disabled={part === 'overtime' && !person.hours.included}
+                                onchange={(event) =>
+                                  setComponent(person.workerId, part, (event.currentTarget as HTMLInputElement).checked)}
+                                data-quick-invoice-part={`${person.workerId}:${part}`}
+                              />{x(label)}{#if !person[part].included}<small> · {x('leftOut')}</small>{/if}</label
+                            >
+                          {/if}
+                        {/each}
+                      </span>
+                    </li>
+                  {/each}
+                </ul>
+                {#if shown}
+                  <p class="quick-invoice__parts-total" aria-live="polite" data-quick-invoice-parts-total>
+                    {previewLoading ? x('updating') : `${x('previewTotal')}: ${money(split ? split.totalMinor : shown.totalMinor)}`}
+                  </p>
+                {/if}
+              </fieldset>
+            {/if}
+
             {#if shown}
               <table class="quick-invoice__lines" aria-label={t('lines')}>
                 <tbody>
@@ -1652,10 +1746,14 @@
                   {#if fees.length}
                     <tr class="quick-invoice__group-row"><th colspan="2">{t('fees')}</th></tr>
                     {#each fees as group, index (index)}
-                      <tr>
+                      <tr data-quick-invoice-extra={group.extraKind ? `${group.workerId}:${group.extraKind}` : undefined}>
                         <td>
                           <span class="quick-invoice__line-label">{group.label}</span>
-                          {#if group.count > 1 || group.minutes}<small
+                          {#if group.extraKind}<small
+                              >{x(group.extraKind === 'per_diem' ? 'componentPerDiem' : 'componentAllowance')} · {group.units}
+                              {x(group.extraBasis === 'month' ? (group.units === 1 ? 'month' : 'months') : group.units === 1 ? 'day' : 'days')}{#if group.unitPriceMinor}{` × ${money(group.unitPriceMinor)}`}{/if}</small
+                            >
+                          {:else if group.count > 1 || group.minutes}<small
                               >{group.count}×{#if group.minutes}
                                 · {hours(group.minutes)} h{/if}</small
                             >{/if}
@@ -2302,6 +2400,53 @@
   .quick-invoice__amount > div {
     display: grid;
     gap: 0.85rem;
+  }
+  .quick-invoice__parts {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 0;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line, #e4e4e2);
+    border-radius: 0.75rem;
+  }
+  .quick-invoice__parts legend {
+    padding: 0 0.25rem;
+    font-weight: 600;
+  }
+  .quick-invoice__parts > small {
+    color: var(--muted, #6b6a64);
+  }
+  .quick-invoice__parts ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .quick-invoice__parts li {
+    display: grid;
+    gap: 0.25rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line, #e4e4e2);
+  }
+  .quick-invoice__part-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1rem;
+  }
+  .quick-invoice__part {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: var(--ja-target-min, 2.75rem);
+  }
+  .quick-invoice__part--off {
+    color: var(--muted, #6b6a64);
+  }
+  .quick-invoice__parts-total {
+    margin: 0;
+    font-weight: 600;
   }
   .quick-invoice__total {
     display: grid;

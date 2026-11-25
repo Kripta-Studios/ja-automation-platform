@@ -328,6 +328,17 @@ export type PortalData = {
     missingCompensationRules?: number;
     label?: string;
     projectProgress?: Array<Record<string, unknown>>;
+    /** Own per diem / safety allowance included in the estimates (owner request 2026-11-25). */
+    extras?: Array<{
+      projectId: string;
+      state: 'approved' | 'pending';
+      kind: 'per_diem' | 'allowance';
+      basis: 'day' | 'month';
+      units: number;
+      rateMinor: string;
+      amountMinor: string;
+      currency: string;
+    }>;
   };
   finance?: {
     currency: string;

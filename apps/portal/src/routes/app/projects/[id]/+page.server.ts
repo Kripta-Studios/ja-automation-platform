@@ -1,4 +1,5 @@
 import { setAssignmentPurchaseOrder } from '$lib/server/assignment-po';
+import { projectExtrasValues, saveAssignmentExtras } from '$lib/server/assignment-extras-form';
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { lastCompletePeriodForCadence, type BillingCadence, type Currency } from '@ja/billing-engine';
@@ -195,6 +196,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           ? context.repository.listClientContacts(context.principal, projectRow.client_id)
           : [],
       billingRules,
+      // Owner request 2026-11-25: optional per-person extras (per diem, allowance, overtime).
+      assignmentExtras:
+        context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
+          ? projectExtrasValues(context, params.id, String(overview.project.currency))
+          : null,
       personDefaults: financeVisible
         ? new ProjectPersonDefaultsRepository(context.sqlite, context.repository).latest(
             context.principal,
@@ -2063,6 +2069,54 @@ export const actions: Actions = {
         ...extras,
         code: status === 409 ? 'INVOICE_COUNTER_CONFLICT' : 'INVOICE_COUNTER_FAILED',
         counterMessage: status === 500 ? 'The number could not be saved. Try again.' : message,
+      });
+    } finally {
+      context?.sqlite.close();
+    }
+  },
+  setAssignmentExtras: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const values = Object.fromEntries(
+      [...data.entries()].map(([key, value]) => [key, typeof value === 'string' ? value : '']),
+    );
+    const extras = { action: 'setAssignmentExtras', actionName: 'setAssignmentExtras' };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extras,
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const saved = saveAssignmentExtras(context, params.id, values);
+      if (!saved.ok)
+        return actionFail(400, 'action.error.validation', {}, saved.error.message, {
+          ...extras,
+          code: 'ASSIGNMENT_EXTRAS_INVALID',
+          extrasField: saved.error.field,
+          extrasMessage: saved.error.message,
+        });
+      return {
+        ...actionSuccess('action.projects.projectUpdated', {}, 'Extras saved'),
+        ...extras,
+        assignmentId: saved.assignmentId,
+        extrasValues: saved.values,
+      };
+    } catch (cause) {
+      const message = cause instanceof Error ? cause.message : 'The extras could not be saved.';
+      const status =
+        cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
+          ? 403
+          : cause instanceof ConflictError
+            ? 409
+            : cause instanceof ValidationError
+              ? 400
+              : 500;
+      if (status === 500) console.error('Assignment extras save failed', cause);
+      return actionFail(status, 'action.error.validation', {}, message, {
+        ...extras,
+        code: status === 409 ? 'ASSIGNMENT_EXTRAS_CONFLICT' : 'ASSIGNMENT_EXTRAS_FAILED',
+        extrasMessage: status === 500 ? 'The extras could not be saved. Try again.' : message,
       });
     } finally {
       context?.sqlite.close();

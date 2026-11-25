@@ -1860,6 +1860,7 @@
             projectEnd={String(project.planned_end_date ?? '')}
             today={hub.today}
             canSetRates={canWriteFinance}
+            extras={data.assignmentExtras ?? null}
             viewerId={String(data.user?.id ?? '')}
             roleLabel={(value) => controlled('role', value ?? 'worker')}
             formatDate={(value) => formatProjectDate(value)}

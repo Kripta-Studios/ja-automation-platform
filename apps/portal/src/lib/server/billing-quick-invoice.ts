@@ -88,6 +88,24 @@ export type QuickInvoiceGroup = {
   workedMinutes?: number;
   overrideRate?: boolean;
   overrideHours?: boolean;
+  /** Assignment extras line (kind 'fee'): per diem or safety allowance, in days or months. */
+  extraKind?: 'per_diem' | 'allowance';
+  extraBasis?: 'day' | 'month';
+  units?: number;
+};
+
+/**
+ * Per person: which parts this invoice can bill, and which the user left out (owner request
+ * 2026-11-25). The screen shows one checkbox per available part.
+ */
+export type QuickInvoicePersonComponents = {
+  workerId: string;
+  name: string;
+  hours: { available: boolean; included: boolean };
+  overtime: { available: boolean; included: boolean };
+  perDiem: { available: boolean; included: boolean };
+  allowance: { available: boolean; included: boolean };
+  expenses: { available: boolean; included: boolean };
 };
 
 /** Normalized "this invoice only" changes, echoed so the screen sends them back unchanged. */
@@ -147,6 +165,10 @@ export type QuickInvoicePreview = {
   capabilities: { canApprove: boolean; canCorrectHours: boolean; role: string };
   /** Invoice-only changes in force for this preview (none: null). */
   overrides: QuickInvoiceOverrides | null;
+  /** Per-person parts of this invoice (hours, overtime, per diem, allowance, expenses). */
+  components?: QuickInvoicePersonComponents[];
+  /** People whose hours / expenses are left out (echoed). */
+  leaveOut?: { hours: string[]; expenses: string[] } | null;
   /** Tax profiles the invoice may use (issuer + currency of the stream). */
   taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
   /** The stream's own tax profile (null: none). */
@@ -592,10 +614,12 @@ function groupedWarnings(
 function eligibleSelection(
   context: Context,
   scope: { projectId: string; billingRuleId: string; periodStart: string; periodEnd: string },
+  leaveOut: ((source: InvoiceCompositionSource) => boolean) | null = null,
 ): InvoiceCompositionSourceRef[] {
   const inventory = context.repository.invoiceCompositionSources(context.principal, scope);
   const candidates = inventory.sources.filter(
-    (source) => source.blockers.length === 0 && source.containingInvoice === null,
+    (source) =>
+      source.blockers.length === 0 && source.containingInvoice === null && !leaveOut?.(source),
   );
   let eligible = new Set(candidates.map((source) => `${source.type}:${source.id}`));
   for (let changed = true; changed; ) {
@@ -695,6 +719,24 @@ function groupLines(
         count: 0,
         amount: 0n,
       };
+    } else if (line.sourceType === 'billing_adjustment' && typeof snapshot.extraKind === 'string') {
+      // Assignment extras: one group per person and extra (per diem / safety allowance).
+      const worker = String(snapshot.workerId ?? '');
+      const extraKind = snapshot.extraKind === 'allowance' ? 'allowance' : 'per_diem';
+      key = `extra:${worker}:${extraKind}:${line.unitPriceMinor}`;
+      group = {
+        kind: 'fee',
+        label: personDisplayName(names.get(worker)) || '—',
+        detail: extraKind,
+        minutes: 0,
+        unitPriceMinor: line.unitPriceMinor,
+        count: 0,
+        amount: 0n,
+        workerId: worker,
+        extraKind,
+        extraBasis: snapshot.extraBasis === 'month' ? 'month' : 'day',
+        units: 0,
+      };
     } else {
       key = `fee:${line.sourceType}:${line.description.replace(/^\d{4}-\d{2}-\d{2} · /u, '')}`;
       group = {
@@ -720,6 +762,7 @@ function groupLines(
     }
     if (line.sourceType === 'billing_adjustment')
       current.minutes += Number(snapshot.topUpMinutes ?? 0);
+    if (current.extraKind) current.units = (current.units ?? 0) + Number(line.quantityNumerator);
     groups.set(key, current);
   }
   const order = { labor: 0, fee: 1, expense: 2 } as const;
@@ -778,7 +821,21 @@ export type QuickInvoiceInput = {
   excludedExpenseIds?: readonly string[];
   /** Internal: price only records no invoice holds yet (never rebuild a same-dates draft). */
   forceSelection?: boolean;
+  /**
+   * People whose hours / expenses are left out of this invoice (owner request 2026-11-25).
+   * Their records are not selected, so they stay open for a later invoice.
+   */
+  leaveOut?: { hours: readonly string[]; expenses: readonly string[] } | null;
 };
+
+function leftOutSource(input: QuickInvoiceInput) {
+  const hours = new Set(input.leaveOut?.hours ?? []);
+  const expenses = new Set(input.leaveOut?.expenses ?? []);
+  if (!hours.size && !expenses.size) return null;
+  return (source: InvoiceCompositionSource) =>
+    (source.type === 'time' && hours.has(source.workerId)) ||
+    (source.type === 'expense' && expenses.has(source.workerId));
+}
 
 function hasOverrides(input: QuickInvoiceInput): boolean {
   const value = input.overrides;
@@ -1123,7 +1180,9 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
   const globalReasons = readinessReasons.filter(
     (reason) => !reason.sourceId || !RECORD_LEVEL_CODES.has(reason.code),
   );
-  let forceSelection = Boolean(input.forceSelection) && stream.streamType !== 'milestone';
+  const leaveOut = stream.streamType === 'milestone' ? null : leftOutSource(input);
+  let forceSelection =
+    (Boolean(input.forceSelection) || leaveOut !== null) && stream.streamType !== 'milestone';
   if (readiness.existingInvoiceId && readiness.existingInvoiceState && readiness.existingInvoiceState !== 'draft') {
     // Work logged later inside an already invoiced period (late entries, new people) is still
     // billable: price only what no invoice holds yet instead of pointing at the old invoice.
@@ -1194,12 +1253,16 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
     excluded = groupedWarnings(context, readinessReasons, () => 'excluded');
     if (stream.streamType === 'milestone')
       return { preview: { ...base, state: 'blocked', warnings: excluded }, selection: null, reasons: collected, lines: [] };
-    selection = eligibleSelection(context, {
-      projectId: input.projectId,
-      billingRuleId: stream.id,
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-    });
+    selection = eligibleSelection(
+      context,
+      {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      },
+      leaveOut,
+    );
     mode = 'selection';
     if (!selection.length)
       return {
@@ -1217,12 +1280,16 @@ function computeCore(context: Context, input: QuickInvoiceInput): Computed {
       lines: [],
       };
   } else if (forceSelection) {
-    selection = eligibleSelection(context, {
-      projectId: input.projectId,
-      billingRuleId: stream.id,
-      periodStart: input.periodStart,
-      periodEnd: input.periodEnd,
-    });
+    selection = eligibleSelection(
+      context,
+      {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: input.periodStart,
+        periodEnd: input.periodEnd,
+      },
+      leaveOut,
+    );
     mode = 'selection';
     if (!selection.length)
       return {
@@ -2071,10 +2138,81 @@ function compute(context: Context, input: QuickInvoiceInput): Computed {
           ? null
           : lateWork(context, input.projectId, preview.periodStart),
       overrides: normalizedOverrides(input),
+      components: personComponents(input, preview, inventory),
+      leaveOut: input.leaveOut
+        ? { hours: [...input.leaveOut.hours], expenses: [...input.leaveOut.expenses] }
+        : null,
       ...taxChoices(context, stream?.id ?? null),
       split,
     },
   };
+}
+
+const LEFT_OUT_CATEGORIES = new Set(['overtime', 'per_diem', 'allowance']);
+
+/** Per-person parts of the invoice and which of them the user left out (see the type). */
+function personComponents(
+  input: QuickInvoiceInput,
+  preview: QuickInvoicePreview,
+  inventory: readonly InvoiceCompositionSource[],
+): QuickInvoicePersonComponents[] {
+  if (preview.state === 'existing' || !preview.stream || preview.stream.streamType === 'milestone') return [];
+  const leftOut = new Set(
+    (input.overrides?.people ?? [])
+      .filter(
+        (person) =>
+          LEFT_OUT_CATEGORIES.has(String(person.category ?? '')) &&
+          person.billedMinutes === 0 &&
+          (person.rateMinor === undefined || person.rateMinor === null),
+      )
+      .map((person) => `${person.workerId}:${person.category}`),
+  );
+  const hoursOut = new Set(input.leaveOut?.hours ?? []);
+  const expensesOut = new Set(input.leaveOut?.expenses ?? []);
+  const open = inventory.filter(
+    (source) =>
+      source.containingInvoice === null && !['void', 'rejected', 'cancelled'].includes(source.approvalState),
+  );
+  const names = new Map<string, string>();
+  for (const source of inventory) names.set(source.workerId, personDisplayName(source.workerName) || source.workerName);
+  const groups = preview.groups;
+  const ids = new Set<string>([
+    ...open.map((source) => source.workerId),
+    ...groups.map((group) => group.workerId ?? '').filter(Boolean),
+    ...hoursOut,
+    ...expensesOut,
+    ...[...leftOut].map((key) => key.split(':')[0]!),
+  ]);
+  return [...ids]
+    .map((workerId) => {
+      const has = (kind: 'time' | 'expense') => open.some((source) => source.workerId === workerId && source.type === kind);
+      const group = (match: (group: QuickInvoiceGroup) => boolean) =>
+        groups.some((candidate) => candidate.workerId === workerId && match(candidate));
+      return {
+        workerId,
+        name: names.get(workerId) ?? groups.find((candidate) => candidate.workerId === workerId)?.label ?? workerId,
+        hours: { available: has('time') || hoursOut.has(workerId), included: !hoursOut.has(workerId) },
+        overtime: {
+          available:
+            group((candidate) => candidate.kind === 'labor' && candidate.category === 'overtime') ||
+            leftOut.has(`${workerId}:overtime`),
+          included: !leftOut.has(`${workerId}:overtime`) && !hoursOut.has(workerId),
+        },
+        perDiem: {
+          available: group((candidate) => candidate.extraKind === 'per_diem') || leftOut.has(`${workerId}:per_diem`),
+          included: !leftOut.has(`${workerId}:per_diem`),
+        },
+        allowance: {
+          available: group((candidate) => candidate.extraKind === 'allowance') || leftOut.has(`${workerId}:allowance`),
+          included: !leftOut.has(`${workerId}:allowance`),
+        },
+        expenses: { available: has('expense') || expensesOut.has(workerId), included: !expensesOut.has(workerId) },
+      };
+    })
+    .filter((person) =>
+      [person.hours, person.overtime, person.perDiem, person.allowance, person.expenses].some((part) => part.available),
+    )
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 /**

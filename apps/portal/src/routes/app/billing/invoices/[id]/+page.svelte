@@ -2163,7 +2163,7 @@
     </details>
   {/if}
   {#if correctionNotice}
-    <p class="no-print invoice-inline-hint" role="status" data-invoice-correction-saved>
+    <p class="no-print invoice-correction-email" role="status" data-invoice-correction-saved>
       {correctionNotice}
     </p>
   {/if}
@@ -2235,13 +2235,13 @@
             }
             if (editor.issued && result.type === 'success') {
               const data = (result.data ?? {}) as Record<string, unknown>;
-              correctionNotice = t('Version {version} of {number} saved. The earlier version stays in the history.')
-                .replace('{version}', String(data.revisionNumber ?? ''))
-                .replace('{number}', String(data.invoiceNumber ?? ''));
-              if (typeof data.email === 'string' && data.email.startsWith('failed'))
-                correctionNotice += ` ${t('The corrected invoice email was not queued.')}`;
-              else if (data.email === 'queued')
-                correctionNotice += ` ${t('The corrected invoice email is queued.')}`;
+              // The saved message itself comes from the action; only the email outcome is added.
+              correctionNotice =
+                typeof data.email === 'string' && data.email !== 'queued'
+                  ? t('The corrected invoice email was not queued.')
+                  : data.email === 'queued'
+                    ? t('The corrected invoice email is queued.')
+                    : '';
             }
             closeInlineEditor();
             await update({ reset: false });
@@ -2380,6 +2380,14 @@
 </main>
 
 <style>
+  .invoice-correction-email {
+    max-width: 70rem;
+    margin: 0.5rem auto;
+    padding: 0.5rem 1rem;
+    border-radius: var(--ja-radius, 1rem);
+    background: var(--ja-surface, #fff);
+    color: var(--ja-text, #1f1f1b);
+  }
   .invoice-version-history {
     max-width: 70rem;
     margin: 0.5rem auto;

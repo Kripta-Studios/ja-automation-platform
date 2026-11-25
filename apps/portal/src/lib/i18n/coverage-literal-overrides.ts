@@ -5157,10 +5157,6 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
     'El número anterior queda en el historial y no se vuelve a usar.',
     'O número anterior fica no histórico e nunca é reutilizado.',
   ],
-  'Version {version} of {number} saved. The earlier version stays in the history.': [
-    'Versión {version} de {number} guardada. La versión anterior queda en el historial.',
-    'Versão {version} de {number} salva. A versão anterior fica no histórico.',
-  ],
   'The corrected invoice email was not queued.': [
     'El correo con la factura corregida no se puso en cola.',
     'O e-mail com a fatura corrigida não foi colocado na fila.',

@@ -16,7 +16,8 @@ describe('read-only draft invoice numbering', () => {
       INSERT INTO invoice_number_policy VALUES('approved','issuer','JA-',6,'2026-01-01',NULL,'2026-01-01');
       INSERT INTO invoice_number_policy VALUES('future','issuer','FUTURE',4,'2027-01-01',NULL,'2026-01-01');
       INSERT INTO invoice_number_policy VALUES('expired','issuer','OLD',4,'2026-02-01','2026-03-01','2026-01-01');
-      INSERT INTO invoice_number_policy VALUES('unapproved','issuer','NO',4,'2026-09-01',NULL,NULL);`);
+      INSERT INTO invoice_number_policy VALUES('unapproved','issuer','NO',4,'2026-09-01',NULL,NULL);
+      ALTER TABLE invoice_number_policy ADD COLUMN number_format TEXT NOT NULL DEFAULT 'prefix_year_sequence';`);
     return db;
   }
   it('uses the effective approved policy and matches actual allocation without consuming a number', () => {

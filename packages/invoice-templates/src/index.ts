@@ -892,8 +892,9 @@ const table = (
   totalQtyText?: string,
   totalAmountText?: string,
 ): string => {
+  // Body cells carry their column name so a phone can show each line as a labelled card.
   const cell = (column: InvoiceColumn, content: string, tag: 'th' | 'td'): string =>
-    `<${tag}${column.numeric ? ' class="amount"' : ''}>${content}</${tag}>`;
+    `<${tag}${column.numeric ? ' class="amount"' : ''}${tag === 'td' ? ` data-label="${escape(column.label)}"` : ''}>${content}</${tag}>`;
   const headers = columns.map((column) => cell(column, escape(column.label), 'th')).join('');
   const body = lines.length
     ? lines

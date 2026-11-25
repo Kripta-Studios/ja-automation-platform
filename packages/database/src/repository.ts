@@ -12247,7 +12247,10 @@ export class PortalRepository {
         tax_minor: frozenCalculation.taxMinor ?? invoice.tax_minor,
         total_minor: frozenCalculation.totalMinor ?? invoice.total_minor,
       });
-      lines = Array.isArray(customSnapshot.lines) ? customSnapshot.lines : [];
+      // Issued lines carry their key too, so the owner can click one to correct it (new version).
+      lines = (Array.isArray(customSnapshot.lines) ? (customSnapshot.lines as Record<string, unknown>[]) : []).map(
+        (line) => ({ ...line, line_key: invoiceLineKey(line) }),
+      );
       taxes = Array.isArray(invoicePresentationObject(customSnapshot.taxProfile).components)
         ? (invoicePresentationObject(customSnapshot.taxProfile).components as Record<
             string,

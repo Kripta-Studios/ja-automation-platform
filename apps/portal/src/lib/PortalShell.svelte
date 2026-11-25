@@ -509,6 +509,18 @@
     return typeof localized.message === 'string' ? localized.message : '';
   }
 
+  /** T78 (round 2): My Pay dates in the viewer's language, never ISO. */
+  const payDay = (value: unknown): string => {
+    const day = String(value ?? '');
+    return /^\d{4}-\d{2}-\d{2}$/u.test(day)
+      ? new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+          timeZone: 'UTC',
+        }).format(new Date(`${day}T00:00:00Z`))
+      : day;
+  };
   const isCrewChief = $derived(($page.data as { crewChief?: boolean }).crewChief === true);
   const roleNavigation = $derived(
     portalNavigationForRole(base, data.user.role, data.user.workforceProfile, {
@@ -4658,7 +4670,7 @@
         <section class="pay-summary" aria-labelledby="pay-summary-title" data-pay-summary>
           <h2 id="pay-summary-title">{paySummaryText(locale, 'title')}</h2>
           <p class="form-help">
-            {paySummaryText(locale, 'period', { start: data.periodStart ?? '', end: data.periodEnd ?? '' })}
+            {paySummaryText(locale, 'period', { start: payDay(data.periodStart), end: payDay(data.periodEnd) })}
           </p>
           {#each data.pay.currencyBreakdown ?? [data.pay] as amount (amount.currency)}
             {@const owed = (data.payOutstanding ?? []).find((row) => row.currency === amount.currency)}
@@ -5015,9 +5027,8 @@
             <div>
               <h2>{translate('Compensation statement')}</h2>
               <p>
-                {translate(data.pay.label ?? 'Estimate from approved and pending records')} · {data.periodStart}
-                {translate('to')}
-                {data.periodEnd}
+                {translate(data.pay.label ?? 'Estimate from approved and pending records')} ·
+                {paySummaryText(locale, 'period', { start: payDay(data.periodStart), end: payDay(data.periodEnd) })}
               </p>
             </div>
           </div>
@@ -5066,7 +5077,11 @@
                 )}
               </p>
             </div>
-            <span>{data.pay.projectProgress?.length ?? 0} {translate('projects')}</span>
+            <span
+              >{(data.pay.projectProgress?.length ?? 0) === 1
+                ? `1 ${translate('Project').toLocaleLowerCase()}`
+                : `${data.pay.projectProgress?.length ?? 0} ${translate('projects')}`}</span
+            >
           </div>
           <TableRegion
             class="table-wrap worker-pay-table"

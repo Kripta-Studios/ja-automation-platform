@@ -1,3 +1,5 @@
+import { resolvePortalLocalePreference } from '$lib/i18n/context';
+import { translateControlledValue } from '$lib/i18n/controlled-values';
 import { newId } from '@ja/domain';
 import { withOperationalActionNames } from './operational-action-context';
 import { createHash } from 'node:crypto';
@@ -730,11 +732,30 @@ export function normalizeExpenseAmount(value: unknown, currency?: unknown): unkn
  * Workers record facts only. When the simplified form omits the note, keep the
  * repository's description contract with a neutral operational default.
  */
-export function defaultExpenseDescription(object: Record<string, unknown>): string {
+export function defaultExpenseDescription(
+  object: Record<string, unknown>,
+  locale: 'en' | 'es' | 'pt' = 'en',
+): string {
   const vendor = typeof object.vendor === 'string' ? object.vendor.trim() : '';
   if (vendor.length >= 3) return vendor;
   const category = expenseCategories.find(([value]) => value === object.category)?.[1];
+  // T54 (round 2): the stored default is written in the person's language.
+  if (locale !== 'en') {
+    const word = locale === 'pt' ? 'Despesa' : 'Gasto';
+    return category
+      ? `${word}: ${translateControlledValue(locale, 'expenseCategory', String(object.category))}`
+      : word;
+  }
   return category ? `${category} expense` : 'Expense';
+}
+
+/** The person's portal language for stored default texts (?lang, then the saved cookie). */
+function actionLocale(event: { url: URL; cookies: { get: (name: string) => string | undefined } }) {
+  return resolvePortalLocalePreference(
+    event.url.searchParams.get('lang'),
+    event.cookies.get('ja.portal.locale'),
+    event.cookies.get('ja-portal-locale'),
+  );
 }
 
 /**
@@ -1345,7 +1366,8 @@ export const expenseActions = withOperationalActionNames({
    * commercial treatment follow the assignment policy, exactly like a single
    * expense.
    */
-  createExpenseBatch: async ({ locals, request, params }: PortalActionEvent) => {
+  createExpenseBatch: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
@@ -1390,7 +1412,7 @@ export const expenseActions = withOperationalActionNames({
         whoPaid: 'worker',
         receiptRequired: Boolean(receiptFile),
       };
-      if (!input.description) input.description = defaultExpenseDescription(input);
+      if (!input.description) input.description = defaultExpenseDescription(input, actionLocale(event));
       rows.push({ index, input, receipt: receiptFile });
     }
     if (!rows.length)
@@ -1588,7 +1610,8 @@ export const expenseActions = withOperationalActionNames({
     }
   },
 
-  createExpense: async ({ locals, request, params }: PortalActionEvent) => {
+  createExpense: async (event: PortalActionEvent) => {
+    const { locals, request, params } = event;
     if (params.section !== 'expenses')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     const object = await formObject(request);
@@ -1618,7 +1641,7 @@ export const expenseActions = withOperationalActionNames({
       if (object[key] === '') object[key] = undefined;
     }
     if (typeof object.description !== 'string' || !object.description.trim())
-      object.description = defaultExpenseDescription(object);
+      object.description = defaultExpenseDescription(object, actionLocale(event));
     const payerFromPolicy = typeof object.whoPaid !== 'string' || !object.whoPaid;
     if (payerFromPolicy) object.whoPaid = 'worker';
     let preflight = expenseInputSchema.safeParse(object);

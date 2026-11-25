@@ -596,6 +596,17 @@
   let manualSubmitWaiting = false;
   const replayedSubmissions = new WeakSet<HTMLFormElement>();
   let disposed = false;
+  /** T57 (round 2): times in the viewer's language, never ISO. */
+  const reportWhen = (value: unknown): string => {
+    const time = Date.parse(String(value ?? ''));
+    return Number.isFinite(time)
+      ? new Intl.DateTimeFormat(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
+          dateStyle: 'medium',
+          timeStyle: 'short',
+          timeZone: 'UTC',
+        }).format(time) + ' UTC'
+      : String(value ?? '');
+  };
   const display = (value: Value): string =>
     value === null || value === undefined ? '' : String(value);
   function visibleReportControlName(name: string): string {
@@ -2330,7 +2341,7 @@
       <article>
         <span>{t('Report version')}</span><strong>{display(currentReportVersion)}</strong>
         {#if currentReportVersion === Number(report.version)}
-          <small>{display(report.updated_at)}</small>
+          <small>{reportWhen(report.updated_at)}</small>
         {/if}
       </article>
     </div>
@@ -2352,9 +2363,9 @@
           <div>
             <strong>{eventAction(event.action)}</strong>
             <small
-              >{display(event.actor_name) || t('System / machine')} · {display(event.occurred_at)
-                .replace('T', ' ')
-                .slice(0, 19)}</small
+              >{personDisplayName(display(event.actor_name)) || display(event.actor_name) || t('System / machine')} · {reportWhen(
+                event.occurred_at,
+              )}</small
             >
           </div>
           {#if changedFields(event.details_json).length > 0}

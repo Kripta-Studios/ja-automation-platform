@@ -36,6 +36,10 @@ describe('simplified expense intake defaults', () => {
     expect(defaultExpenseDescription({ category: 'hotel', vendor: 'Riverside Inn' })).toBe(
       'Riverside Inn',
     );
+    // T54 (round 2): stored in the person's language.
+    expect(defaultExpenseDescription({ category: 'meals' }, 'pt')).toMatch(/^Despesa: /u);
+    expect(defaultExpenseDescription({ category: 'meals' }, 'pt')).not.toContain('Meals');
+    expect(defaultExpenseDescription({ category: 'meals' }, 'es')).toMatch(/^Gasto: /u);
   });
 
   it('derives the payer from the assignment expense policy', () => {

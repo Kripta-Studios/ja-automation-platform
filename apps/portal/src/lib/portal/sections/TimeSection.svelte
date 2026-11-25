@@ -1465,7 +1465,9 @@
               {/if}
               {#if !busy && !invalidNow && !dirtyNow && dayDraftCount === 0}
                 <!-- T53: say why the buttons are disabled. -->
-                <small class="muted day-disabled-hint" data-testid="time-day-disabled-hint">{t('dayNothingYet')}</small>
+                <small class="muted day-disabled-hint" data-testid="time-day-disabled-hint"
+                  >{t(dayEntries.length ? 'dayNoChanges' : 'dayNothingYet')}</small
+                >
               {/if}
               <button
                 type="button"

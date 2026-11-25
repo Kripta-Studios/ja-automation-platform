@@ -8,7 +8,8 @@
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import type { ProblemData } from '$lib/problem/contract';
   import type { PortalLocale } from '$lib/portal-i18n';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { personDisplayName } from '$lib/portal/display-name';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
     applyStandaloneDocumentLocale,
@@ -286,10 +287,11 @@
     return `${negative ? '-' : ''}${project.currency} ${whole.toLocaleString(regional)}${digits ? `${separator}${fraction}` : ''}`;
   }
 
+  // T63 (round 2): hours read as H:MM like everywhere else (121:30 h, not 121.5 h).
   function hours(minutes: unknown): string {
     const amount = decimalHoursFromMinutes(minutes);
     if (amount === '—') return t('Unknown');
-    return `${amount.replace('.', locale === 'en' ? '.' : ',')} h`;
+    return `${clockHoursFromMinutes(minutes)} h`;
   }
 
   function stateLabel(value: unknown): string {
@@ -538,7 +540,13 @@
         <strong>{money(explanation.totals.sourceRevenueMinor)}</strong>
       </div>
       <div>
-        <p>{t('Canonical operational revenue')}</p>
+        <p>
+          {locale === 'pt'
+            ? 'Receita contada para este projeto'
+            : locale === 'es'
+              ? 'Ingresos contados para este proyecto'
+              : 'Revenue counted for this project'}
+        </p>
         <strong>{money(explanation.totals.operationalRevenueCandidateMinor)}</strong>
       </div>
       <div>
@@ -669,7 +677,7 @@
             open={isOpen}
           >
             <summary class="person-row">
-              <strong class="person-name">{person.workerName}</strong>
+              <strong class="person-name">{personDisplayName(person.workerName) || person.workerName}</strong>
               <span class="person-hours"
                 >{hours(person.actualMinutes)}
                 {t('actual ·')}

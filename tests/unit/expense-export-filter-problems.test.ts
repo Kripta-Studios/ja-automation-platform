@@ -320,7 +320,8 @@ describe('expense export download problems', () => {
         vendor: 'Crew dinner',
       },
     ]);
-    const response = await request(valid);
+    // XLSX goes through the typed register exporter (CSV is rendered locally, G5 T49).
+    const response = await request(valid.replace('format=csv', 'format=xlsx'));
     expect(response.status).toBe(200);
     const rows = state.exporter.mock.calls.at(-1)?.[0] as Array<{ id: string }>;
     expect(rows.map((row) => row.id)).toEqual(['expense-1']);

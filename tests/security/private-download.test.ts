@@ -201,6 +201,10 @@ describe('B5 private download boundary', () => {
         },
         params: { id },
         url: new URL(`http://localhost${prefix}${id}`),
+        // A fetch/download caller (not a browser navigation) keeps the typed JSON 404.
+        request: new Request(`http://localhost${prefix}${id}`, {
+          headers: { accept: 'application/json', 'sec-fetch-mode': 'cors' },
+        }),
       });
       openPortalRepository.mockImplementation(() => downloadContext(value, liveOutsider));
       const forbidden = await get(request(document.id, value.outsider) as never);

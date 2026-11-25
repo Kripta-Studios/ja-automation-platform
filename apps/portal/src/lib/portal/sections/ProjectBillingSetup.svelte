@@ -1,5 +1,6 @@
 <script lang="ts">
   import { base } from '$app/paths';
+  import { intervalCopy, intervalLabel, periodRange, type IntervalCopyKey } from '../interval-copy';
   import { onMount, tick, untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { enhance } from '$app/forms';
@@ -45,6 +46,7 @@
     form,
     t,
     locale,
+    clientInterval = null,
     personDraftStatus = $bindable<(() => { dirty: boolean; pending: boolean }) | null>(null),
   }: {
     projectId: string;
@@ -98,6 +100,12 @@
     form?: unknown;
     t: (key: string) => string;
     locale: string;
+    /** Client default invoice interval (prefills a new setup; owner request 2026-11-25). */
+    clientInterval?: {
+      cadence: string | null;
+      anchorDate: string | null;
+      monthlyCutoffDay: number | null;
+    } | null;
     personDraftStatus?: (() => { dirty: boolean; pending: boolean }) | null;
   } = $props();
 
@@ -110,19 +118,14 @@
         String(item.currency) === currency &&
         (item.legal_entity_id === null || String(item.legal_entity_id) === entityId),
     );
-  const cadenceLabels: Record<string, string> = {
-    weekly: 'Weekly',
-    every_14_days: 'Every 14 days',
-    semi_monthly: 'Semi-monthly',
-    monthly: 'Monthly',
-    manual: 'Manual',
-  };
+
+  const ic = (key: IntervalCopyKey, params: Record<string, string | number> = {}) =>
+    intervalCopy(locale, key, params);
   const layoutLabels: Record<string, string> = {
     default: 'Standard',
     'labor-detailed': 'Detailed',
     'labor-summary': 'Summary',
   };
-  const cadenceLabel = (value: string): string => t(cadenceLabels[value] ?? value);
   const layoutLabel = (value: string): string => t(layoutLabels[value] ?? value);
   const taxLabel = (id: string): string =>
     String(
@@ -246,6 +249,8 @@
           'expenseCadenceType',
           'anchorDate',
           'expenseAnchorDate',
+          'monthlyCutoffDay',
+          'expenseMonthlyCutoffDay',
           'invoiceLayout',
           'groupingMode',
           'billingContactId',
@@ -304,13 +309,30 @@
         'expenseTaxProfileId',
         String(expense?.tax_profile_id ?? labor?.tax_profile_id ?? ''),
       ),
-      cadenceType: saved('cadenceType', String(labor?.cadence_type ?? 'monthly')),
+      // A new setup starts from the client's default invoice interval.
+      cadenceType: saved(
+        'cadenceType',
+        String(labor?.cadence_type ?? clientInterval?.cadence ?? 'monthly'),
+      ),
       expenseCadenceType: saved(
         'expenseCadenceType',
-        String(expense?.cadence_type ?? labor?.cadence_type ?? 'monthly'),
+        String(
+          expense?.cadence_type ?? labor?.cadence_type ?? clientInterval?.cadence ?? 'monthly',
+        ),
       ),
-      anchorDate: saved('anchorDate', String(labor?.anchor_date ?? '')),
+      anchorDate: saved(
+        'anchorDate',
+        String(labor ? (labor.anchor_date ?? '') : (clientInterval?.anchorDate ?? '')),
+      ),
       expenseAnchorDate: saved('expenseAnchorDate', String(expense?.anchor_date ?? '')),
+      monthlyCutoffDay: saved(
+        'monthlyCutoffDay',
+        String(labor ? (labor.monthly_cutoff_day ?? '') : (clientInterval?.monthlyCutoffDay ?? '')),
+      ),
+      expenseMonthlyCutoffDay: saved(
+        'expenseMonthlyCutoffDay',
+        String(expense?.monthly_cutoff_day ?? ''),
+      ),
       invoiceLayout: saved('invoiceLayout', String(labor?.template_id ?? 'default')),
       groupingMode: saved('groupingMode', String(labor?.grouping_mode ?? 'by_worker')),
       billingContactId: saved('billingContactId', String(labor?.billing_contact_id ?? '')),
@@ -652,6 +674,14 @@
   let expenseCadenceType = $state(initial.expenseCadenceType);
   let anchorDate = $state(initial.anchorDate);
   let expenseAnchorDate = $state(initial.expenseAnchorDate);
+  let monthlyCutoffDay = $state(initial.monthlyCutoffDay);
+  let expenseMonthlyCutoffDay = $state(initial.expenseMonthlyCutoffDay);
+  // "Invoice: Monthly, closing on day 25 · Next invoice covers 26 Oct – 25 Nov"
+  const nextLaborRule = $derived(
+    rules
+      .filter((rule) => rule.stream_type === 'labor' && Number(rule.enabled ?? 1) === 1)
+      .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0],
+  );
   let invoiceLayout = $state(initial.invoiceLayout);
   let groupingMode = $state(initial.groupingMode);
   let billingContactId = $state(initial.billingContactId);
@@ -858,6 +888,43 @@
     {#if canEdit && showSetup}<span>{t('Step')} {step} / 4</span>{/if}
   </div>
 
+  <p class="billing-setup__interval" data-project-invoice-interval>
+    {#if nextLaborRule}
+      <strong
+        >{ic('invoiced', {
+          interval: intervalLabel(
+            locale,
+            String(nextLaborRule.cadence_type),
+            nextLaborRule.monthly_cutoff_day as number | null,
+          ),
+        })}</strong
+      >
+      <span>({ic('fromProject')})</span>
+      {#if nextLaborRule.next_period_start && nextLaborRule.next_period_end}
+        <span
+          >· {ic('nextInvoice', {
+            range: periodRange(
+              locale,
+              String(nextLaborRule.next_period_start),
+              String(nextLaborRule.next_period_end),
+            ),
+          })}</span
+        >
+      {:else if String(nextLaborRule.cadence_type) === 'milestone'}
+        <span>· {ic('noPeriodMilestone')}</span>
+      {:else if String(nextLaborRule.cadence_type) === 'manual'}
+        <span>· {ic('noPeriodManual')}</span>
+      {/if}
+    {:else if clientInterval?.cadence}
+      <strong
+        >{ic('invoiced', {
+          interval: intervalLabel(locale, clientInterval.cadence, clientInterval.monthlyCutoffDay),
+        })}</strong
+      >
+      <span>({ic('fromClient')})</span>
+    {/if}
+  </p>
+
   {#if version > 0}
     <div class:warning={issuingPrerequisites.length > 0} class="readiness-note" role="status">
       <strong>{t('Billing setup saved')}</strong>
@@ -962,6 +1029,18 @@
       <input type="hidden" name="expenseCadenceType" value={expenseCadenceType} />
       <input type="hidden" name="anchorDate" value={anchorDate} />
       <input type="hidden" name="expenseAnchorDate" value={expenseAnchorDate} />
+      <input
+        type="hidden"
+        name="monthlyCutoffDay"
+        value={cadenceType === 'monthly' ? monthlyCutoffDay : ''}
+      />
+      <input
+        type="hidden"
+        name="expenseMonthlyCutoffDay"
+        value={mode === 'separate' && expenseCadenceType === 'monthly'
+          ? expenseMonthlyCutoffDay
+          : ''}
+      />
       <input type="hidden" name="invoiceLayout" value={invoiceLayout} />
       <input type="hidden" name="groupingMode" value={groupingMode} />
       <input type="hidden" name="billingContactId" value={billingContactId} />
@@ -1124,6 +1203,7 @@
                 <option value="semi_monthly">{t('Semi-monthly')}</option><option value="monthly"
                   >{t('Monthly')}</option
                 >
+                <option value="milestone">{ic('milestone')}</option>
                 <option value="manual">{t('Manual')}</option>
               </select>
             </label>
@@ -1142,6 +1222,20 @@
               >{/if}
             {#if fieldError('anchorDate')}<small id={errorId('anchorDate')} class="warning"
                 >{fieldError('anchorDate')}</small
+              >{/if}
+            {#if cadenceType === 'monthly'}<label
+                >{ic('cutoffDay')}<input
+                  type="number"
+                  min="1"
+                  max="28"
+                  inputmode="numeric"
+                  data-recovery-field="monthlyCutoffDay"
+                  bind:value={monthlyCutoffDay}
+                  aria-invalid={Boolean(fieldError('monthlyCutoffDay'))}
+                /><small>{ic('cutoffHelp')}</small></label
+              >{/if}
+            {#if fieldError('monthlyCutoffDay')}<small class="warning"
+                >{fieldError('monthlyCutoffDay')}</small
               >{/if}
             {#if mode === 'separate'}
               <label
@@ -1179,6 +1273,7 @@
                   <option value="semi_monthly">{t('Semi-monthly')}</option><option value="monthly"
                     >{t('Monthly')}</option
                   >
+                  <option value="milestone">{ic('milestone')}</option>
                   <option value="manual">{t('Manual')}</option>
                 </select>
               </label>
@@ -1201,6 +1296,16 @@
               {#if fieldError('expenseAnchorDate')}<small
                   id={errorId('expenseAnchorDate')}
                   class="warning">{fieldError('expenseAnchorDate')}</small
+                >{/if}
+              {#if expenseCadenceType === 'monthly'}<label
+                  >{ic('cutoffDay')}<input
+                    type="number"
+                    min="1"
+                    max="28"
+                    inputmode="numeric"
+                    data-recovery-field="expenseMonthlyCutoffDay"
+                    bind:value={expenseMonthlyCutoffDay}
+                  /></label
                 >{/if}
             {/if}
             <label
@@ -1947,11 +2052,23 @@
               </div>{/if}
             <div>
               <dt>{t('Labor billing cadence')}</dt>
-              <dd>{cadenceLabel(cadenceType)}</dd>
+              <dd>
+                {intervalLabel(
+                  locale,
+                  cadenceType,
+                  cadenceType === 'monthly' ? monthlyCutoffDay : null,
+                )}
+              </dd>
             </div>
             {#if mode === 'separate'}<div>
                 <dt>{t('Expense billing cadence')}</dt>
-                <dd>{cadenceLabel(expenseCadenceType)}</dd>
+                <dd>
+                  {intervalLabel(
+                    locale,
+                    expenseCadenceType,
+                    expenseCadenceType === 'monthly' ? expenseMonthlyCutoffDay : null,
+                  )}
+                </dd>
               </div>{/if}
             <div>
               <dt>{t('Invoice layout')}</dt>
@@ -2091,6 +2208,12 @@
 </section>
 
 <style>
+  .billing-setup__interval {
+    margin: 0.25rem 0 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
   .billing-setup {
     border: 1px solid var(--ja-line, #e4e4e2);
     padding: clamp(1rem, 2vw, 1.5rem);

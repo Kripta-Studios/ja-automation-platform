@@ -25,6 +25,12 @@
   import type { PortalLocale } from '$lib/portal-i18n';
   import { deserialize } from '$app/forms';
   import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
+  import {
+    intervalCopy,
+    intervalLabel,
+    periodRange,
+    type IntervalCopyKey,
+  } from '$lib/portal/interval-copy';
 
   type Row = Record<string, unknown>;
   let { data } = $props();
@@ -46,6 +52,24 @@
     return value === null || value === undefined ? '' : String(value);
   };
 
+  const ic = (key: IntervalCopyKey, params: Record<string, string | number> = {}) =>
+    intervalCopy(locale, key, params);
+  // Owner request 2026-11-25: client default invoice interval.
+  let intervalEditing = $state(false);
+  let intervalChoice = $state('');
+  let intervalAnchor = $state('');
+  let intervalCutoff = $state('');
+  let intervalMessage = $state('');
+  let intervalError = $state(false);
+  function startIntervalEdit() {
+    intervalChoice = data.billingInterval?.cadence ?? '';
+    intervalAnchor = data.billingInterval?.anchorDate ?? '';
+    intervalCutoff = data.billingInterval?.monthlyCutoffDay
+      ? String(data.billingInterval.monthlyCutoffDay)
+      : '';
+    intervalMessage = '';
+    intervalEditing = true;
+  }
   const client = $derived(data.client as Row);
   const clientId = $derived(text(client, 'id'));
   const projects = $derived(data.projects as Array<Row & { monthMinutes: number; totalMinutes: number; waitingMinutes: number }>);
@@ -260,6 +284,115 @@
       </div>
     {/if}
   </section>
+
+  {#if data.billingInterval}
+    {@const interval = data.billingInterval}
+    <section
+      class="client-card"
+      aria-labelledby="client-interval-title"
+      data-client-billing-interval
+    >
+      <div class="client-card__head">
+        <h2 id="client-interval-title">{ic('invoiceIntervalLabel')}</h2>
+        {#if data.canEdit && !intervalEditing}
+          <button
+            type="button"
+            class="client-secondary"
+            onclick={startIntervalEdit}
+            data-client-interval-edit>{ic('change')}</button
+          >
+        {/if}
+      </div>
+      {#if intervalMessage}
+        <p class:client-interval__error={intervalError} role="status">{intervalMessage}</p>
+      {/if}
+      {#if !intervalEditing}
+        <p class="client-interval__now">
+          <strong>{intervalLabel(locale, interval.cadence, interval.monthlyCutoffDay)}</strong>
+          {#if interval.nextStart && interval.nextEnd}
+            <span
+              >· {ic('nextInvoice', {
+                range: periodRange(locale, interval.nextStart, interval.nextEnd),
+              })}</span
+            >
+          {:else if interval.cadence === 'milestone'}
+            <span>· {ic('noPeriodMilestone')}</span>
+          {:else if interval.cadence === 'manual'}
+            <span>· {ic('noPeriodManual')}</span>
+          {/if}
+        </p>
+        <p class="client-muted">{ic('clientIntervalIntro')}</p>
+      {:else}
+        <form
+          method="POST"
+          action="?/setBillingInterval"
+          class="client-interval__form"
+          use:enhance={() =>
+            async ({ result }) => {
+              if (result.type === 'success') {
+                intervalEditing = false;
+                intervalError = false;
+                intervalMessage = ic('saved');
+                await invalidateAll();
+              } else {
+                intervalError = true;
+                const failure = (result.type === 'failure' ? result.data : null) as {
+                  message?: string;
+                } | null;
+                intervalMessage = ic('failed', { message: failure?.message ?? '' });
+              }
+            }}
+        >
+          <input type="hidden" name="expectedVersion" value={interval.version} />
+          <label
+            >{ic('invoiceIntervalLabel')}<select
+              name="billingInterval"
+              bind:value={intervalChoice}
+              data-client-interval-select
+            >
+              <option value="">{ic('notSet')}</option>
+              <option value="weekly">{ic('weekly')}</option>
+              <option value="every_14_days">{ic('every_14_days')}</option>
+              <option value="semi_monthly">{ic('semi_monthly')}</option>
+              <option value="monthly">{ic('monthly')}</option>
+              <option value="milestone">{ic('milestone')}</option>
+              <option value="manual">{ic('manual')}</option>
+            </select></label
+          >
+          {#if intervalChoice === 'every_14_days'}
+            <label
+              >{ic('firstDay')}<input
+                type="date"
+                name="billingAnchorDate"
+                bind:value={intervalAnchor}
+                required
+              /></label
+            >
+          {/if}
+          {#if intervalChoice === 'monthly'}
+            <label
+              >{ic('cutoffDay')}<input
+                type="number"
+                name="monthlyCutoffDay"
+                min="1"
+                max="28"
+                inputmode="numeric"
+                bind:value={intervalCutoff}
+              /><small class="client-muted">{ic('cutoffHelp')}</small></label
+            >
+          {/if}
+          <div class="client-interval__actions">
+            <button type="button" class="client-secondary" onclick={() => (intervalEditing = false)}
+              >{ic('cancel')}</button
+            >
+            <button type="submit" class="client-primary" data-client-interval-save
+              >{ic('save')}</button
+            >
+          </div>
+        </form>
+      {/if}
+    </section>
+  {/if}
 
   {#if billingIssues.length}
     <section class="client-card client-checks" aria-labelledby="client-checks-title" data-client-billing-issues>
@@ -621,6 +754,30 @@
     border-radius: 0.75rem;
     background: #fff;
     padding: clamp(1rem, 2vw, 1.4rem);
+  }
+  .client-interval__now {
+    margin: 0.25rem 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+  }
+  .client-interval__error {
+    color: #8a1c1c;
+  }
+  .client-interval__form {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0.75rem;
+    align-items: end;
+  }
+  .client-interval__form label {
+    display: grid;
+    gap: 0.3rem;
+  }
+  .client-interval__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
   }
   .client-card__head {
     display: flex;

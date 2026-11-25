@@ -95,6 +95,47 @@ describe('project-centered billing setup', () => {
     expect(() => value.repository.listFinanceProjects(value.manager)).toThrow(AccessDeniedError);
   });
 
+  it('saves a monthly closing day and a per-milestone interval (owner request 2026-11-25)', () => {
+    const value = setup();
+    const saved = value.service.save(value.finance, value.input({ monthlyCutoffDay: 25 }));
+    expect(
+      value.sqlite
+        .prepare('SELECT cadence_type,monthly_cutoff_day FROM billing_rule WHERE id=?')
+        .get(saved.laborRuleId),
+    ).toEqual({ cadence_type: 'monthly', monthly_cutoff_day: 25 });
+    expect(() =>
+      value.service.save(
+        value.finance,
+        value.input({
+          cadenceType: 'weekly',
+          monthlyCutoffDay: 25,
+          expectedVersion: saved.version,
+        }),
+      ),
+    ).toThrow(ValidationError);
+    expect(() =>
+      value.service.save(
+        value.finance,
+        value.input({ monthlyCutoffDay: 31, expectedVersion: saved.version }),
+      ),
+    ).toThrow(ValidationError);
+    const milestone = value.service.save(
+      value.finance,
+      value.input({
+        cadenceType: 'milestone',
+        expenseCadenceType: 'milestone',
+        effectiveFrom: dayOffset(1),
+        expectedVersion: saved.version,
+        expectedRulesFingerprint: value.service.rulesFingerprint(value.finance, value.project.id),
+      }),
+    );
+    expect(
+      value.sqlite
+        .prepare('SELECT cadence_type,monthly_cutoff_day FROM billing_rule WHERE id=?')
+        .get(milestone.laborRuleId),
+    ).toEqual({ cadence_type: 'milestone', monthly_cutoff_day: null });
+  });
+
   it('exposes active tax profiles to the billing setup selector', () => {
     const value = setup();
     expect(value.repository.listTaxProfiles(value.finance)).toContainEqual(

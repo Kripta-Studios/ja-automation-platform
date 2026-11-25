@@ -2609,6 +2609,7 @@
               commercialModel={String(project.billing_model ?? t('Not configured'))}
               poCap={money(project.po_cap_minor, String(project.currency))}
               rules={billingRules}
+              clientInterval={data.clientBillingInterval ?? null}
               legalEntities={billingSetup.legalEntities}
               taxProfiles={billingSetup.taxProfiles}
               contacts={billingSetup.contacts}

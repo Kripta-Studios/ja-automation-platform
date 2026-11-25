@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { intervalCopy, intervalLabel, periodRange } from '../interval-copy';
   import { formatPortalBps } from '$lib/i18n/format';
   const moneyLinks = {
     en: { subcontractors: 'Subcontractor settlement', conversions: 'Currency conversions', convert: 'Convert the expense currency' },
@@ -3323,7 +3324,23 @@
               <input type="hidden" name="projectId" value={data.selectedProjectId} />
               <label>
                 <span>{translate('Worker')}</span>
-                <select name="workerId" bind:value={settlementWorkerId} required>
+                <select
+                  name="workerId"
+                  bind:value={settlementWorkerId}
+                  required
+                  onchange={() => {
+                    // Owner request 2026-11-25: pre-select the period the next pay covers.
+                    const chosen = (data.workers ?? []).find(
+                      (worker) => String(worker.id) === settlementWorkerId,
+                    ) as
+                      | { nextPeriodStart?: string | null; nextPeriodEnd?: string | null }
+                      | undefined;
+                    if (chosen?.nextPeriodStart && chosen.nextPeriodEnd) {
+                      settlementPeriodStart = chosen.nextPeriodStart;
+                      settlementPeriodEnd = chosen.nextPeriodEnd;
+                    }
+                  }}
+                >
                   <option value="">{translate('Select worker')}</option>
                   {#each settlementWorkerChoices as worker}
                     <option value={String(worker.id)}
@@ -3332,6 +3349,33 @@
                   {/each}
                 </select>
               </label>
+              {#if settlementWorkerId}
+                {@const chosenWorker = (data.workers ?? []).find(
+                  (worker) => String(worker.id) === settlementWorkerId,
+                ) as
+                  | {
+                      payInterval?: string | null;
+                      nextPeriodStart?: string | null;
+                      nextPeriodEnd?: string | null;
+                    }
+                  | undefined}
+                {#if chosenWorker?.payInterval}
+                  <p class="finance-overview__surface-note" data-settlement-pay-interval>
+                    {intervalCopy(locale, 'paid', {
+                      interval: intervalLabel(locale, chosenWorker.payInterval),
+                    })}
+                    {#if chosenWorker.nextPeriodStart && chosenWorker.nextPeriodEnd}
+                      · {intervalCopy(locale, 'nextPay', {
+                        range: periodRange(
+                          locale,
+                          chosenWorker.nextPeriodStart,
+                          chosenWorker.nextPeriodEnd,
+                        ),
+                      })}
+                    {/if}
+                  </p>
+                {/if}
+              {/if}
               <label
                 ><span>{translate('Period start')}</span><input
                   name="periodStart"

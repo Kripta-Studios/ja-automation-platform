@@ -1,4 +1,5 @@
 <script module lang="ts">
+  import { intervalCopy, periodRange } from '$lib/portal/interval-copy';
   export type AdvancedScope = {
     projectId: string;
     billingRuleId: string;
@@ -51,6 +52,8 @@
     includeExpenses: boolean;
     currency: string;
     taxProfileName: string | null;
+    nextStart?: string | null;
+    nextEnd?: string | null;
   };
   type Project = {
     id: string;
@@ -390,6 +393,19 @@
       monthlyCutoffDay: stream?.monthlyCutoffDay ?? undefined,
     };
     const choices: PeriodChoice[] = [];
+    // Owner request 2026-11-25: the period the next invoice of the stream covers comes first.
+    const nextChoice =
+      stream?.nextStart && stream.nextEnd
+        ? {
+            id: 'next',
+            label: intervalCopy(locale, 'nextInvoice', {
+              range: periodRange(locale, stream.nextStart, stream.nextEnd),
+            }),
+            start: stream.nextStart,
+            end: stream.nextEnd,
+          }
+        : null;
+    if (nextChoice) choices.push(nextChoice);
     try {
       if (cadence === 'weekly') {
         const current = periodForCadence('weekly', today, options)!;
@@ -433,7 +449,15 @@
       choices.push({ id: 'last', label: t('lastMonth'), ...monthRange(-1) });
       choices.push({ id: 'current', label: t('thisMonth'), ...monthRange(0) });
     }
-    return choices;
+    // The next period may equal "last month" / "this month": show it once.
+    return nextChoice
+      ? choices.filter(
+          (choice) =>
+            choice === nextChoice ||
+            choice.start !== nextChoice.start ||
+            choice.end !== nextChoice.end,
+        )
+      : choices;
   });
 
   function chooseProject(id: string): void {

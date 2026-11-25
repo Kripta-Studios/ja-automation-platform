@@ -41,6 +41,15 @@ describe('Finance settlement worker choices', () => {
           ('a10','selected','coord','2026-01-01',NULL,'active','supplier_coordinator'),
           ('a11','selected','tech','2026-01-01',NULL,'active','worker');
         INSERT INTO supplier_user_profile VALUES('coord','supplier_coordinator'),('tech','external_technician');
+        -- Owner request 2026-11-25: the pay interval pre-selects the settlement period.
+        CREATE TABLE pay_interval_setting (id TEXT PRIMARY KEY,user_id TEXT,project_member_id TEXT,
+          scope_key TEXT,version INTEGER,pay_interval TEXT,anchor_date TEXT,created_at TEXT);
+        CREATE TABLE compensation_settlement (worker_id TEXT,project_id TEXT,state TEXT,
+          period_start TEXT,period_end TEXT);
+        CREATE TABLE time_entry (worker_id TEXT,project_id TEXT,work_date TEXT,approval_state TEXT,minutes INTEGER);
+        INSERT INTO pay_interval_setting VALUES
+          ('p1','current',NULL,'person:current',1,'monthly',NULL,'2026-09-01'),
+          ('p2','past','a3','assignment:a3',1,'weekly',NULL,'2026-09-01');
       `);
 
       expect(listProjectSettlementWorkers(sqlite, 'selected', '2026-09-25')).toEqual([
@@ -49,18 +58,28 @@ describe('Finance settlement worker choices', () => {
           name: 'Current Worker',
           assignmentRelation: 'Current project assignment',
           assignmentWindows: ['2026-01-01/', '2025-01-01/2025-12-31'],
+          payInterval: 'monthly',
+          nextPeriodStart: '2026-09-01',
+          nextPeriodEnd: '2026-09-30',
         },
         {
           id: 'future',
           name: 'Future Worker',
           assignmentRelation: 'Upcoming project assignment',
           assignmentWindows: ['2026-12-01/'],
+          payInterval: null,
+          nextPeriodStart: null,
+          nextPeriodEnd: null,
         },
         {
           id: 'past',
           name: 'Past Manager',
           assignmentRelation: 'Past project assignment',
           assignmentWindows: ['2025-02-01/2025-07-31'],
+          // Weekly on that assignment; the week in progress lies after it ended: no period.
+          payInterval: 'weekly',
+          nextPeriodStart: null,
+          nextPeriodEnd: null,
         },
       ]);
       expect(listProjectSettlementWorkers(sqlite, 'unrelated', '2026-09-25')).toEqual([
@@ -69,6 +88,9 @@ describe('Finance settlement worker choices', () => {
           name: 'Other Project Worker',
           assignmentRelation: 'Current project assignment',
           assignmentWindows: ['2026-01-01/'],
+          payInterval: null,
+          nextPeriodStart: null,
+          nextPeriodEnd: null,
         },
       ]);
       expect(listProjectSettlementWorkers(sqlite, '', '2026-09-25')).toEqual([]);

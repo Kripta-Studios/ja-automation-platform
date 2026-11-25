@@ -1,8 +1,16 @@
-import { error, redirect } from '@sveltejs/kit';
-import { AccessDeniedError, ValidationError } from '@ja/database';
+import { error, fail, redirect } from '@sveltejs/kit';
+import {
+  AccessDeniedError,
+  ConflictError,
+  PayBillingIntervalRepository,
+  ValidationError,
+  clientBillingInterval,
+} from '@ja/database';
+import { nextPeriodForCadence } from '@ja/billing-engine';
+import { parseClientIntervalForm } from '$lib/server/intervals';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { invoiceOpenBalance, netOutstandingByInvoice } from '$lib/server/invoice-balance';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 /**
  * Client page (owner round 2026-11-16): one client's billing identity,
@@ -137,7 +145,30 @@ export const load: PageServerLoad = ({ locals, params }) => {
       contacts = [];
     }
 
+    // Owner request 2026-11-25: the client's default invoice interval, in plain words with the
+    // period the next invoice of that interval covers (today's period).
+    const interval = financeVisible ? clientBillingInterval(sqlite, params.id) : null;
+    let intervalNext: { start: string; end: string } | null = null;
+    if (interval?.cadence)
+      try {
+        intervalNext = nextPeriodForCadence(interval.cadence, today, {
+          anchorDate: interval.anchorDate ?? undefined,
+          monthlyCutoffDay: interval.monthlyCutoffDay ?? undefined,
+        });
+      } catch {
+        intervalNext = null;
+      }
     return {
+      billingInterval: financeVisible
+        ? {
+            cadence: interval?.cadence ?? null,
+            anchorDate: interval?.anchorDate ?? null,
+            monthlyCutoffDay: interval?.monthlyCutoffDay ?? null,
+            version: interval?.version ?? 0,
+            nextStart: intervalNext?.start ?? null,
+            nextEnd: intervalNext?.end ?? null,
+          }
+        : null,
       client,
       contacts,
       projects: projects.map((project) => ({
@@ -161,4 +192,38 @@ export const load: PageServerLoad = ({ locals, params }) => {
   } finally {
     context.sqlite.close();
   }
+};
+
+export const actions: Actions = {
+  /** Client default invoice interval (Owner/Finance, audited version). */
+  setBillingInterval: async ({ locals, params, request }) => {
+    if (!locals.user) redirect(303, '/j-aautomation/app/login');
+    const form = await request.formData();
+    const parsed = parseClientIntervalForm(form);
+    if (!parsed.ok)
+      return fail(400, {
+        success: false,
+        action: 'setBillingInterval',
+        fieldErrors: parsed.fieldErrors,
+        message: Object.values(parsed.fieldErrors).flat()[0] ?? 'Check the invoice interval.',
+      });
+    const context = openPortalRepository(locals);
+    try {
+      new PayBillingIntervalRepository(context.sqlite).setClientInterval(context.principal, {
+        clientId: params.id,
+        ...parsed.value,
+      });
+      return { success: true, action: 'setBillingInterval' };
+    } catch (caught) {
+      if (caught instanceof AccessDeniedError)
+        return fail(403, { success: false, action: 'setBillingInterval', message: caught.message });
+      if (caught instanceof ConflictError)
+        return fail(409, { success: false, action: 'setBillingInterval', message: caught.message });
+      if (caught instanceof ValidationError)
+        return fail(400, { success: false, action: 'setBillingInterval', message: caught.message });
+      throw caught;
+    } finally {
+      context.sqlite.close();
+    }
+  },
 };

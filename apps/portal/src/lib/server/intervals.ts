@@ -103,7 +103,8 @@ export function parsePayIntervalForm(form: FormData): IntervalFormResult<{
 }> {
   const interval = String(form.get('payInterval') ?? '').trim();
   const anchorDate = String(form.get('payAnchorDate') ?? '').trim();
-  const version = Number(String(form.get('expectedVersion') ?? ''));
+  const rawVersion = String(form.get('expectedVersion') ?? '');
+  const version = /^\d{1,9}$/u.test(rawVersion) ? Number(rawVersion) : -1;
   const fieldErrors: Record<string, string[]> = {};
   if (interval && !(PAY_INTERVALS as readonly string[]).includes(interval))
     fieldErrors.payInterval = ['Choose how often this person is paid.'];
@@ -131,7 +132,8 @@ export function parseClientIntervalForm(form: FormData): IntervalFormResult<{
   const cadence = String(form.get('billingInterval') ?? '').trim();
   const anchorDate = String(form.get('billingAnchorDate') ?? '').trim();
   const cutoff = String(form.get('monthlyCutoffDay') ?? '').trim();
-  const version = Number(String(form.get('expectedVersion') ?? ''));
+  const rawVersion = String(form.get('expectedVersion') ?? '');
+  const version = /^\d{1,9}$/u.test(rawVersion) ? Number(rawVersion) : -1;
   const fieldErrors: Record<string, string[]> = {};
   if (cadence && !(CLIENT_BILLING_CADENCES as readonly string[]).includes(cadence))
     fieldErrors.billingInterval = ['Choose how often this client is invoiced.'];

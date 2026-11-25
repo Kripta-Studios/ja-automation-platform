@@ -22,7 +22,7 @@ import {
 import { periodForCadence, type BillingCadence } from '@ja/billing-engine';
 import type { openPortalRepository } from './portal-repository';
 import { personDisplayName } from '../portal/display-name';
-import { InvoiceLineLabels } from '@ja/database';
+import { InvoiceLineLabels, nextInvoicePeriod } from '@ja/database';
 import { clientBillingIssues } from '../portal/client-billing-issues';
 
 type Context = ReturnType<typeof openPortalRepository>;
@@ -39,6 +39,9 @@ export type QuickInvoiceStream = {
   includeExpenses: boolean;
   currency: string;
   taxProfileName: string | null;
+  /** The period the next invoice of this stream covers (owner request 2026-11-25). */
+  nextStart?: string | null;
+  nextEnd?: string | null;
 };
 
 export type QuickInvoiceProject = {
@@ -494,7 +497,24 @@ export function quickInvoiceProjects(context: Context): QuickInvoiceProject[] {
             String(rule.project_id) === String(project.id) &&
             ['labor', 'expense', 'milestone'].includes(String(rule.stream_type)),
         )
-        .map(streamDto),
+        .map((rule) => {
+          const stream = streamDto(rule);
+          let next: { start: string; end: string } | null = null;
+          try {
+            next = nextInvoicePeriod(context.sqlite, {
+              id: stream.id,
+              project_id: String(rule.project_id),
+              cadence_type: stream.cadence,
+              anchor_date: stream.anchorDate,
+              monthly_cutoff_day: stream.monthlyCutoffDay,
+              effective_from: stream.effectiveFrom,
+              effective_to: stream.effectiveTo,
+            });
+          } catch {
+            next = null;
+          }
+          return { ...stream, nextStart: next?.start ?? null, nextEnd: next?.end ?? null };
+        }),
     }))
     .sort(
       (a, b) =>

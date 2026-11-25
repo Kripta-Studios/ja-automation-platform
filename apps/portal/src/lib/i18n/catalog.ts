@@ -209,6 +209,8 @@ const en = {
   'action.billing.invoiceSourcesUpdated': 'Invoice details and changed source settings saved.',
   'action.billing.invoiceDraftDetailsSaved':
     'Saved on this draft only. Future invoices keep the project defaults.',
+  'action.billing.invoiceVersionSaved':
+    'Corrected version saved with the same invoice number. The earlier version stays in the history.',
   'action.billing.issuerSettingsSaved': 'Issuer payment and contact settings saved.',
   'problem.billing.issuerSettingsInvalid':
     'Check the issuer payment and contact fields before saving.',
@@ -940,6 +942,8 @@ const esBase: Record<keyof typeof en, string> = {
     'Se guardaron los detalles de la factura y los cambios en su configuración de origen.',
   'action.billing.invoiceDraftDetailsSaved':
     'Guardado solo en este borrador. Las próximas facturas mantienen los valores del proyecto.',
+  'action.billing.invoiceVersionSaved':
+    'Versión corregida guardada con el mismo número de factura. La versión anterior queda en el historial.',
   'action.billing.issuerSettingsSaved': 'Se guardó la configuración de pago y contacto del emisor.',
   'problem.billing.issuerSettingsInvalid':
     'Revise los campos de pago y contacto del emisor antes de guardar.',
@@ -1669,6 +1673,8 @@ const ptBase: Record<keyof typeof en, string> = {
     'Detalhes da fatura e alterações nas configurações de origem salvos.',
   'action.billing.invoiceDraftDetailsSaved':
     'Salvo só neste rascunho. As próximas faturas mantêm os padrões do projeto.',
+  'action.billing.invoiceVersionSaved':
+    'Versão corrigida salva com o mesmo número da fatura. A versão anterior fica no histórico.',
   'action.billing.issuerSettingsSaved': 'Configurações de pagamento e contato do emissor salvas.',
   'problem.billing.issuerSettingsInvalid':
     'Revise os campos de pagamento e contato do emissor antes de salvar.',

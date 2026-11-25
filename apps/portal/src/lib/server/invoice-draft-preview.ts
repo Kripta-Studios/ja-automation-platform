@@ -161,7 +161,8 @@ export function invoiceDocumentSnapshot(
     project: object(frozen.project),
     commercial: object(frozen.commercial),
     calculation: object(frozen.calculation),
-    lines: Array.isArray(frozen.lines) ? frozen.lines : [],
+    // The preview lines are the frozen lines plus their key (owner corrections click a line).
+    lines: preview.lines.length ? preview.lines : Array.isArray(frozen.lines) ? frozen.lines : [],
     issueDate: frozen.issueDate,
     invoiceDate: frozen.invoiceDate ?? frozen.issueDate,
     dueAt: frozen.dueAt,

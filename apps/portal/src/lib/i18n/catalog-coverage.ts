@@ -2323,6 +2323,7 @@ export const PORTAL_ACTION_KEYS = [
   'action.approval.ownerDecisionRecorded',
   'action.billing.invoiceSourcesUpdated',
   'action.billing.invoiceDraftDetailsSaved',
+  'action.billing.invoiceVersionSaved',
   'action.billing.issuerSettingsSaved',
   'action.billing.issuerPayeeSaved',
   'action.finance.unusedIssuerReplaced',

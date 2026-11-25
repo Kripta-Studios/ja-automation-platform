@@ -283,7 +283,7 @@ export const actions: Actions = {
         }
       }
       return {
-        ...actionSuccess('action.billing.invoiceDraftDetailsSaved', {}, 'Corrected invoice saved.'),
+        ...actionSuccess('action.billing.invoiceVersionSaved', {}, 'Corrected invoice saved.'),
         ...extra,
         revisionNumber: saved.revisionNumber,
         invoiceNumber: saved.invoiceNumber,

@@ -20,6 +20,7 @@
   } from '@ja/billing-engine';
   import { paymentMoney } from '$lib/portal/payment-money';
   import { personDisplayName } from '$lib/portal/display-name';
+  import { formatPortalDate } from '$lib/i18n/format';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -35,6 +36,11 @@
   );
   const t = (key: string, params?: Record<string, string | number>) =>
     standaloneText(locale, key, params);
+  /** A calendar date (YYYY-MM-DD) as the person reads it ("19 de nov. de 2026"), never ISO. */
+  const dayLabel = (value: string): string =>
+    /^\d{4}-\d{2}-\d{2}$/u.test(value)
+      ? formatPortalDate(`${value}T12:00:00.000Z`, locale, { timeZone: 'UTC' })
+      : value;
   // Round 2: ending a crew delegation is confirmed first. What the chief already
   // recorded stays in the history and with the crew member.
   const revokeConfirmText = (chief: string, member: string) =>
@@ -553,7 +559,6 @@
       }
     };
   };
-  const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
   /** h:mm like the Time screens ("8:00"). */
   const hm = (minutes: number): string =>
     `${Math.floor(minutes / 60)}:${String(Math.round(minutes % 60)).padStart(2, '0')}`;
@@ -580,6 +585,17 @@
       ? t('Saved and sent {hours} h for {who}.', { hours: hm(minutes), who })
       : t('Saved {hours} h for {who} (draft, not sent yet).', { hours: hm(minutes), who });
   });
+  // T58: the owner's delegation list keeps live delegations in view; ended and
+  // revoked ones (history) are folded so the page does not grow without end.
+  const liveGrants = $derived(
+    (data.grants ?? []).filter(
+      (grant: { status: string; endsOn: string | null }) =>
+        grant.status === 'active' && (grant.endsOn === null || grant.endsOn >= data.workDate),
+    ),
+  );
+  const pastGrants = $derived(
+    (data.grants ?? []).filter((grant: { id: string }) => !liveGrants.some((live: { id: string }) => live.id === grant.id)),
+  );
   const noticeInEntries = $derived(
     $page.url.hash === '#crew-entries' &&
       ['saved', 'savedSent'].includes($page.url.searchParams.get('notice') ?? ''),
@@ -887,57 +903,68 @@
             'Active means not revoked. Recording also depends on dates and both project assignments.',
           )}
         </p>
-        <ul class="grant-list">
-          {#each data.grants as grant}
-            <li>
-              <div class="delegation-detail">
-                {t('Chief')}: <strong>{personDisplayName(grant.chiefName)}</strong> ·
-                {t('Team member')}: <strong>{personDisplayName(grant.workerName)}</strong><br />
-                <small
-                  >{grant.startsOn} → {grant.endsOn ?? t('open ended')} · {grant.status ===
-                  'revoked'
-                    ? t('Revoked')
-                    : status(grant.status)}</small
-                >
-                {#if grant.status === 'active'}
-                  {@const covered = delegationDateCoverage(grant)}
-                  {#if covered !== null}
-                    <small class="delegation-date-coverage">
-                      {t(
-                        covered
-                          ? 'Selected work date {date}: within delegation dates.'
-                          : 'Selected work date {date}: outside delegation dates.',
-                        { date: data.workDate },
-                      )}
-                    </small>
-                  {/if}
-                {/if}
-              </div>
-              {#if grant.status === 'active'}
-                <form
-                  method="POST"
-                  action={`?/revoke&${actionContext}`}
-                  data-crew-operation="revoke"
-                  use:enhance={confirmBeforeSubmit(
-                    () =>
-                      revokeConfirmText(
-                        personDisplayName(grant.chiefName),
-                        personDisplayName(grant.workerName),
-                      ),
-                    preserveCrewForm,
-                  )}
-                  use:formValidation
-                >
-                  <input type="hidden" name="id" value={grant.id} />
-                  <input type="hidden" name="projectId" value={data.projectId} />
-                  <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
-                    >{t('Revoke')}</button
-                  >
-                </form>
-              {/if}
-            </li>
-          {/each}
-        </ul>
+        {#snippet grantItem(grant: (typeof data.grants)[number])}
+  <li>
+    <div class="delegation-detail">
+      {t('Chief')}: <strong>{personDisplayName(grant.chiefName)}</strong> ·
+      {t('Team member')}: <strong>{personDisplayName(grant.workerName)}</strong><br />
+      <small
+        >{dayLabel(grant.startsOn)} → {grant.endsOn ? dayLabel(grant.endsOn) : t('open ended')} · {grant.status ===
+        'revoked'
+          ? t('Revoked')
+          : status(grant.status)}</small
+      >
+      {#if grant.status === 'active'}
+        {@const covered = delegationDateCoverage(grant)}
+        {#if covered !== null}
+          <small class="delegation-date-coverage">
+            {t(
+              covered
+                ? 'Selected work date {date}: within delegation dates.'
+                : 'Selected work date {date}: outside delegation dates.',
+              { date: dayLabel(data.workDate) },
+            )}
+          </small>
+        {/if}
+      {/if}
+    </div>
+    {#if grant.status === 'active'}
+      <form
+        method="POST"
+        action={`?/revoke&${actionContext}`}
+        data-crew-operation="revoke"
+        use:enhance={confirmBeforeSubmit(
+          () =>
+            revokeConfirmText(
+              personDisplayName(grant.chiefName),
+              personDisplayName(grant.workerName),
+            ),
+          preserveCrewForm,
+        )}
+        use:formValidation
+      >
+        <input type="hidden" name="id" value={grant.id} />
+        <input type="hidden" name="projectId" value={data.projectId} />
+        <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
+          >{t('Revoke')}</button
+        >
+      </form>
+    {/if}
+  </li>
+        {/snippet}
+        {#if liveGrants.length}
+          <ul class="grant-list">
+            {#each liveGrants as grant (grant.id)}{@render grantItem(grant)}{/each}
+          </ul>
+        {:else}<p class="empty">{t('No active crew delegations for this project.')}</p>{/if}
+        {#if pastGrants.length}
+          <details class="past-grants">
+            <summary>{t(pastGrants.length === 1 ? '1 ended or revoked delegation' : '{n} ended or revoked delegations', { n: pastGrants.length })}</summary>
+            <ul class="grant-list">
+              {#each pastGrants as grant (grant.id)}{@render grantItem(grant)}{/each}
+            </ul>
+          </details>
+        {/if}
       {:else}<p class="empty">{t('No crew delegations for this project.')}</p>{/if}
     </SectionCard>
   {:else if !filterProblem && data.projects.length}
@@ -1066,7 +1093,7 @@
                           inputmode="decimal"
                           name="hours_{person.id}"
                           value={submittedValue(`hours_${person.id}`)}
-                          placeholder="7.5"
+                          placeholder={locale === 'en' ? '7.5' : '7,5'}
                           disabled={!selected.includes(person.id)}
                           required
                         />
@@ -1097,7 +1124,7 @@
                   inputmode="decimal"
                   name="sharedHours"
                   value={submittedValue('sharedHours')}
-                  placeholder="7.5"
+                  placeholder={locale === 'en' ? '7.5' : '7,5'}
                   aria-describedby="crew-shared-hours-help"
                   required
                 />
@@ -1140,9 +1167,9 @@
               )}
             </p>
             <button type="submit" disabled={Boolean(pendingOperation) || selected.length === 0}
-              >{t('Save')}
-              {selected.length}
-              {selected.length === 1 ? t('person') : t('people')}</button
+              >{t('Save')}{#if selected.length}
+                {selected.length}
+                {selected.length === 1 ? t('person') : t('people')}{/if}</button
             >
           </fieldset>
         </form>
@@ -1154,7 +1181,7 @@
         </p>
       {/if}
     </SectionCard>
-    <SectionCard title={t('Entries recorded on {dia}', { dia: data.workDate })} id="crew-entries">
+    <SectionCard title={t('Entries recorded on {dia}', { dia: dayLabel(data.workDate) })} id="crew-entries">
       {#if notice && noticeInEntries}
         <!-- T37/G6: a save lands on this card (#crew-entries), so its confirmation is shown here, in view on a phone. -->
         <p class="crew-notice" role="status" data-crew-notice>{notice}</p>
@@ -1164,7 +1191,7 @@
           {#each data.entries as entry}
             <li>
               <div>
-                <strong>{personDisplayName(entry.workerName)}</strong> · {decimalHours(entry.minutes)} h ·
+                <strong>{personDisplayName(entry.workerName)}</strong> · {hm(entry.minutes)} h ·
                 {timeCategory(entry.category)}<br />
                 <small>{entry.summary} · {status(entry.approvalState)}</small>
               </div>
@@ -1202,7 +1229,12 @@
         </ul>
       {:else}<p class="empty">{t('No crew hours recorded for this date.')}</p>{/if}
     </SectionCard>
-    <SectionCard title={t('Allocate one crew receipt')} id="crew-receipts">
+    <SectionCard
+      title={t('Allocate one crew receipt')}
+      id="crew-receipts"
+      collapsible
+      expanded={Boolean(allocationProblem) || $page.url.searchParams.has('receipt') || form?.operation === 'allocateReceipt'}
+    >
       {#if !data.assigned.length}
         <p>
           {t(
@@ -1333,7 +1365,7 @@
                       bind:group={allocationSelected}
                     />
                     <span
-                      >{personDisplayName(entry.workerName)} · {decimalHours(entry.minutes)} h · {entry.summary}</span
+                      >{personDisplayName(entry.workerName)} · {hm(entry.minutes)} h · {entry.summary}</span
                     >
                   </label>
                   <label
@@ -1753,6 +1785,16 @@
     grid-row: 2;
     min-width: 0;
     margin: 0.35rem 0 0;
+  }
+  .past-grants {
+    margin-top: 0.75rem;
+  }
+  .past-grants > summary {
+    cursor: pointer;
+    font-weight: 600;
+    min-height: 2.75rem;
+    display: flex;
+    align-items: center;
   }
   .grant-list,
   .entry-list {

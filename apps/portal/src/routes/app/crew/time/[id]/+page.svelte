@@ -12,6 +12,8 @@
   import { onMount, tick } from 'svelte';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { formatPortalDate } from '$lib/i18n/format';
+  import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -90,6 +92,11 @@
       ? String(form.values?.[name] ?? fallback)
       : fallback;
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  /** A calendar date (YYYY-MM-DD) as the person reads it, never ISO. */
+  const dayLabel = (value: string): string =>
+    /^\d{4}-\d{2}-\d{2}$/u.test(value)
+      ? formatPortalDate(`${value}T12:00:00.000Z`, locale, { timeZone: 'UTC' })
+      : value;
   function syncMinutes(event: Event, breakField = false): void {
     const input = event.currentTarget as HTMLInputElement;
     const hidden = input.nextElementSibling as HTMLInputElement;
@@ -157,11 +164,11 @@
       </div>
       <div>
         <dt>{t('Work date')}</dt>
-        <dd>{record.workDate}</dd>
+        <dd>{dayLabel(String(record.workDate))}</dd>
       </div>
       <div>
         <dt>{t('Actual time')}</dt>
-        <dd>{decimalHours(record.minutes)} h</dd>
+        <dd>{clockHoursFromMinutes(record.minutes)} h</dd>
       </div>
       <div>
         <dt>{t('Category')}</dt>

@@ -93,7 +93,10 @@ describe('supplier operational surface', () => {
       'supplier?workspaceAction=time',
     );
     expect(supplierCoordinatorOwnRecordRedirect('expenses', 'supplier_coordinator')).toBe('supplier');
-    expect(supplierCoordinatorOwnRecordRedirect('reports', 'supplier_coordinator')).toBeNull();
+    expect(supplierCoordinatorOwnRecordRedirect('reports', 'supplier_coordinator')).toBe(
+      'supplier/report',
+    );
+    expect(supplierCoordinatorOwnRecordRedirect('reports', 'external_technician')).toBeNull();
     expect(supplierCoordinatorOwnRecordRedirect('time', 'external_technician')).toBeNull();
     expect(supplierCoordinatorOwnRecordRedirect('time', undefined)).toBeNull();
   });

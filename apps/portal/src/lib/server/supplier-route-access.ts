@@ -62,7 +62,8 @@ export function supplierRouteAllowed(path: string, profile: RestrictedWorkforceP
  * D3: a supplier coordinator records his technicians' hours in the supplier
  * workspace; he has no own J&A timesheet or expense claims (the repository
  * refuses them). Opening Time or Expenses leads to the team's hours instead
- * of an empty personal timesheet. Earlier own records stay readable by id.
+ * of an empty personal timesheet, and Reports to the operational report.
+ * Earlier own records stay readable by id.
  */
 export function supplierCoordinatorOwnRecordRedirect(
   section: string | undefined,
@@ -71,5 +72,8 @@ export function supplierCoordinatorOwnRecordRedirect(
   if (profile !== 'supplier_coordinator') return null;
   if (section === 'time') return 'supplier?workspaceAction=time';
   if (section === 'expenses') return 'supplier';
+  // T57: no personal daily reports either (field capture refuses coordinators); the
+  // Reports list leads to the supplier's operational report. Own report pages by id stay.
+  if (section === 'reports') return 'supplier/report';
   return null;
 }

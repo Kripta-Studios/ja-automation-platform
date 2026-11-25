@@ -11,7 +11,16 @@ export const load: PageServerLoad = (event) => {
     event.params.section,
     event.locals.user?.workforceProfile,
   );
-  if (destination) redirect(303, `${event.url.pathname.replace(/\/app\/.*$/u, '')}/app/${destination}`);
+  if (destination) {
+    // Keep the page language the person chose (?lang=es) across the redirect.
+    const target = new URL(
+      `${event.url.pathname.replace(/\/app\/.*$/u, '')}/app/${destination}`,
+      event.url,
+    );
+    const lang = event.url.searchParams.get('lang');
+    if (lang) target.searchParams.set('lang', lang);
+    redirect(303, `${target.pathname}${target.search}`);
+  }
   return sectionLoad(event);
 };
 export const actions: Actions = sectionActions;

@@ -2989,6 +2989,8 @@ const coordinatorOwnWorkTasks = new Set([
   'expense-edit',
   'expense-submit',
   'expense-discard',
+  // T57: his Reports entry is the operational report, not a list of own daily reports.
+  'report-list',
   'report-daily',
   'report-technical',
   'report-edit',

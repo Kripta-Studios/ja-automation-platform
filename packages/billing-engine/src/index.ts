@@ -173,6 +173,68 @@ export function lastCompletePeriodForCadence(
   return periodForCadence(cadence, previousDate, options) ?? current;
 }
 
+/** How often a person is paid (person default, assignment override). */
+export type PayInterval = 'weekly' | 'every_14_days' | 'semi_monthly' | 'monthly';
+export const PAY_INTERVALS: readonly PayInterval[] = [
+  'weekly',
+  'every_14_days',
+  'semi_monthly',
+  'monthly',
+];
+/** Every 2 weeks without a chosen start counts two-week blocks from Monday 5 Jan 2026. */
+export const DEFAULT_TWO_WEEK_ANCHOR = '2026-01-05';
+
+export function isPeriodicCadence(cadence: string): cadence is PayInterval {
+  return (PAY_INTERVALS as readonly string[]).includes(cadence);
+}
+
+/**
+ * The period the next invoice (or pay) should cover. `lastCoveredEnd` is the last day already
+ * invoiced/paid; `firstOpenDate` the earliest approved work not invoiced/paid yet. The next
+ * period starts after what is covered, at the first open work if that is later, otherwise at
+ * today (the period in progress). Milestone/manual cadences have no period (null).
+ */
+export function nextPeriodForCadence(
+  cadence: BillingCadence,
+  today: string,
+  options: Readonly<{
+    anchorDate?: string;
+    monthlyCutoffDay?: number;
+    lastCoveredEnd?: string | null;
+    firstOpenDate?: string | null;
+  }> = {},
+): DateRange | null {
+  utcDate(today);
+  if (!isPeriodicCadence(cadence)) return null;
+  const periodOptions = {
+    anchorDate:
+      cadence === 'every_14_days' ? (options.anchorDate ?? DEFAULT_TWO_WEEK_ANCHOR) : undefined,
+    monthlyCutoffDay: cadence === 'monthly' ? options.monthlyCutoffDay : undefined,
+  };
+  const floor = options.lastCoveredEnd ? iso(addDays(utcDate(options.lastCoveredEnd), 1)) : null;
+  const open = options.firstOpenDate ?? null;
+  let date: string;
+  if (open) date = floor && floor > open ? floor : open;
+  else date = floor && floor > today ? floor : today;
+  return periodForCadence(cadence, date, periodOptions);
+}
+
+/** The period before / after `period` with the same cadence (for previous / next links). */
+export function adjacentPeriodForCadence(
+  cadence: PayInterval,
+  period: DateRange,
+  direction: -1 | 1,
+  options: Readonly<{ anchorDate?: string; monthlyCutoffDay?: number }> = {},
+): DateRange {
+  const date =
+    direction < 0 ? iso(addDays(utcDate(period.start), -1)) : iso(addDays(utcDate(period.end), 1));
+  return periodForCadence(cadence, date, {
+    anchorDate:
+      cadence === 'every_14_days' ? (options.anchorDate ?? DEFAULT_TWO_WEEK_ANCHOR) : undefined,
+    monthlyCutoffDay: cadence === 'monthly' ? options.monthlyCutoffDay : undefined,
+  })!;
+}
+
 export function billableMinutesForDailyMinimum(
   actualMinutes: number,
   minimumMinutes: number | null | undefined,

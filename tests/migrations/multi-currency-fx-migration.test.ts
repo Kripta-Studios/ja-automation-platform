@@ -85,7 +85,7 @@ describe('multi currency fx migration82', () => {
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 93,
+      version: 94,
     });
     for (const name of names)
       expect(f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all(), name).toEqual(

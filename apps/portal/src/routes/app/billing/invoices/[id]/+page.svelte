@@ -2244,6 +2244,12 @@
     align-items: center;
   }
   .invoice-inline-editor {
+    position: fixed;
+    inset: 0;
+    margin: auto;
+    height: fit-content;
+    max-height: calc(100dvh - 2rem);
+    overflow: auto;
     width: min(32rem, calc(100vw - 2rem));
     border: 1px solid var(--ja-border-strong, #d1d1c9);
     border-radius: var(--ja-radius, 1rem);

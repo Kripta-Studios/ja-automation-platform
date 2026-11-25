@@ -13,7 +13,7 @@
     translate?: (text: string) => string;
   } = $props();
   const categories = [
-    ['regular', 'Regular time'],
+    ['regular', 'Work'],
     ['overtime', 'Overtime'],
     ['travel', 'Travel'],
     ['standby', 'Standby / waiting'],

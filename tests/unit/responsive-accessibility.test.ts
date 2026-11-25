@@ -170,10 +170,10 @@ describe('Client Essential responsive accessibility contract', () => {
     expect(timesheet).toMatch(/controlledValue\(\s*['"]timeCategory['"]/u);
     expect(timesheet).not.toMatch(/categorySummary\(day\.categories\)\s*\|\|/u);
     expect(localizedSummary('en')).toBe(
-      'Regular time 1:00 h · Travel time 0:30 h · Standby / waiting 0:45 h · Overtime 1:00 h',
+      'Work 1:00 h · Travel time 0:30 h · Standby / waiting 0:45 h · Overtime 1:00 h',
     );
     expect(localizedSummary('es')).toBe(
-      'Tiempo ordinario 1:00 h · Tiempo de viaje 0:30 h · Guardia / espera 0:45 h · Horas extra 1:00 h',
+      'Trabajo 1:00 h · Tiempo de viaje 0:30 h · Guardia / espera 0:45 h · Horas extra 1:00 h',
     );
   });
 

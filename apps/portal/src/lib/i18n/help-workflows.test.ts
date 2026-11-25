@@ -92,7 +92,8 @@ describe('localized help workflow labels', () => {
     expect(routes).toEqual(['', 'time', 'expenses', 'reports', 'supplier/report']);
     expect(
       helpWorkflows('worker', 'supplier_coordinator', 'es').map((entry) => entry.route),
-    ).toEqual(['', 'supplier', 'time', 'expenses', 'reports', 'supplier/report']);
+      // D3: the coordinator logs no own hours or expenses, so no time/expense guides.
+    ).toEqual(['', 'supplier', 'reports', 'supplier/report']);
     const supplier = helpWorkflows('worker', 'external_technician', 'en');
     expect(supplier.some((entry) => entry.route === 'billing')).toBe(false);
     expect(supplier.some((entry) => entry.route === 'finance?view=economic')).toBe(false);
@@ -124,7 +125,8 @@ describe('localized help workflow labels', () => {
           /project reviewer|responsable del proyecto|responsável do projeto/,
         );
         const time = topics.find((entry) => entry.route === 'time');
-        expect(time!.body).toContain('J&A');
+        if (profile === 'supplier_coordinator') expect(time).toBeUndefined();
+        else expect(time!.body).toContain('J&A');
       }
       const coordinator = helpWorkflows('worker', 'supplier_coordinator', locale);
       const team = coordinator.find((entry) => entry.route === 'supplier');

@@ -94,8 +94,9 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     new: 'new',
   },
   category: {
-    regular: 'Regular time',
-    regular_time: 'Regular time',
+    // T96/T21: one word for ordinary hours everywhere (time sheet, crew, My Pay).
+    regular: 'Work',
+    regular_time: 'Work',
     commissioning: 'Commissioning',
     overtime: 'Overtime',
     standby: 'Standby / waiting',
@@ -123,8 +124,9 @@ const controlledKeys: Record<ControlledValueDomain, Record<string, string>> = {
     other: 'Other',
   },
   timeCategory: {
-    regular: 'Regular time',
-    regular_time: 'Regular time',
+    // T96/T21: one word for ordinary hours everywhere (time sheet, crew, My Pay).
+    regular: 'Work',
+    regular_time: 'Work',
     commissioning: 'Commissioning',
     overtime: 'Overtime',
     standby: 'Standby / waiting',

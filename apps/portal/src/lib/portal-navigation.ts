@@ -312,16 +312,25 @@ export function portalNavigationForRole(
     const time = item('time', 'Time', '◷');
     const expenses = item('expenses', 'Expenses', '◇');
     const reports = item('reports', 'Reports', '▤');
+    const operationalReport = item('supplier', 'Operational report', '▤', route('supplier/report'), {
+      shortLabel: 'Report',
+    });
+    if (coordinator)
+      // D3 (round 2): the coordinator records his team's hours in My team and never
+      // his own hours or expenses, so Time and Expenses are not offered (they only
+      // redirected to My team).
+      return {
+        primary: [myTeam, operationalReport, reports],
+        mobile: [myTeam, operationalReport, reports],
+        secondary: [item('profile', 'Profile', '◎'), item('help', 'Help', '?')],
+        admin: [],
+        security: [],
+      };
     return {
       // Field work only (R9/W5): the digital-worker tools are not part of a
       // field worker's navigation (their routes keep their own authorization).
-      primary: [...(coordinator ? [myTeam] : []), time, expenses, reports],
-      ...(coordinator ? { mobile: [myTeam, time, expenses, reports] } : {}),
-      secondary: [
-        item('supplier', 'Operational report', '▤', route('supplier/report')),
-        item('profile', 'Profile', '◎'),
-        item('help', 'Help', '?'),
-      ],
+      primary: [time, expenses, reports],
+      secondary: [operationalReport, item('profile', 'Profile', '◎'), item('help', 'Help', '?')],
       admin: [],
       security: [],
     };

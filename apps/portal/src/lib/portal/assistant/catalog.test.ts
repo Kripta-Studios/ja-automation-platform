@@ -162,3 +162,25 @@ describe('role-aware navigation catalogue', () => {
       expect(actions.has(action), action).toBe(true);
   });
 });
+
+describe('round 2: crew and supplier coordinator tasks', () => {
+  it('offers crew tasks only to a worker with an active crew-chief delegation', () => {
+    const ids = (crewChief?: boolean) =>
+      tasksForContext({ role: 'worker', workforceProfile: 'standard', crewChief }).map((task) => task.id);
+    expect(ids()).not.toContain('crew-hours');
+    expect(ids(false)).not.toContain('crew-expenses');
+    expect(ids(true)).toEqual(expect.arrayContaining(['crew-hours', 'crew-expenses']));
+  });
+
+  it('gives the supplier coordinator no own hours, expenses or personal report tasks (D3)', () => {
+    const ids = tasksForContext({ role: 'worker', workforceProfile: 'supplier_coordinator' }).map(
+      (task) => task.id,
+    );
+    for (const id of ['time-create', 'expense-create', 'report-daily']) expect(ids).not.toContain(id);
+    expect(ids).toContain('supplier-time');
+    const technician = tasksForContext({ role: 'worker', workforceProfile: 'external_technician' }).map(
+      (task) => task.id,
+    );
+    expect(technician).toContain('time-create');
+  });
+});

@@ -26,9 +26,9 @@ const COPY = {
     'Seu pagamento é feito pela sua própria empresa, não por este portal. Fale com o coordenador do fornecedor sobre pagamentos.',
   ],
   payCoordinator: [
-    "Your team's pay is agreed between your company and J&A, outside this portal. Record your team's hours and expenses in My supplier team.",
-    'El pago de tu equipo se acuerda entre tu empresa y J&A, fuera de este portal. Registra las horas y los gastos de tu equipo en Mi equipo del proveedor.',
-    'O pagamento da sua equipe é combinado entre a sua empresa e a J&A, fora deste portal. Registre as horas e despesas da sua equipe em Minha equipe do fornecedor.',
+    "Your team's pay is agreed between your company and J&A, outside this portal. Record your team's hours in My team.",
+    'El pago de tu equipo se acuerda entre tu empresa y J&A, fuera de este portal. Registra las horas de tu equipo en Mi equipo.',
+    'O pagamento da sua equipe é combinado entre a sua empresa e a J&A, fora deste portal. Registre as horas da sua equipe em Minha equipe.',
   ],
   crewChief: [
     'Crew hours is for crew chiefs. The owner makes someone crew chief for a project; until then, log your own hours in Time.',

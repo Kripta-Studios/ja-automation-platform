@@ -258,8 +258,9 @@ const supplierTopics: Record<
       'Em {{My team}} › {{Record team hours}} escolha o projeto autorizado e a data, selecione os técnicos e aplique horas comuns ou um intervalo. {{Save draft}} salva um rascunho editável por técnico; {{Submit}} envia os rascunhos selecionados à J&A, onde o proprietário os revisa. Se a J&A devolver horas, o motivo aparece junto ao registro: corrija o rascunho e envie novamente.',
     ],
   },
+  // D3: the coordinator records his team's hours (topic "team"), never his own.
   time: {
-    profiles: ['supplier_coordinator', 'external_technician'],
+    profiles: ['external_technician'],
     route: 'time',
     en: [
       'Record and send your hours',
@@ -275,7 +276,7 @@ const supplierTopics: Record<
     ],
   },
   expenses: {
-    profiles: ['supplier_coordinator', 'external_technician'],
+    profiles: ['external_technician'],
     route: 'expenses',
     en: [
       'Record and send expenses',

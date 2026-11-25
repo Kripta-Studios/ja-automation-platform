@@ -39,7 +39,8 @@ const en = {
   confirmEntries: '{count} entries will be submitted.',
   confirmSubmit: 'Yes, submit week',
   nothingToSubmit: 'There are no draft hours to submit this week.',
-  delegatedSubmitHint: 'Only the worker or the owner can submit this week. Your hours are saved as drafts.',
+  delegatedSubmitHint:
+    'These hours are saved as drafts for this person. They (or their crew chief) send them for approval; the owner can also send them.',
   statusDraft: 'Draft',
   statusSubmitted: 'Submitted',
   statusApproved: 'Approved',
@@ -277,7 +278,7 @@ const es: Record<CopyKey, string> = {
   confirmSubmit: 'Sí, enviar semana',
   nothingToSubmit: 'No hay horas en borrador para enviar esta semana.',
   delegatedSubmitHint:
-    'Solo el trabajador o el propietario pueden enviar esta semana. Tus horas quedan guardadas como borrador.',
+    'Estas horas quedan como borrador para esta persona. Ella (o su jefe de cuadrilla) las envía a aprobación; el propietario también puede enviarlas.',
   statusDraft: 'Borrador',
   statusSubmitted: 'Enviado',
   statusApproved: 'Aprobado',
@@ -513,7 +514,7 @@ const pt: Record<CopyKey, string> = {
   confirmSubmit: 'Sim, enviar semana',
   nothingToSubmit: 'Não há horas em rascunho para enviar nesta semana.',
   delegatedSubmitHint:
-    'Somente o trabalhador ou o proprietário podem enviar esta semana. Suas horas ficam salvas como rascunho.',
+    'Estas horas ficam como rascunho para esta pessoa. Ela (ou o chefe de equipe) as envia para aprovação; o proprietário também pode enviá-las.',
   statusDraft: 'Rascunho',
   statusSubmitted: 'Enviado',
   statusApproved: 'Aprovado',

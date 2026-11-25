@@ -2975,6 +2975,24 @@ const supplierOperationalTasks = new Set([
   'help',
 ]);
 
+const coordinatorOwnWorkTasks = new Set([
+  'time-create',
+  'time-list',
+  'time-edit',
+  'time-submit',
+  'time-discard',
+  'expense-create',
+  'expense-list',
+  'expense-week',
+  'expense-edit',
+  'expense-submit',
+  'expense-discard',
+  'report-daily',
+  'report-technical',
+  'report-edit',
+  'report-submit',
+]);
+
 export function tasksForContext(context: AssistantContext): readonly AssistantTask[] {
   // Unknown roles fail closed; the assistant cannot infer a user's authority.
   const role = context.role as AssistantRole;
@@ -2987,6 +3005,11 @@ export function tasksForContext(context: AssistantContext): readonly AssistantTa
       (!task.profiles || task.profiles.includes(profile)) &&
       (!supplierProfiles.has(profile) || supplierOperationalTasks.has(task.id)) &&
       // A standard worker never sees supplier coordinator tasks.
-      !(role === 'worker' && profile === 'standard' && task.id.startsWith('supplier-')),
+      !(role === 'worker' && profile === 'standard' && task.id.startsWith('supplier-')) &&
+      // Crew tasks need an active crew-chief delegation (T29/T44, round 2).
+      !(role === 'worker' && task.category === 'crew' && context.crewChief !== true) &&
+      // D3: the supplier coordinator records his team's hours, never own hours,
+      // expenses or a personal daily report.
+      !(profile === 'supplier_coordinator' && coordinatorOwnWorkTasks.has(task.id)),
   );
 }

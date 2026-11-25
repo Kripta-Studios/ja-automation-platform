@@ -9,6 +9,8 @@ export type AssistantContext = Readonly<{
   role?: string | null;
   workforceProfile?: string | null;
   canonicalOwner?: boolean;
+  /** Active crew-chief delegation: workers without one get no crew tasks. */
+  crewChief?: boolean;
 }>;
 export type AssistantSurface =
   | 'time-create'

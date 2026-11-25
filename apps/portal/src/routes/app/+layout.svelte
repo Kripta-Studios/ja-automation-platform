@@ -218,7 +218,7 @@
   <div class="portal-layout standalone-workspace">
     <PortalChrome
       {base}
-      data={{ section, user: data.chromeUser }}
+      data={{ section, user: data.chromeUser, crewChief: data.crewChief === true }}
       navigation={navigation.primary}
       secondaryNavigation={navigation.secondary}
       visibleAdmin={navigation.admin}
@@ -326,6 +326,7 @@
       role: data.chromeUser.role,
       workforceProfile: data.chromeUser.workforceProfile,
       canonicalOwner: data.chromeUser.canonicalOwner === true,
+      crewChief: data.crewChief === true,
     }}
     {locale}
     data={$page.data}

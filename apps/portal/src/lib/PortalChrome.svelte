@@ -24,6 +24,7 @@
   type ChromeData = {
     section: string;
     canonicalOwner?: boolean;
+    crewChief?: boolean;
     user: {
       name: string;
       role?: string;
@@ -531,6 +532,7 @@
       role: data.user.role,
       workforceProfile: data.user.workforceProfile,
       canonicalOwner: data.user.canonicalOwner === true || data.canonicalOwner === true,
+      crewChief: data.crewChief === true,
     }}
     currentSection={currentNavItem ? translate(currentNavItem.label) : ''}
     {locale}

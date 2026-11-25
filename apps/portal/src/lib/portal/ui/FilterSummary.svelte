@@ -24,7 +24,16 @@
     <p role="status">
       {#if items.length}<strong>{translate('Active filters')}: {items.length}</strong>{/if}
       {#if resultCount !== undefined}<span
-          >{resultCount} {translate(items.length ? 'matching records' : 'Records')}</span
+          >{resultCount}
+          {translate(
+            items.length
+              ? resultCount === 1
+                ? 'matching record'
+                : 'matching records'
+              : resultCount === 1
+                ? 'record'
+                : 'records',
+          )}</span
         >{/if}
     </p>
     {#if items.length && (clearHref || onclear)}

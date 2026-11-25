@@ -109,7 +109,15 @@ describe('approved operational report immutability', () => {
           "SELECT COUNT(*) count FROM notification WHERE kind='report_modified' AND subject_id=?",
         )
         .get(daily.id),
-    ).toEqual({ count: 3 });
+    ).toEqual({ count: 2 });
+    // N1: Finance has no action on a report edit, so it gets no notice.
+    expect(
+      value.sqlite
+        .prepare(
+          "SELECT COUNT(*) count FROM notification WHERE kind='report_modified' AND subject_id=? AND user_id=?",
+        )
+        .get(daily.id, value.finance.userId),
+    ).toEqual({ count: 0 });
     expect(
       value.sqlite
         .prepare(
@@ -161,7 +169,7 @@ describe('approved operational report immutability', () => {
           "SELECT COUNT(*) count FROM notification WHERE kind='report_modified' AND subject_id=?",
         )
         .get(technical.id),
-    ).toEqual({ count: 3 });
+    ).toEqual({ count: 2 });
   });
 
   it('keeps ordinary draft edits working for daily and technical reports', () => {

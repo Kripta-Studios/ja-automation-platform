@@ -53,9 +53,9 @@
     },
     pt: {
       title: 'Ler texto de um documento',
-      file: 'Comprovativo ou documento (PNG, JPEG, PDF ou texto UTF-8; até 8 MB)',
+      file: 'Comprovante ou documento (PNG, JPEG, PDF ou texto UTF-8; até 8 MB)',
       extract: 'Extrair texto localmente',
-      working: 'A ler…',
+      working: 'Lendo…',
       note: 'Processado neste servidor sem um serviço externo de IA. O texto pode estar errado ou incompleto. Isto não anexa o arquivo nem verifica o conteúdo.',
       result: 'Revise e corrija o texto extraído',
       use: 'Usar texto revisto',

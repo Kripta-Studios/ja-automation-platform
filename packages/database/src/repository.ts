@@ -3021,9 +3021,13 @@ export class PortalRepository {
   }
 
   private reportNotificationRecipients(projectId: string, actorId: string) {
+    // N1 (round 3): "report modified/deleted" is an operational notice. Finance
+    // has nothing to do with it, so only the owner and the project's managers
+    // are told (same rule as D6). Finance still gets the report review requests
+    // it can act on (approve / send back).
     const candidates = this.sqlite
       .prepare(
-        "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','finance_admin','project_manager')",
+        "SELECT id,role FROM user WHERE status='active' AND role IN ('owner_admin','project_manager')",
       )
       .all() as Array<{ id: string; role: string }>;
     return candidates.filter((candidate) => {
@@ -12452,11 +12456,28 @@ export class PortalRepository {
         const found = this.sqlite
           .prepare(
             recorder === 'time'
-              ? 'SELECT recorded_by_user_id id FROM crew_time_entry_recorder WHERE time_entry_id=?'
-              : 'SELECT recorded_by_user_id id FROM crew_expense_recorder WHERE expense_id=?',
+              ? 'SELECT recorded_by_user_id id,grant_id grantId FROM crew_time_entry_recorder WHERE time_entry_id=?'
+              : 'SELECT recorded_by_user_id id,grant_id grantId FROM crew_expense_recorder WHERE expense_id=?',
           )
-          .get(view.sourceId) as { id: string } | undefined;
-        return found?.id ?? null;
+          .get(view.sourceId) as { id: string; grantId: string } | undefined;
+        if (!found || found.id !== principal.userId || principal.role !== 'worker') return null;
+        // Least privilege after a revoke: the former chief keeps the notice
+        // itself, but the crew member's record opens only while the same
+        // delegation is still live (same rule as Crew hours and expenses).
+        if (!source.owner_id || !source.project_id || !source.date) return null;
+        try {
+          const live = new CrewLeaderRepository(this.sqlite).authorizeDelegatedOperationalEntry(
+            principal,
+            source.owner_id,
+            source.project_id,
+            source.date,
+          );
+          return live.grantId === found.grantId ? found.id : null;
+        } catch (caught) {
+          if (caught instanceof AccessDeniedError || caught instanceof ValidationError)
+            return null;
+          throw caught;
+        }
       })();
       const kindVisibleToRole =
         !(
@@ -12741,14 +12762,26 @@ export class PortalRepository {
           values: [principal.userId, pattern, pattern, pattern, pattern, pattern],
         },
       ];
-      return queries
-        .flatMap(({ dates, sql, values }) => {
+      // T29: a crew chief also finds the people he may record for today, by
+      // name. Only live delegations; a revoked chief finds nobody (least privilege).
+      const crewMembers = new CrewLeaderRepository(this.sqlite)
+        .searchCrewMembers(principal, term)
+        .map((person) => ({
+          id: person.id,
+          type: 'crew_member',
+          label: person.name,
+          detail: person.projectNumber,
+          projectId: person.projectId,
+        }));
+      return [
+        ...crewMembers,
+        ...queries.flatMap(({ dates, sql, values }) => {
           const scope = workerOperationalProjectScope(this.sqlite, principal, dates, instant);
           return this.sqlite
             .prepare(`${scope.withClause} ${sql.replace('SCOPE', scope.predicate)}`)
             .all(...scope.parameters, ...values);
-        })
-        .slice(0, 100);
+        }),
+      ].slice(0, 100);
     }
     const projectIds = principal.role === 'project_manager' ? [...principal.projectIds] : [];
     const projectRestriction =

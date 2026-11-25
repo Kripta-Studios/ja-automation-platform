@@ -290,6 +290,62 @@ export class CrewLeaderRepository {
   }
 
   /**
+   * T29: Ctrl K search for a crew chief. Finds the people the chief may record
+   * for TODAY (active, current delegation; both still assigned), by any part
+   * of their name ("maico" finds "Maico Lubawski"). A revoked or ended
+   * delegation returns nothing. Name and project only: no e-mail, no rates.
+   */
+  searchCrewMembers(
+    principal: Principal,
+    term: string,
+  ): { id: string; projectId: string; projectNumber: string; name: string }[] {
+    if (principal.role !== 'worker') return [];
+    const needle = term.trim().toLocaleLowerCase();
+    if (needle.length < 2) return [];
+    // Search runs for every worker; reduced read models (and old schemas)
+    // without crew delegations simply have no crew to find.
+    const hasCrew = this.sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='crew_leader_grant'")
+      .get();
+    if (!hasCrew) return [];
+    const anyGrant = this.sqlite
+      .prepare("SELECT 1 FROM crew_leader_grant WHERE chief_user_id=? AND status='active' LIMIT 1")
+      .get(principal.userId);
+    if (!anyGrant) return [];
+    const found: { id: string; projectId: string; projectNumber: string; name: string }[] = [];
+    for (const project of this.projects(principal)) {
+      const facts = this.sqlite
+        .prepare('SELECT timezone,project_number projectNumber FROM project WHERE id=?')
+        .get(project.id) as { timezone: string; projectNumber: string } | undefined;
+      const today = facts ? todayInProjectZone(facts.timezone) : null;
+      if (!facts || !today) continue;
+      let people: CrewPerson[] = [];
+      try {
+        people = this.assignedWorkers(principal, project.id, today);
+      } catch (caught) {
+        if (caught instanceof AccessDeniedError) continue;
+        throw caught;
+      }
+      for (const person of people) {
+        const name = String(person.name ?? '');
+        const folded = name
+          .normalize('NFD')
+          .replace(/\p{Diacritic}/gu, '')
+          .toLocaleLowerCase();
+        const foldedNeedle = needle.normalize('NFD').replace(/\p{Diacritic}/gu, '');
+        if (folded.includes(foldedNeedle) || name.toLocaleLowerCase().includes(needle))
+          found.push({
+            id: person.id,
+            projectId: project.id,
+            projectNumber: facts.projectNumber,
+            name,
+          });
+      }
+    }
+    return found;
+  }
+
+  /**
    * Read-only notice data: the chief's active delegations that start after
    * today (project time zone). Hours can only be entered once a delegation is
    * active (see assertScope), so the page explains when that will be.
@@ -341,7 +397,13 @@ export class CrewLeaderRepository {
   grants(principal: Principal, projectId?: string): CrewGrant[] {
     this.assertActive(principal);
     if (principal.role !== 'owner_admin') this.assertChief(principal);
-    const where = principal.role === 'owner_admin' ? '' : 'AND g.chief_user_id=?';
+    // A chief sees only his live delegations: a revoked or ended grant no
+    // longer names the former crew member to him (least privilege). One day of
+    // slack keeps a delegation ending today visible in every project time zone.
+    const where =
+      principal.role === 'owner_admin'
+        ? ''
+        : "AND g.chief_user_id=? AND g.status='active' AND (g.ends_on IS NULL OR g.ends_on>=date('now','-1 day'))";
     const params = principal.role === 'owner_admin' ? [] : [principal.userId];
     return this.sqlite
       .prepare(

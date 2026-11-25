@@ -592,7 +592,7 @@ const es: Copy = {
 const pt: Copy = {
   'Digital workers': 'Trabalhadores digitais',
   'Digital workers description':
-    'Este espaço organiza registros atuais e regras explícitas. Não usa IA nem APIs externas, e cada decisão continua a ser sua.',
+    'Este espaço organiza registros atuais e regras explícitas. Não usa IA nem APIs externas, e cada decisão continua sendo sua.',
   'Finish your work': 'Conclua o seu trabalho',
   'Finish your work description':
     'Estes são os seus próprios registros guardados que ainda precisam de atenção. Abra um registro para continuar.',

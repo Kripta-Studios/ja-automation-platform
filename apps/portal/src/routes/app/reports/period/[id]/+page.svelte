@@ -16,7 +16,7 @@
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { money as formatMoney } from '$lib/portal/portal-format';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { localeDecimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import {
     translateControlledValue,
     type ControlledValueDomain,
@@ -582,7 +582,7 @@
   );
   const display = (value: unknown, fallback = '—') =>
     value === null || value === undefined || value === '' ? fallback : String(value);
-  const hours = (minutes: unknown) => `${decimalHoursFromMinutes(minutes ?? 0)} h`;
+  const hours = (minutes: unknown) => `${localeDecimalHoursFromMinutes(minutes ?? 0, locale)} h`;
   const signoffLabel = (state: string): string => {
     switch (state) {
       case 'ready_for_signature':

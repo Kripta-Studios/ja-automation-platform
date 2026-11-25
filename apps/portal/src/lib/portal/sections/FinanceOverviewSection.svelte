@@ -2627,7 +2627,7 @@
                     )}
                   </p>
                 </div>
-                <span>{portfolioWorkers.length} {translate('records')}</span>
+                <span>{portfolioWorkers.length} {translate(portfolioWorkers.length === 1 ? 'record' : 'records')}</span>
               </div>
               <TableRegion
                 class="finance-overview__table-region"
@@ -2706,7 +2706,7 @@
                   )}
                 </p>
               </div>
-              <span>{timeEconomics.length} {translate('records')}</span>
+              <span>{timeEconomics.length} {translate(timeEconomics.length === 1 ? 'record' : 'records')}</span>
             </div>
             <TableRegion
               class="finance-overview__table-region"
@@ -2787,7 +2787,7 @@
                   )}
                 </p>
               </div>
-              <span>{expenseEconomics.length} {translate('records')}</span>
+              <span>{expenseEconomics.length} {translate(expenseEconomics.length === 1 ? 'record' : 'records')}</span>
             </div>
             <TableRegion
               class="finance-overview__table-region"
@@ -2861,7 +2861,7 @@
                   )}
                 </p>
               </div>
-              <span>{financeExpenses.length} {translate('source records')}</span>
+              <span>{financeExpenses.length} {translate(financeExpenses.length === 1 ? 'source record' : 'source records')}</span>
             </div>
 
             <div

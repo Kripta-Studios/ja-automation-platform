@@ -51,7 +51,10 @@
   import LocalizedPdfPanel from '$lib/portal/ui/localized-pdf/LocalizedPdfPanel.svelte';
   import CorrectionDraftForm from '$lib/portal/ui/CorrectionDraftForm.svelte';
   import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import {
+    decimalHoursFromMinutes,
+    localeDecimalHoursFromMinutes,
+  } from '$lib/portal/minute-hours';
   import { dailyCorrectionFields, technicalCorrectionFields } from '$lib/portal/correction-fields';
   import {
     readSessionItem,
@@ -247,7 +250,7 @@
                     field.kind === 'checkbox'
                       ? t(value === 'on' ? 'problem.report.checked' : 'problem.report.notChecked')
                       : field.name === 'downtimeMinutes'
-                        ? decimalHoursFromMinutes(value)
+                        ? localeDecimalHoursFromMinutes(value, locale)
                         : value || '—',
                 },
               ];
@@ -1490,7 +1493,7 @@
                     ? t('Review required')
                     : t('No safety flag')
                 : field.name === 'downtimeMinutes'
-                  ? decimalHoursFromMinutes(field.value)
+                  ? localeDecimalHoursFromMinutes(field.value, locale)
                   : display(field.value) || '—'}
             </dd>
           </div>
@@ -2064,7 +2067,7 @@
               )}
         </p>
       </div>
-      <span class="state-tag">{attachments.length} {t('files')}</span>
+      <span class="state-tag">{attachments.length} {t(attachments.length === 1 ? 'file' : 'files')}</span>
     </div>
 
     {#if attachmentMessage}
@@ -2356,7 +2359,7 @@
     <details class="report-history-fold" open={!fieldPerson}>
       <summary class="report-history-intro">
         <p class="form-help">{t('Immutable audit trail for this source record.')}</p>
-        <span class="history-count">{history.length} {t('events')}</span>
+        <span class="history-count">{history.length} {t(history.length === 1 ? 'event' : 'events')}</span>
       </summary>
       {#each history as event}
         <article class="history-event">

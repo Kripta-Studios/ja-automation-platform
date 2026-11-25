@@ -24,3 +24,17 @@ export function clockHoursFromMinutes(value: unknown): string {
   const absolute = Math.abs(minutes);
   return `${minutes < 0 ? '-' : ''}${Math.floor(absolute / 60)}:${String(absolute % 60).padStart(2, '0')}`;
 }
+
+/**
+ * Decimal hours as a person reads them on screen: the locale's decimal
+ * separator ("1,5" in Spanish and Portuguese, "1.5" in English). Inputs and
+ * exports keep `decimalHoursFromMinutes`; the hours parser accepts both.
+ */
+export function localeDecimalHoursFromMinutes(
+  value: unknown,
+  locale: string | null | undefined,
+  places: 2 | 4 = 2,
+): string {
+  const text = decimalHoursFromMinutes(value, places);
+  return locale === 'es' || locale === 'pt' ? text.replace('.', ',') : text;
+}

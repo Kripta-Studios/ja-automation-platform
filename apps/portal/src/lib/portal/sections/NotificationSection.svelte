@@ -325,7 +325,7 @@
 >
   <div class="panel-title">
     <h2 id="notification-inbox-title">{translate('Activity inbox')}</h2>
-    <span class="inbox-total"><b>{allCount}</b>{translate('Records')}</span>
+    <span class="inbox-total"><b>{allCount}</b>{translate(allCount === 1 ? 'record' : 'records')}</span>
   </div>
   {#if serverPage}
     <p class="inbox-description" data-inbox-scope>

@@ -15,6 +15,7 @@
   } from '../copy';
   import { tick } from 'svelte';
   import { page } from '$app/stores';
+  import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   let { data } = $props();
   const c = $derived(supplierCopy[data.locale as keyof typeof supplierCopy]);
   const d = $derived(supplierDraftCopy[data.locale as keyof typeof supplierDraftCopy]);
@@ -84,11 +85,8 @@
       href: data.owner ? `${base}/app/projects` : undefined,
     },
   });
-  // T49: on-screen hours use the page language's decimal separator ("7,5 h" in ES/PT).
-  const decimalHours = (minutes: number): string => {
-    const hours = String(Number((minutes / 60).toFixed(4)));
-    return data.locale === 'es' || data.locale === 'pt' ? hours.replace('.', ',') : hours;
-  };
+  // T49: hours on screen read as H:MM like the Time screens.
+  const decimalHours = (minutes: number): string => clockHoursFromMinutes(minutes);
   const localeTag = $derived(
     data.locale === 'es' ? 'es-ES' : data.locale === 'pt' ? 'pt-BR' : 'en-US',
   );

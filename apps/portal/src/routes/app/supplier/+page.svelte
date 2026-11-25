@@ -19,7 +19,7 @@
     reportFormFieldErrors,
   } from '$lib/portal/ui';
   import type { ProblemData } from '$lib/problem/contract';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { clockHoursFromMinutes, decimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
   import {
     supplierAccessCopy,
@@ -42,11 +42,8 @@
     data.periodProblem?.code === 'SUPPLIER_REPORT_PERIOD_DATE_INVALID',
   );
   let periodProblemContainer = $state<HTMLDivElement>();
-  // T49: on-screen hours use the page language's decimal separator ("7,5 h" in ES/PT).
-  const decimalHours = (minutes: number): string => {
-    const hours = String(Number((minutes / 60).toFixed(4)));
-    return data.locale === 'es' || data.locale === 'pt' ? hours.replace('.', ',') : hours;
-  };
+  // T49: hours on screen read as H:MM like the Time screens; inputs keep decimals.
+  const decimalHours = (minutes: number): string => clockHoursFromMinutes(minutes);
   const editableDecimalHours = (minutes: number): string => decimalHoursFromMinutes(minutes);
   function syncBreakHours(event: Event): void {
     const input = event.currentTarget as HTMLInputElement;
@@ -868,7 +865,7 @@
         />
       </div>
     {/if}
-    {#if form?.success && !batchNoticeInCard && !reportNoticeInCard}<p role="status">
+    {#if form?.success && !batchNoticeInCard && !reportNoticeInCard}<p class="supplier-batch-notice" role="status">
         {#if form.success && form.operation === 'createTimeBatch' && form.outcome}
           {form.outcome.replayed ? c.batchAlreadySaved : c.batchSaved}: {form.outcome.createdCount}
           {form.outcome.createdCount === 1 ? c.draft : c.drafts} · {form.outcome.projectName} · {shortDate(
@@ -2015,7 +2012,7 @@
                       value={correctionValue(
                         String(entry.id),
                         'breakHours',
-                        decimalHours(Number(entry.breakMinutes ?? 0)),
+                        editableDecimalHours(Number(entry.breakMinutes ?? 0)),
                       )}
                       oninput={syncBreakHours}
                     /><input
@@ -2163,7 +2160,7 @@
                         value={updateValue(
                           String(entry.id),
                           'breakHours',
-                          decimalHours(Number(entry.breakMinutes ?? 0)),
+                          editableDecimalHours(Number(entry.breakMinutes ?? 0)),
                         )}
                         oninput={syncBreakHours}
                       /><input

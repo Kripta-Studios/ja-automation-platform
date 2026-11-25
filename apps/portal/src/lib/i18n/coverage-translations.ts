@@ -281,7 +281,7 @@ const exact: Record<string, readonly [string, string]> = {
   'The offline draft could not be stored on this device. Your entries are still here. Check browser storage, then try again or reconnect and save online.':
     [
       'No se pudo guardar el borrador sin conexión en este dispositivo. Tus datos siguen aquí. Comprueba el almacenamiento del navegador y vuelve a intentarlo, o reconéctate y guárdalo en línea.',
-      'Não foi possível guardar o rascunho sem ligação neste dispositivo. Os dados introduzidos continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou restabeleça a ligação e salve online.',
+      'Não foi possível salvar o rascunho sem conexão neste dispositivo. Os dados digitados continuam aqui. Verifique o armazenamento do navegador e tente novamente, ou reconecte-se e salve com conexão.',
     ],
   'Offline drafts need your review': [
     'Los borradores sin conexión necesitan tu revisión',
@@ -1165,7 +1165,7 @@ const exact: Record<string, readonly [string, string]> = {
   ],
   'problem.billing.taxProfileIssuerCurrencyMismatch': [
     'La entidad emisora seleccionada usa otra moneda. Revisa la entidad emisora y elige su moneda u otra entidad adecuada antes de guardar el perfil fiscal.',
-    'A entidade emissora selecionada usa outra moeda. Revise a entidade emissora e escolha a sua moeda ou outra entidade adequada antes de guardar o perfil tributário.',
+    'A entidade emissora selecionada usa outra moeda. Revise a entidade emissora e escolha a sua moeda ou outra entidade adequada antes de salvar o perfil tributário.',
   ],
   'problem.billing.packDeploymentIdentityMissing': [
     'No se puede crear el paquete contable porque falta la configuración de identidad de este entorno. Contacta con soporte para restaurarla antes de crear el paquete.',
@@ -6835,6 +6835,7 @@ const exact: Record<string, readonly [string, string]> = {
     'No se pudo cargar la lista de PDF.',
     'Não foi possível carregar a lista de PDF.',
   ],
+  'matching record': ['registro coincidente', 'registro correspondente'],
   'matching records': ['registros coincidentes', 'registros correspondentes'],
   'Export filtered results': ['Exportar resultados filtrados', 'Exportar resultados filtrados'],
   'Download exactly the expenses currently selected by the register filters.': [
@@ -8195,7 +8196,10 @@ const extraExact: Record<string, readonly [string, string]> = {
   capable: ['capacitado', 'capaz'],
   committed: ['comprometido', 'comprometido'],
   developing: ['en desarrollo', 'em desenvolvimento'],
+  event: ['evento', 'evento'],
   events: ['eventos', 'eventos'],
+  entry: ['registro', 'entrada'],
+  'source record': ['registro fuente', 'registro de origem'],
   expert: ['experto', 'especialista'],
   exposure: ['exposición', 'exposição'],
   file: ['archivo', 'arquivo'],

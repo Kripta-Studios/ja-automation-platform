@@ -4,7 +4,7 @@
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import DecimalHoursInput from '$lib/portal/ui/DecimalHoursInput.svelte';
   import RecordBrowser from '$lib/portal/ui/RecordBrowser.svelte';
-  import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { localeDecimalHoursFromMinutes } from '$lib/portal/minute-hours';
   import { base } from '$app/paths';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
@@ -322,7 +322,7 @@
                     String(row.currency),
                   )}</strong
                 >{/if}{#if data.area === 'planning_assignment' && row.planned_minutes != null}
-                · {t('Planned hours (optional)')}: {decimalHoursFromMinutes(row.planned_minutes)} h{/if}
+                · {t('Planned hours (optional)')}: {localeDecimalHoursFromMinutes(row.planned_minutes, normalizePortalLocale(data.locale))} h{/if}
             </p>
             <details
               open={data.focusId === row.id ||

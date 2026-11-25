@@ -12,6 +12,9 @@
   import { onMount, tick } from 'svelte';
   import type { PortalLocale } from '$lib/portal-i18n';
   import { translateControlledValue } from '$lib/i18n/controlled-values';
+  import { formatPortalDate } from '$lib/i18n/format';
+  import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
+  import { personDisplayName } from '$lib/portal/display-name';
   import {
     applyStandaloneDocumentLocale,
     persistStandaloneLocale,
@@ -90,6 +93,11 @@
       ? String(form.values?.[name] ?? fallback)
       : fallback;
   const decimalHours = (minutes: number): string => String(Number((minutes / 60).toFixed(4)));
+  /** A calendar date (YYYY-MM-DD) as the person reads it, never ISO. */
+  const dayLabel = (value: string): string =>
+    /^\d{4}-\d{2}-\d{2}$/u.test(value)
+      ? formatPortalDate(`${value}T12:00:00.000Z`, locale, { timeZone: 'UTC' })
+      : value;
   function syncMinutes(event: Event, breakField = false): void {
     const input = event.currentTarget as HTMLInputElement;
     const hidden = input.nextElementSibling as HTMLInputElement;
@@ -134,7 +142,7 @@
   <a href={crewHref}
     ><DirectionIcon direction="left" /> {t('← Back to crew hours').replace(/^←\s*/u, '')}</a
   >
-  <h1>{record.workerName} · {record.workDate}</h1>
+  <h1>{personDisplayName(record.workerName)} · {dayLabel(String(record.workDate))}</h1>
   {#if problem}
     <div tabindex="-1" data-crew-time-problem>
       <ProblemNotice
@@ -153,15 +161,15 @@
       </div>
       <div>
         <dt>{t('Person')}</dt>
-        <dd>{record.workerName}</dd>
+        <dd>{personDisplayName(record.workerName)}</dd>
       </div>
       <div>
         <dt>{t('Work date')}</dt>
-        <dd>{record.workDate}</dd>
+        <dd>{dayLabel(String(record.workDate))}</dd>
       </div>
       <div>
         <dt>{t('Actual time')}</dt>
-        <dd>{decimalHours(record.minutes)} h</dd>
+        <dd>{clockHoursFromMinutes(record.minutes)} h</dd>
       </div>
       <div>
         <dt>{t('Category')}</dt>
@@ -187,7 +195,7 @@
       </div>
     </dl>
     {#if !['needs_changes', 'rejected', 'void'].includes(record.approvalState)}
-      <a class="expense-link" href={expenseHref}>{t('Add expense for')} {record.workerName}</a>
+      <a class="expense-link" href={expenseHref}>{t('Add expense for')} {personDisplayName(record.workerName)}</a>
     {/if}
   </SectionCard>
   {#if ['needs_changes', 'rejected'].includes(record.approvalState)}

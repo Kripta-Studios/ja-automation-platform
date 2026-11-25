@@ -712,15 +712,16 @@ export function quickInvoiceFormat(
 
 type Warning = { code: string; count: number; minutes: number };
 
-const hours = (minutes: number) => {
-  const value = Math.round((minutes / 60) * 100) / 100;
-  return String(value);
+/** Decimal hours with the locale's decimal separator ("1,5 h" in ES/PT). */
+const hours = (minutes: number, locale: PortalLocale = 'en') => {
+  const value = String(Math.round((minutes / 60) * 100) / 100);
+  return locale === 'en' ? value : value.replace('.', ',');
 };
 
 /** Plain-language sentence for one warning. Unknown codes fall back to the caller. */
 export function quickInvoiceWarningText(locale: PortalLocale, warning: Warning): string | null {
   const n = warning.count;
-  const h = warning.minutes ? ` (${hours(warning.minutes)} h)` : '';
+  const h = warning.minutes ? ` (${hours(warning.minutes, locale)} h)` : '';
   const i = index(locale);
   const messages: Record<string, Triple> = {
     pending_time_submission: [

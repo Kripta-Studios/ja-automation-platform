@@ -285,18 +285,32 @@ function activeOperationalReviewers(
   return [...recipients].sort();
 }
 
-/** The crew chief who recorded a crew member's time or expense, if any. */
-function crewRecorder(sqlite: DatabaseSync, type: SourceKind, sourceId: string): string | null {
+/**
+ * The crew chief who recorded a crew member's time or expense, if any, while
+ * that same delegation is still live. After a revoke (or once it ended) the
+ * former chief is no longer told about the crew member's records.
+ */
+function crewRecorder(
+  sqlite: DatabaseSync,
+  type: SourceKind,
+  sourceId: string,
+  now: string,
+): string | null {
   const table =
     type === 'time'
-      ? 'crew_time_entry_recorder WHERE time_entry_id=?'
+      ? 'crew_time_entry_recorder rec WHERE rec.time_entry_id=?'
       : type === 'expense'
-        ? 'crew_expense_recorder WHERE expense_id=?'
+        ? 'crew_expense_recorder rec WHERE rec.expense_id=?'
         : null;
   if (!table) return null;
-  const row = sqlite.prepare(`SELECT recorded_by_user_id id FROM ${table}`).get(sourceId) as
-    | { id: string }
-    | undefined;
+  const row = sqlite
+    .prepare(
+      `SELECT rec.recorded_by_user_id id FROM ${table}
+         AND EXISTS(SELECT 1 FROM crew_leader_grant g
+                     WHERE g.id=rec.grant_id AND g.status='active'
+                       AND (g.ends_on IS NULL OR g.ends_on>=?))`,
+    )
+    .get(sourceId, now.slice(0, 10)) as { id: string } | undefined;
   return row?.id ?? null;
 }
 
@@ -537,7 +551,7 @@ export class NotificationRepository {
         ).filter((id) => id !== row.owner_id);
       } else {
         // The person whose record it is, plus the crew chief who recorded it.
-        recipients = [row.owner_id, crewRecorder(this.deps.sqlite, row.record_type, row.source_id)]
+        recipients = [row.owner_id, crewRecorder(this.deps.sqlite, row.record_type, row.source_id, now)]
           .filter((id): id is string => typeof id === 'string')
           .filter((id, index, list) => list.indexOf(id) === index)
           .filter((id) => activeUser(this.deps.sqlite, id));

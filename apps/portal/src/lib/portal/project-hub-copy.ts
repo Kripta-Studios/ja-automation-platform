@@ -213,6 +213,16 @@ const copy = {
     'Hay {count} registros de horas después de la fecha de fin sin aprobar. Descartar los borradores sin enviar y rechazar los pendientes con este motivo, y terminar la asignación.',
     'Há {count} registros de horas após a data de término ainda não aprovados. Descartar os rascunhos não enviados e rejeitar os pendentes com este motivo, e encerrar a atribuição.',
   ],
+  endResolveLaterOne: [
+    '1 hour entry after the end date is not approved yet. Discard it if it is an unsent draft, or reject it with this reason if it is pending, then end the assignment.',
+    'Hay 1 registro de horas después de la fecha de fin sin aprobar. Descartarlo si es un borrador sin enviar, o rechazarlo con este motivo si está pendiente, y terminar la asignación.',
+    'Há 1 registro de horas após a data de término ainda não aprovado. Descartá-lo se for um rascunho não enviado, ou rejeitá-lo com este motivo se estiver pendente, e encerrar a atribuição.',
+  ],
+  endResolveLaterNeeded: [
+    'Hours after the end date are not approved yet. Choose below how to resolve them, then end the assignment.',
+    'Hay horas después de la fecha de fin sin aprobar. Elige abajo cómo resolverlas y termina la asignación.',
+    'Há horas após a data de término ainda não aprovadas. Escolha abaixo como resolvê-las e encerre a atribuição.',
+  ],
   endResolvedLater: [
     '{name}: assignment ended. Drafts discarded: {discarded}. Pending entries rejected: {rejected}.',
     '{name}: asignación terminada. Borradores descartados: {discarded}. Registros pendientes rechazados: {rejected}.',

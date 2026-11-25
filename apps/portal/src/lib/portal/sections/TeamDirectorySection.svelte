@@ -3698,6 +3698,7 @@
   .person__confirm {
     display: grid;
     gap: 0.5rem;
+    align-content: start;
   }
   .person__confirm > summary {
     list-style: none;
@@ -3717,6 +3718,15 @@
   }
   .person__confirm textarea {
     min-height: 4rem;
+  }
+  /* Round 3: the reason label sits above its box, not beside it. */
+  .person__confirm form > label {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .person__confirm form > label textarea {
+    width: 100%;
+    box-sizing: border-box;
   }
   .person__checklist ul {
     margin: 0.25rem 0 0;
@@ -5084,6 +5094,11 @@
     display: flex;
     gap: 0.6rem;
     flex-wrap: wrap;
+    /* Round 3: an open confirm no longer stretches the other button to its height. */
+    align-items: flex-start;
+  }
+  .person__danger-actions > :global(.person__confirm[open]) {
+    flex: 1 1 100%;
   }
   .person__danger-actions form {
     margin: 0;

@@ -24,7 +24,6 @@ function seedDailyDraft(viewport: string) {
     const userId = (email: string) =>
       (db.sqlite.prepare('SELECT id FROM user WHERE email=?').get(email) as { id: string }).id;
     const ownerId = userId(e2eCredentials.owner.email);
-    const financeId = userId(e2eCredentials.finance.email);
     const managerId = userId(e2eCredentials.manager.email);
     const workerId = userId(e2eCredentials.worker.email);
     const repository = new PortalRepository(db.sqlite);
@@ -57,7 +56,8 @@ function seedDailyDraft(viewport: string) {
       downtimeMinutes: 0,
       safetyRelated: false,
     });
-    return { reportId: report.id, recipientIds: [ownerId, financeId, managerId] };
+    // N1: Finance is not told about report edits (owner + project manager only).
+    return { reportId: report.id, recipientIds: [ownerId, managerId] };
   } finally {
     db.sqlite.close();
   }
@@ -132,7 +132,7 @@ for (const viewport of ['phone-390', 'desktop'] as const) {
     const first = snapshot(reportId);
     expect(first.report.summary).toBe('First browser edit');
     expect(first.notices.map((notice) => notice.user_id).sort()).toEqual(recipientIds.sort());
-    expect(first.notices).toHaveLength(3);
+    expect(first.notices).toHaveLength(2);
     markNoticesRead(first.notices);
     expect(snapshot(reportId).notices.every((notice) => Boolean(notice.read_at))).toBe(true);
 
@@ -142,7 +142,7 @@ for (const viewport of ['phone-390', 'desktop'] as const) {
     const second = snapshot(reportId);
     expect(second.report.summary).toBe('Second browser edit');
     expect(second.auditCount).toBe(2);
-    expect(second.notices).toHaveLength(3);
+    expect(second.notices).toHaveLength(2);
     expect(second.notices.map((notice) => notice.id)).toEqual(
       first.notices.map((notice) => notice.id),
     );

@@ -144,6 +144,7 @@ const en = {
   noReceiptHint: 'No receipt? Fill in the details below and add a note.',
   pickReceipts: 'Choose several receipt photos — one row each',
   duplicateReceipt: 'This file cannot be used as a receipt. Attach another photo of the receipt.',
+  ownerExtendSave: 'Extend/create the assignment and save',
   possibleDuplicate:
     'This looks like a duplicate of your {category} expense of {amount} on {date}. Save anyway?',
   saveAnyway: 'Save anyway',
@@ -328,6 +329,7 @@ const es: Copy = {
   noReceiptHint: '¿Sin ticket? Rellena los datos y añade una nota.',
   pickReceipts: 'Elige varias fotos de tickets: una fila por cada una',
   duplicateReceipt: 'Este archivo no se puede usar como ticket. Adjunta otra foto del ticket.',
+  ownerExtendSave: 'Ampliar/crear la asignación y guardar',
   possibleDuplicate:
     'Parece un duplicado de tu gasto de {category} de {amount} del {date}. ¿Guardarlo de todos modos?',
   saveAnyway: 'Guardar de todos modos',
@@ -511,6 +513,7 @@ const pt: Copy = {
   noReceiptHint: 'Sem recibo? Preencha os dados e adicione uma observação.',
   pickReceipts: 'Escolha várias fotos de recibos — uma linha para cada',
   duplicateReceipt: 'Este arquivo não pode ser usado como recibo. Anexe outra foto do recibo.',
+  ownerExtendSave: 'Estender/criar a atribuição e salvar',
   possibleDuplicate:
     'Parece uma duplicata da sua despesa de {category} de {amount} em {date}. Salvar mesmo assim?',
   saveAnyway: 'Salvar mesmo assim',

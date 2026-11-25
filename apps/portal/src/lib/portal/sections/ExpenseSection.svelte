@@ -281,6 +281,16 @@
   let saving = $state(false);
   let formError = $state('');
   let formProblem = $state<ProblemData | null>(null);
+  /** Owner: resend the same expense with "Extend/create the assignment and save". */
+  let ensureAssignment = $state(false);
+  const ownerExtension = $derived(
+    isOwner && formProblem?.code === 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE',
+  );
+  const extendAndSave = async (event: MouseEvent) => {
+    ensureAssignment = true;
+    await tick();
+    (event.currentTarget as HTMLElement).closest('form')?.requestSubmit();
+  };
   let receiptInput = $state<HTMLInputElement>();
   let receiptUrl = $state<string | null>(null);
   let receiptName = $state('');
@@ -527,6 +537,7 @@
     },
     setProblem: (value) => {
       formProblem = value;
+      ensureAssignment = false;
     },
     onSuccess: () => {
       if (mode === 'create') {
@@ -1333,6 +1344,15 @@
               : formError}
         </p>
       {/if}
+      {#if ownerExtension && mode === 'create'}
+        <button
+          type="button"
+          disabled={saving}
+          onclick={extendAndSave}
+          data-expense-owner-extend>{c('ownerExtendSave')}</button
+        >
+      {/if}
+      <input type="hidden" name="ensureAssignment" value={ensureAssignment ? '1' : ''} />
       {#if savedAnother && !formError}
         <p class="xp-ok" role="status">{c('savedAnother')}</p>
       {/if}

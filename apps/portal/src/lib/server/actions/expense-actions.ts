@@ -15,6 +15,7 @@ import {
   ValidationError,
 } from '@ja/database';
 import { z, type ZodError } from 'zod';
+import { ownerAssignmentExtension } from './time-actions';
 import { mondayOf } from '$lib/server/portal-week';
 import { weekDates } from '$lib/portal/sections/time-entry-actions';
 import { weeklyRecoveryFields } from '$lib/portal/sections/operational-recovery-fields';
@@ -663,12 +664,34 @@ const expenseProblems: Record<string, ExpenseProblem> = {
   },
 };
 
+/** Owner only: the screen's "Extend/create the assignment and save" choice. */
+function ownerEnsureAssignment(
+  context: { principal: { role: string } },
+  object: Record<string, unknown>,
+): boolean {
+  return context.principal.role === 'owner_admin' && object.ensureAssignment === '1';
+}
+
 export function expenseActionFailure(
   error: unknown,
   values: Record<string, unknown> = {},
   params: ActionMessageParams = {},
 ) {
   const savedValues = safeExpenseValues(values);
+  const ownerAssignment = ownerAssignmentExtension(error);
+  if (ownerAssignment)
+    return actionFail(
+      409,
+      'problem.expense.ownerAssignmentExtension',
+      params,
+      'This person has no assignment on this project for that day. Extend or create the assignment and save the expense, or choose another day.',
+      {
+        code: 'OWNER_ASSIGNMENT_EXTENSION_AVAILABLE',
+        values: savedValues,
+        ownerAssignment,
+        remedies: [{ id: 'review_expense' }],
+      },
+    );
   if (error instanceof DuplicateCrewExpenseError)
     return actionFail(
       409,
@@ -1329,6 +1352,7 @@ export const expenseActions = withOperationalActionNames({
             undefined,
             {
               id: ids[index],
+              ensureAssignment: ownerEnsureAssignment(context, object),
               ...(index === 0
                 ? {
                     auditDetails: {
@@ -1573,6 +1597,7 @@ export const expenseActions = withOperationalActionNames({
             undefined,
             {
               id: ids[index],
+              ensureAssignment: ownerEnsureAssignment(context, object),
               ...(index === 0
                 ? {
                     auditDetails: {
@@ -1785,6 +1810,7 @@ export const expenseActions = withOperationalActionNames({
           requestId,
           {
             allowSeparateExpense,
+            ensureAssignment: ownerEnsureAssignment(context, object),
             ...(retryIdentity
               ? {
                   auditDetails: {

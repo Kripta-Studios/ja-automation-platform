@@ -28,6 +28,7 @@
   import { teamCopy, type TeamCopyKey } from '../team-ux-copy';
   import PersonProjectsPanel from './PersonProjectsPanel.svelte';
   import PersonPayPanel from './PersonPayPanel.svelte';
+  import type { PersonPayIntervalView } from '../interval-copy';
   import FixNamesPanel from './FixNamesPanel.svelte';
   import { normalizeSelectSearch } from '../searchable-selects';
   import {
@@ -130,6 +131,7 @@
     teamWeekStart?: string;
     mailboxLinkedIds?: string[];
     personPayRules?: PortalRow[];
+    personPayInterval?: PersonPayIntervalView | null;
     personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
     skills?: PortalRow[];
     workerSkills?: PortalRow[];
@@ -161,6 +163,7 @@
     teamStats = [],
     mailboxLinkedIds = [],
     personPayRules = [],
+    personPayInterval = null,
     personAssignModes = {},
     skills = [],
     workerSkills = [],
@@ -1818,6 +1821,7 @@
                 <PersonPayPanel
                   personId={workerId(worker)}
                   rules={personPayRules}
+                  payInterval={personPayInterval}
                   {locale}
                   today={todayIso}
                 />

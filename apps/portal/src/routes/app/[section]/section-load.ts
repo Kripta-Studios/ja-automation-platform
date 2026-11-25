@@ -58,6 +58,8 @@ import {
 } from '$lib/server/mail-directory';
 import { pagePeopleDirectory, peopleQueryFrom } from '$lib/server/team-directory-page';
 import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
+import { nextPayPeriod } from '@ja/database';
+import { withNextInvoicePeriods } from '$lib/server/intervals';
 import {
   includesArchivedProjectHistory,
   normalizeVisibleProjectSelection,
@@ -774,7 +776,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           redirect(303, `/j-aautomation/app/manage/worker-pay${url.search}`);
         if (!['worker', 'project_manager'].includes(context.principal.role))
           error(403, 'Worker or project manager role required');
-        const lookback = defaultLookbackPeriod();
+        // Owner request 2026-11-25: open on the period the person's next pay covers when
+        // their pay interval is set; otherwise the usual lookback.
+        const nextPay = nextPayPeriod(context.sqlite, context.principal.userId);
+        const payInterval = {
+          interval: nextPay.interval,
+          source: nextPay.source,
+          nextStart: nextPay.period?.start ?? null,
+          nextEnd: nextPay.period?.end ?? null,
+        };
+        const lookback = nextPay.period
+          ? { periodStart: nextPay.period.start, periodEnd: nextPay.period.end }
+          : defaultLookbackPeriod();
         const startValues = url.searchParams.getAll('start');
         const endValues = url.searchParams.getAll('end');
         const periodStart = startValues[0] ?? lookback.periodStart;
@@ -796,7 +809,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
             remedies: [{ id: 'correct_fields' }],
             correlationId: locals.correlationId || randomBytes(16).toString('hex'),
           } satisfies ProblemData;
-          return { ...common, periodStart, periodEnd, payPeriodProblem };
+          return { ...common, periodStart, periodEnd, payInterval, payPeriodProblem };
         }
 
         const pay = context.v3.workerPay(context.principal, periodStart, periodEnd);
@@ -848,6 +861,7 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           ...common,
           periodStart,
           periodEnd,
+          payInterval,
           pay,
           settlements,
           payActivities,
@@ -1553,9 +1567,13 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         normalizeProjectQuery(scope.projectIds);
         return {
           ...common,
-          billingRules: visibleProjectRecords(
-            context.repository.listBillingRules(context.principal),
-            scope.projectIds,
+          // Each stream carries the period its next invoice covers (owner request 2026-11-25).
+          billingRules: withNextInvoicePeriods(
+            context.sqlite,
+            visibleProjectRecords(
+              context.repository.listBillingRules(context.principal),
+              scope.projectIds,
+            ),
           ),
           invoiceEmailDeliveries:
             context.principal.role === 'auditor_read_only'

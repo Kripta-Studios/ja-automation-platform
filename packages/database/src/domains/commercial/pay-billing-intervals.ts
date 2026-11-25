@@ -142,11 +142,13 @@ export function nextPayPeriod(
     projectId?: string | null;
     projectMemberId?: string | null;
     fallback?: PayInterval;
+    /** Use this interval instead of the person's (e.g. a supplier's shared interval). */
+    interval?: PayInterval;
   }> = {},
 ): NextPay {
   const today = options.today ?? isoToday();
   const effective = effectivePayInterval(sqlite, userId, options.projectMemberId);
-  const interval = effective.interval ?? options.fallback ?? null;
+  const interval = options.interval ?? effective.interval ?? options.fallback ?? null;
   const project = options.projectId ?? null;
   const last = sqlite
     .prepare(

@@ -9,6 +9,7 @@
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
   import { ProblemNotice, TableRegion } from '$lib/portal/ui';
   import type { ProblemData } from '$lib/problem/contract';
+  import { intervalCopy, intervalLabel, periodRange } from '$lib/portal/interval-copy';
   let { data } = $props();
   const locale = $derived(normalizePortalLocale(data.locale));
   const t = (value: string) => portalText(locale, value);
@@ -171,6 +172,26 @@
       <p class="muted">
         {data.periodStart} → {data.periodEnd} · {t('Estimates are not proof of payment.')}
       </p>
+      <p class="pay-interval-line" data-pay-interval-line>
+        <strong
+          >{intervalCopy(locale, 'paid', {
+            interval: intervalLabel(locale, data.payInterval?.interval ?? null),
+          })}</strong
+        >
+        {#if data.payInterval?.nextStart && data.payInterval.nextEnd}
+          <span
+            >· {intervalCopy(locale, 'nextPay', {
+              range: periodRange(locale, data.payInterval.nextStart, data.payInterval.nextEnd),
+            })}</span
+          >
+          {#if data.payInterval.nextStart !== data.periodStart || data.payInterval.nextEnd !== data.periodEnd}
+            <a
+              href={`${base}/app/manage/worker-pay?worker=${encodeURIComponent(data.selectedWorker.id)}&start=${data.payInterval.nextStart}&end=${data.payInterval.nextEnd}`}
+              >{intervalCopy(locale, 'usePeriod')}</a
+            >
+          {/if}
+        {/if}
+      </p>
       <div class="money-grid">
         {#each data.pay.currencyBreakdown as row}
           <div class="money-item">
@@ -315,6 +336,13 @@
 </section>
 
 <style>
+  .pay-interval-line {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+  }
   .owner-pay {
     display: grid;
     gap: 1rem;

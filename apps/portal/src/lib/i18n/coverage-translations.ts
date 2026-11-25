@@ -8816,6 +8816,14 @@ const actionExact: Record<string, readonly [string, string]> = {
     'Regla de compensación guardada.',
     'Regra de remuneração salva.',
   ],
+  'action.finance.payIntervalSaved': [
+    'Frecuencia de pago guardada.',
+    'Frequência de pagamento salva.',
+  ],
+  'action.finance.billingIntervalSaved': [
+    'Frecuencia de facturación guardada.',
+    'Frequência de faturamento salva.',
+  ],
   'action.finance.compensationRuleSuperseded': [
     'Regla de compensación sustituida.',
     'Regra de remuneração substituída.',
@@ -9417,6 +9425,8 @@ function englishActionMessage(key: string): string {
     'action.reports.draftDeleted': 'Draft deleted.',
     'action.validation.compensationRule': 'Invalid compensation rule.',
     'action.finance.compensationRuleSaved': 'Worker compensation rule saved.',
+    'action.finance.payIntervalSaved': 'Pay interval saved.',
+    'action.finance.billingIntervalSaved': 'Invoice interval saved.',
     'action.validation.compensationRuleId': 'Compensation rule ID is invalid.',
     'action.validation.replacementCompensationRule': 'Invalid replacement compensation rule.',
     'action.finance.compensationRuleSuperseded': 'Compensation rule superseded.',

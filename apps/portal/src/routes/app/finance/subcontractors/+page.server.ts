@@ -12,10 +12,12 @@ import {
   approveSettlement,
   markSettlementPaid,
   parsePayeeKey,
+  parsePayInterval,
+  payeeNextPeriod,
+  settlementPeriod,
   SettlementActionError,
   settlementDetail,
   settlementOverview,
-  settlementWeek,
   type SettlementStatus,
 } from '$lib/server/subcontractor-settlement';
 import type { Actions, PageServerLoad } from './$types';
@@ -39,8 +41,15 @@ function openFinance(locals: App.Locals) {
 export const load: PageServerLoad = ({ locals, url }) => {
   const context = openFinance(locals);
   try {
-    const week = settlementWeek(url.searchParams.get('week'));
     const payee = parsePayeeKey(url.searchParams.get('payee'));
+    // Owner request 2026-11-25: weekly by default; a payee opens on the period its next pay
+    // covers, with the person's (or the supplier's people's) pay interval.
+    const intervalParam = parsePayInterval(url.searchParams.get('interval'));
+    const weekParam = url.searchParams.get('week');
+    const week =
+      payee && !weekParam && !intervalParam
+        ? payeeNextPeriod(context.sqlite, payee)
+        : settlementPeriod(weekParam, intervalParam ?? 'weekly');
     const q = (url.searchParams.get('q') ?? '').trim().slice(0, 100);
     const statusParam = url.searchParams.get('status') ?? 'all';
     const status = (['draft', 'approved', 'paid', 'all'].includes(statusParam) ? statusParam : 'all') as
@@ -80,7 +89,10 @@ export const actions: Actions = {
   approve: async ({ locals, request }) => {
     const form = await request.formData();
     const payee = parsePayeeKey(String(form.get('payee') ?? ''));
-    const week = settlementWeek(String(form.get('week') ?? ''));
+    const week = settlementPeriod(
+      String(form.get('week') ?? ''),
+      parsePayInterval(String(form.get('interval') ?? '')) ?? 'weekly',
+    );
     if (!payee) return fail(400, { success: false, message: 'Choose a subcontractor' });
     const context = openFinance(locals);
     try {
@@ -95,7 +107,10 @@ export const actions: Actions = {
   markPaid: async ({ locals, request }) => {
     const form = await request.formData();
     const payee = parsePayeeKey(String(form.get('payee') ?? ''));
-    const week = settlementWeek(String(form.get('week') ?? ''));
+    const week = settlementPeriod(
+      String(form.get('week') ?? ''),
+      parsePayInterval(String(form.get('interval') ?? '')) ?? 'weekly',
+    );
     const paidOn = String(form.get('paidOn') ?? '');
     const reference = String(form.get('reference') ?? '').trim();
     const requestKey = String(form.get('requestKey') ?? '');

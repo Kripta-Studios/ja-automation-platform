@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { intervalCopy, intervalLabel, periodRange } from '$lib/portal/interval-copy';
   import PortalNavIcon from '$lib/PortalNavIcon.svelte';
   import { navIconPath } from '$lib/portal/nav-icons';
   import { extrasText } from '$lib/portal/assignment-extras-copy';
@@ -4674,6 +4675,28 @@
         </label>
         <button>{translate('Apply period')}</button>
       </form>
+      {#if data.payInterval?.interval}
+        <p class="pay-interval-line" data-pay-interval-line>
+          <strong
+            >{intervalCopy(locale, 'paid', {
+              interval: intervalLabel(locale, data.payInterval.interval),
+            })}</strong
+          >
+          {#if data.payInterval.nextStart && data.payInterval.nextEnd}
+            <span
+              >· {intervalCopy(locale, 'nextPay', {
+                range: periodRange(locale, data.payInterval.nextStart, data.payInterval.nextEnd),
+              })}</span
+            >
+            {#if data.payInterval.nextStart !== data.periodStart || data.payInterval.nextEnd !== data.periodEnd}
+              <a
+                href={`${base}/app/pay?start=${data.payInterval.nextStart}&end=${data.payInterval.nextEnd}&lang=${encodeURIComponent(locale)}`}
+                >{intervalCopy(locale, 'usePeriod')}</a
+              >
+            {/if}
+          {/if}
+        </p>
+      {/if}
       {#if data.pay && !payPeriodProblem}
         <section class="pay-summary" aria-labelledby="pay-summary-title" data-pay-summary>
           <h2 id="pay-summary-title">{paySummaryText(locale, 'title')}</h2>
@@ -5406,6 +5429,7 @@
         teamWeekStart={data.teamWeekStart ?? ''}
         mailboxLinkedIds={data.mailboxLinkedIds ?? []}
         personPayRules={data.personPayRules ?? []}
+        personPayInterval={data.personPayInterval ?? null}
         personAssignModes={data.personAssignModes ?? {}}
         skills={data.allSkills ?? []}
         workerSkills={data.workerSkills ?? []}
@@ -8339,6 +8363,13 @@
 </div>
 
 <style>
+  .pay-interval-line {
+    margin: 0.25rem 0 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    align-items: center;
+  }
   .pay-summary {
     display: grid;
     gap: 0.6rem;

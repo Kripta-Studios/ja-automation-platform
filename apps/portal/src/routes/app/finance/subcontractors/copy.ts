@@ -1,11 +1,12 @@
 const en = {
   title: 'Subcontractor settlement',
-  intro: 'Approved hours × agreed pay rate, per week. Approve, export and mark as paid.',
+  intro:
+    "Approved hours × agreed pay rate, plus per diem and allowances, per pay period (each person's pay interval). Approve, export and mark as paid.",
   back: 'Back to Money',
   week: 'Week',
   weekLabel: 'CW{week} · {range}',
-  previous: 'Previous week',
-  next: 'Next week',
+  previous: 'Previous period',
+  next: 'Next period',
   search: 'Search subcontractor or worker…',
   status: 'Status',
   all: 'All',
@@ -13,11 +14,11 @@ const en = {
   approved: 'Approved',
   paid: 'Paid',
   apply: 'Search',
-  scope: 'CW{week} · {count} subcontractors with approved hours',
-  scopeOne: 'CW{week} · 1 subcontractor with approved hours',
+  scope: '{period} · {count} subcontractors with approved hours',
+  scopeOne: '{period} · 1 subcontractor with approved hours',
   showing: 'Showing {shown} of {total}',
   more: 'Show more',
-  none: 'No approved hours in this week.',
+  none: 'No approved hours in this period.',
   supplier: 'Supplier',
   person: 'Individual',
   workers: '{count} workers',
@@ -53,17 +54,18 @@ const en = {
   pdf: 'Download PDF',
   perHour: '/h',
   perDay: '/day',
-  noHours: 'No approved hours for this subcontractor in this week.',
+  noHours: 'No approved hours for this subcontractor in this period.',
 };
 type Key = keyof typeof en;
 const es: Record<Key, string> = {
   title: 'Liquidación de subcontratistas',
-  intro: 'Horas aprobadas × tarifa de pago acordada, por semana. Aprueba, exporta y marca como pagado.',
+  intro:
+    'Horas aprobadas × tarifa de pago acordada, más viáticos y pluses, por período de pago (la frecuencia de cada persona). Aprueba, exporta y marca como pagado.',
   back: 'Volver a Dinero',
   week: 'Semana',
   weekLabel: 'Sem. {week} · {range}',
-  previous: 'Semana anterior',
-  next: 'Semana siguiente',
+  previous: 'Período anterior',
+  next: 'Período siguiente',
   search: 'Buscar subcontratista o trabajador…',
   status: 'Estado',
   all: 'Todos',
@@ -71,11 +73,11 @@ const es: Record<Key, string> = {
   approved: 'Aprobada',
   paid: 'Pagada',
   apply: 'Buscar',
-  scope: 'Sem. {week} · {count} subcontratistas con horas aprobadas',
-  scopeOne: 'Sem. {week} · 1 subcontratista con horas aprobadas',
+  scope: '{period} · {count} subcontratistas con horas aprobadas',
+  scopeOne: '{period} · 1 subcontratista con horas aprobadas',
   showing: 'Mostrando {shown} de {total}',
   more: 'Ver más',
-  none: 'No hay horas aprobadas en esta semana.',
+  none: 'No hay horas aprobadas en este período.',
   supplier: 'Proveedor',
   person: 'Individual',
   workers: '{count} trabajadores',
@@ -99,7 +101,8 @@ const es: Record<Key, string> = {
   approve: 'Aprobar liquidación',
   approveHint: 'Fija los importes a partir de las horas aprobadas y las tarifas de pago.',
   approvedOk: 'Liquidación aprobada.',
-  changedWarning: 'Las horas cambiaron después de aprobar. Revísalo en la pantalla de pago del trabajador.',
+  changedWarning:
+    'Las horas cambiaron después de aprobar. Revísalo en la pantalla de pago del trabajador.',
   issuesWarning: '{count} entradas no tienen tarifa de pago válida. Ponla antes de aprobar.',
   markPaid: 'Marcar como pagada',
   paidOn: 'Pagada el',
@@ -111,16 +114,17 @@ const es: Record<Key, string> = {
   pdf: 'Descargar PDF',
   perHour: '/h',
   perDay: '/día',
-  noHours: 'Este subcontratista no tiene horas aprobadas en esta semana.',
+  noHours: 'Este subcontratista no tiene horas aprobadas en este período.',
 };
 const pt: Record<Key, string> = {
   title: 'Acerto de subcontratados',
-  intro: 'Horas aprovadas × taxa de pagamento combinada, por semana. Aprove, exporte e marque como pago.',
+  intro:
+    'Horas aprovadas × taxa de pagamento combinada, mais diárias e adicionais, por período de pagamento (a frequência de cada pessoa). Aprove, exporte e marque como pago.',
   back: 'Voltar a Dinheiro',
   week: 'Semana',
   weekLabel: 'S{week} · {range}',
-  previous: 'Semana anterior',
-  next: 'Próxima semana',
+  previous: 'Período anterior',
+  next: 'Próximo período',
   search: 'Buscar subcontratado ou trabalhador…',
   status: 'Status',
   all: 'Todos',
@@ -128,11 +132,11 @@ const pt: Record<Key, string> = {
   approved: 'Aprovado',
   paid: 'Pago',
   apply: 'Buscar',
-  scope: 'S{week} · {count} subcontratados com horas aprovadas',
-  scopeOne: 'S{week} · 1 subcontratado com horas aprovadas',
+  scope: '{period} · {count} subcontratados com horas aprovadas',
+  scopeOne: '{period} · 1 subcontratado com horas aprovadas',
   showing: 'Mostrando {shown} de {total}',
   more: 'Ver mais',
-  none: 'Não há horas aprovadas nesta semana.',
+  none: 'Não há horas aprovadas neste período.',
   supplier: 'Fornecedor',
   person: 'Individual',
   workers: '{count} trabalhadores',
@@ -156,7 +160,8 @@ const pt: Record<Key, string> = {
   approve: 'Aprovar acerto',
   approveHint: 'Fixa os valores a partir das horas aprovadas e das taxas de pagamento.',
   approvedOk: 'Acerto aprovado.',
-  changedWarning: 'As horas mudaram depois da aprovação. Revise na tela de pagamento do trabalhador.',
+  changedWarning:
+    'As horas mudaram depois da aprovação. Revise na tela de pagamento do trabalhador.',
   issuesWarning: '{count} lançamentos não têm taxa de pagamento válida. Defina antes de aprovar.',
   markPaid: 'Marcar como pago',
   paidOn: 'Pago em',
@@ -168,11 +173,15 @@ const pt: Record<Key, string> = {
   pdf: 'Baixar PDF',
   perHour: '/h',
   perDay: '/dia',
-  noHours: 'Este subcontratado não tem horas aprovadas nesta semana.',
+  noHours: 'Este subcontratado não tem horas aprovadas neste período.',
 };
 const copies = { en, es, pt };
 export type SettlementCopyKey = Key;
-export function settlementText(locale: string, key: Key, params: Record<string, string | number> = {}) {
+export function settlementText(
+  locale: string,
+  key: Key,
+  params: Record<string, string | number> = {},
+) {
   const table = copies[locale === 'es' || locale === 'pt' ? locale : 'en'];
   return table[key].replace(/\{(\w+)\}/gu, (_, name: string) => String(params[name] ?? ''));
 }

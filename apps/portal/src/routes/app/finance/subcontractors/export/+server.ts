@@ -4,11 +4,19 @@ import { renderHtmlToPdf, toCsv } from '@ja/reporting';
 import { decimalHoursFromMinutes } from '$lib/portal/minute-hours';
 import { minorToInputText, paymentMoney } from '$lib/portal/payment-money';
 import { openPortalRepository } from '$lib/server/portal-repository';
-import { parsePayeeKey, settlementDetail, settlementWeek } from '$lib/server/subcontractor-settlement';
+import {
+  parsePayeeKey,
+  parsePayInterval,
+  settlementDetail,
+  settlementPeriod,
+} from '$lib/server/subcontractor-settlement';
 import { settlementText } from '../copy';
 
 const escape = (value: string) =>
-  value.replace(/[&<>"']/gu, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
+  value.replace(
+    /[&<>"']/gu,
+    (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!,
+  );
 
 export const GET: RequestHandler = ({ locals, url }) => {
   if (!locals.user || !locals.session) error(401, 'Sign in required');
@@ -18,7 +26,10 @@ export const GET: RequestHandler = ({ locals, url }) => {
   const locale = lang === 'es' || lang === 'pt' ? lang : 'en';
   const tag = locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US';
   if (!payee) error(400, 'Choose a subcontractor');
-  const week = settlementWeek(url.searchParams.get('week'));
+  const week = settlementPeriod(
+    url.searchParams.get('week'),
+    parsePayInterval(url.searchParams.get('interval')) ?? 'weekly',
+  );
   const context = openPortalRepository(locals);
   try {
     try {
@@ -26,12 +37,20 @@ export const GET: RequestHandler = ({ locals, url }) => {
     } catch {
       error(401, 'Live authenticated session required');
     }
-    if (!['owner_admin', 'finance_admin'].includes(context.principal.role)) error(403, 'Finance access required');
+    if (!['owner_admin', 'finance_admin'].includes(context.principal.role))
+      error(403, 'Finance access required');
     const detail = settlementDetail(context, { payee, start: week.start, end: week.end });
     if (!detail) error(404, 'Subcontractor not found');
-    const t = (key: Parameters<typeof settlementText>[1], params: Record<string, string | number> = {}) =>
-      settlementText(locale, key, params);
-    const slug = detail.payee.name.normalize('NFD').replace(/[^\w]+/gu, '-').replace(/^-|-$/gu, '').slice(0, 60) || 'subcontractor';
+    const t = (
+      key: Parameters<typeof settlementText>[1],
+      params: Record<string, string | number> = {},
+    ) => settlementText(locale, key, params);
+    const slug =
+      detail.payee.name
+        .normalize('NFD')
+        .replace(/[^\w]+/gu, '-')
+        .replace(/^-|-$/gu, '')
+        .slice(0, 60) || 'subcontractor';
     const filename = `subcontractor-settlement-${week.year}-CW${String(week.week).padStart(2, '0')}-${slug}`;
     const headers = {
       'cache-control': 'private, no-store',
@@ -62,22 +81,34 @@ export const GET: RequestHandler = ({ locals, url }) => {
         [columns.project]: `${entry.projectNumber} ${entry.projectName}`,
         [columns.hours]: decimalHoursFromMinutes(entry.minutes),
         [columns.currency]: entry.currency,
-        [columns.rate]: entry.rateMinor === null ? '' : minorToInputText(entry.rateMinor, entry.currency),
+        [columns.rate]:
+          entry.rateMinor === null ? '' : minorToInputText(entry.rateMinor, entry.currency),
         [columns.basis]: basis(entry.rateBasis),
-        [columns.amount]: entry.amountMinor === null ? '' : minorToInputText(entry.amountMinor, entry.currency),
+        [columns.amount]:
+          entry.amountMinor === null ? '' : minorToInputText(entry.amountMinor, entry.currency),
         [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
       }));
-      return new Response(`\uFEFF${toCsv(rows, undefined, { numericColumns: [columns.hours, columns.rate, columns.amount] })}`, {
-        headers: {
-          ...headers,
-          'content-type': 'text/csv; charset=utf-8',
-          'content-disposition': `attachment; filename="${filename}.csv"`,
+      return new Response(
+        `\uFEFF${toCsv(rows, undefined, { numericColumns: [columns.hours, columns.rate, columns.amount] })}`,
+        {
+          headers: {
+            ...headers,
+            'content-type': 'text/csv; charset=utf-8',
+            'content-disposition': `attachment; filename="${filename}.csv"`,
+          },
         },
-      });
+      );
     }
-    const money = (minor: string | null, currency: string) => (minor === null ? '—' : paymentMoney(minor, currency, tag));
+    const money = (minor: string | null, currency: string) =>
+      minor === null ? '—' : paymentMoney(minor, currency, tag);
     const date = (iso: string) =>
-      new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(new Date(`${iso}T00:00:00Z`));
+      new Intl.DateTimeFormat(tag, {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      }).format(new Date(`${iso}T00:00:00Z`));
     const body = detail.workers
       .map(
         (worker) => `<h2>${escape(worker.name)} · ${decimalHoursFromMinutes(worker.minutes)} h</h2>
@@ -92,7 +123,10 @@ ${worker.entries
       )
       .join('\n');
     const totals = detail.totals
-      .map((total) => `<div><span>${t('totalFor', { currency: total.currency })}</span><strong>${escape(money(total.minor, total.currency))}</strong></div>`)
+      .map(
+        (total) =>
+          `<div><span>${t('totalFor', { currency: total.currency })}</span><strong>${escape(money(total.minor, total.currency))}</strong></div>`,
+      )
       .join('');
     const html = `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><title>${escape(filename)}</title>
 <style>@page{size:A4;margin:14mm}body{font:10pt Arial,sans-serif;color:#17212b}h1{font-size:18pt;margin:0 0 2mm}h2{font-size:11pt;margin:6mm 0 1mm;border-bottom:1px solid #d9e1e7}

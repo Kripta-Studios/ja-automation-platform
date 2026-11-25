@@ -4056,6 +4056,59 @@ export class V3Repository {
     });
   }
 
+  /**
+   * Worker-side assignment extras (per diem / allowance) of the approved worked days in a
+   * subcontractor settlement period, per worker and project (Money → Subcontractors preview).
+   * The same rules as settleCompensation: a monthly allowance already paid by another
+   * settlement is left out.
+   */
+  subcontractorSettlementExtras(
+    principal: Principal,
+    input: Readonly<{ workerIds: readonly string[]; periodStart: string; periodEnd: string }>,
+  ): Array<{ workerId: string; projectId: string; charges: ExtraCharge[] }> {
+    this.assertFinance(principal);
+    this.assertLiveSession(principal);
+    requireOrderedDateRange(input.periodStart, input.periodEnd);
+    const entries = this.subcontractorSettlementPreview(principal, input);
+    const groups = new Map<string, { workerId: string; projectId: string; rows: TimeRow[] }>();
+    for (const entry of entries) {
+      const key = `${entry.workerId}|${entry.projectId}`;
+      const group = groups.get(key) ?? {
+        workerId: entry.workerId,
+        projectId: entry.projectId,
+        rows: [],
+      };
+      group.rows.push({
+        id: entry.timeEntryId,
+        project_id: entry.projectId,
+        worker_id: entry.workerId,
+        work_date: entry.workDate,
+        category: entry.category,
+        activity_code: null,
+        minutes: entry.minutes,
+        approval_state: 'approved',
+        billability_state: '',
+        project_currency: entry.currency as V3Currency,
+      });
+      groups.set(key, group);
+    }
+    const result: Array<{ workerId: string; projectId: string; charges: ExtraCharge[] }> = [];
+    for (const group of groups.values()) {
+      const charges = this.settlementExtraCharges(
+        {
+          workerId: group.workerId,
+          projectId: group.projectId,
+          periodStart: input.periodStart,
+          periodEnd: input.periodEnd,
+        },
+        group.rows,
+      );
+      if (charges.length)
+        result.push({ workerId: group.workerId, projectId: group.projectId, charges });
+    }
+    return result;
+  }
+
   /** Owner review of one worker's current estimate, using the self-service calculation. */
   ownerWorkerPay(principal: Principal, workerId: string, periodStart: string, periodEnd: string) {
     this.assertOwnerWorkerPayAccess(principal);

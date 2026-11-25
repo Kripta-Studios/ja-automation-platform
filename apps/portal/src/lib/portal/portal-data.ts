@@ -182,6 +182,7 @@ export type PortalData = {
     expired: boolean;
   }>;
   personPayRules?: PortalRow[];
+  personPayInterval?: import('./interval-copy').PersonPayIntervalView | null;
   defaultsProjectIds?: string[];
   personAssignModes?: Record<string, 'defaults' | 'existing' | 'rates'>;
   workers?: PortalRow[];
@@ -232,6 +233,13 @@ export type PortalData = {
   financeToday?: string;
   payActivities?: PortalRow[];
   payExpenses?: PortalRow[];
+  /** My Pay: the person's pay interval and the period their next pay covers. */
+  payInterval?: {
+    interval: string | null;
+    source: 'assignment' | 'person' | 'none';
+    nextStart: string | null;
+    nextEnd: string | null;
+  };
   payOutstanding?: Array<{
     currency: string;
     settlementMinor: string;

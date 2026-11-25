@@ -1,6 +1,7 @@
 import type { DatabaseSync } from 'node:sqlite';
 import { mondayOf } from '$lib/server/portal-week';
 import { hasAssignmentFinanceCoverage } from '$lib/server/actions/assignment-finance';
+import { personPayIntervalView, type PersonPayIntervalView } from '$lib/server/intervals';
 
 /**
  * Extra, role-safe projections for the People directory (`/projects?view=team`).
@@ -30,6 +31,8 @@ export type TeamDirectoryExtras = {
   defaultsProjectIds: string[];
   /** Owner only, viewed person only: how a new assignment gets its rates. */
   personAssignModes: Record<string, 'defaults' | 'existing' | 'rates'>;
+  /** Owner only, viewed person only: how often the person is paid. */
+  personPayInterval: PersonPayIntervalView | null;
 };
 
 function shift(date: string, days: number): string {
@@ -168,5 +171,7 @@ export function loadTeamDirectoryExtras(
     mailboxLinkedIds,
     personPayRules,
     defaultsProjectIds,
+    personPayInterval:
+      isOwner && options.personId ? personPayIntervalView(sqlite, options.personId, today) : null,
   };
 }

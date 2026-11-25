@@ -3831,6 +3831,8 @@ export const PORTAL_ACTION_KEYS = [
   'action.finance.clientLaborRateSuperseded',
   'action.finance.compensationRuleDeactivated',
   'action.finance.compensationRuleSaved',
+  'action.finance.payIntervalSaved',
+  'action.finance.billingIntervalSaved',
   'action.finance.compensationRuleSuperseded',
   'action.finance.compensationSettled',
   'action.finance.compensationExpectedPaymentSaved',

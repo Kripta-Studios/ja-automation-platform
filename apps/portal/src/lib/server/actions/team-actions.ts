@@ -25,6 +25,8 @@ import { openPortalRepository } from '$lib/server/portal-repository';
 import { formObject, type PortalActionEvent } from '$lib/server/action-utils';
 import { actionFail, actionFailure, actionSuccess } from './action-message';
 import { rateMinor, withAssignmentFinanceTransaction } from './assignment-finance';
+import { PayBillingIntervalRepository } from '@ja/database';
+import { parsePayIntervalForm } from '$lib/server/intervals';
 
 const MAX_RENAMES = 200;
 
@@ -212,6 +214,46 @@ export const teamActions = {
       return actionSuccess('action.finance.compensationRuleSaved', {}, 'Default rates saved');
     } catch (error) {
       return actionFailure(error, { actionName: 'setPersonDefaultRates', values });
+    } finally {
+      context.sqlite.close();
+    }
+  },
+
+  /** Person page → Pay: how often this person is paid (audited version, Owner only here). */
+  setPersonPayInterval: async (event: PortalActionEvent) => {
+    if (event.params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const denied = ownerFailure(event);
+    if (denied) return denied;
+    const form = await event.request.formData();
+    const workerId = String(form.get('workerId') ?? '').trim();
+    const parsed = parsePayIntervalForm(form);
+    if (!uuidSchema.safeParse(workerId).success || !parsed.ok)
+      return actionFail(
+        400,
+        'problem.assignment.financeTermsRequired',
+        {},
+        'Complete the highlighted fields.',
+        {
+          code: 'PAY_INTERVAL_INVALID',
+          actionName: 'setPersonPayInterval',
+          fieldErrors: parsed.ok ? { workerId: ['Choose a person.'] } : parsed.fieldErrors,
+        },
+      );
+    let context: ReturnType<typeof openPortalRepository>;
+    try {
+      context = openPortalRepository(event.locals);
+    } catch (error) {
+      return actionFailure(error, { actionName: 'setPersonPayInterval' });
+    }
+    try {
+      new PayBillingIntervalRepository(context.sqlite).setPersonInterval(context.principal, {
+        userId: workerId,
+        ...parsed.value,
+      });
+      return actionSuccess('action.finance.payIntervalSaved', {}, 'Pay interval saved');
+    } catch (error) {
+      return actionFailure(error, { actionName: 'setPersonPayInterval' });
     } finally {
       context.sqlite.close();
     }

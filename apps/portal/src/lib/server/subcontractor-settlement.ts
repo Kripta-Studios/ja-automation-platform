@@ -1,7 +1,15 @@
 import type { DatabaseSync } from 'node:sqlite';
 import type { Principal } from '@ja/domain';
 import type { V3Repository } from '@ja/database';
-import { totalsByCurrency } from '@ja/billing-engine';
+import {
+  PAY_INTERVALS,
+  adjacentPeriodForCadence,
+  lastCompletePeriodForCadence,
+  periodForCadence,
+  totalsByCurrency,
+  type PayInterval,
+} from '@ja/billing-engine';
+import { effectivePayInterval, nextPayPeriod } from '@ja/database';
 import { foldSearchText } from '$lib/portal/client-directory';
 import { personDisplayName } from '$lib/portal/display-name';
 
@@ -42,8 +50,14 @@ function addDays(iso: string, days: number): string {
 }
 
 /** ISO week (Mon–Sun) containing `value`; default = last complete week before `today`. */
-export function settlementWeek(value: string | null, today = new Date().toISOString().slice(0, 10)) {
-  const anchor = value && ISO.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`)) ? value : addDays(today, -7);
+export function settlementWeek(
+  value: string | null,
+  today = new Date().toISOString().slice(0, 10),
+) {
+  const anchor =
+    value && ISO.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`))
+      ? value
+      : addDays(today, -7);
   const day = new Date(`${anchor}T00:00:00Z`).getUTCDay();
   const start = addDays(anchor, -((day + 6) % 7));
   const end = addDays(start, 6);
@@ -51,7 +65,83 @@ export function settlementWeek(value: string | null, today = new Date().toISOStr
   const thursday = new Date(`${addDays(start, 3)}T00:00:00Z`);
   const yearStart = new Date(Date.UTC(thursday.getUTCFullYear(), 0, 1));
   const week = Math.ceil(((thursday.getTime() - yearStart.getTime()) / 86_400_000 + 1) / 7);
-  return { start, end, week, year: thursday.getUTCFullYear(), previous: addDays(start, -7), next: addDays(start, 7) };
+  return {
+    start,
+    end,
+    week,
+    year: thursday.getUTCFullYear(),
+    previous: addDays(start, -7),
+    next: addDays(start, 7),
+  };
+}
+
+export type SettlementPeriod = ReturnType<typeof settlementWeek> & { interval: PayInterval };
+
+export function parsePayInterval(value: string | null): PayInterval | null {
+  return value && (PAY_INTERVALS as readonly string[]).includes(value)
+    ? (value as PayInterval)
+    : null;
+}
+
+/**
+ * The settlement period (owner request 2026-11-25): weekly by default, or every 2 weeks /
+ * twice a month / monthly. `value` is any day of the period; without it, the last complete
+ * period before today. `week`/`year` name the ISO week of the first day (weekly label).
+ */
+export function settlementPeriod(
+  value: string | null,
+  interval: PayInterval = 'weekly',
+  today = new Date().toISOString().slice(0, 10),
+): SettlementPeriod {
+  if (interval === 'weekly') return { ...settlementWeek(value, today), interval };
+  const valid = value && ISO.test(value) && !Number.isNaN(Date.parse(`${value}T00:00:00Z`));
+  const period = valid
+    ? periodForCadence(interval, value, { anchorDate: '2026-01-05' })!
+    : lastCompletePeriodForCadence(interval, today, { anchorDate: '2026-01-05' })!;
+  const week = settlementWeek(period.start, today);
+  return {
+    ...week,
+    start: period.start,
+    end: period.end,
+    previous: adjacentPeriodForCadence(interval, period, -1).start,
+    next: adjacentPeriodForCadence(interval, period, 1).start,
+    interval,
+  };
+}
+
+function payeeWorkerIds(sqlite: DatabaseSync, payee: PayeeKey): string[] {
+  const [kind, id] = payee.split(':') as ['supplier' | 'person', string];
+  if (kind === 'person') return [id];
+  return (
+    sqlite
+      .prepare('SELECT user_id FROM supplier_user_profile WHERE supplier_id=? ORDER BY user_id')
+      .all(id) as Array<{
+      user_id: string;
+    }>
+  ).map((row) => row.user_id);
+}
+
+/** How often a payee is paid: the person's interval, or the one all a supplier's people share. */
+export function payeeInterval(sqlite: DatabaseSync, payee: PayeeKey): PayInterval | null {
+  const intervals = new Set(
+    payeeWorkerIds(sqlite, payee).map((id) => effectivePayInterval(sqlite, id).interval),
+  );
+  const [only] = [...intervals];
+  return intervals.size === 1 && only ? only : null;
+}
+
+/** The period the payee's next pay covers (earliest among its people), with its interval. */
+export function payeeNextPeriod(
+  sqlite: DatabaseSync,
+  payee: PayeeKey,
+  today = new Date().toISOString().slice(0, 10),
+): SettlementPeriod {
+  const interval = payeeInterval(sqlite, payee) ?? 'weekly';
+  const starts = payeeWorkerIds(sqlite, payee)
+    .map((id) => nextPayPeriod(sqlite, id, { today, interval }).period?.start)
+    .filter((value): value is string => Boolean(value))
+    .sort();
+  return settlementPeriod(starts[0] ?? null, interval, today);
 }
 
 export function parsePayeeKey(value: string | null): PayeeKey | null {
@@ -109,7 +199,12 @@ type SettlementRow = {
   last_reference: string | null;
 };
 
-function settlementsFor(sqlite: DatabaseSync, workerIds: readonly string[], start: string, end: string): SettlementRow[] {
+function settlementsFor(
+  sqlite: DatabaseSync,
+  workerIds: readonly string[],
+  start: string,
+  end: string,
+): SettlementRow[] {
   if (!workerIds.length) return [];
   const placeholders = workerIds.map(() => '?').join(',');
   return sqlite
@@ -161,13 +256,17 @@ export type PayeeSummary = {
 function groupPayees(rows: readonly WorkerHours[]): PayeeSummary[] {
   const map = new Map<PayeeKey, PayeeSummary>();
   for (const row of rows) {
-    const key: PayeeKey = row.supplier_id ? `supplier:${row.supplier_id}` : `person:${row.worker_id}`;
+    const key: PayeeKey = row.supplier_id
+      ? `supplier:${row.supplier_id}`
+      : `person:${row.worker_id}`;
     const payee =
       map.get(key) ??
       ({
         key,
         kind: row.supplier_id ? 'supplier' : 'person',
-        name: row.supplier_id ? (row.supplier_name ?? '—') : personDisplayName(row.worker_name, row.worker_email) || row.worker_name,
+        name: row.supplier_id
+          ? (row.supplier_name ?? '—')
+          : personDisplayName(row.worker_name, row.worker_email) || row.worker_name,
         workers: [],
         minutes: 0,
       } satisfies PayeeSummary);
@@ -186,10 +285,29 @@ function groupPayees(rows: readonly WorkerHours[]): PayeeSummary[] {
 
 type Entry = ReturnType<V3Repository['subcontractorSettlementPreview']>[number];
 
+type ExtrasGroup = ReturnType<V3Repository['subcontractorSettlementExtras']>[number];
+
+/** Worker-side per diem / allowance of the period as display rows (exact minor units). */
+function extraRows(groups: readonly ExtrasGroup[]) {
+  return groups.flatMap((group) =>
+    group.charges.map((charge) => ({
+      workerId: group.workerId,
+      projectId: group.projectId,
+      kind: charge.kind,
+      basis: charge.basis,
+      units: charge.units.length,
+      currency: charge.currency,
+      rateMinor: charge.rateMinor.toString(),
+      amountMinor: charge.amountMinor.toString(),
+    })),
+  );
+}
+
 function summarize(
   entries: readonly Entry[],
   allSettlements: readonly SettlementRow[],
   week: Readonly<{ start: string; end: string }>,
+  extras: readonly ExtrasGroup[] = [],
 ) {
   const pairs = new Map<string, { minutes: number }>();
   const uncovered = new Set<string>();
@@ -214,7 +332,10 @@ function summarize(
   const unsettled = [...pairs.keys()].filter((key) => uncovered.has(key));
   // Hourly settlements record approved minutes as their source amount.
   const changed = [...pairs.entries()].filter(
-    ([key, value]) => settledPairs.has(key) && settledPairs.get(key)! !== BigInt(value.minutes) && settledPairs.get(key)! > 0n,
+    ([key, value]) =>
+      settledPairs.has(key) &&
+      settledPairs.get(key)! !== BigInt(value.minutes) &&
+      settledPairs.get(key)! > 0n,
   );
   const owed = settlements.map((row) => ({
     currency: row.currency,
@@ -224,9 +345,18 @@ function summarize(
     currency: row.currency,
     minorUnits: BigInt(row.amount_minor) - BigInt(row.paid_minor),
   }));
-  const estimate = entries
-    .filter((entry) => entry.amountMinor !== null)
-    .map((entry) => ({ currency: entry.currency, minorUnits: BigInt(entry.amountMinor!) }));
+  // Per diem / allowance are paid with the hours (settleCompensation adds them to the amount).
+  const estimate = [
+    ...entries
+      .filter((entry) => entry.amountMinor !== null)
+      .map((entry) => ({ currency: entry.currency, minorUnits: BigInt(entry.amountMinor!) })),
+    ...extras.flatMap((group) =>
+      group.charges.map((charge) => ({
+        currency: charge.currency,
+        minorUnits: charge.amountMinor,
+      })),
+    ),
+  ];
   const remainingTotal = [
     ...remaining,
     ...covering
@@ -251,7 +381,12 @@ function summarize(
     remaining: totalsByCurrency(remaining)
       .filter((row) => row.minorUnits !== 0n)
       .map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() })),
-    paidOn: covering.map((row) => row.last_paid_on).filter(Boolean).sort().at(-1) ?? null,
+    paidOn:
+      covering
+        .map((row) => row.last_paid_on)
+        .filter(Boolean)
+        .sort()
+        .at(-1) ?? null,
     reference: covering.find((row) => row.last_reference)?.last_reference ?? null,
   };
 }
@@ -259,29 +394,46 @@ function summarize(
 /** Overview: one row per payee with approved hours in the period (searchable, paged). */
 export function settlementOverview(
   context: SettlementContext,
-  input: Readonly<{ start: string; end: string; q: string; status: SettlementStatus | 'all'; limit: number }>,
+  input: Readonly<{
+    start: string;
+    end: string;
+    q: string;
+    status: SettlementStatus | 'all';
+    limit: number;
+  }>,
 ) {
   const payees = groupPayees(workersWithApprovedTime(context.sqlite, input.start, input.end));
   const needle = foldSearchText(input.q);
   const searched = needle
     ? payees.filter((payee) =>
-        foldSearchText([payee.name, ...payee.workers.map((worker) => worker.name)].join(' ')).includes(needle),
+        foldSearchText(
+          [payee.name, ...payee.workers.map((worker) => worker.name)].join(' '),
+        ).includes(needle),
       )
     : payees;
   // Price only the payees that can be shown (status filter needs each summary).
-  const rows: Array<PayeeSummary & ReturnType<typeof summarize> & { payable: boolean }> = [];
+  const rows: Array<
+    PayeeSummary & ReturnType<typeof summarize> & { payable: boolean; interval: PayInterval | null }
+  > = [];
   let matched = 0;
   for (const payee of searched) {
     const ids = payee.workers.map((worker) => worker.id);
+    const scope = { workerIds: ids, periodStart: input.start, periodEnd: input.end };
     const summary = summarize(
-      context.v3.subcontractorSettlementPreview(context.principal, { workerIds: ids, periodStart: input.start, periodEnd: input.end }),
+      context.v3.subcontractorSettlementPreview(context.principal, scope),
       settlementsFor(context.sqlite, ids, input.start, input.end),
       input,
+      context.v3.subcontractorSettlementExtras(context.principal, scope),
     );
     if (input.status !== 'all' && summary.status !== input.status) continue;
     matched += 1;
     if (rows.length < input.limit)
-      rows.push({ ...payee, ...summary, payable: isPayableSubcontractor(payee.kind) });
+      rows.push({
+        ...payee,
+        ...summary,
+        payable: isPayableSubcontractor(payee.kind),
+        interval: payeeInterval(context.sqlite, payee.key),
+      });
   }
   return { rows, total: matched, payeeCount: payees.length };
 }
@@ -298,10 +450,16 @@ export function settlementDetail(
     const [kind, id] = input.payee.split(':') as ['supplier' | 'person', string];
     const name =
       kind === 'supplier'
-        ? (context.sqlite.prepare('SELECT name FROM supplier WHERE id=?').get(id) as { name: string } | undefined)?.name
+        ? (
+            context.sqlite.prepare('SELECT name FROM supplier WHERE id=?').get(id) as
+              | { name: string }
+              | undefined
+          )?.name
         : (() => {
             const person = context.sqlite
-              .prepare("SELECT name,email FROM user WHERE id=? AND role IN ('worker','project_manager')")
+              .prepare(
+                "SELECT name,email FROM user WHERE id=? AND role IN ('worker','project_manager')",
+              )
               .get(id) as { name: string; email: string | null } | undefined;
             return person ? personDisplayName(person.name, person.email) || person.name : undefined;
           })();
@@ -317,30 +475,53 @@ export function settlementDetail(
       periodEnd: input.end,
     })
     // Display names on screen and in exports, never the login.
-    .map((entry) => ({ ...entry, workerName: workerNames.get(entry.workerId) ?? entry.workerName }));
+    .map((entry) => ({
+      ...entry,
+      workerName: workerNames.get(entry.workerId) ?? entry.workerName,
+    }));
   const settlements = settlementsFor(context.sqlite, ids, input.start, input.end);
+  const extras = context.v3.subcontractorSettlementExtras(context.principal, {
+    workerIds: ids,
+    periodStart: input.start,
+    periodEnd: input.end,
+  });
   const workers = payee.workers.map((worker) => {
     const own = entries.filter((entry) => entry.workerId === worker.id);
+    const ownExtras = extras.filter((group) => group.workerId === worker.id);
     const ownSettlements = settlements.filter((row) => row.worker_id === worker.id);
     return {
       id: worker.id,
       name: worker.name,
       minutes: worker.minutes,
       entries: own,
-      settled: totalsByCurrency(ownSettlements.map((row) => ({ currency: row.currency, minorUnits: BigInt(row.amount_minor) }))).map(
-        (row) => ({ currency: row.currency, minor: row.minorUnits.toString() }),
-      ),
-      estimate: totalsByCurrency(
-        own.filter((entry) => entry.amountMinor !== null).map((entry) => ({ currency: entry.currency, minorUnits: BigInt(entry.amountMinor!) })),
+      settled: totalsByCurrency(
+        ownSettlements.map((row) => ({
+          currency: row.currency,
+          minorUnits: BigInt(row.amount_minor),
+        })),
       ).map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() })),
+      estimate: totalsByCurrency([
+        ...own
+          .filter((entry) => entry.amountMinor !== null)
+          .map((entry) => ({ currency: entry.currency, minorUnits: BigInt(entry.amountMinor!) })),
+        ...ownExtras.flatMap((group) =>
+          group.charges.map((charge) => ({
+            currency: charge.currency,
+            minorUnits: charge.amountMinor,
+          })),
+        ),
+      ]).map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() })),
+      extras: extraRows(ownExtras),
     };
   });
   return {
     payee,
     workers,
     entries,
-    ...summarize(entries, settlements, input),
+    ...summarize(entries, settlements, input, extras),
+    extras: extraRows(extras),
     payable: isPayableSubcontractor(payee.kind),
+    interval: payeeInterval(context.sqlite, payee.key),
   };
 }
 
@@ -349,9 +530,13 @@ export const INTERNAL_PAID_VIA_COMPENSATION =
   'J&A workers are paid through their compensation settlements, not in the subcontractor settlement';
 
 /** Approve: create (or confirm) one compensation settlement per worker × project in the period. */
-export function approveSettlement(context: SettlementContext, input: Readonly<{ payee: PayeeKey; start: string; end: string }>) {
+export function approveSettlement(
+  context: SettlementContext,
+  input: Readonly<{ payee: PayeeKey; start: string; end: string }>,
+) {
   const detail = settlementDetail(context, input);
-  if (!detail || detail.entries.length === 0) throw new SettlementActionError('No approved hours to settle');
+  if (!detail || detail.entries.length === 0)
+    throw new SettlementActionError('No approved hours to settle');
   if (!detail.payable) throw new SettlementActionError(INTERNAL_PAID_VIA_COMPENSATION);
   if (detail.issues > 0) throw new SettlementActionError('Set the missing pay rates first');
   const allSettlements = settlementsFor(
@@ -377,10 +562,19 @@ export function approveSettlement(context: SettlementContext, input: Readonly<{ 
         `SELECT MAX(starts_on) starts_on, MIN(COALESCE(ends_on,'9999-12-31')) ends_on FROM project_member
           WHERE project_id=? AND user_id=? AND status='active' AND starts_on<=? AND (ends_on IS NULL OR ends_on>=?)`,
       )
-      .get(projectId, workerId, input.end, input.start) as { starts_on: string | null; ends_on: string | null };
-    const periodStart = member.starts_on && member.starts_on > input.start ? member.starts_on : input.start;
+      .get(projectId, workerId, input.end, input.start) as {
+      starts_on: string | null;
+      ends_on: string | null;
+    };
+    const periodStart =
+      member.starts_on && member.starts_on > input.start ? member.starts_on : input.start;
     const periodEnd = member.ends_on && member.ends_on < input.end ? member.ends_on : input.end;
-    const result = context.v3.settleCompensation(context.principal, { workerId, projectId, periodStart, periodEnd });
+    const result = context.v3.settleCompensation(context.principal, {
+      workerId,
+      projectId,
+      periodStart,
+      periodEnd,
+    });
     created += result.length;
   }
   return { created };
@@ -389,7 +583,14 @@ export function approveSettlement(context: SettlementContext, input: Readonly<{ 
 /** Mark as paid: record one payment per open settlement for the remaining amount (audited, idempotent). */
 export function markSettlementPaid(
   context: SettlementContext,
-  input: Readonly<{ payee: PayeeKey; start: string; end: string; paidOn: string; reference: string; requestKey: string }>,
+  input: Readonly<{
+    payee: PayeeKey;
+    start: string;
+    end: string;
+    paidOn: string;
+    reference: string;
+    requestKey: string;
+  }>,
 ) {
   const detail = settlementDetail(context, input);
   if (!detail) throw new SettlementActionError('Subcontractor not found');
@@ -399,7 +600,11 @@ export function markSettlementPaid(
   const ids = detail.payee.workers.map((worker) => worker.id);
   let recorded = 0;
   // Only settlements of this week are paid here; a longer period is paid where it was settled.
-  for (const row of withinWeek(settlementsFor(context.sqlite, ids, input.start, input.end), input.start, input.end)) {
+  for (const row of withinWeek(
+    settlementsFor(context.sqlite, ids, input.start, input.end),
+    input.start,
+    input.end,
+  )) {
     const remaining = BigInt(row.amount_minor) - BigInt(row.paid_minor);
     if (remaining <= 0n) continue;
     context.v3.recordCompensationPayment(context.principal, {

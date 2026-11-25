@@ -13,13 +13,51 @@
   import { paymentMoney } from '../payment-money';
   import { projectPickLabel } from '../project-ux-round3-copy';
   import { teamCopy, type TeamCopyKey } from '../team-ux-copy';
+  import { intervalCopy, intervalLabel, periodRange, type IntervalCopyKey } from '../interval-copy';
+  import type { PersonPayIntervalView } from '../interval-copy';
 
   let {
     personId,
     rules,
+    payInterval = null,
     locale,
     today,
-  }: { personId: string; rules: PortalRow[]; locale: string; today: string } = $props();
+  }: {
+    personId: string;
+    rules: PortalRow[];
+    payInterval?: PersonPayIntervalView | null;
+    locale: string;
+    today: string;
+  } = $props();
+  const ic = (key: IntervalCopyKey, params: Record<string, string | number> = {}) =>
+    intervalCopy(locale, key, params);
+  let intervalEditing = $state(false);
+  let intervalChoice = $state('');
+  let intervalAnchor = $state('');
+  let intervalStatus = $state<'idle' | 'saving' | 'done' | 'error'>('idle');
+  let intervalMessage = $state('');
+  function startIntervalEdit() {
+    intervalChoice = payInterval?.interval ?? '';
+    intervalAnchor = payInterval?.anchorDate ?? '';
+    intervalEditing = true;
+  }
+  const submitInterval: SubmitFunction = () => {
+    intervalStatus = 'saving';
+    return async ({ result }) => {
+      if (result.type === 'success') {
+        intervalStatus = 'done';
+        intervalMessage = ic('saved');
+        intervalEditing = false;
+        await invalidateAll();
+      } else {
+        intervalStatus = 'error';
+        const data = (result.type === 'failure' ? result.data : null) as {
+          message?: string;
+        } | null;
+        intervalMessage = ic('failed', { message: data?.message ?? '' });
+      }
+    };
+  };
 
   const c = (key: TeamCopyKey, params: Record<string, string | number> = {}) =>
     teamCopy(locale, key, params);
@@ -141,6 +179,89 @@
     </section>
   {/if}
 
+  {#if payInterval}
+    <section aria-labelledby="pay-interval" data-pay-interval>
+      <h3 id="pay-interval">{ic('payIntervalLabel')}</h3>
+      {#if intervalMessage}
+        <p class="pay-message" class:pay-message--error={intervalStatus === 'error'} role="status">
+          {intervalMessage}
+        </p>
+      {/if}
+      {#if !intervalEditing}
+        <p class="pay-interval-now">
+          <strong>{intervalLabel(locale, payInterval.interval)}</strong>
+          {#if payInterval.nextStart && payInterval.nextEnd}
+            <span
+              >· {ic('nextPay', {
+                range: periodRange(locale, payInterval.nextStart, payInterval.nextEnd),
+              })}</span
+            >
+          {/if}
+        </p>
+        <p class="pay-muted">{ic('payIntervalIntro')}</p>
+        {#if payInterval.overrides.length}
+          <p class="pay-muted">{ic('overridesTitle')}:</p>
+          <ul class="pay-list">
+            {#each payInterval.overrides as row (row.projectMemberId)}
+              <li>
+                <span
+                  >{projectPickLabel({
+                    project_number: row.projectNumber,
+                    name: row.projectName,
+                  })}</span
+                >
+                <strong>{intervalLabel(locale, row.interval)}</strong>
+              </li>
+            {/each}
+          </ul>
+        {/if}
+        <button
+          type="button"
+          class="secondary-button"
+          onclick={startIntervalEdit}
+          data-pay-interval-edit>{ic('change')}</button
+        >
+      {:else}
+        <form
+          method="POST"
+          action="?view=team&/setPersonPayInterval"
+          use:enhance={submitInterval}
+          class="pay-form"
+        >
+          <input type="hidden" name="workerId" value={personId} />
+          <input type="hidden" name="expectedVersion" value={payInterval.version} />
+          <label
+            >{ic('payIntervalLabel')}<select name="payInterval" bind:value={intervalChoice}>
+              <option value="">{ic('notSet')}</option>
+              <option value="weekly">{ic('weekly')}</option>
+              <option value="every_14_days">{ic('every_14_days')}</option>
+              <option value="semi_monthly">{ic('semi_monthly')}</option>
+              <option value="monthly">{ic('monthly')}</option>
+            </select></label
+          >
+          {#if intervalChoice === 'every_14_days'}
+            <label
+              >{ic('firstDay')}<input
+                type="date"
+                name="payAnchorDate"
+                bind:value={intervalAnchor}
+              />
+              <small class="pay-muted">{ic('firstDayHelp')}</small></label
+            >
+          {/if}
+          <div class="pay-actions">
+            <button type="button" class="secondary-button" onclick={() => (intervalEditing = false)}
+              >{ic('cancel')}</button
+            >
+            <button type="submit" class="primary-button" disabled={intervalStatus === 'saving'}
+              >{ic('save')}</button
+            >
+          </div>
+        </form>
+      {/if}
+    </section>
+  {/if}
+
   <div class="pay-links">
     <a class="primary-button" href={`${base}/app/manage/worker-pay?worker=${encodeURIComponent(personId)}`}
       >{c('payStatement')}</a
@@ -186,6 +307,12 @@
     border: 1px solid var(--portal-border, #e3e8ec);
     border-radius: 0.6rem;
     padding: 0.6rem 0.75rem;
+  }
+  .pay-interval-now {
+    margin: 0 0 0.25rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
   }
   .pay-list small {
     color: var(--portal-muted, #5b6670);

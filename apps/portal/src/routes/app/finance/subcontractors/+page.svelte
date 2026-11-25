@@ -5,26 +5,53 @@
   import { clockHoursFromMinutes } from '$lib/portal/minute-hours';
   import { settlementText, type SettlementCopyKey } from './copy';
   import { billingFixText } from '$lib/portal/billing-fix-copy';
+  import { intervalCopy, intervalLabel } from '$lib/portal/interval-copy';
+  import { extrasText } from '$lib/portal/assignment-extras-copy';
 
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
   const tag = $derived(locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-US');
   const t = (key: SettlementCopyKey, params: Record<string, string | number> = {}) =>
     settlementText(locale, key, params);
-  const fmt = (minor: string | null, currency: string) => (minor === null ? '—' : paymentMoney(minor, currency, tag));
+  const fmt = (minor: string | null, currency: string) =>
+    minor === null ? '—' : paymentMoney(minor, currency, tag);
   const day = (iso: string) =>
-    new Intl.DateTimeFormat(tag, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
-      new Date(`${iso}T00:00:00Z`),
-    );
+    new Intl.DateTimeFormat(tag, {
+      weekday: 'short',
+      day: 'numeric',
+      month: 'short',
+      timeZone: 'UTC',
+    }).format(new Date(`${iso}T00:00:00Z`));
   const shortDate = (iso: string) =>
-    new Intl.DateTimeFormat(tag, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(
-      new Date(`${iso}T00:00:00Z`),
-    );
+    new Intl.DateTimeFormat(tag, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      timeZone: 'UTC',
+    }).format(new Date(`${iso}T00:00:00Z`));
   const range = $derived(`${shortDate(data.week.start)} – ${shortDate(data.week.end)}`);
+  // Owner request 2026-11-25: weekly, every 2 weeks, twice a month or monthly periods.
+  const weekly = $derived(data.week.interval === 'weekly');
+  const periodLabel = $derived(
+    weekly
+      ? t('weekLabel', { week: data.week.week, range })
+      : `${intervalLabel(locale, data.week.interval)} · ${range}`,
+  );
+  const scopeLabel = $derived(
+    weekly
+      ? `${locale === 'es' ? 'Sem. ' : locale === 'pt' ? 'S' : 'CW'}${data.week.week}`
+      : `${intervalLabel(locale, data.week.interval)} · ${range}`,
+  );
+  const extraLabel = (extra: { kind: string; basis: string; units: number }) =>
+    extrasText(locale, extra.kind === 'per_diem' ? 'payPerDiem' : 'payAllowance', {
+      count: extra.units,
+      unit: extrasText(locale, extra.basis === 'month' ? 'months' : 'days'),
+    });
   const hours = (minutes: number) => clockHoursFromMinutes(minutes);
   function href(changes: Record<string, string | null>): string {
     const params = new URLSearchParams();
     params.set('week', data.week.start);
+    params.set('interval', data.week.interval);
     if (data.payee) params.set('payee', data.payee);
     if (data.q) params.set('q', data.q);
     if (data.status !== 'all') params.set('status', data.status);
@@ -34,12 +61,21 @@
     return `${base}/app/finance/subcontractors?${params}`;
   }
   const exportHref = (format: 'csv' | 'pdf') =>
-    `${base}/app/finance/subcontractors/export?${new URLSearchParams({ week: data.week.start, payee: data.payee ?? '', format, lang: locale })}`;
-  const statusVariant = (status: string) => (status === 'paid' ? 'ok' : status === 'approved' ? 'info' : 'draft');
+    `${base}/app/finance/subcontractors/export?${new URLSearchParams({ week: data.week.start, interval: data.week.interval, payee: data.payee ?? '', format, lang: locale })}`;
+  const statusVariant = (status: string) =>
+    status === 'paid' ? 'ok' : status === 'approved' ? 'info' : 'draft';
   const issueLabel = (issue: string | null) =>
-    issue === 'missing_rule' ? t('missingRule') : issue === 'currency_mismatch' ? t('currencyMismatch') : issue === 'not_hourly' ? t('notHourly') : '';
+    issue === 'missing_rule'
+      ? t('missingRule')
+      : issue === 'currency_mismatch'
+        ? t('currencyMismatch')
+        : issue === 'not_hourly'
+          ? t('notHourly')
+          : '';
   const rateHref = `${base}/app/finance?view=commercial&task=Worker%20compensation#finance-worker-compensation`;
-  const compensationHref = $derived(`${base}/app/finance?view=economic&source=settlements&lang=${locale}#worker-payments`);
+  const compensationHref = $derived(
+    `${base}/app/finance?view=economic&source=settlements&lang=${locale}#worker-payments`,
+  );
   let saving = $state(false);
   const submit = () => {
     saving = true;
@@ -57,15 +93,45 @@
   <p class="sub__intro">{t('intro')}</p>
 
   <nav class="sub__week" aria-label={t('week')}>
-    <a class="sub__btn sub__btn--ghost" href={href({ week: data.week.previous })} aria-label={t('previous')} data-week-prev>‹</a>
+    <a
+      class="sub__btn sub__btn--ghost"
+      href={href({ week: data.week.previous })}
+      aria-label={t('previous')}
+      data-week-prev>‹</a
+    >
     <form method="GET" class="sub__weekform">
       {#if data.payee}<input type="hidden" name="payee" value={data.payee} />{/if}
       <label>
-        <span class="sub__weeklabel" data-week-label>{t('weekLabel', { week: data.week.week, range })}</span>
-        <input type="date" name="week" value={data.week.start} onchange={(event) => event.currentTarget.form?.requestSubmit()} aria-label={t('week')} />
+        <span class="sub__weeklabel" data-week-label>{periodLabel}</span>
+        <input
+          type="date"
+          name="week"
+          value={data.week.start}
+          onchange={(event) => event.currentTarget.form?.requestSubmit()}
+          aria-label={t('week')}
+        />
+      </label>
+      <label>
+        <span class="sub__muted">{intervalCopy(locale, 'periodLabel')}</span>
+        <select
+          name="interval"
+          value={data.week.interval}
+          onchange={(event) => event.currentTarget.form?.requestSubmit()}
+          data-period-interval
+        >
+          <option value="weekly">{intervalCopy(locale, 'weekly')}</option>
+          <option value="every_14_days">{intervalCopy(locale, 'every_14_days')}</option>
+          <option value="semi_monthly">{intervalCopy(locale, 'semi_monthly')}</option>
+          <option value="monthly">{intervalCopy(locale, 'monthly')}</option>
+        </select>
       </label>
     </form>
-    <a class="sub__btn sub__btn--ghost" href={href({ week: data.week.next })} aria-label={t('next')} data-week-next>›</a>
+    <a
+      class="sub__btn sub__btn--ghost"
+      href={href({ week: data.week.next })}
+      aria-label={t('next')}
+      data-week-next>›</a
+    >
   </nav>
 
   {#if form?.message}
@@ -77,8 +143,20 @@
   {#if data.overview}
     <form method="GET" class="sub__filters">
       <input type="hidden" name="week" value={data.week.start} />
-      <input type="search" name="q" value={data.q} placeholder={t('search')} aria-label={t('search')} />
-      <select name="status" value={data.status} aria-label={t('status')} onchange={(event) => event.currentTarget.form?.requestSubmit()}>
+      <input type="hidden" name="interval" value={data.week.interval} />
+      <input
+        type="search"
+        name="q"
+        value={data.q}
+        placeholder={t('search')}
+        aria-label={t('search')}
+      />
+      <select
+        name="status"
+        value={data.status}
+        aria-label={t('status')}
+        onchange={(event) => event.currentTarget.form?.requestSubmit()}
+      >
         <option value="all">{t('all')}</option>
         <option value="draft">{t('draft')}</option>
         <option value="approved">{t('approved')}</option>
@@ -87,8 +165,14 @@
       <button type="submit" class="sub__btn sub__btn--ghost">{t('apply')}</button>
     </form>
     <p class="sub__scope" data-settlement-scope>
-      {t(data.overview.total === 1 ? 'scopeOne' : 'scope', { week: data.week.week, count: data.overview.total })}
-      {#if data.overview.total > data.overview.rows.length}· {t('showing', { shown: data.overview.rows.length, total: data.overview.total })}{/if}
+      {t(data.overview.total === 1 ? 'scopeOne' : 'scope', {
+        period: scopeLabel,
+        count: data.overview.total,
+      })}
+      {#if data.overview.total > data.overview.rows.length}· {t('showing', {
+          shown: data.overview.rows.length,
+          total: data.overview.total,
+        })}{/if}
     </p>
     {#if data.overview.rows.length === 0}
       <p class="sub__empty">{t('none')}</p>
@@ -96,26 +180,50 @@
       <ul class="sub__list">
         {#each data.overview.rows as row (row.key)}
           <li data-payee-row={row.key}>
-            <a href={href({ payee: row.key, q: null, status: null })} class="sub__row">
+            <!-- The payee opens on the period its own next pay covers. -->
+            <a
+              href={href({ payee: row.key, q: null, status: null, week: null, interval: null })}
+              class="sub__row"
+            >
               <span class="sub__name">
                 <strong>{row.name}</strong>
-                <small>{row.kind === 'supplier' ? t('supplier') : t('person')} · {row.kind === 'supplier' ? t('workers', { count: row.workers.length }) : ''} {t('hours', { hours: hours(row.minutes) })}</small>
+                <small
+                  >{row.kind === 'supplier' ? t('supplier') : t('person')} · {row.kind ===
+                  'supplier'
+                    ? t('workers', { count: row.workers.length })
+                    : ''}
+                  {t('hours', { hours: hours(row.minutes) })}
+                  · {intervalCopy(locale, 'paid', {
+                    interval: intervalLabel(locale, row.interval ?? 'weekly'),
+                  })}</small
+                >
               </span>
               <span class="sub__money">
-                {#each row.totals as total (total.currency)}<strong>{fmt(total.minor, total.currency)}</strong>{/each}
-                {#if row.payable}<small>{row.status === 'draft' ? t('estimate') : t('owed')}</small>{/if}
+                {#each row.totals as total (total.currency)}<strong
+                    >{fmt(total.minor, total.currency)}</strong
+                  >{/each}
+                {#if row.payable}<small>{row.status === 'draft' ? t('estimate') : t('owed')}</small
+                  >{/if}
               </span>
               {#if row.payable}
-                <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}>{t(row.status)}</span>
+                <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}
+                  >{t(row.status)}</span
+                >
               {:else}
-                <span class="sub__badge sub__badge--info" data-internal-worker>{billingFixText(locale, 'internalPaidViaCompensation')}</span>
+                <span class="sub__badge sub__badge--info" data-internal-worker
+                  >{billingFixText(locale, 'internalPaidViaCompensation')}</span
+                >
               {/if}
             </a>
           </li>
         {/each}
       </ul>
       {#if data.overview.total > data.overview.rows.length}
-        <p><a class="sub__btn sub__btn--ghost" href={href({ show: String(data.limit + 25) })}>{t('more')}</a></p>
+        <p>
+          <a class="sub__btn sub__btn--ghost" href={href({ show: String(data.limit + 25) })}
+            >{t('more')}</a
+          >
+        </p>
       {/if}
     {/if}
   {:else if data.detail}
@@ -125,12 +233,24 @@
       <header class="sub__head">
         <div>
           <h2>{detail.payee.name}</h2>
-          <p class="sub__muted">{detail.payee.kind === 'supplier' ? t('supplier') : t('person')} · {t('weekLabel', { week: data.week.week, range })}</p>
+          <p class="sub__muted">
+            {detail.payee.kind === 'supplier' ? t('supplier') : t('person')} · {periodLabel}
+          </p>
+          <p class="sub__muted" data-payee-interval>
+            {intervalCopy(locale, 'paid', {
+              interval: intervalLabel(locale, detail.interval ?? 'weekly'),
+            })}
+          </p>
         </div>
         {#if detail.payable}
-          <span class={`sub__badge sub__badge--${statusVariant(detail.status)}`} data-settlement-status={detail.status}>{t(detail.status)}</span>
+          <span
+            class={`sub__badge sub__badge--${statusVariant(detail.status)}`}
+            data-settlement-status={detail.status}>{t(detail.status)}</span
+          >
         {:else}
-          <span class="sub__badge sub__badge--info" data-internal-worker>{billingFixText(locale, 'internalPaidViaCompensation')}</span>
+          <span class="sub__badge sub__badge--info" data-internal-worker
+            >{billingFixText(locale, 'internalPaidViaCompensation')}</span
+          >
         {/if}
       </header>
       {#if !detail.payable}
@@ -142,20 +262,36 @@
 
       <div class="sub__totals" data-settlement-totals>
         {#each detail.totals as total (total.currency)}
-          <div><small>{detail.status === 'draft' ? t('estimate') : t('owed')} · {total.currency}</small><strong>{fmt(total.minor, total.currency)}</strong></div>
+          <div>
+            <small>{detail.status === 'draft' ? t('estimate') : t('owed')} · {total.currency}</small
+            ><strong>{fmt(total.minor, total.currency)}</strong>
+          </div>
         {/each}
         {#if detail.status === 'approved'}
           {#each detail.remaining as total (total.currency)}
-            <div><small>{t('remaining')} · {total.currency}</small><strong>{fmt(total.minor, total.currency)}</strong></div>
+            <div>
+              <small>{t('remaining')} · {total.currency}</small><strong
+                >{fmt(total.minor, total.currency)}</strong
+              >
+            </div>
           {/each}
         {/if}
         {#if detail.status === 'paid' && detail.paidOn}
-          <div class="sub__paidinfo"><small>{t('paid')}</small><strong>{t('paidInfo', { date: shortDate(detail.paidOn), reference: detail.reference ?? '' })}</strong></div>
+          <div class="sub__paidinfo">
+            <small>{t('paid')}</small><strong
+              >{t('paidInfo', {
+                date: shortDate(detail.paidOn),
+                reference: detail.reference ?? '',
+              })}</strong
+            >
+          </div>
         {/if}
       </div>
 
       {#if detail.issues > 0}
-        <p class="sub__warn" role="alert">{t('issuesWarning', { count: detail.issues })} <a href={rateHref}>{t('setRate')}</a></p>
+        <p class="sub__warn" role="alert">
+          {t('issuesWarning', { count: detail.issues })} <a href={rateHref}>{t('setRate')}</a>
+        </p>
       {/if}
       {#if detail.changedPairs > 0}
         <p class="sub__warn">{t('changedWarning')}</p>
@@ -165,17 +301,27 @@
         <p class="sub__empty">{t('noHours')}</p>
       {:else}
         {#each detail.workers as worker (worker.id)}
-          <details class="sub__worker" open={detail.workers.length <= 6} data-settlement-worker={worker.id}>
+          <details
+            class="sub__worker"
+            open={detail.workers.length <= 6}
+            data-settlement-worker={worker.id}
+          >
             <summary>
               <strong>{worker.name}</strong>
               <span>{t('hours', { hours: hours(worker.minutes) })}</span>
               <span class="sub__money">
-                {#each (detail.status === 'draft' || worker.settled.length === 0 ? worker.estimate : worker.settled) as total (total.currency)}<strong>{fmt(total.minor, total.currency)}</strong>{/each}
+                {#each detail.status === 'draft' || worker.settled.length === 0 ? worker.estimate : worker.settled as total (total.currency)}<strong
+                    >{fmt(total.minor, total.currency)}</strong
+                  >{/each}
               </span>
             </summary>
             <table class="sub__table">
               <thead>
-                <tr><th>{t('day')}</th><th>{t('project')}</th><th class="num">{t('hoursCol')}</th><th class="num">{t('rate')}</th><th class="num">{t('amount')}</th></tr>
+                <tr
+                  ><th>{t('day')}</th><th>{t('project')}</th><th class="num">{t('hoursCol')}</th><th
+                    class="num">{t('rate')}</th
+                  ><th class="num">{t('amount')}</th></tr
+                >
               </thead>
               <tbody>
                 {#each worker.entries as entry (entry.timeEntryId)}
@@ -184,13 +330,37 @@
                     <td data-label={t('project')}>{entry.projectNumber} · {entry.projectName}</td>
                     <td data-label={t('hoursCol')} class="num">{hours(entry.minutes)}</td>
                     <td data-label={t('rate')} class="num">
-                      {#if entry.rateMinor !== null}{fmt(entry.rateMinor, entry.currency)}{entry.rateBasis === 'daily' ? t('perDay') : t('perHour')}{:else}—{/if}
+                      {#if entry.rateMinor !== null}{fmt(
+                          entry.rateMinor,
+                          entry.currency,
+                        )}{entry.rateBasis === 'daily' ? t('perDay') : t('perHour')}{:else}—{/if}
                     </td>
                     <td data-label={t('amount')} class="num">
-                      {#if entry.issue && entry.issue !== 'not_hourly'}<a class="sub__issue" href={rateHref}>{issueLabel(entry.issue)}</a>
-                      {:else if entry.issue === 'not_hourly'}<span class="sub__muted">{issueLabel(entry.issue)}</span>
+                      {#if entry.issue && entry.issue !== 'not_hourly'}<a
+                          class="sub__issue"
+                          href={rateHref}>{issueLabel(entry.issue)}</a
+                        >
+                      {:else if entry.issue === 'not_hourly'}<span class="sub__muted"
+                          >{issueLabel(entry.issue)}</span
+                        >
                       {:else}{fmt(entry.amountMinor, entry.currency)}{/if}
                     </td>
+                  </tr>
+                {/each}
+                {#each worker.extras as extra, index (index)}
+                  <tr data-settlement-extra={extra.kind}>
+                    <td data-label={t('day')}>{extraLabel(extra)}</td>
+                    <td data-label={t('project')}
+                      >{worker.entries.find((entry) => entry.projectId === extra.projectId)
+                        ?.projectNumber ?? ''}</td
+                    >
+                    <td data-label={t('hoursCol')} class="num">—</td>
+                    <td data-label={t('rate')} class="num"
+                      >{fmt(extra.rateMinor, extra.currency)}</td
+                    >
+                    <td data-label={t('amount')} class="num"
+                      >{fmt(extra.amountMinor, extra.currency)}</td
+                    >
                   </tr>
                 {/each}
               </tbody>
@@ -206,22 +376,62 @@
           <form method="POST" action="?/approve" use:enhance={submit}>
             <input type="hidden" name="payee" value={detail.payee.key} />
             <input type="hidden" name="week" value={data.week.start} />
-            <button class="sub__btn" type="submit" disabled={saving || detail.issues > 0} data-settlement-approve>{t('approve')}</button>
+            <input type="hidden" name="interval" value={data.week.interval} />
+            <button
+              class="sub__btn"
+              type="submit"
+              disabled={saving || detail.issues > 0}
+              data-settlement-approve>{t('approve')}</button
+            >
             <small class="sub__muted">{t('approveHint')}</small>
           </form>
         {:else if detail.status === 'approved'}
           <form method="POST" action="?/markPaid" class="sub__payform" use:enhance={submit}>
             <input type="hidden" name="payee" value={detail.payee.key} />
             <input type="hidden" name="week" value={data.week.start} />
+            <input type="hidden" name="interval" value={data.week.interval} />
             <input type="hidden" name="requestKey" value={data.requestKey} />
-            <label><span>{t('paidOn')}</span><input type="date" name="paidOn" value={data.today} required /></label>
-            <label><span>{t('reference')}</span><input name="reference" required maxlength="200" placeholder={t('referencePlaceholder')} value={`CW${data.week.week} ${detail.payee.name}`.slice(0, 200)} /></label>
-            <button class="sub__btn" type="submit" disabled={saving} data-settlement-paid>{t('markPaid')}</button>
+            <label
+              ><span>{t('paidOn')}</span><input
+                type="date"
+                name="paidOn"
+                value={data.today}
+                required
+              /></label
+            >
+            <label
+              ><span>{t('reference')}</span><input
+                name="reference"
+                required
+                maxlength="200"
+                placeholder={t('referencePlaceholder')}
+                value={`${weekly ? `CW${data.week.week}` : range} ${detail.payee.name}`.slice(
+                  0,
+                  200,
+                )}
+              /></label
+            >
+            <button class="sub__btn" type="submit" disabled={saving} data-settlement-paid
+              >{t('markPaid')}</button
+            >
           </form>
         {/if}
         <div class="sub__exports">
-          <a class="sub__btn sub__btn--ghost" href={exportHref('pdf')} data-sveltekit-reload target="_blank" rel="noopener" data-settlement-pdf>{t('pdf')}</a>
-          <a class="sub__btn sub__btn--ghost" href={exportHref('csv')} data-sveltekit-reload download data-settlement-csv>{t('csv')}</a>
+          <a
+            class="sub__btn sub__btn--ghost"
+            href={exportHref('pdf')}
+            data-sveltekit-reload
+            target="_blank"
+            rel="noopener"
+            data-settlement-pdf>{t('pdf')}</a
+          >
+          <a
+            class="sub__btn sub__btn--ghost"
+            href={exportHref('csv')}
+            data-sveltekit-reload
+            download
+            data-settlement-csv>{t('csv')}</a
+          >
         </div>
       </div>
     </section>

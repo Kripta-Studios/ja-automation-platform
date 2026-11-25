@@ -11,6 +11,7 @@
   import { compatibleBillingPeriod, type BillingPeriodStream } from '../billing-period-recovery';
   import { journeyText, journeyReason, journeyMoney } from '../project-invoice-journey';
   import { localeDecimalHoursFromMinutes } from '../minute-hours';
+  import { intervalCopy, intervalLabel, periodRange } from '../interval-copy';
   import type { InvoiceCompositionSource, InvoiceCompositionSourceRef } from '@ja/database';
 
   type Rule = Record<string, unknown>;
@@ -349,6 +350,22 @@
           ? undefined
           : Number(selectedRule.monthly_cutoff_day),
     };
+  }
+  function nextPeriodOf(candidate: Rule | undefined): { start: string; end: string } | null {
+    const nextStart = String(candidate?.next_period_start ?? '');
+    const nextEnd = String(candidate?.next_period_end ?? '');
+    return /^\d{4}-\d{2}-\d{2}$/.test(nextStart) && /^\d{4}-\d{2}-\d{2}$/.test(nextEnd)
+      ? { start: nextStart, end: nextEnd }
+      : null;
+  }
+  function applyNextPeriod(): void {
+    const period = nextPeriodOf(rule);
+    if (!period) return;
+    start = period.start;
+    end = period.end;
+    preview = null;
+    feedback = null;
+    notice = '';
   }
   function cadenceText(cadence: string): string {
     const labels = {
@@ -886,10 +903,13 @@
       : explicitRuleId || restoredRuleId || String(supportedRules[0]!.id);
     const defaultDate = initialDate || todayForTimezone(selectedProjectTimezone);
     const selectedRule = supportedRules.find((item) => String(item.id) === ruleId)!;
-    const period = compatibleBillingPeriod(periodStream(selectedRule), {
-      start: defaultDate,
-      end: defaultDate,
-    });
+    // Owner request 2026-11-25: open on the period the next invoice of the stream covers.
+    const period =
+      nextPeriodOf(selectedRule) ??
+      compatibleBillingPeriod(periodStream(selectedRule), {
+        start: defaultDate,
+        end: defaultDate,
+      });
     start = preserveUnresolvedScope
       ? restored!.start
       : explicitPeriodProvided
@@ -979,6 +999,37 @@
         {#if rule}
           <p class="composer-field-help" data-stream-effective-interval>
             {text('effectiveInterval')}: {ruleEffectiveLabel(rule)}
+          </p>
+          <p class="composer-interval" data-stream-next-period>
+            <strong
+              >{intervalCopy(locale, 'invoiced', {
+                interval: intervalLabel(
+                  locale,
+                  String(rule.cadence_type),
+                  rule.monthly_cutoff_day as number | null,
+                ),
+              })}</strong
+            >
+            {#if nextPeriodOf(rule)}
+              <span
+                >· {intervalCopy(locale, 'nextInvoice', {
+                  range: periodRange(locale, nextPeriodOf(rule)!.start, nextPeriodOf(rule)!.end),
+                })}</span
+              >
+              {#if start !== nextPeriodOf(rule)!.start || end !== nextPeriodOf(rule)!.end}
+                <button
+                  type="button"
+                  class="quiet-button"
+                  onclick={applyNextPeriod}
+                  disabled={busy || formBusy || !!invoice || uncertainCreate}
+                  data-use-next-period>{intervalCopy(locale, 'usePeriod')}</button
+                >
+              {/if}
+            {:else if String(rule.cadence_type) === 'milestone'}
+              <span>· {intervalCopy(locale, 'noPeriodMilestone')}</span>
+            {:else if String(rule.cadence_type) === 'manual'}
+              <span>· {intervalCopy(locale, 'noPeriodManual')}</span>
+            {/if}
           </p>
         {/if}
         <label
@@ -1630,6 +1681,14 @@
   }
   .composer-period-help {
     margin-top: -0.4rem;
+  }
+  .composer-interval {
+    grid-column: 1 / -1;
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.35rem;
   }
   .composer-period-presets {
     grid-column: 1 / -1;

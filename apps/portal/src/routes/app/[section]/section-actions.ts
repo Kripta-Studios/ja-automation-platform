@@ -98,6 +98,7 @@ export const sectionActions: Actions = {
   updateWorkerProfile: accessActions.updateWorkerProfile,
   fixPersonNames: teamActions.fixPersonNames,
   setPersonDefaultRates: teamActions.setPersonDefaultRates,
+  setPersonPayInterval: teamActions.setPersonPayInterval,
   updateSkill: reportActions.updateSkill,
   deleteSkill: reportActions.deleteSkill,
   deleteWorkerSkill: reportActions.deleteWorkerSkill,

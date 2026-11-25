@@ -1,5 +1,10 @@
 import { setAssignmentPurchaseOrder } from '$lib/server/assignment-po';
 import { projectExtrasValues, saveAssignmentExtras } from '$lib/server/assignment-extras-form';
+import {
+  parsePayIntervalForm,
+  projectAssignmentPayIntervals,
+  withNextInvoicePeriods,
+} from '$lib/server/intervals';
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { lastCompletePeriodForCadence, type BillingCadence, type Currency } from '@ja/billing-engine';
@@ -11,6 +16,8 @@ import {
   AccessDeniedError,
   ConflictError,
   ProjectBillingSetupRepository,
+  PayBillingIntervalRepository,
+  clientBillingInterval,
   ProjectPersonDefaultsRepository,
   ProjectDefaultsDateConflictError,
   ValidationError,
@@ -156,10 +163,14 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           periodValues: defaultPeriod,
           periodProblem: null,
         };
+    // Each stream carries the period its next invoice covers (owner request 2026-11-25).
     const billingRules = financeVisible
-      ? context.repository
-          .listBillingRules(context.principal)
-          .filter((rule) => String(rule.project_id) === params.id)
+      ? withNextInvoicePeriods(
+          context.sqlite,
+          context.repository
+            .listBillingRules(context.principal)
+            .filter((rule) => String(rule.project_id) === params.id),
+        )
       : [];
     const latestLaborRule = [...billingRules]
       .filter((rule) => rule.stream_type === 'labor' && Number(rule.enabled) === 1)
@@ -167,14 +178,27 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
     const latestExpenseRule = [...billingRules]
       .filter((rule) => rule.stream_type === 'expense' && Number(rule.enabled) === 1)
       .sort((a, b) => String(b.effective_from).localeCompare(String(a.effective_from)))[0];
+    const projectRow = overview.project as { client_id?: string };
     const billingSetup =
       financeVisible && validProjectTimezone
         ? new ProjectBillingSetupRepository(context.sqlite, context.repository)
         : null;
-    const projectRow = overview.project as { client_id?: string };
-    const invoiceDraftPeriod = cadencePeriod(
-      (latestLaborRule ?? billingRules[0]) as Record<string, unknown> | undefined,
-    );
+    const draftRule = (latestLaborRule ?? billingRules[0]) as
+      | (Record<string, unknown> & {
+          next_period_start?: string | null;
+          next_period_end?: string | null;
+        })
+      | undefined;
+    const invoiceDraftPeriod =
+      draftRule?.next_period_start && draftRule.next_period_end
+        ? { periodStart: draftRule.next_period_start, periodEnd: draftRule.next_period_end }
+        : cadencePeriod(draftRule);
+    // Client default invoice interval: prefills a new billing setup and explains where the
+    // project's interval comes from.
+    const clientInterval =
+      financeVisible && projectRow.client_id
+        ? clientBillingInterval(context.sqlite, projectRow.client_id)
+        : null;
     return {
       user: locals.user,
       periodStart,
@@ -196,10 +220,16 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           ? context.repository.listClientContacts(context.principal, projectRow.client_id)
           : [],
       billingRules,
+      clientBillingInterval: clientInterval,
       // Owner request 2026-11-25: optional per-person extras (per diem, allowance, overtime).
       assignmentExtras:
         context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
           ? projectExtrasValues(context, params.id, String(overview.project.currency))
+          : null,
+      // Owner request 2026-11-25: how often each person on this project is paid.
+      assignmentPayIntervals:
+        context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
+          ? projectAssignmentPayIntervals(context.sqlite, params.id)
           : null,
       personDefaults: financeVisible
         ? new ProjectPersonDefaultsRepository(context.sqlite, context.repository).latest(
@@ -2118,6 +2148,53 @@ export const actions: Actions = {
         code: status === 409 ? 'ASSIGNMENT_EXTRAS_CONFLICT' : 'ASSIGNMENT_EXTRAS_FAILED',
         extrasMessage: status === 500 ? 'The extras could not be saved. Try again.' : message,
       });
+    } finally {
+      context?.sqlite.close();
+    }
+  },
+  setAssignmentPayInterval: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const extras = { action: 'setAssignmentPayInterval', actionName: 'setAssignmentPayInterval' };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extras,
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+      });
+    const assignmentId = String(data.get('assignmentId') ?? '');
+    const parsed = parsePayIntervalForm(data);
+    if (!parsed.ok || !/^[A-Za-z0-9_-]{1,200}$/u.test(assignmentId))
+      return actionFail(
+        400,
+        'action.error.validation',
+        {},
+        'Choose how often this person is paid.',
+        {
+          ...extras,
+          code: 'PAY_INTERVAL_INVALID',
+          fieldErrors: parsed.ok ? { assignmentId: ['Choose an assignment.'] } : parsed.fieldErrors,
+        },
+      );
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const member = context.sqlite
+        .prepare('SELECT id FROM project_member WHERE id=? AND project_id=?')
+        .get(assignmentId, params.id);
+      if (!member)
+        return actionFail(404, 'action.error.validation', {}, 'Assignment not found.', {
+          ...extras,
+          code: 'PAY_INTERVAL_ASSIGNMENT_NOT_FOUND',
+        });
+      new PayBillingIntervalRepository(context.sqlite).setAssignmentInterval(context.principal, {
+        projectMemberId: assignmentId,
+        ...parsed.value,
+      });
+      return {
+        ...actionSuccess('action.finance.payIntervalSaved', {}, 'Pay interval saved'),
+        ...extras,
+      };
+    } catch (cause) {
+      return actionFailure(cause, extras);
     } finally {
       context?.sqlite.close();
     }

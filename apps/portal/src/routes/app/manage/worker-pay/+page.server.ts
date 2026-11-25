@@ -1,6 +1,11 @@
 import { error, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { AccessDeniedError, OwnerRecordManagement, V3AccessDeniedError } from '@ja/database';
+import {
+  AccessDeniedError,
+  OwnerRecordManagement,
+  V3AccessDeniedError,
+  nextPayPeriod,
+} from '@ja/database';
 import { defaultLookbackPeriod, isRealIsoDate } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import { workerPayOutstanding } from '$lib/server/worker-pay-outstanding';
@@ -15,13 +20,28 @@ export const load: PageServerLoad = ({ locals, url }) => {
   try {
     // Check the live Owner identity before reading the worker list or parameters.
     new OwnerRecordManagement(context.sqlite).assertOwner(context.principal);
-    const fallback = defaultLookbackPeriod();
     const startValues = url.searchParams.getAll('start');
     const endValues = url.searchParams.getAll('end');
     const workerValues = url.searchParams.getAll('worker');
+    const workerId = workerValues[0] ?? '';
+    // Owner request 2026-11-25: a chosen person opens on the period their next pay covers.
+    const nextPay =
+      workerId && workerValues.length === 1 && /^[A-Za-z0-9_-]{1,200}$/u.test(workerId)
+        ? nextPayPeriod(context.sqlite, workerId)
+        : null;
+    const payInterval = nextPay
+      ? {
+          interval: nextPay.interval,
+          source: nextPay.source,
+          nextStart: nextPay.period?.start ?? null,
+          nextEnd: nextPay.period?.end ?? null,
+        }
+      : null;
+    const fallback = nextPay?.period
+      ? { periodStart: nextPay.period.start, periodEnd: nextPay.period.end }
+      : defaultLookbackPeriod();
     const periodStart = startValues[0] ?? fallback.periodStart;
     const periodEnd = endValues[0] ?? fallback.periodEnd;
-    const workerId = workerValues[0] ?? '';
     // T30: people only (no company mailboxes or service senders), by display
     // name; former people stay selectable because pay may still be owed.
     const workers = (
@@ -104,6 +124,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
         requestedWorkerId: workerId,
         periodStart,
         periodEnd,
+        payInterval: selectedWorker ? payInterval : null,
         filterProblem,
         pay: null,
         settlements: [],
@@ -118,6 +139,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
         requestedWorkerId: workerId,
         periodStart,
         periodEnd,
+        payInterval: selectedWorker ? payInterval : null,
         filterProblem: null,
         pay: null,
         settlements: [],
@@ -149,6 +171,7 @@ export const load: PageServerLoad = ({ locals, url }) => {
       requestedWorkerId: workerId,
       periodStart,
       periodEnd,
+      payInterval,
       filterProblem: null,
       pay,
       settlements,

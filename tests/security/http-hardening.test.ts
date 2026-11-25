@@ -9,7 +9,10 @@ describe('B5 HTTP hardening (RED characterization)', () => {
   });
 
   it('uses a serialized/atomic authentication throttling mutation', () => {
-    const source = readSource('apps/portal/src/hooks.server.ts');
+    // The rate-limit writes run through the store's BEGIN IMMEDIATE transaction.
+    const hooks = readSource('apps/portal/src/hooks.server.ts');
+    expect(hooks).toMatch(/rateLimitStore\.write\(\(sqlite\) => \{\s*const bucket = liveBucket/);
+    const source = `${hooks}\n${readSource('apps/portal/src/lib/server/auth-rate-limit-store.ts')}`;
     expect(
       /BEGIN IMMEDIATE|UPDATE[\s\S]+RETURNING|INSERT[\s\S]+ON CONFLICT[\s\S]+request_count=request_count\+1/.test(
         source,

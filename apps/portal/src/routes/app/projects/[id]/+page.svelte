@@ -1850,6 +1850,7 @@
             {locale}
             {role}
             assignments={hub.assignments}
+            endedAssignments={hub.endedAssignments ?? []}
             lastEndedOn={hub.lastEndedOn ?? {}}
             workers={(data.workers ?? []) as Array<Record<string, unknown>>}
             ratePeople={billingSetup ? billingSetup.people : null}

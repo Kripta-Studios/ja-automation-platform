@@ -73,6 +73,8 @@ export const sectionActions: Actions = {
   deleteClientContact: projectActions.deleteClientContact,
   updateAssignment: projectActions.updateAssignment,
   removeAssignment: projectActions.removeAssignment,
+  previewRemoveAssignment: projectActions.previewRemoveAssignment,
+  previewAssignmentDates: projectActions.previewAssignmentDates,
   deleteAssignment: projectActions.deleteAssignment,
   createMilestone: projectActions.createMilestone,
   submitMilestone: projectActions.submitMilestone,

@@ -65,6 +65,14 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
         'This project has recorded commercial agreements and cannot be deleted. Archive the project instead.',
       remedy: 'archive_project',
     },
+  'Assignment has recorded work and can only be ended': {
+    status: 409,
+    code: 'ASSIGNMENT_HAS_RECORDS',
+    messageKey: 'problem.assignment.hasRecords',
+    message:
+      'This person already has hours, expenses or reports on this assignment, so it cannot be deleted. End the assignment instead.',
+    remedy: 'review_assignments',
+  },
   'Assignment dates cannot exclude recorded time, expenses, or reports': {
     status: 409,
     code: 'ASSIGNMENT_DATES_EXCLUDE_HISTORY',
@@ -864,7 +872,12 @@ function currentRecordState(
 
 function assignmentActionExtras(
   formData: FormData,
-  actionName: 'updateAssignment' | 'removeAssignment' | 'deleteAssignment',
+  actionName:
+    | 'updateAssignment'
+    | 'removeAssignment'
+    | 'previewRemoveAssignment'
+    | 'previewAssignmentDates'
+    | 'deleteAssignment',
   correlationId?: string,
 ) {
   return { actionName, values: Object.fromEntries(formData), correlationId };
@@ -2329,7 +2342,13 @@ export const projectActions = {
       plannedMinutes?: number;
       canReview?: boolean;
       version: number;
+      resolveOutsideTime?: boolean;
+      reason?: string;
     } = { version };
+    if (formData.get('resolveOutsideTime')?.toString() === 'yes') {
+      input.resolveOutsideTime = true;
+      input.reason = formData.get('reason')?.toString().trim() || undefined;
+    }
     if (formData.has('startsOn')) input.startsOn = formData.get('startsOn')?.toString();
     if (formData.has('endsOn')) input.endsOn = formData.get('endsOn')?.toString() ?? '';
     if (formData.has('plannedMinutes')) {
@@ -2498,6 +2517,84 @@ export const projectActions = {
       context.sqlite.close();
     }
   },
+  /**
+   * Read-only: what ending this assignment would do (end date, unapproved
+   * later hours it would resolve, whether other records block it), so the
+   * team screen can confirm a removal with a single click. The repository
+   * applies the same authorization as removeAssignment.
+   */
+  previewRemoveAssignment: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const extras = assignmentActionExtras(formData, 'previewRemoveAssignment', locals.correlationId);
+    const id = formData.get('assignmentId')?.toString();
+    if (!id)
+      return inputFailure(
+        'ASSIGNMENT_ID_REQUIRED',
+        'problem.assignment.idRequired',
+        'Select an assignment before removing it.',
+        { assignmentId: ['problem.assignment.idRequired'] },
+        extras,
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const preview = context.repository.previewAssignmentRemoval(context.principal, id, {
+        endsOn: formData.get('endsOn')?.toString() || undefined,
+      });
+      return { success: true, preview };
+    } catch (error) {
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'previewRemoveAssignment',
+          values: extras.values,
+        }) ?? actionFailure(error, extras)
+      );
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  /**
+   * Read-only: what new assignment dates would do (unapproved hours to
+   * resolve, records that still block, overlapping assignment). Same
+   * authorization as updateAssignment, enforced in the repository.
+   */
+  previewAssignmentDates: async ({ locals, request, params }: PortalActionEvent) => {
+    if (params.section !== 'projects')
+      return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
+    const formData = await request.formData();
+    const extras = assignmentActionExtras(formData, 'previewAssignmentDates', locals.correlationId);
+    const id = formData.get('assignmentId')?.toString();
+    if (!id)
+      return inputFailure(
+        'ASSIGNMENT_ID_REQUIRED',
+        'problem.assignment.idRequired',
+        'Select an assignment before changing it.',
+        { assignmentId: ['problem.assignment.idRequired'] },
+        extras,
+      );
+    const context = openPortalRepository(locals);
+    try {
+      const preview = context.repository.previewAssignmentDates(context.principal, id, {
+        startsOn: formData.get('startsOn')?.toString() || undefined,
+        endsOn: formData.has('endsOn') ? (formData.get('endsOn')?.toString() ?? '') : undefined,
+      });
+      return { success: true, preview };
+    } catch (error) {
+      return (
+        knownProjectFailure(error, {
+          correlationId: locals.correlationId,
+          recordId: id,
+          actionName: 'previewAssignmentDates',
+          values: extras.values,
+        }) ?? actionFailure(error, extras)
+      );
+    } finally {
+      context.sqlite.close();
+    }
+  },
   deleteAssignment: async ({ locals, request, params }: PortalActionEvent) => {
     if (params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
@@ -2527,11 +2624,19 @@ export const projectActions = {
       formData.get('reason')?.toString().trim() || 'Removed by an authorized administrator';
     const context = openPortalRepository(locals);
     try {
-      context.repository.removeAssignment(context.principal, id, {
-        reason,
-        endsOn: formData.get('endsOn')?.toString() || undefined,
-        version,
-      });
+      // "Added by mistake": the server refuses it while recorded work exists.
+      if (formData.get('requireNoRecords')?.toString() === 'yes')
+        context.repository.deleteAssignment(context.principal, id, {
+          reason,
+          version,
+          requireNoRecords: true,
+        });
+      else
+        context.repository.removeAssignment(context.principal, id, {
+          reason,
+          endsOn: formData.get('endsOn')?.toString() || undefined,
+          version,
+        });
       return actionSuccess('action.projects.assignmentDeleted', {}, 'Assignment removed');
     } catch (error) {
       return (

@@ -15091,13 +15091,29 @@ export class PortalRepository {
   updateAssignment(
     principal: Principal,
     assignmentId: string,
-    input: Partial<Omit<AssignmentInput, 'projectId' | 'workerId'>> & { version: number },
+    input: Partial<Omit<AssignmentInput, 'projectId' | 'workerId'>> & {
+      version: number;
+      resolveOutsideTime?: boolean;
+      reason?: string;
+    },
   ): void {
     return this.workforce.updateAssignment(principal, assignmentId, input);
   }
 
-  deleteAssignment(principal: Principal, assignmentId: string): void {
-    return this.workforce.deleteAssignment(principal, assignmentId);
+  previewAssignmentDates(
+    principal: Principal,
+    assignmentId: string,
+    input: { startsOn?: string; endsOn?: string },
+  ) {
+    return this.workforce.previewAssignmentDates(principal, assignmentId, input);
+  }
+
+  deleteAssignment(
+    principal: Principal,
+    assignmentId: string,
+    input: { reason?: string; version?: number; requireNoRecords?: boolean } = {},
+  ): void {
+    return this.workforce.deleteAssignment(principal, assignmentId, input);
   }
 
   removeAssignment(
@@ -15106,6 +15122,14 @@ export class PortalRepository {
     input: AssignmentRemovalInput,
   ): { discarded: number; rejected: number } {
     return this.workforce.removeAssignment(principal, assignmentId, input);
+  }
+
+  previewAssignmentRemoval(
+    principal: Principal,
+    assignmentId: string,
+    input: { endsOn?: string } = {},
+  ) {
+    return this.workforce.previewAssignmentRemoval(principal, assignmentId, input);
   }
 
   listAssignments(principal: Principal) {

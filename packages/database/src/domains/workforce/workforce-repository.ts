@@ -638,13 +638,38 @@ export class WorkforceRepository {
     startsOn: string,
     endsOn: string | null,
   ): void {
+    if (this.sourceOutsideDates(existing, startsOn, endsOn, false))
+      throw this.deps.errors.conflict(
+        'Assignment dates cannot exclude recorded time, expenses, or reports',
+      );
+  }
+
+  /**
+   * Recorded work of this assignment that the proposed dates would exclude.
+   * With ignoreResolvableTime, the unapproved hours that a removal can
+   * resolve (see laterTimeRows) are not counted.
+   */
+  private sourceOutsideDates(
+    existing: AssignmentRow,
+    startsOn: string,
+    endsOn: string | null,
+    ignoreResolvableTime: boolean,
+  ): boolean {
+    const resolvable = ignoreResolvableTime
+      ? `AND NOT (t.approval_state IN ('draft','submitted','needs_changes')
+                AND t.invoice_id IS NULL AND t.billing_status='unlocked'
+                AND t.billing_lock_id IS NULL AND t.locked_at IS NULL
+                AND t.finance_approved_at IS NULL
+                AND NOT EXISTS(SELECT 1 FROM invoice_source s WHERE s.source_type='time' AND s.source_id=t.id))`
+      : '';
     const excluded = this.deps.sqlite
       .prepare(
         `SELECT 1 FROM (
            -- Rejected hours are not recorded work (T19): they never hold an
            -- assignment open.
-           SELECT work_date source_date FROM time_entry
-            WHERE project_id=? AND worker_id=? AND approval_state NOT IN ('void','rejected')
+           SELECT t.work_date source_date FROM time_entry t
+            WHERE t.project_id=? AND t.worker_id=? AND t.approval_state NOT IN ('void','rejected')
+            ${resolvable}
            UNION ALL
            SELECT spent_on source_date FROM expense
             WHERE project_id=? AND worker_id=? AND approval_state<>'void'
@@ -674,10 +699,7 @@ export class WorkforceRepository {
         endsOn,
         endsOn,
       );
-    if (excluded)
-      throw this.deps.errors.conflict(
-        'Assignment dates cannot exclude recorded time, expenses, or reports',
-      );
+    return Boolean(excluded);
   }
 
   updateAssignment(
@@ -689,6 +711,13 @@ export class WorkforceRepository {
       plannedMinutes?: number;
       canReview?: boolean;
       version: number;
+      /**
+       * Unapproved, unlocked hours that the new dates leave outside are
+       * resolved in the same step (drafts void, pending/returned rejected),
+       * like an assignment removal (T19).
+       */
+      resolveOutsideTime?: boolean;
+      reason?: string;
     },
   ) {
     this.deps.assertActive(principal);
@@ -700,7 +729,9 @@ export class WorkforceRepository {
         .get(id) as AssignmentRow | undefined;
       if (!existing) throw this.deps.errors.validation('Assignment not found');
 
-      if (existing.status !== 'active')
+      // Ended assignments can be edited too: moving the end date to today or
+      // later (or clearing it) re-opens them. Other rules stay the same.
+      if (existing.status !== 'active' && existing.status !== 'inactive')
         throw this.deps.errors.conflict('Only active assignments can be edited');
       if (input.version !== undefined && input.version !== existing.version)
         throw this.deps.errors.conflict('Assignment changed before update');
@@ -725,7 +756,19 @@ export class WorkforceRepository {
       if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
       if (endsOn && endsOn < startsOn)
         throw this.deps.errors.validation('Assignment end date must follow the start date');
+      const resolvedOutsideTime = input.resolveOutsideTime
+        ? this.resolveTimeRows(
+            principal,
+            existing,
+            this.outsideRangeTimeRows(existing, startsOn, endsOn),
+            input.reason?.trim() || 'outside the new assignment dates',
+            'assignment_dates',
+          )
+        : null;
       this.assertAssignmentSourceDates(existing, startsOn, endsOn);
+      const today = this.today();
+      const status =
+        existing.status === 'inactive' && (!endsOn || endsOn >= today) ? 'active' : existing.status;
       const overlap = this.deps.sqlite
         .prepare(
           `SELECT id FROM project_member
@@ -755,16 +798,17 @@ export class WorkforceRepository {
 
       const changed = this.deps.sqlite
         .prepare(
-          'UPDATE project_member SET starts_on=?, ends_on=?, planned_minutes=?, can_review=?, updated_at=?, version=version+1 WHERE id=? AND status=? AND version=?',
+          'UPDATE project_member SET status=?, starts_on=?, ends_on=?, planned_minutes=?, can_review=?, updated_at=?, version=version+1 WHERE id=? AND status=? AND version=?',
         )
         .run(
+          status,
           startsOn,
           endsOn,
           plannedMinutes,
           canReview,
           this.deps.now(),
           id,
-          'active',
+          existing.status,
           existing.version,
         );
       if (changed.changes !== 1)
@@ -772,8 +816,71 @@ export class WorkforceRepository {
 
       this.deps.audit(principal, 'assignment.update', 'project_member', id, {
         version: existing.version,
+        projectId: existing.project_id,
+        workerId: existing.user_id,
+        startsOn: { from: existing.starts_on, to: startsOn },
+        endsOn: { from: existing.ends_on, to: endsOn },
+        ...(status !== existing.status ? { reopened: true } : {}),
+        ...(resolvedOutsideTime ? { resolvedOutsideTime } : {}),
       });
     });
+  }
+
+  /**
+   * Read-only preview of updateAssignment dates: unapproved hours the new
+   * dates would resolve, whether approved/locked/invoiced hours, expenses or
+   * reports would still be left outside (the change is then refused), and the
+   * other assignment of the same person it would overlap. Same authorization
+   * as updateAssignment; nothing is written.
+   */
+  previewAssignmentDates(
+    principal: Principal,
+    id: string,
+    input: { startsOn?: string; endsOn?: string },
+  ) {
+    this.deps.assertActive(principal);
+    const existing = this.deps.sqlite
+      .prepare('SELECT * FROM project_member WHERE id=?')
+      .get(id) as AssignmentRow | undefined;
+    if (!existing) throw this.deps.errors.validation('Assignment not found');
+    if (!canManageAssignments(principal, existing.project_id))
+      throw this.deps.errors.accessDenied('Assignment administration required');
+    this.assertPrincipalProjectScope(principal, existing.project_id);
+    if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
+      throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
+    const startsOn = input.startsOn || existing.starts_on;
+    const endsOn = input.endsOn !== undefined ? input.endsOn || null : existing.ends_on;
+    assertDate(startsOn, 'Start date', this.deps.errors.validation);
+    if (endsOn) assertDate(endsOn, 'End date', this.deps.errors.validation);
+    if (endsOn && endsOn < startsOn)
+      throw this.deps.errors.validation('Assignment end date must follow the start date');
+    const overlap = this.deps.sqlite
+      .prepare(
+        `SELECT id,version,starts_on,ends_on FROM project_member
+         WHERE project_id=? AND user_id=? AND id<>?
+           AND (status='active' OR (status='inactive' AND ends_on IS NOT NULL AND ends_on>=starts_on))
+           AND (? IS NULL OR starts_on<=?)
+           AND (ends_on IS NULL OR ends_on>=?)
+         LIMIT 1`,
+      )
+      .get(existing.project_id, existing.user_id, id, endsOn, endsOn, startsOn) as
+      | { id: string; version: number; starts_on: string; ends_on: string | null }
+      | undefined;
+    return {
+      assignmentId: existing.id,
+      version: existing.version,
+      resolvableTime: this.outsideRangeTimeRows(existing, startsOn, endsOn).length,
+      blockedByRecords: this.sourceOutsideDates(existing, startsOn, endsOn, true),
+      reopens: existing.status === 'inactive' && (!endsOn || endsOn >= this.today()),
+      overlap: overlap
+        ? {
+            assignmentId: overlap.id,
+            version: overlap.version,
+            startsOn: overlap.starts_on,
+            endsOn: overlap.ends_on,
+          }
+        : null,
+    };
   }
 
   removeAssignment(principal: Principal, id: string, input: AssignmentRemovalInput) {
@@ -788,33 +895,8 @@ export class WorkforceRepository {
       if (input.version !== undefined && input.version !== existing.version)
         throw this.deps.errors.conflict('Assignment changed before removal');
 
-      if (!canManageAssignments(principal, existing.project_id))
-        throw this.deps.errors.accessDenied('Assignment administration required');
-      this.assertPrincipalProjectScope(principal, existing.project_id);
-      // D5/T42: supplier staff assignments are ended by the owner (or the
-      // supplier's own authorization), never by a project manager.
-      if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
-        throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
-
+      const { effectiveEnd, startsBeforeToday } = this.removalPlan(principal, existing, input.endsOn);
       const reason = this.deps.assertText(input.reason, 'Removal reason', 2000);
-      const today = this.today();
-      const requestedEnd = input.endsOn?.trim() || null;
-      const startsBeforeToday = existing.starts_on <= today;
-      if (requestedEnd) {
-        assertDate(requestedEnd, 'Assignment end date', this.deps.errors.validation);
-        if (requestedEnd > today)
-          throw this.deps.errors.validation('Immediate removal cannot use a future end date');
-      }
-      // Cancelling an assignment before it starts leaves an empty date interval.
-      // Historical finance selection must never treat it as a worked assignment.
-      const effectiveEnd = startsBeforeToday
-        ? requestedEnd || (existing.ends_on && existing.ends_on <= today ? existing.ends_on : today)
-        : today;
-      assertDate(effectiveEnd, 'Assignment end date', this.deps.errors.validation);
-      if (startsBeforeToday && effectiveEnd > today)
-        throw this.deps.errors.validation('Immediate removal cannot use a future end date');
-      if (startsBeforeToday && effectiveEnd < existing.starts_on)
-        throw this.deps.errors.validation('Assignment end date must follow the start date');
       const resolvedLaterTime = input.resolveLaterTime
         ? this.resolveTimeAfterEnd(principal, existing, startsBeforeToday ? effectiveEnd : null, reason)
         : { discarded: 0, rejected: 0 };
@@ -851,14 +933,126 @@ export class WorkforceRepository {
     });
   }
 
+  /**
+   * Authorization and end date of an immediate removal (shared by
+   * removeAssignment and previewAssignmentRemoval so both apply the same
+   * rules: D5 supplier staff, project scope, no future end date).
+   */
+  private removalPlan(principal: Principal, existing: AssignmentRow, endsOn: string | undefined) {
+    if (!canManageAssignments(principal, existing.project_id))
+      throw this.deps.errors.accessDenied('Assignment administration required');
+    this.assertPrincipalProjectScope(principal, existing.project_id);
+    // D5/T42: supplier staff assignments are ended by the owner (or the
+    // supplier's own authorization), never by a project manager.
+    if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
+      throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
+
+    const today = this.today();
+    const requestedEnd = endsOn?.trim() || null;
+    const startsBeforeToday = existing.starts_on <= today;
+    if (requestedEnd) {
+      assertDate(requestedEnd, 'Assignment end date', this.deps.errors.validation);
+      if (requestedEnd > today)
+        throw this.deps.errors.validation('Immediate removal cannot use a future end date');
+    }
+    // Cancelling an assignment before it starts leaves an empty date interval.
+    // Historical finance selection must never treat it as a worked assignment.
+    const effectiveEnd = startsBeforeToday
+      ? requestedEnd || (existing.ends_on && existing.ends_on <= today ? existing.ends_on : today)
+      : today;
+    assertDate(effectiveEnd, 'Assignment end date', this.deps.errors.validation);
+    if (startsBeforeToday && effectiveEnd > today)
+      throw this.deps.errors.validation('Immediate removal cannot use a future end date');
+    if (startsBeforeToday && effectiveEnd < existing.starts_on)
+      throw this.deps.errors.validation('Assignment end date must follow the start date');
+    return { effectiveEnd, startsBeforeToday };
+  }
+
+  /**
+   * Read-only preview of removeAssignment: the end date that would be used,
+   * how many unapproved hour entries after it would be resolved with the
+   * removal, and whether other records (approved or locked hours, expenses,
+   * reports) after it would still block the end date. Same authorization as
+   * the removal itself; nothing is written.
+   */
+  previewAssignmentRemoval(principal: Principal, id: string, input: { endsOn?: string } = {}) {
+    this.deps.assertActive(principal);
+    const existing = this.deps.sqlite
+      .prepare('SELECT * FROM project_member WHERE id=?')
+      .get(id) as AssignmentRow | undefined;
+    if (!existing) throw this.deps.errors.validation('Assignment not found');
+    if (existing.status !== 'active')
+      throw this.deps.errors.conflict('Assignment is already inactive');
+    const { effectiveEnd, startsBeforeToday } = this.removalPlan(principal, existing, input.endsOn);
+    const end = startsBeforeToday ? effectiveEnd : null;
+    return {
+      assignmentId: existing.id,
+      version: existing.version,
+      endsOn: effectiveEnd,
+      cancelBeforeStart: !startsBeforeToday,
+      resolvableLaterTime: this.resolvableTimeAfterEnd(existing, end),
+      blockedByRecords: this.sourceOutsideDates(existing, existing.starts_on, effectiveEnd, true),
+      hasRecords: this.hasRecordedWork(existing),
+    };
+  }
+
+  /**
+   * Any hours, expenses or reports of this person on this project inside the
+   * assignment dates (void and rejected entries are not recorded work, T19).
+   */
+  private hasRecordedWork(existing: AssignmentRow): boolean {
+    return Boolean(
+      this.deps.sqlite
+        .prepare(
+          `SELECT 1 FROM (
+             SELECT work_date source_date FROM time_entry
+              WHERE project_id=? AND worker_id=? AND approval_state NOT IN ('void','rejected')
+             UNION ALL
+             SELECT spent_on source_date FROM expense
+              WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+             UNION ALL
+             SELECT work_date source_date FROM daily_report
+              WHERE project_id=? AND worker_id=? AND approval_state<>'void'
+             UNION ALL
+             SELECT report_date source_date FROM technical_report
+              WHERE project_id=? AND author_id=? AND approval_state<>'void'
+           ) sources
+           WHERE source_date>=? AND (? IS NULL OR source_date<=?) LIMIT 1`,
+        )
+        .get(
+          existing.project_id,
+          existing.user_id,
+          existing.project_id,
+          existing.user_id,
+          existing.project_id,
+          existing.user_id,
+          existing.project_id,
+          existing.user_id,
+          existing.starts_on,
+          existing.ends_on,
+          existing.ends_on,
+        ),
+    );
+  }
+
   /** Unapproved, unlocked time of this assignment after the new end (null = whole assignment). */
   private laterTimeRows(existing: AssignmentRow, end: string | null) {
+    return end === null
+      ? this.outsideRangeTimeRows(existing, '9999-12-31', null)
+      : this.outsideRangeTimeRows(existing, existing.starts_on, end);
+  }
+
+  /**
+   * Unapproved, unlocked time inside the current assignment dates that the
+   * new dates [startsOn, endsOn] would leave outside.
+   */
+  private outsideRangeTimeRows(existing: AssignmentRow, startsOn: string, endsOn: string | null) {
     return this.deps.sqlite
       .prepare(
         `SELECT t.id,t.approval_state,t.version FROM time_entry t
           WHERE t.project_id=? AND t.worker_id=? AND t.work_date>=?
             AND (? IS NULL OR t.work_date<=?)
-            AND (? IS NULL OR t.work_date>?)
+            AND (t.work_date<? OR (? IS NOT NULL AND t.work_date>?))
             AND t.approval_state IN ('draft','submitted','needs_changes')
             AND t.invoice_id IS NULL AND t.billing_status='unlocked'
             AND t.billing_lock_id IS NULL AND t.locked_at IS NULL
@@ -872,8 +1066,9 @@ export class WorkforceRepository {
         existing.starts_on,
         existing.ends_on,
         existing.ends_on,
-        end,
-        end,
+        startsOn,
+        endsOn,
+        endsOn,
       ) as { id: string; approval_state: string; version: number }[];
   }
 
@@ -887,10 +1082,21 @@ export class WorkforceRepository {
     end: string | null,
     reason: string,
   ): { discarded: number; rejected: number } {
+    return this.resolveTimeRows(principal, existing, this.laterTimeRows(existing, end), reason, 'assignment_end');
+  }
+
+  private resolveTimeRows(
+    principal: Principal,
+    existing: AssignmentRow,
+    rows: { id: string; approval_state: string; version: number }[],
+    reason: string,
+    operation: 'assignment_end' | 'assignment_dates',
+  ): { discarded: number; rejected: number } {
     let discarded = 0;
     let rejected = 0;
     const timestamp = this.deps.now();
-    for (const row of this.laterTimeRows(existing, end)) {
+    const prefix = operation === 'assignment_end' ? 'Assignment ended' : 'Assignment dates changed';
+    for (const row of rows) {
       const toState = row.approval_state === 'draft' ? 'void' : 'rejected';
       const changed = this.deps.sqlite
         .prepare(
@@ -912,12 +1118,12 @@ export class WorkforceRepository {
           row.approval_state,
           toState,
           principal.userId,
-          `Assignment ended: ${reason}`,
+          `${prefix}: ${reason}`,
           timestamp,
         );
       this.deps.audit(principal, toState === 'void' ? 'time.void' : 'time.rejected', 'time_entry', row.id, {
         version: row.version,
-        operation: 'assignment_end',
+        operation,
         assignmentId: existing.id,
         reason,
       });
@@ -927,9 +1133,30 @@ export class WorkforceRepository {
     return { discarded, rejected };
   }
 
-  deleteAssignment(principal: Principal, id: string): void {
-    this.removeAssignment(principal, id, {
-      reason: 'Removed by an authorized administrator',
+  /**
+   * Ends the assignment with an administrator reason. With
+   * requireNoRecords (the "added by mistake" path) it is refused while the
+   * person has any hours, expenses or reports inside the assignment dates;
+   * those assignments are ended instead. History is never erased.
+   */
+  deleteAssignment(
+    principal: Principal,
+    id: string,
+    input: { reason?: string; version?: number; requireNoRecords?: boolean } = {},
+  ): void {
+    this.deps.transaction(() => {
+      if (input.requireNoRecords) {
+        const existing = this.deps.sqlite
+          .prepare('SELECT * FROM project_member WHERE id=?')
+          .get(id) as AssignmentRow | undefined;
+        if (!existing) throw this.deps.errors.validation('Assignment not found');
+        if (this.hasRecordedWork(existing))
+          throw this.deps.errors.conflict('Assignment has recorded work and can only be ended');
+      }
+      this.removeAssignment(principal, id, {
+        reason: input.reason?.trim() || 'Removed by an authorized administrator',
+        version: input.version,
+      });
     });
   }
 

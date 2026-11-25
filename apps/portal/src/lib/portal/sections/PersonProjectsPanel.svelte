@@ -15,6 +15,9 @@
   import { teamCopy, type TeamCopyKey } from '../team-ux-copy';
   import { projectPickLabel } from '../project-ux-round3-copy';
   import { portalText, normalizePortalLocale } from '$lib/portal-i18n';
+  import { assignmentText, type AssignmentEditCopyKey } from '$lib/portal/assignment-edit-copy';
+  import AssignmentEndPanel from './AssignmentEndPanel.svelte';
+  import AssignmentDatesPanel from './AssignmentDatesPanel.svelte';
 
   let {
     personId,
@@ -46,6 +49,28 @@
     ),
   );
   const past = $derived(assignments.filter((row) => !current.includes(row)));
+  const a = (key: AssignmentEditCopyKey, params: Record<string, string | number> = {}) =>
+    assignmentText(locale, key, params);
+  /** Ended assignments with a real date interval can be re-dated or re-opened. */
+  const reDatable = (row: PortalRow) =>
+    text(row, 'status') === 'active' ||
+    (Boolean(text(row, 'ends_on')) && text(row, 'ends_on') >= text(row, 'starts_on'));
+  const view = (row: PortalRow) => ({
+    id: text(row, 'id'),
+    version: Number(text(row, 'version') || '1'),
+    startsOn: text(row, 'starts_on'),
+    endsOn: text(row, 'ends_on') || null,
+  });
+  const projectLabel = (row: PortalRow) =>
+    projectPickLabel({ project_number: row.project_number, name: row.project_name });
+  let datesId = $state<string | null>(null);
+  async function panelDone(done: string, variant: 'success' | 'danger') {
+    endingId = null;
+    datesId = null;
+    await invalidateAll();
+    status = variant === 'success' ? 'done' : 'error';
+    message = done;
+  }
   const currentProjectIds = $derived(new Set(current.map((row) => text(row, 'project_id'))));
   const assignable = $derived(
     projects.filter(
@@ -70,8 +95,6 @@
   });
 
   let endingId = $state<string | null>(null);
-  let endDate = $state('');
-  let endReason = $state('');
   let status = $state<'idle' | 'saving' | 'done' | 'error'>('idle');
   let message = $state('');
 
@@ -104,8 +127,7 @@
 
   function openEnd(row: PortalRow): void {
     endingId = text(row, 'id');
-    endDate = today;
-    endReason = c('reasonDefault');
+    datesId = null;
   }
   const currency = $derived(selectedProject ? text(selectedProject, 'currency') : '');
 
@@ -168,7 +190,7 @@
                   >{c('since', {
                     from: text(row, 'starts_on') || '—',
                     to: text(row, 'ends_on') || c('openEnded'),
-                  })} · {text(row, 'po_number') ? c('poShort', { po: text(row, 'po_number') }) : c('poProject')}</small
+                  })} · {text(row, 'po_number') ? c('poShort', { po: text(row, 'po_number') }) : c('poProject')}{text(row, 'starts_on') > today ? ` · ${a('upcoming')}` : ''}</small
                 >
               </span>
               {#if isOwner && poFor !== text(row, 'id')}
@@ -182,9 +204,24 @@
                   }}>{c(text(row, 'po_number') ? 'poChange' : 'poEdit')}</button
                 >
               {/if}
+              {#if canManage}
+                <button
+                  type="button"
+                  class="secondary-button"
+                  aria-expanded={datesId === text(row, 'id')}
+                  data-person-dates={text(row, 'project_id')}
+                  onclick={() => {
+                    datesId = datesId === text(row, 'id') ? null : text(row, 'id');
+                    endingId = null;
+                  }}>{a('changeDates')}</button
+                >
+              {/if}
               {#if canManage && endingId !== text(row, 'id')}
-                <button type="button" class="secondary-button" onclick={() => openEnd(row)}
-                  >{c('endAssignment')}</button
+                <button
+                  type="button"
+                  class="secondary-button"
+                  data-person-end={text(row, 'project_id')}
+                  onclick={() => openEnd(row)}>{c('endAssignment')}</button
                 >
               {/if}
             </div>
@@ -212,40 +249,28 @@
               </form>
             {/if}
             {#if canManage && endingId === text(row, 'id')}
-              <form
-                method="POST"
-                action="?view=team&/removeAssignment"
-                class="pp-end"
-                use:enhance={submitWith('ended', () => (endingId = null))}
-                data-end-assignment-form
-              >
-                <strong>{c('endTitle', { project: text(row, 'project_name') })}</strong>
-                <p class="pp-muted">{c('endHelp')}</p>
-                <input type="hidden" name="assignmentId" value={text(row, 'id')} />
-                <input type="hidden" name="version" value={text(row, 'version') || '1'} />
-                <div class="pp-fields">
-                  <label
-                    >{c('lastDay')}<input
-                      type="date"
-                      name="endsOn"
-                      bind:value={endDate}
-                      min={text(row, 'starts_on')}
-                      required
-                    /></label
-                  >
-                  <label
-                    >{c('reason')}<input name="reason" bind:value={endReason} maxlength="500" required /></label
-                  >
-                </div>
-                <div class="pp-actions">
-                  <button type="button" class="secondary-button" onclick={() => (endingId = null)}
-                    >{c('cancel')}</button
-                  >
-                  <button type="submit" class="primary-button" disabled={status === 'saving'}
-                    >{c('confirmEnd')}</button
-                  >
-                </div>
-              </form>
+              <AssignmentEndPanel
+                assignment={view(row)}
+                name={projectLabel(row)}
+                title={c('endTitle', { project: text(row, 'project_name') })}
+                {locale}
+                {today}
+                defaultReason={c('reasonDefault')}
+                allowDelete
+                describe={failureMessage}
+                onDone={panelDone}
+                onCancel={() => (endingId = null)}
+              />
+            {/if}
+            {#if canManage && datesId === text(row, 'id')}
+              <AssignmentDatesPanel
+                assignment={view(row)}
+                name={projectLabel(row)}
+                {locale}
+                describe={failureMessage}
+                onDone={panelDone}
+                onCancel={() => (datesId = null)}
+              />
             {/if}
           </li>
         {/each}
@@ -256,11 +281,33 @@
         <summary>{c('pastAssignments', { count: past.length })}</summary>
         <ul class="pp-list">
           {#each past as row (text(row, 'id'))}
-            <li>
-              <span class="pp-name">
-                <span>{projectPickLabel({ project_number: row.project_number, name: row.project_name })}</span>
-                <small>{c('since', { from: text(row, 'starts_on') || '—', to: text(row, 'ends_on') || '—' })}</small>
-              </span>
+            <li data-past-assignment-id={text(row, 'id')}>
+              <div class="pp-row">
+                <span class="pp-name">
+                  <span>{projectLabel(row)}</span>
+                  <small>{c('since', { from: text(row, 'starts_on') || '—', to: text(row, 'ends_on') || '—' })}</small>
+                </span>
+                {#if canManage && reDatable(row)}
+                  <button
+                    type="button"
+                    class="secondary-button"
+                    aria-expanded={datesId === text(row, 'id')}
+                    data-person-reopen={text(row, 'project_id')}
+                    onclick={() => (datesId = datesId === text(row, 'id') ? null : text(row, 'id'))}
+                    >{a('reopen')}</button
+                  >
+                {/if}
+              </div>
+              {#if canManage && datesId === text(row, 'id')}
+                <AssignmentDatesPanel
+                  assignment={view(row)}
+                  name={projectLabel(row)}
+                  {locale}
+                  describe={failureMessage}
+                  onDone={panelDone}
+                  onCancel={() => (datesId = null)}
+                />
+              {/if}
             </li>
           {/each}
         </ul>

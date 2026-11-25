@@ -92,6 +92,11 @@ export type ProjectHubData = {
   reviewable: { timeCount: number; timeMinutes: number; expenseCount: number; reportCount: number };
   assignments: HubAssignment[];
   /**
+   * Ended (removed) assignments with a real date interval, so the owner or the
+   * project manager can change their dates or re-open them.
+   */
+  endedAssignments: HubAssignment[];
+  /**
    * Per person, the last day of an earlier (ended) assignment on this project,
    * including removed ones: re-adding them must start after it (W10).
    */
@@ -263,8 +268,8 @@ export function projectHubData(
   // and project managers get the add/end controls (the UI gates them and the
   // assignment actions re-check on the server).
   const canReadAssignments = principal.role !== 'worker';
-  const assignments: HubAssignment[] = canReadAssignments
-    ? (
+  const assignmentRows = (where: string): HubAssignment[] =>
+    (
         sqlite
           .prepare(
             `SELECT pm.id,pm.version,pm.user_id workerId,u.name,u.email email,
@@ -277,7 +282,7 @@ export function projectHubData(
                     ${sqlite.prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'").get() ? 'pm.po_number' : 'NULL'} poNumber
                FROM project_member pm JOIN user u ON u.id=pm.user_id
                LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id
-              WHERE pm.project_id=? AND pm.status='active' ORDER BY u.name`,
+              WHERE pm.project_id=? AND ${where} ORDER BY u.name`,
           )
           .all(projectId) as Array<HubAssignment & { email?: string | null }>
       ).map(({ email, ...row }) => ({
@@ -286,7 +291,10 @@ export function projectHubData(
         name: personDisplayName(row.name, email),
         id: String(row.id),
         version: Number(row.version),
-      }))
+      }));
+  const assignments: HubAssignment[] = canReadAssignments ? assignmentRows("pm.status='active'") : [];
+  const endedAssignments: HubAssignment[] = canReadAssignments
+    ? assignmentRows("pm.status='inactive' AND pm.ends_on IS NOT NULL AND pm.ends_on>=pm.starts_on")
     : [];
 
   const lastEndedOn: Record<string, string> = {};
@@ -397,6 +405,7 @@ export function projectHubData(
     pending,
     reviewable,
     assignments,
+    endedAssignments,
     lastEndedOn,
     invoices,
     finance,
@@ -417,6 +426,7 @@ export function emptyProjectHub(): ProjectHubData {
     pending: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
     reviewable: { timeCount: 0, timeMinutes: 0, expenseCount: 0, reportCount: 0 },
     assignments: [],
+    endedAssignments: [],
     lastEndedOn: {},
     invoices: null,
     finance: null,

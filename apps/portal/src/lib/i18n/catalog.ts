@@ -166,6 +166,8 @@ const en = {
     'Project defaults must take effect on or before this assignment starts. Change the assignment start date or the defaults effective date, or use individual terms.',
   'problem.project.creationDefaultsMissing':
     'Enable project defaults for this assignment, or use individual terms.',
+  'problem.assignment.hasRecords':
+    'This person already has hours, expenses or reports on this assignment, so it cannot be deleted. End the assignment instead.',
   'problem.assignment.recordedHistory':
     'These dates would exclude recorded time, expenses or reports. Keep dates that cover the recorded work, then save again.',
   'problem.assignment.supplierStaffOwner':
@@ -894,6 +896,8 @@ const esBase: Record<keyof typeof en, string> = {
     'Los valores predeterminados del proyecto deben entrar en vigor antes o el mismo día que esta asignación. Cambia la fecha de inicio de la asignación o la fecha de vigencia de los valores predeterminados, o introduce condiciones individuales.',
   'problem.project.creationDefaultsMissing':
     'Activa los valores predeterminados del proyecto para esta asignación o introduce condiciones individuales.',
+  'problem.assignment.hasRecords':
+    'Esta persona ya tiene horas, gastos o informes en esta asignación, así que no se puede eliminar. Termina la asignación en su lugar.',
   'problem.assignment.recordedHistory':
     'Estas fechas excluirían horas, gastos o informes registrados. Mantén fechas que cubran el trabajo registrado y vuelve a guardar.',
   'problem.assignment.supplierStaffOwner':
@@ -1621,6 +1625,8 @@ const ptBase: Record<keyof typeof en, string> = {
     'Os padrões do projeto devem entrar em vigor antes ou no dia de início desta atribuição. Altere a data de início da atribuição ou a data de vigência dos padrões, ou informe condições individuais.',
   'problem.project.creationDefaultsMissing':
     'Ative os padrões do projeto para esta atribuição ou informe condições individuais.',
+  'problem.assignment.hasRecords':
+    'Esta pessoa já tem horas, despesas ou relatórios nesta atribuição, por isso ela não pode ser excluída. Encerre a atribuição.',
   'problem.assignment.recordedHistory':
     'Estas datas excluiriam horas, despesas ou relatórios registrados. Mantenha datas que cubram o trabalho registrado e salve novamente.',
   'problem.assignment.supplierStaffOwner':

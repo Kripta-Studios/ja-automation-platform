@@ -13,6 +13,14 @@
   import { hubText, type ProjectHubCopyKey } from '$lib/portal/project-hub-copy';
   import { personDisplayName } from '$lib/portal/display-name';
   import { isSystemAccount } from '$lib/portal/system-accounts';
+  import { assignmentText, type AssignmentEditCopyKey } from '$lib/portal/assignment-edit-copy';
+  import {
+    assignmentAction,
+    previewRemoval,
+    type RemovalPreview,
+  } from '$lib/portal/assignment-requests';
+  import AssignmentEndPanel from './AssignmentEndPanel.svelte';
+  import AssignmentDatesPanel from './AssignmentDatesPanel.svelte';
 
   type Assignment = {
     id: string;
@@ -33,6 +41,7 @@
     locale,
     role,
     assignments,
+    endedAssignments = [],
     lastEndedOn = {},
     workers = [],
     ratePeople = null,
@@ -52,6 +61,8 @@
     locale: string;
     role: string;
     assignments: Assignment[];
+    /** Removed assignments (status inactive) that can still be re-dated or re-opened. */
+    endedAssignments?: Assignment[];
     lastEndedOn?: Record<string, string>;
     workers?: Worker[];
     ratePeople?: RatePerson[] | null;
@@ -80,7 +91,10 @@
     assignments.filter((row) => !row.endsOn || row.endsOn >= today),
   );
   const pastAssignments = $derived(
-    assignments.filter((row) => Boolean(row.endsOn) && String(row.endsOn) < today),
+    [
+      ...assignments.filter((row) => Boolean(row.endsOn) && String(row.endsOn) < today),
+      ...endedAssignments,
+    ].sort((x, y) => String(y.endsOn ?? '').localeCompare(String(x.endsOn ?? ''))),
   );
   const teamCount = $derived(new Set(currentAssignments.map((row) => row.workerId)).size);
 
@@ -271,57 +285,92 @@
     }
   }
 
-  // ---------- end assignment ----------
+  // ---------- end assignment / dates (owner request 2026-11-25) ----------
+  const a = (key: AssignmentEditCopyKey, params: Record<string, string | number> = {}) =>
+    assignmentText(locale, key, params);
   let endingId = $state('');
-  let endReason = $state('');
-  // T19: unapproved hours after the end date can be resolved with the removal.
-  let laterTimeCount = $state(0);
-  let resolveLaterTime = $state(false);
+  let datesId = $state('');
   // D5/T42: supplier staff assignments are the owner's (and the supplier's).
   const isSupplierStaff = (row: Assignment) =>
     row.role === 'external_technician' || row.role === 'supplier_coordinator';
-  async function endAssignment(row: Assignment) {
-    if (busy) return;
+  /** Same rules as the server: D5 for managers, Y5 a manager does not end their own row. */
+  const canChange = (row: Assignment) =>
+    canManage && (isOwner || (!isSupplierStaff(row) && row.workerId !== viewerId));
+  async function finished(message: string, variant: 'success' | 'danger') {
+    notify(message, variant);
+    endingId = '';
+    datesId = '';
+    await invalidateAll();
+  }
+
+  // ---------- bulk removal ----------
+  let picked = $state<Record<string, boolean>>({});
+  const removable = $derived(currentAssignments.filter(canChange));
+  const pickedRows = $derived(removable.filter((row) => picked[row.id]));
+  let bulkOpen = $state(false);
+  // svelte-ignore state_referenced_locally
+  let bulkEnd = $state(today);
+  let bulkReason = $state('');
+  let bulkPreview = $state<Record<string, RemovalPreview | string>>({});
+  let bulkChecking = $state(false);
+  let bulkSequence = 0;
+  $effect(() => {
+    if (!bulkOpen) return;
+    const rows = pickedRows.map((row) => ({ id: row.id, started: row.startsOn <= today }));
+    const day = bulkEnd;
+    const mine = ++bulkSequence;
+    bulkChecking = true;
+    void Promise.all(
+      rows.map(async (row) => {
+        const result = await previewRemoval(row.id, row.started ? day : '');
+        return [row.id, result.preview ?? describe(result.failure)] as const;
+      }),
+    ).then((entries) => {
+      if (mine !== bulkSequence) return;
+      bulkPreview = Object.fromEntries(entries);
+      bulkChecking = false;
+    });
+  });
+  function openBulk() {
+    bulkOpen = true;
+    bulkEnd = today;
+    bulkReason = h('reasonDefault');
+    endingId = '';
+    datesId = '';
+  }
+  async function removeSelected() {
+    if (busy || !pickedRows.length) return;
     busy = true;
-    try {
-      const result = await post(`${base}/app/projects?/removeAssignment`, {
+    const rows = [...pickedRows];
+    const failed: string[] = [];
+    let done = 0;
+    for (const row of rows) {
+      const preview = bulkPreview[row.id];
+      const count = typeof preview === 'object' ? preview.resolvableLaterTime : 0;
+      const result = await assignmentAction('removeAssignment', {
         assignmentId: row.id,
         version: String(row.version),
-        reason: endReason.trim() || h('reasonDefault'),
-        ...(resolveLaterTime && laterTimeCount ? { resolveLaterTime: 'yes' } : {}),
+        reason: bulkReason.trim() || h('reasonDefault'),
+        ...(row.startsOn <= today && bulkEnd ? { endsOn: bulkEnd } : {}),
+        ...(count > 0 ? { resolveLaterTime: 'yes' } : {}),
       });
-      if (result.type === 'success') {
-        const done = (result.data ?? {}) as { discardedLaterTime?: number; rejectedLaterTime?: number };
-        notify(
-          done.discardedLaterTime || done.rejectedLaterTime
-            ? h('endResolvedLater', {
-                name: row.name,
-                discarded: String(done.discardedLaterTime ?? 0),
-                rejected: String(done.rejectedLaterTime ?? 0),
-              })
-            : h('ended', { name: row.name }),
-          'success',
-        );
-        endingId = '';
-        laterTimeCount = 0;
-        resolveLaterTime = false;
-        await invalidateAll();
-      } else {
-        const failure = result.type === 'failure' ? result.data : null;
-        const resolvable = Number(
-          (failure as { resolvableLaterTime?: unknown } | null)?.resolvableLaterTime ?? 0,
-        );
-        if (resolvable > 0 && !resolveLaterTime) {
-          // First click: the form now offers to resolve those hours. That is a
-          // next step, not an error, so no red "dates would exclude" toast.
-          laterTimeCount = resolvable;
-        } else notify(describe(failure), 'danger');
-      }
-    } catch {
-      notify(describe(null), 'danger');
-    } finally {
-      busy = false;
+      if (result.ok) {
+        done++;
+        picked[row.id] = false;
+      } else failed.push(`${row.name} (${describe(result.data)})`);
     }
+    busy = false;
+    notify(
+      [
+        a('bulkDone', { done, total: rows.length }),
+        failed.length ? a('bulkFailed', { list: failed.join('; ') }) : '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+      failed.length ? 'danger' : 'success',
+    );
+    if (!failed.length) bulkOpen = false;
+    if (done) await invalidateAll();
   }
 
   // ---------- PO per assignment (owner decision 2026-11-17) ----------
@@ -573,12 +622,90 @@
   {#if currentAssignments.length === 0}
     <p class="empty-state">{h('noTeam')}</p>
   {:else}
+    {#if removable.length > 1}
+      <div class="hub-bulk-bar" data-hub-bulk>
+        <label class="hub-check hub-check-all"
+          ><input
+            type="checkbox"
+            checked={pickedRows.length === removable.length}
+            indeterminate={pickedRows.length > 0 && pickedRows.length < removable.length}
+            onchange={(event) => {
+              const on = (event.currentTarget as HTMLInputElement).checked;
+              for (const row of removable) picked[row.id] = on;
+            }}
+            data-hub-pick-all
+          />{a('selectAll')}</label
+        >
+        <button
+          type="button"
+          class="secondary-button"
+          disabled={pickedRows.length === 0 || busy}
+          aria-expanded={bulkOpen}
+          onclick={openBulk}
+          data-hub-remove-selected>{a('removeSelected', { count: pickedRows.length })}</button
+        >
+      </div>
+    {/if}
+    {#if bulkOpen && pickedRows.length}
+      <div class="hub-row-panel hub-bulk-panel" role="group" aria-label={a('bulkTitle', { count: pickedRows.length })} data-hub-bulk-panel>
+        <strong>{a('bulkTitle', { count: pickedRows.length })}</strong>
+        <p>{a('bulkHelp')}</p>
+        <div class="hub-bulk-fields">
+          <label
+            >{a('lastDay')}<input type="date" bind:value={bulkEnd} max={today} required data-hub-bulk-date /></label
+          >
+          <label>{a('reasonOptional')}<input bind:value={bulkReason} maxlength="2000" placeholder={h('reasonDefault')} /></label>
+        </div>
+        <ul class="hub-bulk-list" role="status">
+          {#each pickedRows as row (row.id)}
+            {@const preview = bulkPreview[row.id]}
+            <li data-hub-bulk-row={row.workerId}>
+              <strong>{row.name}</strong>
+              {#if bulkChecking || preview === undefined}
+                <span>{a('checking')}</span>
+              {:else if typeof preview === 'string'}
+                <span class="hub-warn">{preview}</span>
+              {:else if preview.blockedByRecords}
+                <span class="hub-warn">{a('blocked')}</span>
+              {:else if preview.cancelBeforeStart}
+                <span>{a('notStarted')}</span>
+              {:else if preview.resolvableLaterTime > 0}
+                <span>{preview.resolvableLaterTime === 1 ? a('laterOne') : a('laterMany', { count: preview.resolvableLaterTime })}</span>
+              {:else}
+                <span>{a('nothingLater')}</span>
+              {/if}
+            </li>
+          {/each}
+        </ul>
+        <div class="hub-inline-actions">
+          <button type="button" class="secondary-button" onclick={() => (bulkOpen = false)}>{h('cancel')}</button>
+          <button
+            type="button"
+            class="danger-button"
+            disabled={busy || bulkChecking || !bulkEnd}
+            onclick={removeSelected}
+            data-hub-bulk-confirm>{busy ? a('working') : a('confirmEndCount', { count: pickedRows.length })}</button
+          >
+        </div>
+      </div>
+    {/if}
     <ul class="hub-team-list">
       {#each currentAssignments as row (row.id)}
         {@const rate = rateFor(row.workerId)}
         <li class="hub-team-row" data-hub-member={row.workerId}>
           <div class="hub-team-main">
-            <strong>{row.name}</strong>
+            {#if removable.length > 1 && canChange(row)}
+              <label class="hub-check hub-pick-row"
+                ><input
+                  type="checkbox"
+                  bind:checked={picked[row.id]}
+                  aria-label={a('select', { name: row.name })}
+                  data-hub-pick-member={row.workerId}
+                /><strong>{row.name}</strong></label
+              >
+            {:else}
+              <strong>{row.name}</strong>
+            {/if}
             <small
               >{roleLabel(row.role)} · {h('since')}
               {formatDate(row.startsOn)}{row.endsOn ? ' ' + h('until', { date: formatDate(row.endsOn) }) : ''}</small
@@ -625,19 +752,30 @@
           {/if}
           {#if canManage && !isOwner && isSupplierStaff(row)}
             <small class="surface-intro">{h('supplierStaffByOwner')}</small>
-          {:else if canManage && (isOwner || row.workerId !== viewerId)}
+          {:else if canChange(row)}
             <!-- Y5: a project manager does not end their own membership (the owner does). -->
-            <button
-              type="button"
-              class="quiet-button hub-end"
-              data-hub-end={row.workerId}
-              onclick={() => {
-                endingId = endingId === row.id ? '' : row.id;
-                endReason = h('reasonDefault');
-                laterTimeCount = 0;
-                resolveLaterTime = false;
-              }}>{h('endAssignment')}</button
-            >
+            <div class="hub-row-buttons">
+              <button
+                type="button"
+                class="quiet-button hub-end"
+                data-hub-dates={row.workerId}
+                aria-expanded={datesId === row.id}
+                onclick={() => {
+                  datesId = datesId === row.id ? '' : row.id;
+                  endingId = '';
+                }}>{a('changeDates')}</button
+              >
+              <button
+                type="button"
+                class="quiet-button hub-end"
+                data-hub-end={row.workerId}
+                aria-expanded={endingId === row.id}
+                onclick={() => {
+                  endingId = endingId === row.id ? '' : row.id;
+                  datesId = '';
+                }}>{h('endAssignment')}</button
+              >
+            </div>
           {/if}
           {#if poFor === row.id}
             <div class="hub-row-panel">
@@ -666,30 +804,29 @@
             </div>
           {/if}
           {#if endingId === row.id}
-            <div class="hub-row-panel" role="group" aria-label={h('endAssignmentTitle', { name: row.name })}>
-              <strong>{h('endAssignmentTitle', { name: row.name })}</strong>
-              <p>{h('endAssignmentHelp')}</p>
-              <label>{h('reason')}<input bind:value={endReason} maxlength="2000" /></label>
-              {#if laterTimeCount}
-                <p class="hub-end-next" role="status">{h('endResolveLaterNeeded')}</p>
-                <label class="hub-check" data-hub-end-resolve
-                  ><input type="checkbox" bind:checked={resolveLaterTime} />
-                  {h(laterTimeCount === 1 ? 'endResolveLaterOne' : 'endResolveLater', { count: laterTimeCount })}</label
-                >
-              {/if}
-              <div class="hub-inline-actions">
-                <button type="button" class="secondary-button" onclick={() => (endingId = '')}
-                  >{h('cancel')}</button
-                >
-                <button
-                  type="button"
-                  class="danger-button"
-                  disabled={busy}
-                  data-hub-end-confirm
-                  onclick={() => endAssignment(row)}>{h('endAssignment')}</button
-                >
-              </div>
-            </div>
+            <AssignmentEndPanel
+              assignment={row}
+              name={row.name}
+              title={h('endAssignmentTitle', { name: row.name })}
+              {locale}
+              {today}
+              defaultReason={h('reasonDefault')}
+              allowDelete
+              {describe}
+              onDone={finished}
+              onCancel={() => (endingId = '')}
+            />
+          {/if}
+          {#if datesId === row.id}
+            <AssignmentDatesPanel
+              assignment={row}
+              name={row.name}
+              {locale}
+              formatDate={(value) => formatDate(value)}
+              {describe}
+              onDone={finished}
+              onCancel={() => (datesId = '')}
+            />
           {/if}
         </li>
       {/each}
@@ -710,6 +847,26 @@
                 })}</small
               >
             </div>
+            {#if canChange(row)}
+              <button
+                type="button"
+                class="quiet-button hub-end"
+                data-hub-reopen={row.workerId}
+                aria-expanded={datesId === row.id}
+                onclick={() => (datesId = datesId === row.id ? '' : row.id)}>{a('reopen')}</button
+              >
+            {/if}
+            {#if datesId === row.id}
+              <AssignmentDatesPanel
+                assignment={row}
+                name={row.name}
+                {locale}
+                formatDate={(value) => formatDate(value)}
+                {describe}
+                onDone={finished}
+                onCancel={() => (datesId = '')}
+              />
+            {/if}
           </li>
         {/each}
       </ul>
@@ -929,8 +1086,56 @@
     color: var(--project-muted, #77756d);
   }
   .hub-team-row-past {
-    grid-template-columns: minmax(0, 1fr);
-    opacity: 0.8;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .hub-row-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem;
+    justify-content: flex-end;
+  }
+  .hub-bulk-bar {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .hub-check-all,
+  .hub-pick-row {
+    align-items: center;
+    margin: 0;
+    min-height: var(--ja-target-min, 2.75rem);
+    cursor: pointer;
+  }
+  .hub-check-all input,
+  .hub-pick-row input {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+  .hub-bulk-panel {
+    margin-bottom: 0.75rem;
+  }
+  .hub-bulk-fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+    gap: 0.75rem;
+  }
+  .hub-bulk-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.4rem;
+  }
+  .hub-bulk-list li {
+    display: grid;
+    gap: 0.1rem;
+  }
+  .hub-warn {
+    color: #b42318;
+    font-weight: 600;
   }
   .hub-errors {
     margin: 0;
@@ -976,9 +1181,11 @@
     .hub-team-rate {
       justify-items: start;
     }
-    .hub-end {
+    .hub-end,
+    .hub-row-buttons {
       grid-column: 1 / -1;
       justify-self: start;
+      justify-content: flex-start;
     }
   }
 </style>

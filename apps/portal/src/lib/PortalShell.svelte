@@ -1650,11 +1650,16 @@
   const profileWorkerId = $derived(String(data.selectedWorkerId ?? data.user.id));
   let profileSelectedWorkerId = $derived(profileWorkerId);
   let profileWorkerSearch = $state('');
+  // D5 (round 2): a project manager does not manage supplier staff availability.
+  const profileSupplierStaff = (worker: Record<string, unknown>) =>
+    ['external_technician', 'supplier_coordinator'].includes(String(worker.workforce_profile ?? ''));
   const profileMatchingWorkers = $derived(
-    (data.workers ?? []).filter((worker) =>
-      `${worker.name ?? ''} ${worker.email ?? ''}`
-        .toLocaleLowerCase()
-        .includes(profileWorkerSearch.trim().toLocaleLowerCase()),
+    (data.workers ?? []).filter(
+      (worker) =>
+        !(String(data.user?.role) === 'project_manager' && profileSupplierStaff(worker)) &&
+        `${worker.name ?? ''} ${worker.email ?? ''}`
+          .toLocaleLowerCase()
+          .includes(profileWorkerSearch.trim().toLocaleLowerCase()),
     ),
   );
   const profileVisibleWorkers = $derived(

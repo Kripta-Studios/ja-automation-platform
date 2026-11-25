@@ -87,7 +87,12 @@ export const load: PageServerLoad = ({ locals, url }) => {
   const ctx = openPortalRepository(locals);
   try {
     const manager = new OwnerRecordManagement(ctx.sqlite);
-    manager.assertOwner(ctx.principal);
+    // The layout answers 403 too; the page load runs alongside it and must not log a 500.
+    try {
+      manager.assertOwner(ctx.principal);
+    } catch {
+      error(403, 'Owner administration required');
+    }
     const recordType = url.searchParams.get('type') || 'expense';
     if (!ownerRecordTypes.includes(recordType as (typeof ownerRecordTypes)[number]))
       error(400, 'Invalid record type');

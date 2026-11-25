@@ -2232,6 +2232,24 @@ export class PortalRepository {
         throw error;
       }
     };
+    // Round 2: a project manager logging for someone else names only projects he manages
+    // and people on them; anything else is refused instead of answering "saved" with 0 rows.
+    if (workerId !== principal.userId && principal.role === 'project_manager') {
+      const managed = new Set([...principal.projectIds]);
+      for (const cell of input.cells) {
+        const member =
+          managed.has(cell.projectId) &&
+          this.sqlite
+            .prepare(
+              "SELECT 1 FROM project_member WHERE project_id=? AND user_id=? AND status='active' LIMIT 1",
+            )
+            .get(cell.projectId, workerId);
+        if (!member)
+          withCell(cell, () => {
+            throw new AccessDeniedError('Time entry access required');
+          });
+      }
+    }
     return this.transaction(() => {
       const versions = new Map((input.expected ?? []).map((row) => [row.id, row.version]));
       let created = 0;

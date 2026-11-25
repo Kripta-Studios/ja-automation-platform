@@ -398,6 +398,14 @@ export class WorkforceRepository {
       );
       if (!assigned)
         throw this.deps.errors.accessDenied('Worker availability is outside the project scope');
+      // D5 (round 2): supplier staff (external technicians, supplier coordinators) are
+      // managed by their supplier coordinator and the owner, never by a project manager.
+      if (
+        this.deps.sqlite
+          .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id=? LIMIT 1')
+          .get(input.workerId)
+      )
+        throw this.deps.errors.accessDenied('Worker availability is outside the project scope');
     }
     if (
       (input.id !== undefined) !== (input.version !== undefined) ||

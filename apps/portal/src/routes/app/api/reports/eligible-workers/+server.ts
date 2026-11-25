@@ -47,15 +47,26 @@ export const GET: RequestHandler = ({ locals, url }) => {
         )
         .map((assignment) => String(assignment.user_id ?? assignment.worker_id ?? '')),
     );
+    // Round 2 (D3/D5): supplier staff report through their supplier, so they are not
+    // offered here; the list is sorted by name (the viewer's own row stays available).
+    const supplierStaff = new Set(
+      (
+        context.sqlite.prepare('SELECT user_id FROM supplier_user_profile').all() as Array<{
+          user_id: string;
+        }>
+      ).map((row) => row.user_id),
+    );
     const workers = context.repository
       .listAllWorkers(context.principal)
       .filter(
         (worker) =>
           worker.status === 'active' &&
           ['worker', 'project_manager'].includes(String(worker.role)) &&
-          assigned.has(String(worker.id)),
+          assigned.has(String(worker.id)) &&
+          !supplierStaff.has(String(worker.id)),
       )
-      .map((worker) => ({ id: String(worker.id), name: worker.name, email: worker.email }));
+      .map((worker) => ({ id: String(worker.id), name: worker.name, email: worker.email }))
+      .sort((a, b) => String(a.name ?? '').localeCompare(String(b.name ?? '')));
     return json({ workers }, { headers });
   } catch {
     return json({ workers: [] }, { status: 403, headers });

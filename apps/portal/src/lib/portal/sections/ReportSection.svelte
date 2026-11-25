@@ -2661,7 +2661,7 @@
             aria-busy={eligibleReportWorkersLoading}
             ><option value="">{translate('Select worker')}</option
             >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
-                >{personDisplayName(worker.name, worker.email)} — {worker.email}</option
+                >{personDisplayName(worker.name, worker.email)}</option
               >{/each}</select
           ></label
         >
@@ -2881,7 +2881,7 @@
               aria-busy={eligibleReportWorkersLoading}
               ><option value="">{translate('Select worker')}</option
               >{#each eligibleReportWorkers as worker}<option value={String(worker.id)}
-                  >{personDisplayName(worker.name, worker.email)} — {worker.email}</option
+                  >{personDisplayName(worker.name, worker.email)}</option
                 >{/each}</select
             ></label
           >

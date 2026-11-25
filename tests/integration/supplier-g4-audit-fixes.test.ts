@@ -389,6 +389,26 @@ describe('project manager and supplier staff hours (D5, T42)', () => {
   });
 });
 
+describe('project manager and supplier staff availability (D5, round 2)', () => {
+  it('refuses a project manager writing availability for a supplier technician', () => {
+    const { fixture, technician } = setup();
+    fixture.sqlite
+      .prepare('UPDATE project SET project_manager_id=? WHERE id=?')
+      .run(fixture.manager.userId, fixture.project.id);
+    const manager = stepUpB5Principal(fixture.sqlite, fixture.manager, 'g4-manager-availability');
+    const before = fixture.sqlite.prepare('SELECT COUNT(*) n FROM worker_availability').get();
+    expect(() =>
+      fixture.repository.setWorkerAvailability(manager, {
+        workerId: technician.id,
+        startsAt: `${today}T08:00:00.000Z`,
+        endsAt: `${today}T17:00:00.000Z`,
+        availability: 'available',
+      }),
+    ).toThrow('Worker availability is outside the project scope');
+    expect(fixture.sqlite.prepare('SELECT COUNT(*) n FROM worker_availability').get()).toEqual(before);
+  });
+});
+
 describe('planning supplier staff (D3, D5)', () => {
   const window = { startsAt: `${today}T08:00:00`, endsAt: `${today}T16:00:00` };
   it('never plans the supplier coordinator, and a project manager does not plan supplier staff', () => {

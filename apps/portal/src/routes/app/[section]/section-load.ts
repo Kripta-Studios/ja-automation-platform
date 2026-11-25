@@ -314,12 +314,30 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
         const delegating = ['owner_admin', 'project_manager'].includes(context.principal.role);
         const assignedWorkerIds = new Set(allAssignments.map((row) => String(row.worker_id)));
         // Picker: the viewer first ("Myself"), then everyone else once, by name.
+        // D3/D5 (round 2): a supplier coordinator never logs billable hours, and supplier
+        // staff hours are recorded by their coordinator, not by a project manager.
+        const supplierProfiles = new Map(
+          (
+            context.sqlite
+              .prepare('SELECT user_id,profile FROM supplier_user_profile')
+              .all() as Array<{ user_id: string; profile: string }>
+          ).map((row) => [row.user_id, row.profile]),
+        );
+        const pickable = (id: string) =>
+          !supplierProfiles.has(id) ||
+          (context.principal.role === 'owner_admin' &&
+            supplierProfiles.get(id) !== 'supplier_coordinator');
         const timeWorkers = delegating
           ? (() => {
               const others = new Map<string, { id: string; name: string }>();
               for (const worker of common.workers as Array<Record<string, unknown>>) {
                 const id = String(worker.id);
-                if (id === context.principal.userId || !assignedWorkerIds.has(id) || others.has(id))
+                if (
+                  id === context.principal.userId ||
+                  !assignedWorkerIds.has(id) ||
+                  others.has(id) ||
+                  !pickable(id)
+                )
                   continue;
                 others.set(id, { id, name: String(worker.name ?? '') });
               }

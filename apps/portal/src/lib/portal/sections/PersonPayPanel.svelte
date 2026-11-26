@@ -20,11 +20,14 @@
     personId,
     rules,
     payInterval = null,
+    showRates = true,
     locale,
     today,
   }: {
     personId: string;
     rules: PortalRow[];
+    /** Finance sees only the pay interval here; default rates stay with the Owner. */
+    showRates?: boolean;
     payInterval?: PersonPayIntervalView | null;
     locale: string;
     today: string;
@@ -102,6 +105,7 @@
 </script>
 
 <div class="person-pay" data-person-pay>
+  {#if showRates}
   <p class="pay-muted">{c('payIntro')}</p>
   {#if message}
     <p class="pay-message" class:pay-message--error={status === 'error'} role="status">{message}</p>
@@ -177,6 +181,7 @@
         {/each}
       </ul>
     </section>
+  {/if}
   {/if}
 
   {#if payInterval}

@@ -219,12 +219,17 @@ export const teamActions = {
     }
   },
 
-  /** Person page → Pay: how often this person is paid (audited version, Owner only here). */
+  /**
+   * Person page → Pay: how often this person is paid (audited version). Owner and Finance, the
+   * same people who may set an assignment's pay interval (final verify 2026-11-26).
+   */
   setPersonPayInterval: async (event: PortalActionEvent) => {
     if (event.params.section !== 'projects')
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
-    const denied = ownerFailure(event);
-    if (denied) return denied;
+    if (!event.locals.user || !event.locals.session)
+      return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.');
+    if (!['owner_admin', 'finance_admin'].includes(event.locals.user.role))
+      return actionFail(403, 'action.error.forbidden', {}, 'Owner or Finance administrator required');
     const form = await event.request.formData();
     const workerId = String(form.get('workerId') ?? '').trim();
     const parsed = parsePayIntervalForm(form);

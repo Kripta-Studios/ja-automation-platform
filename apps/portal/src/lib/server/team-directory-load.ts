@@ -171,7 +171,10 @@ export function loadTeamDirectoryExtras(
     mailboxLinkedIds,
     personPayRules,
     defaultsProjectIds,
+    // Owner and Finance set how often a person is paid (as for an assignment).
     personPayInterval:
-      isOwner && options.personId ? personPayIntervalView(sqlite, options.personId, today) : null,
+      (isOwner || options.role === 'finance_admin') && options.personId
+        ? personPayIntervalView(sqlite, options.personId, today)
+        : null,
   };
 }

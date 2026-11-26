@@ -146,3 +146,36 @@ describe('setPersonDefaultRates', () => {
     expect(early.status).toBe(409);
   });
 });
+
+describe('setPersonPayInterval', () => {
+  it('lets Finance set a person pay interval like an assignment one; others are refused', async () => {
+    const value = fixture();
+    const finance = stepUpB5Principal(value.sqlite, value.finance, 'team-people');
+    openPortalRepository.mockReturnValue({
+      ...openPortalRepository(),
+      principal: finance,
+    });
+    const id = randomUUID();
+    seedB5User(value.sqlite, id, 'worker');
+    const body = () => new URLSearchParams({ workerId: id, payInterval: 'weekly', expectedVersion: '0' });
+    const count = () =>
+      (value.sqlite.prepare('SELECT COUNT(*) n FROM pay_interval_setting').get() as { n: number }).n;
+    for (const role of ['project_manager', 'auditor_read_only', 'worker']) {
+      const denied = (await teamActions.setPersonPayInterval(
+        event(body(), role, `${role}@j-aautomation.com`),
+      )) as { status?: number };
+      expect(denied.status).toBe(403);
+    }
+    expect(count()).toBe(0);
+    const saved = (await teamActions.setPersonPayInterval(
+      event(body(), 'finance_admin', 'finance-admin-test@j-aautomation.com'),
+    )) as { success?: boolean };
+    expect(saved, JSON.stringify(saved)).toMatchObject({ success: true });
+    expect(
+      value.sqlite
+        .prepare('SELECT scope_key,pay_interval FROM pay_interval_setting')
+        .all()
+        .map((row) => ({ ...row })),
+    ).toEqual([{ scope_key: `person:${id}`, pay_interval: 'weekly' }]);
+  });
+});

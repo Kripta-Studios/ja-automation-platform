@@ -1313,7 +1313,9 @@
   const personTabs = $derived<PersonTab[]>(
     canManageTeam
       ? ['overview', 'projects', 'hours', 'expenses', 'pay', 'access']
-      : ['overview', 'projects', 'hours', 'expenses'],
+      : personPayInterval
+        ? ['overview', 'projects', 'hours', 'expenses', 'pay']
+        : ['overview', 'projects', 'hours', 'expenses'],
   );
   const personTab = $derived.by<PersonTab>(() => {
     const requested = $page.url.searchParams.get('tab') as PersonTab | null;
@@ -1816,11 +1818,12 @@
                   >{tc('openExpenses', { name: personName(worker) })}</a
                 >
               </div>
-            {:else if personTab === 'pay' && canManageTeam}
+            {:else if personTab === 'pay' && (canManageTeam || personPayInterval)}
               <div class="person__panel" data-person-panel="pay">
                 <PersonPayPanel
                   personId={workerId(worker)}
                   rules={personPayRules}
+                  showRates={canManageTeam}
                   payInterval={personPayInterval}
                   {locale}
                   today={todayIso}

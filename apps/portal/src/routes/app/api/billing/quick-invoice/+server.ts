@@ -143,7 +143,14 @@ const refSchema = z
   .strict();
 const money = z.string().trim().regex(/^\d{1,10}(?:[.,]\d{1,2})?$/u);
 const createSchema = z
-  .object({ ...scopeFields, expectedTotalMinor: z.string().regex(/^\d{1,18}$/u), requestKey })
+  .object({
+    ...scopeFields,
+    expectedTotalMinor: z.string().regex(/^\d{1,18}$/u),
+    requestKey,
+    expectedSplit: splitGuard,
+    expectedCompanionTotalMinor: companionGuard,
+    replacesInvoiceId: idSchema.optional(),
+  })
   .strict();
 /** One request per fix; every write re-checks scope server side and returns the new preview. */
 const operationSchema = z.discriminatedUnion('operation', [

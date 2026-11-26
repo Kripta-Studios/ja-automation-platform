@@ -85,6 +85,11 @@ const copy = {
     'Gastos que quedan fuera: {count}. Siguen abiertos para otra factura.',
     'Despesas deixadas de fora: {count}. Ficam em aberto para outra fatura.',
   ],
+  companionNumberAfter: [
+    'When issued it gets the next number after the hours invoice.',
+    'Al emitirse recibe el número siguiente al de la factura de horas.',
+    'Ao ser emitida recebe o número seguinte ao da fatura de horas.',
+  ],
   companionReview: ['Review expenses', 'Revisar gastos', 'Revisar despesas'],
   hoursInvoice: ['Hours and extras', 'Horas y extras', 'Horas e extras'],
   expenseInvoice: ['Expenses', 'Gastos', 'Despesas'],

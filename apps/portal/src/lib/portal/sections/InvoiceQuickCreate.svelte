@@ -2135,7 +2135,9 @@
                       {/each}
                       {#if companion.groups.length > 6}<li><span>+{companion.groups.length - 6}</span><span></span></li>{/if}
                     </ul>
-                    {#if companion.provisionalNumber}
+                    {#if companion.provisionalNumber && preview.provisionalNumber}
+                      <p class="quick-invoice__muted">{e('companionNumberAfter')}</p>
+                    {:else if companion.provisionalNumber}
                       <p class="quick-invoice__muted">{t('numberOnIssue')}: {companion.provisionalNumber}</p>
                     {/if}
                   {:else if companion.state === 'existing' && companion.existingInvoice}

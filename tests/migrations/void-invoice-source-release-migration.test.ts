@@ -152,7 +152,7 @@ describe('void invoice source release migration78', () => {
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
     expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({
-      version: 95,
+      version: 96,
     });
     expect(f.sqlite.prepare('SELECT * FROM invoice WHERE id=?').get(created.invoiceId)).toEqual(invoiceBefore);
     expect(

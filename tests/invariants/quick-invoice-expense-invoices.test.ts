@@ -46,6 +46,27 @@ function setup(options: { include?: boolean } = {}) {
     billingAddress: 'Madrid test address',
     companyIdentifiers: 'EXPI-ISSUER',
   });
+  const revision = f.v3.createCanonicalLegalEntityRevision(finance, {
+    legacyLegalEntityId: entity.id,
+    effectiveFrom: '2026-01-01',
+    legalName: 'Expense invoices issuer',
+    taxIdentifier: 'EXPI-ISSUER',
+    addressLine1: 'Madrid test address',
+    locality: 'Madrid',
+    postalCode: '28001',
+    countryCode: 'ES',
+    baseCurrency: 'EUR',
+    timezone: 'Europe/Madrid',
+    reason: 'Expense invoices fixture authority',
+    idempotencyKey: 'expinv-issuer-revision',
+  });
+  f.v3.assignCanonicalLegalEntityToProject(finance, {
+    projectId: f.project.id,
+    legalEntityRevisionId: revision.revisionId,
+    effectiveFrom: '2026-01-01',
+    reason: 'Expense invoices fixture authority',
+    idempotencyKey: 'expinv-issuer-assignment',
+  });
   const tax = f.repository.createTaxProfile(finance, {
     legalEntityId: entity.id,
     name: 'IVA 21',

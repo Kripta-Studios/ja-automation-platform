@@ -576,7 +576,13 @@ function supplierExpenseSummary(
   return {
     items: items.map((item) => ({
       ...item,
-      deductNow: toDeduct.has(item.expenseId),
+      // Draft: every open recharge is expected to be deducted once the period is approved.
+      deductNow:
+        status === 'draft'
+          ? item.treatment === 'recharge' &&
+            item.rechargedSettlementId === null &&
+            item.amountMinor !== null
+          : toDeduct.has(item.expenseId),
     })),
     deducted: total(deducted),
     // Approved settlement: deducted on payment. Draft: an estimate of what will be deducted.

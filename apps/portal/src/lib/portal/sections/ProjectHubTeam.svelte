@@ -910,7 +910,7 @@
           <small class="surface-intro">{se('noTechnicians')}</small>
         {/if}
         {#if supplierEditing}
-          <form class="hub-inline-form" onsubmit={saveSupplierRule} data-hub-supplier-expenses-form>
+          <form class="hub-supplier-expenses__form" onsubmit={saveSupplierRule} data-hub-supplier-expenses-form>
             <fieldset class="hub-supplier-expenses__choices">
               <legend class="hub-sr-only">{se('title')}</legend>
               {#each [['ja', se('ja'), se('jaHelp')], ['supplier', se('supplier'), se('supplierHelp')], ['', se('notSet'), '']] as [value, label, help] (value)}
@@ -1039,8 +1039,9 @@
               <span
                 >{supplierCarrierLabel(locale, own.effective.carrier)}
                 <small class="hub-extras-from"
-                  >{supplierSourceLabel(locale, own.effective.source)}{#if own.effective.effectiveFrom}
-                    · {se('since', { date: formatDate(own.effective.effectiveFrom) })}{/if}</small
+                  >{supplierSourceLabel(locale, own.effective.source)}{#if own.effective.effectiveFrom}&nbsp;· {se('since', {
+                      date: formatDate(own.effective.effectiveFrom),
+                    })}{/if}</small
                 ></span
               >
             </div>
@@ -1570,6 +1571,20 @@
     align-items: center;
     gap: 0.25rem 0.5rem;
     margin: 0;
+  }
+  .hub-supplier-expenses__form {
+    display: grid;
+    gap: 0.6rem;
+    max-width: 40rem;
+    min-width: 0;
+  }
+  .hub-supplier-expenses__form label:not(.hub-supplier-expenses__option) {
+    display: grid;
+    gap: 0.25rem;
+    max-width: 16rem;
+  }
+  .hub-supplier-expenses__form input[type='date'] {
+    min-height: var(--ja-target-min, 2.75rem);
   }
   .hub-supplier-expenses__choices {
     display: grid;

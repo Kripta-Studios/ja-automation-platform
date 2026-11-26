@@ -266,7 +266,8 @@ export class SupplierExpenseRuleRepository {
     const members = this.sqlite
       .prepare(
         `SELECT pm.id,pm.user_id,pm.starts_on,s.name supplier_name FROM project_member pm
-           JOIN supplier_user_profile p ON p.user_id=pm.user_id JOIN supplier s ON s.id=p.supplier_id
+           JOIN supplier_user_profile p ON p.user_id=pm.user_id AND p.profile='external_technician'
+           JOIN supplier s ON s.id=p.supplier_id
           WHERE pm.project_id=? AND pm.status='active' AND (pm.ends_on IS NULL OR pm.ends_on>=?)
           ORDER BY pm.starts_on,pm.id`,
       )

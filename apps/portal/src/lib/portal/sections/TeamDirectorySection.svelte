@@ -301,6 +301,8 @@
   // Owner password reset inside "Edit team member".
   let resetPasswordValue = $state<Record<string, string>>({});
   let resetPasswordReveal = $state<Record<string, boolean>>({});
+  /** The person whose password reset waits for the inline Yes / Cancel. */
+  let confirmResetFor = $state<string | null>(null);
   const resetPasswordSuccess = $derived.by(() => {
     const candidate = form as unknown as Record<string, unknown> | null | undefined;
     const payload = (
@@ -1943,14 +1945,11 @@
                       data-reset-password-form
                       use:formValidation
                       onsubmit={(event) => {
-                        if (
-                          !confirm(
-                            translate(
-                              'Set this new password? The old one stops working right away and the person is signed out.',
-                            ),
-                          )
-                        )
+                        // Asks inline (Yes / Cancel) like the other confirmations in the app.
+                        if (confirmResetFor !== resetId) {
                           event.preventDefault();
+                          confirmResetFor = resetId;
+                        }
                       }}
                     >
                       <h3>{translate(firstPassword ? 'Set first password' : 'Reset password')}</h3>
@@ -2020,9 +2019,27 @@
                           {portalText(problemLocale, resetPasswordDoneKey)}
                         </p>
                       {/if}
-                      <button type="submit" class="team-directory__action"
-                        >{translate(firstPassword ? 'Save first password' : 'Save new password')}</button
-                      >
+                      {#if confirmResetFor === resetId}
+                        <div class="team-directory__reset-confirm" role="alert" data-reset-password-confirm>
+                          <p>
+                            {translate(
+                              'Set this new password? The old one stops working right away and the person is signed out.',
+                            )}
+                          </p>
+                          <button type="submit" class="team-directory__action"
+                            >{translate('Yes, set the password')}</button
+                          >
+                          <button
+                            type="button"
+                            class="team-directory__action team-directory__action--quiet"
+                            onclick={() => (confirmResetFor = null)}>{translate('Cancel')}</button
+                          >
+                        </div>
+                      {:else}
+                        <button type="submit" class="team-directory__action"
+                          >{translate(firstPassword ? 'Save first password' : 'Save new password')}</button
+                        >
+                      {/if}
                     </form>
                   {/if}
                     <section class="person__danger" aria-labelledby={`person-danger-${workerId(worker)}`}>
@@ -4075,6 +4092,20 @@
   }
   .team-directory__reset-password h3,
   .team-directory__reset-password p {
+    margin: 0;
+  }
+  .team-directory__reset-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #e3c27a;
+    border-radius: 0.5rem;
+    background: #fff8e6;
+  }
+  .team-directory__reset-confirm p {
+    flex-basis: 100%;
     margin: 0;
   }
   .team-directory__reset-done {

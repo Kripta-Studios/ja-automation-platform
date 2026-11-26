@@ -5,7 +5,6 @@
   import { onMount, tick } from 'svelte';
   import { untrack } from 'svelte';
   import type { SubmitFunction } from '@sveltejs/kit';
-  import { confirmBeforeSubmit } from '$lib/portal/ui/confirm-submit';
   import { SectionCard } from '$lib/portal/ui';
   import ProblemNotice from '$lib/portal/ui/ProblemNotice.svelte';
   import formValidation, { reportFormFieldErrors } from '$lib/portal/ui/form-validation';
@@ -43,6 +42,7 @@
       : value;
   // Round 2: ending a crew delegation is confirmed first. What the chief already
   // recorded stays in the history and with the crew member.
+  let confirmRevokeFor = $state<string | null>(null);
   const revokeConfirmText = (chief: string, member: string) =>
     (locale === 'pt'
       ? 'Encerrar a delegação de {chief} para {member}? Os registros já feitos ficam no histórico.'
@@ -933,21 +933,35 @@
         method="POST"
         action={`?/revoke&${actionContext}`}
         data-crew-operation="revoke"
-        use:enhance={confirmBeforeSubmit(
-          () =>
-            revokeConfirmText(
-              personDisplayName(grant.chiefName),
-              personDisplayName(grant.workerName),
-            ),
-          preserveCrewForm,
-        )}
+        use:enhance={preserveCrewForm}
         use:formValidation
       >
         <input type="hidden" name="id" value={grant.id} />
         <input type="hidden" name="projectId" value={data.projectId} />
-        <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
-          >{t('Revoke')}</button
-        >
+        <!-- Asks inline (Yes / Cancel) like the other confirmations in the app. -->
+        {#if confirmRevokeFor === grant.id}
+          <span class="revoke-confirm" role="alert" data-crew-revoke-confirm>
+            <span
+              >{revokeConfirmText(
+                personDisplayName(grant.chiefName),
+                personDisplayName(grant.workerName),
+              )}</span
+            >
+            <button type="submit" class="secondary" disabled={Boolean(pendingOperation)}
+              >{t('Yes, revoke')}</button
+            >
+            <button type="button" class="secondary" onclick={() => (confirmRevokeFor = null)}
+              >{t('Cancel')}</button
+            >
+          </span>
+        {:else}
+          <button
+            type="button"
+            class="secondary"
+            disabled={Boolean(pendingOperation)}
+            onclick={() => (confirmRevokeFor = grant.id)}>{t('Revoke')}</button
+          >
+        {/if}
       </form>
     {/if}
   </li>
@@ -1470,6 +1484,15 @@
 </main>
 
 <style>
+  .revoke-confirm {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .revoke-confirm > span {
+    flex-basis: 100%;
+  }
   .crew-notice {
     margin: 0.75rem 0;
     padding: 0.75rem 1rem;

@@ -19,6 +19,8 @@ function fixture(): B5LifecycleSecurityFixture {
     ...base,
     owner: stepUpB5Principal(base.sqlite, base.owner, 'policy-consumption-owner'),
     finance: stepUpB5Principal(base.sqlite, base.finance, 'policy-consumption-finance'),
+    // Workers record time only with a live session (operational project scope).
+    worker: stepUpB5Principal(base.sqlite, base.worker, 'policy-consumption-worker'),
   };
   fixtures.push(value);
   value.v3.createClientLaborRate(value.finance, {
@@ -136,7 +138,9 @@ describe('Client Essential effective commercial policy consumption', () => {
     expect(refreshed.refreshed).toBe(true);
     expect(refreshed.id).not.toBe(draft.id);
     expect(
-      value.sqlite.prepare('SELECT variant_id FROM localized_pdf_variant WHERE owner_id=?').get(draft.id),
+      value.sqlite
+        .prepare('SELECT variant_id FROM localized_pdf_variant WHERE owner_id=?')
+        .get(draft.id),
     ).toBeUndefined();
   });
 

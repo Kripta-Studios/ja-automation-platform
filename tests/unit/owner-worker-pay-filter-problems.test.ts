@@ -16,6 +16,14 @@ const state = vi.hoisted(() => ({
 
 vi.mock('@ja/database', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@ja/database')>()),
+  // The pay interval read (2026-11-25) is not part of these filter checks: nothing set.
+  nextPayPeriod: () => ({
+    interval: null,
+    anchorDate: null,
+    source: 'none',
+    period: null,
+    lastPaidEnd: null,
+  }),
   OwnerRecordManagement: class {
     assertOwner() {
       state.events.push('owner');

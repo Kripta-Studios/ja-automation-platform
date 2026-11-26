@@ -6,6 +6,7 @@ import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
   seedB5User,
+  signInB5Principal,
   readSource,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -36,7 +37,12 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-09-23T23:00:00.000Z'));
-      const worker = value.repository.principalFor('b5-outsider');
+      // Workers see their projects only with a live session.
+      const worker = signInB5Principal(
+        value.sqlite,
+        value.repository.principalFor('b5-outsider'),
+        'civil-date',
+      );
       expect(value.repository.listAssignedProjects(worker)).toEqual(
         expect.arrayContaining([expect.objectContaining({ id: value.project.id })]),
       );
@@ -56,7 +62,11 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     expect(
       value.sqlite.prepare('SELECT ends_on FROM project_member WHERE id=?').get(assignment.id),
     ).toEqual({ ends_on: null });
-    const worker = value.repository.principalFor('b5-outsider');
+    const worker = signInB5Principal(
+      value.sqlite,
+      value.repository.principalFor('b5-outsider'),
+      'open-ended',
+    );
     expect(value.repository.listAssignedProjects(worker)).toEqual(
       expect.arrayContaining([expect.objectContaining({ id: value.project.id })]),
     );
@@ -350,7 +360,11 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
         .prepare(
           "SELECT id,assignment_role,can_review FROM project_member WHERE project_id=? AND user_id='b5-manager' AND status='active'",
         )
-        .all(value.project.id) as Array<{ id: string; assignment_role: string; can_review: number }>;
+        .all(value.project.id) as Array<{
+        id: string;
+        assignment_role: string;
+        can_review: number;
+      }>;
     const teamRows = activeRows();
     expect(teamRows).toHaveLength(1);
     const version = () =>
@@ -408,6 +422,8 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
 
   it('removes archived projects from worker operational scope while preserving restore access', () => {
     const value = fixture();
+    // A signed-in worker: the archive must hide the project, not a missing session.
+    const worker = signInB5Principal(value.sqlite, value.worker, 'archive-scope');
     const current = value.sqlite
       .prepare('SELECT version FROM project WHERE id=?')
       .get(value.project.id) as { version: number };
@@ -429,10 +445,10 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
       version: closed.version,
       reason: 'Operational archive scope test archived',
     });
-    expect(value.repository.listAssignedProjects(value.worker)).toEqual([]);
-    expect(value.repository.listTimeForScope(value.worker)).toEqual([]);
+    expect(value.repository.listAssignedProjects(worker)).toEqual([]);
+    expect(value.repository.listTimeForScope(worker)).toEqual([]);
     expect(() =>
-      value.repository.createTimeEntry(value.worker, {
+      value.repository.createTimeEntry(worker, {
         projectId: value.project.id,
         workDate: '2026-08-23',
         category: 'regular',
@@ -448,12 +464,8 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
       reason: 'Operational archive scope test restored',
     });
     expect(restored.status).toBe('closed');
-    expect(
-      value.repository.listAssignedProjects(value.repository.principalFor('b5-worker')),
-    ).toEqual([]);
-    expect(value.repository.listTimeForScope(value.repository.principalFor('b5-worker'))).toEqual(
-      [],
-    );
+    expect(value.repository.listAssignedProjects(worker)).toEqual([]);
+    expect(value.repository.listTimeForScope(worker)).toEqual([]);
     expect(value.repository.listAssignedProjects(value.owner)).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -543,7 +555,13 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     expect(portalShell).toContain('const canManageClientContacts = $derived(');
     expect(portalShell).toContain('const canManageAssignmentControls = $derived(');
     expect(portalShell).toContain('{#if canManageProjects}');
-    expect(portalShell).toContain('{#if canManageClientContacts}');
+    // Client contacts moved into ClientDirectorySection; the shell passes the gate down.
+    expect(portalShell).toContain('canManageContacts={canManageClientContacts}');
+    const clientDirectory = readSource(
+      'apps/portal/src/lib/portal/sections/ClientDirectorySection.svelte',
+    );
+    expect(clientDirectory).toContain('canManageContacts = false,');
+    expect(clientDirectory).toContain('{#if canManageContacts}');
     expect(portalShell).toContain('{#if canManageAssignmentControls}');
     expect(portalShell).toContain(
       "data.user.role === 'owner_admin' || data.user.role === 'project_manager'",
@@ -911,11 +929,19 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     expect(deletedProject.summary.totalRows).toBeGreaterThan(1);
     for (const table of ['project', 'time_entry', 'expense', 'project_member', 'schedule'])
       expect(
-        value.sqlite.prepare(`SELECT COUNT(*) n FROM ${table} WHERE ${table === 'project' ? 'id' : 'project_id'}=?`).get(projectId),
+        value.sqlite
+          .prepare(
+            `SELECT COUNT(*) n FROM ${table} WHERE ${table === 'project' ? 'id' : 'project_id'}=?`,
+          )
+          .get(projectId),
       ).toEqual({ n: 0 });
     // Audit history is kept (detached) and the deletion itself is audited.
     expect(
-      (value.sqlite.prepare('SELECT COUNT(*) n FROM audit_event WHERE project_id=?').get(projectId) as { n: number }).n,
+      (
+        value.sqlite
+          .prepare('SELECT COUNT(*) n FROM audit_event WHERE project_id=?')
+          .get(projectId) as { n: number }
+      ).n,
     ).toBe(0);
     expect(auditBefore).toBeGreaterThan(0);
     const deletion = value.sqlite
@@ -940,9 +966,11 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     // A client is deleted together with its projects.
     const deletedClient = value.repository.deleteClient(value.owner, client.id);
     expect(deletedClient.summary.projects).toBe(1);
-    expect(value.sqlite.prepare('SELECT COUNT(*) n FROM client WHERE id=?').get(client.id)).toEqual({
-      n: 0,
-    });
+    expect(value.sqlite.prepare('SELECT COUNT(*) n FROM client WHERE id=?').get(client.id)).toEqual(
+      {
+        n: 0,
+      },
+    );
     expect(
       value.sqlite.prepare('SELECT COUNT(*) n FROM project WHERE id=?').get(emptyProject.id),
     ).toEqual({ n: 0 });

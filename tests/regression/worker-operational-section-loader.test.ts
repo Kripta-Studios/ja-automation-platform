@@ -6,6 +6,14 @@ const { openPortalRepository } = vi.hoisted(() => ({ openPortalRepository: vi.fn
 vi.mock('$lib/server/portal-repository', () => ({ openPortalRepository }));
 vi.mock('@ja/database', () => ({
   MailIdentityRepository: class {},
+  // My Pay opens on the next pay period when a pay interval is set (2026-11-25): none here.
+  nextPayPeriod: () => ({
+    interval: null,
+    anchorDate: null,
+    source: 'none',
+    period: null,
+    lastPaidEnd: null,
+  }),
   CrewLeaderRepository: class {
     projects() {
       return [];
@@ -43,7 +51,12 @@ const historicalPay = {
 };
 type LoadedSection = {
   projects: Array<{ id: string }>;
-  timeAssignments: Array<{ project_id: string; worker_id: string; starts_on: string; ends_on: string }>;
+  timeAssignments: Array<{
+    project_id: string;
+    worker_id: string;
+    starts_on: string;
+    ends_on: string;
+  }>;
   weekEntries: unknown[];
   pay: typeof historicalPay;
   payExpenses: ReturnType<ReturnType<typeof setupRepository>['listWorkerStatementExpenses']>;
@@ -150,7 +163,12 @@ describe('operational section loader safe Worker DTOs', () => {
   it('only sends dated assignments for the visible project, without projecting scheduled hours or pay', async () => {
     const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
     expect(data.timeAssignments).toEqual([
-      { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-30', ends_on: '2026-10-03' },
+      {
+        project_id: 'current-project',
+        worker_id: 'worker',
+        starts_on: '2026-09-30',
+        ends_on: '2026-10-03',
+      },
     ]);
     expect(data.weekEntries).toEqual([]);
     expect(JSON.stringify(data)).not.toContain('expired-project');
@@ -176,7 +194,12 @@ describe('operational section loader safe Worker DTOs', () => {
       `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
       expect(data.timeAssignments).toEqual([
-        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-28', ends_on: currentEndsOn },
+        {
+          project_id: 'current-project',
+          worker_id: 'worker',
+          starts_on: '2026-09-28',
+          ends_on: currentEndsOn,
+        },
       ]);
       expect(data.weekEntries).toEqual([]);
       expect(data.projects).toEqual([{ id: 'current-project' }]);
@@ -205,7 +228,12 @@ describe('operational section loader safe Worker DTOs', () => {
     `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
       expect(data.timeAssignments).toEqual([
-        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-28', ends_on: '2026-10-04' },
+        {
+          project_id: 'current-project',
+          worker_id: 'worker',
+          starts_on: '2026-09-28',
+          ends_on: '2026-10-04',
+        },
       ]);
       expect(data.weekEntries).toEqual([]);
       expect(JSON.stringify(data)).not.toContain('unrelated-project');
@@ -224,7 +252,12 @@ describe('operational section loader safe Worker DTOs', () => {
       `);
       const data = (await sectionLoad(event('time'))) as unknown as LoadedSection;
       expect(data.timeAssignments).toEqual([
-        { project_id: 'current-project', worker_id: 'worker', starts_on: '2026-09-30', ends_on: '2026-10-03' },
+        {
+          project_id: 'current-project',
+          worker_id: 'worker',
+          starts_on: '2026-09-30',
+          ends_on: '2026-10-03',
+        },
       ]);
       expect(data.weekEntries).toEqual([]);
       expect(data.projects).toEqual([{ id: 'current-project' }]);
@@ -258,7 +291,9 @@ describe('operational section loader safe Worker DTOs', () => {
     const data = (await sectionLoad(event('pay'))) as unknown as LoadedSection;
     expect(data.pay).toEqual(historicalPay);
     // T41: the expired project is listed as text, never linked to a 403 page.
-    expect((data as unknown as { payOpenableProjectIds: string[] }).payOpenableProjectIds).toEqual([]);
+    expect((data as unknown as { payOpenableProjectIds: string[] }).payOpenableProjectIds).toEqual(
+      [],
+    );
     expect(data.payExpenses).toEqual(repository.listWorkerStatementExpenses.mock.results[0]?.value);
     expect(data.payExpenses[0]).toMatchObject({
       reimbursementAmountMinor: '9007199254740993',

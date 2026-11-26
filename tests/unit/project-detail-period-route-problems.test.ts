@@ -18,10 +18,23 @@ vi.mock('$lib/server/portal-repository', () => ({
       listLegalEntities: () => [],
       listTaxProfiles: () => [],
       listDocuments: () => [],
+      projectInvoiceCounter: () => null,
     },
     v3: { projectFinance: state.finance },
     sqlite: { close: state.close },
   }),
+}));
+
+// Owner/Finance extras and pay intervals (2026-11-25) read their own tables; none here.
+vi.mock('$lib/server/assignment-extras-form', () => ({
+  projectExtrasValues: () => ({}),
+  saveAssignmentExtras: vi.fn(),
+}));
+vi.mock('$lib/server/intervals', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('$lib/server/intervals')>()),
+  projectAssignmentPayIntervals: () => ({}),
+  withNextInvoicePeriods: <T>(_sqlite: unknown, rules: readonly T[]) =>
+    rules.map((rule) => ({ ...rule, next_period_start: null, next_period_end: null })),
 }));
 
 vi.mock('@ja/database', async (importOriginal) => ({

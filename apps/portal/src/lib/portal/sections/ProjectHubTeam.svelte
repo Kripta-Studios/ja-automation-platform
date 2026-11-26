@@ -901,7 +901,8 @@
               >
             </div>
           {/if}
-          {#if payIntervals !== null}
+          {#if payIntervals !== null && row.role !== 'project_manager' && row.role !== 'supplier_coordinator'}
+            <!-- Project managers and supplier coordinators are not paid on this project. -->
             <div class="hub-team-rate" data-hub-pay-interval={row.workerId}>
               <span class="hub-label">{ic('payIntervalLabel')}</span>
               <span>{payText(row)}</span>

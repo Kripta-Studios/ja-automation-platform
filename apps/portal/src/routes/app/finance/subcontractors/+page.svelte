@@ -101,30 +101,34 @@
     >
     <form method="GET" class="sub__weekform">
       {#if data.payee}<input type="hidden" name="payee" value={data.payee} />{/if}
-      <label>
-        <span class="sub__weeklabel" data-week-label>{periodLabel}</span>
-        <input
-          type="date"
-          name="week"
-          value={data.week.start}
-          onchange={(event) => event.currentTarget.form?.requestSubmit()}
-          aria-label={t('week')}
-        />
-      </label>
-      <label>
-        <span class="sub__muted">{intervalCopy(locale, 'periodLabel')}</span>
-        <select
-          name="interval"
-          value={data.week.interval}
-          onchange={(event) => event.currentTarget.form?.requestSubmit()}
-          data-period-interval
-        >
-          <option value="weekly">{intervalCopy(locale, 'weekly')}</option>
-          <option value="every_14_days">{intervalCopy(locale, 'every_14_days')}</option>
-          <option value="semi_monthly">{intervalCopy(locale, 'semi_monthly')}</option>
-          <option value="monthly">{intervalCopy(locale, 'monthly')}</option>
-        </select>
-      </label>
+      <span class="sub__weeklabel" data-week-label>{periodLabel}</span>
+      <!-- The period length sits next to the date picker (one row, also on phones). -->
+      <div class="sub__weekfields">
+        <label>
+          <span class="sub__muted">{intervalCopy(locale, 'periodDay')}</span>
+          <input
+            type="date"
+            name="week"
+            value={data.week.start}
+            onchange={(event) => event.currentTarget.form?.requestSubmit()}
+            aria-label={t('week')}
+          />
+        </label>
+        <label>
+          <span class="sub__muted">{intervalCopy(locale, 'periodLabel')}</span>
+          <select
+            name="interval"
+            value={data.week.interval}
+            onchange={(event) => event.currentTarget.form?.requestSubmit()}
+            data-period-interval
+          >
+            <option value="weekly">{intervalCopy(locale, 'weekly')}</option>
+            <option value="every_14_days">{intervalCopy(locale, 'every_14_days')}</option>
+            <option value="semi_monthly">{intervalCopy(locale, 'semi_monthly')}</option>
+            <option value="monthly">{intervalCopy(locale, 'monthly')}</option>
+          </select>
+        </label>
+      </div>
     </form>
     <a
       class="sub__btn sub__btn--ghost"
@@ -469,9 +473,31 @@
     align-items: center;
     gap: 0.5rem;
   }
+  .sub__weekform {
+    display: grid;
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .sub__weekfields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem;
+    max-width: 26rem;
+  }
   .sub__weekform label {
     display: grid;
     gap: 0.2rem;
+    min-width: 0;
+  }
+  .sub__weekform select {
+    min-height: 44px;
+    font-size: 1rem;
+  }
+  .sub__weekform input,
+  .sub__weekform select {
+    width: 100%;
+    min-width: 0;
   }
   .sub__weeklabel {
     font-weight: 700;

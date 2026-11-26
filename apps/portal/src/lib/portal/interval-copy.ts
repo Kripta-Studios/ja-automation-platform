@@ -139,6 +139,7 @@ const copy = {
   next: ['Next', 'Siguiente', 'Próximo'],
   usePeriod: ['Use this period', 'Usar este período', 'Usar este período'],
   periodLabel: ['Period', 'Período', 'Período'],
+  periodDay: ['Day in the period', 'Día del período', 'Dia do período'],
 } satisfies Record<string, CopyValue>;
 
 export type IntervalCopyKey = keyof typeof copy;

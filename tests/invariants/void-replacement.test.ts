@@ -349,4 +349,50 @@ describe('draft details edits', () => {
       .get(s.f.project.id);
     expect(after).toEqual({ payment_terms_days: 60, po: 'PO-FUTURE' });
   });
+
+  it('a draft saved with old bank lines shows and issues the current payment block', () => {
+    const s = setup();
+    s.time('2026-08-20', 60);
+    const preview = quickInvoicePreview(s.context(s.finance), { projectId: s.f.project.id, ...period });
+    const created = quickInvoiceCreate(s.context(s.finance), {
+      projectId: s.f.project.id,
+      ...period,
+      expectedTotalMinor: preview.totalMinor,
+      requestKey: 'stale-bank',
+    });
+    if (!created.ok) throw new Error('draft expected');
+    const view = () =>
+      s.f.repository.invoicePreview(s.finance, created.invoiceId).invoice as Record<string, unknown>;
+    const current = { ...(view().terms_and_instructions as Record<string, unknown>) };
+    // A draft saved before the bank fields changed kept a copy of the old bank.
+    const row = s.f.sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(created.invoiceId) as {
+      snapshot_json: string;
+    };
+    const stale = JSON.parse(row.snapshot_json) as Record<string, unknown>;
+    stale.termsAndInstructions = {
+      ...(stale.termsAndInstructions as Record<string, unknown>),
+      bankSwiftNumber: 'WFBIUS6S',
+      bankAccountNumber: '8769915615',
+      bankName: 'Wells Fargo Bank',
+    };
+    s.f.sqlite.prepare('UPDATE invoice SET snapshot_json=? WHERE id=?').run(JSON.stringify(stale), created.invoiceId);
+    expect(view().terms_and_instructions).toEqual(current);
+    expect(view().source_settings_changed).toBe(false);
+    // Explicitly overridden for this draft: kept, and the draft reads as out of date.
+    s.f.sqlite
+      .prepare('UPDATE invoice SET snapshot_json=? WHERE id=?')
+      .run(JSON.stringify({ ...stale, draftOnlyOverrides: ['bankName'] }), created.invoiceId);
+    expect(view().terms_and_instructions).toMatchObject({ bankName: 'Wells Fargo Bank' });
+    expect(view().terms_and_instructions).not.toMatchObject({ bankAccountNumber: '8769915615' });
+    expect(view().source_settings_changed).toBe(true);
+    s.f.sqlite.prepare('UPDATE invoice SET snapshot_json=? WHERE id=?').run(JSON.stringify(stale), created.invoiceId);
+    s.f.repository.issueReviewedInvoice(s.finance, created.invoiceId, preview.totalMinor);
+    const issued = JSON.parse(
+      (s.f.sqlite.prepare('SELECT snapshot_json FROM invoice WHERE id=?').get(created.invoiceId) as {
+        snapshot_json: string;
+      }).snapshot_json,
+    ) as { termsAndInstructions: Record<string, unknown> };
+    for (const name of ['bankSwiftNumber', 'bankAccountNumber', 'bankName'])
+      expect(issued.termsAndInstructions[name]).toBe(current[name]);
+  });
 });

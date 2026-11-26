@@ -147,6 +147,7 @@ import {
   invoiceIssuerCoverageIssue,
   effectivePurchaseReference,
   purchaseReferenceOrNull,
+  draftTermsWithoutStalePayee,
   releaseCopiedStreamPurchaseOrders,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
@@ -11128,11 +11129,10 @@ export class PortalRepository {
           ...issuerSettingsPresentation(
             readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency),
           ).termsAndInstructions,
-          ...(typeof draftCustomizations.termsAndInstructions === 'object' &&
-          draftCustomizations.termsAndInstructions !== null &&
-          !Array.isArray(draftCustomizations.termsAndInstructions)
-            ? draftCustomizations.termsAndInstructions
-            : {}),
+          ...draftTermsWithoutStalePayee(
+            draftCustomizations.termsAndInstructions,
+            draftCustomizations.draftOnlyOverrides,
+          ),
         },
         companyInfo:
           draftCustomizations.companyInfo ??
@@ -12309,10 +12309,15 @@ export class PortalRepository {
               pastDueNotice: String(invoice.past_due_notice ?? ''),
             }
           : {}),
-        ...(typeof customSnapshot.termsAndInstructions === 'object' &&
-        customSnapshot.termsAndInstructions !== null
-          ? customSnapshot.termsAndInstructions
-          : {}),
+        ...(frozenInvoice
+          ? typeof customSnapshot.termsAndInstructions === 'object' &&
+            customSnapshot.termsAndInstructions !== null
+            ? customSnapshot.termsAndInstructions
+            : {}
+          : draftTermsWithoutStalePayee(
+              customSnapshot.termsAndInstructions,
+              customSnapshot.draftOnlyOverrides,
+            )),
       },
       issuer_settings_version: issuerSettings.version,
       issuer_document_settings: issuerSettings,

@@ -398,6 +398,26 @@ export function releaseCopiedStreamPurchaseOrders(
   return rules.length;
 }
 
+/**
+ * The payment block of a draft follows the current issuer settings (final verify 2026-11-26:
+ * drafts saved before the bank-field change mixed the old SWIFT/account with the new routing
+ * defaults). Bank and payee lines cannot be changed per draft (D1), so the copy a draft saved
+ * is only a cache. Only a payee field this draft explicitly overrides (listed in its
+ * `draftOnlyOverrides`) is kept, and the draft then reads as out of date.
+ */
+export function draftTermsWithoutStalePayee(
+  snapshotTerms: unknown,
+  draftOnlyOverrides: unknown,
+): Record<string, unknown> {
+  if (!snapshotTerms || typeof snapshotTerms !== 'object' || Array.isArray(snapshotTerms)) return {};
+  const explicit = new Set(Array.isArray(draftOnlyOverrides) ? draftOnlyOverrides.map(String) : []);
+  return Object.fromEntries(
+    Object.entries(snapshotTerms as Record<string, unknown>).filter(
+      ([name]) => !(issuerPayeeFields as readonly string[]).includes(name) || explicit.has(name),
+    ),
+  );
+}
+
 export type ProjectIdentity = Readonly<{ name?: unknown; number?: unknown; alias?: unknown }>;
 
 /**

@@ -487,8 +487,24 @@
   }
   .sub__weekform label {
     display: grid;
+    grid-template-rows: auto 1fr;
+    align-items: end;
     gap: 0.2rem;
     min-width: 0;
+  }
+  /* Phones: the period heading, date and length take the full width; the arrows go below. */
+  @media (max-width: 520px) {
+    .sub__week {
+      flex-wrap: wrap;
+      justify-content: space-between;
+    }
+    .sub__weekform {
+      order: -1;
+      flex-basis: 100%;
+    }
+    .sub__weekfields {
+      max-width: none;
+    }
   }
   .sub__weekform select {
     min-height: 44px;

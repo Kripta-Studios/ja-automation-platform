@@ -886,8 +886,9 @@
                 >{extrasSummary(locale, saved) || x('extrasNone')}{#if saved?.appliesFrom}<small
                     class="hub-extras-from"
                     data-hub-extras-from={row.workerId}
-                    >{x('appliesFrom', { date: formatDate(saved.appliesFrom) })} · {x('before', {
-                      date: formatDate(saved.appliesFrom),
+                    >{x('appliesFrom', { date: formatDate(saved.appliesFrom) })}</small
+                  ><small class="hub-extras-from"
+                    >{x('before', {
                       summary: extrasSummary(locale, saved.previous ?? undefined) || x('extrasNone'),
                     })}</small
                   >{/if}</span

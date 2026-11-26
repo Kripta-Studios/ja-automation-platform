@@ -100,7 +100,7 @@ const copy = {
     'Se aplica desde el primer día de la asignación',
     'Vale desde o primeiro dia da alocação',
   ],
-  before: ['Before {date}: {summary}', 'Antes del {date}: {summary}', 'Antes de {date}: {summary}'],
+  before: ['Before: {summary}', 'Antes: {summary}', 'Antes: {summary}'],
   save: ['Save extras', 'Guardar extras', 'Salvar extras'],
   saved: ['{name}: extras saved', '{name}: extras guardados', '{name}: extras salvos'],
   cancel: ['Cancel', 'Cancelar', 'Cancelar'],

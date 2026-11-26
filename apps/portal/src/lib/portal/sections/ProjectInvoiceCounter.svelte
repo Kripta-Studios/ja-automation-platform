@@ -37,6 +37,11 @@
       'Use um número posterior, por exemplo 3 se a 001 e a 002 foram emitidas fora do portal. Números já emitidos nunca são reutilizados.',
     ],
     used: ['Already used', 'Ya usados', 'Já usados'],
+    notFree: [
+      '{number} is already used or lower than the next free number.',
+      'La {number} ya está usada o es menor que el próximo número libre.',
+      'A {number} já foi usada ou é menor que o próximo número livre.',
+    ],
     save: ['Save number', 'Guardar número', 'Salvar número'],
     saved: ['Saved. The next invoice will be {number}.', 'Guardado. La próxima factura será la {number}.', 'Salvo. A próxima fatura será a {number}.'],
     notCp: [
@@ -52,11 +57,14 @@
   let value = $state('');
   let saving = $state(false);
   const result = $derived(form && form.action === 'setInvoiceCounter' ? form : null);
-  const preview = $derived(
-    /^\d{1,6}$/u.test(value.trim()) && Number(value) > 0
-      ? `${counter.stem}-${pad(Number(value))}`
-      : counter.nextNumber,
+  const typed = $derived(
+    /^\d{1,6}$/u.test(value.trim()) && Number(value) > 0 ? `${counter.stem}-${pad(Number(value))}` : null,
   );
+  // A lower or already used number is refused: the hint keeps showing the real next number.
+  const typedFree = $derived(
+    typed !== null && Number(value) >= counter.minimumSequence && !counter.usedNumbers.includes(typed),
+  );
+  const preview = $derived(typedFree && typed ? typed : counter.nextNumber);
 </script>
 
 <section class="invoice-counter" id="project-invoice-counter" data-project-invoice-counter>
@@ -99,7 +107,9 @@
         <button type="submit" class="primary-button" disabled={saving}>{c('save')}</button>
       </div>
       <p id="invoice-counter-hint" class="invoice-counter__hint">{c('hint')}</p>
-      <p class="invoice-counter__preview" aria-live="polite">{c('willBe').replace('{number}', preview)}</p>
+      <p class="invoice-counter__preview" aria-live="polite">
+        {#if typed && !typedFree}{c('notFree').replace('{number}', typed)}{' '}{/if}{c('willBe').replace('{number}', preview)}
+      </p>
     </form>
   {:else if !canEdit}
     <p class="invoice-counter__hint">{c('ownerOnly')}</p>

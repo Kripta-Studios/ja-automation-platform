@@ -171,7 +171,12 @@ describe('supplier workforce form problems', () => {
   it('rejects an invalid profile with a field error and no write', async () => {
     const { fixture } = setup();
     expect(
-      await submit('setProfile', { userId: fixture.worker.userId, profile: 'administrator' }),
+      // T45: the profile change is confirmed, so the invalid profile itself is reported.
+      await submit('setProfile', {
+        userId: fixture.worker.userId,
+        profile: 'administrator',
+        confirmed: 'yes',
+      }),
     ).toMatchObject({
       status: 400,
       data: {

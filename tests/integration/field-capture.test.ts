@@ -133,9 +133,15 @@ describe('field capture', () => {
     const worker = stepUpB5Principal(value.sqlite, value.worker, 'revoked-capture');
     const request = input(value.project.id);
     createFieldCapture(value.sqlite, value.repository, worker, request);
-    expect(() => createFieldCapture(value.sqlite, value.repository, value.worker, request)).toThrow(
-      /Live authenticated session/,
-    );
+    // The same worker without a live session is refused, even for a replay.
+    expect(() =>
+      createFieldCapture(
+        value.sqlite,
+        value.repository,
+        { ...value.worker, sessionId: undefined },
+        request,
+      ),
+    ).toThrow(/Live authenticated session/);
     value.sqlite
       .prepare("UPDATE project_member SET status='inactive' WHERE project_id=? AND user_id=?")
       .run(value.project.id, worker.userId);

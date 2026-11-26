@@ -89,13 +89,15 @@ describe('Owner worker pay review', () => {
     value.repository.submitTime(value.worker, approved.id, approved.version);
     value.repository.operationalApproveTime(value.manager, approved.id, 'approved');
     value.repository.financeApproveTime(finance, approved.id, true);
-    value.repository.createTimeEntry(second, {
+    const pendingTime = value.repository.createTimeEntry(second, {
       projectId: value.project.id,
       workDate: '2026-08-06',
       category: 'regular',
       minutes: 60,
       summary: 'Worker two pending source',
     });
+    // T13 (2026-11-24): "waiting for approval" counts what the worker sent, not drafts.
+    value.repository.submitTime(second, pendingTime.id, pendingTime.version);
     const firstExpense = value.repository.createExpense(value.worker, {
       projectId: value.project.id,
       spentOn: '2026-08-07',

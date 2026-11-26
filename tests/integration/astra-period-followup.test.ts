@@ -119,9 +119,10 @@ describe('ASTRA C1 period follow-up repository', () => {
     expect(() => repository.getReportFollowup(workerPrincipal, report.reportId)).toThrow(
       PeriodFollowupAccessDeniedError,
     );
-    expect(() => repository.getReportFollowup(value.manager, report.reportId)).toThrow(
-      PeriodFollowupAccessDeniedError,
-    );
+    // The same PM without a live session is refused.
+    expect(() =>
+      repository.getReportFollowup({ ...value.manager, sessionId: undefined }, report.reportId),
+    ).toThrow(PeriodFollowupAccessDeniedError);
     expect(() => repository.getReportFollowup(value.outsider, report.reportId)).toThrow(
       PeriodFollowupAccessDeniedError,
     );

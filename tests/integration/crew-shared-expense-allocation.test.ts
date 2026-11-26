@@ -148,8 +148,18 @@ describe('shared crew receipt allocations', () => {
     expect(
       repository.allocationForReceipt(chief, fixture.project.id, spentOn, 'unrelated-receipt'),
     ).toBeNull();
-    expect(() =>
+    // A crew member who did not record the receipt sees nothing; without a live session the
+    // request is refused.
+    expect(
       repository.allocationForReceipt(fixture.outsider, fixture.project.id, spentOn, expense.id),
+    ).toBeNull();
+    expect(() =>
+      repository.allocationForReceipt(
+        { ...fixture.outsider, sessionId: undefined },
+        fixture.project.id,
+        spentOn,
+        expense.id,
+      ),
     ).toThrow(AccessDeniedError);
     expect(visible[0]).not.toHaveProperty('reimbursementAmountMinor');
     expect(visible[0]).not.toHaveProperty('billingTreatment');

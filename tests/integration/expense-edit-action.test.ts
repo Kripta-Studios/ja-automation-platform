@@ -36,7 +36,9 @@ describe('expense edit action input', () => {
   });
 
   it('rejects malformed decimal input before reaching the repository', () => {
-    const result = parseExpenseUpdateForm({ ...baseForm, amount: '12.345' });
+    // '12.345' now reads as the displayed thousands separator (12,345.00, 2026-11-23);
+    // four decimals are still malformed for USD.
+    const result = parseExpenseUpdateForm({ ...baseForm, amount: '12.3456' });
 
     expect(result.success).toBe(false);
     if (result.success) return;

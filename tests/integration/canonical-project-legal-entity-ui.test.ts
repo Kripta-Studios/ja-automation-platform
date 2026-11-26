@@ -8,7 +8,9 @@ const component = readFileSync(
 
 describe('canonical project legal-entity Finance UI', () => {
   it('renders a labeled normal-flow assignment form and human-readable history', () => {
-    expect(component).toContain('?/assignProjectLegalEntity&view=commercial&project=');
+    // The action URL is built by one helper that keeps the commercial view and project.
+    expect(component).toContain("action={configurationActionUrl('assignProjectLegalEntity')}");
+    expect(component).toContain("query.set('view', 'commercial');");
     expect(component).toContain('name="projectId"');
     expect(component).toContain('name="legalEntityRevisionId"');
     expect(component).toContain('name="effectiveFrom"');

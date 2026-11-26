@@ -28,6 +28,9 @@ describe('0042 supplier workforce migration', () => {
       ).toEqual([
         { name: 'supplier' },
         { name: 'supplier_contact_directory' },
+        // 0097 (D4): who pays external technicians' expenses, and their settlement deductions.
+        { name: 'supplier_expense_recharge' },
+        { name: 'supplier_expense_rule' },
         { name: 'supplier_project_grant' },
         { name: 'supplier_time_batch_request' },
         { name: 'supplier_time_entry_recorder' },

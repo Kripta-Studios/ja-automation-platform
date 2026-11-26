@@ -902,7 +902,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
         { version: 93 },
         { version: 94 },
         { version: 95 },
-        { version: 97 },
+        { version: 96 },
         { version: 97 },
       ],
     );
@@ -1970,7 +1970,7 @@ describe('additive Client Essential 2026-08-24 migration contract', () => {
       { migration_version: 93 },
       { migration_version: 94 },
       { migration_version: 95 },
-      { migration_version: 97 },
+      { migration_version: 96 },
       { migration_version: 97 },
     ]);
     expect(() =>

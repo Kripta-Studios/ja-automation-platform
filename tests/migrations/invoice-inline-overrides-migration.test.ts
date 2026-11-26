@@ -55,8 +55,9 @@ describe('invoice inline overrides migration79', () => {
     const after = f.sqlite.prepare('SELECT * FROM audit_action_registry ORDER BY 1,2,3,4').all() as Array<{ action: string }>;
     // 13 reviewed actions in 0079, plus 2 in 0081 (assignment PO, replacement link), plus 1 in
     // 0084 (payment.reverse), plus 4 in 0092 (invoice counter, draft number, versions and
-    // version PDFs), plus 1 in 0093 (assignment extras); 0082 WP-FX rows excluded.
-    expect(after.filter((row) => (row as { owner_packet?: string }).owner_packet !== 'WP-FX').length - registry.length).toBe(13 + 2 + 1 + 4 + 1);
+    // version PDFs), plus 1 in 0093 (assignment extras), plus 3 in 0094 (pay and billing
+    // intervals); 0082 WP-FX rows excluded.
+    expect(after.filter((row) => (row as { owner_packet?: string }).owner_packet !== 'WP-FX').length - registry.length).toBe(13 + 2 + 1 + 4 + 1 + 3);
     for (const action of [
       'invoice.approve_on_behalf',
       'invoice_line_override.create',

@@ -39,6 +39,7 @@ export const invoices = sqliteTable(
     configurationRevisionId: text('configuration_revision_id'),
     predecessorSubjectHash: text('predecessor_subject_hash'),
     invoiceSubjectHash: text('invoice_subject_hash'),
+    sourceSelectionJson: text('source_selection_json'),
     version: integer('version').notNull().default(1),
     ...lifecycle,
   },

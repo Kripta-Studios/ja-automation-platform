@@ -95,7 +95,7 @@ function runJobs(
   if (options.secret !== undefined) childEnvironment.JA_OUTBOX_WEBHOOK_SECRET = options.secret;
   delete childEnvironment.JA_JOB_ACTOR_ID;
   if (actorId !== undefined) childEnvironment.JA_JOB_ACTOR_ID = actorId;
-  return spawnSync(process.execPath, ['--experimental-strip-types', runnerPath], {
+  return spawnSync(process.execPath, ['--experimental-transform-types', runnerPath], {
     cwd: resolve('.'),
     env: childEnvironment,
     encoding: 'utf8',

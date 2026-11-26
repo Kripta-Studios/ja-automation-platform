@@ -423,7 +423,8 @@ describe('chief-entered worker expenses', () => {
       fixture.sqlite
         .prepare('SELECT approval_state,vendor FROM expense WHERE id=?')
         .get(created.id),
-    ).toEqual({ approval_state: 'needs_changes', vendor: input.vendor });
+      // T08 (migration 0083): a sent correction closes the sent-back original.
+    ).toEqual({ approval_state: 'rejected', vendor: input.vendor });
     crew.revoke(owner, grant.id);
     crew.grant(owner, {
       projectId: fixture.project.id,

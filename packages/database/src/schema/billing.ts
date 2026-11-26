@@ -31,6 +31,8 @@ export const billingRules = sqliteTable('billing_rule', {
   fixedAmountMinor: integer('fixed_amount_minor'),
   includedMinutes: integer('included_minutes'),
   monthlyCutoffDay: integer('monthly_cutoff_day'),
+  pastDueNotice: text('past_due_notice'),
+  invoicePreviewDefaultsJson: text('invoice_preview_defaults_json'),
   version: integer('version').notNull().default(1),
   ...lifecycle,
 });
@@ -55,6 +57,8 @@ export const invoiceNumberPolicies = sqliteTable('invoice_number_policy', {
   effectiveFrom: text('effective_from').notNull(),
   effectiveTo: text('effective_to'),
   accountantApprovedAt: text('accountant_approved_at'),
+  /** 'prefix_year_sequence' or 'client_project_sequence' (CP-…, migration 0091). */
+  numberFormat: text('number_format'),
   version: integer('version').notNull().default(1),
   ...lifecycle,
 });

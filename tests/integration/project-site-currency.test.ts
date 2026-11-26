@@ -100,8 +100,10 @@ describe('optional operating-site details and independent project currency', () 
         currency: 'BRL',
         billingModel: 'tm',
         onsiteContactName: 'Transient contact',
+        // BRL is a supported currency since 0082: fail after the contact was created.
+        expectedHoursPerDay: '99',
       }),
-    ).toThrow();
+    ).toThrow(/Expected working hours/u);
     expect(f.sqlite.prepare('SELECT count(*) n FROM client_contact').get()).toEqual(count);
   });
   it('leaves new optional fields empty on existing and minimally configured projects', () => {

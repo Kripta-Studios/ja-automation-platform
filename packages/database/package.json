@@ -8,11 +8,11 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "db:check": "node --experimental-strip-types src/cli.ts check",
-    "db:migrate:fresh": "node --experimental-strip-types src/cli.ts fresh",
-    "db:integrity": "node --experimental-strip-types src/cli.ts integrity",
-    "service-actor": "node --experimental-strip-types src/cli/service-actor.ts",
-    "demo:seed": "node --experimental-strip-types src/demo-seed.ts"
+    "db:check": "node --experimental-transform-types src/cli.ts check",
+    "db:migrate:fresh": "node --experimental-transform-types src/cli.ts fresh",
+    "db:integrity": "node --experimental-transform-types src/cli.ts integrity",
+    "service-actor": "node --experimental-transform-types src/cli/service-actor.ts",
+    "demo:seed": "node --experimental-transform-types src/demo-seed.ts"
   },
   "dependencies": {
     "@ja/billing-engine": "workspace:*",

@@ -29,6 +29,16 @@ type DemoProject = {
   client_id: string;
 };
 const day = (date: Date) => date.toISOString().slice(0, 10);
+function financeApproved(sqlite: DatabaseSync, table: 'time_entry' | 'expense', id: string) {
+  return Boolean(
+    (
+      sqlite.prepare(`SELECT finance_approved_at FROM ${table} WHERE id=?`).get(id) as
+        | { finance_approved_at: string | null }
+        | undefined
+    )?.finance_approved_at,
+  );
+}
+
 export function trainingPlan(sqlite: DatabaseSync) {
   const projects = sqlite
     .prepare(
@@ -317,7 +327,10 @@ export function populateOwnerTraining(
           repository.submitTime(actor, time.id, time.version);
           if (age > 5) {
             repository.operationalApproveTime(actor, time.id, 'approved');
-            repository.financeApproveTime(actor, time.id, true);
+            // An Owner approval also completes the Finance step (owner powers); only a
+            // non-owner actor still needs the separate Finance review.
+            if (!financeApproved(sqlite, 'time_entry', time.id))
+              repository.financeApproveTime(actor, time.id, true);
           }
         }
         if (workerIndex < 2 && index % 3 !== 1) {
@@ -381,7 +394,8 @@ export function populateOwnerTraining(
             repository.submitExpense(actor, expense.id, classified.version);
             if (age > 5) {
               repository.operationalApproveExpense(actor, expense.id, 'approved');
-              repository.financeApproveExpense(actor, expense.id);
+              if (!financeApproved(sqlite, 'expense', expense.id))
+                repository.financeApproveExpense(actor, expense.id);
               approvedExpenseIds.push(expense.id);
             }
           }

@@ -143,7 +143,20 @@ function fixture(): Fixture {
     workerId: workerSeed.userId,
     startsOn: '2026-01-01',
   });
-  const worker = repository.principalFor(workerSeed.userId);
+  // The API events below sign in as 'worker-session': that session must be live.
+  sqlite
+    .prepare(
+      'INSERT INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+    )
+    .run(
+      'worker-session',
+      'worker-session-token',
+      workerSeed.userId,
+      new Date(Date.now() + 3_600_000).toISOString(),
+      new Date().toISOString(),
+      new Date().toISOString(),
+    );
+  const worker = { ...repository.principalFor(workerSeed.userId), sessionId: 'worker-session' };
   return { repository, sqlite, worker, projectId: project.id };
 }
 
@@ -593,6 +606,8 @@ describe('worker statement high-volume exports', () => {
       summary: 'Historical assigned work',
     });
     const expense = createExpense(value, value.worker, 300, '2026-08-06', 98765n);
+    // T13 (2026-11-24): "waiting for reimbursement" counts claims the worker sent, not drafts.
+    value.repository.submitExpense(value.worker, expense.id, expense.version);
     const outsideAssignmentTime = value.repository.createTimeEntry(value.worker, {
       projectId: value.projectId,
       workDate: '2026-08-15',

@@ -5,6 +5,7 @@ import { AssignmentExpensePolicyRepository } from '../../packages/database/src/d
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  liveB5Principal,
   seedB5User,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
@@ -30,7 +31,7 @@ function fixture() {
       workerId: id,
       startsOn: '2026-08-01',
     });
-    workers.push(value.repository.principalFor(id));
+    workers.push(liveB5Principal(value.sqlite, value.repository.principalFor(id)));
   }
   const memberId = (workerId: string) => {
     const row = value.sqlite

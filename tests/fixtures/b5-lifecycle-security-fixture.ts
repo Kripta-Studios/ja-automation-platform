@@ -59,6 +59,28 @@ export function signInB5Principal(
   return { ...principal, sessionId };
 }
 
+/** A fixture principal with a live session (works on historical session schemas too). */
+export function liveB5Principal(
+  sqlite: ReturnType<typeof createDatabase>['sqlite'],
+  principal: Principal,
+): Principal {
+  const now = new Date().toISOString();
+  const sessionId = `b5-fixture-session-${principal.userId}`;
+  sqlite
+    .prepare(
+      'INSERT OR IGNORE INTO session(id,token,user_id,expires_at,created_at,updated_at) VALUES(?,?,?,?,?,?)',
+    )
+    .run(
+      sessionId,
+      `${sessionId}-token`,
+      principal.userId,
+      new Date(Date.now() + 24 * 3_600_000).toISOString(),
+      now,
+      now,
+    );
+  return { ...principal, sessionId };
+}
+
 export function stepUpB5Principal(
   sqlite: ReturnType<typeof createDatabase>['sqlite'],
   principal: Principal,
@@ -164,9 +186,11 @@ export function createB5LifecycleSecurityFixture() {
       startsOn: '2026-01-01',
     });
 
-    const manager = repository.principalFor('b5-manager');
-    const worker = repository.principalFor('b5-worker');
-    const outsider = repository.principalFor('b5-outsider');
+    // Workers and the PM act through a live session, like every real request: since
+    // 2026-09-30 worker/PM operational access validates it (live-session invariant).
+    const manager = liveB5Principal(sqlite, repository.principalFor('b5-manager'));
+    const worker = liveB5Principal(sqlite, repository.principalFor('b5-worker'));
+    const outsider = liveB5Principal(sqlite, repository.principalFor('b5-outsider'));
 
     return {
       directory,

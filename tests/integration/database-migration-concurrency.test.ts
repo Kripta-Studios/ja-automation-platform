@@ -87,7 +87,7 @@ async function migrateWithTwoConnections(
     () =>
       new Worker(source, {
         eval: true,
-        execArgv: ['--experimental-strip-types'],
+        execArgv: ['--experimental-transform-types'],
         workerData: { databasePath, shared, snapshot },
         env: { ...process.env, JA_MIGRATIONS_PATH: migrationsPath },
       }),
@@ -122,11 +122,12 @@ describe('SQLite migration concurrency', () => {
     try {
       expect(integrityCheck(second)).toBe('ok');
       expect(second.prepare('SELECT max(version) AS version FROM schema_migration').get()).toEqual({
-        version: 67,
+        version: 97,
       });
+      // 19..85 and 90..97 carry reviewed metadata (86-89 are left free).
       expect(
         second.prepare('SELECT count(*) AS count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 49 });
+      ).toEqual({ count: 75 });
     } finally {
       second.close();
     }
@@ -142,11 +143,11 @@ describe('SQLite migration concurrency', () => {
       expect(integrityCheck(final)).toBe('ok');
       expect(final.prepare('PRAGMA foreign_key_check').all()).toHaveLength(0);
       expect(final.prepare('SELECT count(*) AS count FROM schema_migration').get()).toEqual({
-        count: 67,
+        count: 93,
       });
       expect(
         final.prepare('SELECT count(*) AS count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 49 });
+      ).toEqual({ count: 75 });
     } finally {
       final.close();
     }
@@ -174,20 +175,21 @@ describe('SQLite migration concurrency', () => {
       expect(integrityCheck(final)).toBe('ok');
       expect(final.prepare('PRAGMA foreign_key_check').all()).toHaveLength(0);
       expect(final.prepare('SELECT max(version) AS version FROM schema_migration').get()).toEqual({
-        version: 67,
+        version: 97,
       });
+      // 62..85 and 90..97 (86-89 are left free for parallel work packets).
       expect(
         final
-          .prepare('SELECT count(*) AS count FROM schema_migration WHERE version BETWEEN 62 AND 67')
+          .prepare('SELECT count(*) AS count FROM schema_migration WHERE version BETWEEN 62 AND 97')
           .get(),
-      ).toEqual({ count: 6 });
+      ).toEqual({ count: 32 });
       expect(
         final
           .prepare(
-            'SELECT count(*) AS count FROM migration_contract_metadata WHERE migration_version BETWEEN 62 AND 67',
+            'SELECT count(*) AS count FROM migration_contract_metadata WHERE migration_version BETWEEN 62 AND 97',
           )
           .get(),
-      ).toEqual({ count: 6 });
+      ).toEqual({ count: 32 });
     } finally {
       final.close();
     }

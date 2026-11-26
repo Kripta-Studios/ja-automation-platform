@@ -13,6 +13,8 @@ export const clients = sqliteTable('client', {
   billingEmail: text('billing_email'),
   billingAddress: text('billing_address'),
   poReference: text('po_reference'),
+  /** Client tax identification (VAT / NIF / CNPJ / EIN), migration 0079. */
+  taxId: text('tax_id'),
   paymentTermsDays: integer('payment_terms_days'),
   notes: text('notes'),
   version: integer('version').notNull().default(1),

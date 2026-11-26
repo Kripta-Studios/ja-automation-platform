@@ -1,3 +1,4 @@
+import { liveB5Principal } from '../fixtures/b5-lifecycle-security-fixture.js';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -176,9 +177,9 @@ describe('V3 operational and billing workflow', () => {
       clientRecovery: 'included',
       reason: 'Portal workflow vehicle included terms',
     });
-    const manager = repository.principalFor('manager');
-    const worker = repository.principalFor('worker');
-    const outsider = repository.principalFor('outsider');
+    const manager = liveB5Principal(sqlite, repository.principalFor('manager'));
+    const worker = liveB5Principal(sqlite, repository.principalFor('worker'));
+    const outsider = liveB5Principal(sqlite, repository.principalFor('outsider'));
 
     repository.createCompensationRule(finance, {
       workerId: 'worker',
@@ -458,7 +459,7 @@ describe('V3 operational and billing workflow', () => {
       workerId: 'worker',
       startsOn: '2026-08-01',
     });
-    const worker = repository.principalFor('worker');
+    const worker = liveB5Principal(sqlite, repository.principalFor('worker'));
     const sourceMonday = repository.createTimeEntry(worker, {
       projectId: project.id,
       workDate: '2026-08-03',

@@ -148,10 +148,12 @@ describe('B5 effective membership (RED characterization)', () => {
     );
 
     // Keep the captured Principal's projectIds to exercise the stale-principal
-    // path; authorization must re-check the assignment in SQLite.
+    // path; authorization must re-check the assignment in SQLite. T19 (2026-11-23):
+    // own records dated inside an ended assignment stay readable, so the assignment
+    // ends before these records' day to make them fall outside it.
     value.sqlite
       .prepare(
-        "UPDATE project_member SET ends_on='2026-08-20' WHERE project_id=? AND user_id='b5-worker'",
+        "UPDATE project_member SET ends_on='2026-08-17' WHERE project_id=? AND user_id='b5-worker'",
       )
       .run(value.project.id);
 

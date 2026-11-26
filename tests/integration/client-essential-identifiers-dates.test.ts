@@ -4,6 +4,7 @@ import {
   ConflictError,
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  liveB5Principal,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
@@ -223,7 +224,10 @@ describe('Client Essential CORE-02/09/11 identifiers and planned-versus-actual d
       startsOn: '2026-08-01',
       canReview: true,
     });
-    const projectManager = value.repository.principalFor('b5-manager');
+    const projectManager = liveB5Principal(
+      value.sqlite,
+      value.repository.principalFor('b5-manager'),
+    );
     expect(value.repository.projectOverview(value.owner, project.id).project).toMatchObject({
       cost_center_code: 'CC-ESSENTIAL-UPDATED-002',
     });

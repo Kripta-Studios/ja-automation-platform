@@ -8,6 +8,7 @@ import {
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  liveB5Principal,
   seedB5User,
   stepUpB5Principal,
   type B5LifecycleSecurityFixture,
@@ -177,7 +178,10 @@ describe('owner-granted project crew time', () => {
 
   it('rolls back every row when a later worker exceeds their actual daily minutes', () => {
     const { fixture, crew, chief, first, second } = setup();
-    const secondPrincipal = fixture.repository.principalFor(second);
+    const secondPrincipal = liveB5Principal(
+      fixture.sqlite,
+      fixture.repository.principalFor(second),
+    );
     fixture.repository.createTimeEntry(secondPrincipal, {
       projectId: fixture.project.id,
       workDate,
@@ -312,13 +316,16 @@ describe('owner-granted project crew time', () => {
     expect(() =>
       fixture.sqlite.prepare('DELETE FROM crew_leader_grant WHERE id=?').run(firstGrant.id),
     ).toThrow(/history immutable/u);
-    const own = fixture.repository.createTimeEntry(fixture.repository.principalFor(first), {
-      projectId: fixture.project.id,
-      workDate,
-      category: 'regular',
-      minutes: 15,
-      summary: 'Separate own time',
-    });
+    const own = fixture.repository.createTimeEntry(
+      liveB5Principal(fixture.sqlite, fixture.repository.principalFor(first)),
+      {
+        projectId: fixture.project.id,
+        workDate,
+        category: 'regular',
+        minutes: 15,
+        summary: 'Separate own time',
+      },
+    );
     const insert = fixture.sqlite.prepare(
       'INSERT INTO crew_time_entry_recorder(time_entry_id,grant_id,recorded_by_user_id,recorded_at) VALUES(?,?,?,?)',
     );

@@ -315,6 +315,8 @@ describe('Client Essential worker compensation truth', () => {
       summary: 'Pending daily compensation source',
     });
     expect(pending.version).toBe(1);
+    // T13 (2026-11-24): "waiting for approval" counts what the worker sent, not drafts.
+    value.repository.submitTime(value.worker, pending.id, pending.version);
 
     const pay = value.v3.workerPay(value.worker, '2026-08-01', '2026-08-31');
     expect(pay).toMatchObject({

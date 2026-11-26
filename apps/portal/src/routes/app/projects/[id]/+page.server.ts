@@ -1319,15 +1319,20 @@ function detailFailure(
 }
 /** The project's expense invoice setting in plain terms, with the day each choice would start. */
 function projectExpenseInvoiceView(sqlite: ReturnType<typeof openPortalRepository>['sqlite'], projectId: string) {
-  const arrangement = projectExpenseArrangement(sqlite, projectId);
-  return {
-    mode: arrangement.mode,
-    source: arrangement.source,
-    streams: arrangement.streams,
-    clientMode: arrangement.clientMode,
-    sameFrom: expenseArrangementStart(sqlite, projectId, 'same'),
-    separateFrom: expenseArrangementStart(sqlite, projectId, 'separate'),
-  };
+  try {
+    const arrangement = projectExpenseArrangement(sqlite, projectId);
+    return {
+      mode: arrangement.mode,
+      source: arrangement.source,
+      streams: arrangement.streams,
+      clientMode: arrangement.clientMode,
+      sameFrom: expenseArrangementStart(sqlite, projectId, 'same'),
+      separateFrom: expenseArrangementStart(sqlite, projectId, 'separate'),
+    };
+  } catch {
+    // Not readable here (e.g. a schema without billing streams): the line is simply not shown.
+    return null;
+  }
 }
 
 export const actions: Actions = {

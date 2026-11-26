@@ -88,6 +88,13 @@ export function clientExpenseInvoiceSetting(
   sqlite: DatabaseSync,
   clientId: string,
 ): ClientExpenseInvoiceSetting | null {
+  // A database older than migration 0096 (e.g. during an upgrade) has no client default.
+  if (
+    !sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type='table' AND name='client_expense_invoice_setting'")
+      .get()
+  )
+    return null;
   const row = sqlite
     .prepare(
       `SELECT mode,version,created_at FROM client_expense_invoice_setting

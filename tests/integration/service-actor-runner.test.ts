@@ -102,7 +102,9 @@ function runJobs(
   });
 }
 
-describe('production durable jobs runner service binding', () => {
+// Each case starts the real runner from TypeScript sources (transform mode), which takes
+// tens of seconds on a loaded host; the 30 s default is not a behavioural limit here.
+describe('production durable jobs runner service binding', { timeout: 180_000 }, () => {
   it('reports a structured redacted diagnosis when deployment identity is absent', () => {
     const environment = prepareEnvironment();
     const secret = 'runner-test-secret-value';

@@ -182,6 +182,38 @@ export function nextPayPeriod(
   };
 }
 
+/**
+ * The period My Pay opens on (final verify 2026-11-26): the person's interval or an override
+ * on one of their current assignments drives it. With several intervals in force, the pay
+ * that comes first (earliest period end) is shown; settlements of every project count.
+ */
+export function nextOwnPayPeriod(
+  sqlite: DatabaseSync,
+  userId: string,
+  options: Readonly<{ today?: string }> = {},
+): NextPay {
+  const today = options.today ?? isoToday();
+  const candidates: NextPay[] = [nextPayPeriod(sqlite, userId, { today })];
+  const members = sqlite
+    .prepare(
+      `SELECT id FROM project_member WHERE user_id=? AND status='active'
+        AND (ends_on IS NULL OR ends_on>=?) ORDER BY starts_on,id`,
+    )
+    .all(userId, today) as Array<{ id: string }>;
+  for (const member of members) {
+    if (!assignmentPayInterval(sqlite, member.id)?.interval) continue;
+    candidates.push(nextPayPeriod(sqlite, userId, { today, projectMemberId: member.id }));
+  }
+  const withPeriod = candidates.filter((candidate) => candidate.period);
+  if (!withPeriod.length) return candidates[0]!;
+  return withPeriod.reduce((best, candidate) =>
+    candidate.period!.end < best.period!.end ||
+    (candidate.period!.end === best.period!.end && candidate.period!.start > best.period!.start)
+      ? candidate
+      : best,
+  );
+}
+
 type ClientRow = {
   cadence_type: string | null;
   anchor_date: string | null;

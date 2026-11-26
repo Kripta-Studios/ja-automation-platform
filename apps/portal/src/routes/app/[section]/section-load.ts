@@ -58,7 +58,7 @@ import {
 } from '$lib/server/mail-directory';
 import { pagePeopleDirectory, peopleQueryFrom } from '$lib/server/team-directory-page';
 import { loadTeamDirectoryExtras } from '$lib/server/team-directory-load';
-import { nextPayPeriod } from '@ja/database';
+import { nextOwnPayPeriod } from '@ja/database';
 import { withNextInvoicePeriods } from '$lib/server/intervals';
 import {
   includesArchivedProjectHistory,
@@ -778,7 +778,8 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           error(403, 'Worker or project manager role required');
         // Owner request 2026-11-25: open on the period the person's next pay covers when
         // their pay interval is set; otherwise the usual lookback.
-        const nextPay = nextPayPeriod(context.sqlite, context.principal.userId);
+        // The person's interval or an assignment override (final verify 2026-11-26).
+        const nextPay = nextOwnPayPeriod(context.sqlite, context.principal.userId);
         const payInterval = {
           interval: nextPay.interval,
           source: nextPay.source,

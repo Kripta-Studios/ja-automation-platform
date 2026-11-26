@@ -7,7 +7,7 @@ vi.mock('$lib/server/portal-repository', () => ({ openPortalRepository }));
 vi.mock('@ja/database', () => ({
   MailIdentityRepository: class {},
   // My Pay opens on the next pay period when a pay interval is set (2026-11-25): none here.
-  nextPayPeriod: () => ({
+  nextOwnPayPeriod: () => ({
     interval: null,
     anchorDate: null,
     source: 'none',

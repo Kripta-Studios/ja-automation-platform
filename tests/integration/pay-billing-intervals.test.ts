@@ -7,6 +7,7 @@ import {
   clientBillingInterval,
   effectivePayInterval,
   nextInvoicePeriod,
+  nextOwnPayPeriod,
   nextPayPeriod,
 } from '@ja/database';
 import {
@@ -192,6 +193,43 @@ describe('pay intervals', () => {
     expect(
       nextPayPeriod(f.sqlite, f.manager.userId, { today: '2026-11-25', fallback: 'weekly' }).period,
     ).toEqual({ start: '2026-11-23', end: '2026-11-29' });
+  });
+
+  it('My Pay follows an assignment override when it is the only interval set', () => {
+    const f = setup();
+    f.sqlite.prepare('UPDATE project_member SET ends_on=NULL WHERE id=?').run(f.member);
+    expect(nextOwnPayPeriod(f.sqlite, f.worker.userId, { today: '2026-11-26' }).period).toBeNull();
+    f.intervals.setAssignmentInterval(f.owner, {
+      projectMemberId: f.member,
+      interval: 'weekly',
+      expectedVersion: 0,
+    });
+    expect(nextOwnPayPeriod(f.sqlite, f.worker.userId, { today: '2026-11-26' })).toMatchObject({
+      interval: 'weekly',
+      source: 'assignment',
+      period: { start: '2026-11-23', end: '2026-11-29' },
+    });
+    // A monthly person default does not hide the weekly assignment pay that comes first.
+    f.intervals.setPersonInterval(f.owner, {
+      userId: f.worker.userId,
+      interval: 'monthly',
+      expectedVersion: 0,
+    });
+    expect(nextOwnPayPeriod(f.sqlite, f.worker.userId, { today: '2026-11-26' })).toMatchObject({
+      interval: 'weekly',
+      source: 'assignment',
+    });
+    // Without the override the person interval drives it.
+    f.intervals.setAssignmentInterval(f.owner, {
+      projectMemberId: f.member,
+      interval: null,
+      expectedVersion: 1,
+    });
+    expect(nextOwnPayPeriod(f.sqlite, f.worker.userId, { today: '2026-11-26' })).toMatchObject({
+      interval: 'monthly',
+      source: 'person',
+      period: { start: '2026-11-01', end: '2026-11-30' },
+    });
   });
 });
 

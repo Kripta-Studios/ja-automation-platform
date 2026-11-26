@@ -70,7 +70,7 @@ export type QuickInvoiceWarning = {
   severity: 'blocker' | 'excluded' | 'issue' | 'info';
   count: number;
   minutes: number;
-  fix: 'time' | 'approvals' | 'finance_approvals' | 'expenses' | 'expense_classification' | 'rates' | 'finance' | 'issuer_authority' | 'numbering' | 'issuer_settings' | 'project_po' | 'billing_setup' | 'invoice' | 'signoff' | null;
+  fix: 'time' | 'approvals' | 'finance_approvals' | 'expenses' | 'expense_classification' | 'rates' | 'overtime' | 'finance' | 'issuer_authority' | 'numbering' | 'issuer_settings' | 'project_po' | 'billing_setup' | 'invoice' | 'signoff' | null;
   /** Server explanation when no plain-language text exists for the code. */
   message?: string;
 };
@@ -579,7 +579,8 @@ const FIX_FOR: Record<string, QuickInvoiceWarning['fix']> = {
   missing_expense_currency_conversion: 'expense_classification',
   missing_expense_finance_projection: 'expense_classification',
   missing_client_rate: 'rates',
-  missing_overtime_client_rate: 'rates',
+  // Overtime is set per person under the project's Team tab › Extras (final verify 2026-11-26).
+  missing_overtime_client_rate: 'overtime',
   ambiguous_client_rate: 'rates',
   missing_internal_cost: 'finance',
   missing_compensation_rule: 'finance',

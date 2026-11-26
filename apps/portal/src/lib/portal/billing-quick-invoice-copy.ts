@@ -193,7 +193,11 @@ const copy = {
     'Borrador actualizado con las horas, tarifas y configuración actuales.',
     'Rascunho atualizado com as horas, tarifas e configurações atuais.',
   ],
-  fix_overtime_rate: ['Set the overtime rate', 'Fijar la tarifa de horas extra', 'Definir a tarifa de hora extra'],
+  fix_overtime_rate: [
+    'Set the overtime rate (Team › Extras)',
+    'Fijar la tarifa de horas extra (Equipo › Extras)',
+    'Definir a tarifa de hora extra (Equipe › Extras)',
+  ],
   createdNotice: [
     'Invoice draft created. Check it below, then issue it.',
     'Borrador creado. Revísalo abajo y luego emítelo.',

@@ -1168,6 +1168,9 @@
         return `${portal}${billingReadinessReviewPath(['missing_expense_classification'], projectId, period)}`;
       case 'rates':
         return `${portal}/projects/${project}?tab=billing&billingStep=people&${lang}#project-person-conditions`;
+      case 'overtime':
+        // The overtime rate is set per person: Team tab › Extras.
+        return `${portal}/projects/${project}?tab=team&${lang}#hub-team-title`;
       case 'finance':
         return `${portal}/finance?view=commercial&project=${project}&${lang}`;
       case 'issuer_authority':

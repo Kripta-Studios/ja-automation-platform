@@ -291,7 +291,11 @@
           label: 'fix_signoff',
         },
         // D12: never bill overtime at $0 silently: set the overtime rate first.
-        missing_overtime_client_rate: { href: financeHref, label: 'fix_overtime_rate' },
+        // The overtime rate is set per person on the project's Team tab › Extras.
+        missing_overtime_client_rate: {
+          href: `${base}/app/projects/${encodeURIComponent(String(invoice.project_id ?? ''))}?tab=team&lang=${locale}#hub-team-title`,
+          label: 'fix_overtime_rate',
+        },
         missing_client_rate: { href: financeHref, label: 'fix_invoice' },
         // Round 2: a stale draft is refreshed in place (form below), never a raw code.
         stale_billing_configuration: { href: null, label: 'refreshDraft' },

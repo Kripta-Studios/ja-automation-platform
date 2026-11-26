@@ -325,12 +325,23 @@ describe('explicit canonical invoice composition', () => {
     expect(() => f.repository.approveInvoiceCompositionSources(f.manager, input)).toThrow(
       AccessDeniedError,
     );
-    // Owner decision 2026-11-17: Finance may approve on behalf of workers ("Approve & include").
+    // D6 (2026-11-23, replaces the 2026-11-17 rule): the operational approval is the Owner's or
+    // the project manager's; Finance only takes the finance step on records they approved.
     const forFinance = f.time('2026-08-22', 30, false);
-    expect(
+    expect(() =>
       f.repository.approveInvoiceCompositionSources(f.finance, {
         projectId: f.project.id,
         sources: [forFinance],
+      }),
+    ).toThrow(AccessDeniedError);
+    expect(
+      f.sqlite.prepare('SELECT approval_state FROM time_entry WHERE id=?').get(forFinance.id),
+    ).toEqual({ approval_state: 'submitted' });
+    f.repository.operationalApproveTime(f.manager, forFinance.id, 'approved');
+    expect(
+      f.repository.approveInvoiceCompositionSources(f.finance, {
+        projectId: f.project.id,
+        sources: [f.ref('time', forFinance.id)],
       })[0],
     ).toMatchObject({ approvalState: 'approved', financeAccepted: true });
     expect(() => f.repository.invoiceCompositionSources(f.worker, f.scope)).toThrow(
@@ -364,7 +375,9 @@ describe('explicit canonical invoice composition', () => {
     ).toMatchObject({ approvalState: 'approved', financeAccepted: true });
     expect(
       f.sqlite
-        .prepare("SELECT COUNT(*) n FROM audit_event WHERE action='time.submit' AND entity_id=? AND actor_id=?")
+        .prepare(
+          "SELECT COUNT(*) n FROM audit_event WHERE action='time.submit' AND entity_id=? AND actor_id=?",
+        )
         .get(draft.id, f.owner.userId),
     ).toEqual({ n: 1 });
   });
@@ -453,7 +466,20 @@ describe('explicit canonical invoice composition', () => {
     });
     expect(
       f.sqlite.prepare('SELECT subtotal_minor FROM invoice WHERE id=?').get(invoice.id),
-    ).toEqual({ subtotal_minor: 12003 });
+    ).toEqual({ subtotal_minor: 12002 });
+    // 2 h minimum at 60.01/h = 120.02 exactly: the 30 + 45 min lines add up to 75.01
+    // (cumulative rounding), the top-up is the remaining 45.01, never a cent more.
+    expect(
+      f.sqlite
+        .prepare(
+          'SELECT source_type,subtotal_minor FROM invoice_line WHERE invoice_id=? ORDER BY rowid',
+        )
+        .all(invoice.id),
+    ).toEqual([
+      { source_type: 'time', subtotal_minor: 3001 },
+      { source_type: 'time', subtotal_minor: 4500 },
+      { source_type: 'billing_adjustment', subtotal_minor: 4501 },
+    ]);
     expect(
       f.sqlite
         .prepare(
@@ -740,7 +766,8 @@ describe('explicit canonical invoice composition', () => {
       });
       expect(preview).toMatchObject({
         state: 'ready',
-        subtotalMinor: group === 'minimum' ? '12003' : '60001',
+        // The minimum day is the rate × 2 h rounded once (120.02), however the time is split.
+        subtotalMinor: group === 'minimum' ? '12002' : '60001',
       });
       expect(
         preview.lines.filter((line) => line.sourceType === 'time').map((line) => line.sourceId),

@@ -68,7 +68,14 @@ import {
   periodForCadence,
   type OvertimeMethod,
 } from '@ja/billing-engine';
-import { add, hourlyRateForMinutes, isCurrency, money, type Currency } from '@ja/money';
+import {
+  add,
+  hourlyRateForMinutes,
+  isCurrency,
+  money,
+  type Currency,
+  type Money,
+} from '@ja/money';
 import { decodeTechnicalReportChange, isValidIanaTimeZone } from '@ja/schemas';
 import { recordAuditEvent } from './core/audit.ts';
 import { ProjectCloseoutService } from './domains/closeout/project-closeout-service.ts';
@@ -727,6 +734,19 @@ const KNOWN_NOTIFICATION_KIND =
 /** A number the owner chose for a draft replaces the automatic preview number. */
 function withRequestedNumber<T extends { number: string | null }>(requested: string | null, preview: T): T {
   return requested ? { ...preview, number: requested, requested: true } : preview;
+}
+
+/**
+ * Daily-minimum top-up: the minimum day costs exactly the rate × the minimum (rounded once),
+ * whatever way the worked time is split. The hours of a day are billed with cumulative
+ * rounding (their lines add up to the rate × the worked minutes, rounded once), so the top-up
+ * is the difference of the two rounded amounts, not the rate × the missing minutes rounded on
+ * its own (that could bill the minimum day one cent above or below the minimum).
+ */
+function dailyMinimumTopUp(rate: Money, workedMinutes: number, minimumMinutes: number): Money {
+  const full = hourlyRateForMinutes(rate, minimumMinutes);
+  const worked = hourlyRateForMinutes(rate, Math.min(workedMinutes, minimumMinutes));
+  return money(rate.currency, full.minorUnits - worked.minorUnits);
 }
 
 export class PortalRepository {
@@ -7831,7 +7851,11 @@ export class PortalRepository {
           lines.push({
             sourceType: 'billing_adjustment',
             sourceId: `${rule.project_id}:${day.workerId}:${day.workDate}:daily-minimum`,
-            amount: hourlyRateForMinutes(money(rule.rule_currency, day.rate), topUp).minorUnits,
+            amount: dailyMinimumTopUp(
+              money(rule.rule_currency, day.rate),
+              day.minutes,
+              minimum.client_daily_minimum_minutes,
+            ).minorUnits,
           });
         }
       }
@@ -9118,7 +9142,11 @@ export class PortalRepository {
               continue;
             const topUp = Math.max(0, minimum.client_daily_minimum_minutes - day.minutes);
             if (!topUp) continue;
-            const amount = hourlyRateForMinutes(money(rule.currency, day.rate), topUp);
+            const amount = dailyMinimumTopUp(
+              money(rule.currency, day.rate),
+              day.minutes,
+              minimum.client_daily_minimum_minutes,
+            );
             subtotal = add(subtotal, amount);
             this.insertInvoiceLine(
               id,

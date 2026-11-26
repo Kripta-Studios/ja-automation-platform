@@ -7,6 +7,7 @@
   import { billingFixText } from '$lib/portal/billing-fix-copy';
   import { intervalCopy, intervalLabel } from '$lib/portal/interval-copy';
   import { extrasText } from '$lib/portal/assignment-extras-copy';
+  import { supplierExpenseText, type SupplierExpenseCopyKey } from '$lib/portal/supplier-expense-copy';
 
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
@@ -48,6 +49,18 @@
       unit: extrasText(locale, extra.basis === 'month' ? 'months' : 'days'),
     });
   const hours = (minutes: number) => clockHoursFromMinutes(minutes);
+  const se = (key: SupplierExpenseCopyKey, params: Record<string, string | number> = {}) =>
+    supplierExpenseText(locale, key, params);
+  /** Remaining minus what Mark as paid deducts (per currency, never below zero). */
+  const netToPay = (
+    remaining: Array<{ currency: string; minor: string }>,
+    deduct: Array<{ currency: string; minor: string }>,
+  ) =>
+    remaining.map((row) => {
+      const off = BigInt(deduct.find((item) => item.currency === row.currency)?.minor ?? '0');
+      const net = BigInt(row.minor) - off;
+      return { currency: row.currency, minor: (net > 0n ? net : 0n).toString() };
+    });
   function href(changes: Record<string, string | null>): string {
     const params = new URLSearchParams();
     params.set('week', data.week.start);
@@ -280,6 +293,38 @@
             </div>
           {/each}
         {/if}
+        {#if detail.expenses}
+          {#each detail.expenses.toDeduct as total (total.currency)}
+            <div data-settlement-recharge-deduct>
+              <small>{se('toDeduct')} · {total.currency}</small><strong
+                >−{fmt(total.minor, total.currency)}</strong
+              >
+            </div>
+          {/each}
+          {#if detail.status === 'approved' && detail.expenses.toDeduct.length > 0}
+            {#each netToPay(detail.remaining, detail.expenses.toDeduct) as total (total.currency)}
+              <div data-settlement-net>
+                <small>{se('netToPay')} · {total.currency}</small><strong
+                  >{fmt(total.minor, total.currency)}</strong
+                >
+              </div>
+            {/each}
+          {/if}
+          {#each detail.expenses.deducted as total (total.currency)}
+            <div data-settlement-recharge-deducted>
+              <small>{se('deducted')} · {total.currency}</small><strong
+                >{fmt(total.minor, total.currency)}</strong
+              >
+            </div>
+          {/each}
+          {#each detail.expenses.toRecover as total (total.currency)}
+            <div data-settlement-recharge-recover>
+              <small>{se('toRecover')} · {total.currency}</small><strong
+                >{fmt(total.minor, total.currency)}</strong
+              >
+            </div>
+          {/each}
+        {/if}
         {#if detail.status === 'paid' && detail.paidOn}
           <div class="sub__paidinfo">
             <small>{t('paid')}</small><strong
@@ -371,6 +416,52 @@
             </table>
           </details>
         {/each}
+      {/if}
+
+      {#if detail.expenses}
+        <section class="sub__expenses" data-settlement-expenses aria-labelledby="sub-expenses-title">
+          <h3 id="sub-expenses-title">{se('sectionTitle')}</h3>
+          <p class="sub__muted">{se('sectionIntro')}</p>
+          {#if detail.expenses.items.length === 0}
+            <p class="sub__empty">{se('noExpenses')}</p>
+          {:else}
+            <table class="sub__table">
+              <thead>
+                <tr
+                  ><th>{se('colDate')}</th><th>{se('colWho')}</th><th>{se('colWhat')}</th><th
+                    >{se('colPays')}</th
+                  ><th class="num">{se('colAmount')}</th></tr
+                >
+              </thead>
+              <tbody>
+                {#each detail.expenses.items as item (item.expenseId)}
+                  <tr data-settlement-expense={item.treatment}>
+                    <td data-label={se('colDate')}>{day(item.spentOn)}</td>
+                    <td data-label={se('colWho')}>{item.workerName}</td>
+                    <td data-label={se('colWhat')}
+                      >{item.category}{#if item.vendor}<span class="sub__muted"> · {item.vendor}</span>{/if}</td
+                    >
+                    <td data-label={se('colPays')}
+                      >{se(`treat_${item.treatment}`)}{#if item.treatment === 'recharge'}<small
+                          class="sub__muted"
+                          >{' · '}{item.rechargedSettlementId
+                            ? se('deductedTag')
+                            : item.amountMinor === null
+                              ? se('needsConversion')
+                              : item.deductNow
+                                ? se('deductNow')
+                                : se('toRecoverTag')}</small
+                        >{/if}</td
+                    >
+                    <td data-label={se('colAmount')} class="num"
+                      >{fmt(item.sourceAmountMinor, item.sourceCurrency)}</td
+                    >
+                  </tr>
+                {/each}
+              </tbody>
+            </table>
+          {/if}
+        </section>
       {/if}
 
       <div class="sub__actions">
@@ -657,6 +748,15 @@
   .sub__ok {
     color: #11643a;
     font-weight: 700;
+  }
+  .sub__expenses {
+    border-top: 1px solid #e5e9ee;
+    padding-top: 0.5rem;
+    min-width: 0;
+  }
+  .sub__expenses h3 {
+    margin: 0.25rem 0;
+    font-size: 1rem;
   }
   .sub__worker {
     border-top: 1px solid #e5e9ee;

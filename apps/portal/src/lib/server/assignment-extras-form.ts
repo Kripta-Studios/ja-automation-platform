@@ -3,6 +3,7 @@ import {
   type AssignmentExtras,
   type AssignmentExtrasInput,
   type ExtrasExpenseChoice,
+  type ExtrasSupplierExpenseChoice,
   type OvertimeExtra,
 } from '@ja/database';
 import { formatMinorPlain, parseMajorToMinor } from '@ja/money';
@@ -24,6 +25,8 @@ export type ExtrasFormValues = {
   overtimeWorker: string;
   /** '' = the project's expense rules apply. */
   expenses: '' | ExtrasExpenseChoice;
+  /** D4: who pays an external technician's expenses ('' = not a supplier's technician). */
+  supplierExpenses: '' | ExtrasSupplierExpenseChoice;
   /** Typed: first day the new values apply ('' = today). */
   effectiveFrom: string;
   /** Saved: first day the shown values apply ('' = from the start of the assignment). */
@@ -35,6 +38,7 @@ export type ExtrasFormValues = {
 export type ExtrasFieldError = { field: keyof ExtrasFormValues; message: string };
 
 const EXPENSES = new Set(['none', 'worker', 'client', 'both']);
+const SUPPLIER_EXPENSES = new Set(['project', 'ja', 'supplier']);
 
 /** "1.5" / "1,5" / "x1.5" → 15000 basis points (up to 4 decimals). */
 export function parseMultiplierBps(text: string): string | null {
@@ -56,6 +60,7 @@ export function extrasFormValues(
   expenses: ExtrasExpenseChoice | null,
   currency: string,
   previous: AssignmentExtras | null = null,
+  supplierExpenses: ExtrasSupplierExpenseChoice | null = null,
 ): ExtrasFormValues {
   const money = (value: string | null) => (value === null ? '' : formatMinorPlain(value, currency));
   const overtime = (value: OvertimeExtra | null) =>
@@ -76,6 +81,7 @@ export function extrasFormValues(
     overtimeWorkerMethod: extras?.overtimeWorker?.method ?? '',
     overtimeWorker: overtime(extras?.overtimeWorker ?? null),
     expenses: expenses ?? '',
+    supplierExpenses: supplierExpenses ?? '',
     effectiveFrom: '',
     appliesFrom: extras?.effectiveFrom ?? '',
     previous:
@@ -141,6 +147,9 @@ export function parseExtrasForm(
   const expenses = (values.expenses ?? '').trim();
   if (expenses && !EXPENSES.has(expenses))
     return fail('expenses', 'Choose how expenses are handled.');
+  const supplierExpenses = (values.supplierExpenses ?? '').trim();
+  if (supplierExpenses && !SUPPLIER_EXPENSES.has(supplierExpenses))
+    return fail('supplierExpenses', 'Choose who pays this technician’s expenses.');
   const effectiveFrom = (values.effectiveFrom ?? '').trim();
   if (effectiveFrom && !/^\d{4}-\d{2}-\d{2}$/u.test(effectiveFrom))
     return fail('effectiveFrom', 'Choose the date the new values start.');
@@ -162,6 +171,9 @@ export function parseExtrasForm(
       overtimeClient: overtimeClient as OvertimeExtra | null,
       overtimeWorker: overtimeWorker as OvertimeExtra | null,
       ...(expenses ? { expenses: expenses as ExtrasExpenseChoice } : {}),
+      ...(supplierExpenses
+        ? { supplierExpenses: supplierExpenses as ExtrasSupplierExpenseChoice }
+        : {}),
       ...(effectiveFrom ? { effectiveFrom } : {}),
     },
   };
@@ -180,7 +192,7 @@ export function projectExtrasValues(
   return Object.fromEntries(
     rows.map((row) => [
       row.projectMemberId,
-      extrasFormValues(row.extras, row.expenses, currency, row.previous),
+      extrasFormValues(row.extras, row.expenses, currency, row.previous, row.supplierExpenses),
     ]),
   );
 }
@@ -232,6 +244,12 @@ export function saveAssignmentExtras(
   return {
     ok: true as const,
     assignmentId: member.id,
-    values: extrasFormValues(saved.extras, saved.expenses, project.currency, saved.previous),
+    values: extrasFormValues(
+      saved.extras,
+      saved.expenses,
+      project.currency,
+      saved.previous,
+      saved.supplierExpenses,
+    ),
   };
 }

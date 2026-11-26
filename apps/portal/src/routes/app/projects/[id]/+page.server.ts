@@ -28,6 +28,7 @@ import {
   PayBillingIntervalRepository,
   clientBillingInterval,
   ExpenseInvoiceSettingsRepository,
+  SupplierExpenseRuleRepository,
   expenseArrangementStart,
   projectExpenseArrangement,
   ProjectPersonDefaultsRepository,
@@ -241,6 +242,11 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       assignmentExtras:
         context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
           ? projectExtrasValues(context, params.id, String(overview.project.currency))
+          : null,
+      // D4 (2026-11-26): who pays external technicians' expenses (project rule + people).
+      supplierExpenseRules:
+        context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
+          ? new SupplierExpenseRuleRepository(context.sqlite).view(context.principal, params.id)
           : null,
       // Owner request 2026-11-25: how often each person on this project is paid.
       assignmentPayIntervals:
@@ -1336,6 +1342,70 @@ function projectExpenseInvoiceView(sqlite: ReturnType<typeof openPortalRepositor
 }
 
 export const actions: Actions = {
+  /** D4: who pays the external technicians' expenses on this project (Owner/Finance, audited). */
+  setSupplierExpenseRule: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const extras = { action: 'setSupplierExpenseRule', actionName: 'setSupplierExpenseRule' };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extras,
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+      });
+    const carrier = String(data.get('carrier') ?? '');
+    const effectiveFrom = String(data.get('effectiveFrom') ?? '').trim();
+    if (!['', 'ja', 'supplier'].includes(carrier) || (effectiveFrom && !/^\d{4}-\d{2}-\d{2}$/u.test(effectiveFrom)))
+      return actionFail(400, 'action.error.validation', {}, 'Choose who pays and the start date', {
+        ...extras,
+        code: 'SUPPLIER_EXPENSE_RULE_INVALID',
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const change = new SupplierExpenseRuleRepository(context.sqlite).setProjectRule(
+        context.principal,
+        {
+          projectId: params.id,
+          carrier: carrier as '' | 'ja' | 'supplier',
+          effectiveFrom: effectiveFrom || null,
+        },
+      );
+      return {
+        ...actionSuccess('action.projects.projectUpdated', {}, 'Expense rule saved'),
+        ...extras,
+        supplierExpenseFrom: change.effectiveFrom,
+      };
+    } catch (cause) {
+      const status =
+        cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
+          ? 403
+          : cause instanceof ConflictError
+            ? 409
+            : cause instanceof ValidationError
+              ? 400
+              : 500;
+      if (status === 500) {
+        console.error('Supplier expense rule failed', cause);
+        return actionFail(500, 'action.error.unavailable', {}, undefined, {
+          ...extras,
+          code: 'SUPPLIER_EXPENSE_RULE_FAILED',
+        });
+      }
+      const reason = cause instanceof Error ? cause.message : undefined;
+      return actionFail(
+        status,
+        status === 409 ? 'action.error.conflict' : status === 403 ? 'action.error.forbidden' : 'action.error.validation',
+        {},
+        reason,
+        {
+          ...extras,
+          code: 'SUPPLIER_EXPENSE_RULE_FAILED',
+          ...(reason ? { supplierExpenseMessage: reason } : {}),
+        },
+      );
+    } finally {
+      context?.sqlite.close();
+    }
+  },
   /** Expenses on the same invoice or on a separate one: rearranges the project's streams (audited). */
   setExpenseInvoice: async ({ request, locals, params }) => {
     const data = await request.formData();

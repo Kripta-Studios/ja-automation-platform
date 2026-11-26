@@ -24,6 +24,12 @@
   import { intervalCopy, intervalLabel, type IntervalCopyKey } from '../interval-copy';
   import AssignmentExtrasFields from './AssignmentExtrasFields.svelte';
   import {
+    supplierCarrierLabel,
+    supplierExpenseText,
+    supplierSourceLabel,
+    type SupplierExpenseCopyKey,
+  } from '$lib/portal/supplier-expense-copy';
+  import {
     emptyExtras,
     extrasChosen,
     extrasFields,
@@ -62,6 +68,7 @@
     today,
     canSetRates = false,
     extras = null,
+    supplierExpenses = null,
     payIntervals = null,
     viewerId = '',
     roleLabel,
@@ -86,6 +93,19 @@
     canSetRates?: boolean;
     /** Owner/Finance: optional per-person extras by assignment id (null: not shown). */
     extras?: Record<string, ExtrasValues> | null;
+    /** D4, Owner/Finance: who pays external technicians' expenses (null: not shown). */
+    supplierExpenses?: {
+      project: { carrier: 'ja' | 'supplier' | null; effectiveFrom: string | null };
+      projectNext: { carrier: 'ja' | 'supplier' | null; effectiveFrom: string } | null;
+      technicians: ReadonlyArray<{
+        projectMemberId: string;
+        workerId: string;
+        supplierName: string;
+        person: 'ja' | 'supplier' | null;
+        personFrom: string | null;
+        effective: { carrier: 'ja' | 'supplier'; source: string; effectiveFrom: string | null };
+      }>;
+    } | null;
     /** Owner/Finance: pay interval per assignment id (null: not shown). */
     payIntervals?: Record<
       string,
@@ -402,6 +422,41 @@
       }
     } catch {
       extrasError = describe(null);
+    } finally {
+      busy = false;
+    }
+  }
+
+  // ---------- D4: who pays external technicians' expenses (project rule) ----------
+  const se = (key: SupplierExpenseCopyKey, params: Record<string, string | number> = {}) =>
+    supplierExpenseText(locale, key, params);
+  let supplierEditing = $state(false);
+  let supplierChoice = $state<'' | 'ja' | 'supplier'>('');
+  let supplierFrom = $state('');
+  let supplierError = $state('');
+  const technicianRule = (memberId: string) =>
+    supplierExpenses?.technicians.find((row) => row.projectMemberId === memberId) ?? null;
+  async function saveSupplierRule(event: SubmitEvent) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    supplierError = '';
+    try {
+      const result = await post(`${projectHref}?/setSupplierExpenseRule`, {
+        carrier: supplierChoice,
+        effectiveFrom: supplierFrom,
+      });
+      if (result.type === 'success') {
+        notify(se('saved'), 'success');
+        supplierEditing = false;
+        await invalidateAll();
+      } else {
+        const data =
+          result.type === 'failure' ? (result.data as { supplierExpenseMessage?: string } | null) : null;
+        supplierError = data?.supplierExpenseMessage ?? describe(data);
+      }
+    } catch {
+      supplierError = describe(null);
     } finally {
       busy = false;
     }
@@ -817,6 +872,81 @@
         </div>
       </div>
     {/if}
+    {#if supplierExpenses !== null}
+      {@const rule = supplierExpenses.project}
+      <div class="hub-supplier-expenses" data-hub-supplier-expenses={rule.carrier ?? 'none'}>
+        <p class="hub-supplier-expenses__line">
+          <strong>{se('title')}: {supplierCarrierLabel(locale, rule.carrier)}</strong
+          >{#if rule.carrier && rule.effectiveFrom}<small
+              > · {se('since', { date: formatDate(rule.effectiveFrom) })}</small
+            >{/if}
+          {#if !supplierEditing}
+            <button
+              type="button"
+              class="quiet-button"
+              data-hub-supplier-expenses-edit
+              onclick={() => {
+                supplierChoice = rule.carrier ?? '';
+                supplierFrom = today;
+                supplierError = '';
+                supplierEditing = true;
+              }}>{se('change')}</button
+            >
+          {/if}
+        </p>
+        <small class="surface-intro"
+          >{rule.carrier === 'supplier' ? se('supplierHelp') : se('jaHelp')}
+          {se('clientIndependent')}</small
+        >
+        {#if supplierExpenses.projectNext}
+          <small class="surface-intro" data-hub-supplier-expenses-next
+            >{se('next', {
+              date: formatDate(supplierExpenses.projectNext.effectiveFrom),
+              value: supplierCarrierLabel(locale, supplierExpenses.projectNext.carrier),
+            })}</small
+          >
+        {/if}
+        {#if supplierExpenses.technicians.length === 0}
+          <small class="surface-intro">{se('noTechnicians')}</small>
+        {/if}
+        {#if supplierEditing}
+          <form class="hub-inline-form" onsubmit={saveSupplierRule} data-hub-supplier-expenses-form>
+            <fieldset class="hub-supplier-expenses__choices">
+              <legend class="hub-sr-only">{se('title')}</legend>
+              {#each [['ja', se('ja'), se('jaHelp')], ['supplier', se('supplier'), se('supplierHelp')], ['', se('notSet'), '']] as [value, label, help] (value)}
+                <label class="hub-supplier-expenses__option"
+                  ><input
+                    type="radio"
+                    name="supplierCarrier"
+                    {value}
+                    bind:group={supplierChoice}
+                    data-hub-supplier-expenses-option={value || 'none'}
+                  /><span><strong>{label}</strong>{#if help}<small>{help}</small>{/if}</span></label
+                >
+              {/each}
+            </fieldset>
+            <label
+              >{se('appliesFrom')}<input
+                type="date"
+                required
+                bind:value={supplierFrom}
+                data-hub-supplier-expenses-from
+              /></label
+            >
+            <small class="surface-intro">{se('appliesFromHelp')} {se('intro')}</small>
+            {#if supplierError}<p class="hub-warn" role="alert">{supplierError}</p>{/if}
+            <div class="hub-inline-actions">
+              <button type="button" class="secondary-button" onclick={() => (supplierEditing = false)}
+                >{se('cancel')}</button
+              >
+              <button type="submit" class="primary-button" disabled={busy} data-hub-supplier-expenses-save
+                >{busy ? se('saving') : se('save')}</button
+              >
+            </div>
+          </form>
+        {/if}
+      </div>
+    {/if}
     <ul class="hub-team-list">
       {#each currentAssignments as row (row.id)}
         {@const rate = rateFor(row.workerId)}
@@ -899,6 +1029,19 @@
                 aria-expanded={extrasFor === row.id}
                 onclick={() => openExtras(row)}
                 data-hub-extras-edit={row.workerId}>{x('edit')}</button
+              >
+            </div>
+          {/if}
+          {#if technicianRule(row.id)}
+            {@const own = technicianRule(row.id)!}
+            <div class="hub-team-rate" data-hub-supplier-expense-person={row.workerId}>
+              <span class="hub-label">{se('title')}</span>
+              <span
+                >{supplierCarrierLabel(locale, own.effective.carrier)}
+                <small class="hub-extras-from"
+                  >{supplierSourceLabel(locale, own.effective.source)}{#if own.effective.effectiveFrom}
+                    · {se('since', { date: formatDate(own.effective.effectiveFrom) })}{/if}</small
+                ></span
               >
             </div>
           {/if}
@@ -1016,6 +1159,7 @@
                   idPrefix={row.id}
                   showEffectiveFrom
                   maxDate={row.endsOn ?? ''}
+                  supplierProjectCarrier={supplierExpenses?.project.carrier ?? null}
                 />
                 {#if extrasError}<p class="hub-warn" role="alert">{extrasError}</p>{/if}
                 <div class="hub-inline-actions">
@@ -1402,6 +1546,62 @@
   :focus-visible {
     outline: 3px solid var(--ja-focus, #2563eb);
     outline-offset: 2px;
+  }
+  .hub-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .hub-supplier-expenses {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0 0 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--project-line, #e4e4e2);
+    border-radius: 0.5rem;
+    min-width: 0;
+  }
+  .hub-supplier-expenses__line {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem 0.5rem;
+    margin: 0;
+  }
+  .hub-supplier-expenses__choices {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .hub-supplier-expenses__option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--project-line, #e4e4e2);
+    border-radius: 0.6rem;
+    cursor: pointer;
+  }
+  .hub-supplier-expenses__option input {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+  }
+  .hub-supplier-expenses__option span {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .hub-supplier-expenses__option small {
+    color: var(--project-muted, #77756d);
   }
   .hub-extras-form {
     display: grid;

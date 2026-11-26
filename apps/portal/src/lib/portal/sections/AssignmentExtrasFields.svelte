@@ -10,6 +10,7 @@
     type AssignmentExtrasCopyKey,
     type ExtrasValues,
   } from '$lib/portal/assignment-extras-copy';
+  import { supplierCarrierLabel, supplierExpenseText } from '$lib/portal/supplier-expense-copy';
 
   let {
     values = $bindable(),
@@ -20,6 +21,7 @@
     showEffectiveFrom = false,
     minDate = '',
     maxDate = '',
+    supplierProjectCarrier = null,
   }: {
     values: ExtrasValues;
     currency: string;
@@ -30,6 +32,8 @@
     showEffectiveFrom?: boolean;
     minDate?: string;
     maxDate?: string;
+    /** D4: the project rule for external technicians (null: not set). */
+    supplierProjectCarrier?: string | null;
   } = $props();
 
   const t = (key: AssignmentExtrasCopyKey, params: Record<string, string | number> = {}) =>
@@ -82,6 +86,32 @@
         </select></label
       >
       <small>{t('expensesHelp')}</small>
+    </fieldset>
+  {/if}
+
+  {#if values.supplierExpenses}
+    <!-- D4: only for a supplier's technician; independent of client billing above. -->
+    <fieldset class="extras-group" data-extras-supplier-expenses-group>
+      <legend>{supplierExpenseText(locale, 'extrasLabel')}</legend>
+      <label class="extras-wide"
+        ><span class="sr-only">{supplierExpenseText(locale, 'extrasLabel')}</span>
+        <select bind:value={values.supplierExpenses} data-extras-supplier-expenses>
+          <option value="project"
+            >{supplierExpenseText(locale, 'followProject', {
+              value: supplierCarrierLabel(locale, supplierProjectCarrier ?? null),
+            })}</option
+          >
+          <option value="ja">{supplierExpenseText(locale, 'ja')}</option>
+          <option value="supplier">{supplierExpenseText(locale, 'supplier')}</option>
+        </select></label
+      >
+      <small
+        >{values.supplierExpenses === 'supplier' ||
+        (values.supplierExpenses === 'project' && supplierProjectCarrier === 'supplier')
+          ? supplierExpenseText(locale, 'supplierHelp')
+          : supplierExpenseText(locale, 'jaHelp')}
+        {supplierExpenseText(locale, 'extrasHelp')}</small
+      >
     </fieldset>
   {/if}
 

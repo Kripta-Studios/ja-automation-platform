@@ -1860,6 +1860,7 @@
             today={hub.today}
             canSetRates={canWriteFinance}
             extras={data.assignmentExtras ?? null}
+            supplierExpenses={data.supplierExpenseRules ?? null}
             payIntervals={data.assignmentPayIntervals ?? null}
             viewerId={String(data.user?.id ?? '')}
             roleLabel={(value) => controlled('role', value ?? 'worker')}

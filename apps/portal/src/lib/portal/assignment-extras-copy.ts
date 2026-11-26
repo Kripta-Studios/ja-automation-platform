@@ -3,6 +3,8 @@
  * on Add people / assignment edit, and the invoice component switches (owner request
  * 2026-11-25). [en-US, es-ES, pt-BR].
  */
+import { supplierCarrierLabel, supplierExpenseText } from './supplier-expense-copy';
+
 type CopyValue = readonly [string, string, string];
 
 const copy = {
@@ -187,6 +189,8 @@ export type ExtrasValues = {
   overtimeWorkerMethod: '' | 'multiplier' | 'rate';
   overtimeWorker: string;
   expenses: '' | 'none' | 'worker' | 'client' | 'both';
+  /** D4: who pays an external technician's expenses ('' = not a supplier's technician). */
+  supplierExpenses?: '' | 'project' | 'ja' | 'supplier';
   /** Typed: first day the new values apply ('' = today). */
   effectiveFrom: string;
   /** Saved: first day the shown values apply ('' = from the start of the assignment). */
@@ -208,6 +212,7 @@ export function emptyExtras(): ExtrasValues {
     overtimeWorkerMethod: '',
     overtimeWorker: '',
     expenses: '',
+    supplierExpenses: '',
     effectiveFrom: '',
     appliesFrom: '',
     previous: null,
@@ -223,7 +228,9 @@ export function extrasChosen(values: ExtrasValues): boolean {
     values.allowanceWorker.trim() ||
     values.overtimeClient.trim() ||
     values.overtimeWorker.trim() ||
-    values.expenses,
+    values.expenses ||
+    values.supplierExpenses === 'ja' ||
+    values.supplierExpenses === 'supplier',
   );
 }
 
@@ -265,6 +272,12 @@ export function extrasSummary(locale: string, values: ExtrasValues | undefined):
         ),
       }),
     );
+  if (values.supplierExpenses === 'ja' || values.supplierExpenses === 'supplier')
+    parts.push(
+      supplierExpenseText(locale, 'summary', {
+        value: supplierCarrierLabel(locale, values.supplierExpenses),
+      }),
+    );
   return parts.join(' · ');
 }
 
@@ -284,6 +297,7 @@ export function extrasFields(values: ExtrasValues): Record<string, string> {
     overtimeWorkerMethod: values.overtimeWorker ? method : '',
     overtimeWorker: values.overtimeWorker,
     expenses: values.expenses,
+    supplierExpenses: values.supplierExpenses ?? '',
     effectiveFrom: values.effectiveFrom,
   };
 }

@@ -694,7 +694,7 @@ export function markSettlementPaid(
     context.v3.recordCompensationPayment(context.principal, {
       settlementId: row.id,
       payeeKind: kind,
-      payeeId: kind === 'supplier' ? payeeId : row.worker_id,
+      payeeId: row.worker_id,
       amountMinor: remaining,
       currency: row.currency as never,
       paidOn: input.paidOn,

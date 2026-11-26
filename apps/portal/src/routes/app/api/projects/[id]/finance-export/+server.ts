@@ -12,7 +12,8 @@ import { isRealIsoDate } from '$lib/server/iso-date';
 import { openPortalRepository } from '$lib/server/portal-repository';
 import type { RequestHandler } from './$types';
 
-const financeRoles = new Set(['owner_admin', 'finance_admin']);
+// D8: the auditor downloads finance exports read-only, like the ledger CSV.
+const financeRoles = new Set(['owner_admin', 'finance_admin', 'auditor_read_only']);
 type ProblemName = keyof typeof definitions;
 
 const definitions = {
@@ -37,7 +38,7 @@ const definitions = {
   financeRoleRequired: [
     403,
     'FINANCE_ROLE_REQUIRED',
-    "Only an owner or Finance administrator can download this project's finance export.",
+    "Only an owner, Finance administrator or auditor can download this project's finance export.",
     'contact_owner',
   ],
   projectAccessChanged: [

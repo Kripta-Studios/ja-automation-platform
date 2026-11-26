@@ -586,8 +586,8 @@ const exact: Record<string, readonly [string, string]> = {
     'Sua conta não está mais ativa. Entre em contato com uma pessoa proprietária para recuperar o acesso.',
   ],
   'problem.projectFinanceExport.financeRoleRequired': [
-    'Solo una persona propietaria o administradora de Finanzas puede descargar la exportación financiera de este proyecto.',
-    'Somente uma pessoa proprietária ou administradora de Finanças pode baixar a exportação financeira deste projeto.',
+    'Solo una persona propietaria, administradora de Finanzas o auditora puede descargar la exportación financiera de este proyecto.',
+    'Somente uma pessoa proprietária, administradora de Finanças ou auditora pode baixar a exportação financeira deste projeto.',
   ],
   'problem.projectFinanceExport.projectAccessChanged': [
     'Ya no puedes descargar los datos financieros de este proyecto. Pide a una persona propietaria que revise tu acceso.',
@@ -9888,7 +9888,7 @@ const problemEnglish: Record<string, string> = {
   'problem.projectFinanceExport.accountDisabled':
     'Your account is no longer active. Contact the owner for access.',
   'problem.projectFinanceExport.financeRoleRequired':
-    "Only an owner or Finance administrator can download this project's finance export.",
+    "Only an owner, Finance administrator or auditor can download this project's finance export.",
   'problem.projectFinanceExport.projectAccessChanged':
     'You can no longer download finance data for this project. Ask the owner to review your access.',
   'problem.projectFinanceExport.periodDateDuplicate':

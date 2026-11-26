@@ -200,6 +200,21 @@ describe('project finance XLSX export problems', () => {
     });
   });
 
+  it('lets the auditor download the export read-only (D8)', async () => {
+    state.role = 'auditor_read_only';
+    const response = await request(valid);
+    expect(response.status).toBe(200);
+    expect(state.projectFinance).toHaveBeenCalledOnce();
+    expect(state.audit).toHaveBeenCalledOnce();
+  });
+
+  it.each(['project_manager', 'worker'])('refuses %s', async (role) => {
+    state.role = role;
+    const response = await request(valid);
+    expect(response.status).toBe(403);
+    expect(state.projectFinance).not.toHaveBeenCalled();
+  });
+
   it('preserves a valid XLSX download and filename', async () => {
     const response = await request(`${valid}&locale=es`);
     expect(response.status).toBe(200);

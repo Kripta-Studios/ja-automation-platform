@@ -487,7 +487,7 @@ function issuerGapDetails(
 ): Record<string, string> {
   const covered = sqlite
     .prepare(
-      'SELECT MIN(effective_from) first_from,MAX(COALESCE(effective_to,\'\')) last_to FROM legal_entity_revision WHERE series_id=?',
+      "SELECT MIN(effective_from) first_from,MAX(COALESCE(effective_to,'')) last_to FROM legal_entity_revision WHERE series_id=?",
     )
     .get(seriesId) as { first_from: string | null; last_to: string | null } | undefined;
   return {
@@ -585,7 +585,14 @@ function ensureLegalEntityRevision(
     else if (seriesCount > 0)
       throw new AccountingPackRevisionError(
         'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
-        issuerGapDetails(sqlite, entitySeriesId, input.legacyLegalEntityId, legacy, currency, periodEnd),
+        issuerGapDetails(
+          sqlite,
+          entitySeriesId,
+          input.legacyLegalEntityId,
+          legacy,
+          currency,
+          periodEnd,
+        ),
       );
     else
       revisionId = `fp-entity-revision-${sha256(`${deployment.tenantId}:${deployment.deploymentId}:${input.legacyLegalEntityId}`).slice(0, 40)}`;
@@ -723,7 +730,14 @@ function ensureLegalEntityRevision(
   if (effective.length === 0)
     throw new AccountingPackRevisionError(
       'No legal-entity revision is effective at the deterministic period cut (effective-date gap)',
-        issuerGapDetails(sqlite, entitySeriesId, input.legacyLegalEntityId, legacy, currency, periodEnd),
+      issuerGapDetails(
+        sqlite,
+        entitySeriesId,
+        input.legacyLegalEntityId,
+        legacy,
+        currency,
+        periodEnd,
+      ),
     );
   if (effective.length > 1)
     throw new AccountingPackRevisionError(
@@ -1214,12 +1228,41 @@ function validateAuthoritativeSourceItems(
       reasons.push(`${reasonPrefix}:project_legacy_legal_entity_mismatch`);
     return matches;
   };
+  // A void releases the invoice's sources for re-invoicing (migration 0078): the operational
+  // row then legitimately moves past the version the issued invoice locked. A historical cut
+  // that still contains the invoice keeps it, proven by the append-only release record of
+  // exactly that locked version.
+  const hasVoidReleaseTable = Boolean(
+    rowFor(
+      "SELECT 1 present FROM sqlite_master WHERE type='table' AND name='invoice_void_source_release'",
+    ),
+  );
+  const releasedByVoid = (
+    invoiceId: string | undefined,
+    sourceType: string,
+    sourceId: string,
+    recordedVersion: number,
+  ): boolean =>
+    Boolean(
+      invoiceId &&
+      hasVoidReleaseTable &&
+      rowFor(
+        `SELECT 1 present FROM invoice_void_source_release r JOIN invoice i ON i.id=r.invoice_id
+          WHERE r.invoice_id=? AND r.source_type=? AND r.source_id=? AND r.source_version=?
+            AND i.state='void'`,
+        invoiceId,
+        sourceType,
+        sourceId,
+        recordedVersion,
+      ),
+    );
   const validateOperationalSource = (
     sourceType: string,
     sourceId: string,
     invoiceProjectId: string | undefined,
     recordedVersion: number | null | undefined,
     reasonPrefix: string,
+    invoiceId?: string,
   ): OperationalSourceAuthority | undefined => {
     const authority = operationalSourceAuthority(sourceType, sourceId);
     if (!authority.supported) return undefined;
@@ -1240,7 +1283,10 @@ function validateAuthoritativeSourceItems(
     if (recordedVersion === null || recordedVersion === undefined) {
       reasons.push(`${reasonPrefix}:missing_operational_source_version`);
       valid = false;
-    } else if (recordedVersion !== authority.row.version) {
+    } else if (
+      recordedVersion !== authority.row.version &&
+      !releasedByVoid(invoiceId, sourceType, sourceId, recordedVersion)
+    ) {
       reasons.push(`${reasonPrefix}:operational_version_mismatch`);
       valid = false;
     }
@@ -2323,6 +2369,7 @@ function validateAuthoritativeSourceItems(
                   rowValue<string>(row, 'project_id'),
                   sourceVersion,
                   `${kind}:${sourceId}`,
+                  invoiceId,
                 )
               : undefined;
             const operationalRequired = Boolean(operationalLookup.row);
@@ -2442,6 +2489,7 @@ function validateAuthoritativeSourceItems(
                   rowValue<string>(row, 'project_id'),
                   sourceVersion,
                   `${kind}:${sourceId}`,
+                  invoiceId,
                 )
               : undefined;
             const operationalRequired = Boolean(operationalLookup.row);

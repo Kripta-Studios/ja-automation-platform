@@ -9242,7 +9242,11 @@ export class V3Repository {
       const scopedInvoiceSourceCount = sourceItemRows.filter(
         (row) => row.itemKind === 'invoice_source' || row.item_kind === 'invoice_source',
       ).length;
-      const scopedInvoiceSourceFallbackCount = scopedInvoices.length > 0 ? sourceItems.length : 0;
+      // Only the synthesized invoice items above (no snapshot source items) stand in for
+      // invoice sources. With real source items the count is the invoice_source items alone:
+      // 0 is a valid count, e.g. an invoice voided later whose sources were released (0078).
+      const scopedInvoiceSourceFallbackCount =
+        sourceItemsFromSnapshot.length === 0 && scopedInvoices.length > 0 ? sourceItems.length : 0;
       const scopedApprovedTimeEntryCount = sourceItemRows.filter(
         (row) => row.itemKind === 'time' || row.item_kind === 'time',
       ).length;

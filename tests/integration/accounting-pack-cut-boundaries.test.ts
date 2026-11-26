@@ -177,8 +177,9 @@ function fixture(workDate = '2026-08-03') {
     summary: 'Synthetic cut boundary source',
   });
   repository.submitTime(scopedWorker, time.id, time.version);
+  // An Owner approval also records the Finance acceptance (billable); a second Finance
+  // review of the same record is refused as already decided.
   repository.operationalApproveTime(owner, time.id, 'approved');
-  repository.financeApproveTime(owner, time.id, true);
   const invoice = repository.createInvoiceDraft(owner, rule.id, workDate, workDate);
   repository.approveInvoiceDraft(owner, invoice.id);
   repository.issueInvoice(owner, invoice.id, 'en');

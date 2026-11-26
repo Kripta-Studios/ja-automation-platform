@@ -108,7 +108,8 @@
       </div>
       <p id="invoice-counter-hint" class="invoice-counter__hint">{c('hint')}</p>
       <p class="invoice-counter__preview" aria-live="polite">
-        {#if typed && !typedFree}{c('notFree').replace('{number}', typed)}{' '}{/if}{c('willBe').replace('{number}', preview)}
+        {#if typed && !typedFree}<span>{c('notFree').replace('{number}', typed)}</span>{/if}
+        {c('willBe').replace('{number}', preview)}
       </p>
     </form>
   {:else if !canEdit}

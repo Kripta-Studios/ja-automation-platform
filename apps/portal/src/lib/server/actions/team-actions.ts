@@ -228,7 +228,7 @@ export const teamActions = {
       return actionFail(404, 'action.navigation.wrongSection', {}, 'Wrong section');
     if (!event.locals.user || !event.locals.session)
       return actionFail(401, 'action.error.unauthenticated', {}, 'Sign in again to continue.');
-    if (!['owner_admin', 'finance_admin'].includes(event.locals.user.role))
+    if (!['owner_admin', 'finance_admin'].includes(String(event.locals.user.role)))
       return actionFail(403, 'action.error.forbidden', {}, 'Owner or Finance administrator required');
     const form = await event.request.formData();
     const workerId = String(form.get('workerId') ?? '').trim();

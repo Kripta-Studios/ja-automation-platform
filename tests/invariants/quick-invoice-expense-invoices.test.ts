@@ -305,6 +305,35 @@ describe('New invoice: expenses on a separate invoice', () => {
     expect(direct.state).toBe('existing');
   });
 
+  it('offers the expense decisions and approvals of the expense invoice on the same screen', () => {
+    const env = setup();
+    const { f, owner, worker, time, context, settings } = env;
+    settings.setProjectMode(owner, { projectId: f.project.id, mode: 'separate' });
+    time('2026-08-03', 480);
+    const row = f.repository.createExpense(worker, {
+      projectId: f.project.id,
+      spentOn: '2026-08-06',
+      vendor: 'Taxi',
+      category: 'ground_transport',
+      description: 'Airport',
+      currency: 'EUR',
+      amountMinor: 4000n,
+      whoPaid: 'worker',
+      receiptRequired: false,
+    });
+    const v = () => (f.sqlite.prepare('SELECT version FROM expense WHERE id=?').get(row.id) as { version: number }).version;
+    f.repository.submitExpense(worker, row.id, v());
+    const input = { projectId: f.project.id, ...period, expenseInvoice: 'setting' as const };
+    const preview = quickInvoicePreview(context(owner), input);
+    expect(preview.state).toBe('ready');
+    expect(preview.companion?.state).not.toBe('ready');
+    const decide = preview.attention.find((item) => item.kind === 'expenseTreatment');
+    expect(decide).toMatchObject({ blocks: 'none', expenseIds: [row.id] });
+    expect(preview.expenseRows.map((entry) => entry.ref.id)).toEqual([row.id]);
+    // The hours invoice is not held up by the expense decision.
+    expect(preview.attention.every((item) => item.blocks === 'none' || item.kind !== 'expenseTreatment')).toBe(true);
+  });
+
   it('keeps one draft when expenses stay on the same invoice', () => {
     const env = setup();
     const { f, owner, time, expense, context } = env;

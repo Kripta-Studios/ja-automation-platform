@@ -2512,7 +2512,8 @@ function companionPreview(context: Context, input: QuickInvoiceInput, main: Quic
   const stream = companionStream(context, input.projectId, main.periodStart, main.periodEnd);
   if (!stream) return null;
   const scoped = companionInput(input, main, stream.id);
-  const preview = context.repository.withInvoiceOverrides(scoped.overrides, () => computeCore(context, scoped).preview);
+  // The full preview: its approvals and expense decisions are offered on this screen too.
+  const preview = context.repository.withInvoiceOverrides(scoped.overrides, () => compute(context, scoped).preview);
   const companion: QuickInvoiceCompanion = {
     state: preview.state,
     billingRuleId: simulated ? null : stream.id,
@@ -2528,7 +2529,52 @@ function companionPreview(context: Context, input: QuickInvoiceInput, main: Quic
     provisionalNumber: preview.provisionalNumber,
     existingInvoice: preview.existingInvoice,
   };
-  return companion;
+  return { companion, preview };
+}
+
+/**
+ * The expense invoice's approvals and expense decisions, next to the hours invoice's own: the
+ * same commands work for both (they never depend on the stream). They never block the hours
+ * invoice; until they are done the expenses stay open.
+ */
+function mergeCompanionAttention(
+  main: QuickInvoiceAttention[],
+  extra: readonly QuickInvoiceAttention[],
+): QuickInvoiceAttention[] {
+  const items = main.map((item) => ({ ...item }));
+  for (const item of extra) {
+    if (item.kind === 'expenseTreatment') {
+      if (!items.some((existing) => existing.kind === 'expenseTreatment'))
+        items.push({ ...item, blocks: 'none' });
+    } else if (item.kind === 'approve' && item.people?.length) {
+      const own = items.find((existing) => existing.kind === 'approve');
+      if (!own) {
+        items.push({ ...item, blocks: 'none' });
+        continue;
+      }
+      const people = [...(own.people ?? [])].map((person) => ({ ...person }));
+      for (const person of item.people) {
+        const same = people.find((existing) => existing.workerId === person.workerId);
+        if (!same) people.push({ ...person, projectedMinor: undefined });
+        else {
+          same.count += person.count;
+          same.sources = [...(same.sources ?? []), ...(person.sources ?? [])];
+          same.expenseCount = (same.expenseCount ?? 0) + (person.expenseCount ?? 0);
+          same.unclassifiedExpenseCount = (same.unclassifiedExpenseCount ?? 0) + (person.unclassifiedExpenseCount ?? 0);
+          if (same.states && person.states)
+            same.states = {
+              draft: same.states.draft + person.states.draft,
+              submitted: same.states.submitted + person.states.submitted,
+              returned: same.states.returned + person.states.returned,
+              financePending: same.states.financePending + person.states.financePending,
+            };
+        }
+      }
+      own.people = people;
+      own.totalCount = people.length;
+    }
+  }
+  return items.sort((a, b) => KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind));
 }
 
 export function quickInvoicePreview(context: Context, input: QuickInvoiceInput): QuickInvoicePreview {
@@ -2538,15 +2584,24 @@ export function quickInvoicePreview(context: Context, input: QuickInvoiceInput):
     const preview = context.repository.withInvoiceOverrides(scoped.overrides, () =>
       publicPreview(compute(context, scoped).preview),
     );
-    const companion = plan.separate ? companionPreview(context, scoped, preview, simulated) : null;
+    const pair = plan.separate ? companionPreview(context, scoped, preview, simulated) : null;
+    const companion = pair?.companion ?? null;
+    const merged = pair
+      ? {
+          attention: mergeCompanionAttention(preview.attention, pair.preview.attention),
+          expenseRows: [...preview.expenseRows, ...pair.preview.expenseRows],
+          expenseRowsTotal: preview.expenseRowsTotal + pair.preview.expenseRowsTotal,
+        }
+      : null;
     // Phantom streams of a simulated rearrangement are never offered as a choice.
     return {
       ...preview,
+      ...(merged ?? {}),
       ...(simulated ? { alternatives: [] } : {}),
       // The choice replaces the one-step "Set up expense invoicing" offer.
       ...(plan.choice && input.expenseInvoice
         ? {
-            attention: preview.attention.filter((item) => item.kind !== 'expenseSetup'),
+            attention: (merged?.attention ?? preview.attention).filter((item) => item.kind !== 'expenseSetup'),
             warnings: preview.warnings.filter((warning) => warning.code !== 'expenses_separate'),
           }
         : {}),

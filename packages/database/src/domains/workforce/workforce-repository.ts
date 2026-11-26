@@ -657,7 +657,11 @@ export class WorkforceRepository {
     const owner = this.deps.sqlite
       .prepare('SELECT role,status FROM user WHERE id=?')
       .get(principal.userId) as { role: string; status: string } | undefined;
-    if (principal.role !== 'owner_admin' || owner?.role !== 'owner_admin' || owner.status !== 'active')
+    if (
+      principal.role !== 'owner_admin' ||
+      owner?.role !== 'owner_admin' ||
+      owner.status !== 'active'
+    )
       throw this.deps.errors.accessDenied('Owner administration required');
     assertDate(input.date, 'Work date', this.deps.errors.validation);
     return this.deps.transaction(() => {
@@ -674,7 +678,9 @@ export class WorkforceRepository {
           `SELECT u.role,u.status,sp.profile FROM user u
              LEFT JOIN supplier_user_profile sp ON sp.user_id=u.id WHERE u.id=?`,
         )
-        .get(input.workerId) as { role: string; status: string; profile: string | null } | undefined;
+        .get(input.workerId) as
+        | { role: string; status: string; profile: string | null }
+        | undefined;
       // Time and expenses belong to workforce accounts (workers, project managers and
       // supplier staff). Finance and auditor accounts are not project workforce.
       const workforce =
@@ -1032,7 +1038,10 @@ export class WorkforceRepository {
       if (!canManageAssignments(principal, existing.project_id))
         throw this.deps.errors.accessDenied('Assignment administration required');
       this.assertPrincipalProjectScope(principal, existing.project_id);
-      if (principal.role === 'project_manager' && isSupplierStaff(this.deps.sqlite, existing.user_id))
+      if (
+        principal.role === 'project_manager' &&
+        isSupplierStaff(this.deps.sqlite, existing.user_id)
+      )
         throw this.deps.errors.accessDenied('Supplier staff assignments are managed by the owner');
 
       assertPlannedMinutes(input.plannedMinutes, this.deps.errors.validation);
@@ -1123,7 +1132,9 @@ export class WorkforceRepository {
       );
 
       this.deps.audit(principal, 'assignment.update', 'project_member', id, {
-        ...(kept.kept ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds } : {}),
+        ...(kept.kept
+          ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds }
+          : {}),
         version: existing.version,
         projectId: existing.project_id,
         workerId: existing.user_id,
@@ -1184,9 +1195,9 @@ export class WorkforceRepository {
     input: { startsOn?: string; endsOn?: string },
   ) {
     this.deps.assertActive(principal);
-    const existing = this.deps.sqlite
-      .prepare('SELECT * FROM project_member WHERE id=?')
-      .get(id) as AssignmentRow | undefined;
+    const existing = this.deps.sqlite.prepare('SELECT * FROM project_member WHERE id=?').get(id) as
+      | AssignmentRow
+      | undefined;
     if (!existing) throw this.deps.errors.validation('Assignment not found');
     if (!canManageAssignments(principal, existing.project_id))
       throw this.deps.errors.accessDenied('Assignment administration required');
@@ -1242,10 +1253,19 @@ export class WorkforceRepository {
       if (input.version !== undefined && input.version !== existing.version)
         throw this.deps.errors.conflict('Assignment changed before removal');
 
-      const { effectiveEnd, startsBeforeToday } = this.removalPlan(principal, existing, input.endsOn);
+      const { effectiveEnd, startsBeforeToday } = this.removalPlan(
+        principal,
+        existing,
+        input.endsOn,
+      );
       const reason = this.deps.assertText(input.reason, 'Removal reason', 2000);
       const resolvedLaterTime = input.resolveLaterTime
-        ? this.resolveTimeAfterEnd(principal, existing, startsBeforeToday ? effectiveEnd : null, reason)
+        ? this.resolveTimeAfterEnd(
+            principal,
+            existing,
+            startsBeforeToday ? effectiveEnd : null,
+            reason,
+          )
         : { discarded: 0, rejected: 0 };
       try {
         this.assertAssignmentSourceDates(existing, existing.starts_on, effectiveEnd);
@@ -1267,9 +1287,17 @@ export class WorkforceRepository {
         .run(effectiveEnd, this.deps.now(), id, existing.version);
       if (changed.changes !== 1)
         throw this.deps.errors.conflict('Assignment changed before removal');
-      const kept = this.keepRecordsOutside(principal, existing, existing.starts_on, effectiveEnd, reason);
+      const kept = this.keepRecordsOutside(
+        principal,
+        existing,
+        existing.starts_on,
+        effectiveEnd,
+        reason,
+      );
       this.deps.audit(principal, 'assignment.delete', 'project_member', id, {
-        ...(kept.kept ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds } : {}),
+        ...(kept.kept
+          ? { keptApprovedRecords: kept.kept, historyAssignmentIds: kept.historyAssignmentIds }
+          : {}),
         operation: 'remove',
         projectId: existing.project_id,
         workerId: existing.user_id,
@@ -1303,6 +1331,12 @@ export class WorkforceRepository {
       assertDate(requestedEnd, 'Assignment end date', this.deps.errors.validation);
       if (requestedEnd > today)
         throw this.deps.errors.validation('Immediate removal cannot use a future end date');
+      // An assignment that has not started is cancelled, not ended: an end date before its
+      // start would otherwise be dropped silently. Every screen leaves the date out then.
+      if (!startsBeforeToday)
+        throw this.deps.errors.validation(
+          'This assignment has not started: leave the end date empty to cancel it',
+        );
     }
     // Cancelling an assignment before it starts leaves an empty date interval.
     // Historical finance selection must never treat it as a worked assignment.
@@ -1326,9 +1360,9 @@ export class WorkforceRepository {
    */
   previewAssignmentRemoval(principal: Principal, id: string, input: { endsOn?: string } = {}) {
     this.deps.assertActive(principal);
-    const existing = this.deps.sqlite
-      .prepare('SELECT * FROM project_member WHERE id=?')
-      .get(id) as AssignmentRow | undefined;
+    const existing = this.deps.sqlite.prepare('SELECT * FROM project_member WHERE id=?').get(id) as
+      | AssignmentRow
+      | undefined;
     if (!existing) throw this.deps.errors.validation('Assignment not found');
     if (existing.status !== 'active')
       throw this.deps.errors.conflict('Assignment is already inactive');
@@ -1340,8 +1374,15 @@ export class WorkforceRepository {
       endsOn: effectiveEnd,
       cancelBeforeStart: !startsBeforeToday,
       resolvableLaterTime: this.resolvableTimeAfterEnd(existing, end),
-      blockedByRecords: this.sourceOutsideDates(existing, existing.starts_on, effectiveEnd, true, true),
-      keptApprovedRecords: this.keptRecordsOutside(existing, existing.starts_on, effectiveEnd).length,
+      blockedByRecords: this.sourceOutsideDates(
+        existing,
+        existing.starts_on,
+        effectiveEnd,
+        true,
+        true,
+      ),
+      keptApprovedRecords: this.keptRecordsOutside(existing, existing.starts_on, effectiveEnd)
+        .length,
       hasRecords: this.hasRecordedWork(existing),
     };
   }
@@ -1432,7 +1473,13 @@ export class WorkforceRepository {
     end: string | null,
     reason: string,
   ): { discarded: number; rejected: number } {
-    return this.resolveTimeRows(principal, existing, this.laterTimeRows(existing, end), reason, 'assignment_end');
+    return this.resolveTimeRows(
+      principal,
+      existing,
+      this.laterTimeRows(existing, end),
+      reason,
+      'assignment_end',
+    );
   }
 
   private resolveTimeRows(
@@ -1471,12 +1518,18 @@ export class WorkforceRepository {
           `${prefix}: ${reason}`,
           timestamp,
         );
-      this.deps.audit(principal, toState === 'void' ? 'time.void' : 'time.rejected', 'time_entry', row.id, {
-        version: row.version,
-        operation,
-        assignmentId: existing.id,
-        reason,
-      });
+      this.deps.audit(
+        principal,
+        toState === 'void' ? 'time.void' : 'time.rejected',
+        'time_entry',
+        row.id,
+        {
+          version: row.version,
+          operation,
+          assignmentId: existing.id,
+          reason,
+        },
+      );
       if (toState === 'void') discarded++;
       else rejected++;
     }
@@ -1513,7 +1566,9 @@ export class WorkforceRepository {
   /** Migration 0081 added the assignment PO; older schemas (upgrade tests) read NULL. */
   private poColumn(): boolean {
     return Boolean(
-      this.deps.sqlite.prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'").get(),
+      this.deps.sqlite
+        .prepare("SELECT 1 FROM pragma_table_info('project_member') WHERE name='po_number'")
+        .get(),
     );
   }
 

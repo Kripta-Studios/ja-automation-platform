@@ -694,6 +694,15 @@ const knownProjectRules: Record<string, KnownProjectRule> = {
     remedy: 'review_project_dates',
     field: 'startsOn',
   },
+  // Not started yet: cancelled without an end date (an end date would fall before the start).
+  'This assignment has not started: leave the end date empty to cancel it': {
+    status: 400,
+    code: 'ASSIGNMENT_DATE_RANGE_INVALID',
+    messageKey: 'problem.assignment.dateRangeInvalid',
+    message: 'The assignment end date must be on or after its start date. Review the dates.',
+    remedy: 'review_assignments',
+    field: 'endsOn',
+  },
   'Immediate removal cannot use a future end date': {
     status: 400,
     code: 'ASSIGNMENT_REMOVAL_FUTURE_DATE',

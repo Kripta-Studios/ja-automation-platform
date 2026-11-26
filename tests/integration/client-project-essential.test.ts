@@ -813,7 +813,9 @@ describe('Client Essential CORE-02 clients, projects and assignments', () => {
     const cancelled = value.sqlite
       .prepare('SELECT status,starts_on,ends_on FROM project_member WHERE id=?')
       .get(futureAssignment.id) as { status: string; starts_on: string; ends_on: string };
-    expect(cancelled).toEqual({ status: 'inactive', starts_on: futureStart, ends_on: futureStart });
+    // Cancelled before it starts: an empty interval (ends before it starts), so no day of it
+    // ever counts as a worked or history assignment.
+    expect(cancelled).toEqual({ status: 'inactive', starts_on: futureStart, ends_on: today });
   });
 
   it('rejects assignment creation for closed or archived projects and rolls back audit failures', () => {

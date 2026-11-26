@@ -11,9 +11,14 @@ import {
   AccessDeniedError,
   AssignmentExpensePolicyRepository,
   ConflictError,
+  ExpenseInvoiceSettingsRepository,
   ValidationError,
   assertLiveSession,
   currentCurrencyConversion,
+  expenseArrangementStart,
+  projectExpenseArrangement,
+  type ExpenseInvoiceMode,
+  type ExpenseStreamsState,
   type InvoiceCompositionSource,
   type InvoiceCompositionSourceRef,
   type InvoiceOverrideInput,
@@ -181,6 +186,45 @@ export type QuickInvoicePreview = {
    * issued together (owner decision 2026-11-17). Each part is an exact engine dry run.
    */
   split: QuickInvoiceSplit | null;
+  /** Expenses on this invoice or on a separate one (owner request 2026-11-26). */
+  expenseChoice?: QuickInvoiceExpenseChoice | null;
+  /** "Separate": the expense invoice created together with this one (exact engine dry run). */
+  companion?: QuickInvoiceCompanion | null;
+};
+
+export type QuickInvoiceExpenseChoice = {
+  /** What this preview does: expenses on their own invoice. */
+  separate: boolean;
+  /** The setting in force for the project, and where it comes from. */
+  setting: ExpenseInvoiceMode;
+  source: 'project' | 'client' | 'default';
+  streams: ExpenseStreamsState;
+  /** Sent expenses of these dates no live invoice holds yet. */
+  openCount: number;
+  /** Creating saves this choice as the project's setting, from this day on. */
+  changesSetting: boolean;
+  changeFrom: string | null;
+  /** The other choice cannot apply to these dates (it can start on this day): null = it can. */
+  blockedFrom: string | null;
+  /** Neither invoice can carry the expenses of these dates (labor-only stream, not changeable). */
+  stayOpen: boolean;
+};
+
+export type QuickInvoiceCompanion = {
+  state: QuickInvoicePreview['state'];
+  /** null while the expense stream would only be created together with the invoices. */
+  billingRuleId: string | null;
+  periodStart: string;
+  periodEnd: string;
+  currency: string;
+  subtotalMinor: string;
+  taxMinor: string;
+  totalMinor: string;
+  sourceCount: number;
+  groups: QuickInvoiceGroup[];
+  warnings: QuickInvoiceWarning[];
+  provisionalNumber: string | null;
+  existingInvoice: QuickInvoicePreview['existingInvoice'];
 };
 
 export type QuickInvoiceSplitPart = {
@@ -847,6 +891,13 @@ export type QuickInvoiceInput = {
    * Their records are not selected, so they stay open for a later invoice.
    */
   leaveOut?: { hours: readonly string[]; expenses: readonly string[] } | null;
+  /**
+   * Expenses on a separate invoice or on this one (owner request 2026-11-26): 'setting' = the
+   * project's setting (its streams, else the client default). Absent: the project's current
+   * billing streams, unchanged (older clients). When the choice differs from the streams,
+   * creating saves it as the project's setting.
+   */
+  expenseInvoice?: 'setting' | ExpenseInvoiceMode | null;
 };
 
 function leftOutSource(input: QuickInvoiceInput) {
@@ -2359,9 +2410,158 @@ function taxChoices(
   };
 }
 
+type ExpensePlan = {
+  choice: QuickInvoiceExpenseChoice | null;
+  /** Rearrange the project's streams to this before pricing (null: keep them). */
+  convert: ExpenseInvoiceMode | null;
+  /** Price the separate expense invoice too. */
+  separate: boolean;
+};
+
+/**
+ * Expenses on this invoice or on a separate one (owner request 2026-11-26). The choice is the
+ * project's setting (its billing streams, else the client default); choosing the other one
+ * here rearranges the streams from the first day neither stream has billed, which must not be
+ * after these dates.
+ */
+function expensePlan(context: Context, input: QuickInvoiceInput): ExpensePlan {
+  const none: ExpensePlan = { choice: null, convert: null, separate: false };
+  if (!['owner_admin', 'finance_admin'].includes(context.principal.role)) return none;
+  const arrangement = projectExpenseArrangement(context.sqlite, input.projectId);
+  if (arrangement.streams === 'none') return none;
+  if (input.billingRuleId) {
+    const chosen = context.sqlite
+      .prepare('SELECT stream_type FROM billing_rule WHERE id=? AND project_id=?')
+      .get(input.billingRuleId, input.projectId) as { stream_type: string } | undefined;
+    if (chosen?.stream_type !== 'labor') return none;
+  }
+  const streamsSeparate = arrangement.streams === 'separate';
+  const requested = input.expenseInvoice ?? null;
+  const explicit = requested !== null;
+  const wanted = requested === 'setting' ? arrangement.mode === 'separate' : requested === 'separate';
+  const needsChange = (mode: ExpenseInvoiceMode) =>
+    mode === 'separate' ? !streamsSeparate : arrangement.streams !== 'same';
+  // The arrangement can only change after what is already billed: not for earlier dates.
+  const startFor = (mode: ExpenseInvoiceMode) =>
+    needsChange(mode) ? expenseArrangementStart(context.sqlite, input.projectId, mode) : null;
+  const usable = (mode: ExpenseInvoiceMode) => {
+    if (!needsChange(mode)) return true;
+    const from = startFor(mode);
+    return from !== null && from <= input.periodStart;
+  };
+  const wantedMode: ExpenseInvoiceMode = wanted ? 'separate' : 'same';
+  const applied = explicit && usable(wantedMode) ? wanted : streamsSeparate;
+  const convert: ExpenseInvoiceMode | null =
+    explicit && usable(wantedMode) && needsChange(wantedMode) ? wantedMode : null;
+  const other: ExpenseInvoiceMode = applied ? 'same' : 'separate';
+  return {
+    choice: {
+      separate: applied,
+      setting: arrangement.mode,
+      source: arrangement.source,
+      streams: arrangement.streams,
+      openCount: openStreamCounts(context, input.projectId, input.periodStart, input.periodEnd).expense,
+      changesSetting: convert !== null,
+      changeFrom: convert ? startFor(convert) : null,
+      blockedFrom: usable(other) ? null : (startFor(other) ?? input.periodEnd),
+      stayOpen: !applied && convert === null && arrangement.streams === 'labor_only',
+    },
+    convert,
+    separate: applied,
+  };
+}
+
+function rearrange(context: Context, projectId: string, mode: ExpenseInvoiceMode): void {
+  new ExpenseInvoiceSettingsRepository(context.sqlite, context.repository).setProjectMode(context.principal, {
+    projectId,
+    mode,
+    via: 'invoice',
+  });
+}
+
+/** The separate expense stream that covers the end of these dates, if any. */
+function companionStream(context: Context, projectId: string, periodStart: string, periodEnd: string) {
+  return (
+    enabledStreams(context, projectId)
+      .filter(
+        (stream) =>
+          stream.streamType === 'expense' &&
+          stream.effectiveFrom <= periodEnd &&
+          (!stream.effectiveTo || stream.effectiveTo >= periodStart),
+      )
+      .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ?? null
+  );
+}
+
+/** Input of the expense invoice priced next to the hours invoice (its own PO only). */
+function companionInput(input: QuickInvoiceInput, main: QuickInvoicePreview, billingRuleId: string): QuickInvoiceInput {
+  const purchaseNo = input.overrides?.purchaseNo?.trim();
+  return {
+    projectId: input.projectId,
+    periodStart: main.periodStart,
+    periodEnd: main.periodEnd,
+    billingRuleId,
+    overrides: purchaseNo ? { purchaseNo } : null,
+    excludedExpenseIds: input.excludedExpenseIds ?? [],
+    leaveOut: input.leaveOut ?? null,
+  };
+}
+
+function companionPreview(context: Context, input: QuickInvoiceInput, main: QuickInvoicePreview, simulated: boolean) {
+  if (main.stream?.streamType !== 'labor') return null;
+  const stream = companionStream(context, input.projectId, main.periodStart, main.periodEnd);
+  if (!stream) return null;
+  const scoped = companionInput(input, main, stream.id);
+  const preview = context.repository.withInvoiceOverrides(scoped.overrides, () => computeCore(context, scoped).preview);
+  const companion: QuickInvoiceCompanion = {
+    state: preview.state,
+    billingRuleId: simulated ? null : stream.id,
+    periodStart: preview.periodStart,
+    periodEnd: preview.periodEnd,
+    currency: preview.currency,
+    subtotalMinor: preview.subtotalMinor,
+    taxMinor: preview.taxMinor,
+    totalMinor: preview.totalMinor,
+    sourceCount: preview.sourceCount,
+    groups: preview.groups,
+    warnings: preview.warnings,
+    provisionalNumber: preview.provisionalNumber,
+    existingInvoice: preview.existingInvoice,
+  };
+  return companion;
+}
+
 export function quickInvoicePreview(context: Context, input: QuickInvoiceInput): QuickInvoicePreview {
   authorize(context);
-  return context.repository.withInvoiceOverrides(input.overrides, () => publicPreview(compute(context, input).preview));
+  const plan = expensePlan(context, input);
+  const run = (scoped: QuickInvoiceInput, simulated: boolean): QuickInvoicePreview => {
+    const preview = context.repository.withInvoiceOverrides(scoped.overrides, () =>
+      publicPreview(compute(context, scoped).preview),
+    );
+    const companion = plan.separate ? companionPreview(context, scoped, preview, simulated) : null;
+    // Phantom streams of a simulated rearrangement are never offered as a choice.
+    return {
+      ...preview,
+      ...(simulated ? { alternatives: [] } : {}),
+      // The choice replaces the one-step "Set up expense invoicing" offer.
+      ...(plan.choice && input.expenseInvoice
+        ? { attention: preview.attention.filter((item) => item.kind !== 'expenseSetup') }
+        : {}),
+      expenseChoice: plan.choice,
+      companion,
+    };
+  };
+  if (!plan.convert) return run(input, false);
+  // Price the other arrangement exactly: rearrange inside a savepoint that is always rolled back.
+  context.sqlite.exec('SAVEPOINT quick_invoice_expense_choice');
+  try {
+    rearrange(context, input.projectId, plan.convert);
+    const { billingRuleId: _stream, ...scoped } = input;
+    return run(scoped, true);
+  } finally {
+    context.sqlite.exec('ROLLBACK TO quick_invoice_expense_choice');
+    context.sqlite.exec('RELEASE quick_invoice_expense_choice');
+  }
 }
 
 function publicPreview(preview: QuickInvoicePreview): QuickInvoicePreview {
@@ -2374,111 +2574,78 @@ export type QuickInvoiceCreateResult =
       invoiceId: string;
       totalMinor: string;
       created: boolean;
-      /** Split by PO: every draft created in this action (first = invoiceId). */
+      /** Split by PO / separate expense invoice: every draft created in this action (first = invoiceId). */
       invoiceIds?: string[];
+      /** The separate expense invoice created together with the hours invoice. */
+      companion?: { invoiceId: string; totalMinor: string } | null;
     }
   | { ok: false; reason: 'amount_changed' | 'not_ready'; preview: QuickInvoicePreview };
 
+type CreateInput = QuickInvoiceInput & {
+  expectedTotalMinor: string;
+  requestKey: string;
+  expectedSplit?: string | null;
+  /** The separate expense invoice total the user saw (absent: no expense invoice). */
+  expectedCompanionTotalMinor?: string | null;
+};
+
 /**
  * Creates the draft only when it carries exactly the amount the user saw. Creation and the
- * amount check share one transaction, so a changed amount leaves nothing behind.
+ * amount check share one transaction, so a changed amount leaves nothing behind. With
+ * expenses on a separate invoice, both drafts (hours + extras; expenses) are created
+ * together or not at all; a changed choice is saved as the project's setting in the same
+ * transaction.
  */
-export function quickInvoiceCreate(
-  context: Context,
-  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string; expectedSplit?: string | null },
-): QuickInvoiceCreateResult {
+export function quickInvoiceCreate(context: Context, input: CreateInput): QuickInvoiceCreateResult {
   authorize(context);
-  // Overrides are applied by the engine and recorded on the draft it creates.
-  return context.repository.withInvoiceOverrides(input.overrides, () => createGuarded(context, input));
-}
-
-function createGuarded(
-  context: Context,
-  input: QuickInvoiceInput & { expectedTotalMinor: string; requestKey: string; expectedSplit?: string | null },
-): QuickInvoiceCreateResult {
   if (!/^\d+$/u.test(input.expectedTotalMinor)) throw new ValidationError('Expected total required');
+  if (input.expectedCompanionTotalMinor != null && !/^\d+$/u.test(input.expectedCompanionTotalMinor))
+    throw new ValidationError('Expected expense invoice total is invalid');
   const sqlite = context.sqlite;
   sqlite.exec('BEGIN IMMEDIATE');
   let committed = false;
+  const fail = (reason: 'amount_changed' | 'not_ready'): QuickInvoiceCreateResult => {
+    sqlite.exec('ROLLBACK');
+    committed = true;
+    return { ok: false, reason, preview: quickInvoicePreview(context, input) };
+  };
   try {
-    const computed = computeCore(context, input);
-    const { preview, selection } = computed;
-    if (preview.state !== 'ready' || !preview.stream) {
-      sqlite.exec('ROLLBACK');
-      committed = true;
-      return { ok: false, reason: 'not_ready', preview: publicPreview(compute(context, input).preview) };
+    const plan = expensePlan(context, input);
+    let scoped: CreateInput = input;
+    if (plan.convert) {
+      rearrange(context, input.projectId, plan.convert);
+      const { billingRuleId: _stream, ...rest } = input;
+      scoped = rest;
     }
-    // Different assignment POs: one draft per PO, all or nothing, each exactly as previewed.
-    // Only labor/expense streams have a per-source inventory (and can split by PO);
-    // milestone streams are invoiced whole.
-    const inventory = ['labor', 'expense'].includes(preview.stream.streamType)
-      ? context.repository.invoiceCompositionSources(context.principal, {
-          projectId: input.projectId,
-          billingRuleId: preview.stream.id,
-          periodStart: preview.periodStart,
-          periodEnd: preview.periodEnd,
-        }).sources
-      : [];
-    const split = splitByPurchaseOrder(context, input, computed, inventory);
-    if (split || input.expectedSplit) {
-      if (!split || split.signature !== input.expectedSplit || split.totalMinor !== input.expectedTotalMinor) {
-        sqlite.exec('ROLLBACK');
-        committed = true;
-        return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
-      }
-      const ids: string[] = [];
-      split.parts.forEach((part, index) => {
-        const created = context.repository.createSelectedInvoiceDraft(context.principal, {
-          projectId: input.projectId,
-          billingRuleId: preview.stream!.id,
-          periodStart: preview.periodStart,
-          periodEnd: preview.periodEnd,
-          sources: splitRefs(part),
-          requestKey: `${input.requestKey}:po:${index}`,
-        });
-        const saved = sqlite
-          .prepare("SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?")
-          .get(created.id) as { state: string; total: string } | undefined;
-        if (!saved || saved.state !== 'draft' || saved.total !== part.totalMinor)
-          throw new ConflictError('Invoice amount changed while creating');
-        ids.push(created.id);
-      });
-      sqlite.exec('COMMIT');
-      committed = true;
-      return { ok: true, invoiceId: ids[0]!, invoiceIds: ids, totalMinor: split.totalMinor, created: true };
-    }
-    if (preview.totalMinor !== input.expectedTotalMinor) {
-      sqlite.exec('ROLLBACK');
-      committed = true;
-      return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
-    }
-    const result = selection
-      ? context.repository.createSelectedInvoiceDraft(context.principal, {
-          projectId: input.projectId,
-          billingRuleId: preview.stream.id,
-          periodStart: preview.periodStart,
-          periodEnd: preview.periodEnd,
-          sources: selection,
-          requestKey: input.requestKey,
-        })
-      : context.repository.createInvoiceDraft(
-          context.principal,
-          preview.stream.id,
-          preview.periodStart,
-          preview.periodEnd,
-        );
-    if (!result.id) throw new ConflictError('Invoice draft could not be created');
-    const saved = sqlite
-      .prepare("SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?")
-      .get(result.id) as { state: string; total: string } | undefined;
-    if (!saved || saved.state !== 'draft' || saved.total !== input.expectedTotalMinor) {
-      sqlite.exec('ROLLBACK');
-      committed = true;
-      return { ok: false, reason: 'amount_changed', preview: publicPreview(compute(context, input).preview) };
+    // Overrides are applied by the engine and recorded on the draft it creates.
+    const main = context.repository.withInvoiceOverrides(scoped.overrides, () => createInTransaction(context, scoped));
+    if (!main.ok) return fail(main.reason);
+    let companion: { invoiceId: string; totalMinor: string } | null = null;
+    const wantsCompanion = input.expectedCompanionTotalMinor != null;
+    const stream = plan.separate && main.stream.streamType === 'labor'
+      ? companionStream(context, input.projectId, main.periodStart, main.periodEnd)
+      : null;
+    if (wantsCompanion) {
+      if (!stream) return fail('amount_changed');
+      const companionScope = {
+        ...companionInput(scoped, { periodStart: main.periodStart, periodEnd: main.periodEnd } as QuickInvoicePreview, stream.id),
+        expectedTotalMinor: input.expectedCompanionTotalMinor!,
+        requestKey: `${input.requestKey}:expenses`,
+      };
+      const created = context.repository.withInvoiceOverrides(companionScope.overrides, () =>
+        createInTransaction(context, companionScope),
+      );
+      if (!created.ok) return fail('amount_changed');
+      companion = { invoiceId: created.result.invoiceId, totalMinor: created.result.totalMinor };
     }
     sqlite.exec('COMMIT');
     committed = true;
-    return { ok: true, invoiceId: result.id, totalMinor: saved.total, created: result.created };
+    const ids = [...(main.result.invoiceIds ?? [main.result.invoiceId]), ...(companion ? [companion.invoiceId] : [])];
+    return {
+      ...main.result,
+      ...(ids.length > 1 ? { invoiceIds: ids } : {}),
+      companion,
+    };
   } finally {
     if (!committed)
       try {
@@ -2487,4 +2654,81 @@ function createGuarded(
         /* keep the original error */
       }
   }
+}
+
+type InnerCreate =
+  | {
+      ok: true;
+      result: Extract<QuickInvoiceCreateResult, { ok: true }>;
+      stream: QuickInvoiceStream;
+      periodStart: string;
+      periodEnd: string;
+    }
+  | { ok: false; reason: 'amount_changed' | 'not_ready' };
+
+function createInTransaction(context: Context, input: CreateInput): InnerCreate {
+  const sqlite = context.sqlite;
+  const computed = computeCore(context, input);
+  const { preview, selection } = computed;
+  if (preview.state !== 'ready' || !preview.stream) return { ok: false, reason: 'not_ready' };
+  const stream = preview.stream;
+  const done = (result: Extract<QuickInvoiceCreateResult, { ok: true }>): InnerCreate => ({
+    ok: true,
+    result,
+    stream,
+    periodStart: preview.periodStart,
+    periodEnd: preview.periodEnd,
+  });
+  // Different assignment POs: one draft per PO, all or nothing, each exactly as previewed.
+  // Only labor/expense streams have a per-source inventory (and can split by PO);
+  // milestone streams are invoiced whole.
+  const inventory = ['labor', 'expense'].includes(stream.streamType)
+    ? context.repository.invoiceCompositionSources(context.principal, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: preview.periodStart,
+        periodEnd: preview.periodEnd,
+      }).sources
+    : [];
+  const split = splitByPurchaseOrder(context, input, computed, inventory);
+  if (split || input.expectedSplit) {
+    if (!split || split.signature !== input.expectedSplit || split.totalMinor !== input.expectedTotalMinor)
+      return { ok: false, reason: 'amount_changed' };
+    const ids: string[] = [];
+    split.parts.forEach((part, index) => {
+      const created = context.repository.createSelectedInvoiceDraft(context.principal, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: preview.periodStart,
+        periodEnd: preview.periodEnd,
+        sources: splitRefs(part),
+        requestKey: `${input.requestKey}:po:${index}`,
+      });
+      const saved = sqlite
+        .prepare("SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?")
+        .get(created.id) as { state: string; total: string } | undefined;
+      if (!saved || saved.state !== 'draft' || saved.total !== part.totalMinor)
+        throw new ConflictError('Invoice amount changed while creating');
+      ids.push(created.id);
+    });
+    return done({ ok: true, invoiceId: ids[0]!, invoiceIds: ids, totalMinor: split.totalMinor, created: true });
+  }
+  if (preview.totalMinor !== input.expectedTotalMinor) return { ok: false, reason: 'amount_changed' };
+  const result = selection
+    ? context.repository.createSelectedInvoiceDraft(context.principal, {
+        projectId: input.projectId,
+        billingRuleId: stream.id,
+        periodStart: preview.periodStart,
+        periodEnd: preview.periodEnd,
+        sources: selection,
+        requestKey: input.requestKey,
+      })
+    : context.repository.createInvoiceDraft(context.principal, stream.id, preview.periodStart, preview.periodEnd);
+  if (!result.id) throw new ConflictError('Invoice draft could not be created');
+  const saved = sqlite
+    .prepare("SELECT state,CAST(total_minor AS TEXT) total FROM invoice WHERE id=?")
+    .get(result.id) as { state: string; total: string } | undefined;
+  if (!saved || saved.state !== 'draft' || saved.total !== input.expectedTotalMinor)
+    return { ok: false, reason: 'amount_changed' };
+  return done({ ok: true, invoiceId: result.id, totalMinor: saved.total, created: result.created });
 }

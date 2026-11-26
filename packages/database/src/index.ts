@@ -328,6 +328,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   93: 'assignment_extras',
   94: 'pay_and_billing_intervals',
   95: 'assignment_extra_effective_dates',
+  96: 'expense_invoice_settings',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -336,7 +337,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'ad97437ee7f726ad696d7da205f433bfd928ac98c026b810087940da81048761';
+  'd0d10b557e2c0ecabb468b2e29452e223e92c01c5538892ba1ea22cccc91bf4c';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1209,6 +1210,7 @@ export {
 } from './domains/billing/invoice-line-overrides.ts';
 export * from './domains/commercial/assignment-extras.ts';
 export * from './domains/commercial/pay-billing-intervals.ts';
+export * from './domains/billing/expense-invoice-arrangement.ts';
 export {
   InvoiceLineLabels,
   expenseCategoryLabel,

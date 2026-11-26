@@ -7,8 +7,17 @@ import {
 } from '$lib/server/intervals';
 import { error, isActionFailure, redirect } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { lastCompletePeriodForCadence, type BillingCadence, type Currency } from '@ja/billing-engine';
-import { invoicePeriodSchema, isValidIanaTimeZone, projectRecordIdSchema, clientRecordIdSchema } from '@ja/schemas';
+import {
+  lastCompletePeriodForCadence,
+  type BillingCadence,
+  type Currency,
+} from '@ja/billing-engine';
+import {
+  invoicePeriodSchema,
+  isValidIanaTimeZone,
+  projectRecordIdSchema,
+  clientRecordIdSchema,
+} from '@ja/schemas';
 import { newId } from '@ja/domain';
 import { z } from 'zod';
 import { projectPersonConfigSchema } from '$lib/server/project-person-default-input';
@@ -41,7 +50,9 @@ function projectHasInvoices(
   projectId: string,
 ): boolean {
   try {
-    return Boolean(sqlite.prepare?.('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(projectId));
+    return Boolean(
+      sqlite.prepare?.('SELECT 1 FROM invoice WHERE project_id=? LIMIT 1').get(projectId),
+    );
   } catch {
     // The hint is advisory; never fail the project page because of it.
     return false;
@@ -2102,11 +2113,17 @@ export const actions: Actions = {
         code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
       });
     if (!/^\d{1,6}$/u.test(raw) || Number(raw) < 1)
-      return actionFail(400, 'action.error.validation', {}, 'Enter a whole number such as 3 or 003.', {
-        ...extras,
-        code: 'INVOICE_COUNTER_INVALID',
-        counterMessage: 'Enter a whole number such as 3 or 003.',
-      });
+      return actionFail(
+        400,
+        'action.error.validation',
+        {},
+        'Enter a whole number such as 3 or 003.',
+        {
+          ...extras,
+          code: 'INVOICE_COUNTER_INVALID',
+          counterMessage: 'Enter a whole number such as 3 or 003.',
+        },
+      );
     let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       context = openPortalRepository(locals);
@@ -2120,7 +2137,6 @@ export const actions: Actions = {
         counterNumber: saved.nextNumber,
       };
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'The number could not be saved.';
       const status =
         cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
           ? 403
@@ -2129,12 +2145,31 @@ export const actions: Actions = {
             : cause instanceof ValidationError
               ? 400
               : 500;
-      if (status === 500) console.error('Invoice counter save failed', cause);
-      return actionFail(status, 'action.error.validation', {}, message, {
-        ...extras,
-        code: status === 409 ? 'INVOICE_COUNTER_CONFLICT' : 'INVOICE_COUNTER_FAILED',
-        counterMessage: status === 500 ? 'The number could not be saved. Try again.' : message,
-      });
+      if (status === 500) {
+        // Unexpected: a keyed, localized message only (no internal error text).
+        console.error('Invoice counter save failed', cause);
+        return actionFail(500, 'action.error.unavailable', {}, undefined, {
+          ...extras,
+          code: 'INVOICE_COUNTER_FAILED',
+        });
+      }
+      // Validation / conflict: the repository's explanation of what to change.
+      const reason = cause instanceof Error ? cause.message : undefined;
+      return actionFail(
+        status,
+        status === 409
+          ? 'action.error.conflict'
+          : status === 403
+            ? 'action.error.forbidden'
+            : 'action.error.validation',
+        {},
+        reason,
+        {
+          ...extras,
+          code: status === 409 ? 'INVOICE_COUNTER_CONFLICT' : 'INVOICE_COUNTER_FAILED',
+          ...(reason ? { counterMessage: reason } : {}),
+        },
+      );
     } finally {
       context?.sqlite.close();
     }
@@ -2168,7 +2203,6 @@ export const actions: Actions = {
         extrasValues: saved.values,
       };
     } catch (cause) {
-      const message = cause instanceof Error ? cause.message : 'The extras could not be saved.';
       const status =
         cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
           ? 403
@@ -2177,12 +2211,31 @@ export const actions: Actions = {
             : cause instanceof ValidationError
               ? 400
               : 500;
-      if (status === 500) console.error('Assignment extras save failed', cause);
-      return actionFail(status, 'action.error.validation', {}, message, {
-        ...extras,
-        code: status === 409 ? 'ASSIGNMENT_EXTRAS_CONFLICT' : 'ASSIGNMENT_EXTRAS_FAILED',
-        extrasMessage: status === 500 ? 'The extras could not be saved. Try again.' : message,
-      });
+      if (status === 500) {
+        // Unexpected: a keyed, localized message only (no internal error text).
+        console.error('Assignment extras save failed', cause);
+        return actionFail(500, 'action.error.unavailable', {}, undefined, {
+          ...extras,
+          code: 'ASSIGNMENT_EXTRAS_FAILED',
+        });
+      }
+      // Validation / conflict: the repository's explanation of what to change.
+      const reason = cause instanceof Error ? cause.message : undefined;
+      return actionFail(
+        status,
+        status === 409
+          ? 'action.error.conflict'
+          : status === 403
+            ? 'action.error.forbidden'
+            : 'action.error.validation',
+        {},
+        reason,
+        {
+          ...extras,
+          code: status === 409 ? 'ASSIGNMENT_EXTRAS_CONFLICT' : 'ASSIGNMENT_EXTRAS_FAILED',
+          ...(reason ? { extrasMessage: reason } : {}),
+        },
+      );
     } finally {
       context?.sqlite.close();
     }
@@ -2246,22 +2299,39 @@ export const actions: Actions = {
       });
     const parsed = z
       .object({
-        assignmentId: z.string().trim().regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u),
+        assignmentId: z
+          .string()
+          .trim()
+          .regex(/^[A-Za-z0-9][A-Za-z0-9_-]{0,199}$/u),
         version: z.coerce.number().int().positive(),
         poNumber: z.string().trim().max(200),
       })
-      .safeParse({ assignmentId: values.assignmentId ?? '', version: values.version ?? '', poNumber: values.poNumber ?? '' });
-    if (!parsed.success)
-      return actionFail(400, 'action.error.invalid', {}, 'Enter a PO number of at most 200 characters.', {
-        code: 'PROJECT_ASSIGNMENT_PO_INVALID',
-        actionName: 'setAssignmentPo',
-        values,
+      .safeParse({
+        assignmentId: values.assignmentId ?? '',
+        version: values.version ?? '',
+        poNumber: values.poNumber ?? '',
       });
+    if (!parsed.success)
+      return actionFail(
+        400,
+        'action.error.invalid',
+        {},
+        'Enter a PO number of at most 200 characters.',
+        {
+          code: 'PROJECT_ASSIGNMENT_PO_INVALID',
+          actionName: 'setAssignmentPo',
+          values,
+        },
+      );
     let context: ReturnType<typeof openPortalRepository> | undefined;
     try {
       context = openPortalRepository(locals);
       const saved = setAssignmentPurchaseOrder(context, { projectId: params.id, ...parsed.data });
-      return actionSuccess('action.projects.projectUpdated', { poNumber: saved.poNumber ?? '' }, 'PO saved');
+      return actionSuccess(
+        'action.projects.projectUpdated',
+        { poNumber: saved.poNumber ?? '' },
+        'PO saved',
+      );
     } catch (e) {
       return detailFailure(e, 'setAssignmentPo', values, params.id);
     } finally {

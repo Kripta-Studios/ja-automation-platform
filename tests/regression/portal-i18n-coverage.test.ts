@@ -23,6 +23,7 @@ import {
   translateControlledValue,
   type ControlledValueDomain,
 } from '../../apps/portal/src/lib/i18n/controlled-values';
+import { extrasText } from '../../apps/portal/src/lib/portal/assignment-extras-copy';
 import { quickInvoiceText } from '../../apps/portal/src/lib/portal/billing-quick-invoice-copy';
 import { conversionText } from '../../apps/portal/src/lib/portal/currency/conversion-copy';
 import { moneyText } from '../../apps/portal/src/lib/portal/money-copy';
@@ -54,6 +55,7 @@ const featureTranslators: Readonly<Record<string, FeatureTranslator>> = {
   approvalQueueText,
   conversionsText,
   conversionText,
+  extrasText,
   moneyText,
   quickInvoiceText,
   settlementText,
@@ -192,6 +194,12 @@ describe('portal i18n coverage contract', () => {
         translated.every((value) => typeof value === 'string' && value.trim()),
         key,
       ).toBe(true);
+      // The extras copy (EN/ES/PT) falls back to the key itself: a missing key would pass silently.
+      if (feature === extrasText)
+        expect(
+          translated.every((value) => value !== key),
+          `assignment extras copy key: ${key}`,
+        ).toBe(true);
       if (
         feature === workflowText &&
         !isCoverageInvariantKey(key) &&

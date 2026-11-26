@@ -45,9 +45,9 @@ const copy = {
     'Reembolsadas ao trabalhador e repassadas ao cliente',
   ],
   expensesHelp: [
-    'For expenses this person pays. Applies from today.',
-    'Para los gastos que paga esta persona. Se aplica desde hoy.',
-    'Para as despesas que esta pessoa paga. Vale a partir de hoje.',
+    'For expenses this person pays.',
+    'Para los gastos que paga esta persona.',
+    'Para as despesas que esta pessoa paga.',
   ],
   perDiem: [
     'Per diem (per day worked)',
@@ -88,6 +88,19 @@ const copy = {
     'Los cambios se aplican a los días aún no facturados ni pagados.',
     'As mudanças valem para os dias ainda não faturados nem pagos.',
   ],
+  effectiveFrom: ['Applies from', 'Se aplica desde', 'Vale a partir de'],
+  effectiveFromHelp: [
+    'Days before this date keep the previous values for invoices and pay.',
+    'Los días anteriores a esta fecha mantienen los valores anteriores en facturas y pagos.',
+    'Os dias antes desta data mantêm os valores anteriores em faturas e pagamentos.',
+  ],
+  appliesFrom: ['Applies from {date}', 'Se aplica desde el {date}', 'Vale a partir de {date}'],
+  appliesFromStart: [
+    'Applies from the first day of the assignment',
+    'Se aplica desde el primer día de la asignación',
+    'Vale desde o primeiro dia da alocação',
+  ],
+  before: ['Before {date}: {summary}', 'Antes del {date}: {summary}', 'Antes de {date}: {summary}'],
   save: ['Save extras', 'Guardar extras', 'Salvar extras'],
   saved: ['{name}: extras saved', '{name}: extras guardados', '{name}: extras salvos'],
   cancel: ['Cancel', 'Cancelar', 'Cancelar'],
@@ -174,6 +187,12 @@ export type ExtrasValues = {
   overtimeWorkerMethod: '' | 'multiplier' | 'rate';
   overtimeWorker: string;
   expenses: '' | 'none' | 'worker' | 'client' | 'both';
+  /** Typed: first day the new values apply ('' = today). */
+  effectiveFrom: string;
+  /** Saved: first day the shown values apply ('' = from the start of the assignment). */
+  appliesFrom: string;
+  /** Saved: the values in force before `appliesFrom`. */
+  previous: ExtrasValues | null;
 };
 
 export function emptyExtras(): ExtrasValues {
@@ -189,6 +208,9 @@ export function emptyExtras(): ExtrasValues {
     overtimeWorkerMethod: '',
     overtimeWorker: '',
     expenses: '',
+    effectiveFrom: '',
+    appliesFrom: '',
+    previous: null,
   };
 }
 
@@ -262,5 +284,6 @@ export function extrasFields(values: ExtrasValues): Record<string, string> {
     overtimeWorkerMethod: values.overtimeWorker ? method : '',
     overtimeWorker: values.overtimeWorker,
     expenses: values.expenses,
+    effectiveFrom: values.effectiveFrom,
   };
 }

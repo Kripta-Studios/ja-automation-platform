@@ -79,6 +79,7 @@ describe('assignment extras form', () => {
           overtimeClient: { method: 'multiplier', value: '15000' },
           overtimeWorker: { method: 'rate', value: '2500' },
           reason: null,
+          effectiveFrom: null,
           createdAt: '2026-11-25T00:00:00Z',
         },
         'worker',
@@ -96,6 +97,43 @@ describe('assignment extras form', () => {
       overtimeWorkerMethod: 'rate',
       overtimeWorker: '25.00',
       expenses: 'worker',
+      effectiveFrom: '',
+      appliesFrom: '',
+      previous: null,
+    });
+  });
+
+  it('passes the "applies from" day and shows the values before it', () => {
+    expect(
+      parseExtrasForm({ perDiemClient: '5', effectiveFrom: '2026-12-01' }, 'USD'),
+    ).toMatchObject({ ok: true, input: { effectiveFrom: '2026-12-01' } });
+    expect(parseExtrasForm({ effectiveFrom: '1 Dec' }, 'USD')).toMatchObject({
+      ok: false,
+      error: { field: 'effectiveFrom' },
+    });
+    const base = {
+      id: 'x',
+      projectMemberId: 'm',
+      currency: 'USD',
+      perDiemWorkerMinor: null,
+      allowanceBasis: null,
+      allowanceClientMinor: null,
+      allowanceWorkerMinor: null,
+      overtimeClient: null,
+      overtimeWorker: null,
+      reason: null,
+      createdAt: '2026-11-25T00:00:00Z',
+    } as const;
+    const shown = extrasFormValues(
+      { ...base, version: 2, perDiemClientMinor: '7000', effectiveFrom: '2026-12-01' },
+      null,
+      'USD',
+      { ...base, version: 1, perDiemClientMinor: '5000', effectiveFrom: null },
+    );
+    expect(shown).toMatchObject({
+      perDiemClient: '70.00',
+      appliesFrom: '2026-12-01',
+      previous: { version: 1, perDiemClient: '50.00', appliesFrom: '' },
     });
   });
 });

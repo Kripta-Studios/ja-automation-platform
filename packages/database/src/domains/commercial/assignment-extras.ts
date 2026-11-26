@@ -17,9 +17,11 @@ import {
  * and a worker side (paid in My Pay and settlements). Nothing is set by default, and an
  * unset value changes nothing anywhere.
  *
- * Rows are append-only versions (migration 0093); the highest version of an assignment is in
- * force for every day of it that is not invoiced or settled yet. Money is exact minor units of
- * the project currency; a multiplier is basis points (×1.5 = 15000).
+ * Rows are append-only versions (migration 0093). Each version applies from its effective date
+ * (migration 0095; NULL = from the first day of the assignment): for a day D the version in force
+ * is the highest version whose effective date is on or before D, so earlier days keep the
+ * earlier terms for invoicing and pay. Days already invoiced or settled keep their snapshot.
+ * Money is exact minor units of the project currency; a multiplier is basis points (×1.5 = 15000).
  */
 export type ExtraKind = 'per_diem' | 'allowance';
 export type ExtraBasis = 'day' | 'month';
@@ -41,6 +43,8 @@ export type AssignmentExtras = Readonly<{
   overtimeClient: OvertimeExtra | null;
   overtimeWorker: OvertimeExtra | null;
   reason: string | null;
+  /** First day this version applies (YYYY-MM-DD); null: from the start of the assignment. */
+  effectiveFrom: string | null;
   createdAt: string;
 }>;
 
@@ -57,6 +61,13 @@ export type AssignmentExtrasInput = Readonly<{
   overtimeWorker?: OvertimeExtra | null;
   /** Expenses of this person (payer: the worker). Undefined: leave the project rules alone. */
   expenses?: ExtrasExpenseChoice;
+  /**
+   * First day the new values apply (YYYY-MM-DD). Earlier days keep the values in force before.
+   * Omitted, or a day on or before the assignment start: from the start of the assignment (the
+   * meaning of every version saved before effective dates). The Team screen always sends a
+   * date, today unless the owner picks another one.
+   */
+  effectiveFrom?: string | null;
   reason?: string | null;
 }>;
 
@@ -79,6 +90,7 @@ type ExtraRow = {
   overtime_worker_method: OvertimeExtraMethod | null;
   overtime_worker_value: string | null;
   reason: string | null;
+  effective_from: string | null;
   created_at: string;
 };
 
@@ -87,7 +99,7 @@ const SELECT_EXTRA = `SELECT id,project_member_id,version,currency,
   allowance_basis,CAST(allowance_client_minor AS TEXT) allowance_client_minor,
   CAST(allowance_worker_minor AS TEXT) allowance_worker_minor,overtime_client_method,
   CAST(overtime_client_value AS TEXT) overtime_client_value,overtime_worker_method,
-  CAST(overtime_worker_value AS TEXT) overtime_worker_value,reason,created_at
+  CAST(overtime_worker_value AS TEXT) overtime_worker_value,reason,effective_from,created_at
   FROM assignment_extra`;
 
 /**
@@ -151,6 +163,7 @@ function project(row: ExtraRow): AssignmentExtras {
       ? { method: row.overtime_worker_method, value: String(row.overtime_worker_value) }
       : null,
     reason: row.reason,
+    effectiveFrom: row.effective_from ?? null,
     createdAt: row.created_at,
   };
 }
@@ -165,6 +178,36 @@ export function latestAssignmentExtras(
     .prepare(`${SELECT_EXTRA} WHERE project_member_id=? ORDER BY version DESC LIMIT 1`)
     .get(projectMemberId) as ExtraRow | undefined;
   return row ? project(row) : null;
+}
+
+/** Every version of one assignment, newest first. */
+function assignmentExtrasVersions(
+  sqlite: DatabaseSync,
+  projectMemberId: string,
+): AssignmentExtras[] {
+  if (!hasExtrasTable(sqlite)) return [];
+  return (
+    sqlite
+      .prepare(`${SELECT_EXTRA} WHERE project_member_id=? ORDER BY version DESC`)
+      .all(projectMemberId) as ExtraRow[]
+  ).map(project);
+}
+
+/** The version in force on one day: the newest version that applies from that day or earlier. */
+function versionOn(versions: readonly AssignmentExtras[], date: string): AssignmentExtras | null {
+  return (
+    versions.find((version) => version.effectiveFrom === null || version.effectiveFrom <= date) ??
+    null
+  );
+}
+
+/** The extras of one assignment in force on a given day (null: none on that day). */
+export function assignmentExtrasOn(
+  sqlite: DatabaseSync,
+  projectMemberId: string,
+  date: string,
+): AssignmentExtras | null {
+  return versionOn(assignmentExtrasVersions(sqlite, projectMemberId), date);
 }
 
 /** True when at least one extra is in use. */
@@ -187,7 +230,7 @@ export function extrasInUse(extras: AssignmentExtras | null): boolean {
 export class AssignmentExtrasResolver {
   private readonly available: boolean;
   private readonly members = new Map<string, string | null>();
-  private readonly extras = new Map<string, AssignmentExtras | null>();
+  private readonly extras = new Map<string, AssignmentExtras[]>();
 
   constructor(
     private readonly sqlite: DatabaseSync,
@@ -221,9 +264,12 @@ export class AssignmentExtrasResolver {
     if (!this.available) return null;
     const member = this.memberOn(workerId, date);
     if (!member) return null;
-    if (!this.extras.has(member))
-      this.extras.set(member, latestAssignmentExtras(this.sqlite, member));
-    return this.extras.get(member) ?? null;
+    let versions = this.extras.get(member);
+    if (!versions) {
+      versions = assignmentExtrasVersions(this.sqlite, member);
+      this.extras.set(member, versions);
+    }
+    return versionOn(versions, date);
   }
 }
 
@@ -262,6 +308,13 @@ type Bucket = {
   units: Set<string>;
 };
 
+/**
+ * A monthly allowance is charged once per calendar month, at the terms of the first worked day
+ * of that month that carries one (days are visited in date order): a change in the middle of a
+ * month applies to the monthly allowance from the next month.
+ */
+const claimedMonths = new WeakMap<Map<string, Bucket>, Map<string, string>>();
+
 function addUnit(
   buckets: Map<string, Bucket>,
   kind: ExtraKind,
@@ -272,6 +325,17 @@ function addUnit(
   unit: string,
 ) {
   if (rate === null || BigInt(rate) <= 0n) return;
+  if (basis === 'month') {
+    const monthKey = [kind, workerId, extras.projectMemberId, unit].join('\u0000');
+    const owner = claimedMonths.get(buckets)?.get(monthKey);
+    if (owner !== undefined && owner !== extras.id) return;
+    let claims = claimedMonths.get(buckets);
+    if (!claims) {
+      claims = new Map();
+      claimedMonths.set(buckets, claims);
+    }
+    claims.set(monthKey, extras.id);
+  }
   const key = [kind, basis, workerId, extras.projectMemberId, rate].join('\u0000');
   const bucket = buckets.get(key) ?? {
     kind,
@@ -358,7 +422,10 @@ export function clientExtraCharges(
   const resolver = new AssignmentExtrasResolver(sqlite, input.projectId);
   if (resolver.none) return [];
   const buckets = new Map<string, Bucket>();
-  for (const day of input.workedDays) {
+  const days = [...input.workedDays].sort(
+    (x, y) => x.date.localeCompare(y.date) || x.workerId.localeCompare(y.workerId),
+  );
+  for (const day of days) {
     const extras = resolver.on(day.workerId, day.date);
     if (!extras) continue;
     addUnit(buckets, 'per_diem', 'day', day.workerId, extras, extras.perDiemClientMinor, day.date);
@@ -408,7 +475,7 @@ export function workerExtraCharges(
   const resolver = new AssignmentExtrasResolver(sqlite, input.projectId);
   if (resolver.none) return [];
   const buckets = new Map<string, Bucket>();
-  for (const date of new Set(input.days)) {
+  for (const date of [...new Set(input.days)].sort()) {
     const extras = resolver.on(input.workerId, date);
     if (!extras) continue;
     addUnit(buckets, 'per_diem', 'day', input.workerId, extras, extras.perDiemWorkerMinor, date);
@@ -455,6 +522,22 @@ export function extraChargeSnapshot(charge: ExtraCharge, projectId: string) {
     rateMinor: charge.rateMinor.toString(),
     amountMinor: charge.amountMinor.toString(),
   };
+}
+
+/** A real calendar day as YYYY-MM-DD. */
+function calendarDate(value: string): string {
+  const text = String(value).trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/u.test(text)) throw new ValidationError('Choose a valid start date');
+  const parsed = new Date(`${text}T00:00:00Z`);
+  if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text)
+    throw new ValidationError('Choose a valid start date');
+  return text;
+}
+
+function previousDay(date: string): string {
+  const parsed = new Date(`${date}T00:00:00Z`);
+  parsed.setUTCDate(parsed.getUTCDate() - 1);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function minor(value: string | null | undefined, field: string): string | null {
@@ -504,7 +587,10 @@ type MemberRow = {
 export type AssignmentExtrasView = Readonly<{
   projectMemberId: string;
   workerId: string;
+  /** The newest version (it may start later than today). */
   extras: AssignmentExtras | null;
+  /** The version in force the day before the newest one starts (null: none, or no date). */
+  previous: AssignmentExtras | null;
   /** Expense terms this person has today (worker-paid expenses); null: project rules. */
   expenses: ExtrasExpenseChoice | null;
 }>;
@@ -561,15 +647,23 @@ export class AssignmentExtrasRepository {
     return worker && client ? 'both' : worker ? 'worker' : client ? 'client' : 'none';
   }
 
-  get(principal: Principal, projectMemberId: string): AssignmentExtrasView {
-    this.assertFinance(principal);
-    const member = this.member(projectMemberId);
+  private view(member: MemberRow): AssignmentExtrasView {
+    const versions = assignmentExtrasVersions(this.sqlite, member.id);
+    const latest = versions[0] ?? null;
     return {
       projectMemberId: member.id,
       workerId: member.user_id,
-      extras: latestAssignmentExtras(this.sqlite, member.id),
+      extras: latest,
+      previous: latest?.effectiveFrom
+        ? versionOn(versions.slice(1), previousDay(latest.effectiveFrom))
+        : null,
       expenses: this.expenseChoice(member),
     };
+  }
+
+  get(principal: Principal, projectMemberId: string): AssignmentExtrasView {
+    this.assertFinance(principal);
+    return this.view(this.member(projectMemberId));
   }
 
   listForProject(principal: Principal, projectId: string): AssignmentExtrasView[] {
@@ -581,12 +675,7 @@ export class AssignmentExtrasRepository {
           ORDER BY pm.starts_on,pm.id`,
       )
       .all(projectId) as MemberRow[];
-    return members.map((member) => ({
-      projectMemberId: member.id,
-      workerId: member.user_id,
-      extras: latestAssignmentExtras(this.sqlite, member.id),
-      expenses: this.expenseChoice(member),
-    }));
+    return members.map((member) => this.view(member));
   }
 
   /**
@@ -619,21 +708,36 @@ export class AssignmentExtrasRepository {
       typeof input.reason === 'string' && input.reason.trim()
         ? input.reason.trim().slice(0, 2000)
         : null;
+    const requestedFrom =
+      input.effectiveFrom === undefined ||
+      input.effectiveFrom === null ||
+      input.effectiveFrom === ''
+        ? null
+        : calendarDate(input.effectiveFrom);
     return runImmediateTransaction(this.sqlite, 'assignment-extras', () => {
       const member = this.member(input.projectMemberId);
       if (member.status !== 'active')
         throw new ValidationError('Active project assignment required');
-      const current = latestAssignmentExtras(this.sqlite, member.id);
+      if (requestedFrom && member.ends_on && requestedFrom > member.ends_on)
+        throw new ValidationError('The start date of the new values is after this assignment ends');
+      // On or before the first day of the assignment: the values apply from its start.
+      const effectiveFrom =
+        requestedFrom === null || requestedFrom <= member.starts_on ? null : requestedFrom;
+      const versions = assignmentExtrasVersions(this.sqlite, member.id);
+      const current = versions[0] ?? null;
       if ((current?.version ?? 0) !== input.expectedVersion)
         throw new ConflictError('Extras changed. Reload before saving.');
+      const sameAs = (extras: AssignmentExtras | null) =>
+        (extras?.perDiemClientMinor ?? null) === perDiemClient &&
+        (extras?.perDiemWorkerMinor ?? null) === perDiemWorker &&
+        (extras?.allowanceBasis ?? null) === allowanceBasis &&
+        (extras?.allowanceClientMinor ?? null) === allowanceClient &&
+        (extras?.allowanceWorkerMinor ?? null) === allowanceWorker &&
+        JSON.stringify(extras?.overtimeClient ?? null) === JSON.stringify(overtimeClient) &&
+        JSON.stringify(extras?.overtimeWorker ?? null) === JSON.stringify(overtimeWorker);
+      // Nothing to write when these values are already in force from that day on.
       const same =
-        (current?.perDiemClientMinor ?? null) === perDiemClient &&
-        (current?.perDiemWorkerMinor ?? null) === perDiemWorker &&
-        (current?.allowanceBasis ?? null) === allowanceBasis &&
-        (current?.allowanceClientMinor ?? null) === allowanceClient &&
-        (current?.allowanceWorkerMinor ?? null) === allowanceWorker &&
-        JSON.stringify(current?.overtimeClient ?? null) === JSON.stringify(overtimeClient) &&
-        JSON.stringify(current?.overtimeWorker ?? null) === JSON.stringify(overtimeWorker);
+        sameAs(current) && sameAs(versionOn(versions, effectiveFrom ?? member.starts_on));
       const nothingNew =
         !current &&
         perDiemClient === null &&
@@ -650,7 +754,7 @@ export class AssignmentExtrasRepository {
             `INSERT INTO assignment_extra(id,project_member_id,version,currency,per_diem_client_minor,
                per_diem_worker_minor,allowance_basis,allowance_client_minor,allowance_worker_minor,
                overtime_client_method,overtime_client_value,overtime_worker_method,overtime_worker_value,
-               reason,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+               reason,effective_from,created_by,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
           )
           .run(
             id,
@@ -667,6 +771,7 @@ export class AssignmentExtrasRepository {
             overtimeWorker?.method ?? null,
             overtimeWorker?.value ?? null,
             reason,
+            effectiveFrom,
             principal.userId,
             new Date().toISOString(),
           );
@@ -683,6 +788,7 @@ export class AssignmentExtrasRepository {
             assignmentExtraId: id,
             version,
             currency: member.currency,
+            effectiveFrom: effectiveFrom ?? member.starts_on,
             before: current
               ? {
                   perDiemClientMinor: current.perDiemClientMinor,
@@ -708,14 +814,23 @@ export class AssignmentExtrasRepository {
         );
       }
       if (input.expenses !== undefined && input.expenses !== this.expenseChoice(member))
-        this.saveExpenseChoice(principal, member, input.expenses);
+        this.saveExpenseChoice(
+          principal,
+          member,
+          input.expenses,
+          effectiveFrom ?? (requestedFrom === null ? this.today() : member.starts_on),
+        );
       return this.get(principal, member.id);
     });
   }
 
-  private saveExpenseChoice(principal: Principal, member: MemberRow, choice: ExtrasExpenseChoice) {
-    const today = this.today();
-    const from = member.starts_on > today ? member.starts_on : today;
+  private saveExpenseChoice(
+    principal: Principal,
+    member: MemberRow,
+    choice: ExtrasExpenseChoice,
+    effectiveFrom: string,
+  ) {
+    const from = member.starts_on > effectiveFrom ? member.starts_on : effectiveFrom;
     if (member.ends_on && from > member.ends_on)
       throw new ValidationError(
         'This assignment has ended: its expense terms can no longer change',

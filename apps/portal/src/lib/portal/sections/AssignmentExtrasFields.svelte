@@ -17,12 +17,19 @@
     locale,
     idPrefix,
     showExpenses = true,
+    showEffectiveFrom = false,
+    minDate = '',
+    maxDate = '',
   }: {
     values: ExtrasValues;
     currency: string;
     locale: string;
     idPrefix: string;
     showExpenses?: boolean;
+    /** Editing saved extras: ask from which day the new values apply (default today). */
+    showEffectiveFrom?: boolean;
+    minDate?: string;
+    maxDate?: string;
   } = $props();
 
   const t = (key: AssignmentExtrasCopyKey, params: Record<string, string | number> = {}) =>
@@ -44,6 +51,22 @@
 
 <div class="extras-fields" data-extras-fields={idPrefix}>
   <p class="extras-help">{t('extrasHelp')}</p>
+
+  {#if showEffectiveFrom}
+    <div class="extras-group extras-from">
+      <label class="extras-wide"
+        >{t('effectiveFrom')}<input
+          type="date"
+          required
+          min={minDate || undefined}
+          max={maxDate || undefined}
+          bind:value={values.effectiveFrom}
+          data-extras-effective-from
+        /></label
+      >
+      <small>{t('effectiveFromHelp')}</small>
+    </div>
+  {/if}
 
   {#if showExpenses}
     <fieldset class="extras-group">
@@ -214,6 +237,7 @@
     font-size: 0.9rem;
   }
   .extras-pair input,
+  .extras-wide input,
   .extras-wide select {
     min-height: var(--ja-target-min, 2.75rem);
     width: 100%;

@@ -284,7 +284,8 @@
           selected[workerId] = false;
           if (extrasChosen(addExtras)) {
             const saved = await post(`${projectHref}?/setAssignmentExtras`, {
-              ...extrasFields({ ...addExtras, version: 0 }),
+              // New assignment: the extras apply from its first day.
+              ...extrasFields({ ...addExtras, version: 0, effectiveFrom: personStart }),
               workerId,
               startsOn: personStart,
             });
@@ -376,7 +377,8 @@
     }
     extrasFor = row.id;
     extrasError = '';
-    extrasDraft = { ...(extras?.[row.id] ?? emptyExtras()) };
+    // New values apply from today unless the owner picks another day.
+    extrasDraft = { ...(extras?.[row.id] ?? emptyExtras()), effectiveFrom: today };
     endingId = '';
     datesId = '';
   }
@@ -877,9 +879,19 @@
             </div>
           {/if}
           {#if extras !== null}
+            {@const saved = extras[row.id]}
             <div class="hub-team-rate hub-team-extras" data-hub-extras={row.workerId}>
               <span class="hub-label">{x('extrasButton')}</span>
-              <span class="hub-extras-summary">{extrasSummary(locale, extras[row.id]) || x('extrasNone')}</span>
+              <span class="hub-extras-summary"
+                >{extrasSummary(locale, saved) || x('extrasNone')}{#if saved?.appliesFrom}<small
+                    class="hub-extras-from"
+                    data-hub-extras-from={row.workerId}
+                    >{x('appliesFrom', { date: formatDate(saved.appliesFrom) })} · {x('before', {
+                      date: formatDate(saved.appliesFrom),
+                      summary: extrasSummary(locale, saved.previous ?? undefined) || x('extrasNone'),
+                    })}</small
+                  >{/if}</span
+              >
               <button
                 type="button"
                 class="quiet-button"
@@ -995,7 +1007,14 @@
             <div class="hub-row-panel" data-hub-extras-panel={row.workerId}>
               <form class="hub-extras-form" onsubmit={(event) => saveExtras(event, row)}>
                 <strong>{x('extrasFor', { name: row.name })}</strong>
-                <AssignmentExtrasFields bind:values={extrasDraft} {currency} {locale} idPrefix={row.id} />
+                <AssignmentExtrasFields
+                  bind:values={extrasDraft}
+                  {currency}
+                  {locale}
+                  idPrefix={row.id}
+                  showEffectiveFrom
+                  maxDate={row.endsOn ?? ''}
+                />
                 {#if extrasError}<p class="hub-warn" role="alert">{extrasError}</p>{/if}
                 <div class="hub-inline-actions">
                   <button type="button" class="secondary-button" onclick={() => (extrasFor = '')}>{x('cancel')}</button>
@@ -1392,6 +1411,10 @@
     max-width: 16rem;
     text-align: end;
     font-size: 0.9rem;
+  }
+  .hub-extras-from {
+    display: block;
+    color: var(--project-muted, #77756d);
   }
   .hub-extras {
     border: 1px solid var(--project-line, #e4e4e2);

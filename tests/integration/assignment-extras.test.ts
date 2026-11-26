@@ -532,4 +532,115 @@ describe('assignment extras', () => {
     ).toEqual([]);
     expect(f.v3.workerPay(f.worker, '2026-08-01', '2026-08-15').extras).toEqual([]);
   });
+
+  it('applies new values from their effective date; earlier days keep the old ones', () => {
+    const f = setup();
+    f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 0,
+      perDiemClientMinor: '5000',
+      perDiemWorkerMinor: '3000',
+    });
+    const changed = f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 1,
+      perDiemClientMinor: '7000',
+      perDiemWorkerMinor: '4000',
+      effectiveFrom: '2026-08-10',
+    });
+    expect(changed.extras).toMatchObject({ version: 2, effectiveFrom: '2026-08-10' });
+    expect(changed.previous).toMatchObject({ version: 1, perDiemClientMinor: '5000' });
+    // The same values again from a later day change nothing.
+    f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 2,
+      perDiemClientMinor: '7000',
+      perDiemWorkerMinor: '4000',
+      effectiveFrom: '2026-08-20',
+    });
+    expect(f.extras.get(f.owner, f.member).extras?.version).toBe(2);
+    const audit = f.sqlite
+      .prepare(
+        "SELECT details_json FROM audit_event WHERE action='assignment.extras_set' ORDER BY rowid DESC LIMIT 1",
+      )
+      .get() as { details_json: string };
+    expect(JSON.parse(audit.details_json)).toMatchObject({
+      version: 2,
+      effectiveFrom: '2026-08-10',
+    });
+
+    f.time('2026-08-03', 60);
+    f.time('2026-08-04', 60);
+    f.time('2026-08-12', 60);
+    const draft = f.dryRun('2026-08-01', '2026-08-15');
+    expect(
+      f.extraLines(draft.lines).map((line) => [line.snapshot.extraUnits, line.snapshot.rateMinor]),
+    ).toEqual([
+      [['2026-08-03', '2026-08-04'], '5000'],
+      [['2026-08-12'], '7000'],
+    ]);
+    // Worker side: 3 h × 20.00 + 2 days × 30.00 + 1 day × 40.00.
+    expect(f.v3.workerPay(f.worker, '2026-08-01', '2026-08-16').estimatedApprovedMinor).toBe(
+      String(6000 + 6000 + 4000),
+    );
+  });
+
+  it('charges a monthly allowance once at the terms of the first worked day of the month', () => {
+    const f = setup();
+    f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 0,
+      allowanceBasis: 'month',
+      allowanceClientMinor: '100000',
+    });
+    f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 1,
+      allowanceBasis: 'month',
+      allowanceClientMinor: '200000',
+      effectiveFrom: '2026-08-15',
+    });
+    f.time('2026-08-03', 60);
+    f.time('2026-08-20', 60);
+    f.time('2026-09-02', 60);
+    const draft = f.dryRun('2026-08-01', '2026-09-30');
+    expect(
+      f
+        .extraLines(draft.lines)
+        .map((line) => [line.snapshot.extraUnits, line.snapshot.amountMinor]),
+    ).toEqual([
+      [['2026-08'], '100000'],
+      [['2026-09'], '200000'],
+    ]);
+  });
+
+  it('checks the effective date', () => {
+    const f = setup();
+    expect(() =>
+      f.extras.set(f.owner, {
+        projectMemberId: f.member,
+        expectedVersion: 0,
+        perDiemClientMinor: '5000',
+        effectiveFrom: '2026-02-31',
+      }),
+    ).toThrow(ValidationError);
+    // On or before the first day of the assignment: from its start.
+    const saved = f.extras.set(f.owner, {
+      projectMemberId: f.member,
+      expectedVersion: 0,
+      perDiemClientMinor: '5000',
+      effectiveFrom: '2025-12-01',
+    });
+    expect(saved.extras?.effectiveFrom).toBeNull();
+    expect(saved.previous).toBeNull();
+    f.sqlite.prepare("UPDATE project_member SET ends_on='2026-09-30' WHERE id=?").run(f.member);
+    expect(() =>
+      f.extras.set(f.owner, {
+        projectMemberId: f.member,
+        expectedVersion: 1,
+        perDiemClientMinor: '6000',
+        effectiveFrom: '2026-10-01',
+      }),
+    ).toThrow(ValidationError);
+  });
 });

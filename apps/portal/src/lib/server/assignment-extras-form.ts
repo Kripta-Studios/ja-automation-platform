@@ -24,6 +24,12 @@ export type ExtrasFormValues = {
   overtimeWorker: string;
   /** '' = the project's expense rules apply. */
   expenses: '' | ExtrasExpenseChoice;
+  /** Typed: first day the new values apply ('' = today). */
+  effectiveFrom: string;
+  /** Saved: first day the shown values apply ('' = from the start of the assignment). */
+  appliesFrom: string;
+  /** Saved: the values in force before `appliesFrom` (null: none or no date). */
+  previous: ExtrasFormValues | null;
 };
 
 export type ExtrasFieldError = { field: keyof ExtrasFormValues; message: string };
@@ -49,6 +55,7 @@ export function extrasFormValues(
   extras: AssignmentExtras | null,
   expenses: ExtrasExpenseChoice | null,
   currency: string,
+  previous: AssignmentExtras | null = null,
 ): ExtrasFormValues {
   const money = (value: string | null) => (value === null ? '' : formatMinorPlain(value, currency));
   const overtime = (value: OvertimeExtra | null) =>
@@ -69,6 +76,12 @@ export function extrasFormValues(
     overtimeWorkerMethod: extras?.overtimeWorker?.method ?? '',
     overtimeWorker: overtime(extras?.overtimeWorker ?? null),
     expenses: expenses ?? '',
+    effectiveFrom: '',
+    appliesFrom: extras?.effectiveFrom ?? '',
+    previous:
+      extras?.effectiveFrom && previous
+        ? { ...extrasFormValues(previous, null, currency), version: previous.version }
+        : null,
   };
 }
 
@@ -128,6 +141,9 @@ export function parseExtrasForm(
   const expenses = (values.expenses ?? '').trim();
   if (expenses && !EXPENSES.has(expenses))
     return fail('expenses', 'Choose how expenses are handled.');
+  const effectiveFrom = (values.effectiveFrom ?? '').trim();
+  if (effectiveFrom && !/^\d{4}-\d{2}-\d{2}$/u.test(effectiveFrom))
+    return fail('effectiveFrom', 'Choose the date the new values start.');
   const version = Number(values.version ?? '0');
   if (!Number.isSafeInteger(version) || version < 0)
     return fail('version', 'Reload the page and try again.');
@@ -146,6 +162,7 @@ export function parseExtrasForm(
       overtimeClient: overtimeClient as OvertimeExtra | null,
       overtimeWorker: overtimeWorker as OvertimeExtra | null,
       ...(expenses ? { expenses: expenses as ExtrasExpenseChoice } : {}),
+      ...(effectiveFrom ? { effectiveFrom } : {}),
     },
   };
 }
@@ -161,7 +178,10 @@ export function projectExtrasValues(
     projectId,
   );
   return Object.fromEntries(
-    rows.map((row) => [row.projectMemberId, extrasFormValues(row.extras, row.expenses, currency)]),
+    rows.map((row) => [
+      row.projectMemberId,
+      extrasFormValues(row.extras, row.expenses, currency, row.previous),
+    ]),
   );
 }
 
@@ -212,6 +232,6 @@ export function saveAssignmentExtras(
   return {
     ok: true as const,
     assignmentId: member.id,
-    values: extrasFormValues(saved.extras, saved.expenses, project.currency),
+    values: extrasFormValues(saved.extras, saved.expenses, project.currency, saved.previous),
   };
 }

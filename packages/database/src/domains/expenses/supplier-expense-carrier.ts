@@ -63,6 +63,7 @@ export function hasSupplierExpenseRules(sqlite: DatabaseSync): boolean {
 /**
  * SQL predicate, true when the expense row `alias` (columns project_id, worker_id, spent_on)
  * is carried by the technician's supplier: J&A never owes that expense to the technician.
+ * Never NULL (a NULL inside NOT would hide the row): '' when no rule is set.
  * '0' on schemas before migration 0097.
  */
 export function supplierCarriesExpenseSql(sqlite: DatabaseSync, alias = 'e'): string {
@@ -79,7 +80,8 @@ export function supplierCarriesExpenseSql(sqlite: DatabaseSync, alias = 'e'): st
       (SELECT ser_j.carrier FROM supplier_expense_rule ser_j
         WHERE ser_j.project_id=${a}.project_id AND ser_j.project_member_id IS NULL
           AND ser_j.effective_from<=${a}.spent_on
-        ORDER BY ser_j.effective_from DESC,ser_j.version DESC LIMIT 1)
+        ORDER BY ser_j.effective_from DESC,ser_j.version DESC LIMIT 1),
+      ''
     )='supplier')`;
 }
 

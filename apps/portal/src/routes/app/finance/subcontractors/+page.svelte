@@ -7,6 +7,7 @@
   import { billingFixText } from '$lib/portal/billing-fix-copy';
   import { intervalCopy, intervalLabel } from '$lib/portal/interval-copy';
   import { extrasText } from '$lib/portal/assignment-extras-copy';
+  import { translateControlledValue } from '$lib/i18n/controlled-values';
   import {
     supplierExpenseStatusLabel,
     supplierExpenseText,
@@ -53,6 +54,8 @@
       unit: extrasText(locale, extra.basis === 'month' ? 'months' : 'days'),
     });
   const hours = (minutes: number) => clockHoursFromMinutes(minutes);
+  /** Expense category in the page language (never the stored code). */
+  const category = (value: string) => translateControlledValue(locale, 'expenseCategory', value);
   const se = (key: SupplierExpenseCopyKey, params: Record<string, string | number> = {}) =>
     supplierExpenseText(locale, key, params);
   /** Remaining minus what Mark as paid deducts (per currency, never below zero). */
@@ -477,7 +480,9 @@
                     <td data-label={se('colDate')}>{day(item.spentOn)}</td>
                     <td data-label={se('colWho')}>{item.workerName}</td>
                     <td data-label={se('colWhat')}
-                      >{item.category}{#if item.vendor}<span class="sub__muted"> · {item.vendor}</span>{/if}</td
+                      >{category(item.category)}{#if item.vendor}<span class="sub__muted">
+                          · {item.vendor}</span
+                        >{/if}</td
                     >
                     <td data-label={se('colPays')}
                       >{se(`treat_${item.treatment}`)}{#if item.treatment === 'recharge'}<small
@@ -527,15 +532,15 @@
               <ul data-supplier-recover-lines>
                 {#each recover as item (item.expenseId)}
                   <li>
-                    {day(item.spentOn)} · {item.workerName} · {item.category}{#if item.vendor}
-                      ({item.vendor}){/if}
+                    {day(item.spentOn)} · {item.workerName} · {category(item.category)}{#if item.vendor}
+                      · {item.vendor}{/if}
                     <strong>{fmt(item.amountMinor, item.currency)}</strong>
                   </li>
                 {/each}
               </ul>
               <p class="sub__muted">
                 {se('recoverRules', {
-                  example: `CP-${billing.account?.code ?? 'ACME'}-001`,
+                  example: billing.account ? `CP-${billing.account.code}-001` : 'CP-…-001',
                 })}
               </p>
               <input type="hidden" name="payee" value={detail.payee.key} />
@@ -585,7 +590,7 @@
                     ><span>{se('recoverCode')}</span><input
                       name="clientCode"
                       maxlength="20"
-                      pattern={'[A-Za-z0-9-]{1,20}'}
+                      pattern={'[A-Za-z0-9\\-]{1,20}'}
                     /><small>{se('recoverCodeHelp')}</small></label
                   >
                 </div>
@@ -923,9 +928,13 @@
     grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
     gap: 0.6rem;
   }
+  .sub__recoverfields {
+    align-items: start;
+  }
   .sub__recoverfields label {
     display: grid;
     gap: 0.25rem;
+    align-content: start;
   }
   .sub__recoverfields .sub__wide {
     grid-column: 1 / -1;

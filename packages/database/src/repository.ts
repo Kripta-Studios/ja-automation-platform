@@ -10070,7 +10070,7 @@ export class PortalRepository {
     const project = this.createProject(principal, {
       costCenterCode: source.cost_center_code ?? source.project_number,
       clientId: account.clientId,
-      name: `${source.name} (${source.project_number}) · recharged to ${supplier.name}`.slice(
+      name: `${source.name} (${source.project_number}) · recharged expenses`.slice(
         0,
         200,
       ),

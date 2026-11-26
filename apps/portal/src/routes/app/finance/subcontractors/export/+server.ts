@@ -11,6 +11,7 @@ import {
   settlementPeriod,
 } from '$lib/server/subcontractor-settlement';
 import { settlementText } from '../copy';
+import { translateControlledValue } from '$lib/i18n/controlled-values';
 import {
   supplierExpenseStatusLabel,
   supplierExpenseText,
@@ -53,6 +54,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
     const se = (key: SupplierExpenseCopyKey, params: Record<string, string | number> = {}) =>
       supplierExpenseText(locale, key, params);
     const expenses = detail.expenses;
+    const category = (value: string) => translateControlledValue(locale, 'expenseCategory', value);
     const slug =
       detail.payee.name
         .normalize('NFD')
@@ -127,7 +129,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
           [columns.currency]: item.sourceCurrency,
           [columns.amount]: minorToInputText(item.sourceAmountMinor, item.sourceCurrency),
           [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
-          [columns.expense]: [item.category, item.vendor].filter(Boolean).join(' · '),
+          [columns.expense]: [category(item.category), item.vendor].filter(Boolean).join(' · '),
           [columns.pays]: se(`treat_${item.treatment}` as SupplierExpenseCopyKey),
           [columns.expenseStatus]: supplierExpenseStatusLabel(locale, item),
         });
@@ -194,7 +196,7 @@ ${worker.entries
 ${expenses.items
   .map((item) => {
     const status = supplierExpenseStatusLabel(locale, item);
-    return `<tr><td>${escape(date(item.spentOn))}</td><td>${escape(item.workerName)}</td><td>${escape([item.category, item.vendor].filter(Boolean).join(' · '))}</td><td>${escape(se(`treat_${item.treatment}` as SupplierExpenseCopyKey))}${status ? `<br><span class="muted">${escape(status)}</span>` : ''}</td><td class="amount">${escape(money(item.sourceAmountMinor, item.sourceCurrency))}</td></tr>`;
+    return `<tr><td>${escape(date(item.spentOn))}</td><td>${escape(item.workerName)}</td><td>${escape([category(item.category), item.vendor].filter(Boolean).join(' · '))}</td><td>${escape(se(`treat_${item.treatment}` as SupplierExpenseCopyKey))}${status ? `<br><span class="muted">${escape(status)}</span>` : ''}</td><td class="amount">${escape(money(item.sourceAmountMinor, item.sourceCurrency))}</td></tr>`;
   })
   .join('')}
 </tbody></table>`

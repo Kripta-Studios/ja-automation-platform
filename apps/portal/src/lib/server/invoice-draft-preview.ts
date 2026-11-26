@@ -1,3 +1,4 @@
+import { purchaseReferenceOrNull } from '@ja/database';
 import type { InvoiceTemplateSnapshot } from '@ja/reporting';
 
 type Row = Readonly<Record<string, unknown>>;
@@ -85,7 +86,11 @@ export function draftInvoiceTemplateSnapshot(
       number: invoice.project_number,
       name: invoice.project_name,
       costCenterCode: invoice.cost_center_code,
-      poNumber: invoice.project_po_number,
+      // Audit T11: a project name or number is not printed as a purchase order.
+      poNumber: purchaseReferenceOrNull(invoice.project_po_number, {
+        name: invoice.project_name,
+        number: invoice.project_number,
+      }),
     },
     purchaseNo: invoice.purchase_no,
     termsAndInstructions: invoice.terms_and_instructions,

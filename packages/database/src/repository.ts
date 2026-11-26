@@ -146,6 +146,7 @@ import {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
   effectivePurchaseReference,
+  purchaseReferenceOrNull,
   releaseCopiedStreamPurchaseOrders,
 } from './domains/billing/issuer-document-settings.ts';
 import { pendingTimeFinanceReviewSourceIds } from './domains/billing/time-finance-review.ts';
@@ -9422,7 +9423,7 @@ export class PortalRepository {
       const presentation = issuerSettingsPresentation(issuerSettings);
       const projectReference = this.sqlite
         .prepare(
-          'SELECT p.po_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?',
+          'SELECT p.po_number,p.name,p.project_number,c.po_reference FROM project p JOIN client c ON c.id=p.client_id WHERE p.id=?',
         )
         .get(rule.project_id);
       // Everyone on this invoice shares one assignment PO: that PO is printed (owner decision
@@ -9446,6 +9447,7 @@ export class PortalRepository {
                 rule.po_number_override,
                 projectReference?.po_number,
                 projectReference?.po_reference,
+                { name: projectReference?.name, number: projectReference?.project_number },
               ),
             ...(overrides?.purchaseNo || assignmentPurchaseNo ? { draftOnlyOverrides: ['purchaseNo'] } : {}),
             ...(assignmentPurchaseNo ? { purchaseNoSource: 'assignment' } : {}),
@@ -11044,6 +11046,11 @@ export class PortalRepository {
       })();
       // Header texts edited inline on the draft (client name/address, project, cost center).
       const issueHeader = presentationOverridesOf(draftCustomizations);
+      const poIdentity = {
+        name: context.project_name,
+        number: context.project_number,
+        alias: issueHeader.projectName,
+      };
       const snapshot = {
         template: {
           id: controlledInvoiceTemplateId(context.template_id, invoice.stream_type),
@@ -11099,16 +11106,24 @@ export class PortalRepository {
           costCenterCode: issueHeader.costCenter ?? context.cost_center_code,
           poNumber: creditNoteFor
             ? creditNoteOriginalPo.projectPo
-            : (context.po_number_override ?? context.po_number),
+            : effectivePurchaseReference(
+                context.po_number_override,
+                context.po_number,
+                null,
+                poIdentity,
+              ),
         },
         // D15 (round 2): a credit note prints the purchase number of the invoice it credits.
+        // Audit T11: a project name or number is never printed as the purchase order.
         purchaseNo: creditNoteFor
           ? creditNoteOriginalPo.purchaseNo
-          : (draftCustomizations.purchaseNo ??
-            context.po_number_override ??
-            context.po_number ??
-            context.client_po_reference ??
-            null),
+          : (purchaseReferenceOrNull(draftCustomizations.purchaseNo, poIdentity) ??
+            effectivePurchaseReference(
+              context.po_number_override,
+              context.po_number,
+              context.client_po_reference,
+              poIdentity,
+            )),
         termsAndInstructions: {
           ...issuerSettingsPresentation(
             readIssuerDocumentSettings(this.sqlite, context.legal_entity_id, invoice.currency),
@@ -12218,6 +12233,7 @@ export class PortalRepository {
         ? (customSnapshot.legalEntity as Record<string, unknown>)
         : null;
     const creditNoteOf = this.creditNoteOriginal(invoiceId, invoice.stream_type);
+    const draftPoIdentity = { name: invoice.project_name, number: invoice.project_number };
     const enrichedInvoice = {
       ...invoice,
       requested_invoice_number:
@@ -12271,17 +12287,21 @@ export class PortalRepository {
       ]
         .filter(Boolean)
         .join('\n'),
+      // Issued invoices show exactly what they carry; a draft never presents a project name
+      // or number as its purchase order (audit T11), matching the composer.
       purchase_no:
-        customSnapshot.purchaseNo ??
-        customSnapshot.purchase_no ??
         (frozenInvoice
-          ? null
-          : effectivePurchaseReference(
+          ? (customSnapshot.purchaseNo ?? customSnapshot.purchase_no)
+          : (purchaseReferenceOrNull(
+              customSnapshot.purchaseNo ?? customSnapshot.purchase_no,
+              draftPoIdentity,
+            ) ??
+            effectivePurchaseReference(
               invoice.po_number_override,
               invoice.project_po_number,
               invoice.client_po_reference,
-            )) ??
-        '—',
+              draftPoIdentity,
+            ))) ?? '—',
       terms_and_instructions: {
         ...(['draft', 'approved'].includes(String(invoice.state ?? ''))
           ? {
@@ -12371,6 +12391,7 @@ export class PortalRepository {
               invoice.po_number_override,
               invoice.project_po_number,
               invoice.client_po_reference,
+              draftPoIdentity,
             ) ?? '—')) ||
         (!draftOnlyOverrides.has('pastDueNotice') &&
           String(enrichedInvoice.terms_and_instructions.pastDueNotice ?? '') !==

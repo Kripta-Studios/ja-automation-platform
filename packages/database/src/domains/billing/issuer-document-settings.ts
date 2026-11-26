@@ -398,12 +398,38 @@ export function releaseCopiedStreamPurchaseOrders(
   return rules.length;
 }
 
+export type ProjectIdentity = Readonly<{ name?: unknown; number?: unknown; alias?: unknown }>;
+
+/**
+ * A purchase order value as it may be printed. A project name or number typed into a PO
+ * field is not a purchase order (audit T11: "PURCHASE NO. BBS Mexico"): the composer shows
+ * "No PO number" for it, so new issues, versions and previews must not print it either.
+ */
+export function purchaseReferenceOrNull(
+  value: unknown,
+  project: ProjectIdentity | null | undefined,
+): string | null {
+  const text = typeof value === 'string' ? value.trim() : '';
+  if (!text || text === '—') return null;
+  const identity = [project?.name, project?.number, project?.alias]
+    .map((part) => (typeof part === 'string' ? part.trim().toLocaleLowerCase() : ''))
+    .filter(Boolean);
+  return identity.includes(text.toLocaleLowerCase()) ? null : text;
+}
+
 export function effectivePurchaseReference(
   stream: unknown,
   project: unknown,
   client: unknown = null,
+  identity?: ProjectIdentity,
 ): string | null {
-  for (const value of [stream, project, client])
-    if (typeof value === 'string' && value.trim()) return value.trim();
+  for (const value of [stream, project, client]) {
+    const reference = identity
+      ? purchaseReferenceOrNull(value, identity)
+      : typeof value === 'string' && value.trim()
+        ? value.trim()
+        : null;
+    if (reference) return reference;
+  }
   return null;
 }

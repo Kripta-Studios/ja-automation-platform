@@ -6,6 +6,7 @@ import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { currentInvoiceVersion, invoiceVersions } from './invoice-current-version.ts';
 import { invoiceNumberUsed } from './invoice-number-format.ts';
+import { purchaseReferenceOrNull } from './issuer-document-settings.ts';
 
 type Row = Record<string, unknown>;
 type ErrorConstructor = new (message: string) => Error;
@@ -330,6 +331,23 @@ export function correctIssuedInvoice(
       }
     }
     if (!changes.length) throw new errors.validation('Nothing changed. The invoice was not saved again.');
+    // Audit T11: a new version never prints a project name or number as the purchase order
+    // (the composer shows "No PO number" for it). Earlier versions keep what they printed.
+    const identity = {
+      name: object(after.project).name,
+      number: object(after.project).number,
+      alias: object(before.project).name,
+    };
+    for (const path of [['purchaseNo'], ['project', 'poNumber']] as const) {
+      const shown = getPath(after, path);
+      if (typeof shown !== 'string' || !shown.trim() || shown.trim() === '—') continue;
+      if (purchaseReferenceOrNull(shown, identity)) continue;
+      setPath(after, path, null);
+      if (path[0] !== 'purchaseNo') continue;
+      const typed = changes.find((change) => change.field === 'purchaseNo');
+      if (typed) typed.after = null;
+      else changes.push({ field: 'purchaseNo', before: shown, after: null });
+    }
     const subtotal = current.subtotalMinor + deltaNet;
     const tax = current.taxMinor + deltaTax;
     const total = current.totalMinor + deltaNet + deltaTax;

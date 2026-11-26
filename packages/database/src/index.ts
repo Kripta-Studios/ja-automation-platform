@@ -1280,6 +1280,7 @@ export {
   resolveInvoiceIssuerAuthority,
   invoiceIssuerCoverageIssue,
   issuerPayeeFields,
+  purchaseReferenceOrNull,
   ISSUER_PAYEE_OWNER_REQUIRED,
   ISSUER_PAYEE_CHANGED_NOTIFICATION,
 } from './domains/billing/issuer-document-settings.ts';

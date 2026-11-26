@@ -13,6 +13,7 @@ import {
 import {
   closeB5LifecycleSecurityFixture,
   createB5LifecycleSecurityFixture,
+  signInB5Principal,
   type B5LifecycleSecurityFixture,
 } from '../fixtures/b5-lifecycle-security-fixture.js';
 
@@ -55,6 +56,10 @@ function expenseContract(value: B5LifecycleSecurityFixture): ExpenseContract {
 function fixture(): B5LifecycleSecurityFixture {
   const value = createB5LifecycleSecurityFixture();
   fixtures.push(value);
+  // Workers and the reviewing PM act through a live session, like every
+  // operational write (live-session validation is a production invariant).
+  value.worker = signInB5Principal(value.sqlite, value.worker, 'expense-classification-worker');
+  value.manager = signInB5Principal(value.sqlite, value.manager, 'expense-classification-pm');
   const legacy = value.repository.createLegalEntity(value.owner, {
     code: 'EXPENSE-LEGACY',
     legalName: 'Expense Classification Legacy Entity',
@@ -650,6 +655,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       projectId: value.project.id,
       expectedVersion: projectVersion(),
       mode: 'none',
+      effectiveFrom: '2026-01-01',
       reason: 'Project does not reimburse worker-paid expenses',
     });
     const classify = (key: string) => {
@@ -685,6 +691,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       projectId: value.project.id,
       expectedVersion: projectVersion(),
       mode: 'at_cost',
+      effectiveFrom: '2026-08-01',
       reason: 'Project now reimburses worker-paid expenses',
     });
     expect(amount(before).reimbursement_amount_minor).toBe(0);
@@ -701,6 +708,7 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       projectMemberId: member.id,
       expectedVersion: member.version,
       mode: 'none',
+      effectiveFrom: '2026-08-10',
       reason: 'This worker uses a nonreimbursable assignment',
     });
     expect(amount(after).reimbursement_amount_minor).toBe(12345);
@@ -1073,17 +1081,19 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
       )
       .run(created.id);
 
+    // An unclassified expense has one next step (classify it); its source
+    // minor units never count as project-currency cost or revenue.
     expect(value.repository.projectFinance(finance, value.project.id)).toMatchObject({
       state: 'incomplete',
       approvedCostMinor: '0',
       revenueCandidateMinor: '0',
-      reasons: [{ code: 'missing_expense_currency_conversion', sourceId: created.id }],
+      reasons: [{ code: 'missing_expense_classification', sourceId: created.id }],
     });
     expect(value.v3.projectFinance(finance, value.project.id)).toMatchObject({
       state: 'incomplete',
       approvedCostMinor: '0',
       expenseRevenueMinor: '0',
-      reasons: [{ code: 'missing_expense_currency_conversion', sourceId: created.id }],
+      reasons: [{ code: 'missing_expense_classification', sourceId: created.id }],
     });
   });
 
@@ -1137,8 +1147,10 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
         }),
       ]),
     );
+    // The USD->EUR amount is confirmed (11111); what is missing is an exact
+    // project-currency projection of the partial (6000 USD) reimbursement.
     expect(unconverted.reasons).toContainEqual({
-      code: 'missing_expense_currency_conversion',
+      code: 'missing_expense_finance_projection',
       sourceId: created.id,
     });
     expect(() => value.v3.createAccountingPack(finance, '2026-08-01', '2026-08-31')).toThrow(
@@ -1182,11 +1194,19 @@ describe('Client Essential CORE-06 expense commercial classification boundary', 
         idempotencyKey: 'wp03:expense-classification:foreign-worker-block:foreign',
       }),
     ).toThrow(/exact currency conversion/u);
-    expect(
-      value.repository
-        .listWorkerStatementExpenses(value.worker, '2026-08-01', '2026-08-31')
-        .map((row) => row.id),
-    ).toEqual([local.id]);
+    // T13: the worker's own statement still lists the unclassified claim as an
+    // estimate in its own currency (never redenominated into EUR); it is not a
+    // Finance reimbursement obligation until it is converted and classified.
+    const statement = value.repository.listWorkerStatementExpenses(
+      value.worker,
+      '2026-08-01',
+      '2026-08-31',
+    );
+    expect(statement.map((row) => row.id).sort()).toEqual([local.id, foreign.id].sort());
+    expect(statement.find((row) => row.id === foreign.id)).toMatchObject({
+      currency: 'USD',
+      reimbursementAmountMinor: '20001',
+    });
     expect(value.v3.listReimbursementQueue(finance, value.project.id).map((row) => row.id)).toEqual(
       [local.id],
     );

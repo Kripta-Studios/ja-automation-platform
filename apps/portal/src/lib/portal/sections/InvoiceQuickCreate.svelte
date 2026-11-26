@@ -1754,11 +1754,8 @@
                     data-quick-invoice-expenses-separate
                   /><span
                     ><strong>{e('choiceLabel')}</strong><small
-                      >{e(choice.separate ? 'separateHelp' : 'sameHelp')} · {expenseInvoiceSummary(
-                        locale,
-                        choice.setting,
-                        choice.source,
-                      )}</small
+                      >{e(choice.separate ? 'separateHelp' : 'sameHelp')}{#if !choice.changesSetting}
+                        · {expenseInvoiceSummary(locale, choice.setting, choice.source)}{/if}</small
                     ></span
                   ></label
                 >

@@ -5,6 +5,7 @@ import { assertActiveAccount, assertLiveSession } from '../../core/authorization
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
+import { supplierCarriesExpense } from './supplier-expense-carrier.ts';
 
 export type ExpensePayer = 'worker' | 'company_card' | 'company_direct' | 'client' | 'third_party';
 export type WorkerReimbursementMode = 'at_cost' | 'none';
@@ -675,11 +676,20 @@ export class AssignmentExpensePolicyRepository {
       context.spentOn,
     );
     const policy = projectPolicy(policies[0]);
+    // D4: when an external technician's supplier carries his expenses, J&A owes him nothing
+    // (person > project rule on the expense day). Client recovery stays as configured.
+    const supplierCarries =
+      normalizedPayer === 'worker' &&
+      supplierCarriesExpense(this.sqlite, {
+        projectId: context.projectId,
+        workerId: context.workerId,
+        onDate: context.spentOn,
+      });
     return {
       policy: {
         ...policy,
         workerReimbursement:
-          normalizedPayer === 'worker'
+          normalizedPayer === 'worker' && !supplierCarries
             ? (effective.workerOverride ?? effective.projectDefault ?? policy.workerReimbursement)
             : 'none',
       },

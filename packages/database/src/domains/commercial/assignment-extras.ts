@@ -10,6 +10,12 @@ import {
   type ClientRecoveryMode,
   type WorkerReimbursementMode,
 } from '../expenses/assignment-expense-policy-repository.ts';
+import {
+  SupplierExpenseRuleRepository,
+  hasSupplierExpenseRules,
+  supplierOfUser,
+  type SupplierExpenseCarrier,
+} from '../expenses/supplier-expense-carrier.ts';
 
 /**
  * Optional extras of one assignment (owner request 2026-11-25): per diem, a safety/hazard
@@ -27,6 +33,8 @@ export type ExtraKind = 'per_diem' | 'allowance';
 export type ExtraBasis = 'day' | 'month';
 export type OvertimeExtraMethod = 'multiplier' | 'rate';
 export type ExtrasExpenseChoice = 'none' | 'worker' | 'client' | 'both';
+/** D4: who carries an external technician's expenses ('project': follow the project rule). */
+export type ExtrasSupplierExpenseChoice = 'project' | SupplierExpenseCarrier;
 
 export type OvertimeExtra = Readonly<{ method: OvertimeExtraMethod; value: string }>;
 
@@ -61,6 +69,8 @@ export type AssignmentExtrasInput = Readonly<{
   overtimeWorker?: OvertimeExtra | null;
   /** Expenses of this person (payer: the worker). Undefined: leave the project rules alone. */
   expenses?: ExtrasExpenseChoice;
+  /** D4, a supplier's technician only: who carries his expenses. Undefined: no change. */
+  supplierExpenses?: ExtrasSupplierExpenseChoice;
   /**
    * First day the new values apply (YYYY-MM-DD). Earlier days keep the values in force before.
    * Omitted, or a day on or before the assignment start: from the start of the assignment (the
@@ -593,6 +603,8 @@ export type AssignmentExtrasView = Readonly<{
   previous: AssignmentExtras | null;
   /** Expense terms this person has today (worker-paid expenses); null: project rules. */
   expenses: ExtrasExpenseChoice | null;
+  /** D4: the person's own choice today; null when this person is not a supplier's staff. */
+  supplierExpenses: ExtrasSupplierExpenseChoice | null;
 }>;
 
 /** Owner / Finance only: extras carry client rates and worker pay. */
@@ -658,7 +670,21 @@ export class AssignmentExtrasRepository {
         ? versionOn(versions.slice(1), previousDay(latest.effectiveFrom))
         : null,
       expenses: this.expenseChoice(member),
+      supplierExpenses: this.supplierExpenseChoice(member),
     };
+  }
+
+  private supplierExpenseChoice(member: MemberRow): ExtrasSupplierExpenseChoice | null {
+    if (!hasSupplierExpenseRules(this.sqlite) || !supplierOfUser(this.sqlite, member.user_id))
+      return null;
+    const on = member.starts_on > this.today() ? member.starts_on : this.today();
+    const row = this.sqlite
+      .prepare(
+        `SELECT carrier FROM supplier_expense_rule WHERE project_id=? AND project_member_id=?
+            AND effective_from<=? ORDER BY effective_from DESC,version DESC LIMIT 1`,
+      )
+      .get(member.project_id, member.id, on) as { carrier: SupplierExpenseCarrier | null } | undefined;
+    return row?.carrier ?? 'project';
   }
 
   get(principal: Principal, projectMemberId: string): AssignmentExtrasView {
@@ -704,6 +730,11 @@ export class AssignmentExtrasRepository {
       !['none', 'worker', 'client', 'both'].includes(input.expenses)
     )
       throw new ValidationError('Expense choice is invalid');
+    if (
+      input.supplierExpenses !== undefined &&
+      !['project', 'ja', 'supplier'].includes(input.supplierExpenses)
+    )
+      throw new ValidationError('Choose who pays this technician’s expenses');
     const reason =
       typeof input.reason === 'string' && input.reason.trim()
         ? input.reason.trim().slice(0, 2000)
@@ -820,6 +851,16 @@ export class AssignmentExtrasRepository {
           input.expenses,
           effectiveFrom ?? (requestedFrom === null ? this.today() : member.starts_on),
         );
+      if (
+        input.supplierExpenses !== undefined &&
+        input.supplierExpenses !== this.supplierExpenseChoice(member)
+      )
+        new SupplierExpenseRuleRepository(this.sqlite).setPersonRule(principal, {
+          projectMemberId: member.id,
+          carrier: input.supplierExpenses === 'project' ? null : input.supplierExpenses,
+          effectiveFrom: requestedFrom ?? this.today(),
+          reason: 'Assignment extras: who pays the expenses',
+        });
       return this.get(principal, member.id);
     });
   }

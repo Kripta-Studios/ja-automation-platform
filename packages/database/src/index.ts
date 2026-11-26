@@ -1224,6 +1224,7 @@ export { assertLiveSession } from './core/authorization.ts';
 export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';
 export * from './domains/expenses/assignment-expense-policy-repository.ts';
+export * from './domains/expenses/supplier-expense-carrier.ts';
 export * from './domains/worker-statements/index.ts';
 export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';

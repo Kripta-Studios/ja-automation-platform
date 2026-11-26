@@ -3,6 +3,7 @@ import {
   type ProjectSiteInput,
 } from './domains/projects/project-site-settings.ts';
 import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
+import { supplierCarriesExpenseSql } from './domains/expenses/supplier-expense-carrier.ts';
 import {
   claimRequestedInvoiceNumber,
   projectInvoiceCounter,
@@ -11671,6 +11672,8 @@ export class PortalRepository {
                      END AS TEXT) amount
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
+           -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+           AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
            AND e.approval_state NOT IN ('rejected','void')
            AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND ((rcl.original_id=e.id AND correction.approval_state='approved') OR (rcl.correction_id=e.id AND correction.approval_state<>'approved')))`,
       )
@@ -14246,6 +14249,8 @@ export class PortalRepository {
          WHERE e.worker_id=?
            AND e.spent_on>=? AND e.spent_on<=?
            AND e.who_paid='worker'
+           -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+           AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
            AND e.approval_state NOT IN ('rejected','void')
            -- T13 (round 2): an approved expense J&A has not classified yet is still owed to
            -- the worker; until then its receipt amount is the estimate (same rule as My Pay).

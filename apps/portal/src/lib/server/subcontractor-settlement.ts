@@ -9,7 +9,14 @@ import {
   totalsByCurrency,
   type PayInterval,
 } from '@ja/billing-engine';
-import { effectivePayInterval, nextPayPeriod } from '@ja/database';
+import {
+  effectivePayInterval,
+  nextPayPeriod,
+  paySupplierSettlementWithRecharges,
+  rechargesForSettlement,
+  supplierExpenseItems,
+  type SupplierExpenseItem,
+} from '@ja/database';
 import { foldSearchText } from '$lib/portal/client-directory';
 import { personDisplayName } from '$lib/portal/display-name';
 
@@ -514,14 +521,78 @@ export function settlementDetail(
       extras: extraRows(ownExtras),
     };
   });
+  const summary = summarize(entries, settlements, input, extras);
   return {
     payee,
     workers,
     entries,
-    ...summarize(entries, settlements, input, extras),
+    ...summary,
     extras: extraRows(extras),
+    expenses:
+      payee.kind === 'supplier'
+        ? supplierExpenseSummary(
+            supplierExpenseItems(context.sqlite, {
+              workerIds: ids,
+              periodStart: input.start,
+              periodEnd: input.end,
+            }).map((item) => ({ ...item, workerName: workerNames.get(item.workerId) ?? '' })),
+            withinWeek(settlements, input.start, input.end),
+            summary.status,
+          )
+        : null,
     payable: isPayableSubcontractor(payee.kind),
     interval: payeeInterval(context.sqlite, payee.key),
+  };
+}
+
+/**
+ * D4: the expenses of the supplier's technicians in the period and who carries each one.
+ * Recharged expenses (paid by J&A for a technician whose supplier carries his expenses) are
+ * deducted when the settlement is paid; what does not fit in an open settlement of the period
+ * is still to be recovered from (invoiced to) the supplier. Never counted twice: a deducted
+ * expense is linked to its settlement and is not offered again.
+ */
+function supplierExpenseSummary(
+  items: ReadonlyArray<SupplierExpenseItem & { workerName: string }>,
+  settlements: readonly SettlementRow[],
+  status: SettlementStatus,
+) {
+  const total = (rows: readonly { currency: string; amountMinor: string | null }[]) =>
+    totalsByCurrency(
+      rows
+        .filter((row) => row.amountMinor !== null)
+        .map((row) => ({ currency: row.currency, minorUnits: BigInt(row.amountMinor!) })),
+    ).map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() }));
+  const recharge = items.filter((item) => item.treatment === 'recharge');
+  const deducted = recharge.filter((item) => item.rechargedSettlementId !== null);
+  const open = recharge.filter((item) => item.rechargedSettlementId === null);
+  // What the next "Mark as paid" deducts from each open settlement of this period.
+  const toDeduct = new Set<string>();
+  for (const row of settlements) {
+    const remaining = BigInt(row.amount_minor) - BigInt(row.paid_minor);
+    if (remaining <= 0n) continue;
+    for (const pick of rechargesForSettlement(open, row, remaining)) toDeduct.add(pick.expenseId);
+  }
+  return {
+    items: items.map((item) => ({
+      ...item,
+      deductNow: toDeduct.has(item.expenseId),
+    })),
+    deducted: total(deducted),
+    // Approved settlement: deducted on payment. Draft: an estimate of what will be deducted.
+    toDeduct: total(
+      status === 'draft' ? open : open.filter((item) => toDeduct.has(item.expenseId)),
+    ),
+    toRecover: total(
+      status === 'draft'
+        ? open.filter((item) => item.amountMinor === null)
+        : open.filter((item) => !toDeduct.has(item.expenseId)),
+    ),
+    conversionMissing: open.filter((item) => item.amountMinor === null).length,
+    supplierPaysTechnician: total(
+      items.filter((item) => item.treatment === 'supplier_pays_technician'),
+    ),
+    jaReimburses: total(items.filter((item) => item.treatment === 'ja_reimburses')),
   };
 }
 
@@ -607,6 +678,19 @@ export function markSettlementPaid(
   )) {
     const remaining = BigInt(row.amount_minor) - BigInt(row.paid_minor);
     if (remaining <= 0n) continue;
+    if (kind === 'supplier') {
+      // D4: expenses recharged to the supplier are deducted first; the rest is paid.
+      paySupplierSettlementWithRecharges(context.sqlite, context.v3, context.principal, {
+        settlement: row,
+        supplierId: payeeId,
+        remaining,
+        paidOn: input.paidOn,
+        reference: input.reference,
+        requestKey: input.requestKey,
+      });
+      recorded += 1;
+      continue;
+    }
     context.v3.recordCompensationPayment(context.principal, {
       settlementId: row.id,
       payeeKind: kind,

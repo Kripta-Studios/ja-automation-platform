@@ -51,6 +51,10 @@ import { assertSafeStorageKey } from './core/storage-key.ts';
 import { runImmediateTransaction } from './core/transaction.ts';
 import { verifiedExpenseProjectAmountMinor } from './domains/fx/currency-conversion.ts';
 import {
+  supplierCarriesExpense,
+  supplierCarriesExpenseSql,
+} from './domains/expenses/supplier-expense-carrier.ts';
+import {
   resolveAssignmentCommercialTerms,
   resolveClientLaborRule,
   resolveInternalCostRule,
@@ -3382,6 +3386,8 @@ export class V3Repository {
               e.reimbursed_at reimbursedAt,p.project_number projectNumber
          FROM expense e JOIN project p ON p.id=e.project_id
         WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
+          -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+          AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
           AND e.approval_state NOT IN ('rejected','void')
           AND (e.expense_policy_required=0 OR
             (e.commercial_classification_state='classified' AND e.reimbursement_amount_minor>0))
@@ -3887,6 +3893,8 @@ export class V3Repository {
          JOIN project p ON p.id=e.project_id
          JOIN user u ON u.id=e.worker_id
          WHERE e.who_paid='worker' AND e.approval_state IN ('approved','locked')
+           -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+           AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
            -- Audit 2026-11-22 T13: what J&A owes the worker never depends on how the client
            -- is billed. Approved worker-paid expenses that still wait for their finance
            -- classification are listed too, marked, with the classification as the next step.
@@ -4347,6 +4355,8 @@ export class V3Repository {
                           THEN e.reimbursement_amount_minor ELSE e.amount_minor END AS TEXT) amount
          FROM expense e
          WHERE e.worker_id=? AND e.spent_on BETWEEN ? AND ? AND e.who_paid='worker'
+           -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+           AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
            AND e.approval_state NOT IN ('rejected','void')
            AND (e.expense_policy_required=0 OR e.commercial_classification_state<>'classified'
                 OR e.reimbursement_amount_minor>0)
@@ -7170,12 +7180,14 @@ export class V3Repository {
     return this.transaction(() => {
       const expense = this.sqlite
         .prepare(
-          "SELECT id,worker_id,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference,expense_policy_required,commercial_classification_state FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
+          "SELECT id,worker_id,project_id,spent_on,CAST(amount_minor AS TEXT) amount_minor,CAST(reimbursement_amount_minor AS TEXT) reimbursement_amount_minor,reimbursement_state,reimbursement_reference,expense_policy_required,commercial_classification_state FROM expense WHERE id=? AND approval_state IN ('approved','locked') AND who_paid='worker' AND NOT EXISTS (SELECT 1 FROM record_correction_link rcl JOIN expense correction ON correction.id=rcl.correction_id WHERE rcl.record_type='expense' AND rcl.original_id=expense.id AND correction.approval_state<>'rejected')",
         )
         .get(input.expenseId) as
         | {
             id: string;
             worker_id: string;
+            project_id: string;
+            spent_on: string;
             amount_minor: string;
             reimbursement_amount_minor: string | null;
             reimbursement_state: string;
@@ -7185,6 +7197,18 @@ export class V3Repository {
           }
         | undefined;
       if (!expense) throw new V3ValidationError('Approved worker-paid expense required');
+      // D4: an external technician's expense carried by his supplier is never paid by J&A.
+      if (
+        expense.reimbursement_state !== 'reimbursed' &&
+        supplierCarriesExpense(this.sqlite, {
+          projectId: expense.project_id,
+          workerId: expense.worker_id,
+          onDate: expense.spent_on,
+        })
+      )
+        throw new V3ValidationError(
+          'This expense is recharged to the supplier: J&A does not reimburse the technician',
+        );
       if (
         expense.expense_policy_required === 1 &&
         (expense.commercial_classification_state !== 'classified' ||
@@ -9972,6 +9996,8 @@ export class V3Repository {
          FROM expense e JOIN project p ON p.id=e.project_id
          WHERE e.spent_on BETWEEN ? AND ? AND e.approval_state IN ('approved','locked')
            AND e.who_paid='worker'
+           -- D4: an external technician's expense carried by his supplier is not owed by J&A.
+           AND NOT ${supplierCarriesExpenseSql(this.sqlite, 'e')}
            AND NOT EXISTS (
              SELECT 1
                FROM record_correction_link rcl

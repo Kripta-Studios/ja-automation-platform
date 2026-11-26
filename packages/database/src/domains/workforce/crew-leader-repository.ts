@@ -389,6 +389,7 @@ export class CrewLeaderRepository {
       .prepare(
         `SELECT DISTINCT u.id,u.name FROM user u JOIN project_member pm ON pm.user_id=u.id
        WHERE pm.project_id=? AND pm.status='active' AND u.role='worker' AND u.status='active'
+         AND NOT EXISTS (SELECT 1 FROM supplier_user_profile s WHERE s.user_id=u.id)
        ORDER BY u.name`,
       )
       .all(projectId) as CrewPerson[];
@@ -449,6 +450,16 @@ export class CrewLeaderRepository {
         roles.some((person) => person.role !== 'worker' || person.status !== 'active')
       )
         throw new ValidationError('Active worker accounts required');
+      // Supplier technicians and coordinators record through their supplier workspace (D5):
+      // they are never a J&A crew chief or crew member (final verify 2026-11-26).
+      if (
+        this.sqlite
+          .prepare('SELECT 1 FROM supplier_user_profile WHERE user_id IN (?,?) LIMIT 1')
+          .get(input.chiefUserId, input.workerUserId)
+      )
+        throw new ValidationError(
+          'Supplier staff record hours through their supplier workspace and cannot be part of a crew delegation.',
+        );
       if (
         !this.member(input.projectId, input.chiefUserId, input.startsOn) ||
         !this.member(input.projectId, input.workerUserId, input.startsOn)

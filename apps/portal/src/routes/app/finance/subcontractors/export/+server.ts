@@ -11,6 +11,11 @@ import {
   settlementPeriod,
 } from '$lib/server/subcontractor-settlement';
 import { settlementText } from '../copy';
+import {
+  supplierExpenseStatusLabel,
+  supplierExpenseText,
+  type SupplierExpenseCopyKey,
+} from '$lib/portal/supplier-expense-copy';
 
 const escape = (value: string) =>
   value.replace(
@@ -45,6 +50,9 @@ export const GET: RequestHandler = ({ locals, url }) => {
       key: Parameters<typeof settlementText>[1],
       params: Record<string, string | number> = {},
     ) => settlementText(locale, key, params);
+    const se = (key: SupplierExpenseCopyKey, params: Record<string, string | number> = {}) =>
+      supplierExpenseText(locale, key, params);
+    const expenses = detail.expenses;
     const slug =
       detail.payee.name
         .normalize('NFD')
@@ -61,6 +69,7 @@ export const GET: RequestHandler = ({ locals, url }) => {
       const basis = (value: string | null | undefined) =>
         value === 'hourly' ? t('perHour') : value === 'daily' ? t('perDay') : (value ?? '');
       const columns = {
+        kind: se('colKind'),
         week: t('week'),
         subcontractor: t('supplier'),
         worker: t('person'),
@@ -72,8 +81,23 @@ export const GET: RequestHandler = ({ locals, url }) => {
         basis: `${t('rate')} (${t('perHour')} / ${t('perDay')})`,
         amount: t('amount'),
         status: t('status'),
+        expense: se('colWhat'),
+        pays: se('colPays'),
+        expenseStatus: se('colExpenseStatus'),
       };
-      const rows = detail.entries.map((entry) => ({
+      const weekCode = `${week.year}-W${String(week.week).padStart(2, '0')}`;
+      const blank = {
+        [columns.date]: '',
+        [columns.project]: '',
+        [columns.hours]: '',
+        [columns.rate]: '',
+        [columns.basis]: '',
+        [columns.expense]: '',
+        [columns.pays]: '',
+        [columns.expenseStatus]: '',
+      };
+      const rows: Array<Record<string, string | number>> = detail.entries.map((entry) => ({
+        [columns.kind]: se('kindHours'),
         [columns.week]: `${week.year}-W${String(week.week).padStart(2, '0')}`,
         [columns.subcontractor]: detail.payee.name,
         [columns.worker]: entry.workerName,
@@ -87,7 +111,48 @@ export const GET: RequestHandler = ({ locals, url }) => {
         [columns.amount]:
           entry.amountMinor === null ? '' : minorToInputText(entry.amountMinor, entry.currency),
         [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
+        [columns.expense]: '',
+        [columns.pays]: '',
+        [columns.expenseStatus]: '',
       }));
+      // D4: the technicians' expenses and who pays them, then the recharged totals.
+      for (const item of expenses?.items ?? [])
+        rows.push({
+          ...blank,
+          [columns.kind]: se('kindExpense'),
+          [columns.week]: weekCode,
+          [columns.subcontractor]: detail.payee.name,
+          [columns.worker]: item.workerName,
+          [columns.date]: item.spentOn,
+          [columns.currency]: item.sourceCurrency,
+          [columns.amount]: minorToInputText(item.sourceAmountMinor, item.sourceCurrency),
+          [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
+          [columns.expense]: [item.category, item.vendor].filter(Boolean).join(' · '),
+          [columns.pays]: se(`treat_${item.treatment}` as SupplierExpenseCopyKey),
+          [columns.expenseStatus]: supplierExpenseStatusLabel(locale, item),
+        });
+      const totalRows: Array<[SupplierExpenseCopyKey, Array<{ currency: string; minor: string }>]> =
+        expenses
+          ? [
+              ['toDeduct', expenses.toDeduct],
+              ['deducted', expenses.deducted],
+              ['toRecover', expenses.toRecover],
+              ['invoiced', expenses.invoiced],
+            ]
+          : [];
+      for (const [key, totals] of totalRows)
+        for (const total of totals)
+          rows.push({
+            ...blank,
+            [columns.kind]: se('kindTotal'),
+            [columns.week]: weekCode,
+            [columns.subcontractor]: detail.payee.name,
+            [columns.worker]: '',
+            [columns.currency]: total.currency,
+            [columns.amount]: `${key === 'toDeduct' ? '-' : ''}${minorToInputText(total.minor, total.currency)}`,
+            [columns.status]: t(detail.status as 'draft' | 'approved' | 'paid'),
+            [columns.expense]: se(key),
+          });
       return new Response(
         `\uFEFF${toCsv(rows, undefined, { numericColumns: [columns.hours, columns.rate, columns.amount] })}`,
         {
@@ -122,6 +187,35 @@ ${worker.entries
 </tbody></table>`,
       )
       .join('\n');
+    const expenseSection =
+      expenses && expenses.items.length > 0
+        ? `<h2>${escape(se('sectionTitle'))}</h2>
+<table><thead><tr><th>${escape(se('colDate'))}</th><th>${escape(se('colWho'))}</th><th>${escape(se('colWhat'))}</th><th>${escape(se('colPays'))}</th><th class="amount">${escape(se('colAmount'))}</th></tr></thead><tbody>
+${expenses.items
+  .map((item) => {
+    const status = supplierExpenseStatusLabel(locale, item);
+    return `<tr><td>${escape(date(item.spentOn))}</td><td>${escape(item.workerName)}</td><td>${escape([item.category, item.vendor].filter(Boolean).join(' · '))}</td><td>${escape(se(`treat_${item.treatment}` as SupplierExpenseCopyKey))}${status ? `<br><span class="muted">${escape(status)}</span>` : ''}</td><td class="amount">${escape(money(item.sourceAmountMinor, item.sourceCurrency))}</td></tr>`;
+  })
+  .join('')}
+</tbody></table>`
+        : '';
+    const expenseTotals = expenses
+      ? (
+          [
+            ['toDeduct', expenses.toDeduct, '−'],
+            ['deducted', expenses.deducted, ''],
+            ['toRecover', expenses.toRecover, ''],
+            ['invoiced', expenses.invoiced, ''],
+          ] as Array<[SupplierExpenseCopyKey, Array<{ currency: string; minor: string }>, string]>
+        )
+          .flatMap(([key, rows, sign]) =>
+            rows.map(
+              (total) =>
+                `<div><span>${escape(`${se(key)} · ${total.currency}`)}</span><strong>${sign}${escape(money(total.minor, total.currency))}</strong></div>`,
+            ),
+          )
+          .join('')
+      : '';
     const totals = detail.totals
       .map(
         (total) =>
@@ -131,9 +225,9 @@ ${worker.entries
     const html = `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><title>${escape(filename)}</title>
 <style>@page{size:A4;margin:14mm}body{font:10pt Arial,sans-serif;color:#17212b}h1{font-size:18pt;margin:0 0 2mm}h2{font-size:11pt;margin:6mm 0 1mm;border-bottom:1px solid #d9e1e7}
 .muted{color:#64748b}table{width:100%;border-collapse:collapse}th{background:#0f2d3d;color:#fff;text-align:left;font-size:8pt;padding:2mm}td{border-bottom:1px solid #d9e1e7;padding:2mm}
-.amount{text-align:right;white-space:nowrap}.totals{margin-top:6mm;display:flex;gap:6mm;justify-content:flex-end}.totals div{border-top:3px solid #e23d2d;padding-top:2mm;display:grid}.totals strong{font-size:14pt}</style></head>
+.amount{text-align:right;white-space:nowrap}.totals{margin-top:6mm;display:flex;flex-wrap:wrap;gap:6mm;justify-content:flex-end}.totals div{border-top:3px solid #e23d2d;padding-top:2mm;display:grid}.totals strong{font-size:14pt}</style></head>
 <body><h1>${escape(t('title'))}</h1><p><strong>${escape(detail.payee.name)}</strong> · ${escape(t('weekLabel', { week: week.week, range: `${week.start} – ${week.end}` }))} · ${escape(t(detail.status))}</p>
-${body}<div class="totals">${totals}</div>
+${body}${expenseSection}<div class="totals">${totals}${expenseTotals}</div>
 ${detail.status === 'paid' && detail.paidOn ? `<p class="muted">${escape(t('paidInfo', { date: detail.paidOn, reference: detail.reference ?? '' }))}</p>` : ''}
 </body></html>`;
     const pdf = renderHtmlToPdf(html);

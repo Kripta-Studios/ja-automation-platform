@@ -232,6 +232,27 @@
                 {#if row.payable}<small>{row.status === 'draft' ? t('estimate') : t('owed')}</small
                   >{/if}
               </span>
+              {#if row.expenses && (row.expenses.deducted.length || row.expenses.toDeduct.length || row.expenses.toRecover.length || row.expenses.invoiced.length)}
+                <span class="sub__rowexpenses" data-payee-expenses>
+                  {#each row.expenses.toDeduct as total (total.currency)}<small
+                      data-payee-expenses-deduct
+                      >{se('toDeduct')}: −{fmt(total.minor, total.currency)}</small
+                    >{/each}
+                  {#each row.expenses.deducted as total (total.currency)}<small
+                      data-payee-expenses-deducted
+                      >{se('deducted')}: {fmt(total.minor, total.currency)}</small
+                    >{/each}
+                  {#each row.expenses.toRecover as total (total.currency)}<small
+                      class="sub__recovertag"
+                      data-payee-expenses-recover
+                      >{se('toRecover')}: {fmt(total.minor, total.currency)}</small
+                    >{/each}
+                  {#each row.expenses.invoiced as total (total.currency)}<small
+                      data-payee-expenses-invoiced
+                      >{se('invoiced')}: {fmt(total.minor, total.currency)}</small
+                    >{/each}
+                </span>
+              {/if}
               {#if row.payable}
                 <span class={`sub__badge sub__badge--${statusVariant(row.status)}`}
                   >{t(row.status)}</span
@@ -866,6 +887,17 @@
     border-top: 1px solid #e5e9ee;
     padding-top: 0.5rem;
     min-width: 0;
+  }
+  .sub__rowexpenses {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.1rem 1rem;
+    grid-column: 1 / -1;
+    order: 10;
+  }
+  .sub__recovertag {
+    color: #9a2a1d;
+    font-weight: 600;
   }
   .sub__recover {
     margin-top: 0.75rem;

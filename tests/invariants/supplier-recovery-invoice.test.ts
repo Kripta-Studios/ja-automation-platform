@@ -9,6 +9,7 @@ import {
   createSupplierRecoveryInvoice,
   markSettlementPaid,
   settlementDetail,
+  settlementOverview,
 } from '../../apps/portal/src/lib/server/subcontractor-settlement.ts';
 import {
   closeB5LifecycleSecurityFixture,
@@ -303,5 +304,18 @@ describe('invoice to the supplier for what is still to recover', () => {
         .prepare("SELECT COUNT(*) n FROM invoice WHERE stream_type='supplier_recharge'")
         .get(),
     ).toEqual({ n: 0 });
+  });
+
+  it('the overview shows deducted and still-to-recover expenses per supplier', () => {
+    const { context, expense } = setup();
+    expense('2026-11-17', 90000);
+    approveSettlement(context, { payee, ...week });
+    const overview = settlementOverview(context, { ...week, q: '', status: 'all', limit: 25 });
+    expect(overview.rows.find((row) => row.key === payee)?.expenses).toEqual({
+      deducted: [],
+      toDeduct: [],
+      toRecover: [{ currency: 'EUR', minor: '90000' }],
+      invoiced: [],
+    });
   });
 });

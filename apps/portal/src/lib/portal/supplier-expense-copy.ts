@@ -220,6 +220,12 @@ const copy = {
     'Faturas ao fornecedor deste período',
   ],
   recoverCount: ['{count} expense(s)', '{count} gasto(s)', '{count} despesa(s)'],
+  // Exports and overview
+  colKind: ['Line', 'Línea', 'Linha'],
+  kindHours: ['Hours', 'Horas', 'Horas'],
+  kindExpense: ['Expense', 'Gasto', 'Despesa'],
+  kindTotal: ['Total', 'Total', 'Total'],
+  colExpenseStatus: ['Expense status', 'Estado del gasto', 'Situação da despesa'],
   // Technician (Expenses page) and coordinator (My team)
   techJa: [
     '{project}: J&A reimburses the expenses you pay yourself.',

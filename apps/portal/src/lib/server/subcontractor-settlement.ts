@@ -424,8 +424,19 @@ export function settlementOverview(
       )
     : payees;
   // Price only the payees that can be shown (status filter needs each summary).
+  type Totals = Array<{ currency: string; minor: string }>;
   const rows: Array<
-    PayeeSummary & ReturnType<typeof summarize> & { payable: boolean; interval: PayInterval | null }
+    PayeeSummary &
+      ReturnType<typeof summarize> & {
+        payable: boolean;
+        interval: PayInterval | null;
+        expenses: {
+          deducted: Totals;
+          toDeduct: Totals;
+          toRecover: Totals;
+          invoiced: Totals;
+        } | null;
+      }
   > = [];
   let matched = 0;
   for (const payee of searched) {
@@ -441,11 +452,31 @@ export function settlementOverview(
     if (input.status !== 'all' && summary.status !== input.status) continue;
     matched += 1;
     if (rows.length < input.limit) {
+      // D4: recharged expenses of a supplier's technicians, in the list too (plain totals).
+      const expenses =
+        payee.kind === 'supplier'
+          ? supplierExpenseSummary(
+              supplierExpenseItems(context.sqlite, scope).map((item) => ({
+                ...item,
+                workerName: '',
+              })),
+              withinWeek(settlements, input.start, input.end),
+              summary.status,
+            )
+          : null;
       rows.push({
         ...payee,
         ...summary,
         payable: isPayableSubcontractor(payee.kind),
         interval: payeeInterval(context.sqlite, payee.key),
+        expenses: expenses
+          ? {
+              deducted: expenses.deducted,
+              toDeduct: expenses.toDeduct,
+              toRecover: expenses.toRecover,
+              invoiced: expenses.invoiced,
+            }
+          : null,
       });
     }
   }

@@ -2609,6 +2609,7 @@
               poCap={money(project.po_cap_minor, String(project.currency))}
               rules={billingRules}
               clientInterval={data.clientBillingInterval ?? null}
+              expenseInvoice={data.expenseInvoice ?? null}
               legalEntities={billingSetup.legalEntities}
               taxProfiles={billingSetup.taxProfiles}
               contacts={billingSetup.contacts}

@@ -15,6 +15,7 @@
     standaloneActionMessage,
   } from '../../../standalone-locale';
   import type { PortalLocale } from '$lib/portal-i18n';
+  import { expenseInvoiceText } from '$lib/portal/expense-invoice-copy';
   import {
     renderInvoiceDocument,
     type InvoiceTemplateSnapshot,
@@ -1351,6 +1352,14 @@
       {#if isCreditNote && invoice.credit_note_for_invoice_number}
         · {q('creditNoteOf').replace('{number}', String(invoice.credit_note_for_invoice_number))}{/if}
     </p>
+    {#if !isCreditNote && invoice.stream_type === 'expense'}
+      <!-- Expenses on a separate invoice (owner request 2026-11-26). -->
+      <p class="invoice-page-heading__kind" data-invoice-expense-title>
+        {[expenseInvoiceText(locale, 'expenseInvoice'), invoice.project_name, `${invoice.period_start ?? ''} – ${invoice.period_end ?? ''}`]
+          .filter(Boolean)
+          .join(' — ')}
+      </p>
+    {/if}
     {#if !invoice.invoice_number && numberPreview?.number}
       <p class="invoice-page-heading__number" data-invoice-will-be>
         {q('willBeNumber').replace('{number}', String(numberPreview.number))}
@@ -2737,6 +2746,10 @@
   .invoice-page-heading p {
     margin: 0.4rem 0 0;
     color: #deddd8;
+  }
+  .invoice-page-heading .invoice-page-heading__kind {
+    color: #f7f7f5;
+    font-weight: 600;
   }
   .invoice-source-guidance a {
     display: inline-flex;

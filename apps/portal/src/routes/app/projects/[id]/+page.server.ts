@@ -27,6 +27,9 @@ import {
   ProjectBillingSetupRepository,
   PayBillingIntervalRepository,
   clientBillingInterval,
+  ExpenseInvoiceSettingsRepository,
+  expenseArrangementStart,
+  projectExpenseArrangement,
   ProjectPersonDefaultsRepository,
   ProjectDefaultsDateConflictError,
   ValidationError,
@@ -232,6 +235,8 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
           : [],
       billingRules,
       clientBillingInterval: clientInterval,
+      // Owner request 2026-11-26: expenses on the same invoice or on a separate invoice.
+      expenseInvoice: financeVisible ? projectExpenseInvoiceView(context.sqlite, params.id) : null,
       // Owner request 2026-11-25: optional per-person extras (per diem, allowance, overtime).
       assignmentExtras:
         context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
@@ -1312,7 +1317,75 @@ function detailFailure(
   }
   return actionFailure(cause, extras);
 }
+/** The project's expense invoice setting in plain terms, with the day each choice would start. */
+function projectExpenseInvoiceView(sqlite: ReturnType<typeof openPortalRepository>['sqlite'], projectId: string) {
+  const arrangement = projectExpenseArrangement(sqlite, projectId);
+  return {
+    mode: arrangement.mode,
+    source: arrangement.source,
+    streams: arrangement.streams,
+    clientMode: arrangement.clientMode,
+    sameFrom: expenseArrangementStart(sqlite, projectId, 'same'),
+    separateFrom: expenseArrangementStart(sqlite, projectId, 'separate'),
+  };
+}
+
 export const actions: Actions = {
+  /** Expenses on the same invoice or on a separate one: rearranges the project's streams (audited). */
+  setExpenseInvoice: async ({ request, locals, params }) => {
+    const data = await request.formData();
+    const extras = { action: 'setExpenseInvoice', actionName: 'setExpenseInvoice' };
+    if (!locals.user)
+      return actionFail(401, 'action.error.unauthenticated', {}, undefined, {
+        ...extras,
+        code: 'PROJECT_DETAIL_SIGN_IN_REQUIRED',
+      });
+    const mode = String(data.get('expenseInvoice') ?? '');
+    if (mode !== 'same' && mode !== 'separate')
+      return actionFail(400, 'action.error.validation', {}, 'Choose where expenses are invoiced', {
+        ...extras,
+        code: 'EXPENSE_INVOICE_INVALID',
+      });
+    let context: ReturnType<typeof openPortalRepository> | undefined;
+    try {
+      context = openPortalRepository(locals);
+      const change = new ExpenseInvoiceSettingsRepository(context.sqlite, context.repository).setProjectMode(
+        context.principal,
+        { projectId: params.id, mode },
+      );
+      return {
+        ...actionSuccess('action.projects.projectUpdated', {}, 'Expense invoicing saved'),
+        ...extras,
+        expenseInvoiceFrom: change.effectiveFrom,
+      };
+    } catch (cause) {
+      const status =
+        cause instanceof AccessDeniedError || cause instanceof V3AccessDeniedError
+          ? 403
+          : cause instanceof ConflictError
+            ? 409
+            : cause instanceof ValidationError
+              ? 400
+              : 500;
+      if (status === 500) {
+        console.error('Expense invoice setting failed', cause);
+        return actionFail(500, 'action.error.unavailable', {}, undefined, {
+          ...extras,
+          code: 'EXPENSE_INVOICE_FAILED',
+        });
+      }
+      const reason = cause instanceof Error ? cause.message : undefined;
+      return actionFail(
+        status,
+        status === 409 ? 'action.error.conflict' : status === 403 ? 'action.error.forbidden' : 'action.error.validation',
+        {},
+        reason,
+        { ...extras, code: 'EXPENSE_INVOICE_FAILED', ...(reason ? { expenseInvoiceMessage: reason } : {}) },
+      );
+    } finally {
+      context?.sqlite.close();
+    }
+  },
   saveProjectPersonDefaults: async ({ request, locals, params }) => {
     const values = detailValues(await request.formData());
     const schema = projectPersonConfigSchema.safeExtend({

@@ -1,6 +1,8 @@
 <script lang="ts">
   import { base } from '$app/paths';
   import { intervalCopy, intervalLabel, periodRange, type IntervalCopyKey } from '../interval-copy';
+  import { expenseInvoiceSummary, expenseInvoiceText, type ExpenseInvoiceCopyKey } from '../expense-invoice-copy';
+  import type { PortalLocale } from '$lib/portal-i18n';
   import { onMount, tick, untrack } from 'svelte';
   import { SvelteMap } from 'svelte/reactivity';
   import { enhance } from '$app/forms';
@@ -47,6 +49,7 @@
     t,
     locale,
     clientInterval = null,
+    expenseInvoice = null,
     personDraftStatus = $bindable<(() => { dirty: boolean; pending: boolean }) | null>(null),
   }: {
     projectId: string;
@@ -106,8 +109,28 @@
       anchorDate: string | null;
       monthlyCutoffDay: number | null;
     } | null;
+    /** Expenses on the same or a separate invoice (owner request 2026-11-26). */
+    expenseInvoice?: {
+      mode: 'same' | 'separate';
+      source: 'project' | 'client' | 'default';
+      streams: string;
+      clientMode: 'same' | 'separate' | null;
+      sameFrom: string | null;
+      separateFrom: string | null;
+    } | null;
     personDraftStatus?: (() => { dirty: boolean; pending: boolean }) | null;
   } = $props();
+  const ec = (key: ExpenseInvoiceCopyKey, params: Record<string, string | number> = {}) =>
+    expenseInvoiceText(locale as PortalLocale, key, params);
+  let expenseEditing = $state(false);
+  let expenseChoice = $state<'same' | 'separate'>('same');
+  let expenseSaving = $state(false);
+  let expenseMessage = $state('');
+  const expenseDate = (value: string) =>
+    new Date(`${value}T12:00:00Z`).toLocaleDateString(
+      locale === 'es' ? 'es-ES' : locale === 'pt' ? 'pt-BR' : 'en-GB',
+      { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' },
+    );
 
   const entityChoices = $derived(
     legalEntities.filter((item) => String(item.currency) === currency),
@@ -295,7 +318,14 @@
     return {
       mode: saved(
         'mode',
-        !labor || Number(labor.include_expenses ?? 0) === 1 ? 'combined' : 'separate',
+        // A new setup starts from the client default (expenses on a separate invoice or not).
+        !labor
+          ? expenseInvoice?.clientMode === 'separate'
+            ? 'separate'
+            : 'combined'
+          : Number(labor.include_expenses ?? 0) === 1
+            ? 'combined'
+            : 'separate',
       ) as 'combined' | 'separate',
       effectiveFrom: saved(
         'effectiveFrom',
@@ -924,6 +954,83 @@
       <span>({ic('fromClient')})</span>
     {/if}
   </p>
+
+  {#if expenseInvoice}
+    {@const setting = expenseInvoice}
+    <div class="billing-setup__expenses" data-project-expense-invoice={setting.mode}>
+      <p class="billing-setup__interval">
+        <strong>{ec('title')}: {expenseInvoiceSummary(locale as PortalLocale, setting.mode, setting.source)}</strong>
+        <span>· {ec(setting.mode === 'separate' ? 'separateHelp' : 'sameHelp')}</span>
+        {#if canEdit && !expenseEditing && setting.streams !== 'none'}
+          <button
+            type="button"
+            class="billing-setup__linkbtn"
+            onclick={() => {
+              expenseChoice = setting.mode;
+              expenseMessage = '';
+              expenseEditing = true;
+            }}
+            data-project-expense-invoice-edit>{ec('change')}</button
+          >
+        {/if}
+      </p>
+      {#if setting.streams === 'none'}
+        <p class="billing-setup__muted">{ec('projectNeedsSetup')}</p>
+      {/if}
+      {#if expenseMessage}<p class="billing-setup__muted" role="status">{expenseMessage}</p>{/if}
+      {#if expenseEditing}
+        {@const from = expenseChoice === 'separate' ? setting.separateFrom : setting.sameFrom}
+        <form
+          method="POST"
+          action="?/setExpenseInvoice"
+          class="billing-setup__expense-form"
+          use:enhance={() => {
+            expenseSaving = true;
+            return async ({ result, update }) => {
+              expenseSaving = false;
+              if (result.type === 'success') {
+                expenseEditing = false;
+                expenseMessage = ec('saved');
+                await update({ reset: false });
+              } else {
+                const data = (result.type === 'failure' ? result.data : null) as { expenseInvoiceMessage?: string } | null;
+                expenseMessage = data?.expenseInvoiceMessage ?? ec('saveFailed');
+              }
+            };
+          }}
+        >
+          <fieldset>
+            <legend class="billing-setup__sr">{ec('title')}</legend>
+            {#each ['same', 'separate'] as const as option (option)}
+              <label class="billing-setup__expense-option"
+                ><input
+                  type="radio"
+                  name="expenseInvoice"
+                  value={option}
+                  bind:group={expenseChoice}
+                  data-project-expense-invoice-option={option}
+                /><span
+                  ><strong>{ec(option)}</strong><small>{ec(option === 'separate' ? 'separateHelp' : 'sameHelp')}</small></span
+                ></label
+              >
+            {/each}
+          </fieldset>
+          {#if from && expenseChoice !== setting.mode}
+            <p class="billing-setup__muted" data-project-expense-invoice-from>{ec('appliesFrom', { date: expenseDate(from) })}</p>
+          {/if}
+          <div class="billing-setup__expense-actions">
+            <button type="button" class="secondary-button" onclick={() => (expenseEditing = false)}>{ec('cancel')}</button>
+            <button
+              type="submit"
+              class="primary-button"
+              disabled={expenseSaving || expenseChoice === setting.mode}
+              data-project-expense-invoice-save>{expenseSaving ? ec('saving') : ec('save')}</button
+            >
+          </div>
+        </form>
+      {/if}
+    </div>
+  {/if}
 
   {#if version > 0}
     <div class:warning={issuingPrerequisites.length > 0} class="readiness-note" role="status">
@@ -2208,6 +2315,79 @@
 </section>
 
 <style>
+  .billing-setup__expenses {
+    margin: 0 0 0.75rem;
+  }
+  .billing-setup__expenses .billing-setup__interval {
+    align-items: center;
+    margin-bottom: 0.25rem;
+  }
+  .billing-setup__muted {
+    margin: 0.25rem 0;
+    color: var(--ja-text-secondary, #57574f);
+    font-size: 0.9rem;
+  }
+  .billing-setup__sr {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .billing-setup__linkbtn {
+    min-height: 2.75rem;
+    padding: 0 0.5rem;
+    border: 0;
+    background: none;
+    color: var(--ja-accent, #1d4ed8);
+    font: inherit;
+    font-weight: 600;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  .billing-setup__expense-form {
+    display: grid;
+    gap: 0.6rem;
+    max-width: 40rem;
+  }
+  .billing-setup__expense-form fieldset {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .billing-setup__expense-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid var(--ja-line, #e4e4e2);
+    border-radius: 0.6rem;
+    cursor: pointer;
+  }
+  .billing-setup__expense-option input {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+  }
+  .billing-setup__expense-option span {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .billing-setup__expense-option small {
+    color: var(--ja-text-secondary, #57574f);
+  }
+  .billing-setup__expense-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
   .billing-setup__interval {
     margin: 0.25rem 0 0.75rem;
     display: flex;

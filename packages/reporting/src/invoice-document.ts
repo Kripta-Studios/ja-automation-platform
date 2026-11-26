@@ -84,6 +84,12 @@ const creditNoteLabels = {
     creditsInvoice: 'CREDITA A FATURA',
   },
 } as const;
+/** Expenses on a separate invoice (owner request 2026-11-26): it reads as an expense invoice. */
+const expenseDocumentLabels = {
+  en: { draft: 'DRAFT EXPENSE INVOICE', title: 'EXPENSE INVOICE', heading: 'Expenses' },
+  es: { draft: 'FACTURA DE GASTOS BORRADOR', title: 'FACTURA DE GASTOS', heading: 'Gastos' },
+  pt: { draft: 'FATURA DE DESPESAS RASCUNHO', title: 'FATURA DE DESPESAS', heading: 'Despesas' },
+} as const;
 const plannedDateLabels = {
   en: 'PLANNED ISSUE DATE',
   es: 'FECHA DE EMISIÓN PREVISTA',
@@ -165,6 +171,36 @@ export function renderInvoiceDocument(
     ['draft', 'approved', 'superseded'].includes(text(snapshot.state).toLowerCase()) ||
     /^(DRAFT|PREVIEW)/iu.test(text(snapshot.number));
   const number = text(snapshot.number ?? snapshot.invoiceNumber) || l[2];
+  // Issued invoices carry documentKind from their issue; drafts follow their billing stream.
+  // Older issued expense invoices keep the header their PDF was frozen with.
+  const expenseDocument =
+    !creditNote &&
+    (snapshot.documentKind === 'expenses' ||
+      (draft && text(record(snapshot.commercial).streamType) === 'expense'));
+  const ex = expenseDocumentLabels[rendered.locale];
+  const servicePeriod = record(snapshot.servicePeriod);
+  const periodText = [
+    date(servicePeriod.start ?? snapshot.periodStart ?? snapshot.period_start),
+    date(servicePeriod.end ?? snapshot.periodEnd ?? snapshot.period_end),
+  ]
+    .filter((value) => value !== '—')
+    .join(' – ');
+  const documentTitle = expenseDocument
+    ? `<p class="invoice-document-title" data-invoice-document-title="expenses">${escape(
+        [ex.heading, text(project.name), periodText].filter(Boolean).join(' — '),
+      )}</p>`
+    : '';
+  const documentLabel = creditNote
+    ? draft
+      ? cn.draft
+      : cn.title
+    : expenseDocument
+      ? draft
+        ? ex.draft
+        : ex.title
+      : draft
+        ? l[0]
+        : l[1];
   // A corrected issued invoice (same number, new version) says which version it is.
   const versionNumber = Number(record(snapshot.version).number ?? 1);
   const versionLabel = { en: 'Corrected · version', es: 'Corregida · versión', pt: 'Corrigida · versão' }[
@@ -353,7 +389,7 @@ export function renderInvoiceDocument(
         '<tr data-invoice-source-type="$1" data-invoice-source-id="$2" data-invoice-line-id="$3" data-invoice-line-key="$4" data-invoice-edit="line" role="button" tabindex="0" class="invoice-edit-line">',
       )
     : rendered.lineBody;
-  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(creditNote ? (draft ? cn.draft : cn.title) : draft ? l[0] : l[1])}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header><section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines.join('')}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(creditNote ? cn.title : l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
+  const bodyHtml = `<article id="ja-invoice-document" class="invoice-canonical" data-invoice-template="${escape(rendered.definition.id)}"><header><div class="brand-block"><img src="${escape(options.logoUrl ?? '/j-aautomation/app/logo.png')}" alt="J&amp;A Automation"><div class="company-details"><strong>${field('issuingAuthority', issuerName, fieldContext.name)}</strong>${companyLines}</div></div><div class="invoice-identity"><span>${escape(documentLabel)}</span><strong>${field('invoiceNumber', number, fieldContext.heading)}</strong>${numberNotice}<small data-invoice-document-state="${escape(text(snapshot.state))}">${escape(invoiceDocumentStateLabel(snapshot.state, rendered.locale))}</small></div></header>${documentTitle}<section class="invoice-parties"><div><span>${escape(l[3])}</span><strong>${field('client', client.legalName ?? client.legal_name ?? client.name)}</strong>${clientIdentity ? `<p class="invoice-client-identity" data-invoice-client-identity>${escape(clientIdentity)}</p>` : ''}${partyLines.join('')}</div></section><section class="invoice-meta">${metadata}</section>${identifierMeta === '<section class="invoice-references"></section>' ? '' : identifierMeta}${terms}<section class="invoice-line-items">${lineBody}</section>${totals}<footer><span>J&amp;A AUTOMATION · ${escape(creditNote ? cn.title : expenseDocument ? ex.title : l[1])}</span><span>${escape([project.number, project.name].filter((v) => text(v)).join(' / '))}</span></footer></article>`;
   return {
     bodyHtml,
     css: invoiceDocumentCss,
@@ -386,6 +422,7 @@ export const invoiceDocumentCss = `${documentFontCss}
 .invoice-canonical#ja-invoice-document .invoice-number-notice{display:block;font:400 11px 'Geist',Arial,sans-serif;max-width:24em;color:#575650}
 .invoice-canonical#ja-invoice-document .invoice-identity>small{display:block;margin:0;font:400 12px 'Geist',Arial,sans-serif}
 .invoice-canonical#ja-invoice-document .invoice-identity>span,.invoice-canonical#ja-invoice-document .invoice-meta span,.invoice-canonical#ja-invoice-document .invoice-parties span{color:#67675f;font:700 10px 'Geist Mono',Consolas,monospace;letter-spacing:.06em}
+.invoice-canonical#ja-invoice-document .invoice-document-title{margin:18px 0 0;font-size:16px;font-weight:700;color:#2a2926}
 .invoice-canonical#ja-invoice-document .invoice-parties{display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:28px 0}
 .invoice-canonical#ja-invoice-document .invoice-parties>div,.invoice-canonical#ja-invoice-document .invoice-meta>div{display:grid;gap:7px;min-width:0}
 .invoice-canonical#ja-invoice-document .invoice-parties p{margin:0;white-space:pre-line}

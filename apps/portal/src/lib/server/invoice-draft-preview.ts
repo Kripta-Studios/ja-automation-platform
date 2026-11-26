@@ -105,6 +105,7 @@ export function draftInvoiceTemplateSnapshot(
     periodStart: invoice.period_start,
     periodEnd: invoice.period_end,
     commercial: { streamType: invoice.stream_type, paymentTermsDays: invoice.payment_terms_days },
+    ...(invoice.stream_type === 'expense' ? { documentKind: 'expenses' } : {}),
     calculation: {
       currency: invoice.currency,
       subtotalMinor: subtotal.toString(),
@@ -181,6 +182,7 @@ export function invoiceDocumentSnapshot(
     discountMinor: frozen.discountMinor ?? '0',
     // Older issued invoices keep exactly the header their PDF was rendered with.
     documentHeaderVersion: frozen.documentHeaderVersion,
+    ...(frozen.documentKind === 'expenses' ? { documentKind: 'expenses' } : {}),
     // Corrected issued invoices (migration 0092) show their version number.
     ...(frozen.version && typeof frozen.version === 'object' ? { version: frozen.version } : {}),
   };

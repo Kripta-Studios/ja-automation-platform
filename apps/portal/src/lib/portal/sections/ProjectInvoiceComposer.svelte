@@ -12,6 +12,7 @@
   import { journeyText, journeyReason, journeyMoney } from '../project-invoice-journey';
   import { localeDecimalHoursFromMinutes } from '../minute-hours';
   import { intervalCopy, intervalLabel, periodRange } from '../interval-copy';
+  import { expenseInvoiceText } from '../expense-invoice-copy';
   import type { InvoiceCompositionSource, InvoiceCompositionSourceRef } from '@ja/database';
 
   type Rule = Record<string, unknown>;
@@ -122,6 +123,18 @@
   let start = $state('');
   let end = $state('');
   const rule = $derived(supportedRules.find((candidate) => String(candidate.id) === ruleId));
+  /** Expenses on the same or a separate invoice (owner request 2026-11-26), for this stream. */
+  const expenseNote = $derived.by(() => {
+    if (!rule || String(rule.stream_type) !== 'labor') return null;
+    if (Number(rule.include_expenses ?? rule.includeExpenses) === 1) return 'composerSame' as const;
+    const separate = supportedRules.some(
+      (candidate) =>
+        String(candidate.stream_type) === 'expense' &&
+        String(candidate.project_id) === String(rule.project_id) &&
+        !candidate.effective_to,
+    );
+    return separate ? ('composerSeparate' as const) : null;
+  });
   const currentProjectId = $derived(projectId ?? String(rule?.project_id ?? ''));
   const selectedProjectTimezone = $derived.by(() => {
     const explicit = String(projectTimezone ?? '').trim();
@@ -996,6 +1009,15 @@
               >{/each}
           </select></label
         >
+        {#if rule && expenseNote}
+          <p class="composer-field-help" data-composer-expense-invoice={expenseNote}>
+            {expenseInvoiceText(locale, expenseNote)}
+            <a
+              href={`${base}/app/projects/${encodeURIComponent(String(rule.project_id))}?tab=billing&lang=${locale}#project-panel-billing`}
+              >{expenseInvoiceText(locale, 'composerChange')}</a
+            >
+          </p>
+        {/if}
         {#if rule}
           <p class="composer-field-help" data-stream-effective-interval>
             {text('effectiveInterval')}: {ruleEffectiveLabel(rule)}

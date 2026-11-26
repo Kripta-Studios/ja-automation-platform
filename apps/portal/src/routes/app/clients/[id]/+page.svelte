@@ -25,6 +25,7 @@
   import type { PortalLocale } from '$lib/portal-i18n';
   import { deserialize } from '$app/forms';
   import { clientBillingIssues, clientBillingIssueText } from '$lib/portal/client-billing-issues';
+  import { expenseInvoiceText, type ExpenseInvoiceCopyKey } from '$lib/portal/expense-invoice-copy';
   import {
     intervalCopy,
     intervalLabel,
@@ -61,6 +62,13 @@
   let intervalCutoff = $state('');
   let intervalMessage = $state('');
   let intervalError = $state(false);
+  // Owner request 2026-11-26: client default for expenses on the same or a separate invoice.
+  const ec = (key: ExpenseInvoiceCopyKey, params: Record<string, string | number> = {}) =>
+    expenseInvoiceText(locale, key, params);
+  let expenseEditing = $state(false);
+  let expenseChoice = $state('');
+  let expenseMessage = $state('');
+  let expenseError = $state(false);
   function startIntervalEdit() {
     intervalChoice = data.billingInterval?.cadence ?? '';
     intervalAnchor = data.billingInterval?.anchorDate ?? '';
@@ -387,6 +395,84 @@
             >
             <button type="submit" class="client-primary" data-client-interval-save
               >{ic('save')}</button
+            >
+          </div>
+        </form>
+      {/if}
+    </section>
+  {/if}
+
+  {#if data.expenseInvoice}
+    {@const setting = data.expenseInvoice}
+    <section class="client-card" aria-labelledby="client-expense-invoice-title" data-client-expense-invoice>
+      <div class="client-card__head">
+        <h2 id="client-expense-invoice-title">{ec('title')}</h2>
+        {#if data.canEdit && !expenseEditing}
+          <button
+            type="button"
+            class="client-secondary"
+            onclick={() => {
+              expenseChoice = setting.mode ?? '';
+              expenseMessage = '';
+              expenseEditing = true;
+            }}
+            data-client-expense-invoice-edit>{ec('change')}</button
+          >
+        {/if}
+      </div>
+      {#if expenseMessage}
+        <p class:client-interval__error={expenseError} role="status">{expenseMessage}</p>
+      {/if}
+      {#if !expenseEditing}
+        <p class="client-interval__now">
+          <strong data-client-expense-invoice-mode={setting.mode ?? ''}
+            >{setting.mode ? ec(setting.mode) : ec('notSet')}</strong
+          >
+          {#if setting.mode}<span>· {ec(setting.mode === 'separate' ? 'separateHelp' : 'sameHelp')}</span>{/if}
+        </p>
+        <p class="client-muted">{ec('clientHelp')}</p>
+      {:else}
+        <form
+          method="POST"
+          action="?/setExpenseInvoice"
+          class="client-expense__form"
+          use:enhance={() =>
+            async ({ result }) => {
+              if (result.type === 'success') {
+                expenseEditing = false;
+                expenseError = false;
+                expenseMessage = ec('saved');
+                await invalidateAll();
+              } else {
+                expenseError = true;
+                expenseMessage = ec('saveFailed');
+              }
+            }}
+        >
+          <input type="hidden" name="expectedVersion" value={setting.version} />
+          <fieldset>
+            <legend class="client-muted">{ec('clientHelp')}</legend>
+            <label class="client-expense__option"
+              ><input type="radio" name="expenseInvoice" value="same" bind:group={expenseChoice} />
+              <span><strong>{ec('same')}</strong><small>{ec('sameHelp')}</small></span></label
+            >
+            <label class="client-expense__option"
+              ><input
+                type="radio"
+                name="expenseInvoice"
+                value="separate"
+                bind:group={expenseChoice}
+                data-client-expense-invoice-separate
+              />
+              <span><strong>{ec('separate')}</strong><small>{ec('separateHelp')}</small></span></label
+            >
+          </fieldset>
+          <div class="client-interval__actions">
+            <button type="button" class="client-secondary" onclick={() => (expenseEditing = false)}
+              >{ec('cancel')}</button
+            >
+            <button type="submit" class="client-primary" disabled={!expenseChoice} data-client-expense-invoice-save
+              >{ec('save')}</button
             >
           </div>
         </form>
@@ -754,6 +840,42 @@
     border-radius: 0.75rem;
     background: #fff;
     padding: clamp(1rem, 2vw, 1.4rem);
+  }
+  .client-expense__form {
+    display: grid;
+    gap: 0.75rem;
+  }
+  .client-expense__form fieldset {
+    display: grid;
+    gap: 0.5rem;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    min-width: 0;
+  }
+  .client-expense__option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: 2.75rem;
+    padding: 0.6rem 0.75rem;
+    border: 1px solid #e4e4e2;
+    border-radius: 0.6rem;
+    cursor: pointer;
+  }
+  .client-expense__option input {
+    flex: none;
+    width: 1.15rem;
+    height: 1.15rem;
+    margin-top: 0.15rem;
+  }
+  .client-expense__option span {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .client-expense__option small {
+    color: #6b6a64;
   }
   .client-interval__now {
     margin: 0.25rem 0;

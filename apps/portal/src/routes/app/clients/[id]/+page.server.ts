@@ -2,9 +2,11 @@ import { error, fail, redirect } from '@sveltejs/kit';
 import {
   AccessDeniedError,
   ConflictError,
+  ExpenseInvoiceSettingsRepository,
   PayBillingIntervalRepository,
   ValidationError,
   clientBillingInterval,
+  clientExpenseInvoiceSetting,
 } from '@ja/database';
 import { nextPeriodForCadence } from '@ja/billing-engine';
 import { parseClientIntervalForm } from '$lib/server/intervals';
@@ -158,7 +160,12 @@ export const load: PageServerLoad = ({ locals, params }) => {
       } catch {
         intervalNext = null;
       }
+    // Owner request 2026-11-26: expenses on the same invoice or on a separate invoice.
+    const expenseSetting = financeVisible ? clientExpenseInvoiceSetting(sqlite, params.id) : null;
     return {
+      expenseInvoice: financeVisible
+        ? { mode: expenseSetting?.mode ?? null, version: expenseSetting?.version ?? 0 }
+        : null,
       billingInterval: financeVisible
         ? {
             cadence: interval?.cadence ?? null,
@@ -195,6 +202,34 @@ export const load: PageServerLoad = ({ locals, params }) => {
 };
 
 export const actions: Actions = {
+  /** Client default: expenses on the same invoice or on a separate one (Owner/Finance, audited). */
+  setExpenseInvoice: async ({ locals, params, request }) => {
+    if (!locals.user) redirect(303, '/j-aautomation/app/login');
+    const form = await request.formData();
+    const raw = String(form.get('expenseInvoice') ?? '');
+    const expectedVersion = Number(form.get('expectedVersion') ?? '');
+    if (!['', 'same', 'separate'].includes(raw) || !Number.isSafeInteger(expectedVersion))
+      return fail(400, { success: false, action: 'setExpenseInvoice', message: 'Choose where expenses are invoiced.' });
+    const context = openPortalRepository(locals);
+    try {
+      new ExpenseInvoiceSettingsRepository(context.sqlite, context.repository).setClientMode(context.principal, {
+        clientId: params.id,
+        mode: raw === '' ? null : (raw as 'same' | 'separate'),
+        expectedVersion,
+      });
+      return { success: true, action: 'setExpenseInvoice' };
+    } catch (caught) {
+      if (caught instanceof AccessDeniedError)
+        return fail(403, { success: false, action: 'setExpenseInvoice', message: caught.message });
+      if (caught instanceof ConflictError)
+        return fail(409, { success: false, action: 'setExpenseInvoice', message: caught.message });
+      if (caught instanceof ValidationError)
+        return fail(400, { success: false, action: 'setExpenseInvoice', message: caught.message });
+      throw caught;
+    } finally {
+      context.sqlite.close();
+    }
+  },
   /** Client default invoice interval (Owner/Finance, audited version). */
   setBillingInterval: async ({ locals, params, request }) => {
     if (!locals.user) redirect(303, '/j-aautomation/app/login');

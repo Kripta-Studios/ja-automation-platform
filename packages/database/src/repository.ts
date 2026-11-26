@@ -11081,6 +11081,8 @@ export class PortalRepository {
         },
         // New documents print client number/code, project and cost center in the header.
         documentHeaderVersion: 2,
+        // Expenses on a separate invoice print as an expense invoice (owner request 2026-11-26).
+        ...(invoice.stream_type === 'expense' && !creditNoteFor ? { documentKind: 'expenses' } : {}),
         ...(creditNoteFor
           ? {
               documentType: 'credit_note',

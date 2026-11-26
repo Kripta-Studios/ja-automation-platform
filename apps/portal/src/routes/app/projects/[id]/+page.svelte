@@ -595,11 +595,10 @@
       items.push({
         id: 'approvals-others',
         tone: 'info',
-        text: h('attApprovalsOthers', {
+        // Singular and plural agree in EN/ES/PT ("1 record … waits", final verify 2026-11-26).
+        text: h(pendingTotal - reviewableTotal === 1 ? 'attApprovalsOthersOne' : 'attApprovalsOthers', {
           hours: hours(hub.pending.timeMinutes - reviewable.timeMinutes),
-          count: h(pendingTotal - reviewableTotal === 1 ? 'recordsOne' : 'recordsOther', {
-            count: pendingTotal - reviewableTotal,
-          }),
+          count: pendingTotal - reviewableTotal,
         }),
       });
     const fin = hub.finance;

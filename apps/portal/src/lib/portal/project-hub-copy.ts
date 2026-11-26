@@ -49,18 +49,21 @@ const copy = {
     'No momento não há nada pendente neste projeto.',
   ],
   attApprovals: [
-    'Waiting for your approval: {hours} of hours · {expenses} · {reports}',
-    'Esperan tu aprobación: {hours} de horas · {expenses} · {reports}',
-    'Aguardando sua aprovação: {hours} de horas · {expenses} · {reports}',
+    'Waiting for your approval: {hours} logged · {expenses} · {reports}',
+    'Esperan tu aprobación: {hours} registradas · {expenses} · {reports}',
+    'Aguardando sua aprovação: {hours} registradas · {expenses} · {reports}',
   ],
   attApprovalsAction: ['Review and approve', 'Revisar y aprobar', 'Revisar e aprovar'],
-  attApprovalsOthers: [
-    '{count} ({hours} of hours) wait for approval by the owner or another reviewer',
-    '{count} ({hours} de horas) esperan la aprobación del propietario u otro revisor',
-    '{count} ({hours} de horas) aguardam a aprovação do proprietário ou de outro revisor',
+  attApprovalsOthersOne: [
+    '1 record ({hours}) waits for approval by the owner or another reviewer',
+    '1 registro ({hours}) espera la aprobación del propietario u otro revisor',
+    '1 registro ({hours}) aguarda a aprovação do proprietário ou de outro revisor',
   ],
-  recordsOne: ['1 record', '1 registro', '1 registro'],
-  recordsOther: ['{count} records', '{count} registros', '{count} registros'],
+  attApprovalsOthers: [
+    '{count} records ({hours}) wait for approval by the owner or another reviewer',
+    '{count} registros ({hours}) esperan la aprobación del propietario u otro revisor',
+    '{count} registros ({hours}) aguardam a aprovação do proprietário ou de outro revisor',
+  ],
   attUnbilled: [
     '{amount} of approved work ({hours}) is not invoiced yet',
     '{amount} de trabajo aprobado ({hours}) aún no está facturado',

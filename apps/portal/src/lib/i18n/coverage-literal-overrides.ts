@@ -5189,10 +5189,10 @@ export const extractedSectionCoverageOverrides: Record<string, readonly [string,
   'Replaced on {date}': ['Sustituida el {date}', 'Substituída em {date}'],
   'Saved on {date}': ['Guardada el {date}', 'Salva em {date}'],
   'PDF not ready yet': ['El PDF aún no está listo', 'O PDF ainda não está pronto'],
-  'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.':
+  'Only the owner can correct an issued invoice. The correction keeps the same invoice number and adds a new version; earlier versions and their PDFs stay in the history.':
     [
-      'Una factura emitida es un documento legal que el cliente puede tener ya, por eso nunca se cambia directamente. Para corregirla: emita una nota de crédito para esta factura y luego cree y emita una factura corregida. Ambas quedan en el historial con su propio PDF.',
-      'Uma fatura emitida é um documento legal que o cliente pode já ter, por isso nunca é alterada diretamente. Para corrigi-la: emita uma nota de crédito para esta fatura e depois crie e emita uma fatura corrigida. Ambas ficam no histórico com o próprio PDF.',
+      'Solo el propietario puede corregir una factura emitida. La corrección conserva el mismo número de factura y añade una nueva versión; las versiones anteriores y sus PDF quedan en el historial.',
+      'Somente o proprietário pode corrigir uma fatura emitida. A correção mantém o mesmo número da fatura e adiciona uma nova versão; as versões anteriores e seus PDFs ficam no histórico.',
     ],
   'The change was not saved.': ['El cambio no se guardó.', 'A alteração não foi salva.'],
   'Per client and project: CP-<client code>-001': [

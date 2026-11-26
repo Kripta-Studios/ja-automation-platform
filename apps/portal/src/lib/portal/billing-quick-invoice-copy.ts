@@ -172,9 +172,9 @@ const copy = {
   printDocument: ['Print', 'Imprimir', 'Imprimir'],
   confirmTitle: ['Issue this invoice?', '¿Emitir esta factura?', 'Emitir esta fatura?'],
   confirmBody: [
-    'After issuing, the invoice gets its final number and can no longer be changed. Corrections are made with a credit note.',
-    'Tras emitirla, la factura recibe su número definitivo y ya no se puede cambiar. Las correcciones se hacen con una nota de crédito.',
-    'Após emitir, a fatura recebe o número definitivo e não pode mais ser alterada. Correções são feitas com nota de crédito.',
+    'After issuing, the invoice gets its final number. The owner can still correct it: the invoice keeps the same number and gets a new version, and earlier versions stay in the history.',
+    'Tras emitirla, la factura recibe su número definitivo. El propietario aún puede corregirla: conserva el mismo número y recibe una nueva versión; las versiones anteriores quedan en el historial.',
+    'Após emitir, a fatura recebe o número definitivo. O proprietário ainda pode corrigi-la: ela mantém o mesmo número e ganha uma nova versão; as versões anteriores ficam no histórico.',
   ],
   confirmIssue: ['Yes, issue invoice', 'Sí, emitir factura', 'Sim, emitir fatura'],
   issuing: ['Issuing…', 'Emitiendo…', 'Emitindo…'],
@@ -595,9 +595,9 @@ const copy = {
   saveDraft: ['Save draft', 'Guardar borrador', 'Salvar rascunho'],
   issueConfirmTitle: ['Issue invoice for {amount}?', '¿Emitir factura por {amount}?', 'Emitir fatura de {amount}?'],
   issueConfirmBody: [
-    'To {client} · {period}. Issuing assigns the final number and locks the invoice; corrections are made with a credit note.',
-    'Para {client} · {period}. Al emitir se asigna el número definitivo y la factura queda bloqueada; las correcciones se hacen con nota de crédito.',
-    'Para {client} · {period}. Ao emitir, o número definitivo é atribuído e a fatura fica bloqueada; correções são feitas com nota de crédito.',
+    'To {client} · {period}. Issuing assigns the final number; a later correction keeps that number and adds a new version.',
+    'Para {client} · {period}. Al emitir se asigna el número definitivo; una corrección posterior conserva ese número y añade una nueva versión.',
+    'Para {client} · {period}. Ao emitir, o número definitivo é atribuído; uma correção posterior mantém esse número e adiciona uma nova versão.',
   ],
   issueConfirm: ['Confirm and issue', 'Confirmar y emitir', 'Confirmar e emitir'],
   issueFailedDraft: [

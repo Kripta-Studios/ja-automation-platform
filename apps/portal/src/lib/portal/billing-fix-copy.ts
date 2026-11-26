@@ -60,7 +60,7 @@ const en = {
   packCountOne: '1 accounting pack',
   statusIncomplete: 'Incomplete',
   financeDiscardOwnerOnly:
-    'Only the owner can discard a draft that already has invoice lines. Ask the owner, or approve and correct it with a credit note after issue.',
+    'Only the owner can discard a draft that already has invoice lines. Ask the owner, or issue it and let the owner correct it as a new version.',
   packReadyAuditor: 'Available for review or download',
   managerNotBilled: 'Project manager · not billed',
   issuerMissingForCurrency:
@@ -132,7 +132,7 @@ const es: Record<BillingFixCopyKey, string> = {
   packCountOne: '1 paquete contable',
   statusIncomplete: 'Incompleto',
   financeDiscardOwnerOnly:
-    'Solo el propietario puede descartar un borrador que ya tiene líneas de factura. Pídeselo al propietario o, tras emitirla, corrígela con una nota de crédito.',
+    'Solo el propietario puede descartar un borrador que ya tiene líneas de factura. Pídeselo al propietario o emítelo y deja que el propietario lo corrija como una nueva versión.',
   packReadyAuditor: 'Disponible para revisar o descargar',
   managerNotBilled: 'Jefe de proyecto · no se factura',
   issuerMissingForCurrency:
@@ -203,7 +203,7 @@ const pt: Record<BillingFixCopyKey, string> = {
   packCountOne: '1 pacote contábil',
   statusIncomplete: 'Incompleto',
   financeDiscardOwnerOnly:
-    'Somente o proprietário pode descartar um rascunho que já tem linhas de fatura. Peça ao proprietário ou, depois de emitida, corrija com uma nota de crédito.',
+    'Somente o proprietário pode descartar um rascunho que já tem linhas de fatura. Peça ao proprietário ou emita e deixe o proprietário corrigir como uma nova versão.',
   packReadyAuditor: 'Disponível para revisar ou baixar',
   managerNotBilled: 'Gerente de projeto · não faturado',
   issuerMissingForCurrency:

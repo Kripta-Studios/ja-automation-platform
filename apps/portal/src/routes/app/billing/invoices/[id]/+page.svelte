@@ -2157,7 +2157,7 @@
               'Click any underlined value or a line of the invoice to correct it. Each save keeps the same invoice number and creates a new version; earlier versions and their PDFs stay in the history.',
             )
           : t(
-              'An issued invoice is a legal record that the client may already have, so it is never changed in place. To correct it: issue a credit note for this invoice, then create and issue a corrected invoice. Both stay in the history with their own PDF.',
+              'Only the owner can correct an issued invoice. The correction keeps the same invoice number and adds a new version; earlier versions and their PDFs stay in the history.',
             )}
       </p>
     </details>

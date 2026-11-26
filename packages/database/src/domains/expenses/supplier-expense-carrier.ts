@@ -194,7 +194,8 @@ export function supplierExpenseTreatment(
   carrier: SupplierExpenseCarrier,
   whoPaid: string,
 ): SupplierExpenseTreatment {
-  if (whoPaid === 'worker') return carrier === 'supplier' ? 'supplier_pays_technician' : 'ja_reimburses';
+  if (whoPaid === 'worker')
+    return carrier === 'supplier' ? 'supplier_pays_technician' : 'ja_reimburses';
   if (COMPANY_PAID.has(whoPaid)) return carrier === 'supplier' ? 'recharge' : 'ja_cost';
   return 'not_ours';
 }
@@ -226,7 +227,10 @@ export type SupplierExpenseRuleView = Readonly<{
       /** The person's own choice in force today (null: follows the project). */
       person: SupplierExpenseCarrier | null;
       personFrom: string | null;
-      personNext: Readonly<{ carrier: SupplierExpenseCarrier | null; effectiveFrom: string }> | null;
+      personNext: Readonly<{
+        carrier: SupplierExpenseCarrier | null;
+        effectiveFrom: string;
+      }> | null;
       effective: SupplierExpenseRule;
     }>
   >;
@@ -273,7 +277,10 @@ export class SupplierExpenseRuleRepository {
       supplier_name: string;
     }>;
     return {
-      project: { carrier: project?.carrier ?? null, effectiveFrom: project?.effective_from ?? null },
+      project: {
+        carrier: project?.carrier ?? null,
+        effectiveFrom: project?.effective_from ?? null,
+      },
       projectNext: next ? { carrier: next.carrier, effectiveFrom: next.effective_from } : null,
       technicians: members.map((member) => {
         const on = member.starts_on > today ? member.starts_on : today;
@@ -406,7 +413,9 @@ export class SupplierExpenseRuleRepository {
   ): { changed: boolean; effectiveFrom: string } {
     this.assertFinance(principal);
     const carrier = carrierValue(input.carrier);
-    const from = input.effectiveFrom ? calendarDate(input.effectiveFrom, 'Applies from') : this.today();
+    const from = input.effectiveFrom
+      ? calendarDate(input.effectiveFrom, 'Applies from')
+      : this.today();
     const reason = input.reason?.trim().slice(0, 2000) || null;
     return runImmediateTransaction(this.sqlite, 'supplier-expense-rule', () => {
       const project = this.sqlite.prepare('SELECT id FROM project WHERE id=?').get(input.projectId);
@@ -473,7 +482,9 @@ export class SupplierExpenseRuleRepository {
         throw new ValidationError('Only a supplier’s technician has this choice');
       const from = requested < member.starts_on ? member.starts_on : requested;
       if (member.ends_on && from > member.ends_on)
-        throw new ValidationError('This assignment has ended: its expense terms can no longer change');
+        throw new ValidationError(
+          'This assignment has ended: its expense terms can no longer change',
+        );
       const current = ruleOn(this.sqlite, member.project_id, member.id, from);
       const later = nextRule(this.sqlite, member.project_id, member.id, from);
       if ((current?.carrier ?? null) === carrier && !later)
@@ -691,13 +702,20 @@ export function recordSupplierRecharges(
     );
     total += expense.amountMinor;
   }
-  recordAuditEvent(sqlite, principal, 'supplier.expense_recharge', 'compensation_settlement', input.settlementId, {
-    supplierId: input.supplierId,
-    paymentEventId: input.paymentEventId,
-    currency: input.currency,
-    amountMinor: total.toString(),
-    expenseIds: input.expenses.map((expense) => expense.expenseId),
-  });
+  recordAuditEvent(
+    sqlite,
+    principal,
+    'supplier.expense_recharge',
+    'compensation_settlement',
+    input.settlementId,
+    {
+      supplierId: input.supplierId,
+      paymentEventId: input.paymentEventId,
+      currency: input.currency,
+      amountMinor: total.toString(),
+      expenseIds: input.expenses.map((expense) => expense.expenseId),
+    },
+  );
 }
 
 type PaymentRecorder = Readonly<{
@@ -796,7 +814,10 @@ export function paySupplierSettlementWithRecharges(
         paidOn: input.paidOn,
         reference: SUPPLIER_RECHARGE_REFERENCE,
         note: `Deducted: ${recharges.length} expense(s) recharged to the supplier`,
-        idempotencyKey: `supplier-recharge:${input.requestKey}:${input.settlement.id}`.slice(0, 240),
+        idempotencyKey: `supplier-recharge:${input.requestKey}:${input.settlement.id}`.slice(
+          0,
+          240,
+        ),
       });
       if (!event.idempotent)
         recordSupplierRecharges(sqlite, principal, {
@@ -817,7 +838,10 @@ export function paySupplierSettlementWithRecharges(
         currency: input.settlement.currency as never,
         paidOn: input.paidOn,
         reference: input.reference,
-        idempotencyKey: `subcontractor-pay:${input.requestKey}:${input.settlement.id}`.slice(0, 240),
+        idempotencyKey: `subcontractor-pay:${input.requestKey}:${input.settlement.id}`.slice(
+          0,
+          240,
+        ),
       });
     return { deductedMinor: deducted, cashMinor: cash };
   });

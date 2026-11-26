@@ -17,11 +17,7 @@ const copy = {
     'Quem paga as despesas que os técnicos de um fornecedor lançam neste projeto. O que for escolhido numa pessoa (Extras) prevalece sobre isto.',
   ],
   ja: ['J&A reimburses the technician', 'J&A reembolsa al técnico', 'A J&A reembolsa o técnico'],
-  supplier: [
-    'Recharged to the supplier',
-    'Se cargan al proveedor',
-    'Cobradas do fornecedor',
-  ],
+  supplier: ['Recharged to the supplier', 'Se cargan al proveedor', 'Cobradas do fornecedor'],
   notSet: [
     'Not set: J&A reimburses the technician (as before)',
     'Sin definir: J&A reembolsa al técnico (como hasta ahora)',
@@ -73,7 +69,11 @@ const copy = {
     'Aún no hay técnicos de proveedor en este proyecto. La regla se aplica cuando se añada uno.',
     'Ainda não há técnicos de fornecedor neste projeto. A regra vale quando um for adicionado.',
   ],
-  person: ['{name}: {value} ({source})', '{name}: {value} ({source})', '{name}: {value} ({source})'],
+  person: [
+    '{name}: {value} ({source})',
+    '{name}: {value} ({source})',
+    '{name}: {value} ({source})',
+  ],
   extrasLabel: [
     'Who pays this technician’s expenses',
     'Quién paga los gastos de este técnico',
@@ -86,11 +86,7 @@ const copy = {
   ],
   summary: ['Expenses: {value}', 'Gastos: {value}', 'Despesas: {value}'],
   // Money → Subcontractors
-  sectionTitle: [
-    'Expenses of the technicians',
-    'Gastos de los técnicos',
-    'Despesas dos técnicos',
-  ],
+  sectionTitle: ['Expenses of the technicians', 'Gastos de los técnicos', 'Despesas dos técnicos'],
   sectionIntro: [
     'Who pays each approved expense of this period. Expenses J&A paid for a technician whose supplier carries his expenses are deducted when you mark the settlement as paid.',
     'Quién paga cada gasto aprobado del periodo. Los gastos que J&A pagó por un técnico cuyos gastos asume su proveedor se descuentan al marcar la liquidación como pagada.',

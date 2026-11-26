@@ -444,7 +444,7 @@
                     <td data-label={se('colPays')}
                       >{se(`treat_${item.treatment}`)}{#if item.treatment === 'recharge'}<small
                           class="sub__muted"
-                          >{' · '}{item.rechargedSettlementId
+                          > · {item.rechargedSettlementId
                             ? se('deductedTag')
                             : item.amountMinor === null
                               ? se('needsConversion')

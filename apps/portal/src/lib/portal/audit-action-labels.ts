@@ -239,6 +239,10 @@ const VERBS: Record<string, Tuple> = {
 
 /** Whole-action phrases that read better than the composed form. */
 const SPECIAL: Record<string, Tuple> = {
+  // D4 (2026-11-26): who pays external technicians' expenses.
+  'project.supplier_expense_rule_set': ['Technician expense rule changed (project)', 'Cambio de regla de gastos de técnicos (proyecto)', 'Alteração da regra de despesas de técnicos (projeto)'],
+  'assignment.supplier_expense_rule_set': ['Technician expense rule changed (person)', 'Cambio de regla de gastos del técnico (persona)', 'Alteração da regra de despesas do técnico (pessoa)'],
+  'supplier.expense_recharge': ['Expenses deducted from supplier settlement', 'Gastos descontados de la liquidación del proveedor', 'Despesas descontadas do acerto do fornecedor'],
   'lifecycle.transition': ['Status changed', 'Cambio de estado', 'Alteração de status'],
   'security.mfa.login': ['Signed in with two-step code', 'Inicio de sesión con código de dos pasos', 'Login com código de duas etapas'],
   'security.mfa.login (totp)': ['Signed in with two-step code', 'Inicio de sesión con código de dos pasos', 'Login com código de duas etapas'],

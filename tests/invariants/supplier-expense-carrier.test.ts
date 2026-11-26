@@ -140,7 +140,10 @@ describe('D4 supplier expense rule precedence', () => {
       carrier: 'supplier',
       effectiveFrom: '2026-11-10',
     });
-    expect(env.rule(f.worker.userId, '2026-11-09')).toMatchObject({ carrier: 'ja', source: 'default' });
+    expect(env.rule(f.worker.userId, '2026-11-09')).toMatchObject({
+      carrier: 'ja',
+      source: 'default',
+    });
     expect(env.rule(f.worker.userId, '2026-11-10')).toMatchObject({
       carrier: 'supplier',
       source: 'project',
@@ -151,19 +154,32 @@ describe('D4 supplier expense rule precedence', () => {
       carrier: 'ja',
       effectiveFrom: '2026-11-15',
     });
-    expect(env.rule(f.worker.userId, '2026-11-14')).toMatchObject({ source: 'project', carrier: 'supplier' });
-    expect(env.rule(f.worker.userId, '2026-11-15')).toMatchObject({ source: 'person', carrier: 'ja' });
+    expect(env.rule(f.worker.userId, '2026-11-14')).toMatchObject({
+      source: 'project',
+      carrier: 'supplier',
+    });
+    expect(env.rule(f.worker.userId, '2026-11-15')).toMatchObject({
+      source: 'person',
+      carrier: 'ja',
+    });
     // Back to the project rule (person = not set) from a later day.
     env.rules.setPersonRule(env.finance, {
       projectMemberId: env.member(f.worker.userId),
       carrier: null,
       effectiveFrom: '2026-11-20',
     });
-    expect(env.rule(f.worker.userId, '2026-11-21')).toMatchObject({ source: 'project', carrier: 'supplier' });
+    expect(env.rule(f.worker.userId, '2026-11-21')).toMatchObject({
+      source: 'project',
+      carrier: 'supplier',
+    });
     const view = env.rules.view(env.finance, f.project.id, '2026-11-25');
     expect(view.project).toEqual({ carrier: 'supplier', effectiveFrom: '2026-11-10' });
     expect(view.technicians).toEqual([
-      expect.objectContaining({ workerId: f.worker.userId, person: null, effective: expect.objectContaining({ source: 'project' }) }),
+      expect.objectContaining({
+        workerId: f.worker.userId,
+        person: null,
+        effective: expect.objectContaining({ source: 'project' }),
+      }),
     ]);
     const audit = f.sqlite
       .prepare(
@@ -213,15 +229,25 @@ describe('D4 permissions', () => {
       }),
     ).toThrow(AccessDeniedError);
     expect(() => env.rules.view(f.manager, f.project.id)).toThrow(AccessDeniedError);
-    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_rule').get()).toEqual({ n: 0 });
+    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_rule').get()).toEqual({
+      n: 0,
+    });
   });
 
   it('a technician and his coordinator read only who pays, for their own scope', () => {
     const env = setup();
     const { f } = env;
-    env.rules.setProjectRule(env.finance, { projectId: f.project.id, carrier: 'supplier', effectiveFrom: '2026-01-01' });
+    env.rules.setProjectRule(env.finance, {
+      projectId: f.project.id,
+      carrier: 'supplier',
+      effectiveFrom: '2026-01-01',
+    });
     expect(supplierExpenseRulesForViewer(f.sqlite, f.worker, '2026-11-20')).toEqual([
-      expect.objectContaining({ projectId: f.project.id, carrier: 'supplier', supplierName: 'D4 Supplier' }),
+      expect.objectContaining({
+        projectId: f.project.id,
+        carrier: 'supplier',
+        supplierName: 'D4 Supplier',
+      }),
     ]);
     expect(supplierExpenseRulesForViewer(f.sqlite, f.outsider, '2026-11-20')).toEqual([]);
   });
@@ -251,7 +277,8 @@ describe('D4 reimbursements', () => {
     // The pay estimate of the technician (owner review) leaves the supplier-carried expense out.
     const pay = f.v3.ownerWorkerPay(env.owner, f.worker.userId, '2026-11-01', '2026-11-30');
     const reimbursed = pay.currencyBreakdown.reduce(
-      (sum: bigint, row: { approvedReimbursementMinor: string }) => sum + BigInt(row.approvedReimbursementMinor),
+      (sum: bigint, row: { approvedReimbursementMinor: string }) =>
+        sum + BigInt(row.approvedReimbursementMinor),
       0n,
     );
     expect(reimbursed).toBe(4000n);
@@ -348,11 +375,25 @@ describe('D4 supplier settlement', () => {
       )
       .all();
     expect(events).toEqual([
-      { reference: 'CW47 D4', amount: '68000', payee_kind: 'supplier', payee_supplier_id: 'sup-d4' },
-      { reference: 'Recharged expenses', amount: '12000', payee_kind: 'supplier', payee_supplier_id: 'sup-d4' },
+      {
+        reference: 'CW47 D4',
+        amount: '68000',
+        payee_kind: 'supplier',
+        payee_supplier_id: 'sup-d4',
+      },
+      {
+        reference: 'Recharged expenses',
+        amount: '12000',
+        payee_kind: 'supplier',
+        payee_supplier_id: 'sup-d4',
+      },
     ]);
     expect(
-      f.sqlite.prepare('SELECT expense_id,CAST(amount_minor AS TEXT) amount FROM supplier_expense_recharge').all(),
+      f.sqlite
+        .prepare(
+          'SELECT expense_id,CAST(amount_minor AS TEXT) amount FROM supplier_expense_recharge',
+        )
+        .all(),
     ).toEqual([{ expense_id: hotel, amount: '12000' }]);
     const paid = settlementDetail(context, { payee, ...week })!;
     expect(paid.status).toBe('paid');
@@ -360,8 +401,16 @@ describe('D4 supplier settlement', () => {
     expect(paid.expenses?.toDeduct).toEqual([]);
     expect(paid.expenses?.toRecover).toEqual([]);
     // Never twice: paying again records nothing, the expense cannot be linked again.
-    markSettlementPaid(context, { payee, ...week, paidOn: '2026-11-25', reference: 'again', requestKey: 'd4-pay-2' });
-    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM worker_compensation_payment_event').get()).toEqual({ n: 2 });
+    markSettlementPaid(context, {
+      payee,
+      ...week,
+      paidOn: '2026-11-25',
+      reference: 'again',
+      requestKey: 'd4-pay-2',
+    });
+    expect(
+      f.sqlite.prepare('SELECT COUNT(*) n FROM worker_compensation_payment_event').get(),
+    ).toEqual({ n: 2 });
     expect(() =>
       f.sqlite
         .prepare(
@@ -373,7 +422,9 @@ describe('D4 supplier settlement', () => {
     // The technician is never owed the supplier-carried meal by J&A.
     expect(f.v3.listReimbursementQueue(env.finance).map((row) => row.id)).not.toContain(meal);
     expect(
-      f.sqlite.prepare("SELECT COUNT(*) n FROM audit_event WHERE action='supplier.expense_recharge'").get(),
+      f.sqlite
+        .prepare("SELECT COUNT(*) n FROM audit_event WHERE action='supplier.expense_recharge'")
+        .get(),
     ).toEqual({ n: 1 });
     // A rule change may not reach back over a deducted expense.
     expect(() =>
@@ -395,23 +446,42 @@ describe('D4 supplier settlement', () => {
     approveSettlement(context, { payee, ...week });
     const detail = settlementDetail(context, { payee, ...week })!;
     expect(detail.expenses?.items).toEqual([
-      expect.objectContaining({ expenseId: hotel, treatment: 'ja_cost', carrier: 'ja', source: 'default' }),
+      expect.objectContaining({
+        expenseId: hotel,
+        treatment: 'ja_cost',
+        carrier: 'ja',
+        source: 'default',
+      }),
     ]);
     expect(detail.expenses?.toDeduct).toEqual([]);
-    markSettlementPaid(context, { payee, ...week, paidOn: '2026-11-24', reference: 'CW47', requestKey: 'd4-ja' });
+    markSettlementPaid(context, {
+      payee,
+      ...week,
+      paidOn: '2026-11-24',
+      reference: 'CW47',
+      requestKey: 'd4-ja',
+    });
     expect(
       f.sqlite
-        .prepare("SELECT CAST(SUM(amount_minor) AS TEXT) total FROM worker_compensation_payment_event")
+        .prepare(
+          'SELECT CAST(SUM(amount_minor) AS TEXT) total FROM worker_compensation_payment_event',
+        )
         .get(),
     ).toEqual({ total: '80000' });
-    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_recharge').get()).toEqual({ n: 0 });
+    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_recharge').get()).toEqual({
+      n: 0,
+    });
   });
 
   it('a recharge larger than the settlement stays to recover from the supplier', () => {
     const env = setup();
     const { f } = env;
     hours(env);
-    env.rules.setProjectRule(env.finance, { projectId: f.project.id, carrier: 'supplier', effectiveFrom: '2026-11-01' });
+    env.rules.setProjectRule(env.finance, {
+      projectId: f.project.id,
+      carrier: 'supplier',
+      effectiveFrom: '2026-11-01',
+    });
     env.expense(f.worker.userId, '2026-11-17', 90000, 'company_direct');
     const context = { sqlite: f.sqlite, v3: f.v3, principal: env.finance };
     const payee = 'supplier:sup-d4' as const;
@@ -419,7 +489,15 @@ describe('D4 supplier settlement', () => {
     const detail = settlementDetail(context, { payee, ...week })!;
     expect(detail.expenses?.toDeduct).toEqual([]);
     expect(detail.expenses?.toRecover).toEqual([{ currency: 'EUR', minor: '90000' }]);
-    markSettlementPaid(context, { payee, ...week, paidOn: '2026-11-24', reference: 'CW47', requestKey: 'd4-big' });
-    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_recharge').get()).toEqual({ n: 0 });
+    markSettlementPaid(context, {
+      payee,
+      ...week,
+      paidOn: '2026-11-24',
+      reference: 'CW47',
+      requestKey: 'd4-big',
+    });
+    expect(f.sqlite.prepare('SELECT COUNT(*) n FROM supplier_expense_recharge').get()).toEqual({
+      n: 0,
+    });
   });
 });

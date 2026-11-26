@@ -2143,6 +2143,10 @@
                     <a class="secondary-button" href={`${base}/app/billing/invoices/${encodeURIComponent(companion.existingInvoice.id)}?lang=${locale}`}
                       >{t('openInvoice')}{#if companion.existingInvoice.number} · {companion.existingInvoice.number}{/if}</a
                     >
+                  {:else if (preview.expenseChoice?.openCount ?? 0) > 0}
+                    <p class="quick-invoice__muted" data-quick-invoice-companion-waiting>
+                      {e('companionWaiting', { count: preview.expenseChoice!.openCount })}
+                    </p>
                   {:else if companion.state === 'empty'}
                     <p class="quick-invoice__muted">{e('companionNone')}</p>
                   {:else}

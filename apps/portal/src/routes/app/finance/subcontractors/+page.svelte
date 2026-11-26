@@ -7,7 +7,11 @@
   import { billingFixText } from '$lib/portal/billing-fix-copy';
   import { intervalCopy, intervalLabel } from '$lib/portal/interval-copy';
   import { extrasText } from '$lib/portal/assignment-extras-copy';
-  import { supplierExpenseText, type SupplierExpenseCopyKey } from '$lib/portal/supplier-expense-copy';
+  import {
+    supplierExpenseStatusLabel,
+    supplierExpenseText,
+    type SupplierExpenseCopyKey,
+  } from '$lib/portal/supplier-expense-copy';
 
   let { data, form } = $props();
   const locale = $derived(data.locale === 'es' ? 'es' : data.locale === 'pt' ? 'pt' : 'en');
@@ -154,7 +158,13 @@
   {#if form?.message}
     <p class="sub__error" role="alert">{form.message}</p>
   {:else if form?.success}
-    <p class="sub__ok" role="status">{form.action === 'approve' ? t('approvedOk') : t('paidOk')}</p>
+    <p class="sub__ok" role="status" data-settlement-ok={form.action}>
+      {form.action === 'approve'
+        ? t('approvedOk')
+        : form.action === 'invoiceSupplier'
+          ? se('recoverCreated')
+          : t('paidOk')}
+    </p>
   {/if}
 
   {#if data.overview}
@@ -324,6 +334,13 @@
               >
             </div>
           {/each}
+          {#each detail.expenses.invoiced as total (total.currency)}
+            <div data-settlement-recharge-invoiced>
+              <small>{se('invoiced')} · {total.currency}</small><strong
+                >{fmt(total.minor, total.currency)}</strong
+              >
+            </div>
+          {/each}
         {/if}
         {#if detail.status === 'paid' && detail.paidOn}
           <div class="sub__paidinfo">
@@ -444,13 +461,7 @@
                     <td data-label={se('colPays')}
                       >{se(`treat_${item.treatment}`)}{#if item.treatment === 'recharge'}<small
                           class="sub__muted"
-                          > · {item.rechargedSettlementId
-                            ? se('deductedTag')
-                            : item.amountMinor === null
-                              ? se('needsConversion')
-                              : item.deductNow
-                                ? se('deductNow')
-                                : se('toRecoverTag')}</small
+                          > · {supplierExpenseStatusLabel(locale, item)}</small
                         >{/if}</td
                     >
                     <td data-label={se('colAmount')} class="num"
@@ -460,6 +471,108 @@
                 {/each}
               </tbody>
             </table>
+          {/if}
+          {#if detail.expenses.invoices.length > 0}
+            <div class="sub__recover" data-supplier-invoices>
+              <h4>{se('recoverInvoices')}</h4>
+              <ul>
+                {#each detail.expenses.invoices as invoice (invoice.id)}
+                  <li>
+                    <strong>{invoice.number ?? se('recoverDraft')}</strong>
+                    · {se('recoverCount', { count: invoice.count })} · {fmt(
+                      invoice.minor,
+                      invoice.currency,
+                    )}
+                    · <a href={`${base}/app/billing/invoices/${invoice.id}`}>{se('recoverOpen')}</a>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+          {/if}
+          {#if detail.expenses.invoiceable.length > 0 && detail.supplierBilling}
+            {@const billing = detail.supplierBilling}
+            {@const recover = detail.expenses.items.filter((item) =>
+              detail.expenses?.invoiceable.includes(item.expenseId),
+            )}
+            <form
+              method="POST"
+              action="?/invoiceSupplier"
+              class="sub__recover"
+              use:enhance={submit}
+              data-supplier-recover
+            >
+              <h4>{se('recoverTitle')}</h4>
+              <p class="sub__muted">{se('recoverIntro')}</p>
+              <ul data-supplier-recover-lines>
+                {#each recover as item (item.expenseId)}
+                  <li>
+                    {day(item.spentOn)} · {item.workerName} · {item.category}{#if item.vendor}
+                      ({item.vendor}){/if}
+                    <strong>{fmt(item.amountMinor, item.currency)}</strong>
+                  </li>
+                {/each}
+              </ul>
+              <p class="sub__muted">
+                {se('recoverRules', {
+                  example: `CP-${billing.account?.code ?? 'ACME'}-001`,
+                })}
+              </p>
+              <input type="hidden" name="payee" value={detail.payee.key} />
+              <input type="hidden" name="week" value={data.week.start} />
+              <input type="hidden" name="interval" value={data.week.interval} />
+              {#if billing.account}
+                <p data-supplier-bills-to>
+                  <small>{se('recoverBillsTo')}</small><br /><strong
+                    >{billing.account.legalName}</strong
+                  >{#if billing.account.billingAddress}<br /><span class="sub__muted"
+                      >{billing.account.billingAddress}</span
+                    >{/if}
+                </p>
+              {:else}
+                <p class="sub__warn" data-supplier-need-billing>{se('recoverNeedDetails')}</p>
+                <div class="sub__recoverfields">
+                  <label
+                    ><span>{se('recoverLegalName')}</span><input
+                      name="legalName"
+                      required
+                      maxlength="300"
+                      autocomplete="organization"
+                      value={billing.defaults?.legalName ?? detail.payee.name}
+                    /></label
+                  >
+                  <label class="sub__wide"
+                    ><span>{se('recoverAddress')}</span><textarea
+                      name="billingAddress"
+                      required
+                      rows="3"
+                      maxlength="2000">{billing.defaults?.billingAddress ?? ''}</textarea
+                    ></label
+                  >
+                  <label
+                    ><span>{se('recoverEmail')}</span><input
+                      name="billingEmail"
+                      type="email"
+                      maxlength="254"
+                      autocomplete="email"
+                      value={billing.defaults?.billingEmail ?? ''}
+                    /></label
+                  >
+                  <label
+                    ><span>{se('recoverTaxId')}</span><input name="taxId" maxlength="64" /></label
+                  >
+                  <label
+                    ><span>{se('recoverCode')}</span><input
+                      name="clientCode"
+                      maxlength="20"
+                      pattern={'[A-Za-z0-9-]{1,20}'}
+                    /><small>{se('recoverCodeHelp')}</small></label
+                  >
+                </div>
+              {/if}
+              <button class="sub__btn" type="submit" disabled={saving} data-supplier-recover-create
+                >{se('recoverCreate')}</button
+              >
+            </form>
           {/if}
         </section>
       {/if}
@@ -753,6 +866,50 @@
     border-top: 1px solid #e5e9ee;
     padding-top: 0.5rem;
     min-width: 0;
+  }
+  .sub__recover {
+    margin-top: 0.75rem;
+    padding: 0.85rem 1rem;
+    border: 1px solid #d9e1e7;
+    border-left: 4px solid #e23d2d;
+    border-radius: 8px;
+    display: grid;
+    gap: 0.5rem;
+  }
+  .sub__recover h4 {
+    margin: 0;
+    font-size: 1rem;
+  }
+  .sub__recover ul {
+    margin: 0;
+    padding-left: 1.1rem;
+    display: grid;
+    gap: 0.2rem;
+  }
+  .sub__recoverfields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+    gap: 0.6rem;
+  }
+  .sub__recoverfields label {
+    display: grid;
+    gap: 0.25rem;
+  }
+  .sub__recoverfields .sub__wide {
+    grid-column: 1 / -1;
+  }
+  .sub__recoverfields input,
+  .sub__recoverfields textarea {
+    font: inherit;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #b8c3cc;
+    border-radius: 6px;
+    min-height: 2.6rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .sub__recover .sub__btn {
+    justify-self: start;
   }
   .sub__expenses h3 {
     margin: 0.25rem 0;

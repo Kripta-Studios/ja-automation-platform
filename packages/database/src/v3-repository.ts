@@ -10703,6 +10703,14 @@ export class V3Repository {
                     .prepare('SELECT created_at value FROM invoice_adjustment WHERE id=?')
                     .get(row.source_id) as { value: string } | undefined
                 )?.value ?? null;
+            else if (row.source_type === 'supplier_recharge')
+              // An invoice line to a supplier for an expense J&A paid: dated by the expense.
+              businessDate =
+                (
+                  this.sqlite
+                    .prepare('SELECT spent_on value FROM expense WHERE id=?')
+                    .get(row.source_id) as { value: string } | undefined
+                )?.value ?? null;
             else if (!['fixed_price', 'minimum_top_up'].includes(row.source_type))
               throw new V3ConflictError(
                 `Unsupported commercial manifest source type ${row.source_type}`,

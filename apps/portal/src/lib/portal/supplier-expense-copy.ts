@@ -147,6 +147,79 @@ const copy = {
   colWhat: ['Expense', 'Gasto', 'Despesa'],
   colPays: ['Who pays', 'Quién paga', 'Quem paga'],
   colAmount: ['Amount', 'Importe', 'Valor'],
+  // Invoice to the supplier for what is still to recover (D4 follow-up)
+  invoicedTag: [
+    'on invoice {number} to the supplier',
+    'en la factura {number} al proveedor',
+    'na fatura {number} ao fornecedor',
+  ],
+  invoicedDraftTag: [
+    'on a draft invoice to the supplier',
+    'en un borrador de factura al proveedor',
+    'num rascunho de fatura ao fornecedor',
+  ],
+  invoiced: ['Invoiced to the supplier', 'Facturado al proveedor', 'Faturado ao fornecedor'],
+  recoverTitle: [
+    'Invoice the supplier for what is still to recover',
+    'Facturar al proveedor lo pendiente de cobrar',
+    'Faturar ao fornecedor o que falta cobrar',
+  ],
+  recoverIntro: [
+    'J&A paid these expenses for the supplier’s technicians and could not deduct them from what J&A owes the supplier. Create an invoice to the supplier for them: it opens as a draft that you check, approve and issue in Billing.',
+    'J&A pagó estos gastos por los técnicos del proveedor y no pudo descontarlos de lo que J&A le debe. Crea una factura al proveedor por ellos: se abre como borrador que revisas, apruebas y emites en Facturación.',
+    'A J&A pagou estas despesas pelos técnicos do fornecedor e não conseguiu descontá-las do que a J&A deve a ele. Crie uma fatura ao fornecedor por elas: ela abre como rascunho que você revisa, aprova e emite em Faturamento.',
+  ],
+  recoverRules: [
+    'One line per expense. Numbered like every invoice when issued ({example}). Once an expense is on an invoice it is no longer “still to recover” and it is never deducted or invoiced again. Voiding the invoice brings it back here.',
+    'Una línea por gasto. Se numera como cualquier factura al emitirla ({example}). Cuando un gasto está en una factura deja de estar “pendiente de cobrar” y nunca se descuenta ni se factura otra vez. Si anulas la factura, vuelve aquí.',
+    'Uma linha por despesa. Numerada como qualquer fatura ao ser emitida ({example}). Quando uma despesa está numa fatura, deixa de estar “a cobrar” e nunca é descontada nem faturada de novo. Se anular a fatura, ela volta para cá.',
+  ],
+  recoverBillsTo: ['Bills to', 'Se factura a', 'Faturado para'],
+  recoverNeedDetails: [
+    'This supplier has no billing details yet. Enter them once; they are kept for its next invoices.',
+    'Este proveedor aún no tiene datos de facturación. Escríbelos una vez; se guardan para sus próximas facturas.',
+    'Este fornecedor ainda não tem dados de faturamento. Preencha uma vez; eles ficam guardados para as próximas faturas.',
+  ],
+  recoverLegalName: ['Company name', 'Nombre de la empresa', 'Nome da empresa'],
+  recoverAddress: ['Billing address', 'Dirección de facturación', 'Endereço de faturamento'],
+  recoverEmail: [
+    'Billing email (optional)',
+    'Email de facturación (opcional)',
+    'E-mail de faturamento (opcional)',
+  ],
+  recoverTaxId: [
+    'Tax ID (VAT / NIF / CNPJ, optional)',
+    'NIF / CIF / VAT (opcional)',
+    'CNPJ / NIF / VAT (opcional)',
+  ],
+  recoverCode: [
+    'Short code for invoice numbers (optional)',
+    'Código corto para el número de factura (opcional)',
+    'Código curto para o número da fatura (opcional)',
+  ],
+  recoverCodeHelp: [
+    'e.g. ACME gives CP-ACME-001. Left empty, the client number is used.',
+    'p. ej. ACME da CP-ACME-001. Si lo dejas vacío, se usa el número de cliente.',
+    'ex.: ACME gera CP-ACME-001. Vazio, usa o número do cliente.',
+  ],
+  recoverCreate: [
+    'Create invoice to the supplier (draft)',
+    'Crear factura al proveedor (borrador)',
+    'Criar fatura ao fornecedor (rascunho)',
+  ],
+  recoverCreated: [
+    'Draft invoice to the supplier created. Check it, approve it and issue it in Billing.',
+    'Borrador de factura al proveedor creado. Revísalo, apruébalo y emítelo en Facturación.',
+    'Rascunho de fatura ao fornecedor criado. Revise, aprove e emita em Faturamento.',
+  ],
+  recoverOpen: ['Open invoice', 'Abrir factura', 'Abrir fatura'],
+  recoverDraft: ['Draft', 'Borrador', 'Rascunho'],
+  recoverInvoices: [
+    'Invoices to the supplier for this period',
+    'Facturas al proveedor de este periodo',
+    'Faturas ao fornecedor deste período',
+  ],
+  recoverCount: ['{count} expense(s)', '{count} gasto(s)', '{count} despesa(s)'],
   // Technician (Expenses page) and coordinator (My team)
   techJa: [
     '{project}: J&A reimburses the expenses you pay yourself.',
@@ -201,4 +274,26 @@ export function supplierSourceLabel(locale: string | undefined, source: string):
     locale,
     source === 'person' ? 'fromPerson' : source === 'project' ? 'fromProject' : 'fromDefault',
   );
+}
+
+/** Plain status of a technician's expense in a supplier settlement (page, CSV and PDF). */
+export function supplierExpenseStatusLabel(
+  locale: string | undefined,
+  item: Readonly<{
+    treatment: string;
+    rechargedSettlementId: string | null;
+    recoveryInvoiceId?: string | null;
+    recoveryInvoiceNumber?: string | null;
+    amountMinor: string | null;
+    deductNow?: boolean;
+  }>,
+): string {
+  if (item.treatment !== 'recharge') return '';
+  if (item.rechargedSettlementId) return supplierExpenseText(locale, 'deductedTag');
+  if (item.recoveryInvoiceId)
+    return item.recoveryInvoiceNumber
+      ? supplierExpenseText(locale, 'invoicedTag', { number: item.recoveryInvoiceNumber })
+      : supplierExpenseText(locale, 'invoicedDraftTag');
+  if (item.amountMinor === null) return supplierExpenseText(locale, 'needsConversion');
+  return supplierExpenseText(locale, item.deductNow ? 'deductNow' : 'toRecoverTag');
 }

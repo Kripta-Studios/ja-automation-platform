@@ -122,12 +122,12 @@ describe('SQLite migration concurrency', () => {
     try {
       expect(integrityCheck(second)).toBe('ok');
       expect(second.prepare('SELECT max(version) AS version FROM schema_migration').get()).toEqual({
-        version: 97,
+        version: 98,
       });
-      // 19..85 and 90..97 carry reviewed metadata (86-89 are left free).
+      // 19..85 and 90..98 carry reviewed metadata (86-89 are left free).
       expect(
         second.prepare('SELECT count(*) AS count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 75 });
+      ).toEqual({ count: 76 });
     } finally {
       second.close();
     }
@@ -143,11 +143,11 @@ describe('SQLite migration concurrency', () => {
       expect(integrityCheck(final)).toBe('ok');
       expect(final.prepare('PRAGMA foreign_key_check').all()).toHaveLength(0);
       expect(final.prepare('SELECT count(*) AS count FROM schema_migration').get()).toEqual({
-        count: 93,
+        count: 94,
       });
       expect(
         final.prepare('SELECT count(*) AS count FROM migration_contract_metadata').get(),
-      ).toEqual({ count: 75 });
+      ).toEqual({ count: 76 });
     } finally {
       final.close();
     }
@@ -175,21 +175,21 @@ describe('SQLite migration concurrency', () => {
       expect(integrityCheck(final)).toBe('ok');
       expect(final.prepare('PRAGMA foreign_key_check').all()).toHaveLength(0);
       expect(final.prepare('SELECT max(version) AS version FROM schema_migration').get()).toEqual({
-        version: 97,
+        version: 98,
       });
-      // 62..85 and 90..97 (86-89 are left free for parallel work packets).
+      // 62..85 and 90..98 (86-89 are left free for parallel work packets).
       expect(
         final
-          .prepare('SELECT count(*) AS count FROM schema_migration WHERE version BETWEEN 62 AND 97')
+          .prepare('SELECT count(*) AS count FROM schema_migration WHERE version BETWEEN 62 AND 98')
           .get(),
-      ).toEqual({ count: 32 });
+      ).toEqual({ count: 33 });
       expect(
         final
           .prepare(
-            'SELECT count(*) AS count FROM migration_contract_metadata WHERE migration_version BETWEEN 62 AND 97',
+            'SELECT count(*) AS count FROM migration_contract_metadata WHERE migration_version BETWEEN 62 AND 98',
           )
           .get(),
-      ).toEqual({ count: 32 });
+      ).toEqual({ count: 33 });
     } finally {
       final.close();
     }

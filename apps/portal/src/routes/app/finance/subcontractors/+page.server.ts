@@ -3,6 +3,9 @@ import { randomUUID } from 'node:crypto';
 import {
   assertLiveSession,
   AccessDeniedError,
+  ConflictError,
+  isSupplierBillingDetailsRequired,
+  ValidationError,
   V3AccessDeniedError,
   V3ConflictError,
   V3ValidationError,
@@ -10,6 +13,7 @@ import {
 import { openPortalRepository } from '$lib/server/portal-repository';
 import {
   approveSettlement,
+  createSupplierRecoveryInvoice,
   markSettlementPaid,
   parsePayeeKey,
   parsePayInterval,
@@ -77,6 +81,11 @@ export const load: PageServerLoad = ({ locals, url }) => {
 };
 
 function failure(error: unknown) {
+  if (isSupplierBillingDetailsRequired(error))
+    return fail(400, { success: false, needBilling: true, message: (error as Error).message });
+  if (error instanceof ValidationError)
+    return fail(400, { success: false, message: error.message });
+  if (error instanceof ConflictError) return fail(409, { success: false, message: error.message });
   if (error instanceof SettlementActionError || error instanceof V3ValidationError)
     return fail(400, { success: false, message: error.message });
   if (error instanceof V3ConflictError) return fail(409, { success: false, message: error.message });
@@ -125,6 +134,40 @@ export const actions: Actions = {
     try {
       const result = markSettlementPaid(context, { payee, start: week.start, end: week.end, paidOn, reference, requestKey });
       return { success: true, action: 'markPaid', ...result };
+    } catch (caught) {
+      return failure(caught);
+    } finally {
+      context.sqlite.close();
+    }
+  },
+  invoiceSupplier: async ({ locals, request }) => {
+    const form = await request.formData();
+    const payee = parsePayeeKey(String(form.get('payee') ?? ''));
+    const week = settlementPeriod(
+      String(form.get('week') ?? ''),
+      parsePayInterval(String(form.get('interval') ?? '')) ?? 'weekly',
+    );
+    if (!payee || !payee.startsWith('supplier:'))
+      return fail(400, { success: false, message: 'Choose a supplier' });
+    const field = (name: string) => String(form.get(name) ?? '').trim();
+    const billing = form.has('legalName')
+      ? {
+          legalName: field('legalName'),
+          billingAddress: field('billingAddress'),
+          billingEmail: field('billingEmail'),
+          taxId: field('taxId'),
+          clientCode: field('clientCode'),
+        }
+      : undefined;
+    const context = openFinance(locals);
+    try {
+      const result = createSupplierRecoveryInvoice(context, {
+        payee,
+        start: week.start,
+        end: week.end,
+        billing,
+      });
+      return { success: true, action: 'invoiceSupplier', invoices: result.invoices };
     } catch (caught) {
       return failure(caught);
     } finally {

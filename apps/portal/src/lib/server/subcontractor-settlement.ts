@@ -15,6 +15,11 @@ import {
   paySupplierSettlementWithRecharges,
   rechargesForSettlement,
   supplierExpenseItems,
+  hasSupplierRecovery,
+  PortalRepository,
+  supplierBillingAccount,
+  supplierBillingDefaults,
+  type SupplierBillingInput,
   type SupplierExpenseItem,
 } from '@ja/database';
 import { foldSearchText } from '$lib/portal/client-directory';
@@ -426,21 +431,23 @@ export function settlementOverview(
   for (const payee of searched) {
     const ids = payee.workers.map((worker) => worker.id);
     const scope = { workerIds: ids, periodStart: input.start, periodEnd: input.end };
+    const settlements = settlementsFor(context.sqlite, ids, input.start, input.end);
     const summary = summarize(
       context.v3.subcontractorSettlementPreview(context.principal, scope),
-      settlementsFor(context.sqlite, ids, input.start, input.end),
+      settlements,
       input,
       context.v3.subcontractorSettlementExtras(context.principal, scope),
     );
     if (input.status !== 'all' && summary.status !== input.status) continue;
     matched += 1;
-    if (rows.length < input.limit)
+    if (rows.length < input.limit) {
       rows.push({
         ...payee,
         ...summary,
         payable: isPayableSubcontractor(payee.kind),
         interval: payeeInterval(context.sqlite, payee.key),
       });
+    }
   }
   return { rows, total: matched, payeeCount: payees.length };
 }
@@ -542,6 +549,24 @@ export function settlementDetail(
         : null,
     payable: isPayableSubcontractor(payee.kind),
     interval: payeeInterval(context.sqlite, payee.key),
+    supplierBilling:
+      payee.kind === 'supplier' && hasSupplierRecovery(context.sqlite)
+        ? (() => {
+            const supplierId = payee.key.slice('supplier:'.length);
+            const account = supplierBillingAccount(context.sqlite, supplierId);
+            return {
+              account: account
+                ? {
+                    legalName: account.legalName,
+                    billingAddress: account.billingAddress,
+                    billingEmail: account.billingEmail,
+                    code: account.clientCode ?? account.clientNumber,
+                  }
+                : null,
+              defaults: account ? null : supplierBillingDefaults(context.sqlite, supplierId),
+            };
+          })()
+        : null,
   };
 }
 
@@ -565,7 +590,13 @@ function supplierExpenseSummary(
     ).map((row) => ({ currency: row.currency, minor: row.minorUnits.toString() }));
   const recharge = items.filter((item) => item.treatment === 'recharge');
   const deducted = recharge.filter((item) => item.rechargedSettlementId !== null);
-  const open = recharge.filter((item) => item.rechargedSettlementId === null);
+  // On a live invoice to the supplier: no longer to deduct nor to recover (never twice).
+  const invoiced = recharge.filter(
+    (item) => item.rechargedSettlementId === null && item.recoveryInvoiceId !== null,
+  );
+  const open = recharge.filter(
+    (item) => item.rechargedSettlementId === null && item.recoveryInvoiceId === null,
+  );
   // What the next "Mark as paid" deducts from each open settlement of this period.
   const toDeduct = new Set<string>();
   for (const row of settlements) {
@@ -573,6 +604,10 @@ function supplierExpenseSummary(
     if (remaining <= 0n) continue;
     for (const pick of rechargesForSettlement(open, row, remaining)) toDeduct.add(pick.expenseId);
   }
+  const recover =
+    status === 'draft'
+      ? open.filter((item) => item.amountMinor === null)
+      : open.filter((item) => !toDeduct.has(item.expenseId));
   return {
     items: items.map((item) => ({
       ...item,
@@ -589,17 +624,47 @@ function supplierExpenseSummary(
     toDeduct: total(
       status === 'draft' ? open : open.filter((item) => toDeduct.has(item.expenseId)),
     ),
-    toRecover: total(
-      status === 'draft'
-        ? open.filter((item) => item.amountMinor === null)
-        : open.filter((item) => !toDeduct.has(item.expenseId)),
-    ),
+    toRecover: total(recover),
+    /** Expenses that "Create invoice to the supplier" puts on the draft(s). */
+    invoiceable: recover.filter((item) => item.amountMinor !== null).map((item) => item.expenseId),
+    invoiced: total(invoiced),
+    invoices: recoveryInvoices(invoiced),
     conversionMissing: open.filter((item) => item.amountMinor === null).length,
     supplierPaysTechnician: total(
       items.filter((item) => item.treatment === 'supplier_pays_technician'),
     ),
     jaReimburses: total(items.filter((item) => item.treatment === 'ja_reimburses')),
   };
+}
+
+/** The live invoices to the supplier for this period's recharged expenses (one per draft). */
+function recoveryInvoices(items: readonly SupplierExpenseItem[]) {
+  const byInvoice = new Map<
+    string,
+    {
+      id: string;
+      number: string | null;
+      state: string;
+      count: number;
+      currency: string;
+      minor: bigint;
+    }
+  >();
+  for (const item of items) {
+    if (!item.recoveryInvoiceId) continue;
+    const current = byInvoice.get(item.recoveryInvoiceId) ?? {
+      id: item.recoveryInvoiceId,
+      number: item.recoveryInvoiceNumber,
+      state: item.recoveryInvoiceState ?? 'draft',
+      count: 0,
+      currency: item.currency,
+      minor: 0n,
+    };
+    current.count += 1;
+    current.minor += BigInt(item.amountMinor ?? '0');
+    byInvoice.set(item.recoveryInvoiceId, current);
+  }
+  return [...byInvoice.values()].map((row) => ({ ...row, minor: row.minor.toString() }));
 }
 
 export class SettlementActionError extends Error {}
@@ -710,4 +775,29 @@ export function markSettlementPaid(
     recorded += 1;
   }
   return { recorded };
+}
+
+/**
+ * D4 follow-up: put what is still to recover from the supplier in this period on an invoice
+ * to the supplier (draft, one per project). The expenses are recomputed here and re-checked
+ * by the repository; the browser never chooses amounts.
+ */
+export function createSupplierRecoveryInvoice(
+  context: SettlementContext,
+  input: Readonly<{ payee: PayeeKey; start: string; end: string; billing?: SupplierBillingInput }>,
+) {
+  const detail = settlementDetail(context, input);
+  if (!detail) throw new SettlementActionError('Subcontractor not found');
+  if (detail.payee.kind !== 'supplier' || !detail.expenses)
+    throw new SettlementActionError('Only a supplier can be invoiced for recharged expenses');
+  if (detail.expenses.invoiceable.length === 0)
+    throw new SettlementActionError(
+      'Nothing is still to recover from this supplier in this period',
+    );
+  const supplierId = input.payee.slice('supplier:'.length);
+  return new PortalRepository(context.sqlite).createSupplierRecoveryInvoices(context.principal, {
+    supplierId,
+    expenseIds: detail.expenses.invoiceable,
+    billing: input.billing,
+  });
 }

@@ -105,7 +105,10 @@ export function draftInvoiceTemplateSnapshot(
     periodStart: invoice.period_start,
     periodEnd: invoice.period_end,
     commercial: { streamType: invoice.stream_type, paymentTermsDays: invoice.payment_terms_days },
-    ...(invoice.stream_type === 'expense' ? { documentKind: 'expenses' } : {}),
+    // Expense invoices, and invoices to a supplier for recharged expenses, print as such.
+    ...(invoice.stream_type === 'expense' || invoice.stream_type === 'supplier_recharge'
+      ? { documentKind: 'expenses' }
+      : {}),
     calculation: {
       currency: invoice.currency,
       subtotalMinor: subtotal.toString(),

@@ -4,6 +4,11 @@ import { assertActiveAccount, assertLiveSession } from '../../core/authorization
 import { recordAuditEvent } from '../../core/audit.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { AccessDeniedError, ConflictError, ValidationError } from '../../repository.ts';
+import {
+  hasSupplierRecovery,
+  LIVE_RECOVERY_INVOICE_SQL,
+  liveRecoveryJoinSql,
+} from './supplier-recovery-invoice.ts';
 
 /**
  * Owner decision D4 (2026-11-26): who carries the expenses an EXTERNAL (supplier) technician
@@ -330,6 +335,16 @@ export class SupplierExpenseRuleRepository {
           WHERE ${scope} LIMIT 1`,
       )
       .get(...args);
+    // Also an expense on a live invoice to the supplier: the rule may not reach back over it.
+    const invoiced = hasSupplierRecovery(this.sqlite)
+      ? this.sqlite
+          .prepare(
+            `SELECT 1 FROM expense e JOIN supplier_expense_recovery sr ON sr.expense_id=e.id
+               JOIN invoice i ON i.id=sr.invoice_id
+              WHERE ${scope} AND ${LIVE_RECOVERY_INVOICE_SQL} LIMIT 1`,
+          )
+          .get(...args)
+      : undefined;
     const owed =
       carrier === 'supplier'
         ? this.sqlite
@@ -340,9 +355,9 @@ export class SupplierExpenseRuleRepository {
             )
             .get(...args)
         : undefined;
-    if (paid || recharged || owed)
+    if (paid || recharged || invoiced || owed)
       throw new ConflictError(
-        'Some expenses from this date are already reimbursed, deducted or set to be reimbursed by J&A. Choose a later date.',
+        'Some expenses from this date are already reimbursed, deducted, invoiced to the supplier or set to be reimbursed by J&A. Choose a later date.',
       );
   }
 
@@ -593,6 +608,10 @@ export type SupplierExpenseItem = Readonly<{
   treatment: SupplierExpenseTreatment;
   /** Already deducted from this settlement (recharge recorded). */
   rechargedSettlementId: string | null;
+  /** On a live invoice to the supplier (never deducted then): its id, number and state. */
+  recoveryInvoiceId: string | null;
+  recoveryInvoiceNumber: string | null;
+  recoveryInvoiceState: string | null;
 }>;
 
 /**
@@ -611,10 +630,13 @@ export function supplierExpenseItems(
       `SELECT e.id,e.worker_id,e.project_id,e.spent_on,e.category,e.vendor,e.who_paid,e.currency,
               CAST(e.amount_minor AS TEXT) amount_minor,
               CAST(e.project_currency_amount_minor AS TEXT) project_amount_minor,
-              p.currency project_currency,r.settlement_id recharged_settlement_id
+              p.currency project_currency,r.settlement_id recharged_settlement_id,
+              rec.invoice_id recovery_invoice_id,rec.invoice_number recovery_invoice_number,
+              rec.invoice_state recovery_invoice_state
          FROM expense e JOIN project p ON p.id=e.project_id
          JOIN supplier_user_profile sup ON sup.user_id=e.worker_id
          LEFT JOIN supplier_expense_recharge r ON r.expense_id=e.id
+         ${liveRecoveryJoinSql(sqlite, 'e')}
         WHERE e.worker_id IN (${placeholders}) AND e.spent_on BETWEEN ? AND ?
           AND e.approval_state IN ('approved','locked')
           AND NOT EXISTS (
@@ -639,6 +661,9 @@ export function supplierExpenseItems(
     project_amount_minor: string | null;
     project_currency: string;
     recharged_settlement_id: string | null;
+    recovery_invoice_id: string | null;
+    recovery_invoice_number: string | null;
+    recovery_invoice_state: string | null;
   }>;
   return rows.map((row) => {
     const rule = effectiveSupplierExpenseRule(sqlite, {
@@ -663,6 +688,9 @@ export function supplierExpenseItems(
       source: rule.source,
       treatment: supplierExpenseTreatment(rule.carrier, row.who_paid),
       rechargedSettlementId: row.recharged_settlement_id,
+      recoveryInvoiceId: row.recovery_invoice_id,
+      recoveryInvoiceNumber: row.recovery_invoice_number,
+      recoveryInvoiceState: row.recovery_invoice_state,
     };
   });
 }
@@ -756,6 +784,8 @@ export function rechargesForSettlement(
     if (
       item.treatment !== 'recharge' ||
       item.rechargedSettlementId !== null ||
+      // Already on an invoice to the supplier: never deducted as well.
+      item.recoveryInvoiceId !== null ||
       item.amountMinor === null ||
       item.workerId !== settlement.worker_id ||
       item.projectId !== settlement.project_id ||

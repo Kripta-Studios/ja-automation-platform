@@ -27,11 +27,16 @@ describe('0042 supplier workforce migration', () => {
           .all(),
       ).toEqual([
         { name: 'supplier' },
+        // 0098: the client record a supplier is invoiced through (recharged expenses).
+        { name: 'supplier_billing_account' },
         { name: 'supplier_contact_directory' },
         // 0097 (D4): who pays external technicians' expenses, and their settlement deductions.
         { name: 'supplier_expense_recharge' },
+        // 0098: expenses put on an invoice to the supplier.
+        { name: 'supplier_expense_recovery' },
         { name: 'supplier_expense_rule' },
         { name: 'supplier_project_grant' },
+        { name: 'supplier_recovery_project' },
         { name: 'supplier_time_batch_request' },
         { name: 'supplier_time_entry_recorder' },
         { name: 'supplier_user_profile' },

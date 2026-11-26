@@ -4,6 +4,7 @@ import { ConflictError, ValidationError } from '../../repository.ts';
 import { OwnerRecordManagement } from './owner-record-management.ts';
 import { runImmediateTransaction } from '../../core/transaction.ts';
 import { recordAuditEvent } from '../../core/audit.ts';
+import { hasSupplierRecovery } from '../expenses/supplier-recovery-invoice.ts';
 
 /** Discard only unissued invoices, releasing their source reservations atomically. */
 export function discardOwnerInvoice(
@@ -75,6 +76,9 @@ export function discardOwnerInvoice(
         )
     )
       throw new ConflictError('Another invoice shares this billing period');
+    // An unissued invoice to a supplier releases its recharged expenses (still to recover).
+    if (hasSupplierRecovery(sqlite))
+      sqlite.prepare('DELETE FROM supplier_expense_recovery WHERE invoice_id=?').run(id);
     sqlite.prepare('DELETE FROM invoice_commercial_source_manifest WHERE invoice_id=?').run(id);
     sqlite.prepare('DELETE FROM invoice_source WHERE invoice_id=?').run(id);
     sqlite.prepare('DELETE FROM invoice_line WHERE invoice_id=?').run(id);

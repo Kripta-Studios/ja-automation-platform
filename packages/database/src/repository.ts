@@ -3,7 +3,25 @@ import {
   type ProjectSiteInput,
 } from './domains/projects/project-site-settings.ts';
 import { releaseVoidInvoiceSources } from './domains/billing/invoice-void-release.ts';
-import { supplierCarriesExpenseSql } from './domains/expenses/supplier-expense-carrier.ts';
+import {
+  effectiveSupplierExpenseRule,
+  supplierCarriesExpenseSql,
+  supplierExpenseTreatment,
+} from './domains/expenses/supplier-expense-carrier.ts';
+import {
+  hasSupplierRecovery,
+  normalizeSupplierBilling,
+  recoverableSupplierExpenses,
+  recoveryLineDescription,
+  supplierBillingAccount,
+  supplierBillingDetailsRequired,
+  SUPPLIER_RECOVERY_SOURCE,
+  SUPPLIER_RECOVERY_STREAM,
+  type RecoveryExpense,
+  type RecoveryInvoiceResult,
+  type SupplierBillingAccount,
+  type SupplierBillingInput,
+} from './domains/expenses/supplier-recovery-invoice.ts';
 import {
   claimRequestedInvoiceNumber,
   projectInvoiceCounter,
@@ -9811,6 +9829,283 @@ export class PortalRepository {
     });
   }
 
+  /**
+   * Owner/Finance (D4 follow-up, 2026-11-26): invoice to a supplier the expenses J&A paid for
+   * its technicians that are still to recover from it. One draft per source project, on the
+   * supplier's client record, issued by the same company and in the same currency as that
+   * project. Each expense goes on one line and on at most one live invoice; an expense already
+   * deducted from a settlement is refused (and the other way round).
+   */
+  createSupplierRecoveryInvoices(
+    principal: Principal,
+    input: Readonly<{
+      supplierId: string;
+      expenseIds: readonly string[];
+      billing?: SupplierBillingInput;
+    }>,
+  ): { invoices: RecoveryInvoiceResult[]; billingAccountCreated: boolean } {
+    this.assertActive(principal);
+    if (!canManageBilling(principal)) throw new AccessDeniedError('Finance role required');
+    this.assertLiveSession(principal);
+    if (!hasSupplierRecovery(this.sqlite))
+      throw new ConflictError('Invoices to suppliers need the latest database update');
+    const requested = [...new Set(input.expenseIds.map(String))];
+    if (!requested.length || requested.length > 500)
+      throw new ValidationError('Choose the expenses to invoice');
+    const v3 = new V3Repository(this.sqlite);
+    return this.transaction(() => {
+      const supplier = this.sqlite
+        .prepare('SELECT id,name,status FROM supplier WHERE id=?')
+        .get(input.supplierId) as { id: string; name: string; status: string } | undefined;
+      if (!supplier) throw new ValidationError('Supplier not found');
+      const expenses = recoverableSupplierExpenses(
+        this.sqlite,
+        supplier.id,
+        requested,
+        (expense) =>
+          supplierExpenseTreatment(
+            effectiveSupplierExpenseRule(this.sqlite, {
+              projectId: expense.projectId,
+              workerId: expense.workerId,
+              onDate: expense.spentOn,
+            })?.carrier ?? 'ja',
+            expense.whoPaid,
+          ) === 'recharge',
+      );
+      if (expenses.length !== requested.length)
+        throw new ConflictError(
+          expenses.length === 0
+            ? 'Nothing is left to invoice to this supplier. Reload the page.'
+            : 'Some of these expenses changed (deducted, invoiced or no longer recharged). Reload the page.',
+        );
+      let account = supplierBillingAccount(this.sqlite, supplier.id);
+      let billingAccountCreated = false;
+      if (!account) {
+        if (!input.billing) throw supplierBillingDetailsRequired();
+        const billing = normalizeSupplierBilling(input.billing);
+        const first = this.sqlite
+          .prepare('SELECT timezone,currency FROM project WHERE id=?')
+          .get(expenses[0]!.projectId) as { timezone: string; currency: Currency };
+        const client = this.createClient(principal, {
+          clientCode: billing.clientCode || undefined,
+          legalName: billing.legalName,
+          displayName: supplier.name,
+          currency: first.currency,
+          timezone: first.timezone,
+          billingEmail: billing.billingEmail || undefined,
+          billingContactName: billing.billingEmail ? undefined : billing.legalName,
+          billingAddress: billing.billingAddress,
+          paymentTermsDays: 30,
+          notes: `Supplier ${supplier.name}: invoices for expenses J&A paid for its technicians.`,
+        });
+        if (billing.taxId && this.clientTaxIdColumn() !== 'NULL')
+          this.sqlite
+            .prepare('UPDATE client SET tax_id=?,updated_at=?,version=version+1 WHERE id=?')
+            .run(billing.taxId, now(), client.id);
+        this.sqlite
+          .prepare(
+            'INSERT INTO supplier_billing_account(supplier_id,client_id,created_by,created_at) VALUES(?,?,?,?)',
+          )
+          .run(supplier.id, client.id, principal.userId, now());
+        this.audit(principal, 'supplier.billing_account_create', 'supplier', supplier.id, {
+          clientId: client.id,
+          clientNumber: client.clientNumber,
+        });
+        account = supplierBillingAccount(this.sqlite, supplier.id)!;
+        billingAccountCreated = true;
+      }
+      const byProject = new Map<string, RecoveryExpense[]>();
+      for (const expense of expenses)
+        byProject.set(expense.projectId, [...(byProject.get(expense.projectId) ?? []), expense]);
+      const invoices: RecoveryInvoiceResult[] = [];
+      for (const [sourceProjectId, group] of byProject) {
+        const target = this.supplierRecoveryProject(
+          principal,
+          v3,
+          account,
+          supplier,
+          sourceProjectId,
+        );
+        const currency = target.currency;
+        if (group.some((expense) => expense.currency !== currency))
+          throw new ConflictError('These expenses are in another currency than the project');
+        const total = group.reduce((sum, expense) => sum + expense.amountMinor, 0n);
+        const dates = group.map((expense) => expense.spentOn).sort();
+        const invoiceId = newId();
+        const timestamp = now();
+        this.sqlite
+          .prepare(
+            'INSERT INTO invoice(id,project_id,billing_rule_id,stream_type,state,currency,subtotal_minor,tax_minor,total_minor,period_start,period_end,created_at,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+          )
+          .run(
+            invoiceId,
+            target.projectId,
+            target.billingRuleId,
+            SUPPLIER_RECOVERY_STREAM,
+            'draft',
+            currency,
+            safeInteger(total),
+            0,
+            safeInteger(total),
+            dates[0]!,
+            dates.at(-1)!,
+            timestamp,
+            timestamp,
+          );
+        const recovery = this.sqlite.prepare(
+          'INSERT INTO supplier_expense_recovery(id,expense_id,supplier_id,invoice_id,amount_minor,currency,created_by,created_at) VALUES(?,?,?,?,?,?,?,?)',
+        );
+        for (const expense of group) {
+          const technician = expense.workerName;
+          this.insertInvoiceLine(
+            invoiceId,
+            recoveryLineDescription(expense, technician),
+            1,
+            1,
+            safeInteger(expense.amountMinor),
+            expense.amountMinor,
+            SUPPLIER_RECOVERY_SOURCE,
+            expense.expenseId,
+            {
+              sourceVersion: expense.version,
+              expenseId: expense.expenseId,
+              supplierId: supplier.id,
+              spentOn: expense.spentOn,
+              technician,
+              category: expense.category,
+              vendor: expense.vendor,
+              sourceProjectNumber: expense.projectNumber,
+              currency,
+              amountMinor: expense.amountMinor.toString(),
+            },
+          );
+          recovery.run(
+            newId(),
+            expense.expenseId,
+            supplier.id,
+            invoiceId,
+            safeInteger(expense.amountMinor),
+            currency,
+            principal.userId,
+            timestamp,
+          );
+        }
+        this.rebuildInvoiceCommercialManifest(invoiceId, SUPPLIER_RECOVERY_STREAM, timestamp);
+        this.audit(principal, 'supplier.recovery_invoice_create', 'invoice', invoiceId, {
+          supplierId: supplier.id,
+          sourceProjectId,
+          currency,
+          totalMinor: total.toString(),
+          expenseIds: group.map((expense) => expense.expenseId),
+        });
+        invoices.push({
+          id: invoiceId,
+          projectId: target.projectId,
+          currency,
+          totalMinor: total.toString(),
+          expenseCount: group.length,
+        });
+      }
+      return { invoices, billingAccountCreated };
+    });
+  }
+
+  /** The supplier's project that carries invoices for one source project (created once). */
+  private supplierRecoveryProject(
+    principal: Principal,
+    v3: V3Repository,
+    account: SupplierBillingAccount,
+    supplier: { id: string; name: string },
+    sourceProjectId: string,
+  ): { projectId: string; billingRuleId: string; currency: Currency } {
+    const existing = this.sqlite
+      .prepare(
+        `SELECT r.project_id,r.billing_rule_id,p.currency FROM supplier_recovery_project r
+           JOIN project p ON p.id=r.project_id WHERE r.supplier_id=? AND r.source_project_id=?`,
+      )
+      .get(supplier.id, sourceProjectId) as
+      | { project_id: string; billing_rule_id: string; currency: Currency }
+      | undefined;
+    if (existing)
+      return {
+        projectId: existing.project_id,
+        billingRuleId: existing.billing_rule_id,
+        currency: existing.currency,
+      };
+    const source = this.sqlite
+      .prepare(
+        'SELECT id,project_number,name,timezone,currency,cost_center_code FROM project WHERE id=?',
+      )
+      .get(sourceProjectId) as
+      | {
+          id: string;
+          project_number: string;
+          name: string;
+          timezone: string;
+          currency: Currency;
+          cost_center_code: string | null;
+        }
+      | undefined;
+    if (!source) throw new ValidationError('Project not found');
+    const rule = this.sqlite
+      .prepare(
+        `SELECT br.legal_entity_id FROM billing_rule br JOIN legal_entity le ON le.id=br.legal_entity_id
+          WHERE br.project_id=? AND br.enabled=1 AND br.currency=? AND le.status='active'
+          ORDER BY (br.effective_to IS NULL) DESC,br.effective_from DESC LIMIT 1`,
+      )
+      .get(source.id, source.currency) as { legal_entity_id: string } | undefined;
+    const assignment = this.sqlite
+      .prepare(
+        `SELECT legal_entity_revision_id,effective_from,effective_to
+           FROM effective_project_legal_entity_assignment
+          WHERE project_id=? ORDER BY (effective_to IS NULL) DESC,effective_from DESC LIMIT 1`,
+      )
+      .get(source.id) as
+      | { legal_entity_revision_id: string; effective_from: string; effective_to: string | null }
+      | undefined;
+    if (!rule || !assignment)
+      throw new ConflictError(
+        `Set up billing for project ${source.project_number} first: the invoice to the supplier uses its issuing company.`,
+      );
+    const project = this.createProject(principal, {
+      costCenterCode: source.cost_center_code ?? source.project_number,
+      clientId: account.clientId,
+      name: `${source.name} (${source.project_number}) · recharged to ${supplier.name}`.slice(
+        0,
+        200,
+      ),
+      timezone: source.timezone,
+      currency: source.currency,
+      billingModel: 'tm',
+      startDate: assignment.effective_from.slice(0, 10),
+    });
+    v3.assignCanonicalLegalEntityToProject(principal, {
+      projectId: project.id,
+      legalEntityRevisionId: assignment.legal_entity_revision_id,
+      effectiveFrom: assignment.effective_from,
+      ...(assignment.effective_to ? { effectiveTo: assignment.effective_to } : {}),
+      reason: `Invoices to ${supplier.name} are issued like project ${source.project_number}`,
+      idempotencyKey: `supplier-recovery:${supplier.id}:${source.id}`,
+    });
+    const billingRule = this.createBillingRule(principal, {
+      projectId: project.id,
+      legalEntityId: rule.legal_entity_id,
+      streamType: 'other',
+      cadenceType: 'manual',
+      currency: source.currency,
+      effectiveFrom: assignment.effective_from.slice(0, 10),
+      templateId: 'expenses-detailed',
+      recipientEmail: account.billingEmail ?? undefined,
+      paymentTermsDays: 30,
+    });
+    this.sqlite
+      .prepare(
+        'INSERT INTO supplier_recovery_project(supplier_id,source_project_id,project_id,billing_rule_id,created_by,created_at) VALUES(?,?,?,?,?,?)',
+      )
+      .run(supplier.id, source.id, project.id, billingRule.id, principal.userId, now());
+    return { projectId: project.id, billingRuleId: billingRule.id, currency: source.currency };
+  }
+
   private findClientRate(
     principal: Principal,
     projectId: string,
@@ -10021,7 +10316,12 @@ export class PortalRepository {
     for (const source of sourceRows)
       sourceByKey.set(`${source.source_type}\u0000${source.source_id}`, source);
     for (const line of lines) {
-      if (!['time', 'expense', 'milestone', 'adjustment'].includes(line.source_type)) continue;
+      if (
+        !['time', 'expense', 'milestone', 'adjustment', SUPPLIER_RECOVERY_SOURCE].includes(
+          line.source_type,
+        )
+      )
+        continue;
       const key = `${line.source_type}\u0000${line.source_id}`;
       if (sourceByKey.has(key)) continue;
       let sourceVersion = 1;
@@ -10347,6 +10647,8 @@ export class PortalRepository {
     // Signed adjustments use the original invoice as their authority and do
     // not rerate labor or expenses through a billing rule.
     if (invoice.stream_type === 'adjustment') return;
+    // An invoice to a supplier is built from recharged expenses, not rated by a billing rule.
+    if (invoice.stream_type === SUPPLIER_RECOVERY_STREAM) return;
     const stale = () => new ReadinessError([{ code: 'stale_billing_configuration' }]);
     if (
       !invoice.billing_rule_id ||
@@ -11082,8 +11384,13 @@ export class PortalRepository {
         },
         // New documents print client number/code, project and cost center in the header.
         documentHeaderVersion: 2,
-        // Expenses on a separate invoice print as an expense invoice (owner request 2026-11-26).
-        ...(invoice.stream_type === 'expense' && !creditNoteFor ? { documentKind: 'expenses' } : {}),
+        // Expenses on a separate invoice print as an expense invoice (owner request 2026-11-26),
+        // and so does an invoice to a supplier for recharged expenses.
+        ...((invoice.stream_type === 'expense' ||
+          invoice.stream_type === SUPPLIER_RECOVERY_STREAM) &&
+        !creditNoteFor
+          ? { documentKind: 'expenses' }
+          : {}),
         ...(creditNoteFor
           ? {
               documentType: 'credit_note',
@@ -11353,6 +11660,51 @@ export class PortalRepository {
     });
   }
 
+  /** An invoice to a supplier issues only while each line still matches its recharged expense. */
+  private recheckSupplierRecoveryLines(invoice: InvoiceRow): void {
+    const rows = this.sqlite
+      .prepare(
+        `SELECT l.source_id,CAST(l.subtotal_minor AS TEXT) line_minor,CAST(r.amount_minor AS TEXT) linked_minor,
+                e.approval_state,e.currency,p.currency project_currency,
+                CAST(e.amount_minor AS TEXT) amount_minor,
+                CAST(e.project_currency_amount_minor AS TEXT) project_amount_minor,
+                EXISTS(SELECT 1 FROM supplier_expense_recharge d WHERE d.expense_id=l.source_id) deducted
+           FROM invoice_line l
+           LEFT JOIN supplier_expense_recovery r ON r.invoice_id=l.invoice_id AND r.expense_id=l.source_id
+           LEFT JOIN expense e ON e.id=l.source_id
+           LEFT JOIN project p ON p.id=e.project_id
+          WHERE l.invoice_id=?`,
+      )
+      .all(invoice.id) as Array<{
+      source_id: string;
+      line_minor: string;
+      linked_minor: string | null;
+      approval_state: string | null;
+      currency: string | null;
+      project_currency: string | null;
+      amount_minor: string | null;
+      project_amount_minor: string | null;
+      deducted: number;
+    }>;
+    if (!rows.length) throw new ConflictError('Invoice line projection is empty');
+    for (const row of rows) {
+      const current =
+        row.currency !== null && row.currency === row.project_currency
+          ? row.amount_minor
+          : row.project_amount_minor;
+      if (
+        row.linked_minor === null ||
+        row.linked_minor !== row.line_minor ||
+        current !== row.line_minor ||
+        !['approved', 'locked'].includes(row.approval_state ?? '') ||
+        Number(row.deducted) === 1
+      )
+        throw new ConflictError(
+          `Expense ${row.source_id} changed since this supplier invoice was drafted. Discard the draft and create it again.`,
+        );
+    }
+  }
+
   private recheckInvoiceProjection(
     invoice: InvoiceRow,
     lines: InvoiceIssueLine[],
@@ -11424,6 +11776,8 @@ export class PortalRepository {
   }
 
   private recheckInvoiceSources(invoice: InvoiceRow): void {
+    if (invoice.stream_type === SUPPLIER_RECOVERY_STREAM)
+      this.recheckSupplierRecoveryLines(invoice);
     const sources = this.sqlite
       .prepare('SELECT source_type,source_id,source_version FROM invoice_source WHERE invoice_id=?')
       .all(invoice.id) as Array<{ source_type: string; source_id: string; source_version: number }>;

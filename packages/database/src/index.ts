@@ -330,6 +330,7 @@ const REVIEWED_B5_MIGRATION_NAMES: Readonly<Record<number, string>> = {
   95: 'assignment_extra_effective_dates',
   96: 'expense_invoice_settings',
   97: 'supplier_expense_carrier',
+  98: 'supplier_recovery_invoice',
 };
 
 const MIGRATION_CONTRACT_VERSION = 'ja-migration-contract-v1';
@@ -338,7 +339,7 @@ const MIGRATION_CONTRACT_MANIFEST_RELATIVE_PATH = 'contracts/ja-b5-migration-con
 // startup.  The manifest is a release artifact: changing it without changing
 // this constant fails closed before any migration SQL can run.
 export const MIGRATION_CONTRACT_MANIFEST_SHA256 =
-  'd4b465c4be4734aa0ac6758015c5bfa13019b761a220cd3079cff5212c1d5601';
+  '1c4707541c8c312aefd0bce65951ea6ece75e26e8eae97dc92170ea32a9f3660';
 
 type MigrationContractEntry = Readonly<{
   version: number;
@@ -1225,6 +1226,7 @@ export * from './domains/localized-artifacts/index.ts';
 export * from './domains/accounting-pack/index.ts';
 export * from './domains/expenses/assignment-expense-policy-repository.ts';
 export * from './domains/expenses/supplier-expense-carrier.ts';
+export * from './domains/expenses/supplier-recovery-invoice.ts';
 export * from './domains/worker-statements/index.ts';
 export * from './domains/identity/index.ts';
 export * from './domains/reports/period-followup-repository.ts';

@@ -40,7 +40,7 @@ describe('invoice inline overrides migration79', () => {
     f.sqlite.close();
     process.env.JA_MIGRATIONS_PATH = resolve('migrations');
     f.sqlite = createDatabase(join(f.directory, 'app.db')).sqlite;
-    expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 97 });
+    expect(f.sqlite.prepare('SELECT MAX(version) version FROM schema_migration').get()).toEqual({ version: 98 });
     for (const name of names)
       expect(f.sqlite.prepare(`SELECT * FROM ${name} ORDER BY rowid`).all(), name).toEqual(before[name]);
     expect(
@@ -56,8 +56,8 @@ describe('invoice inline overrides migration79', () => {
     // 13 reviewed actions in 0079, plus 2 in 0081 (assignment PO, replacement link), plus 1 in
     // 0084 (payment.reverse), plus 4 in 0092 (invoice counter, draft number, versions and
     // version PDFs), plus 1 in 0093 (assignment extras), plus 3 in 0094 (pay and billing
-    // intervals), plus 2 in 0096 (expense invoice settings), plus 3 in 0097 (supplier expense rules); 0082 WP-FX rows excluded.
-    expect(after.filter((row) => (row as { owner_packet?: string }).owner_packet !== 'WP-FX').length - registry.length).toBe(13 + 2 + 1 + 4 + 1 + 3 + 2 + 3);
+    // intervals), plus 2 in 0096 (expense invoice settings), plus 3 in 0097 (supplier expense rules), plus 2 in 0098 (supplier recovery invoices); 0082 WP-FX rows excluded.
+    expect(after.filter((row) => (row as { owner_packet?: string }).owner_packet !== 'WP-FX').length - registry.length).toBe(13 + 2 + 1 + 4 + 1 + 3 + 2 + 3 + 2);
     for (const action of [
       'invoice.approve_on_behalf',
       'invoice_line_override.create',

@@ -243,6 +243,8 @@ const SPECIAL: Record<string, Tuple> = {
   'project.supplier_expense_rule_set': ['Technician expense rule changed (project)', 'Cambio de regla de gastos de técnicos (proyecto)', 'Alteração da regra de despesas de técnicos (projeto)'],
   'assignment.supplier_expense_rule_set': ['Technician expense rule changed (person)', 'Cambio de regla de gastos del técnico (persona)', 'Alteração da regra de despesas do técnico (pessoa)'],
   'supplier.expense_recharge': ['Expenses deducted from supplier settlement', 'Gastos descontados de la liquidación del proveedor', 'Despesas descontadas do acerto do fornecedor'],
+  'supplier.billing_account_create': ['Supplier billing details saved', 'Datos de facturación del proveedor guardados', 'Dados de faturamento do fornecedor salvos'],
+  'supplier.recovery_invoice_create': ['Invoice to supplier created (recharged expenses)', 'Factura al proveedor creada (gastos cargados)', 'Fatura ao fornecedor criada (despesas cobradas)'],
   'lifecycle.transition': ['Status changed', 'Cambio de estado', 'Alteração de status'],
   'security.mfa.login': ['Signed in with two-step code', 'Inicio de sesión con código de dos pasos', 'Login com código de duas etapas'],
   'security.mfa.login (totp)': ['Signed in with two-step code', 'Inicio de sesión con código de dos pasos', 'Login com código de duas etapas'],

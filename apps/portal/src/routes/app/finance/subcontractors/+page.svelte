@@ -863,6 +863,13 @@
       grid-area: amount;
       font-weight: 700;
     }
+    /* D4 expenses: day + amount, technician, expense, who pays (no hours suffix). */
+    .sub__expenses .sub__table tr {
+      grid-template-areas: 'day day amount' 'project project project' 'hours hours hours' 'rate rate rate';
+    }
+    .sub__expenses .sub__table td:nth-child(3)::after {
+      content: none;
+    }
     .sub__actions,
     .sub__actions form {
       flex-direction: column;

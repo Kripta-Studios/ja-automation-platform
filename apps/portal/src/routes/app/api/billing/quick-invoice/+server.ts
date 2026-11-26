@@ -43,6 +43,8 @@ const scopeSchema = z
     periodStart: z.iso.date(),
     periodEnd: z.iso.date(),
     billingRuleId: z.string().min(1).max(200).optional(),
+    /** Expenses on the same or a separate invoice ('setting' = the project's setting). */
+    expenseInvoice: z.enum(['setting', 'same', 'separate']).optional(),
   })
   .strict()
   .refine((value) => value.periodEnd >= value.periodStart, { path: ['periodEnd'] });
@@ -117,6 +119,7 @@ const scopeFields = {
   periodStart: z.iso.date(),
   periodEnd: z.iso.date(),
   billingRuleId: z.string().min(1).max(200).optional(),
+  expenseInvoice: z.enum(['setting', 'same', 'separate']).optional(),
   overrides: overridesSchema.optional(),
   /** Unclassified expenses left out of this invoice (they stay unclassified). */
   excludedExpenseIds: z.array(idSchema).max(200).optional(),
@@ -132,6 +135,8 @@ const scopeFields = {
 const leaveOutSchema = scopeFields.leaveOut;
 /** Split by PO: the parts the user saw ("PO=total|…"); null/absent = one invoice. */
 const splitGuard = z.string().max(8000).nullable().optional();
+/** Separate expense invoice: the total the user saw (absent/null = no expense invoice). */
+const companionGuard = z.string().regex(/^\d{1,18}$/u).nullable().optional();
 const requestKey = z.string().trim().min(8).max(200);
 const refSchema = z
   .object({ type: z.enum(['time', 'expense']), id: z.string().min(1).max(200), version: z.number().int().positive() })
@@ -149,6 +154,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       expectedTotalMinor: z.string().regex(/^\d{1,18}$/u),
       requestKey,
       expectedSplit: splitGuard,
+      expectedCompanionTotalMinor: companionGuard,
       replacesInvoiceId: idSchema.optional(),
     })
     .strict(),
@@ -161,6 +167,7 @@ const operationSchema = z.discriminatedUnion('operation', [
       locale: z.enum(['en', 'es', 'pt']).default('en'),
       purchaseNo: z.string().trim().max(200).optional(),
       expectedSplit: splitGuard,
+      expectedCompanionTotalMinor: companionGuard,
       replacesInvoiceId: idSchema.optional(),
     })
     .strict(),
@@ -403,6 +410,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
       periodStart: command.periodStart,
       periodEnd: command.periodEnd,
       ...(command.billingRuleId ? { billingRuleId: command.billingRuleId } : {}),
+      ...(command.expenseInvoice ? { expenseInvoice: command.expenseInvoice } : {}),
       overrides: engineOverrides(command.overrides),
       excludedExpenseIds: command.excludedExpenseIds ?? [],
       leaveOut: command.leaveOut ?? null,
@@ -414,6 +422,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         expectedTotalMinor: command.expectedTotalMinor,
         requestKey: command.requestKey,
         expectedSplit: command.expectedSplit ?? null,
+        expectedCompanionTotalMinor: command.expectedCompanionTotalMinor ?? null,
       });
       if (result.ok && command.replacesInvoiceId)
         linkReplacement(context, command.projectId, result.invoiceId, command.replacesInvoiceId);
@@ -427,6 +436,7 @@ export const POST: RequestHandler = async ({ locals, request, url }) => {
         locale: command.locale,
         ...(command.purchaseNo ? { purchaseNo: command.purchaseNo } : {}),
         expectedSplit: command.expectedSplit ?? null,
+        expectedCompanionTotalMinor: command.expectedCompanionTotalMinor ?? null,
         replacesInvoiceId: command.replacesInvoiceId ?? null,
       });
       return json({ success: result.ok, ...result }, { status: result.ok ? 200 : 409, headers });

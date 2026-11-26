@@ -674,6 +674,8 @@ export type QuickInvoiceIssueResult =
       state: string;
       /** Split by PO: every invoice issued in this action. */
       invoices?: Array<{ invoiceId: string; number: string | null; totalMinor: string; purchaseNo: string | null }>;
+      /** Expenses on a separate invoice: the expense invoice of this action. */
+      companionInvoiceId?: string;
     }
   | {
       ok: false;
@@ -696,6 +698,7 @@ export function quickInvoiceIssue(
     locale: 'en' | 'es' | 'pt';
     purchaseNo?: string;
     expectedSplit?: string | null;
+    expectedCompanionTotalMinor?: string | null;
     replacesInvoiceId?: string | null;
   },
 ): QuickInvoiceIssueResult {
@@ -754,6 +757,7 @@ export function quickInvoiceIssue(
     totalMinor: created.totalMinor,
     state: first.state,
     ...(ids.length > 1 ? { invoices: invoices.map(({ state: _state, ...rest }) => rest) } : {}),
+    ...(created.companion ? { companionInvoiceId: created.companion.invoiceId } : {}),
   };
 }
 

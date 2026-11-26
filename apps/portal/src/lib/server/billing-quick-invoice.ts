@@ -2545,7 +2545,10 @@ export function quickInvoicePreview(context: Context, input: QuickInvoiceInput):
       ...(simulated ? { alternatives: [] } : {}),
       // The choice replaces the one-step "Set up expense invoicing" offer.
       ...(plan.choice && input.expenseInvoice
-        ? { attention: preview.attention.filter((item) => item.kind !== 'expenseSetup') }
+        ? {
+            attention: preview.attention.filter((item) => item.kind !== 'expenseSetup'),
+            warnings: preview.warnings.filter((warning) => warning.code !== 'expenses_separate'),
+          }
         : {}),
       expenseChoice: plan.choice,
       companion,

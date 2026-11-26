@@ -18,6 +18,7 @@
   import { onDestroy, onMount } from 'svelte';
   import { base } from '$app/paths';
   import { extrasText, type AssignmentExtrasCopyKey } from '$lib/portal/assignment-extras-copy';
+  import { expenseInvoiceSummary, expenseInvoiceText, type ExpenseInvoiceCopyKey } from '$lib/portal/expense-invoice-copy';
   import { goto } from '$app/navigation';
   import {
     lastCompletePeriodForCadence,
@@ -80,7 +81,40 @@
     totalMinor: string;
   };
   type Split = { parts: SplitPart[]; totalMinor: string; signature: string };
-  type Issued = { invoiceId: string; number: string | null; totalMinor: string; purchaseNo: string | null };
+  type Issued = {
+    invoiceId: string;
+    number: string | null;
+    totalMinor: string;
+    purchaseNo: string | null;
+    /** Expenses on a separate invoice: which of the two invoices this is. */
+    label?: string;
+  };
+  type ExpenseChoice = {
+    separate: boolean;
+    setting: 'same' | 'separate';
+    source: 'project' | 'client' | 'default';
+    streams: string;
+    openCount: number;
+    changesSetting: boolean;
+    changeFrom: string | null;
+    blockedFrom: string | null;
+    stayOpen: boolean;
+  };
+  type Companion = {
+    state: 'ready' | 'blocked' | 'empty' | 'existing';
+    billingRuleId: string | null;
+    periodStart: string;
+    periodEnd: string;
+    currency: string;
+    subtotalMinor: string;
+    taxMinor: string;
+    totalMinor: string;
+    sourceCount: number;
+    groups: Group[];
+    warnings: Warning[];
+    provisionalNumber: string | null;
+    existingInvoice: { id: string; state: string; number: string | null } | null;
+  };
   type Warning = {
     code: string;
     severity: 'blocker' | 'excluded' | 'issue' | 'info';
@@ -185,6 +219,8 @@
     taxOptions: Array<{ id: string; name: string; basisPoints: number }>;
     streamTaxProfileId: string | null;
     split?: Split | null;
+    expenseChoice?: ExpenseChoice | null;
+    companion?: Companion | null;
   };
   type PeriodChoice = { id: string; label: string; start: string; end: string };
 
@@ -256,7 +292,11 @@
   let excludedExpenses = $state<string[]>([]);
   /** Split by PO: invoices issued (or drafts saved) in the last action. */
   let doneInvoices = $state<Issued[]>([]);
-  let doneKind = $state<'issued' | 'drafts'>('issued');
+  let doneKind = $state<'issued' | 'drafts' | 'pairDrafts' | 'pairIssued'>('issued');
+  /** Expenses on the same or a separate invoice: the project's setting until changed here. */
+  let expenseInvoice = $state<'setting' | 'same' | 'separate'>('setting');
+  const e = (key: ExpenseInvoiceCopyKey, params: Record<string, string | number> = {}) =>
+    expenseInvoiceText(locale, key, params);
   const noOverrides = (): Overrides => ({ people: [], tax: null, purchaseNo: null });
   let overrides = $state<Overrides>(noOverrides());
   /** People whose hours / expenses are left out of this invoice (they stay open). */
@@ -464,6 +504,7 @@
     resetOverrides();
     excludedExpenses = [];
     doneInvoices = [];
+    expenseInvoice = 'setting';
     projectId = id;
     choosingProject = false;
     query = '';
@@ -518,7 +559,7 @@
     controller = current;
     previewLoading = true;
     previewFailed = false;
-    const params = new URLSearchParams({ projectId, periodStart, periodEnd });
+    const params = new URLSearchParams({ projectId, periodStart, periodEnd, expenseInvoice });
     if (streamOverride) params.set('billingRuleId', streamOverride);
     const sent = overridesPayload();
     if (sent) params.set('overrides', JSON.stringify(sent));
@@ -629,6 +670,7 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          expenseInvoice,
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
           ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
@@ -644,7 +686,34 @@
         totalMinor?: string;
         reason?: string;
         preview?: Preview;
+        companion?: { invoiceId: string; totalMinor: string } | null;
       };
+      if (body.ok && body.invoiceId && body.companion) {
+        // Expenses on a separate invoice: both drafts, with their totals and links.
+        doneKind = 'pairDrafts';
+        const ids = (body.invoiceIds ?? [body.invoiceId]).filter((id) => id !== body.companion!.invoiceId);
+        const parts = preview.split?.parts ?? [];
+        doneInvoices = [
+          ...ids.map((invoiceId, index) => ({
+            invoiceId,
+            number: null,
+            totalMinor: parts[index]?.totalMinor ?? (ids.length === 1 ? (body.totalMinor ?? '0') : '0'),
+            purchaseNo: parts[index]?.purchaseNo ?? null,
+            label: e('hoursInvoice'),
+          })),
+          {
+            invoiceId: body.companion.invoiceId,
+            number: null,
+            totalMinor: body.companion.totalMinor,
+            purchaseNo: null,
+            label: e('expenseInvoice'),
+          },
+        ];
+        expenseInvoice = 'setting';
+        void reloadProjects();
+        await loadPreview();
+        return;
+      }
       if (body.ok && body.invoiceIds && body.invoiceIds.length > 1) {
         // One draft per PO: list them here (each opens on its own).
         const parts = preview.split?.parts ?? [];
@@ -689,6 +758,7 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          expenseInvoice,
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
           ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
@@ -759,6 +829,7 @@
           periodStart,
           periodEnd,
           ...(streamOverride ? { billingRuleId: streamOverride } : {}),
+          expenseInvoice,
           ...(overridesPayload() ? { overrides: overridesPayload() } : {}),
           ...(excludedExpenses.length ? { excludedExpenseIds: excludedExpenses } : {}),
           ...(leaveOutPayload() ? { leaveOut: leaveOutPayload() } : {}),
@@ -772,13 +843,21 @@
         ok?: boolean;
         invoiceId?: string;
         invoices?: Issued[];
+        companionInvoiceId?: string;
         reason?: string;
         message?: string;
         preview?: Preview;
       };
       if (body.ok && body.invoices && body.invoices.length > 1) {
-        doneKind = 'issued';
-        doneInvoices = body.invoices;
+        const pair = Boolean(body.companionInvoiceId);
+        doneKind = pair ? 'pairIssued' : 'issued';
+        doneInvoices = pair
+          ? body.invoices.map((invoice) => ({
+              ...invoice,
+              label: e(invoice.invoiceId === body.companionInvoiceId ? 'expenseInvoice' : 'hoursInvoice'),
+            }))
+          : body.invoices;
+        if (pair) expenseInvoice = 'setting';
         issueOpen = false;
         void reloadProjects();
         await loadPreview();
@@ -810,11 +889,19 @@
   }
 
   /** Create/issue guard: the amount (and, when split by PO, the parts) the user saw. */
-  function splitGuard(): { expectedTotalMinor: string; expectedSplit?: string } {
+  function splitGuard(): { expectedTotalMinor: string; expectedSplit?: string; expectedCompanionTotalMinor?: string } {
     const split = preview?.split;
+    const pair = companionReady ? { expectedCompanionTotalMinor: preview!.companion!.totalMinor } : {};
     return split
-      ? { expectedTotalMinor: split.totalMinor, expectedSplit: split.signature }
-      : { expectedTotalMinor: preview?.totalMinor ?? '0' };
+      ? { expectedTotalMinor: split.totalMinor, expectedSplit: split.signature, ...pair }
+      : { expectedTotalMinor: preview?.totalMinor ?? '0', ...pair };
+  }
+
+  /** "Put expenses on a separate invoice": priced again with the other choice. */
+  function setExpensesSeparate(value: boolean): void {
+    expenseInvoice = value ? 'separate' : 'same';
+    doneInvoices = [];
+    schedulePreview(0);
   }
 
   /** "Leave out of this invoice" for an unclassified expense (and undo). */
@@ -1247,6 +1334,23 @@
   );
   /** One invoice per PO (only when the amount shown is what would be created now). */
   const split = $derived(preview?.split && shown === preview ? preview.split : null);
+  /** Expenses on a separate invoice: the expense invoice is created together with this one. */
+  const companionReady = $derived(
+    Boolean(preview?.expenseChoice?.separate && preview.companion?.state === 'ready' && shown === preview),
+  );
+  /** The choice is offered when these dates have expenses (or the expense invoice has any). */
+  const expenseChoiceShown = $derived(
+    Boolean(
+      preview?.expenseChoice &&
+        preview.state !== 'existing' &&
+        (preview.expenseChoice.openCount > 0 || (preview.companion && preview.companion.state !== 'empty')),
+    ),
+  );
+  const pairTotal = $derived(
+    companionReady && preview
+      ? (BigInt(split ? split.totalMinor : preview.totalMinor) + BigInt(preview.companion!.totalMinor)).toString()
+      : null,
+  );
   /** "Already on an invoice" still offers the one-step expense setup (nothing else to fix there). */
   const existingExpenseSetup = $derived(
     preview?.state === 'existing' ? preview.attention.filter((item) => item.kind === 'expenseSetup') : [],
@@ -1555,17 +1659,25 @@
             {#if doneInvoices.length}
               <div class="quick-invoice__done" role="status" data-quick-invoice-done={doneInvoices.length}>
                 <strong
-                  >{quickInvoiceFormat(locale, doneKind === 'issued' ? 'splitIssued' : 'splitDrafts', {
-                    count: doneInvoices.length,
-                  })}</strong
+                  >{doneKind === 'pairDrafts'
+                    ? e('doneDrafts')
+                    : doneKind === 'pairIssued'
+                      ? e('doneIssued')
+                      : quickInvoiceFormat(locale, doneKind === 'issued' ? 'splitIssued' : 'splitDrafts', {
+                          count: doneInvoices.length,
+                        })}</strong
                 >
                 <ul>
                   {#each doneInvoices as done (done.invoiceId)}
-                    <li>
+                    <li data-quick-invoice-done-item={done.label ?? ''}>
                       <a href={`${base}/app/billing/invoices/${encodeURIComponent(done.invoiceId)}?lang=${locale}`}
-                        >{done.number ?? t('draft')}</a
+                        >{done.label ? `${done.label} · ` : ''}{done.number ?? t('draft')}</a
                       >
-                      <span>{done.purchaseNo ? `PO ${done.purchaseNo}` : '—'} · {money(done.totalMinor)}</span>
+                      <span
+                        >{done.purchaseNo ? `PO ${done.purchaseNo}` : done.label ? '' : '—'}{done.purchaseNo || !done.label
+                          ? ' · '
+                          : ''}{money(done.totalMinor)}</span
+                      >
                     </li>
                   {/each}
                 </ul>
@@ -1629,6 +1741,47 @@
               </fieldset>
             {/if}
 
+            {#if expenseChoiceShown && preview.expenseChoice}
+              {@const choice = preview.expenseChoice}
+              <fieldset class="quick-invoice__expchoice" data-quick-invoice-expense-choice disabled={previewLoading || fixing || creating || issuing}>
+                <legend>{e('title')}</legend>
+                <label class="quick-invoice__expchoice-toggle"
+                  ><input
+                    type="checkbox"
+                    checked={choice.separate}
+                    disabled={Boolean(choice.blockedFrom)}
+                    onchange={(event) => setExpensesSeparate((event.currentTarget as HTMLInputElement).checked)}
+                    data-quick-invoice-expenses-separate
+                  /><span
+                    ><strong>{e('choiceLabel')}</strong><small
+                      >{e(choice.separate ? 'separateHelp' : 'sameHelp')} · {expenseInvoiceSummary(
+                        locale,
+                        choice.setting,
+                        choice.source,
+                      )}</small
+                    ></span
+                  ></label
+                >
+                {#if choice.changesSetting && choice.changeFrom}
+                  <p class="quick-invoice__muted" data-quick-invoice-expense-choice-saved>
+                    {e('choiceSaved', { date: dateText(choice.changeFrom) })}
+                  </p>
+                {/if}
+                {#if choice.blockedFrom}
+                  <p class="quick-invoice__muted" data-quick-invoice-expense-choice-blocked>
+                    {e('choiceBlocked', { date: dateText(choice.blockedFrom) })}
+                  </p>
+                {/if}
+                {#if choice.stayOpen && choice.openCount}
+                  <p class="quick-invoice__amber">{e('choiceOpen', { count: choice.openCount })}</p>
+                {/if}
+              </fieldset>
+            {/if}
+            {#if companionReady && shown}
+              <h4 class="quick-invoice__invoice-heading" data-quick-invoice-first-heading>
+                1 · {e('hoursInvoice')}
+              </h4>
+            {/if}
             {#if shown}
               <table class="quick-invoice__lines" aria-label={t('lines')}>
                 <tbody>
@@ -1966,6 +2119,45 @@
                   {t('willBeNumber').replace('{number}', preview.provisionalNumber)}
                 </p>
               {/if}
+              {#if preview.expenseChoice?.separate && preview.companion && expenseChoiceShown}
+                {@const companion = preview.companion}
+                {@const leftOut = companion.warnings.filter((warning) => warning.severity === 'excluded').reduce((total, warning) => total + warning.count, 0)}
+                <section class="quick-invoice__companion" data-quick-invoice-companion={companion.state} aria-labelledby="quick-invoice-companion-title">
+                  <h4 id="quick-invoice-companion-title">2 · {e('companionTitle')}</h4>
+                  {#if companion.state === 'ready'}
+                    <p class="quick-invoice__companion-total">
+                      <span>{e('companionReady', { count: companion.sourceCount })}</span>
+                      <strong data-quick-invoice-companion-total>{money(companion.totalMinor)}</strong>
+                    </p>
+                    <ul class="quick-invoice__companion-lines">
+                      {#each companion.groups.slice(0, 6) as group, index (index)}
+                        <li><span>{group.label}{group.detail ? ` · ${group.detail}` : ''}</span><span>{money(group.amountMinor)}</span></li>
+                      {/each}
+                      {#if companion.groups.length > 6}<li><span>+{companion.groups.length - 6}</span><span></span></li>{/if}
+                    </ul>
+                    {#if companion.provisionalNumber}
+                      <p class="quick-invoice__muted">{t('numberOnIssue')}: {companion.provisionalNumber}</p>
+                    {/if}
+                  {:else if companion.state === 'existing' && companion.existingInvoice}
+                    <p class="quick-invoice__muted">{e('companionExisting')}</p>
+                    <a class="secondary-button" href={`${base}/app/billing/invoices/${encodeURIComponent(companion.existingInvoice.id)}?lang=${locale}`}
+                      >{t('openInvoice')}{#if companion.existingInvoice.number} · {companion.existingInvoice.number}{/if}</a
+                    >
+                  {:else if companion.state === 'empty'}
+                    <p class="quick-invoice__muted">{e('companionNone')}</p>
+                  {:else}
+                    <p class="quick-invoice__amber">{e('companionBlocked')}</p>
+                  {/if}
+                  {#if leftOut}
+                    <p class="quick-invoice__muted">{e('companionLeftOut', { count: leftOut })}</p>
+                  {/if}
+                  {#if companion.billingRuleId && companion.state !== 'ready'}
+                    <button type="button" class="quick-invoice__linkbtn" onclick={() => { streamOverride = companion.billingRuleId!; schedulePreview(0); }}
+                      data-quick-invoice-companion-review>{e('companionReview')}</button
+                    >
+                  {/if}
+                </section>
+              {/if}
             {:else if preview.state === 'existing' && preview.existingInvoice}
               <p class="quick-invoice__plain" role="status">{t('existing')}</p>
               <a
@@ -2062,9 +2254,14 @@
       {#if issueOpen && preview?.state === 'ready'}
         <div class="quick-invoice__confirm" role="dialog" aria-modal="false" aria-labelledby="quick-invoice-confirm-title" data-quick-invoice-confirm>
           <strong id="quick-invoice-confirm-title"
-            >{split
-              ? quickInvoiceFormat(locale, 'issueConfirmSplit', { count: split.parts.length, amount: money(split.totalMinor) })
-              : quickInvoiceFormat(locale, 'issueConfirmTitle', { amount: money(preview.totalMinor) })}</strong
+            >{pairTotal && !split
+              ? e('issueTwoConfirm', { amount: money(pairTotal) })
+              : split
+                ? quickInvoiceFormat(locale, 'issueConfirmSplit', {
+                    count: split.parts.length + (companionReady ? 1 : 0),
+                    amount: money(pairTotal ?? split.totalMinor),
+                  })
+                : quickInvoiceFormat(locale, 'issueConfirmTitle', { amount: money(preview.totalMinor) })}</strong
           >
           <p>
             {quickInvoiceFormat(locale, 'issueConfirmBody', {
@@ -2089,7 +2286,10 @@
       {/if}
       <div class="quick-invoice__actionbar-row">
         <div class="quick-invoice__actionbar-total">
-          {#if shown}
+          {#if shown && pairTotal}
+            <span>{t('total')} · {e('twoTotal')}</span>
+            <strong data-quick-invoice-pair-total>{money(pairTotal)}</strong>
+          {:else if shown}
             <span>{t('total')}</span>
             <strong>{money(split ? split.totalMinor : canIssue || canSaveDraft ? preview!.totalMinor : shown.totalMinor)}</strong>
           {:else if blocking.length}
@@ -2106,9 +2306,11 @@
               data-quick-invoice-create
               >{creating
                 ? t('creating')
-                : split
-                  ? quickInvoiceFormat(locale, 'saveDraftsSplit', { count: split.parts.length })
-                  : t('saveDraft')}</button
+                : companionReady && !split
+                  ? e('saveTwo')
+                  : split
+                    ? quickInvoiceFormat(locale, 'saveDraftsSplit', { count: split.parts.length + (companionReady ? 1 : 0) })
+                    : t('saveDraft')}</button
             >
           {/if}
           {#if canIssue}
@@ -2119,7 +2321,11 @@
               aria-expanded={issueOpen}
               onclick={() => (issueOpen = !issueOpen)}
               data-quick-invoice-issue
-              >{split ? quickInvoiceFormat(locale, 'issueButtonSplit', { count: split.parts.length }) : t('issueButton')} ▸</button
+              >{companionReady && !split
+                ? e('issueTwo')
+                : split
+                  ? quickInvoiceFormat(locale, 'issueButtonSplit', { count: split.parts.length + (companionReady ? 1 : 0) })
+                  : t('issueButton')} ▸</button
             >
           {:else if blocking.length}
             <button
@@ -2471,6 +2677,87 @@
   }
   .quick-invoice__part--off {
     color: var(--muted, #6b6a64);
+  }
+  .quick-invoice__expchoice,
+  .quick-invoice__companion {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 0;
+    margin: 0 0 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line, #e4e4e2);
+    border-radius: 0.75rem;
+  }
+  .quick-invoice__expchoice legend {
+    padding: 0 0.25rem;
+    font-weight: 600;
+  }
+  .quick-invoice__expchoice p,
+  .quick-invoice__companion p,
+  .quick-invoice__companion h4 {
+    margin: 0;
+  }
+  .quick-invoice__expchoice-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    min-height: var(--ja-target-min, 2.75rem);
+    cursor: pointer;
+  }
+  .quick-invoice__expchoice-toggle input {
+    flex: none;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.15rem;
+  }
+  .quick-invoice__expchoice-toggle span {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+  }
+  .quick-invoice__expchoice-toggle small {
+    color: var(--muted, #6b6a64);
+  }
+  .quick-invoice__invoice-heading {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+  }
+  .quick-invoice__companion {
+    margin-top: 1rem;
+    background: var(--surface-subtle, #fafaf9);
+  }
+  .quick-invoice__companion h4 {
+    font-size: 0.95rem;
+  }
+  .quick-invoice__companion-total {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.25rem 1rem;
+    align-items: baseline;
+  }
+  .quick-invoice__companion-total strong {
+    font-size: 1.25rem;
+    font-variant-numeric: tabular-nums;
+  }
+  .quick-invoice__companion-lines {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.25rem;
+    font-size: 0.9rem;
+  }
+  .quick-invoice__companion-lines li {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  .quick-invoice__companion-lines li span:last-child {
+    flex: none;
+    font-variant-numeric: tabular-nums;
   }
   .quick-invoice__parts-total {
     margin: 0;

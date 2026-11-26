@@ -368,6 +368,15 @@
       href: '#invoice-draft-preview-action',
     },
   });
+  const isOwner = $derived(String(data.user?.role) === 'owner_admin');
+  // Owner decision 2026-11-25: an issued invoice is corrected in place as a NEW VERSION with
+  // the same number (version 1 and every later version stay in the history with their PDF).
+  const canCorrectIssued = $derived(
+    isOwner &&
+      !hasDraftPreview &&
+      !isCreditNote &&
+      ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceState),
+  );
   const pdfPolling = createInvoicePdfPollingController(() => invalidateAll());
   const documentSnapshot = $derived({
     ...data.documentSnapshot,
@@ -442,15 +451,6 @@
   let inlineError = $state('');
   let inlineDialog = $state<HTMLDialogElement>();
   let issuedCorrectionOpen = $state(false);
-  const isOwner = $derived(String(data.user?.role) === 'owner_admin');
-  // Owner decision 2026-11-25: an issued invoice is corrected in place as a NEW VERSION with
-  // the same number (version 1 and every later version stay in the history with their PDF).
-  const canCorrectIssued = $derived(
-    isOwner &&
-      !hasDraftPreview &&
-      !isCreditNote &&
-      ['issued', 'sent', 'partially_paid', 'paid', 'overdue'].includes(invoiceState),
-  );
   const currentRevision = $derived(Number(invoice.current_revision_number ?? 1));
   type VersionEntry = {
     revisionNumber: number;

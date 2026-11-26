@@ -259,7 +259,9 @@ describe('worker assignment finance terms', () => {
     const value = fixture();
     const row = (userId: string) =>
       value.sqlite
-        .prepare('SELECT id,version,assignment_role FROM project_member WHERE project_id=? AND user_id=?')
+        .prepare(
+          'SELECT id,version,assignment_role FROM project_member WHERE project_id=? AND user_id=?',
+        )
         .get(value.project.id, userId) as { id: string; version: number; assignment_role: string };
     const manager = row('b5-manager');
     expect(
@@ -298,7 +300,7 @@ describe('worker assignment finance terms', () => {
     expect(count(value.sqlite, 'internal_cost_rule', value.project.id)).toBe(0);
   });
 
-  it('blocks an uncovered date extension, then accepts staged rules and a covered shortening', async () => {
+  it('blocks an uncovered date extension for non-owners, lets the Owner extend, and accepts staged rules and a covered shortening', async () => {
     const value = fixture();
     expect(await projectActions.assignWorker(event(form(value.project.id)))).toMatchObject({
       success: true,
@@ -306,17 +308,25 @@ describe('worker assignment finance terms', () => {
     const assignment = value.sqlite
       .prepare('SELECT id,version FROM project_member WHERE project_id=? AND user_id=?')
       .get(value.project.id, 'b5-outsider') as { id: string; version: number };
+    const actAs = (principal: unknown) =>
+      openPortalRepository.mockReturnValue({
+        ...openPortalRepository.mock.results.at(-1)?.value,
+        principal,
+      });
+    const owner = stepUpB5Principal(value.sqlite, value.owner, 'stage-extension');
     const extension = {
       assignmentId: assignment.id,
       version: String(assignment.version),
       endsOn: '2026-11-30',
     };
+    // A project manager cannot extend into days no finance rules cover.
+    actAs(value.manager);
     expect(await projectActions.updateAssignment(event(extension))).toMatchObject({
       status: 409,
       data: {
         code: 'ASSIGNMENT_FINANCE_COVERAGE_REQUIRED',
         values: extension,
-        remedies: [{ id: 'review_finance_rules', projectId: value.project.id }],
+        remedies: [{ id: 'contact_project_owner' }],
       },
     });
     expect(
@@ -325,7 +335,7 @@ describe('worker assignment finance terms', () => {
         .get(assignment.id),
     ).toEqual({ ends_on: '2026-10-31', version: assignment.version });
 
-    const owner = stepUpB5Principal(value.sqlite, value.owner, 'stage-extension');
+    // Once the Owner stages rules for November, the covered extension is accepted.
     value.v3.createInternalCostRule(owner, {
       workerId: 'b5-outsider',
       projectId: value.project.id,
@@ -353,11 +363,27 @@ describe('worker assignment finance terms', () => {
         .prepare('SELECT ends_on,version FROM project_member WHERE id=?')
         .get(assignment.id),
     ).toEqual({ ends_on: '2026-11-30', version: assignment.version + 1 });
+
+    // Owner powers (2026-11-25): the Owner may extend into uncovered days; those days show
+    // as missing terms in pay/invoice readiness instead of blocking the change.
+    actAs(owner);
     expect(
       await projectActions.updateAssignment(
         event({
           assignmentId: assignment.id,
           version: String(assignment.version + 1),
+          endsOn: '2026-12-31',
+        }),
+      ),
+    ).toMatchObject({ success: true });
+    expect(
+      value.sqlite.prepare('SELECT ends_on FROM project_member WHERE id=?').get(assignment.id),
+    ).toEqual({ ends_on: '2026-12-31' });
+    expect(
+      await projectActions.updateAssignment(
+        event({
+          assignmentId: assignment.id,
+          version: String(assignment.version + 2),
           endsOn: '2026-10-15',
         }),
       ),

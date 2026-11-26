@@ -21,7 +21,13 @@ function fixture() {
   openPortalRepository.mockReturnValue({
     repository: value.repository,
     principal: value.owner,
-    sqlite: { ...value.sqlite, close: vi.fn(), prepare: value.sqlite.prepare.bind(value.sqlite) },
+    // The real connection (prepare + exec for the action's transaction); only close is a spy.
+    sqlite: {
+      ...value.sqlite,
+      close: vi.fn(),
+      prepare: value.sqlite.prepare.bind(value.sqlite),
+      exec: value.sqlite.exec.bind(value.sqlite),
+    },
   });
   return value;
 }

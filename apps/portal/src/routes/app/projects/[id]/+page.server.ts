@@ -246,7 +246,7 @@ export const load: PageServerLoad = ({ locals, params, url }) => {
       // D4 (2026-11-26): who pays external technicians' expenses (project rule + people).
       supplierExpenseRules:
         context.principal.role === 'owner_admin' || context.principal.role === 'finance_admin'
-          ? new SupplierExpenseRuleRepository(context.sqlite).view(context.principal, params.id)
+          ? projectSupplierExpenseRules(context, params.id)
           : null,
       // Owner request 2026-11-25: how often each person on this project is paid.
       assignmentPayIntervals:
@@ -1323,6 +1323,19 @@ function detailFailure(
   }
   return actionFailure(cause, extras);
 }
+/** D4: the external technicians' expense rule of the project; a failing read hides the panel. */
+function projectSupplierExpenseRules(
+  context: ReturnType<typeof openPortalRepository>,
+  projectId: string,
+) {
+  try {
+    return new SupplierExpenseRuleRepository(context.sqlite).view(context.principal, projectId);
+  } catch (cause) {
+    console.error('Supplier expense rules unavailable', cause);
+    return null;
+  }
+}
+
 /** The project's expense invoice setting in plain terms, with the day each choice would start. */
 function projectExpenseInvoiceView(sqlite: ReturnType<typeof openPortalRepository>['sqlite'], projectId: string) {
   try {

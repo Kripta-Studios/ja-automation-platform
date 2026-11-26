@@ -720,7 +720,9 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           expenseView,
           records,
           // D4: a supplier's technician sees plainly who pays his expenses on each project.
-          supplierExpenseRules: supplierExpenseRulesForViewer(context.sqlite, context.principal).map(
+          supplierExpenseRules: readSupplierExpenseRules(() =>
+            supplierExpenseRulesForViewer(context.sqlite, context.principal),
+          ).map(
             (rule) => ({
               projectId: rule.projectId,
               projectName: String(
@@ -2031,4 +2033,14 @@ function reviewViewRequested(
     )
     .get(context.principal.userId, today);
   return !assigned;
+}
+
+/** D4: "who pays my expenses" is informational; a failing read never breaks the page. */
+function readSupplierExpenseRules<T>(read: () => T[]): T[] {
+  try {
+    return read();
+  } catch (cause) {
+    console.error('Supplier expense rules unavailable', cause);
+    return [];
+  }
 }

@@ -97,6 +97,8 @@ describe('assignment extras form', () => {
       overtimeWorkerMethod: 'rate',
       overtimeWorker: '25.00',
       expenses: 'worker',
+      // D4: '' = not a supplier's technician (no "who pays" choice).
+      supplierExpenses: '',
       effectiveFrom: '',
       appliesFrom: '',
       previous: null,

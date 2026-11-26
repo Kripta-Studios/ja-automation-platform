@@ -965,9 +965,17 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
       // D4: the coordinator sees who pays each of his technicians' expenses on this project.
       supplierExpenseRules:
         !owner && projectId
-          ? supplierExpenseRulesForViewer(ctx.sqlite, ctx.principal).filter(
-              (rule) => rule.projectId === projectId,
-            )
+          ? (() => {
+              try {
+                return supplierExpenseRulesForViewer(ctx.sqlite, ctx.principal).filter(
+                  (rule) => rule.projectId === projectId,
+                );
+              } catch (cause) {
+                // Informational only: a failing read never breaks the team page.
+                console.error('Supplier expense rules unavailable', cause);
+                return [];
+              }
+            })()
           : [],
       entries:
         projectId && !period.periodProblem

@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { supplierExpenseText } from '$lib/portal/supplier-expense-copy';
   import { SvelteDate, SvelteMap } from 'svelte/reactivity';
   import { CURRENCIES } from '$lib/portal/currencies';
   /*
@@ -68,6 +69,14 @@
   const isSupplierTechnician = $derived(
     ($page.data as { chromeUser?: { workforceProfile?: string | null } | null }).chromeUser
       ?.workforceProfile === 'external_technician',
+  );
+  const supplierRules = $derived(
+    ((data as { supplierExpenseRules?: unknown }).supplierExpenseRules ?? []) as Array<{
+      projectId: string;
+      projectName: string;
+      carrier: 'ja' | 'supplier';
+      supplierName: string;
+    }>,
   );
   const canOverridePayer = $derived(['owner_admin', 'finance_admin'].includes(role));
   const canRecord = $derived(!isAuditor);
@@ -886,8 +895,19 @@
         <h2>{isOwner ? c('recentOwnerRecorded') : c('mine')}</h2>
         <p>{c('intro')}</p>
         {#if isSupplierTechnician}
-          <!-- T69 (D4 parked): no promise about who refunds; point to the coordinator. -->
-          <p class="xp-muted" data-supplier-expense-note>{c('supplierTechnicianNote')}</p>
+          <!-- D4: who pays this technician's expenses, per project (person > project rule). -->
+          {#if supplierRules.length > 0}
+            {#each supplierRules as rule (rule.projectId)}
+              <p class="xp-muted" data-supplier-expense-note={rule.carrier}>
+                {supplierExpenseText(locale, rule.carrier === 'supplier' ? 'techSupplier' : 'techJa', {
+                  project: rule.projectName,
+                  supplier: rule.supplierName,
+                })}
+              </p>
+            {/each}
+          {:else}
+            <p class="xp-muted" data-supplier-expense-note>{c('supplierTechnicianNote')}</p>
+          {/if}
         {/if}
         <p class="xp-muted" data-expense-scope>
           {c('captureScope', { weeks: capture.weeks, n: visible.length })}

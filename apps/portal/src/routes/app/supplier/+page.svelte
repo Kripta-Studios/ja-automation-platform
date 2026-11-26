@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { supplierExpenseText } from '$lib/portal/supplier-expense-copy';
   import DirectionIcon from '$lib/portal/ui/DirectionIcon.svelte';
   import TimeIntervalFields from '$lib/portal/ui/TimeIntervalFields.svelte';
   import { durationMinutes, localToday } from '$lib/portal/ui/time-entry-clock';
@@ -1621,6 +1622,21 @@
           </li>{/each}
       </ul></SectionCard
     >
+    {#if data.supplierExpenseRules?.length}
+      <!-- D4: who pays each technician's expenses (set by J&A; read-only here). -->
+      <SectionCard title={supplierExpenseText(data.locale, 'coordTitle')}>
+        <ul data-supplier-expense-rules>
+          {#each data.supplierExpenseRules as rule (rule.workerId)}
+            <li data-supplier-expense-rule={rule.carrier}>
+              {supplierExpenseText(data.locale, rule.carrier === 'supplier' ? 'coordSupplier' : 'coordJa', {
+                name: data.assigned.find((t) => String(t.id) === rule.workerId)?.name ?? '',
+                project: data.projects.find((p) => String(p.id) === rule.projectId)?.name ?? '',
+              })}
+            </li>
+          {/each}
+        </ul>
+      </SectionCard>
+    {/if}
   {:else if workspaceAction === 'personnel'}
     <p>{c.empty}</p>
   {/if}

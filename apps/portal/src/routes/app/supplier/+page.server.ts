@@ -8,7 +8,12 @@ import {
   supplierReadFailure,
 } from '$lib/server/supplier-context';
 import { actionFail, actionFailure } from '$lib/server/actions/action-message';
-import { AccessDeniedError, ConflictError, ValidationError } from '@ja/database';
+import {
+  AccessDeniedError,
+  ConflictError,
+  ValidationError,
+  supplierExpenseRulesForViewer,
+} from '@ja/database';
 import { durationMinutes } from '$lib/portal/ui/time-entry-clock';
 import { isSystemAccount } from '$lib/portal/system-accounts';
 
@@ -957,6 +962,13 @@ export const load: PageServerLoad = ({ locals, url, cookies }) => {
             ? rosterByProject.get(projectId)
             : ctx.supplier.listScheduledTechnicians(ctx.principal, projectId)) ?? [])
         : [],
+      // D4: the coordinator sees who pays each of his technicians' expenses on this project.
+      supplierExpenseRules:
+        !owner && projectId
+          ? supplierExpenseRulesForViewer(ctx.sqlite, ctx.principal).filter(
+              (rule) => rule.projectId === projectId,
+            )
+          : [],
       entries:
         projectId && !period.periodProblem
           ? ctx.supplier.listTime(ctx.principal, { projectId, from: period.from, to: period.to })

@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import type { DatabaseSync } from 'node:sqlite';
 import {
   AssignmentExpensePolicyRepository,
+  supplierExpenseRulesForViewer,
   CrewLeaderRepository,
   MailIdentityRepository,
   listInvoiceEmailDeliveries,
@@ -718,6 +719,18 @@ export const sectionLoad: PageServerLoad = async ({ locals, params, url }) => {
           projects: captureProjects,
           expenseView,
           records,
+          // D4: a supplier's technician sees plainly who pays his expenses on each project.
+          supplierExpenseRules: supplierExpenseRulesForViewer(context.sqlite, context.principal).map(
+            (rule) => ({
+              projectId: rule.projectId,
+              projectName: String(
+                captureProjects.find((project) => String(project.id) === rule.projectId)?.name ??
+                  '',
+              ),
+              carrier: rule.carrier,
+              supplierName: rule.supplierName,
+            }),
+          ).filter((rule) => rule.projectName),
           expenseCapture: {
             weeks: capture.weeks,
             from: capture.from,
